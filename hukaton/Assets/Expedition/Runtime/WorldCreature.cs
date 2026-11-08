@@ -14,14 +14,18 @@ namespace Hakaton.Expeditions
         public Transform visual,head;
         public Renderer[] skin;
         public WorldLoot trophyPrefab;
+        [Tooltip("Optional authored alternatives for this creature's home territory.")]
+        public Transform[] spawnPoints;
         public int maximumHealth=8,attackHalfHearts=2;
         public float sightRange=15,leash=23,speed=3.5f,attackRange=2.4f,contactRange=1.6f,windup=.7f,strikeSeconds=.45f,recovery=1.1f;
+        [Tooltip("Recovery after a missed strike. Negative values use the normal recovery duration.")]
+        public float recoveryOnMiss=-1;
         public bool dash;
         public int Health{get;private set;}
         public CreatureState State{get;private set;}
         public bool Alive=>Health>0;
-        Vector3 home,lastSeen,strikeDirection;
-        Quaternion homeRotation;
+        Vector3 home,authoredHome,lastSeen,strikeDirection;
+        Quaternion homeRotation,authoredRotation;
         float timer,unseen,frozenUntil,downUntil,burnUntil,curseUntil,nextDot,roamAt;
         int curseDamage;
         bool hitDuringStrike;
@@ -30,13 +34,16 @@ namespace Hakaton.Expeditions
         {
             // These nonserialized navigation switches leave physical position/rotation to the Rigidbody.
             navigator.updatePosition=false;navigator.updateRotation=false;
-            home=transform.position;homeRotation=transform.rotation;colours=new MaterialPropertyBlock();Health=maximumHealth;
+            home=authoredHome=transform.position;homeRotation=authoredRotation=transform.rotation;colours=new MaterialPropertyBlock();Health=maximumHealth;
             baseColours=System.Array.ConvertAll(skin,r=>r.sharedMaterial.color);
         }
-        public void ResetForOuting()
+        public void ResetForOuting()=>ResetForOuting(null);
+        public void ResetForOuting(System.Random random)
         {
             gameObject.SetActive(true);Health=maximumHealth;State=CreatureState.Roam;
-            frozenUntil=downUntil=burnUntil=curseUntil=nextDot=unseen=0;timer=0;
+            var point=random!=null && spawnPoints!=null && spawnPoints.Length>0?spawnPoints[random.Next(spawnPoints.Length)]:null;
+            home=point?point.position:authoredHome;homeRotation=point?point.rotation:authoredRotation;
+            frozenUntil=downUntil=burnUntil=curseUntil=nextDot=unseen=0;timer=0;roamAt=0;hitDuringStrike=false;
             body.linearVelocity=Vector3.zero;body.angularVelocity=Vector3.zero;body.position=home;body.rotation=homeRotation;
             if(navigator.enabled && navigator.isOnNavMesh){navigator.Warp(home);navigator.ResetPath();}
             visual.localRotation=Quaternion.identity;Tint(Color.white);
@@ -67,8 +74,8 @@ namespace Hakaton.Expeditions
                 Face(toPlayer);if(timer<=0){State=CreatureState.Strike;timer=strikeSeconds;strikeDirection=transform.forward;hitDuringStrike=false;world.PlaySound(world.settings.creatureSound);}return;
             }
             if(State==CreatureState.Strike) {
-                if(!hitDuringStrike && toPlayer.magnitude<contactRange && Vector3.Dot(strikeDirection,toPlayer.normalized)>.35f){world.vitals.Hurt(attackHalfHearts,strikeDirection*5);hitDuringStrike=true;}
-                if(timer<=0){State=CreatureState.Recovery;timer=recovery;}return;
+                if(!hitDuringStrike && sees && toPlayer.magnitude<contactRange && Vector3.Dot(strikeDirection,toPlayer.normalized)>.35f){world.vitals.Hurt(attackHalfHearts,strikeDirection*5);hitDuringStrike=true;}
+                if(timer<=0){State=CreatureState.Recovery;timer=!hitDuringStrike && recoveryOnMiss>=0?recoveryOnMiss:recovery;}return;
             }
             if(State==CreatureState.Recovery){if(timer<=0)State=CreatureState.Chase;return;}
             if(temperament==Temperament.Timid && sees){State=CreatureState.Chase;Go(body.position-toPlayer.normalized*7);return;}
@@ -86,7 +93,8 @@ namespace Hakaton.Expeditions
         {
             if(!world || !world.Running || !Alive)return;
             if(navigator.enabled && navigator.isOnNavMesh)navigator.nextPosition=body.position;
-            if(State==CreatureState.Down)return;
+            // Control states suspend locomotion, not Rigidbody physics: external impulses still move a frozen target.
+            if(State==CreatureState.Down || State==CreatureState.Frozen)return;
             Vector3 desired=Vector3.zero;
             if(State==CreatureState.Strike && dash)desired=strikeDirection*speed*3;
             else if(State==CreatureState.Chase || State==CreatureState.Roam || State==CreatureState.Search || State==CreatureState.Return)
@@ -100,8 +108,8 @@ namespace Hakaton.Expeditions
         void Go(Vector3 point){if(navigator.enabled && navigator.isOnNavMesh && NavMesh.SamplePosition(point,out var hit,4,NavMesh.AllAreas))navigator.SetDestination(hit.position);}
         void Face(Vector3 direction){direction.y=0;if(direction.sqrMagnitude>.01f)body.MoveRotation(Quaternion.RotateTowards(body.rotation,Quaternion.LookRotation(direction),Time.deltaTime*200));}
         void Tint(Color tint){for(int i=0;i<skin.Length;i++){colours.SetColor("_BaseColor",baseColours[i]*tint);skin[i].SetPropertyBlock(colours);}}
-        public void Freeze(float seconds){if(!Alive)return;frozenUntil=Time.time+seconds;State=CreatureState.Frozen;body.linearVelocity=Vector3.zero;}
-        public void Stagger(float seconds){if(!Alive)return;downUntil=Time.time+seconds;State=CreatureState.Down;}
+        public void Freeze(float seconds){if(!Alive)return;frozenUntil=Time.time+seconds;State=CreatureState.Frozen;body.linearVelocity=Vector3.zero;hitDuringStrike=false;}
+        public void Stagger(float seconds){if(!Alive)return;downUntil=Time.time+seconds;State=CreatureState.Down;hitDuringStrike=false;}
         public void Curse(float seconds,int damage){if(!Alive)return;curseUntil=Time.time+seconds;curseDamage=damage;nextDot=Time.time+.3f;Alert();}
         public void Damage(int amount,Vector3 impulse,float burnSeconds)
         {
@@ -114,6 +122,14 @@ namespace Hakaton.Expeditions
             world.Announce(displayName+": трофей можно подобрать");gameObject.SetActive(false);
         }
         void Alert(){if(State==CreatureState.Roam || State==CreatureState.Warning){State=CreatureState.Chase;lastSeen=world.motor.transform.position;}}
-        void OnCollisionEnter(Collision collision){if(world && world.Running && Alive && collision.relativeVelocity.magnitude>10)Damage(Mathf.CeilToInt((collision.relativeVelocity.magnitude-9)*.7f),Vector3.zero,0);}
+        void OnCollisionEnter(Collision collision)
+        {
+            if(!world || !world.Running || !Alive || collision.collider.GetComponentInParent<CardProjectile>())return;
+            float normalSpeed=0;
+            for(int i=0;i<collision.contactCount;i++)
+                normalSpeed=Mathf.Max(normalSpeed,ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity,collision.GetContact(i).normal));
+            int damage=ExpeditionEffectRules.ImpactDamage(normalSpeed,world.settings.collisionDamageSpeed,world.settings.collisionDamageStep);
+            if(damage>0)Damage(damage,Vector3.zero,0);
+        }
     }
 }

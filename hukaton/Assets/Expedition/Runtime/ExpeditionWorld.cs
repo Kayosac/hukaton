@@ -46,7 +46,7 @@ namespace Hakaton.Expeditions
             foreach(var obstacle in obstacles)obstacle.ResetForOuting();
             foreach(var find in finds)find.ResetForOuting(random);
             foreach(var prop in props)prop.ResetForOuting();
-            foreach(var creature in creatures)creature.ResetForOuting();
+            foreach(var creature in creatures)creature.ResetForOuting(random);
             vitals.Restore();motor.Teleport(departurePose.position,departurePose.rotation);
             thrower.ResetSelection();control.CaptureCursor();hud.canvas.enabled=true;hand.Refresh();
             Announce("ЛКМ: бросок  ·  Tab: колода  ·  R: сброс руки",7);
@@ -58,10 +58,12 @@ namespace Hakaton.Expeditions
             if(control.GameplayActive && Physics.Raycast(viewCamera.transform.position,viewCamera.transform.forward,out var hit,settings.interactionReach,~(1<<2),QueryTriggerInteraction.Ignore))
                 FocusedLoot=hit.collider.GetComponentInParent<WorldLoot>();
         }
-        public void Collect(string name,int value)
+        public void Collect(string name,int value)=>Collect(null,name,value);
+        public void Collect(string itemId,string name,int value)
         {
-            var entry=loot.Find(x=>x.name==name && x.value==value);
-            if(entry==null)loot.Add(new LootSave{name=name,value=value,count=1});else entry.count++;
+            if(!Running)return;
+            var entry=loot.Find(x=>!string.IsNullOrEmpty(itemId)?x.id==itemId:string.IsNullOrEmpty(x.id) && x.name==name && x.value==value);
+            if(entry==null)loot.Add(new LootSave{id=itemId,name=name,value=value,count=1});else entry.count++;
             PlaySound(settings.lootSound);Announce("Взято: "+name);
         }
         public void Announce(string text,float seconds=3){Notice=text;NoticeUntil=Time.time+seconds;}
@@ -77,24 +79,17 @@ namespace Hakaton.Expeditions
             var fx=Instantiate(impactPrefab,point+normal*.05f,Quaternion.LookRotation(normal),spawnedObjects);fx.SetColour(definition.accent);
             var obstacle=target.GetComponentInParent<WorldObstacle>();if(obstacle)obstacle.Apply(definition.action);
             var creature=target.GetComponentInParent<WorldCreature>();
-            float radius=settings.effectRadius+(copy.Level-1)*.6f;
+            float radius=settings.useCardEffectValues?definition.effectRadius:settings.effectRadius+(copy.Level-1)*.6f;
             switch(definition.action)
             {
                 case CardAction.Fire:
-                    if(creature)creature.Damage(copy.Power,normal*-2,2+copy.Level);
+                    if(creature)creature.Damage(copy.Power,settings.useCardEffectValues?Vector3.zero:normal*-2,settings.useCardEffectValues?0:2+copy.Level);
                     break;
                 case CardAction.Freeze:
-                    if(creature)creature.Freeze(settings.freezeSeconds+copy.Level);
+                    if(creature)creature.Freeze(settings.useCardEffectValues?copy.Power:settings.freezeSeconds+copy.Level);
                     break;
                 case CardAction.Wind:
-                    if(Vector3.Distance(motor.transform.position,point)<radius)motor.ApplyImpulse(Vector3.up*(settings.windLift+(copy.Level-1)*1.6f));
-                    var bodies=new HashSet<Rigidbody>();
-                    foreach(var col in Physics.OverlapSphere(point,radius)) {
-                        var body=col.attachedRigidbody;if(!body || body.isKinematic || !bodies.Add(body))continue;
-                        var direction=(body.worldCenterOfMass-point).normalized+Vector3.up*.8f;
-                        body.AddForce(direction*settings.windImpulse*copy.Level,ForceMode.Impulse);
-                        var affected=col.GetComponentInParent<WorldCreature>();if(affected)affected.Stagger(.55f);
-                    }
+                    ApplyWind(copy,definition,point,radius);
                     break;
                 case CardAction.Heal:
                     if(Vector3.Distance(motor.transform.position,point)<radius){vitals.Heal(copy.Power);Announce("Здоровье восстановлено");}
@@ -106,6 +101,35 @@ namespace Hakaton.Expeditions
                 case CardAction.Curse:
                     if(creature)creature.Curse(settings.curseSeconds+copy.Level,copy.Power);
                     break;
+                case CardAction.Strike:
+                    if(creature)creature.Damage(copy.Power,Vector3.zero,0);
+                    break;
+                case CardAction.HeavyStrike:
+                    if(creature)creature.Damage(copy.Power,-normal.normalized*definition.ImpulseAtLevel(copy.Level),0);
+                    break;
+            }
+        }
+        void ApplyWind(CardCopy copy,CardDefinition definition,Vector3 point,float radius)
+        {
+            float impulse=definition.ImpulseAtLevel(copy.Level);
+            // The motor's normalized mass is one. Its centre is above the foot origin,
+            // so a card landing under the player produces an upward radial impulse.
+            Vector3 playerCentre=motor.transform.TransformPoint(motor.characterController.center);
+            if(Vector3.Distance(motor.transform.position,point)<=radius)
+                motor.ApplyImpulse(settings.useCardEffectValues
+                    ?ExpeditionEffectRules.RadialImpulse(point,playerCentre,impulse)
+                    :Vector3.up*(settings.windLift+(copy.Level-1)*1.6f));
+            var bodies=new HashSet<Rigidbody>();
+            foreach(var col in Physics.OverlapSphere(point,radius,~0,QueryTriggerInteraction.Ignore))
+            {
+                var body=col.attachedRigidbody;
+                if(!body || body.isKinematic || !bodies.Add(body) || body.GetComponent<CardProjectile>())continue;
+                Vector3 force=settings.useCardEffectValues
+                    ?ExpeditionEffectRules.RadialImpulse(point,body.worldCenterOfMass,impulse)
+                    :((body.worldCenterOfMass-point).normalized+Vector3.up*.8f)*settings.windImpulse*copy.Level;
+                // ForceMode.Impulse applies Δv = I / Rigidbody.mass exactly once per body.
+                body.AddForce(force,ForceMode.Impulse);
+                var affected=body.GetComponent<WorldCreature>();if(affected)affected.Stagger(.55f);
             }
         }
         public void ReturnToShop(bool defeated)
@@ -124,14 +148,16 @@ namespace Hakaton.Expeditions
             }
             hand.Hide();PlaySound(settings.returnSound);
             float time=0;while(time<settings.returnSeconds){time+=Time.unscaledDeltaTime;hud.SetFade(time/settings.returnSeconds);yield return null;}
-            int kept=0,lost=0;
+            int kept=0,lost=0;var retained=new List<LootSave>();
             foreach(var entry in loot) {
                 int count=defeated?Mathf.FloorToInt(entry.count*(1-settings.defeatLootLoss)):entry.count;
-                kept+=count;lost+=entry.count-count;workshop.Model.DepositLoot(entry.name,count,entry.value);
+                kept+=count;lost+=entry.count-count;
+                if(count>0)retained.Add(new LootSave{id=entry.id,name=entry.name,count=count,value=entry.value});
             }
             motor.Teleport(shopPose.position,shopPose.rotation);vitals.Restore();
-            workshop.CompleteOuting(defeated?$"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}.":$"Вы дома. В запас лавки добавлено: {kept}. Карты снова доступны.");
             control.SetBlocked(this,false);hud.canvas.enabled=false;hud.SetFade(0);Returning=false;
+            // Complete only after local cleanup: the integration callback may disable this world root.
+            workshop.CompleteOuting(defeated?$"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}.":$"Вы дома. В запас лавки добавлено: {kept}. Карты снова доступны.",retained,defeated);
         }
         CardCopy CardCopyForReturn()=>workshop.Model.Current.Get(DeckKind.Exploration).Hand.First(c=>c.IsReturn);
     }

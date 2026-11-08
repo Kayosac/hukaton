@@ -25,6 +25,59 @@ namespace Hakaton.ExpeditionTests
   [UnityTest] public IEnumerator PhysicalEffectsOpenRoutesDamageCreaturesAndLaunchPlayer(){yield return Depart();var lake=w.obstacles.Single(o=>o.kind==ObstacleKind.Lake);var thorn=w.obstacles.Single(o=>o.kind==ObstacleKind.Thorns);Effect(CardAction.Freeze,lake.barrier,lake.transform.position);Assert.That(lake.Resolved,Is.True);Assert.That(lake.changed.GetComponent<Collider>().enabled,Is.True);Effect(CardAction.Fire,thorn.barrier,thorn.transform.position);Assert.That(thorn.Resolved,Is.True);var creature=w.creatures[1];int hp=creature.Health;Effect(CardAction.Fire,creature.GetComponent<Collider>(),creature.transform.position);Assert.That(creature.Health,Is.LessThan(hp));Effect(CardAction.Freeze,creature.GetComponent<Collider>(),creature.transform.position);Assert.That(creature.State,Is.EqualTo(CreatureState.Frozen));var ground=Physics.Raycast(w.motor.transform.position+Vector3.up,Vector3.down,out var hit,10)?hit.collider:lake.barrier;Effect(CardAction.Wind,ground,w.motor.transform.position);Assert.That(w.motor.VerticalSpeed,Is.GreaterThan(15));yield return null;LogAssert.NoUnexpectedReceived();}
   [UnityTest] public IEnumerator LootDepositsOnReturnAndNextOutingResetsWorldWithoutDestroyingCards(){yield return Depart();int owned=w.workshop.Model.Owned.Count;var loot=w.finds[0];loot.gameObject.SetActive(true);Assert.That(loot.PickUp(),Is.True);Assert.That(loot.PickUp(),Is.False);Effect(CardAction.Freeze,w.obstacles[0].barrier,w.obstacles[0].transform.position);yield return Return();Assert.That(w.workshop.Model.Goods.Sum(g=>g.count),Is.EqualTo(1));Assert.That(w.workshop.Model.Owned.Count,Is.EqualTo(owned));yield return Depart();Assert.That(w.obstacles.All(o=>!o.Resolved),Is.True);Assert.That(w.finds[0].Taken,Is.False);Assert.That(w.workshop.Model.Current.PlayedCount,Is.Zero);}
   [UnityTest] public IEnumerator DefeatLosesPartOfLootKeepsCollectionAndRestoresHealth(){yield return Depart();for(int i=0;i<4;i++)w.Collect("Test mushroom",12);int count=w.workshop.Model.Owned.Count;w.vitals.Hurt(100,Vector3.zero);yield return new WaitForSeconds(w.settings.returnSeconds+.2f);Assert.That(w.workshop.Model.IsAway,Is.False);Assert.That(w.workshop.Model.Goods.Sum(g=>g.count),Is.EqualTo(2));Assert.That(w.workshop.Model.Owned.Count,Is.EqualTo(count));Assert.That(w.vitals.HalfHearts,Is.EqualTo(w.settings.maximumHalfHearts));}
+  [UnityTest] public IEnumerator StableLootIdentitySurvivesReturnAndDoesNotMergeDifferentGoods()
+  {
+   yield return Depart();
+   w.Collect("common_find","Находка",20);w.Collect("common_find","Переименованная находка",20);
+   w.Collect("special_find","Находка",40);
+   Assert.That(w.Loot.Count,Is.EqualTo(2));Assert.That(w.Loot.Single(x=>x.id=="common_find").count,Is.EqualTo(2));
+   yield return Return();
+   Assert.That(w.workshop.Model.Goods.Single(x=>x.id=="common_find").count,Is.EqualTo(2));
+   Assert.That(w.workshop.Model.Goods.Single(x=>x.id=="special_find").value,Is.EqualTo(40));
+  }
+  [UnityTest] public IEnumerator FirstVersionCardsHaveDistinctDamageRadialImpulseAndLocalHealing()
+  {
+   yield return Depart();
+   var originalSettings=w.settings;var settings=Object.Instantiate(originalSettings);
+   w.settings=settings;w.vitals.settings=settings;settings.useCardEffectValues=true;
+   var definition=ScriptableObject.CreateInstance<CardDefinition>();
+   definition.id="effect-test";definition.displayName="Effect test";definition.effectRadius=2.5f;
+   try
+   {
+    var creature=w.creatures[1];creature.maximumHealth=30;creature.ResetForOuting();creature.Freeze(5);
+    var collider=creature.GetComponent<Collider>();var point=creature.transform.position;
+    definition.action=CardAction.Fire;definition.basePower=1;
+    var fire=EffectCopy(definition);w.ApplyImpact(fire,definition,collider,point,Vector3.up);
+    Assert.That(creature.Health,Is.EqualTo(29));
+    yield return new WaitForSeconds(1.2f);
+    Assert.That(creature.Health,Is.EqualTo(29),"First-version fire deals one immediate hit, without a damage-over-time tail.");
+    definition.action=CardAction.Strike;definition.basePower=3;
+    w.ApplyImpact(EffectCopy(definition),definition,collider,point,Vector3.up);
+    Assert.That(creature.Health,Is.EqualTo(26));
+    definition.action=CardAction.HeavyStrike;definition.basePower=2;definition.impulse=10;
+    w.ApplyImpact(EffectCopy(definition),definition,collider,point,Vector3.left);
+    Assert.That(creature.Health,Is.EqualTo(24));Assert.That(creature.State,Is.EqualTo(CreatureState.Down));
+    definition.action=CardAction.Wind;definition.impulse=8;
+    w.motor.Teleport(w.departurePose.position,w.departurePose.rotation);
+    w.ApplyImpact(EffectCopy(definition),definition,w.obstacles[0].barrier,w.motor.transform.position,Vector3.up);
+    Assert.That(w.motor.VerticalSpeed,Is.EqualTo(8).Within(.01f),"A foot cast applies I=8 to the normalized unit-mass player.");
+    Assert.That(w.vitals.Hurt(2,Vector3.zero),Is.True);
+    Assert.That(w.vitals.LastChangeWasDamage,Is.True);
+    definition.action=CardAction.Heal;definition.basePower=2;
+    int wounded=w.vitals.HalfHearts;
+    w.ApplyImpact(EffectCopy(definition),definition,w.obstacles[0].barrier,w.motor.transform.position+Vector3.right*4,Vector3.up);
+    Assert.That(w.vitals.HalfHearts,Is.EqualTo(wounded),"A distant splash consumes the card without healing.");
+    w.ApplyImpact(EffectCopy(definition),definition,w.obstacles[0].barrier,w.motor.transform.position,Vector3.up);
+    Assert.That(w.vitals.HalfHearts,Is.EqualTo(settings.maximumHalfHearts));
+    Assert.That(w.vitals.LastChangeWasDamage,Is.False);
+   }
+   finally{w.settings=originalSettings;w.vitals.settings=originalSettings;Object.Destroy(settings);Object.Destroy(definition);}
+  }
+  CardCopy EffectCopy(CardDefinition definition)
+  {
+   var model=new DeckWorkshop(new DeckRules(),new[]{definition.ToSpec()},1);
+   return model.Owned[0];
+  }
   [UnityTest] public IEnumerator CreatureTelegraphsBeforeDamageAndDropsAPhysicalTrophy()
   {
    yield return Depart();var creature=w.creatures[1];creature.navigator.Warp(new Vector3(-4,.05f,5));creature.body.position=new Vector3(-4,.05f,5);creature.body.rotation=Quaternion.identity;

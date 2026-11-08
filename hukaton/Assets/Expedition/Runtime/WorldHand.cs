@@ -13,7 +13,15 @@ namespace Hakaton.Expeditions
             var hand=world.workshop.Model.Current.Active.Hand;
             for(int i=0;i<cards.Length;i++) {
                 cards[i].gameObject.SetActive(i<hand.Count);
-                if(i<hand.Count)cards[i].sprite=hand[i].IsReturn?world.workshop.config.returnArtwork:world.workshop.config.Find(hand[i].Spec.Id).artwork;
+                if(i<hand.Count)
+                {
+                    cards[i].sprite=hand[i].IsReturn?world.workshop.config.returnArtwork:world.workshop.config.Find(hand[i].Spec.Id).artwork;
+                    // Begin the deal below the hand at its final depth. Interpolating from
+                    // the camera origin briefly filled the screen with enormous cards.
+                    float spread=i-(hand.Count-1)*.5f;
+                    cards[i].transform.localPosition=new Vector3(-.30f+spread*.075f,-.45f,.65f+i*.002f);
+                    cards[i].transform.localRotation=Quaternion.Euler(4,0,-spread*8);
+                }
             }
             glove.gameObject.SetActive(hand.Count>0);
         }
