@@ -10,10 +10,10 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float chargeSeconds = .65f;
         [Min(.1f)] public float minimumSpeed = 6, maximumSpeed = 18;
         [Min(0)] public float cardGravity = 9.81f;
-        [Tooltip("Sideways acceleration at full spin, m/s².")]
-        [Min(0)] public float curveAcceleration = 12;
-        [Tooltip("Vertical acceleration at full up/down spin, m/s². Below gravity, so a floating card still falls.")]
-        [Min(0)] public float liftAcceleration = 6;
+        [Tooltip("Sideways acceleration at full spin and maximum throw speed, m/s²; scales with the card's speed.")]
+        [Min(0)] public float curveAcceleration = 22;
+        [Tooltip("Vertical acceleration at full up/down spin, m/s². Above gravity: full up-spin makes the card climb.")]
+        [Min(0)] public float liftAcceleration = 15;
         [Tooltip("Mouse travel (any direction, Shift held) for a full-strength spin, pixels.")]
         [Min(1)] public float gesturePixels = 220;
         [Tooltip("Share of the player's own planar velocity added to the throw.")]
@@ -23,6 +23,8 @@ namespace Hakaton.Expeditions
         [Header("Aiming")]
         [Tooltip("Preview length at full charge, seconds of flight. Short on purpose: aiming stays a skill.")]
         [Min(0)] public float previewSeconds = .55f;
+        [Tooltip("Extra preview at full spin, seconds, so the curve the spin will cause is visible before the throw.")]
+        [Min(0)] public float spinPreviewSeconds = .6f;
         [Min(1)] public float aimConvergeDistance = 18;
         [Header("Hand")]
         [Tooltip("Input grace after the Return card appears, so a held click can't send you home by accident.")]

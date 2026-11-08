@@ -32,6 +32,7 @@ namespace Hakaton.Expeditions
         float returnReadyAt, nextDiscard;
         bool returnWasInHand, fullChargeCued;
         readonly Vector3[] previewPoints = new Vector3[64];
+        readonly Gradient previewGradient = new Gradient();
 
         public CardCopy Selected
         {
@@ -241,7 +242,8 @@ namespace Hakaton.Expeditions
             trajectory.enabled = show;
             if (!show) return;
             ComputeLaunch(Preparation.Charge, out var position, out var velocity);
-            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge);
+            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge)
+                + world.settings.spinPreviewSeconds * Preparation.SpinAmount;
             int count = Mathf.Clamp(Mathf.CeilToInt(seconds / (1f / 50f)), 2, previewPoints.Length);
             float step = seconds / (count - 1);
             previewPoints[0] = position;
@@ -261,9 +263,12 @@ namespace Hakaton.Expeditions
             }
             trajectory.positionCount = used;
             for (int i = 0; i < used; i++) trajectory.SetPosition(i, previewPoints[i]);
+            // Faint by the hand, strongest where the path bends: the far end is where a spin shows.
             Color accent = world.Accent(card);
-            trajectory.startColor = new Color(accent.r, accent.g, accent.b, .9f);
-            trajectory.endColor = new Color(accent.r, accent.g, accent.b, 0);
+            previewGradient.SetKeys(
+                new[] { new GradientColorKey(accent, 0), new GradientColorKey(accent, 1) },
+                new[] { new GradientAlphaKey(.15f, 0), new GradientAlphaKey(.85f, .3f), new GradientAlphaKey(.75f, 1) });
+            trajectory.colorGradient = previewGradient;
         }
 
         void OnDisable() => Cancel();

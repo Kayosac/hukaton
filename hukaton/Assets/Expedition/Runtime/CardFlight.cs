@@ -25,7 +25,10 @@ namespace Hakaton.Expeditions
                     // Straight up or down has no "right": the card only lifts or dips then.
                     if (side.sqrMagnitude > 1e-6f) side.Normalize();
                     Vector3 lift = side.sqrMagnitude > 1e-6f ? Vector3.Cross(forward, side) : Vector3.up;
-                    curve = side * (spin.x * settings.curveAcceleration) + lift * (spin.y * settings.liftAcceleration);
+                    // Sideways bend grows with speed, like real spin: a fast card sweeps a wide arc, a slow one
+                    // bends tighter but never loops. Lift is constant so up-spin always climbs.
+                    float speedShare = velocity.magnitude / Mathf.Max(.1f, settings.maximumSpeed);
+                    curve = side * (spin.x * settings.curveAcceleration * speedShare) + lift * (spin.y * settings.liftAcceleration);
                 }
                 velocity += (Vector3.down * settings.cardGravity + curve) * dt;
                 position += velocity * dt;
