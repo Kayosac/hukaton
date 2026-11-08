@@ -170,6 +170,16 @@ namespace Hakaton.Authoring
             return $"stock={session.Inventory.Count} display={session.DisplayCount}";
         }
 
+        /// <summary>Runs a token outing with one find so the shift timer resets (the domain's own rule).</summary>
+        public static string FreshShift()
+        {
+            var s = Trade.Session;
+            long id = s.BeginExpedition();
+            s.CollectLoot(id, s.FindDefinition("common_find"));
+            s.CompleteExpedition(id);
+            return $"time={s.RemainingSeconds:F0} {s.LastMessage}";
+        }
+
         public static string Open() { bool ok = Trade.Session.Open(); return "open=" + ok + " " + Trade.Session.LastMessage; }
 
         public static string Haggle(string args)

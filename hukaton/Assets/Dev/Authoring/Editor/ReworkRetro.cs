@@ -44,8 +44,6 @@ namespace Hakaton.Authoring
                 var flames = Burst("Burning thorns", "Environment/Fire/FieldWide/FireFieldWide.prefab", loop: true);
                 var coins = Burst("Sale coins", "Interactive/Money/Coins/CoinGoldBurst.prefab");
                 var coinFountain = Burst("Big sale coins", "Interactive/Money/Coins/CoinGoldFountain.prefab");
-                var happy = Burst("Happy emote", "Interactive/Emojis/Joy/Grinning.prefab");
-                var angry = Burst("Angry emote", "Interactive/Emojis/Anger/Angry.prefab");
                 var lootRay = Plain("Loot ray", "Interactive/Loot/Obtainables/Lootray/Mini/LootRayMiniYellow.prefab");
 
                 Effect("Fire", fire); Effect("Ice", frost); Effect("Impulse", storm);
@@ -57,7 +55,7 @@ namespace Hakaton.Authoring
                 EditorUtility.SetDirty(shared);
 
                 LootGlints(lootRay);
-                Scene(fire, frost, flames, coins, coinFountain, happy, angry);
+                Scene(fire, frost, flames, coins, coinFountain);
                 AssetDatabase.SaveAssets();
             }
             catch (Exception e) { Say("FAILED " + e); }
@@ -173,7 +171,7 @@ namespace Hakaton.Authoring
             return Log.ToString();
         }
 
-        static void Scene(VfxBurst fire, VfxBurst frost, VfxBurst flames, VfxBurst coins, VfxBurst coinFountain, VfxBurst happy, VfxBurst angry)
+        static void Scene(VfxBurst fire, VfxBurst frost, VfxBurst flames, VfxBurst coins, VfxBurst coinFountain)
         {
             var scene = EditorSceneManager.GetActiveScene();
             foreach (var obstacle in Object.FindObjectsByType<WorldObstacle>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -197,7 +195,6 @@ namespace Hakaton.Authoring
             }
             feel.saleAnchor = burstObject;
             feel.saleBurst = coins; feel.bigSaleBurst = coinFountain;
-            feel.happyEmote = happy; feel.angryEmote = angry;
             Record(feel);
             Say("shop feel effects wired, sale anchor " + (burstObject ? burstObject.name : "missing"));
             EditorSceneManager.MarkSceneDirty(scene);

@@ -31,6 +31,9 @@ namespace Hakaton.ShopBlockout.Tests
             workshop.embeddedMode=true;
             workshop.persistProgress=false;
             workshop.walletHost=null;
+            // The game funds the workshop from the shared wallet; the isolated fixture brings its own coins.
+            workshop.config=Object.Instantiate(workshop.config);
+            workshop.config.startingCoins=1000;
             workshop.control.captureOnStart=false;
             workshop.embeddedVisibility=instance.AddComponent<CanvasGroup>();
             var close=new GameObject("Test close button",typeof(RectTransform),typeof(CanvasRenderer),typeof(Image),typeof(Button));
@@ -42,7 +45,7 @@ namespace Hakaton.ShopBlockout.Tests
         }
 
         [UnityTearDown]
-        public IEnumerator CleanUp() {Object.Destroy(fixture);yield return null;}
+        public IEnumerator CleanUp() {Object.Destroy(workshop.config);Object.Destroy(fixture);yield return null;}
 
         [UnityTest]
         public IEnumerator ClosedServiceDoesNotTakeControlOrSpendAndCannotStartAnExpedition()
