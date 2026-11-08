@@ -1,0 +1,39 @@
+using System.Collections.Generic;
+using Hakaton.Decks;
+using Hakaton.Decks.Unity;
+using Hakaton.Feel;
+using UnityEngine;
+
+namespace Hakaton.Expeditions
+{
+    public sealed class ImpulseEffect : CardEffect
+    {
+        [Range(0, 2)] public float creatureStagger = .55f;
+
+        public override void Apply(in ImpactContext c)
+        {
+            var world = c.World;
+            float impulse = c.Impulse, radius = c.Radius;
+            bool meaningful = false;
+            if (c.PlayerWithin(radius))
+            {
+                // Normalized mass 1: Δv = I, scaled so the launch height matches the design at any gravity.
+                Vector3 push = ExpeditionEffectRules.RadialImpulse(c.Point, c.PlayerCentre, impulse);
+                world.motor.ApplyNormalizedImpulse(push);
+                world.OnPlayerLaunched(push);
+                meaningful = true;
+            }
+            var seen = new HashSet<Rigidbody>();
+            foreach (var hit in Physics.OverlapSphere(c.Point, radius, ~0, QueryTriggerInteraction.Ignore))
+            {
+                var body = hit.attachedRigidbody;
+                if (!body || body.isKinematic || !seen.Add(body)) continue;
+                // ForceMode.Impulse: Δv = I / mass. Creature masses are the board's μ (hare 0.5, boar 2, wolf 1).
+                body.AddForce(ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse), ForceMode.Impulse);
+                var creature = body.GetComponent<WorldCreature>();
+                if (creature) { creature.Stagger(creatureStagger, c.Point); meaningful = true; }
+            }
+            Feedback(c, meaningful);
+        }
+    }
+}

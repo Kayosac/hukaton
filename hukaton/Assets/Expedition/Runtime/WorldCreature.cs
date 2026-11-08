@@ -6,7 +6,7 @@ using UnityEngine.AI;
 namespace Hakaton.Expeditions
 {
     public enum Temperament { Timid, Territorial, Aggressive }
-    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Frozen, Stunned, Dying }
+    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying }
 
     /// <summary>
     /// A creature of the valley. Decisions run in Update (per temperament), locomotion in FixedUpdate on the
@@ -339,7 +339,16 @@ namespace Hakaton.Expeditions
                     break;
                 case CreatureState.Recover:
                     Halt();
-                    if (stateTime >= idleDuration) Enter(sees ? CreatureState.Chase : CreatureState.Search);
+                    if (stateTime < idleDuration) break;
+                    // A charger never re-charges from point blank: it trots off to its run-up distance first.
+                    if (dash && sees && distance < attackRange * .55f) Enter(CreatureState.Reposition);
+                    else Enter(sees ? CreatureState.Chase : CreatureState.Search);
+                    break;
+                case CreatureState.Reposition:
+                    Vector3 away = -ToPlayer.normalized;
+                    desired = away * speed;
+                    Face(away);
+                    if (distance >= attackRange * .85f || stateTime > 1.8f) Enter(CreatureState.Windup);
                     break;
                 default:
                     Enter(CreatureState.Chase);

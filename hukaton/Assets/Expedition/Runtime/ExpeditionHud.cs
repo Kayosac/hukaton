@@ -27,6 +27,9 @@ namespace Hakaton.Expeditions
         [Header("Text")]
         public TMP_Text prompt;
         public TMP_Text notice, toasts, deck, cardLabel, loot, hint;
+        [Header("Stamina")]
+        public GameObject staminaPanel;
+        public Image staminaFill;
         [Header("Overlays")]
         public Image vignette;
         public GameObject inventoryPanel;
@@ -43,6 +46,7 @@ namespace Hakaton.Expeditions
         Color vignetteColour;
         bool subscribed, hintedThrow, hintedDeck, hintedPickup;
         Color[] heartBaseColours;
+        Vector2 heartsBase;
 
         void Awake()
         {
@@ -51,6 +55,7 @@ namespace Hakaton.Expeditions
             heartBaseColours = heartFills.Select(f => f ? f.color : Color.white).ToArray();
             ringScale.Snap(1);
             lootScale.Snap(1);
+            if (hearts) heartsBase = hearts.anchoredPosition;
         }
 
         void OnEnable() => Subscribe(true);
@@ -115,6 +120,12 @@ namespace Hakaton.Expeditions
             UpdateReticle(dt);
             UpdateTexts(dt);
             UpdateVignette(dt);
+            if (staminaPanel)
+            {
+                float stamina = world.motor.stamina.Normalized;
+                staminaPanel.SetActive(stamina < .99f);
+                if (staminaFill) staminaFill.fillAmount = stamina;
+            }
             bool bag = Keyboard.current != null && Keyboard.current.iKey.isPressed;
             if (inventoryPanel)
             {
@@ -127,7 +138,8 @@ namespace Hakaton.Expeditions
         {
             var vitals = world.vitals;
             heartsShake.Step(0, 9, .25f, dt);
-            if (hearts) hearts.localRotation = Quaternion.Euler(0, 0, heartsShake.Value * .05f);
+            // Shake by whole pixels: rotation would break the pixel-perfect HUD grid.
+            if (hearts) hearts.anchoredPosition = heartsBase + new Vector2(Mathf.Round(heartsShake.Value * .12f), 0);
             for (int i = 0; i < heartFills.Length; i++)
             {
                 var fill = heartFills[i];

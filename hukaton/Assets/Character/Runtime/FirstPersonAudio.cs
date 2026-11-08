@@ -8,6 +8,9 @@ namespace Hakaton.Character
         public FirstPersonMotor motor;
         public AudioSource source;
         public AudioClip[] footstepClips;
+        [Tooltip("Steps on surfaces whose renderer material name contains one of the keywords (wooden floors, decks).")]
+        public AudioClip[] woodClips;
+        public string[] woodKeywords = { "Floor", "Timber", "Wood", "Plank" };
         public AudioClip jumpClip, landClip;
         [Min(.1f)] public float walkStepDistance = 1.7f;
         [Min(.1f)] public float sprintStepDistance = 2.1f;
@@ -32,9 +35,20 @@ namespace Hakaton.Character
             float stride = motor.IsSprinting ? sprintStepDistance : walkStepDistance;
             if (distance < stride) return;
             distance %= stride;
-            if (footstepClips == null || footstepClips.Length == 0) return;
-            var clip = footstepClips[nextFootstep++ % footstepClips.Length];
+            var clips = OnWood() && woodClips != null && woodClips.Length > 0 ? woodClips : footstepClips;
+            if (clips == null || clips.Length == 0) return;
+            var clip = clips[nextFootstep++ % clips.Length];
             Play(clip, footstepVolume * (motor.IsSprinting ? 1.15f : 1));
+        }
+
+        bool OnWood()
+        {
+            if (!Physics.Raycast(motor.transform.position + Vector3.up * .3f, Vector3.down, out var hit, 1, ~(1 << 2), QueryTriggerInteraction.Ignore)) return false;
+            var renderer = hit.collider.GetComponent<Renderer>();
+            if (!renderer || !renderer.sharedMaterial) return false;
+            string material = renderer.sharedMaterial.name;
+            foreach (var keyword in woodKeywords) if (material.Contains(keyword)) return true;
+            return false;
         }
 
         void OnJumped() { distance = 0; Play(jumpClip, jumpVolume); }

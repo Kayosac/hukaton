@@ -22,9 +22,9 @@ namespace Hakaton.Expeditions
         public Texture explorationBack, combatBack;
 
         [Header("Fan layout (camera space, metres)")]
-        public Vector3 pivot = new Vector3(.08f, -.70f, .62f);
-        [Min(.05f)] public float radius = .42f;
-        [Min(0)] public float degreesPerCard = 8.5f;
+        public Vector3 pivot = new Vector3(.1f, -.78f, .62f);
+        [Min(.05f)] public float radius = .52f;
+        [Min(0)] public float degreesPerCard = 11f;
         [Min(.01f)] public float cardWidth = .118f;
         [Tooltip("How far unselected cards sink below the fan arc.")]
         public float restDrop = .035f;
