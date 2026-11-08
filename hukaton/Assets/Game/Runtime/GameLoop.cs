@@ -61,7 +61,7 @@ namespace Hakaton.Game
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
                 || !services || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
-                || !objectiveLabel || !resultLabel || !workshop.embeddedMode
+                || !objectiveLabel || !resultLabel
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
             trade.ExpeditionRequested += TryDepartFromDoor;
@@ -221,7 +221,6 @@ namespace Hakaton.Game
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
-            && (save.cards.goods == null || save.cards.goods.Count == 0)
             && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop);
         public bool Restore(GameSave save)
         {

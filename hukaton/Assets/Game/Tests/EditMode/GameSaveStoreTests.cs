@@ -50,7 +50,6 @@ namespace Hakaton.Game.Tests
             // The store accepts the caller's domain validator; these fixtures need no scene or MonoBehaviour setup.
             public bool Validate(GameSave save) => save != null && save.version == 1 && save.coins >= 0
                 && save.cards != null && save.cards.coins == save.coins
-                && (save.cards.goods == null || save.cards.goods.Count == 0)
                 && Workshop.CanRestoreProgress(save.cards) && Shop.CanRestore(save.shop);
         }
 
@@ -107,7 +106,6 @@ namespace Hakaton.Game.Tests
         [TestCase("invalid slot")]
         [TestCase("invalid clock")]
         [TestCase("invalid revenue")]
-        [TestCase("second goods inventory")]
         [TestCase("unsupported version")]
         public void StructurallyValidJsonRejectedByDomainsFallsBackToTheGoodBackup(string corruption)
         {
@@ -124,7 +122,6 @@ namespace Hakaton.Game.Tests
                 case "invalid slot": damaged.shop.items[0].slot = 6; break;
                 case "invalid clock": damaged.shop.remainingSeconds = -1; break;
                 case "invalid revenue": damaged.shop.grossRevenue = -1; break;
-                case "second goods inventory": damaged.cards.goods.Add(new LootSave { id = Find.Id, name = Find.Name, count = 1, value = 20 }); break;
                 case "unsupported version": damaged.version = 999; break;
             }
             string json = JsonUtility.ToJson(damaged);
@@ -210,7 +207,6 @@ namespace Hakaton.Game.Tests
             Assert.That(restored.Workshop.Selected(DeckKind.Exploration).Single().Id, Is.EqualTo(bought.Id));
             Assert.That(restored.Workshop.HandSize(DeckKind.Exploration), Is.EqualTo(4));
             Assert.That(restored.Workshop.Journeys, Is.EqualTo(1));
-            Assert.That(restored.Workshop.Goods, Is.Empty);
             Assert.That(restored.Shop.CompleteExpedition(outing, delivery), Is.False, "Old delivery cannot be credited after load.");
 
             SellAtReferencePrice(restored.Shop, 1);

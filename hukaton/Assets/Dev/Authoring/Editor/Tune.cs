@@ -50,8 +50,10 @@ namespace Hakaton.Authoring
                 var root = PrefabUtility.LoadPrefabContents(path);
                 // "Type@Child name" picks the component on a named child.
                 var spec = component.Split('@');
-                var target = root.GetComponentsInChildren<Component>(true)
-                    .First(c => c && c.GetType().Name == spec[0] && (spec.Length == 1 || c.name == spec[1]));
+                Object target = spec[0] == "GameObject"
+                    ? root.GetComponentsInChildren<Transform>(true).First(t => t.name == spec[1]).gameObject
+                    : root.GetComponentsInChildren<Component>(true)
+                        .First(c => c && c.GetType().Name == spec[0] && (spec.Length == 1 || c.name == spec[1]));
                 Apply(target);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
                 PrefabUtility.UnloadPrefabContents(root);
