@@ -1,3 +1,4 @@
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.Character
@@ -11,6 +12,8 @@ namespace Hakaton.Character
         public FirstPersonMotor motor;
         public Transform yawRoot, pitchPivot, cameraTransform;
         public Camera viewCamera;
+        [Tooltip("Optional additive shake, recoil and FOV punches.")]
+        public CameraFeel feel;
         [Header("Look")]
         [Min(.01f)] public float mouseSensitivity = .12f;
         [Min(0)] public float lookSmoothTime = .025f;
@@ -27,7 +30,8 @@ namespace Hakaton.Character
         [Range(0, .1f)] public float maxLandingDip = .045f;
         [Min(.1f)] public float motionResponse = 14;
         float yaw, pitch, yawTarget, pitchTarget, yawVelocity, pitchVelocity;
-        float baseFov, phase, landing, landingVelocity;
+        float baseFov, smoothedFov, phase, landing, landingVelocity;
+        Quaternion roll = Quaternion.identity;
         Vector3 cameraBasePosition, cameraOffset;
         Quaternion cameraBaseRotation;
 
@@ -37,7 +41,7 @@ namespace Hakaton.Character
             { Debug.LogError("FirstPersonView needs its authored input, gate, motor, pivot and camera references.", this); enabled = false; return; }
             cameraBasePosition = cameraTransform.localPosition;
             cameraBaseRotation = cameraTransform.localRotation;
-            baseFov = viewCamera.fieldOfView;
+            baseFov = smoothedFov = viewCamera.fieldOfView;
             yaw = yawTarget = yawRoot.eulerAngles.y;
             pitch = pitchTarget = SignedAngle(pitchPivot.localEulerAngles.x);
             motor.Landed += OnLanded;
@@ -74,14 +78,16 @@ namespace Hakaton.Character
                 Mathf.Sin(phase) * bobAmplitude, 0) * gaitWeight;
             cameraOffset = Vector3.Lerp(cameraOffset, target, 1 - Mathf.Exp(-motionResponse * dt));
             landing = Mathf.SmoothDamp(landing, 0, ref landingVelocity, .16f, Mathf.Infinity, dt);
-            cameraTransform.localPosition = cameraBasePosition + cameraOffset + Vector3.down * landing * motionIntensity;
+            Vector3 feelPosition = feel ? feel.PositionOffset : Vector3.zero;
+            cameraTransform.localPosition = cameraBasePosition + cameraOffset + Vector3.down * landing * motionIntensity + feelPosition;
             float localLateral = yawRoot.InverseTransformDirection(motor.PlanarVelocity).x / Mathf.Max(.1f, motor.walkSpeed);
             float targetRoll = (control.GameplayActive ? -localLateral * strafeRoll * motionIntensity : 0)
                 - sway * bobRoll * gaitWeight;
-            cameraTransform.localRotation = Quaternion.Slerp(cameraTransform.localRotation,
-                cameraBaseRotation * Quaternion.Euler(0, 0, targetRoll), 1 - Mathf.Exp(-motionResponse * dt));
+            roll = Quaternion.Slerp(roll, Quaternion.Euler(0, 0, targetRoll), 1 - Mathf.Exp(-motionResponse * dt));
+            cameraTransform.localRotation = cameraBaseRotation * roll * (feel ? feel.RotationOffset : Quaternion.identity);
             float fov = baseFov + (motor.IsSprinting ? sprintFov : 0);
-            viewCamera.fieldOfView = Mathf.Lerp(viewCamera.fieldOfView, fov, 1 - Mathf.Exp(-8 * dt));
+            smoothedFov = Mathf.Lerp(smoothedFov, fov, 1 - Mathf.Exp(-8 * dt));
+            viewCamera.fieldOfView = smoothedFov + (feel ? feel.FovOffset : 0);
         }
 
         public void ResetPose(Quaternion rotation)
@@ -90,6 +96,9 @@ namespace Hakaton.Character
             pitch = pitchTarget = Mathf.Clamp(SignedAngle(rotation.eulerAngles.x), -pitchLimit, pitchLimit);
             yawVelocity = pitchVelocity = landing = landingVelocity = phase = 0;
             cameraOffset = Vector3.zero;
+            roll = Quaternion.identity;
+            smoothedFov = baseFov;
+            if (feel) feel.ResetFeel();
             yawRoot.rotation = Quaternion.Euler(0, yaw, 0);
             pitchPivot.localRotation = Quaternion.Euler(pitch, 0, 0);
             cameraTransform.localPosition = cameraBasePosition;

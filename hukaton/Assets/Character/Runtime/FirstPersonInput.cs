@@ -14,7 +14,16 @@ namespace Hakaton.Character
         public bool SprintHeld { get; private set; }
         public bool JumpPressed { get; private set; }
         readonly HashSet<Object> lookOwners = new HashSet<Object>();
+        readonly HashSet<Object> sprintOwners = new HashSet<Object>();
         public bool LookBlocked => lookOwners.Count > 0;
+        public bool SprintBlocked => sprintOwners.Count > 0;
+        /// <summary>Shift doubles as the spin modifier while a throw is prepared; the thrower blocks sprint meanwhile.</summary>
+        public void SetSprintBlocked(Object owner, bool blocked)
+        {
+            if (!owner) return;
+            if (blocked) { sprintOwners.Add(owner); SprintHeld = false; }
+            else sprintOwners.Remove(owner);
+        }
         public void SetLookBlocked(Object owner, bool blocked)
         {
             if (!owner) return;
@@ -35,7 +44,8 @@ namespace Hakaton.Character
                 if (keyboard.dKey.isPressed) direction.x++;
                 if (keyboard.aKey.isPressed) direction.x--;
                 Move = Vector2.ClampMagnitude(direction, 1);
-                SprintHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+                sprintOwners.RemoveWhere(owner => !owner);
+                SprintHeld = !SprintBlocked && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
                 JumpPressed = keyboard.spaceKey.wasPressedThisFrame;
             }
             lookOwners.RemoveWhere(owner => !owner);
@@ -47,6 +57,6 @@ namespace Hakaton.Character
             Move = Look = Vector2.zero;
             SprintHeld = JumpPressed = false;
         }
-        void OnDisable() { lookOwners.Clear(); Clear(); }
+        void OnDisable() { lookOwners.Clear(); sprintOwners.Clear(); Clear(); }
     }
 }

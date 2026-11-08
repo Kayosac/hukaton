@@ -24,12 +24,18 @@ namespace Hakaton.Character
         [Min(0)] public float coyoteTime = .12f;
         [Min(0)] public float jumpBufferTime = .14f;
         [Min(1)] public float terminalSpeed = 40;
+        [Tooltip("Gravity the design numbers (impulse I, fall thresholds) were specified for. Normalized impulses are " +
+                 "scaled by sqrt(gravity / referenceGravity) so launch heights and safe-fall heights stay as designed " +
+                 "while the actual gravity can be snappier.")]
+        [Min(.1f)] public float referenceGravity = 9.81f;
 
         public Vector3 PlanarVelocity { get; private set; }
         public float Speed01 => Mathf.Clamp01(PlanarVelocity.magnitude / Mathf.Max(.1f, sprintSpeed));
         public bool IsGrounded { get; private set; }
         public bool IsSprinting { get; private set; }
         public float VerticalSpeed => verticalSpeed;
+        /// <summary>Velocity factor between the authored gravity and the reference gravity of the design numbers.</summary>
+        public float ReferenceScale => Mathf.Sqrt(gravity / referenceGravity);
         public event Action<float> Landed;
         public event Action Jumped;
         float verticalSpeed, lastGrounded = float.NegativeInfinity, jumpBufferedUntil = float.NegativeInfinity;
@@ -44,6 +50,15 @@ namespace Hakaton.Character
             verticalSpeed = velocity.y > 0 ? Mathf.Max(0, verticalSpeed) + velocity.y : verticalSpeed + velocity.y;
             if (velocity.y > 0) { lastJump = Time.time; lastGrounded = float.NegativeInfinity; hadAirTime = true; }
         }
+
+        /// <summary>
+        /// Applies a design-space velocity change (specified for <see cref="referenceGravity"/>). Heights and ranges
+        /// match the design even when <see cref="gravity"/> differs.
+        /// </summary>
+        public void ApplyNormalizedImpulse(Vector3 velocity) => ApplyImpulse(velocity * ReferenceScale);
+
+        /// <summary>Converts a real landing speed to the speed the design's fall-damage thresholds expect.</summary>
+        public float ToReferenceSpeed(float speed) => speed / ReferenceScale;
 
         void Awake()
         {

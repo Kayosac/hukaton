@@ -1,62 +1,253 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Hakaton.Decks;
+using Hakaton.Feel;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+
 namespace Hakaton.Expeditions
 {
-    public sealed class ExpeditionHud:MonoBehaviour
+    /// <summary>
+    /// Sparse expedition HUD: hearts, a reticle that shows charge and spin, loot toasts, a compact deck strip
+    /// and full-screen vignettes. Contextual hints appear only until the player has done the thing once.
+    /// </summary>
+    public sealed class ExpeditionHud : MonoBehaviour
     {
         public ExpeditionWorld world;
         public Canvas canvas;
-        public TMP_Text deck,selected,hearts,notice,interaction,inventory,chargeLabel,target;
-        public Image chargeFill,fade,hurt;
-        public GameObject chargePanel,inventoryPanel;
+        [Header("Hearts")]
+        public RectTransform hearts;
         public Image[] heartFills;
-        public Image staminaFill;
-        public GameObject staminaPanel;
-        Color[] heartColours;
-        void Awake(){heartColours=heartFills?.Select(fill=>fill?fill.color:Color.white).ToArray();}
-        public void SetFade(float amount){fade.color=new Color(.035f,.055f,.05f,Mathf.Clamp01(amount));}
+        [Header("Reticle")]
+        public Image reticle;
+        public Image chargeRing, spinArrow;
+        [Header("Text")]
+        public TMP_Text prompt;
+        public TMP_Text notice, toasts, deck, cardLabel, loot, hint;
+        [Header("Overlays")]
+        public Image vignette;
+        public GameObject inventoryPanel;
+        public TMP_Text inventory;
+        [Header("Colours")]
+        public Color hurtColour = new Color(.75f, .08f, .05f);
+        public Color healColour = new Color(.3f, .85f, .45f);
+        public Color activeDeckColour = new Color(1f, .86f, .5f);
+
+        readonly List<(string text, float time)> toastLines = new List<(string, float)>();
+        SpringFloat[] heartScales;
+        SpringFloat heartsShake, ringScale, lootScale;
+        float vignetteAmount, cardLabelUntil, lastThrowCharge;
+        Color vignetteColour;
+        bool subscribed, hintedThrow, hintedDeck, hintedPickup;
+        Color[] heartBaseColours;
+
+        void Awake()
+        {
+            heartScales = new SpringFloat[heartFills.Length];
+            for (int i = 0; i < heartScales.Length; i++) heartScales[i].Snap(1);
+            heartBaseColours = heartFills.Select(f => f ? f.color : Color.white).ToArray();
+            ringScale.Snap(1);
+            lootScale.Snap(1);
+        }
+
+        void OnEnable() => Subscribe(true);
+        void OnDisable() { Subscribe(false); if (world && world.sfx) world.sfx.StopLoop(this); }
+
+        void Subscribe(bool on)
+        {
+            if (!world || on == subscribed) return;
+            subscribed = on;
+            if (on)
+            {
+                world.Collected += OnCollected;
+                world.vitals.Changed += OnHealthChanged;
+                world.thrower.SelectionChanged += OnSelectionChanged;
+                world.thrower.Thrown += OnThrown;
+            }
+            else
+            {
+                world.Collected -= OnCollected;
+                world.vitals.Changed -= OnHealthChanged;
+                world.thrower.SelectionChanged -= OnSelectionChanged;
+                world.thrower.Thrown -= OnThrown;
+            }
+        }
+
+        public void BeginOuting()
+        {
+            toastLines.Clear();
+            vignetteAmount = 0;
+            cardLabelUntil = Time.time + 2;
+            if (inventoryPanel) inventoryPanel.SetActive(false);
+        }
+
+        void OnCollected(string itemName, int value)
+        {
+            toastLines.Add(($"+ {itemName}  <color=#F4D27A>{value}</color>", Time.time));
+            if (toastLines.Count > 4) toastLines.RemoveAt(0);
+            lootScale.Kick(10);
+            hintedPickup = true;
+        }
+
+        void OnHealthChanged(int delta)
+        {
+            int from = world.vitals.PreviousHalfHearts, to = world.vitals.HalfHearts;
+            for (int i = 0; i < heartScales.Length; i++)
+            {
+                bool affected = Mathf.Clamp(from - i * 2, 0, 2) != Mathf.Clamp(to - i * 2, 0, 2);
+                if (affected) heartScales[i].Kick(delta < 0 ? -9 : 12);
+            }
+            if (delta < 0) { heartsShake.Kick(60); vignetteColour = hurtColour; vignetteAmount = .65f; }
+            else { vignetteColour = healColour; vignetteAmount = .4f; }
+        }
+
+        void OnSelectionChanged() { cardLabelUntil = Time.time + 1.3f; hintedDeck |= world.workshop.Model.Current?.ActiveKind == DeckKind.Combat; }
+        void OnThrown(Hakaton.Decks.CardCopy card) { hintedThrow = true; ringScale.Kick(-6); }
+
         void LateUpdate()
         {
-            if(!world.Running)return;
-            var trip=world.workshop.Model.Current;var active=trip.Active;
-            deck.text=(trip.ActiveKind==DeckKind.Exploration?"ПУТЬ":"БОЙ")+"  /  "+active.Hand.Count+" в руке  ·  "+active.StockCount+" в колоде";
-            var card=world.thrower.Selected;
-            selected.text=card==null?"Карты закончились":card.IsReturn?"Домой — бросьте карту возвращения":world.workshop.config.Find(card.Spec.Id).displayName+"  /  ур. "+card.Level;
-            hearts.text=string.Concat(Enumerable.Range(0,world.settings.maximumHalfHearts/2).Select(i=>world.vitals.HalfHearts>=i*2+2?"[+] ":world.vitals.HalfHearts==i*2+1?"[/] ":"[ ] "))+(world.vitals.Armour>0?"  +"+world.vitals.Armour:"");
-            if(heartFills!=null && heartFills.Length>0)
+            if (!world || !world.Running) return;
+            float dt = Time.unscaledDeltaTime;
+            UpdateHearts(dt);
+            UpdateReticle(dt);
+            UpdateTexts(dt);
+            UpdateVignette(dt);
+            bool bag = Keyboard.current != null && Keyboard.current.iKey.isPressed;
+            if (inventoryPanel)
             {
-                hearts.text=world.vitals.Armour>0?"Защита "+world.vitals.Armour:"";
-                float transition=Mathf.Clamp01((Time.time-world.vitals.LastChangeTime)/.22f);
-                for(int i=0;i<heartFills.Length;i++)
-                {
-                    if(!heartFills[i])continue;
-                    float before=Mathf.Clamp01((world.vitals.PreviousHalfHearts-i*2)/2f);
-                    float after=Mathf.Clamp01((world.vitals.HalfHearts-i*2)/2f);
-                    bool affected=!Mathf.Approximately(before,after);
-                    heartFills[i].fillAmount=affected?Mathf.Lerp(before,after,transition):after;
-                    Color baseColour=heartColours!=null && i<heartColours.Length?heartColours[i]:Color.white;
-                    Color flash=world.vitals.LastChangeWasDamage?new Color(1,.35f,.22f):new Color(.45f,1,.6f);
-                    heartFills[i].color=affected?Color.Lerp(baseColour,flash,(1-transition)*.75f):baseColour;
-                }
+                inventoryPanel.SetActive(bag);
+                if (bag) inventory.text = world.Loot.Count == 0 ? "Сумка пуста" : string.Join("\n", world.Loot.Select(x => $"{x.name}  ×{x.count}  <color=#F4D27A>{x.value * x.count}</color>"));
             }
-            if(staminaPanel){staminaPanel.SetActive(world.motor.stamina.Normalized<.99f);staminaFill.fillAmount=world.motor.stamina.Normalized;}
-            notice.text=Time.time<world.NoticeUntil?world.Notice:"";
-            interaction.text=world.FocusedLoot?"E  Взять: "+world.FocusedLoot.displayName:"";
-            bool prep=world.thrower.Preparation.Active;chargePanel.SetActive(prep);
-            if(prep){chargeFill.fillAmount=world.thrower.Preparation.Charge;chargeLabel.text="БРОСОК "+Mathf.RoundToInt(world.thrower.Preparation.Charge*100)+"%   /   "+(world.thrower.Preparation.GestureUsed?"ПОДКРУТКА ":"Shift: подкрутка ")+Mathf.RoundToInt(world.thrower.Preparation.Spin*100)+"%";}
-            bool bag=Keyboard.current!=null && Keyboard.current.iKey.isPressed;inventoryPanel.SetActive(bag);
-            if(bag)inventory.text=world.Loot.Count==0?"Сумка пуста":string.Join("\n",world.Loot.Select(x=>x.name+"  ×"+x.count));
-            hurt.color=world.vitals.LastChangeWasDamage
-                ?new Color(.7f,.1f,.05f,Mathf.Clamp01(1-(Time.time-world.vitals.LastChangeTime)/.3f)*.18f)
-                :Color.clear;
-            target.text="";
-            if(Physics.Raycast(world.viewCamera.transform.position,world.viewCamera.transform.forward,out var hit,24,~(1<<2),QueryTriggerInteraction.Ignore)) {
-                var creature=hit.collider.GetComponentInParent<WorldCreature>();
-                if(creature && creature.Alive)target.text=creature.displayName+"  "+creature.Health+" / "+creature.maximumHealth+(creature.State==CreatureState.Windup?"  !":"");
+        }
+
+        void UpdateHearts(float dt)
+        {
+            var vitals = world.vitals;
+            heartsShake.Step(0, 9, .25f, dt);
+            if (hearts) hearts.localRotation = Quaternion.Euler(0, 0, heartsShake.Value * .05f);
+            for (int i = 0; i < heartFills.Length; i++)
+            {
+                var fill = heartFills[i];
+                if (!fill) continue;
+                fill.fillAmount = Mathf.Clamp01((vitals.HalfHearts - i * 2) / 2f);
+                float scale = heartScales[i].Step(1, 6, .3f, dt);
+                if (vitals.Critical && vitals.HalfHearts > i * 2) scale *= 1 + Mathf.Max(0, Mathf.Sin(Time.time * 7)) * .12f;
+                fill.transform.parent.localScale = Vector3.one * scale;
+                float flash = Mathf.Clamp01(1 - (Time.time - vitals.LastChangeTime) / .35f);
+                fill.color = Color.Lerp(heartBaseColours[i], vitals.LastChangeWasDamage ? Color.white : healColour, flash * .8f);
+            }
+        }
+
+        void UpdateReticle(float dt)
+        {
+            var preparation = world.thrower.Preparation;
+            var card = world.thrower.Selected;
+            Color accent = card != null ? world.Accent(card) : Color.white;
+            float scale = ringScale.Step(1, 7, .4f, dt);
+            if (chargeRing)
+            {
+                chargeRing.enabled = preparation.Active;
+                if (preparation.Active)
+                {
+                    chargeRing.fillAmount = preparation.Charge;
+                    bool full = preparation.Charge >= 1;
+                    if (full && lastThrowCharge < 1) ringScale.Kick(10);
+                    chargeRing.color = full ? Color.Lerp(accent, Color.white, Mathf.PingPong(Time.time * 4, .5f)) : new Color(1, 1, 1, .85f);
+                }
+                lastThrowCharge = preparation.Active ? preparation.Charge : 0;
+                chargeRing.rectTransform.localScale = Vector3.one * scale;
+            }
+            if (spinArrow)
+            {
+                float spin = preparation.Active ? preparation.Spin : 0;
+                spinArrow.enabled = Mathf.Abs(spin) > .03f;
+                spinArrow.rectTransform.localScale = new Vector3(Mathf.Sign(spin) * (.6f + Mathf.Abs(spin) * .6f), .6f + Mathf.Abs(spin) * .6f, 1);
+                spinArrow.color = new Color(1, 1, 1, .4f + Mathf.Abs(spin) * .6f);
+            }
+            if (reticle) reticle.color = world.FocusedLoot ? new Color(1f, .86f, .45f) : Color.white;
+        }
+
+        void UpdateTexts(float dt)
+        {
+            var trip = world.workshop.Model.Current;
+            var card = world.thrower.Selected;
+
+            // Contextual prompt: pick-up first, then the Return card.
+            if (world.FocusedLoot) prompt.text = $"<b>E</b>  {world.FocusedLoot.displayName}  <color=#F4D27A>{world.FocusedLoot.value}</color>";
+            else if (card != null && card.IsReturn) prompt.text = world.thrower.ReturnReady ? "<b>ЛКМ</b>  Домой" : "";
+            else prompt.text = "";
+
+            notice.text = Time.time < world.NoticeUntil ? world.Notice : "";
+
+            var builder = new StringBuilder();
+            for (int i = toastLines.Count - 1; i >= 0; i--)
+            {
+                float age = Time.time - toastLines[i].time;
+                if (age > 2.8f) { toastLines.RemoveAt(i); continue; }
+            }
+            foreach (var line in toastLines)
+            {
+                float age = Time.time - line.time;
+                int alpha = Mathf.RoundToInt(255 * Mathf.Clamp01((2.8f - age) / .5f));
+                builder.Append($"<alpha=#{alpha:X2}>").AppendLine(line.text);
+            }
+            toasts.text = builder.ToString();
+
+            if (trip != null)
+            {
+                var exploration = trip.Get(DeckKind.Exploration);
+                var combat = trip.Get(DeckKind.Combat);
+                string Format(string title, ExpeditionDeck d, bool active)
+                    => active ? $"<color=#{ColorUtility.ToHtmlStringRGB(activeDeckColour)}><b>{title}</b>  {d.Hand.Count}·{d.StockCount}</color>"
+                              : $"<alpha=#99>{title}  {d.Hand.Count}·{d.StockCount}";
+                deck.text = Format("ПУТЬ", exploration, trip.ActiveKind == DeckKind.Exploration) + "     " + Format("БОЙ", combat, trip.ActiveKind == DeckKind.Combat);
+            }
+
+            bool showLabel = card != null && (Time.time < cardLabelUntil || world.thrower.Preparation.Active);
+            if (showLabel)
+            {
+                string name = card.IsReturn ? "Пора домой" : world.workshop.config.Find(card.Spec.Id)?.displayName ?? card.Spec.Name;
+                cardLabel.text = card.IsReturn ? name : $"{name}  <alpha=#88>ур. {card.Level}";
+            }
+            cardLabel.alpha = Mathf.MoveTowards(cardLabel.alpha, showLabel ? 1 : 0, dt * 5);
+
+            loot.text = world.Loot.Count == 0 ? "" : $"Сумка  {world.Loot.Sum(x => x.count)}  <color=#F4D27A>{world.LootValue}</color>";
+            loot.rectTransform.localScale = Vector3.one * lootScale.Step(1, 6, .35f, dt);
+
+            if (hint)
+            {
+                string text = "";
+                if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Shift + рывок мыши — подкрутка";
+                else if (!hintedDeck && AnyHostileNearby()) text = "<b>Tab</b> — боевая колода";
+                else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
+                hint.text = text;
+            }
+        }
+
+        bool AnyHostileNearby()
+        {
+            foreach (var creature in world.creatures)
+                if (creature && creature.Alive && creature.gameObject.activeInHierarchy && creature.temperament != Temperament.Timid
+                    && Vector3.Distance(creature.transform.position, world.motor.transform.position) < 14) return true;
+            return false;
+        }
+
+        void UpdateVignette(float dt)
+        {
+            if (!vignette) return;
+            var vitals = world.vitals;
+            vignetteAmount = Mathf.MoveTowards(vignetteAmount, 0, dt * .9f);
+            float critical = vitals.Critical ? .22f + Mathf.Max(0, Mathf.Sin(Time.time * 7)) * .18f : 0;
+            float amount = Mathf.Max(vignetteAmount, critical);
+            Color colour = vignetteAmount >= critical ? vignetteColour : hurtColour;
+            vignette.color = new Color(colour.r, colour.g, colour.b, amount);
+            if (world.sfx && world.cues)
+            {
+                if (vitals.Critical) world.sfx.Loop(this, world.cues.heartbeat, world.viewCamera.transform.position, .8f);
+                else world.sfx.StopLoop(this);
             }
         }
     }

@@ -255,7 +255,7 @@ namespace Hakaton.Decks.Unity
             detailDescription.text=definition.description;
             int level=copy?.Level??1;
             bool canUpgrade=copy!=null && copy.Level<config.maximumCardLevel;
-            bool physical=definition.action==CardAction.Wind || definition.action==CardAction.HeavyStrike;
+            bool physical=definition.action==CardAction.Impulse || definition.action==CardAction.HeavyStrike;
             float power=physical?definition.ImpulseAtLevel(level):definition.basePower+(level-1)*definition.powerPerLevel;
             float next=physical?definition.ImpulseAtLevel(level+1):power+definition.powerPerLevel;
             string label=physical?"Импульс":definition.action==CardAction.Freeze?"Заморозка":definition.action==CardAction.Heal?"Лечение":"Сила";

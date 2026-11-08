@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace Hakaton.Decks.Unity
 {
-    public enum CardAction { Fire, Heal, Stone, Wind, Freeze, Curse, Strike, HeavyStrike }
+    /// <summary>Element tag: obstacles react to Fire / Freeze. Numeric values are serialized — never renumber.</summary>
+    public enum CardAction { Fire = 0, Heal = 1, Impulse = 3, Freeze = 4, Strike = 6, HeavyStrike = 7 }
     [CreateAssetMenu(menuName="Hakaton/Decks/Card definition")]
     public sealed class CardDefinition : ScriptableObject
     {
@@ -11,6 +12,8 @@ namespace Hakaton.Decks.Unity
         public CardAction action;
         public Sprite artwork;
         public Color accent=Color.white;
+        [Tooltip("What the card does on impact (asset under Assets/Game/Data/Effects).")]
+        public ScriptableObject effectAsset;
         [TextArea] public string description;
         [Min(0)] public int purchasePrice=30, upgradePrice=20, basePower=1, powerPerLevel=1;
         [Header("Physical effect")]
