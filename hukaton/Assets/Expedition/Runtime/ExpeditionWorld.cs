@@ -148,7 +148,7 @@ namespace Hakaton.Expeditions
             return definition ? definition.accent : Color.white;
         }
 
-        public CardProjectile Launch(CardCopy card, Vector3 position, Vector3 velocity, float spin, CardView source, Pose? handPose)
+        public CardProjectile Launch(CardCopy card, Vector3 position, Vector3 velocity, Vector2 spin, CardView source, Pose? handPose)
         {
             var projectile = Instantiate(projectilePrefab, position, Quaternion.LookRotation(velocity.normalized), spawnedObjects);
             projectile.Launch(this, card, source, velocity, spin, handPose);

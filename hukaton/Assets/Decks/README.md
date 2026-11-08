@@ -13,7 +13,7 @@
 | Файл | Роль |
 | --- | --- |
 | `Domain/DeckModel.cs` | `DeckWorkshop` (коллекция, составы, покупки, улучшения, руки, сохранение), `Expedition` и `ExpeditionDeck` (колоды на время вылазки), `CardCopy`, `CardSpec`, `LootSave`. |
-| `Domain/ThrowPreparation.cs` | Правила одного броска: заряд и подкрутка одним боковым жестом. |
+| `Domain/ThrowPreparation.cs` | Правила одного броска: заряд; пока зажат модификатор, заряд стоит, а движение мыши ведёт подкрутку как маленький стик в любую сторону (сила до 1). |
 | `Runtime/CardDefinition.cs` | Ассет карты: колода, действие (`CardAction`), сила, цены, арт, акцент, ассет эффекта. |
 | `Runtime/DeckPrototypeConfig.cs` | Набор карт и правила (`Assets/Game/Data/Cards.asset`). |
 | `Runtime/DeckPrototype.cs` | Мастерская как сервис лавки: открывается у компьютера (колоды и улучшения) или у гоблина (покупка). Игровой цикл начинает и завершает вылазку через `TryDepart` / `CompleteOuting`. |

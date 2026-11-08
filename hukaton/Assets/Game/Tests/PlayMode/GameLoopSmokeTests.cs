@@ -64,7 +64,7 @@ namespace Hakaton.Game.Tests
             thrower.Select(0);
             Assert.That(thrower.Selected, Is.Not.Null, "The hand is dealt on departure.");
             thrower.Preparation.Begin();
-            thrower.Preparation.Tick(world.settings.chargeSeconds * .6f, false, 0, world.settings.chargeSeconds, world.settings.gesturePixels);
+            thrower.Preparation.Tick(world.settings.chargeSeconds * .6f, false, 0, 0, world.settings.chargeSeconds, world.settings.gesturePixels);
             Assert.That(thrower.Release(), Is.Not.Null, "Releasing a prepared throw launches a card.");
             yield return new WaitForSeconds(1);
 

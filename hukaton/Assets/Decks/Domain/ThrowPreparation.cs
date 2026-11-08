@@ -2,58 +2,62 @@ using System;
 
 namespace Hakaton.Decks
 {
-    /// <summary>A single release attempt. Charging controls range; it never changes card power.</summary>
+    /// <summary>
+    /// A single release attempt. Charging controls range; it never changes card power.
+    /// While the modifier is held the charge pauses and mouse motion steers the spin like a small stick:
+    /// any direction (x — right, y — up), clamped to full strength. Releasing the modifier keeps the spin;
+    /// holding it again keeps steering from there.
+    /// </summary>
     public sealed class ThrowPreparation
     {
         public bool Active { get; private set; }
         public float Charge { get; private set; }
-        public float Spin { get; private set; }
-        public bool GestureUsed { get; private set; }
-        float gesture, quiet;
-        int direction;
+
+        /// <summary>Sideways spin, −1 (left) … 1 (right).</summary>
+        public float SpinX { get; private set; }
+
+        /// <summary>Vertical spin, −1 (dips) … 1 (floats).</summary>
+        public float SpinY { get; private set; }
+
+        /// <summary>Strength of the spin, 0 … 1.</summary>
+        public float SpinAmount => (float)Math.Sqrt(SpinX * SpinX + SpinY * SpinY);
+
+        /// <summary>True while the modifier is held this preparation (the player is steering the spin).</summary>
+        public bool Steering { get; private set; }
+
         public void Begin()
         {
             Cancel();
             Active = true;
         }
 
-        public void Tick(float seconds, bool modifier, float horizontalDelta, float chargeSeconds, float gesturePixels)
+        /// <param name="deltaX">Mouse motion this frame, pixels, right positive.</param>
+        /// <param name="deltaY">Mouse motion this frame, pixels, up positive.</param>
+        /// <param name="gesturePixels">Mouse travel for a full-strength spin.</param>
+        public void Tick(float seconds, bool modifier, float deltaX, float deltaY, float chargeSeconds, float gesturePixels)
         {
             if (!Active) return;
+            Steering = modifier;
             if (!modifier)
             {
-                if (direction != 0) GestureUsed = true;
                 Charge = Math.Min(1, Charge + Math.Max(0, seconds) / Math.Max(.01f, chargeSeconds));
                 return;
             }
-            if (GestureUsed) return;
-            if (Math.Abs(horizontalDelta) > 1)
+            float scale = 1f / Math.Max(1, gesturePixels);
+            SpinX += deltaX * scale;
+            SpinY += deltaY * scale;
+            float amount = SpinAmount;
+            if (amount > 1)
             {
-                int sign = Math.Sign(horizontalDelta);
-                if (direction != 0 && sign != direction)
-                {
-                    GestureUsed = true;
-                    return;
-                }
-                direction = sign;
-                quiet = 0;
-                gesture += horizontalDelta;
-                Spin = Math.Max(-1, Math.Min(1, gesture / Math.Max(1, gesturePixels)));
-                if (Math.Abs(Spin) >= 1) GestureUsed = true;
-            }
-            else if (direction != 0)
-            {
-                quiet += Math.Max(0, seconds);
-                if (quiet >= .14f) GestureUsed = true;
+                SpinX /= amount;
+                SpinY /= amount;
             }
         }
 
         public void Cancel()
         {
-            Active = false;
-            Charge = Spin = gesture = quiet = 0;
-            direction = 0;
-            GestureUsed = false;
+            Active = Steering = false;
+            Charge = SpinX = SpinY = 0;
         }
     }
 }

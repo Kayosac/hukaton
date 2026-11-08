@@ -7,8 +7,8 @@ using UnityEngine.InputSystem;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// Expedition input and the throw itself. Hold LMB to charge, optional Shift + one sideways mouse gesture
-    /// for spin, release to throw. RMB cancels. Wheel / 1–5 select, Tab switches deck, R discards the hand,
+    /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
+    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select, Tab switches deck, R discards the hand,
     /// E picks up. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
@@ -81,7 +81,8 @@ namespace Hakaton.Expeditions
             {
                 bool modifier = keys != null && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed);
                 input.SetLookBlocked(this, modifier);
-                Preparation.Tick(Time.deltaTime, modifier, mouse.delta.ReadValue().x, world.settings.chargeSeconds, world.settings.gesturePixels);
+                Vector2 delta = mouse.delta.ReadValue();
+                Preparation.Tick(Time.deltaTime, modifier, delta.x, delta.y, world.settings.chargeSeconds, world.settings.gesturePixels);
                 ChargeFeedback();
                 if (mouse.leftButton.wasReleasedThisFrame) Release();
             }
@@ -129,7 +130,8 @@ namespace Hakaton.Expeditions
         {
             var card = Selected;
             if (!Preparation.Active || !world.Running || card == null || card.IsReturn) return null;
-            float charge = Preparation.Charge, spin = Preparation.Spin;
+            float charge = Preparation.Charge;
+            var spin = new Vector2(Preparation.SpinX, Preparation.SpinY);
             ComputeLaunch(charge, out var origin, out var velocity);
             Cancel();
             if (world.workshop.Model.Current.Release(card.Id) == null) return null;
@@ -142,7 +144,7 @@ namespace Hakaton.Expeditions
 
             if (world.feel)
             {
-                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), -20 * spin));
+                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), -20 * spin.x));
                 world.feel.PunchFov(10 + 25 * charge);
             }
             world.Play(world.cues ? world.cues.cardThrow : null, null, .7f + .3f * charge, Mathf.Lerp(.95f, 1.12f, charge));
@@ -247,7 +249,7 @@ namespace Hakaton.Expeditions
             for (int i = 1; i < count; i++)
             {
                 Vector3 next = position, nextVelocity = velocity;
-                CardFlight.Advance(ref next, ref nextVelocity, Preparation.Spin, world.settings, step);
+                CardFlight.Advance(ref next, ref nextVelocity, new Vector2(Preparation.SpinX, Preparation.SpinY), world.settings, step);
                 if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
                 {
                     previewPoints[used++] = hit.point;

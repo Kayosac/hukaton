@@ -12,7 +12,9 @@ namespace Hakaton.Expeditions
         [Min(0)] public float cardGravity = 9.81f;
         [Tooltip("Sideways acceleration at full spin, m/s².")]
         [Min(0)] public float curveAcceleration = 12;
-        [Tooltip("Horizontal mouse travel for a full-strength spin gesture, pixels.")]
+        [Tooltip("Vertical acceleration at full up/down spin, m/s². Below gravity, so a floating card still falls.")]
+        [Min(0)] public float liftAcceleration = 6;
+        [Tooltip("Mouse travel (any direction, Shift held) for a full-strength spin, pixels.")]
         [Min(1)] public float gesturePixels = 220;
         [Tooltip("Share of the player's own planar velocity added to the throw.")]
         [Range(0, 1)] public float inheritVelocity = .25f;

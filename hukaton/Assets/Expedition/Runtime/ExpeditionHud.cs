@@ -23,7 +23,17 @@ namespace Hakaton.Expeditions
         public Image[] heartFills;
         [Header("Reticle")]
         public Image reticle;
-        public Image chargeRing, spinArrow;
+        public Image chargeRing;
+        [Header("Spin arrow")]
+        [Tooltip("Rotates to the spin's direction around the reticle centre.")]
+        public RectTransform spinPointer;
+        public Image spinShaft, spinHead;
+        [Tooltip("Faint circle at full spin strength, shown while Shift steers the spin.")]
+        public Image spinLimit;
+        [Tooltip("Arrow length at full spin, canvas pixels.")]
+        [Min(8)] public float spinArrowLength = 72;
+        [Tooltip("The arrow starts outside the charge ring.")]
+        [Min(0)] public float spinArrowGap = 40;
         [Header("Text")]
         public TMP_Text prompt;
         public TMP_Text notice, toasts, deck, cardLabel, loot, hint;
@@ -173,14 +183,41 @@ namespace Hakaton.Expeditions
                 lastThrowCharge = preparation.Active ? preparation.Charge : 0;
                 chargeRing.rectTransform.localScale = Vector3.one * scale;
             }
-            if (spinArrow)
-            {
-                float spin = preparation.Active ? preparation.Spin : 0;
-                spinArrow.enabled = Mathf.Abs(spin) > .03f;
-                spinArrow.rectTransform.localScale = new Vector3(Mathf.Sign(spin) * (.6f + Mathf.Abs(spin) * .6f), .6f + Mathf.Abs(spin) * .6f, 1);
-                spinArrow.color = new Color(1, 1, 1, .4f + Mathf.Abs(spin) * .6f);
-            }
+            UpdateSpinArrow(preparation, accent);
             if (reticle) reticle.color = world.FocusedLoot ? new Color(1f, .86f, .45f) : Color.white;
+        }
+
+        /// <summary>The spin as an arrow from the reticle: direction and length follow the mouse while Shift is held.</summary>
+        void UpdateSpinArrow(ThrowPreparation preparation, Color accent)
+        {
+            if (!spinPointer) return;
+            var spin = preparation.Active ? new Vector2(preparation.SpinX, preparation.SpinY) : Vector2.zero;
+            float amount = Mathf.Clamp01(spin.magnitude);
+            bool show = amount > .02f;
+            if (spinPointer.gameObject.activeSelf != show) spinPointer.gameObject.SetActive(show);
+            if (show)
+            {
+                spinPointer.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(spin.y, spin.x) * Mathf.Rad2Deg);
+                // Whole canvas pixels so the pixel-art shaft stays crisp.
+                float length = Mathf.Max(2, Mathf.Round(amount * spinArrowLength));
+                spinShaft.rectTransform.anchoredPosition = new Vector2(spinArrowGap, 0);
+                spinShaft.rectTransform.sizeDelta = new Vector2(length, spinShaft.rectTransform.sizeDelta.y);
+                spinHead.rectTransform.anchoredPosition = new Vector2(spinArrowGap + length, 0);
+                Color colour = Color.Lerp(Color.white, accent, amount);
+                colour.a = preparation.Steering ? 1 : .55f + .45f * amount;
+                spinShaft.color = spinHead.color = colour;
+            }
+            if (spinLimit)
+            {
+                bool steering = preparation.Active && preparation.Steering;
+                spinLimit.enabled = steering;
+                if (steering)
+                {
+                    float diameter = 2 * (spinArrowGap + spinArrowLength);
+                    spinLimit.rectTransform.sizeDelta = new Vector2(diameter, diameter);
+                    spinLimit.color = new Color(1, 1, 1, .18f);
+                }
+            }
         }
 
         void UpdateTexts(float dt)
@@ -233,7 +270,7 @@ namespace Hakaton.Expeditions
             if (hint)
             {
                 string text = "";
-                if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Shift + рывок мыши — подкрутка";
+                if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Во время заряда <b>Shift</b> + мышь — подкрутка в любую сторону";
                 else if (!hintedDeck && AnyHostileNearby()) text = "<b>Tab</b> — боевая колода";
                 else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
                 hint.text = text;

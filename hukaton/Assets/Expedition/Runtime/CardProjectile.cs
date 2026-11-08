@@ -25,7 +25,8 @@ namespace Hakaton.Expeditions
         CardCopy card;
         CardDefinition definition;
         Vector3 velocity;
-        float spin, age, spinAngle;
+        Vector2 spin;
+        float age, spinAngle;
         bool resolved;
         Pose? handPose;
 
@@ -33,7 +34,7 @@ namespace Hakaton.Expeditions
         public CardCopy Card => card;
         public Vector3 Velocity => velocity;
 
-        public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, float curvature, Pose? fromHand)
+        public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, Vector2 curvature, Pose? fromHand)
         {
             world = owner;
             card = copy;
@@ -82,12 +83,13 @@ namespace Hakaton.Expeditions
 
         void UpdateVisual(float dt)
         {
-            spinAngle += spinSpeed * dt * (spin >= 0 ? 1 : -1);
+            spinAngle += spinSpeed * dt * (spin.x >= 0 ? 1 : -1);
             Vector3 direction = velocity.sqrMagnitude > .001f ? velocity.normalized : transform.forward;
             Vector3 side = Vector3.Cross(Vector3.up, direction);
             if (side.sqrMagnitude < .001f) side = Vector3.right;
             Vector3 up = Vector3.Cross(direction, side.normalized);
-            up = Quaternion.AngleAxis(-spin * bankAngle + Mathf.Sin(age * 23) * 4, direction) * up;
+            // Banks into a sideways curve; up/down spin keeps the card flat.
+            up = Quaternion.AngleAxis(-spin.x * bankAngle + Mathf.Sin(age * 23) * 4, direction) * up;
             // The quad's normal (local Z) points along the banked up axis: the card flies flat, spinning in its plane.
             Quaternion flat = Quaternion.LookRotation(up, direction) * Quaternion.Euler(0, 0, spinAngle);
             Vector3 position = transform.position;
