@@ -64,6 +64,9 @@ namespace Hakaton.Trading.Unity
             return presenter && presenter.ReadyForTrade;
         }
 
+        /// <summary>While set, a visitor at the counter keeps their current face (the "thinking" beat).</summary>
+        public bool HoldExpression { get; set; }
+
         public void Sync(TradingSession session)
         {
             if (session == null) return;
@@ -83,7 +86,7 @@ namespace Hakaton.Trading.Unity
                         visitor.Leave(sold ? NpcExpression.Happy : NpcExpression.Angry);
                     }
                 }
-                else if (visitor.ReadyForTrade)
+                else if (visitor.ReadyForTrade && !HoldExpression)
                     visitor.SetExpression(ExpressionFor(session.CurrentDeal?.Mood ?? CustomerMood.Neutral));
             }
             foreach (var done in finished) presented.Remove(done);

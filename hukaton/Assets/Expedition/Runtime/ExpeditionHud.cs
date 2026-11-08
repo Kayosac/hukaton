@@ -41,7 +41,8 @@ namespace Hakaton.Expeditions
 
         readonly List<(string text, float time)> toastLines = new List<(string, float)>();
         SpringFloat[] heartScales;
-        SpringFloat heartsShake, ringScale, lootScale;
+        SpringFloat heartsShake, ringScale;
+        TextPunch lootPunch;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
         Color vignetteColour;
         bool subscribed, hintedThrow, hintedDeck, hintedPickup;
@@ -54,7 +55,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < heartScales.Length; i++) heartScales[i].Snap(1);
             heartBaseColours = heartFills.Select(f => f ? f.color : Color.white).ToArray();
             ringScale.Snap(1);
-            lootScale.Snap(1);
+            lootPunch = new TextPunch(loot.rectTransform);
             if (hearts) heartsBase = hearts.anchoredPosition;
         }
 
@@ -93,7 +94,7 @@ namespace Hakaton.Expeditions
         {
             toastLines.Add(($"+ {itemName}  <color=#F4D27A>{value}</color>", Time.time));
             if (toastLines.Count > 4) toastLines.RemoveAt(0);
-            lootScale.Kick(10);
+            lootPunch?.Hop(6);
             hintedPickup = true;
         }
 
@@ -227,7 +228,7 @@ namespace Hakaton.Expeditions
             cardLabel.alpha = Mathf.MoveTowards(cardLabel.alpha, showLabel ? 1 : 0, dt * 5);
 
             loot.text = world.Loot.Count == 0 ? "" : $"Сумка  {world.Loot.Sum(x => x.count)}  <color=#F4D27A>{world.LootValue}</color>";
-            loot.rectTransform.localScale = Vector3.one * lootScale.Step(1, 6, .35f, dt);
+            lootPunch?.Update(dt);
 
             if (hint)
             {

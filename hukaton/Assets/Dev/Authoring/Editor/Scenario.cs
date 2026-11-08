@@ -146,6 +146,13 @@ namespace Hakaton.Authoring
             return $"open={s.IsOpen} time={s.RemainingSeconds:F0} gold={s.Gold} revenue={s.GrossRevenue} customer={s.CurrentCustomer?.Name} ready={Trade.CustomerReady} deal={(d == null ? "-" : $"{d.Item.Definition.Name} R={d.R} B={d.B} N={d.N} p={d.Patience} {d.Mood}")}";
         }
 
+        public static string Workshop(string mode)
+        {
+            var w = World.workshop;
+            if (mode == "close") { w.CloseEmbedded(); return "closed"; }
+            return "open=" + w.OpenEmbedded(mode == "market") + " " + w.feedback.text;
+        }
+
         public static string Switch() { World.thrower.SwitchDeck(); return "deck=" + World.workshop.Model.Current.ActiveKind; }
         public static string Discard() { World.thrower.Discard(); return "discarded"; }
         public static string Hurt(string args) { World.vitals.Hurt((int)Numbers(args)[0], Vector3.back * 3, World.motor.transform.position + World.motor.transform.forward * 2); return "hp=" + World.vitals.HalfHearts; }

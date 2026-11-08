@@ -19,14 +19,16 @@ namespace Hakaton.Trading.Unity
         public ParticleSystem coinBurst;
         [Tooltip("Sales at or above this price use the big coin cascade.")]
         [Min(1)] public int bigSale = 100;
-        [Min(0)] public float reactionDelay = .35f;
+        public Color walletFlash = new Color(1f, .84f, .45f);
 
         long seenCustomer;
         int seenSettlement, seenDeparture, seenRevision = -1, lastTick = -1, displayedGold;
         bool seenOpen;
         float voiceAt = -1;
         CustomerMood pendingMood;
-        SpringFloat walletScale = new SpringFloat(1);
+        TextPunch walletPunch;
+        Color walletRest;
+        float walletGlow;
 
         void OnEnable()
         {
@@ -51,6 +53,11 @@ namespace Hakaton.Trading.Unity
             seenDeparture = session.DepartureSequence;
             seenOpen = session.IsOpen;
             displayedGold = session.Gold;
+            if (hud && hud.walletText)
+            {
+                walletPunch = new TextPunch(hud.walletText.rectTransform);
+                walletRest = hud.walletText.color;
+            }
         }
 
         void Update()
@@ -79,7 +86,8 @@ namespace Hakaton.Trading.Unity
                 bool first = seenRevision < 0;
                 seenRevision = deal.Revision;
                 pendingMood = deal.Mood;
-                voiceAt = Time.unscaledTime + (first ? .1f : reactionDelay);
+                // Lands together with the visitor's answer after the trade's thinking beat.
+                voiceAt = Time.unscaledTime + (first ? .1f : trade.reactionBeat);
             }
             if (voiceAt > 0 && Time.unscaledTime >= voiceAt)
             {
@@ -99,7 +107,8 @@ namespace Hakaton.Trading.Unity
                     coinBurst.Emit(Mathf.Clamp(price / 6, 6, 40));
                 }
                 if (feel) { feel.PunchFov(-14); feel.AddTrauma(.12f); }
-                walletScale.Kick(9);
+                walletPunch?.Hop(7);
+                walletGlow = 1;
             }
 
             if (session.DepartureSequence != seenDeparture)
@@ -131,7 +140,9 @@ namespace Hakaton.Trading.Unity
             if (hud && hud.walletText)
             {
                 hud.walletText.text = $"{displayedGold} монет";
-                hud.walletText.rectTransform.localScale = Vector3.one * walletScale.Step(1, 6, .35f, dt);
+                walletGlow = Mathf.MoveTowards(walletGlow, 0, dt * 1.6f);
+                hud.walletText.color = Color.Lerp(walletRest, walletFlash, walletGlow);
+                walletPunch?.Update(dt);
             }
 
             if (cues.ambience && trade.World && trade.World.ViewCamera)

@@ -27,6 +27,8 @@ namespace Hakaton.Trading.Unity
         public float holdThreshold = .35f;
         public float autoPlaceInterval = .16f;
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
+        [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
+        [Min(0)] public float reactionBeat = .38f;
 
         public TradingSession Session { get; private set; }
         [Header("Scene references — assign in the authored scene")]
@@ -43,6 +45,8 @@ namespace Hakaton.Trading.Unity
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
+        /// <summary>False during the short beat after an offer while the visitor considers it.</summary>
+        public bool ReactionRevealed => Time.unscaledTime >= revealAt;
         public bool UsesDisplayView => World && World.ShopView;
         public bool SelectingFromDisplay => UsesDisplayView && World.ShopView.Selecting;
         public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
@@ -80,7 +84,7 @@ namespace Hakaton.Trading.Unity
         GameObject heldItem;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
-        float pressStarted, nextPlaceAt, actionReadyAt;
+        float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
         TradingInteractionTarget focusedTarget;
         ShopInteractionTarget focusedService;
         int focusedLoot = -1;
@@ -146,6 +150,7 @@ namespace Hakaton.Trading.Unity
 
         void Update()
         {
+            World.Customers.HoldExpression = !ReactionRevealed;
             World.Customers.Sync(Session);
             Session.Tick(Time.unscaledDeltaTime);
             if (Session.IsOpen && Session.CurrentCustomer == null && World.Customers.CanStartNextCustomer)
@@ -613,7 +618,11 @@ namespace Hakaton.Trading.Unity
             if (!Session.Offer(dealId, revision, optionIndex)) return;
             if (Session.CurrentCustomer == null && Session.SettlementSequence == salesBefore)
                 Notify(Session.LastMessage + " Товар сохранён.");
-            actionReadyAt = Time.unscaledTime + .4f;
+            bool countered = Session.CurrentDeal != null;
+            // A counter-offer lands after a short "thinking" beat; sales and walk-outs land at once.
+            revealAt = countered ? Time.unscaledTime + reactionBeat : 0;
+            actionReadyAt = Time.unscaledTime + (countered ? reactionBeat + .05f : .4f);
+            World.Customers.HoldExpression = countered;
             ObserveSale();
             World.Customers.Sync(Session);
         }

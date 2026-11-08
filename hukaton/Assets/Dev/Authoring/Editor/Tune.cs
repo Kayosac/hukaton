@@ -45,7 +45,10 @@ namespace Hakaton.Authoring
             else if (path.EndsWith(".prefab"))
             {
                 var root = PrefabUtility.LoadPrefabContents(path);
-                var target = root.GetComponentsInChildren<Component>(true).First(c => c && c.GetType().Name == component);
+                // "Type@Child name" picks the component on a named child.
+                var spec = component.Split('@');
+                var target = root.GetComponentsInChildren<Component>(true)
+                    .First(c => c && c.GetType().Name == spec[0] && (spec.Length == 1 || c.name == spec[1]));
                 Apply(target);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
                 PrefabUtility.UnloadPrefabContents(root);
@@ -53,6 +56,32 @@ namespace Hakaton.Authoring
             else Apply(AssetDatabase.LoadAssetAtPath<Object>(path));
             AssetDatabase.SaveAssets();
             return result;
+        }
+
+        /// <summary>Writes a prefab's (or scene object's) hierarchy with rect layout to Logs/bridge/dump.txt. args: "path[|child name]".</summary>
+        public static string Dump(string args)
+        {
+            var parts = args.Split('|');
+            GameObject root; bool unload = false;
+            if (parts[0].StartsWith("scene:"))
+                root = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(t => t.name == parts[0].Substring(6)).gameObject;
+            else { root = PrefabUtility.LoadPrefabContents(parts[0]); unload = true; }
+            var start = parts.Length > 1 ? root.GetComponentsInChildren<Transform>(true).First(t => t.name == parts[1]) : root.transform;
+            var b = new System.Text.StringBuilder();
+            void Walk(Transform t, int depth)
+            {
+                string layout = t is RectTransform r
+                    ? $" a=({r.anchorMin.x:0.##},{r.anchorMin.y:0.##})-({r.anchorMax.x:0.##},{r.anchorMax.y:0.##}) p=({r.pivot.x:0.##},{r.pivot.y:0.##}) pos=({r.anchoredPosition.x:0.#},{r.anchoredPosition.y:0.#}) size=({r.sizeDelta.x:0.#},{r.sizeDelta.y:0.#})"
+                    : $" lp={t.localPosition}";
+                var comps = string.Join(",", t.GetComponents<Component>().Where(c => c && !(c is Transform)).Select(c => c.GetType().Name));
+                var text = t.GetComponent<TMPro.TMP_Text>();
+                b.AppendLine(new string(' ', depth * 2) + t.name + (t.gameObject.activeSelf ? "" : " [off]") + layout + " {" + comps + "}" + (text ? $" \"{text.text.Replace("\n", "/")}\" sz={text.fontSize}" : ""));
+                foreach (Transform c in t) Walk(c, depth + 1);
+            }
+            Walk(start, 0);
+            if (unload) PrefabUtility.UnloadPrefabContents(root);
+            System.IO.File.WriteAllText("Logs/bridge/dump.txt", b.ToString());
+            return "dumped " + b.Length + " chars";
         }
 
         static void Assign(SerializedProperty p, string value)
