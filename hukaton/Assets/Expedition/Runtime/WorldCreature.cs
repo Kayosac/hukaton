@@ -26,7 +26,7 @@ namespace Hakaton.Expeditions
         public Renderer[] skin;
         public CreatureOverhead overhead;
         [Tooltip("Height of the stun stars above the head and their size.")]
-        public float stunStarsHeight = .35f, stunStarsScale = .8f;
+        public float stunStarsHeight = .35f, stunStarsScale = 1.2f;
         VfxBurst stunStars;
         public WorldLoot trophyPrefab;
         [Tooltip("Optional authored alternatives for this creature's home territory.")]

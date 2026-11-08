@@ -499,7 +499,7 @@ namespace Hakaton.Trading.Unity
         public bool CompleteExternalExpedition(long id, IReadOnlyList<StockDelivery> delivery)
         {
             if (Session == null || !Session.CompleteExpedition(id, delivery)) return false;
-            Notify(Session.LastMessage);
+            // The game loop announces the outcome of the outing; the shop stays quiet to avoid a double notice.
             RefreshPresentation();
             return true;
         }

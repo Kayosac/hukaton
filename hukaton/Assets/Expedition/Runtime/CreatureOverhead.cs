@@ -11,6 +11,8 @@ namespace Hakaton.Expeditions
         public SpriteRenderer[] pips;
         public Sprite pipFull, pipEmpty;
         [Min(0)] public float healthSeconds = 2.5f;
+        [Tooltip("Closer than this the marks shrink with distance, so they never swallow the screen.")]
+        [Min(.1f)] public float fullSizeDistance = 7;
 
         int alertLevel;
         float healthUntil;
@@ -52,16 +54,22 @@ namespace Hakaton.Expeditions
             alertScale.Step(alertLevel > 0 ? 1 : 0, 6, .45f, dt);
             pipsScale.Step(Time.time < healthUntil ? 1 : 0, 6, .6f, dt);
             if (!viewer) viewer = Camera.main;
-            if (viewer) transform.rotation = Quaternion.LookRotation(transform.position - viewer.transform.position);
-            Apply();
+            float near = 1;
+            if (viewer)
+            {
+                Vector3 toMarks = transform.position - viewer.transform.position;
+                transform.rotation = Quaternion.LookRotation(toMarks);
+                near = Mathf.Clamp(toMarks.magnitude / fullSizeDistance, .35f, 1);
+            }
+            Apply(near);
         }
 
-        void Apply()
+        void Apply(float near = 1)
         {
-            float a = Mathf.Max(0, alertScale.Value);
+            float a = Mathf.Max(0, alertScale.Value) * near;
             alert.transform.localScale = Vector3.one * a;
             alert.enabled = a > .02f;
-            float p = Mathf.Max(0, pipsScale.Value);
+            float p = Mathf.Max(0, pipsScale.Value) * near;
             foreach (var pip in pips) { pip.transform.localScale = Vector3.one * p * .5f; pip.enabled = p > .02f; }
         }
     }

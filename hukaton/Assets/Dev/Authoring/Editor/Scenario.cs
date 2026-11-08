@@ -40,7 +40,11 @@ namespace Hakaton.Authoring
         {
             var n = Numbers(args);
             var world = World;
-            world.motor.Teleport(new Vector3(n[0], n[1], n[2]), Quaternion.Euler(n.Length > 4 ? n[4] : 0, n.Length > 3 ? n[3] : 0, 0));
+            var at = new Vector3(n[0], n[1], n[2]);
+            // Snap to the ground below (the given height is only a hint).
+            if (Physics.Raycast(new Vector3(at.x, 60, at.z), Vector3.down, out var ground, 120, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                at.y = ground.point.y + .05f;
+            world.motor.Teleport(at, Quaternion.Euler(n.Length > 4 ? n[4] : 0, n.Length > 3 ? n[3] : 0, 0));
             return "at " + world.motor.transform.position;
         }
 
@@ -231,6 +235,30 @@ namespace Hakaton.Authoring
             if (mode == "close") { w.CloseEmbedded(); return "closed"; }
             return "open=" + w.OpenEmbedded(mode == "market") + " " + w.feedback.text;
         }
+
+        /// <summary>args: "Creature name seconds" — knocks the first alive match out (stun stars).</summary>
+        public static string Stun(string args)
+        {
+            var parts = args.Split(' ');
+            var target = World.creatures.FirstOrDefault(c => c.displayName == parts[0] && c.Alive);
+            if (!target) return "no target";
+            target.Stagger(float.Parse(parts[1], CultureInfo.InvariantCulture), World.motor.transform.position);
+            return "stunned " + target.displayName;
+        }
+
+        /// <summary>Walks up to the nearest available find and picks it up the way the player does (E under the crosshair).</summary>
+        public static string Grab()
+        {
+            var world = World;
+            var find = world.finds.Where(f => f && f.Available)
+                .OrderBy(f => Vector3.Distance(f.transform.position, world.motor.transform.position)).FirstOrDefault();
+            if (!find) return "nothing left";
+            Vector3 stand = find.transform.position + Vector3.back * 1.6f;
+            Teleport($"{stand.x.ToString(CultureInfo.InvariantCulture)} 0 {stand.z.ToString(CultureInfo.InvariantCulture)} 0 30");
+            return "near " + find.name;
+        }
+
+        public static string PickUp() => "picked=" + World.TryPickUpFocused() + " loot=" + string.Join(",", World.Loot.Select(l => l.name + "x" + l.count));
 
         public static string Switch() { World.thrower.SwitchDeck(); return "deck=" + World.workshop.Model.Current.ActiveKind; }
         public static string Discard() { World.thrower.Discard(); return "discarded"; }
