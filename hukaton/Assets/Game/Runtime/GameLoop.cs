@@ -61,7 +61,7 @@ namespace Hakaton.Game
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
                 || !services || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
-                || !objectiveLabel || !resultLabel || !trade.externalExpeditions || !workshop.embeddedMode
+                || !objectiveLabel || !resultLabel || !workshop.embeddedMode
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
             trade.ExpeditionRequested += TryDepartFromDoor;

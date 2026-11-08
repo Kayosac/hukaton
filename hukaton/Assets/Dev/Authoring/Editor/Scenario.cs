@@ -19,6 +19,14 @@ namespace Hakaton.Authoring
 
         public static string Depart() => "depart=" + Game.TryDepart();
 
+        /// <summary>Leaves through the shop door, as the player does: fade, departure, location title.</summary>
+        public static string Door()
+        {
+            typeof(GameLoop).GetMethod("TryDepartFromDoor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+                .Invoke(Game, null);
+            return "door used";
+        }
+
         public static string Teleport(string args)
         {
             var n = Numbers(args);
@@ -143,7 +151,7 @@ namespace Hakaton.Authoring
         {
             var trade = Object.FindAnyObjectByType<TradingPrototype>(FindObjectsInactive.Include);
             var w = trade.World;
-            var b = new StringBuilder($"trade enabled={trade.enabled} session={(trade.Session != null)} world={(bool)w} hud={(bool)trade.hud} sound={(bool)trade.sound}\n");
+            var b = new StringBuilder($"trade enabled={trade.enabled} session={(trade.Session != null)} world={(bool)w} hud={(bool)trade.hud}\n");
             if (w)
                 foreach (var f in w.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
                 {

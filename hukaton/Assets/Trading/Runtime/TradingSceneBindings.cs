@@ -33,12 +33,6 @@ namespace Hakaton.Trading.Unity
         public Transform CustomerItemTarget;
         public Transform SoldItemsRoot;
 
-        [Header("Door and test expedition")]
-        public bool requireTestExpedition = true;
-        public Collider DoorCollider;
-        public Transform DoorInside;
-        public Transform DoorOutside;
-        public Collider[] LootColliders;
 
         [Header("Item presentation — category order")]
         public GameObject[] ItemPrefabs;
@@ -51,11 +45,9 @@ namespace Hakaton.Trading.Unity
         {
             bool valid = ViewCamera && PlayerRoot && PlayerController && Movement && Control && Stamina && CounterPose && HeldItemAnchor
                 && HeldItem && Customer && Customers && Customers.actor && CustomerItemTarget && SoldItemsRoot
-                && DoorCollider && DoorInside
                 && Complete(SlotAnchors, 6) && Complete(SlotRenderers, 6) && Complete(SlotColliders, 6)
                 && ItemPrefabs != null && ItemPrefabs.Length > 0
                 && Complete(ItemPrefabs, ItemPrefabs.Length) && Complete(ItemMaterials, ItemPrefabs.Length);
-            if (requireTestExpedition) valid &= DoorOutside && Complete(LootColliders, 3);
             if (ShopView) valid &= ShopView.IsConfigured && DealItemAnchor;
             if (!valid) Debug.LogError("Trading scene references are incomplete. Check TradingSceneBindings in the Inspector.", this);
             return valid;

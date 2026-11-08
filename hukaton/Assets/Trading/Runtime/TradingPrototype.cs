@@ -36,10 +36,7 @@ namespace Hakaton.Trading.Unity
         public TradingHud hud;
         public CoinWalletHost walletHost;
         public ShopBackroomServices services;
-        public AudioSource sound;
-        public AudioClip placeSound, saleSound;
-        [Header("Game loop integration")]
-        public bool externalExpeditions;
+        /// <summary>Raised when the player uses the shop door; the game loop runs the expedition.</summary>
         public event System.Action ExpeditionRequested;
         public event System.Action<int> ItemPlaced, ItemTaken, SlotHovered;
         public int HoveredSlot => hoveredSlot;
@@ -87,11 +84,10 @@ namespace Hakaton.Trading.Unity
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
         TradingInteractionTarget focusedTarget;
         ShopInteractionTarget focusedService;
-        int focusedLoot = -1;
         public string ContextPrompt { get; private set; } = string.Empty;
         public string ContextDetail { get; private set; } = string.Empty;
         public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen
-            && !(externalExpeditions && Session.ExpeditionId != 0);
+            && Session.ExpeditionId == 0;
         public float StaminaFraction => World.Stamina.Normalized;
         public bool ShowStamina => World.Stamina.Normalized < .995f;
         public float ContextProgress => pressedSlot >= 0 ? Mathf.Clamp01((Time.unscaledTime - pressStarted) / holdThreshold) : 0;
@@ -105,9 +101,9 @@ namespace Hakaton.Trading.Unity
         void Awake()
         {
             slotHighlight = new MaterialPropertyBlock();
-            if (World == null || hud == null || sound == null || placeSound == null || saleSound == null)
+            if (World == null || hud == null)
             {
-                Debug.LogError("TradingPrototype: assign scene bindings, HUD and audio assets in the Inspector.", this);
+                Debug.LogError("TradingPrototype: assign scene bindings and the HUD in the Inspector.", this);
                 enabled = false;
                 return;
             }
@@ -225,7 +221,7 @@ namespace Hakaton.Trading.Unity
         {
             focusedTarget = null;
             focusedService = null;
-            hoveredSlot = focusedLoot = -1;
+            hoveredSlot = -1;
             ContextPrompt = ContextDetail = string.Empty;
         }
 
@@ -284,18 +280,8 @@ namespace Hakaton.Trading.Unity
             }
             else if (target.kind == TradingTargetKind.Door)
             {
-                ContextPrompt = Session.ExpeditionId == 0 ? "E  Выйти из лавки" : "E  Вернуться в лавку";
-                ContextDetail = Session.PendingLootCount > 0 ? $"Добыча: {Session.PendingLootCount}" : string.Empty;
-            }
-            else if (target.kind == TradingTargetKind.Loot && Session.ExpeditionId != 0)
-            {
-                for (int i = 0; i < World.LootColliders.Length; i++)
-                    if (World.LootColliders[i] == hit.collider) { focusedLoot = i; break; }
-                if (focusedLoot >= 0)
-                {
-                    ContextPrompt = "E  Подобрать";
-                    ContextDetail = catalog[focusedLoot % catalog.Length].Name;
-                }
+                ContextPrompt = "E  Выйти из лавки";
+                ContextDetail = string.Empty;
             }
         }
 
@@ -384,39 +370,8 @@ namespace Hakaton.Trading.Unity
             if (focusedTarget == null || !GameplayActive) return;
             if (focusedTarget.kind == TradingTargetKind.Door)
             {
-                if (externalExpeditions)
-                {
-                    if (ExpeditionRequested != null) ExpeditionRequested.Invoke();
-                    else Notify("Вылазка не подключена к двери.");
-                    return;
-                }
-                if (Session.ExpeditionId == 0)
-                {
-                    if (Session.BeginExpedition() != 0)
-                    {
-                        foreach (var loot in World.LootColliders) loot.gameObject.SetActive(true);
-                        Teleport(World.DoorOutside.position, World.DoorOutside.rotation);
-
-                    }
-                }
-                else
-                {
-                    bool fresh = Session.PendingLootCount > 0;
-                    Session.CompleteExpedition(Session.ExpeditionId);
-                    Teleport(World.DoorInside.position, World.DoorInside.rotation);
-                    Notify(fresh ? "Добыча доставлена · новая смена" : "Без новой добычи · время сохранено");
-                }
-                return;
-            }
-            if (Session.ExpeditionId != 0 && focusedLoot >= 0)
-            {
-                int i = focusedLoot;
-                if (Session.CollectLoot(Session.ExpeditionId, catalog[i % catalog.Length]))
-                {
-                    World.LootColliders[i].gameObject.SetActive(false);
-                    sound.PlayOneShot(placeSound, .2f);
-                    Notify("+ " + catalog[i % catalog.Length].Name);
-                }
+                if (ExpeditionRequested != null) ExpeditionRequested.Invoke();
+                else Notify("Вылазка не подключена к двери.");
                 return;
             }
             if (focusedTarget.kind == TradingTargetKind.Counter || (World.openFromDisplaySlots && focusedTarget.kind == TradingTargetKind.DisplaySlot))
@@ -435,12 +390,6 @@ namespace Hakaton.Trading.Unity
         }
         void CloseShop() { Session.Close(); World.Customers.Sync(Session); SyncControl(); }
         void Notify(string text) { notice = text; noticeUntil = Time.unscaledTime + 2.6f; }
-        void Teleport(Vector3 position, Quaternion rotation)
-        {
-            ResetPlacement();
-            ClearFocus();
-            World.Movement.Teleport(position, rotation);
-        }
         void OnEnable()
         {
             if (Session != null && World != null && World.Control != null)
@@ -536,7 +485,7 @@ namespace Hakaton.Trading.Unity
 
         public long BeginExternalExpedition()
         {
-            if (!externalExpeditions || !isActiveAndEnabled || Session == null || Session.IsOpen
+            if (!isActiveAndEnabled || Session == null || Session.IsOpen
                 || (services && services.IsOpen)) return 0;
             long id = Session.BeginExpedition();
             if (id != 0)
@@ -549,7 +498,7 @@ namespace Hakaton.Trading.Unity
 
         public bool CompleteExternalExpedition(long id, IReadOnlyList<StockDelivery> delivery)
         {
-            if (!externalExpeditions || Session == null || !Session.CompleteExpedition(id, delivery)) return false;
+            if (Session == null || !Session.CompleteExpedition(id, delivery)) return false;
             Notify(Session.LastMessage);
             RefreshPresentation();
             return true;
