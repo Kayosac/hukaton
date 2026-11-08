@@ -17,6 +17,15 @@ namespace Hakaton.Authoring
         static ExpeditionWorld World => Object.FindAnyObjectByType<ExpeditionWorld>();
         static float[] Numbers(string args) => (args ?? "").Split(' ', System.StringSplitOptions.RemoveEmptyEntries).Select(a => float.Parse(a, CultureInfo.InvariantCulture)).ToArray();
 
+        /// <summary>Lists the player's save folder (name, size, last write).</summary>
+        public static string Saves()
+        {
+            string folder = System.IO.Path.Combine(Application.persistentDataPath, "Hakaton");
+            if (!System.IO.Directory.Exists(folder)) return "no folder " + folder;
+            return string.Join(" | ", System.IO.Directory.GetFiles(folder).Select(f =>
+                $"{System.IO.Path.GetFileName(f)} {new System.IO.FileInfo(f).Length}b {System.IO.File.GetLastWriteTime(f):HH:mm:ss}"));
+        }
+
         public static string Depart() => "depart=" + Game.TryDepart();
 
         /// <summary>Leaves through the shop door, as the player does: fade, departure, location title.</summary>
