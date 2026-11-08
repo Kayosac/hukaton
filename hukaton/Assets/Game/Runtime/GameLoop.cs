@@ -96,7 +96,7 @@ namespace Hakaton.Game
             if (!Ready) return;
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
-                if (GoalReached && !goalCelebrated)
+                if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !workshop.EmbeddedOpen)
                 {
                     goalCelebrated = true; dirty = true;
                     Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — можно продолжать свободную игру.", 10);
@@ -117,7 +117,8 @@ namespace Hakaton.Game
         void TryDepartFromDoor() { TryDepart(); }
         public bool TryDepart()
         {
-            if (!Ready || Phase != GamePhase.Shop || expedition.Returning || trade.Session.IsOpen || services.IsOpen) return false;
+            if (!Ready || Phase != GamePhase.Shop || expedition.Returning || trade.Session.IsOpen || services.IsOpen
+                || trade.ViewTransitioning || player.control.HasModalOwner) return false;
             var error = workshop.Model.CanDepart();
             if (error != null) { Notify(error); return false; }
             // Capture the safe state before cards are shuffled or the world is changed.
