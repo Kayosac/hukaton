@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
 namespace Hakaton.Character
@@ -12,6 +13,14 @@ namespace Hakaton.Character
         public Vector2 Look { get; private set; }
         public bool SprintHeld { get; private set; }
         public bool JumpPressed { get; private set; }
+        readonly HashSet<Object> lookOwners = new HashSet<Object>();
+        public bool LookBlocked => lookOwners.Count > 0;
+        public void SetLookBlocked(Object owner, bool blocked)
+        {
+            if (!owner) return;
+            if (blocked) { lookOwners.Add(owner); Look = Vector2.zero; }
+            else lookOwners.Remove(owner);
+        }
 
         void Update()
         {
@@ -29,7 +38,8 @@ namespace Hakaton.Character
                 SprintHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
                 JumpPressed = keyboard.spaceKey.wasPressedThisFrame;
             }
-            if (Mouse.current != null) Look = Mouse.current.delta.ReadValue();
+            lookOwners.RemoveWhere(owner => !owner);
+            if (!LookBlocked && Mouse.current != null) Look = Mouse.current.delta.ReadValue();
         }
 
         public void Clear()
@@ -37,6 +47,6 @@ namespace Hakaton.Character
             Move = Look = Vector2.zero;
             SprintHeld = JumpPressed = false;
         }
-        void OnDisable() => Clear();
+        void OnDisable() { lookOwners.Clear(); Clear(); }
     }
 }

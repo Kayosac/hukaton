@@ -45,6 +45,7 @@ namespace Hakaton.Character
 
         void Update()
         {
+            if (input.LookBlocked) return;
             if (control.GameplayActive && !control.CapturedThisFrame)
             {
                 yawTarget += input.Look.x * mouseSensitivity;

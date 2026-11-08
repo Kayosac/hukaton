@@ -1,4 +1,4 @@
-# Reusable first-person character
+# Reusable characters
 
 The components in `Runtime` do not reference trading, UI panels, or a particular scene. They operate on a preconfigured player prefab. Configure references in the Inspector; no component assembles a player at runtime.
 
@@ -32,6 +32,8 @@ control.SetBlocked(this, false);
 
 Always release your own claim on disable/destruction. World interaction should require `control.GameplayActive && !control.CapturedThisFrame`. `PlayerStamina.Normalized` supplies a HUD gauge without a dependency from the player to any UI.
 
+`FirstPersonModalView` provides a fixed camera without moving the character body. Assign the camera, shared control gate and an authored full-screen black `CanvasGroup`. `Enter(pose, fov)` and `SetPose(pose, fov)` switch to external scene markers under a 0.2 s blink; `Exit()` restores the FPS camera and releases only this component's control claim. Disable also restores the camera and clears its claim. It is independent of the trading layer; `TradingShopView` uses it for the counter and display viewpoints. Transition timings and FOV are editable in the Inspector.
+
 ## Tuning
 
 Movement defaults: walk 4 m/s, sprint 6.5 m/s, acceleration 18 m/s², braking 24 m/s², jump height 1.2 m. Jump buffer 0.14 s and coyote time 0.12 s permit slightly early/late inputs. Sprint uses 20 stamina/s, jump costs 12; recovery starts after 1 s at 25/s. Exhaustion requires recovery to 25% before sprinting is available again.
@@ -41,3 +43,13 @@ Base camera FOV is 75°. Walk bob amplitude is 5.5 cm with a slower sideways swa
 EditMode tests are in `Hakaton.Character.Tests` and cover the stamina budget and independent control owners.
 
 PlayMode tests are in `Hakaton.Character.PlayModeTests`. They instantiate the saved player prefab on a disposable physics surface and drive keyboard input through Unity's Input System to check walking, sprinting, braking, jumping, landing, stamina consumption, and modal control ownership. Run them in the Unity Test Runner's PlayMode tab in the Editor; the fixture loads its prefab through AssetDatabase.
+
+## Sprite NPCs
+
+`Prefabs/SpriteNpc.prefab` is a reusable, authored visitor rig. Its `SpriteNpcActor` has no dependency on trading. Assign an external entrance-to-destination `route` and the viewing camera's transform to `viewer` on the scene instance. The actor root sits at the feet; the `Facing` child provides yaw billboarding and the turn; `Foot anchored step` provides distance-driven Y scaling. The SpriteRenderer uses the shared `HandDrawnSprite` material, with a per-renderer UV rectangle for the current atlas cell. Edit mode previews the authored sprite without starting a visit.
+
+`NpcAppearance` assets hold the name, body scale, neutral/front, back, displeased, happy and angry sprites. The saved scale of `stepRoot` represents the default appearance; other appearance scales are relative to it. All views must share the canvas size, pivot and PPU. The existing peasant and blacksmith appearances and prefab variants are in `Assets/Content/NPCs/`.
+
+Call `BeginVisit(appearance)` while idle; wait for `ReadyForTrade` before starting a conversation. Use `SetExpression` for in-conversation feedback and `Leave(outcome)` to show the result, turn with a midpoint swap to the back sprite, and retrace the route. `Cancel()` skips the reaction hold but still turns and walks out. `IsBusy` remains true until arrival at the exit, so a subsequent visit cannot teleport the current one. Cancellation during arrival returns through the waypoints already reached.
+
+Movement and departure timings are serialized Inspector fields. `SpriteNpcActorTests` covers turn/sprite timing, interruption on a corner, distance-driven gait, feet alignment and frame-independent travel. Trading's PlayMode fixture checks the integration against its saved scene.

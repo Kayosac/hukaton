@@ -193,6 +193,37 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
+        public void SpriteCustomersHaveCompleteAppearancesAndAnAuthoredRoute()
+        {
+            var presenter = world.Customers;
+            Assert.That(presenter, Is.Not.Null);
+            Assert.That(presenter.actor.gameObject, Is.EqualTo(world.Customer));
+            Assert.That(presenter.appearances.Length, Is.GreaterThanOrEqualTo(2));
+            var actor = presenter.actor;
+            Assert.That(actor.viewer, Is.EqualTo(world.ViewCamera.transform));
+            Assert.That(actor.route.Length, Is.GreaterThanOrEqualTo(2));
+            Assert.That(actor.route.All(p => p && !p.IsChildOf(actor.transform)), Is.True);
+            Assert.That(actor.GetComponentsInChildren<MeshRenderer>(), Is.Empty,
+                "Customers must be sprites rather than the old cube proxy.");
+            Assert.That(AssetDatabase.GetAssetPath(actor.spriteRenderer.sharedMaterial),
+                Is.EqualTo("Assets/Rendering/Materials/HandDrawnSprite.mat"));
+            Assert.That(actor.spriteRenderer.sharedMaterial.HasProperty("_SpriteUVRect"), Is.True);
+            foreach (var appearance in presenter.appearances)
+            {
+                Assert.That(AssetDatabase.Contains(appearance), Is.True);
+                Assert.That(appearance.IsComplete, Is.True);
+                foreach (var sprite in new[] { appearance.neutral, appearance.back, appearance.displeased, appearance.happy, appearance.angry })
+                {
+                    Assert.That(sprite.rect.size, Is.EqualTo(new Vector2(1199, 1312)));
+                    Assert.That(sprite.pivot, Is.EqualTo(new Vector2(599.5f, 0)));
+                    Assert.That(sprite.pixelsPerUnit, Is.EqualTo(100));
+                    Assert.That(sprite.texture.width, Is.EqualTo(3597));
+                    Assert.That(sprite.texture.height, Is.EqualTo(2624));
+                }
+            }
+        }
+
+        [Test]
         public void SceneAndPrefabsHaveNoMissingScriptsOrMigrationDependency()
         {
             foreach (var transform in Components<Transform>())

@@ -407,5 +407,180 @@ namespace Hakaton.Trading.Tests
             Assert.That(session.TotalStockCount, Is.EqualTo(8));
             Assert.That(session.Gold, Is.Zero);
         }
+
+        [Test]
+        public void NewDealStartsNeutralAndCounterShowsDispleasureWithoutDeparture()
+        {
+            var session = Stocked();
+            var deal = Visitor(session, patience: 4);
+            var priorDeparture = session.LastDeparture;
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Neutral));
+            Assert.That(session.Offer(deal.Id, deal.Revision, 3), Is.True);
+            Assert.That(deal.Patience, Is.EqualTo(3));
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Displeased));
+            Assert.That(session.LastDeparture, Is.SameAs(priorDeparture));
+            Assert.That(session.CurrentDeal, Is.SameAs(deal));
+        }
+
+        [Test]
+        public void LowPatienceAndFinalCounterAreAngryBeforeCustomerLeaves()
+        {
+            var session = Stocked();
+            var deal = Visitor(session, patience: 2);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            session.Offer(deal.Id, deal.Revision, 3);
+            Assert.That(deal.Patience, Is.EqualTo(1));
+            Assert.That(deal.IsLastOffer, Is.False);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
+            session.Offer(deal.Id, deal.Revision, 4);
+            Assert.That(deal.IsLastOffer, Is.True);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
+            Assert.That(session.CurrentCustomer.Id, Is.EqualTo(customerId));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures));
+        }
+
+        [Test]
+        public void SuccessfulOfferRecordsPurchasedAndHappyDealExactlyOnce()
+        {
+            var session = Stocked();
+            var deal = Visitor(session);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            int revision = deal.Revision;
+            session.Offer(deal.Id, revision, 0);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Happy));
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(customerId));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.Purchased));
+            Assert.That(session.LastDeparture.Sequence, Is.EqualTo(departures + 1));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+            var departure = session.LastDeparture;
+            Assert.That(session.Offer(deal.Id, revision, 0), Is.False);
+            Assert.That(session.Accept(deal.Id, revision), Is.False);
+            Assert.That(session.Refuse(customerId), Is.False);
+            Assert.That(session.LastDeparture, Is.SameAs(departure));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+        }
+
+        [Test]
+        public void AcceptedFinalOfferRecordsPurchaseRatherThanWalkout()
+        {
+            var session = Stocked();
+            var deal = Visitor(session, ceiling: 100, patience: 1);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            session.Offer(deal.Id, deal.Revision, 4);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
+            session.Accept(deal.Id, deal.Revision);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Happy));
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(customerId));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.Purchased));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+        }
+
+        [Test]
+        public void ExplicitRefusalRecordsRefusedAndPreservesPreviousDepartureSnapshot()
+        {
+            var session = Stocked();
+            Visitor(session);
+            long firstId = session.CurrentCustomer.Id;
+            session.Refuse(firstId);
+            var refused = session.LastDeparture;
+            Assert.That(refused.CustomerId, Is.EqualTo(firstId));
+            Assert.That(refused.Outcome, Is.EqualTo(CustomerOutcome.Refused));
+            session.AdvanceCustomer();
+            Assert.That(session.LastDeparture, Is.SameAs(refused));
+            long nextId = session.CurrentCustomer.Id;
+            session.Refuse(nextId);
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(nextId));
+            Assert.That(session.LastDeparture.Sequence, Is.EqualTo(refused.Sequence + 1));
+            Assert.That(refused.CustomerId, Is.EqualTo(firstId));
+            Assert.That(refused.Outcome, Is.EqualTo(CustomerOutcome.Refused));
+        }
+
+        [Test]
+        public void PushingFinalOfferRecordsWalkedAwayOnlyOnceAtExpiredShift()
+        {
+            var session = Stocked(1);
+            var deal = Visitor(session, ceiling: 100, patience: 1);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            session.Tick(2);
+            session.Offer(deal.Id, deal.Revision, 4);
+            session.Offer(deal.Id, deal.Revision, 4);
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(customerId));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.WalkedAway));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+            Assert.That(session.IsOpen, Is.False);
+            Assert.That(session.TotalStockCount, Is.EqualTo(8));
+            session.Close(); session.Tick(2); session.AdvanceCustomer();
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.WalkedAway));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+        }
+
+        [Test]
+        public void ClosingCategoryConversationRecordsShopClosedWithoutRequiringDeal()
+        {
+            var session = Stocked();
+            session.Open(); session.Refuse(session.CurrentCustomer.Id);
+            session.AdvanceCustomer(new CustomerTerms { RequestedCategory = "Руды", MaxPrice = 100 });
+            Assert.That(session.CurrentDeal, Is.Null);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            session.Close();
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(customerId));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.ShopClosed));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+            session.Close();
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+        }
+
+        [Test]
+        public void NoCustomerMeansNoDepartureAndClosingAfterSaleDoesNotOverwritePurchase()
+        {
+            var session = Stocked();
+            session.Close(); session.Tick(1);
+            Assert.That(session.LastDeparture, Is.Null);
+            Assert.That(session.DepartureSequence, Is.Zero);
+            var deal = Visitor(session, false);
+            session.Accept(deal.Id, deal.Revision);
+            var departure = session.LastDeparture;
+            session.Close();
+            Assert.That(session.LastDeparture, Is.SameAs(departure));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departure.Sequence));
+            Assert.That(departure.Outcome, Is.EqualTo(CustomerOutcome.Purchased));
+        }
+
+        [Test]
+        public void LastItemSaleAndExpiredShiftDoNotOverwritePurchasedDeparture()
+        {
+            var session = new TradingSession(new TradeSettings { ShiftSeconds = 1 });
+            session.SeedInventory(Horn); session.PlaceItem(0, 0);
+            var deal = Visitor(session);
+            long customerId = session.CurrentCustomer.Id;
+            int departures = session.DepartureSequence;
+            session.Tick(2);
+            session.Offer(deal.Id, deal.Revision, 0);
+            Assert.That(session.IsOpen, Is.False);
+            Assert.That(session.DisplayCount, Is.Zero);
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(customerId));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.Purchased));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures + 1));
+        }
+
+        [Test]
+        public void StaleCounterCommandsCannotChangeMoodOrCreateDeparture()
+        {
+            var session = Stocked();
+            var deal = Visitor(session);
+            int revision = deal.Revision;
+            int departures = session.DepartureSequence;
+            session.Offer(deal.Id, revision, 3);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Displeased));
+            Assert.That(session.Offer(deal.Id, revision, 4), Is.False);
+            Assert.That(session.Accept(deal.Id, revision), Is.False);
+            Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Displeased));
+            Assert.That(session.DepartureSequence, Is.EqualTo(departures));
+        }
     }
 }

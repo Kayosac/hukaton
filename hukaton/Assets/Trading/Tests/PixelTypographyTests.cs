@@ -10,7 +10,7 @@ namespace Hakaton.Trading.Tests
 {
     public sealed class PixelTypographyTests
     {
-        const string Root = "Assets/UI/Typography/";
+        const string Root = "Assets/Content/UI/Typography/";
         [TestCase("Ithaca", 16)]
         [TestCase("PixeloidSans", 9)]
         public void SavedFontPreservesPixelEdgesAndAlphabet(string name, int baseSize)

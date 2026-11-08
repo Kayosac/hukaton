@@ -14,6 +14,11 @@ namespace Hakaton.Trading.Unity
         public PlayerControlGate Control;
         public PlayerStamina Stamina;
         public Transform CounterPose;
+        [Header("Compact shop presentation (optional for the original test scene)")]
+        public TradingShopView ShopView;
+        public Transform DealItemAnchor;
+        public bool openFromDisplaySlots = true;
+        [Header("Held stock")]
         public Transform HeldItemAnchor;
         public GameObject HeldItem;
 
@@ -24,6 +29,7 @@ namespace Hakaton.Trading.Unity
 
         [Header("Customer")]
         public GameObject Customer;
+        public TradingCustomerPresenter Customers;
         public Transform CustomerItemTarget;
         public Transform SoldItemsRoot;
 
@@ -43,10 +49,11 @@ namespace Hakaton.Trading.Unity
         public bool ValidateReferences()
         {
             bool valid = ViewCamera && PlayerRoot && PlayerController && Movement && Control && Stamina && CounterPose && HeldItemAnchor
-                && HeldItem && Customer && CustomerItemTarget && SoldItemsRoot
+                && HeldItem && Customer && Customers && Customers.actor && CustomerItemTarget && SoldItemsRoot
                 && DoorCollider && DoorInside && DoorOutside
                 && Complete(SlotAnchors, 6) && Complete(SlotRenderers, 6) && Complete(SlotColliders, 6)
                 && Complete(LootColliders, 3) && Complete(ItemPrefabs, 3) && Complete(ItemMaterials, 3);
+            if (ShopView) valid &= ShopView.IsConfigured && DealItemAnchor;
             if (!valid) Debug.LogError("Trading scene references are incomplete. Check TradingSceneBindings in the Inspector.", this);
             return valid;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Hakaton.Economy;
 
 namespace Hakaton.Trading
 {
@@ -8,6 +9,7 @@ namespace Hakaton.Trading
     public sealed class TradingSession
     {
         private readonly Random random;
+        private readonly CoinWallet wallet;
         private readonly List<ItemInstance> inventory = new List<ItemInstance>();
         private readonly ItemInstance[] slots;
         private readonly List<ItemDefinition> catalog = new List<ItemDefinition>();
@@ -16,7 +18,7 @@ namespace Hakaton.Trading
         public TradeSettings Settings { get; }
         public bool IsOpen { get; private set; }
         public float RemainingSeconds { get; private set; }
-        public int Gold { get; private set; }
+        public int Gold => wallet.Balance;
         public IReadOnlyList<ItemInstance> Inventory { get; }
         public IReadOnlyList<ItemInstance> Slots { get; }
         public Customer CurrentCustomer { get; private set; }
@@ -27,6 +29,8 @@ namespace Hakaton.Trading
         public int LastSalePrice { get; private set; }
         public ItemInstance LastSoldItem { get; private set; }
         public int SettlementSequence { get; private set; }
+        public CustomerDeparture LastDeparture { get; private set; }
+        public int DepartureSequence { get; private set; }
         public long ExpeditionId { get; private set; }
         public int PendingLootCount => expeditionLoot.Count;
         public int TotalStockCount => inventory.Count + DisplayCount;
@@ -35,9 +39,10 @@ namespace Hakaton.Trading
             get { int count = 0; foreach (var item in slots) if (item != null) count++; return count; }
         }
 
-        public TradingSession(TradeSettings settings = null, int seed = 1)
+        public TradingSession(TradeSettings settings = null, int seed = 1, CoinWallet wallet = null)
         {
             Settings = (settings ?? new TradeSettings()).ValidatedCopy();
+            this.wallet = wallet ?? new CoinWallet();
             random = new Random(seed);
             slots = new ItemInstance[Settings.SlotCount];
             Inventory = new ReadOnlyCollection<ItemInstance>(inventory);
@@ -87,6 +92,7 @@ namespace Hakaton.Trading
         public void Close()
         {
             if (!IsOpen) return;
+            RecordDeparture(CustomerOutcome.ShopClosed);
             IsOpen = false; CurrentCustomer = null; CurrentDeal = null;
             LastMessage = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
             Revision++;
@@ -145,7 +151,7 @@ namespace Hakaton.Trading
             deal.Round++; deal.Revision++; Revision++;
             if (deal.IsLastOffer)
             {
-                EndWithoutSale("Хватит. Я ухожу.");
+                EndWithoutSale("Хватит. Я ухожу.", CustomerOutcome.WalkedAway);
                 return true;
             }
             // The first answer at R is guaranteed only for a visitor who asks the price.
@@ -164,6 +170,7 @@ namespace Hakaton.Trading
             // Never offer the requested price as a counter: agreeing is a settlement.
             deal.N = Math.Max(1, Math.Min(price - 1, Math.Min(deal.MaxPrice, previous + increment)));
             deal.IsLastOffer = deal.Patience == 0;
+            deal.Mood = deal.IsLastOffer || deal.Patience <= 1 ? CustomerMood.Angry : CustomerMood.Displeased;
             deal.Reaction = deal.IsLastOffer ? $"Последнее предложение: {deal.N}. Больше не дам."
                 : deal.Patience <= 1 ? $"Не испытывай терпение. Дам {deal.N}."
                 : $"Дороговато. Предлагаю {deal.N}.";
@@ -181,7 +188,7 @@ namespace Hakaton.Trading
         public bool Refuse(long customerId)
         {
             if (!IsOpen || CurrentCustomer == null || CurrentCustomer.Id != customerId) return false;
-            EndWithoutSale("Покупатель ушёл. Товар остался в лавке.");
+            EndWithoutSale("Покупатель ушёл. Товар остался в лавке.", CustomerOutcome.Refused);
             return true;
         }
 
@@ -225,25 +232,35 @@ namespace Hakaton.Trading
             var deal = CurrentDeal;
             // The displayed instance is the transaction's authority: one removal, one payment.
             if (deal == null || slots[deal.SlotIndex] != deal.Item) return;
-            int nextGold = checked(Gold + price);
+            wallet.Credit(price);
             slots[deal.SlotIndex] = null;
-            Gold = nextGold; SalesCount++; SettlementSequence++;
+            SalesCount++; SettlementSequence++;
             LastSalePrice = price; LastSoldItem = deal.Item;
+            deal.Mood = CustomerMood.Happy;
+            RecordDeparture(CustomerOutcome.Purchased);
             CurrentDeal = null; CurrentCustomer = null; Revision++;
             LastMessage = $"Продано: {deal.Item.Definition.Name} за {price} монет.";
             if (RemainingSeconds <= 0 || DisplayCount == 0)
                 FinishShift(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
         }
 
-        private void EndWithoutSale(string message)
+        private void EndWithoutSale(string message, CustomerOutcome outcome)
         {
+            RecordDeparture(outcome);
             CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Revision++;
             if (RemainingSeconds <= 0) FinishShift(message + " Смена окончена.");
         }
 
         private void FinishShift(string message)
         {
+            RecordDeparture(CustomerOutcome.ShopClosed);
             IsOpen = false; CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Revision++;
+        }
+
+        private void RecordDeparture(CustomerOutcome outcome)
+        {
+            if (CurrentCustomer == null) return;
+            LastDeparture = new CustomerDeparture(CurrentCustomer.Id, outcome, ++DepartureSequence);
         }
 
         private CustomerTerms GenerateCustomer()

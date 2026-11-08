@@ -131,6 +131,7 @@ GameObject:
   m_Component:
   - component: {fileID: 799098698707560619}
   - component: {fileID: 3127280589625361439}
+  - component: {fileID: 2162356916287879118}
   m_Layer: 0
   m_Name: Suspended 35 cm goblin placeholder
   m_TagString: Untagged
@@ -183,6 +184,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.27, y: 0.35, z: 0.2}
   m_Center: {x: 0, y: 0.175, z: 0}
+--- !u!114 &2162356916287879118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3136394707815269698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a34db6af0449d5b8ee7fc81aa88f16, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.ShopInteractionTarget
+  kind: 2
+  reach: 2.2
 --- !u!1 &3601087803794800741
 GameObject:
   m_ObjectHideFlags: 0
@@ -642,6 +657,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5690609973497205836}
+  - component: {fileID: 3459451131506623702}
   m_Layer: 0
   m_Name: GoblinCeilingRig
   m_TagString: Untagged
@@ -674,6 +690,43 @@ Transform:
   - {fileID: 869641655063281863}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3459451131506623702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5210407271220341449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a22c5ffad0e84859983610a67d9c94b2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.SuspendedGoblin
+  goblinRoot: {fileID: 799098698707560619}
+  stowedPose: {fileID: 4173536821543763466}
+  deployedPose: {fileID: 7842665578362363380}
+  hatchHinge: {fileID: 5772844255623687991}
+  pullHandle: {fileID: 5801700433005435979}
+  cableMeshes:
+  - {fileID: 6028211958910246703}
+  - {fileID: 7044062297970630956}
+  cableTops:
+  - {fileID: 2317155671565131330}
+  - {fileID: 5818931098953990290}
+  cableHarnesses:
+  - {fileID: 5354520968239075567}
+  - {fileID: 3279127351930598276}
+  cableMeshLength: 2
+  closedHatchEuler: {x: 0, y: 0, z: 0}
+  openHatchEuler: {x: 0, y: 0, z: -105}
+  startDeployed: 0
+  hatchSeconds: 0.28
+  lowerSeconds: 1.15
+  landingOvershoot: 0.035
+  handlePullDistance: 0.08
+  sound: {fileID: 0}
+  pullSound: {fileID: 0}
+  arriveSound: {fileID: 0}
 --- !u!1 &5478663992328248709
 GameObject:
   m_ObjectHideFlags: 0
@@ -976,6 +1029,7 @@ GameObject:
   m_Component:
   - component: {fileID: 869641655063281863}
   - component: {fileID: 645890446597668423}
+  - component: {fileID: 274888977560358537}
   m_Layer: 0
   m_Name: Pull rope interaction
   m_TagString: Untagged
@@ -1021,6 +1075,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.25, y: 0.35, z: 0.22}
   m_Center: {x: 0, y: 1.33, z: 0}
+--- !u!114 &274888977560358537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6071682640714775805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11a34db6af0449d5b8ee7fc81aa88f16, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.ShopInteractionTarget
+  kind: 1
+  reach: 2.2
 --- !u!1 &6377015193254659673
 GameObject:
   m_ObjectHideFlags: 0

@@ -35,6 +35,15 @@ namespace Hakaton.Character
         float verticalSpeed, lastGrounded = float.NegativeInfinity, jumpBufferedUntil = float.NegativeInfinity;
         float lastJump = float.NegativeInfinity;
         bool hadAirTime;
+        Vector3 externalPlanar;
+
+        /// <summary>Shared physics impulse API; game layers never implement their own movement.</summary>
+        public void ApplyImpulse(Vector3 velocity)
+        {
+            externalPlanar += new Vector3(velocity.x, 0, velocity.z);
+            verticalSpeed = velocity.y > 0 ? Mathf.Max(0, verticalSpeed) + velocity.y : verticalSpeed + velocity.y;
+            if (velocity.y > 0) { lastJump = Time.time; lastGrounded = float.NegativeInfinity; hadAirTime = true; }
+        }
 
         void Awake()
         {
@@ -79,7 +88,8 @@ namespace Hakaton.Character
             verticalSpeed = Mathf.Max(-terminalSpeed, verticalSpeed - gravity * dt);
             float impactSpeed = -verticalSpeed;
             var before = transform.position;
-            CollisionFlags collisions = characterController.Move((PlanarVelocity + Vector3.up * verticalSpeed) * dt);
+            externalPlanar = Vector3.MoveTowards(externalPlanar, Vector3.zero, (grounded ? 12 : 2) * dt);
+            CollisionFlags collisions = characterController.Move((PlanarVelocity + externalPlanar + Vector3.up * verticalSpeed) * dt);
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             IsGrounded = (collisions & CollisionFlags.Below) != 0 && verticalSpeed <= 0;
             if (IsGrounded)
@@ -90,7 +100,7 @@ namespace Hakaton.Character
                 lastGrounded = now;
             }
             Vector3 actual = (transform.position - before) / dt;
-            PlanarVelocity = new Vector3(actual.x, 0, actual.z);
+            PlanarVelocity = new Vector3(actual.x, 0, actual.z) - externalPlanar;
             // Running into a wall does not spend stamina or drive running feedback.
             IsSprinting = IsSprinting && PlanarVelocity.sqrMagnitude > .25f;
             stamina.Tick(dt, IsSprinting);
@@ -102,7 +112,7 @@ namespace Hakaton.Character
             characterController.enabled = false;
             transform.SetPositionAndRotation(position, Quaternion.Euler(0, rotation.eulerAngles.y, 0));
             characterController.enabled = wasEnabled;
-            PlanarVelocity = Vector3.zero; verticalSpeed = 0;
+            PlanarVelocity = externalPlanar = Vector3.zero; verticalSpeed = 0;
             IsSprinting = IsGrounded = hadAirTime = false;
             lastGrounded = lastJump = jumpBufferedUntil = float.NegativeInfinity;
             input.Clear();

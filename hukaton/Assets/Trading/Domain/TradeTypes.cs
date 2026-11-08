@@ -2,6 +2,37 @@ using System;
 
 namespace Hakaton.Trading
 {
+    public enum CustomerMood
+    {
+        Neutral,
+        Displeased,
+        Angry,
+        Happy
+    }
+
+    public enum CustomerOutcome
+    {
+        Purchased,
+        Refused,
+        WalkedAway,
+        ShopClosed
+    }
+
+    /// <summary>The last completed visit, retained after its customer and deal are cleared.</summary>
+    public sealed class CustomerDeparture
+    {
+        public long CustomerId { get; }
+        public CustomerOutcome Outcome { get; }
+        public int Sequence { get; }
+
+        internal CustomerDeparture(long customerId, CustomerOutcome outcome, int sequence)
+        {
+            CustomerId = customerId;
+            Outcome = outcome;
+            Sequence = sequence;
+        }
+    }
+
     [Serializable]
     public sealed class TradeSettings
     {
@@ -106,6 +137,7 @@ namespace Hakaton.Trading
         public int? N { get; internal set; }
         public int Round { get; internal set; }
         public bool IsLastOffer { get; internal set; }
+        public CustomerMood Mood { get; internal set; } = CustomerMood.Neutral;
         public string Reaction { get; internal set; }
         public int Patience { get; internal set; }
         public int MaxPrice { get; }

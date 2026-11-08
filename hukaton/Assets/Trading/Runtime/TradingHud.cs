@@ -26,6 +26,7 @@ namespace Hakaton.Trading.Unity
         [Min(0)] public float fadeSpeed = 8;
         [Min(20)] public float contextHeight = 44;
         [Min(20)] public float contextHeightWithDetail = 72;
+        [Min(0)] public float displayContextBottom = 240;
         public Color staminaColor = new Color(.76f, .81f, .69f);
         public Color tiredColor = new Color(.88f, .48f, .32f);
 
@@ -33,11 +34,13 @@ namespace Hakaton.Trading.Unity
         long shownCustomerId, shownDealId;
         int shownDealRevision;
         float displayedStamina = 1;
+        Vector2 contextRestPosition;
 
         public void Bind(TradingPrototype value)
         {
             if (controller != null) return;
             controller = value;
+            contextRestPosition = contextPanel.anchoredPosition;
             closeShop.onClick.AddListener(controller.ToggleShop);
             for (int i = 0; i < categoryButtons.Length; i++)
             {
@@ -56,8 +59,10 @@ namespace Hakaton.Trading.Unity
             Refresh();
         }
 
-        public bool ContainsBlockingPanel(Vector2 position) => interactionPanel.gameObject.activeInHierarchy
-            && RectTransformUtility.RectangleContainsScreenPoint(interactionPanel, position);
+        public bool ContainsBlockingPanel(Vector2 position) => (interactionPanel.gameObject.activeInHierarchy
+            && RectTransformUtility.RectangleContainsScreenPoint(interactionPanel, position))
+            || (contextPanel.gameObject.activeInHierarchy && contextVisibility.alpha > .01f
+            && RectTransformUtility.RectangleContainsScreenPoint(contextPanel, position));
 
         void LateUpdate()
         {
@@ -68,12 +73,14 @@ namespace Hakaton.Trading.Unity
         {
             var session = controller.Session;
             bool exploring = !session.IsOpen;
+            bool selecting = controller.SelectingFromDisplay && !controller.ViewTransitioning;
             walletText.text = $"{session.Gold} монет";
             timeRemaining.gameObject.SetActive(session.IsOpen || (session.RemainingSeconds <= 15 && session.ExpeditionId == 0));
             int seconds = Mathf.CeilToInt(session.RemainingSeconds);
             timeRemaining.text = seconds > 0 ? $"{seconds / 60}:{seconds % 60:00}" : "Смена завершена";
             timeRemaining.color = seconds <= 15 ? tiredColor : new Color(.88f, .9f, .88f);
-            interactionPanel.gameObject.SetActive(session.IsOpen);
+            interactionPanel.gameObject.SetActive(session.IsOpen && controller.CustomerReady && !controller.ViewTransitioning);
+            closeShop.interactable = !controller.ViewTransitioning;
             reticle.SetActive(exploring && controller.GameplayActive);
             reticleDot.color = string.IsNullOrEmpty(controller.ContextPrompt)
                 ? new Color(1, 1, 1, .45f) : new Color(1, .92f, .68f, .95f);
@@ -87,7 +94,9 @@ namespace Hakaton.Trading.Unity
                 selectedItemText.text = $"{item.Definition.Name}  ×{count}\nОриентир: {item.Definition.RecommendedPrice}";
             }
             Fade(selectedVisibility, showItem);
-            bool hasContext = exploring && controller.GameplayActive && !string.IsNullOrEmpty(controller.ContextPrompt);
+            contextPanel.anchoredPosition = selecting
+                ? new Vector2(contextRestPosition.x, displayContextBottom) : contextRestPosition;
+            bool hasContext = ((exploring && controller.GameplayActive) || selecting) && !string.IsNullOrEmpty(controller.ContextPrompt);
             if (hasContext)
             {
                 contextPrompt.text = controller.ContextPrompt;
@@ -122,26 +131,45 @@ namespace Hakaton.Trading.Unity
             shownDealId = deal == null ? 0 : deal.Id;
             shownDealRevision = deal == null ? 0 : deal.Revision;
             bool ready = controller.ActionsReady;
-            categoryPanel.SetActive(customer != null && deal == null);
-            bargainingPanel.SetActive(deal != null);
-            customerName.text = customer == null ? "Следующий покупатель…" : customer.Name;
+            bool selecting = controller.SelectingFromDisplay;
+            bool category = customer != null && deal == null;
+            categoryPanel.SetActive(category);
+            bargainingPanel.SetActive(deal != null && !selecting);
+            if (controller.UsesDisplayView)
+            {
+                var view = controller.World.ShopView;
+                if (view.browseButton)
+                {
+                    view.browseButton.gameObject.SetActive(category && !selecting && controller.HasMatchingStock);
+                    view.browseButton.interactable = ready;
+                }
+                if (view.backButton)
+                {
+                    view.backButton.gameObject.SetActive(category && selecting);
+                    view.backButton.interactable = ready;
+                }
+            }
+            customerName.text = customer == null ? "Следующий покупатель…" : controller.CustomerName;
             shiftEnded.gameObject.SetActive(session.RemainingSeconds <= 0);
             if (customer == null) return;
             refuseCategory.interactable = refuseBargain.interactable = ready;
             if (deal == null)
             {
-                categoryRequest.text = $"«Ищу: {customer.RequestedCategory}».";
+                categoryRequest.text = $"«Ищу: {customer.RequestedCategory}»."
+                    + (controller.UsesDisplayView && !controller.HasMatchingStock ? "\nПодходящего товара нет." : string.Empty);
                 for (int i = 0; i < categoryButtons.Length; i++)
                 {
                     var item = session.Slots[i];
                     bool matches = item != null && item.Definition.Category == customer.RequestedCategory;
-                    categoryButtons[i].gameObject.SetActive(matches);
+                    categoryButtons[i].gameObject.SetActive(matches && !controller.UsesDisplayView);
                     if (matches) categoryLabels[i].text = $"{item.Definition.Name}\n{item.Definition.RecommendedPrice} монет";
                     categoryButtons[i].interactable = ready && matches;
                 }
                 return;
             }
-            priceSummary.text = $"{deal.Item.Definition.Name}   ·   Ориентир {deal.R}   ·   Старт {deal.B}   ·   Покупатель {(deal.N.HasValue ? deal.N.Value.ToString() : "—")}";
+            priceSummary.text = controller.UsesDisplayView
+                ? $"{deal.Item.Definition.Name}   ·   Ориентир {deal.R}"
+                : $"{deal.Item.Definition.Name}   ·   Ориентир {deal.R}   ·   Старт {deal.B}   ·   Покупатель {(deal.N.HasValue ? deal.N.Value.ToString() : "—")}";
             reaction.text = deal.Reaction;
             var options = deal.GetPriceOptions();
             for (int i = 0; i < priceButtons.Length; i++)

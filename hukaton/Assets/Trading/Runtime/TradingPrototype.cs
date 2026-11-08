@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Hakaton.Economy.Unity;
+using Hakaton.ShopBlockout;
 
 namespace Hakaton.Trading.Unity
 {
@@ -25,10 +27,27 @@ namespace Hakaton.Trading.Unity
         [Header("Scene references — assign in the authored scene")]
         public TradingSceneBindings World;
         public TradingHud hud;
+        public CoinWalletHost walletHost;
+        public ShopBackroomServices services;
         public AudioSource sound;
         public AudioClip placeSound, saleSound;
         public int HoveredSlot => hoveredSlot;
-        public bool ActionsReady => Time.unscaledTime >= actionReadyAt;
+        public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
+        public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
+        public bool UsesDisplayView => World && World.ShopView;
+        public bool SelectingFromDisplay => UsesDisplayView && World.ShopView.Selecting;
+        public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
+        public bool HasMatchingStock
+        {
+            get
+            {
+                if (Session?.CurrentCustomer == null) return false;
+                foreach (var item in Session.Slots)
+                    if (item != null && item.Definition.Category == Session.CurrentCustomer.RequestedCategory) return true;
+                return false;
+            }
+        }
+        public string CustomerName => World.Customers.VisitorName;
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
         [System.Serializable]
@@ -54,6 +73,7 @@ namespace Hakaton.Trading.Unity
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt;
         TradingInteractionTarget focusedTarget;
+        ShopInteractionTarget focusedService;
         int focusedLoot = -1;
         public string ContextPrompt { get; private set; } = string.Empty;
         public string ContextDetail { get; private set; } = string.Empty;
@@ -62,6 +82,8 @@ namespace Hakaton.Trading.Unity
         public bool ShowStamina => World.Stamina.Normalized < .995f;
         public float ContextProgress => pressedSlot >= 0 ? Mathf.Clamp01((Time.unscaledTime - pressStarted) / holdThreshold) : 0;
         int lastSettlement;
+        int presentedDealSlot = -1;
+        Coroutine[] itemMotion;
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
         float noticeUntil;
@@ -88,7 +110,7 @@ namespace Hakaton.Trading.Unity
                 MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
                 MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
                 MinPatience = minPatience, MaxPatience = maxPatience
-            }, randomSeed);
+            }, randomSeed, walletHost ? walletHost.Wallet : null);
             catalog = new ItemDefinition[startingStock.Length];
             int maxCount = 0;
             for (int i = 0; i < startingStock.Length; i++)
@@ -102,25 +124,33 @@ namespace Hakaton.Trading.Unity
                     if (n < startingStock[i].count) Session.SeedInventory(catalog[i], 1);
             displayed = new GameObject[6];
             displayedIds = new long[6];
+            itemMotion = new Coroutine[6];
+            if (World.ShopView) World.ShopView.Bind(this);
             hud.Bind(this);
             RefreshWorld();
         }
 
         void Update()
         {
+            World.Customers.Sync(Session);
             Session.Tick(Time.unscaledDeltaTime);
-            if (Session.IsOpen && Session.CurrentCustomer == null)
+            if (Session.IsOpen && Session.CurrentCustomer == null && World.Customers.CanStartNextCustomer)
             {
                 Session.AdvanceCustomer();
                 actionReadyAt = Mathf.Max(actionReadyAt, Time.unscaledTime + .25f);
             }
             SyncControl();
+            if (World.ShopView) World.ShopView.Sync();
             var keyboard = Keyboard.current;
             if (Session.IsOpen)
             {
                 ClearFocus();
-                if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame))
-                    CloseShop();
+                if (SelectingFromDisplay && !ViewTransitioning) UpdateDisplaySelection();
+                if (keyboard != null)
+                {
+                    if (keyboard.escapeKey.wasPressedThisFrame && SelectingFromDisplay) World.ShopView.ReturnToCounter();
+                    else if (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame) CloseShop();
+                }
             }
             else if (GameplayActive && !World.Control.CapturedThisFrame)
             {
@@ -147,13 +177,15 @@ namespace Hakaton.Trading.Unity
             World.Control.SetBlocked(this, Session.IsOpen);
             if (Session.IsOpen == previousOpen) return;
             ResetPlacement();
-            if (Session.IsOpen) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
+            if (Session.IsOpen && !World.ShopView) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
+            if (World.ShopView) World.ShopView.Sync();
             previousOpen = Session.IsOpen;
         }
 
         void ClearFocus()
         {
             focusedTarget = null;
+            focusedService = null;
             hoveredSlot = focusedLoot = -1;
             ContextPrompt = ContextDetail = string.Empty;
         }
@@ -164,16 +196,28 @@ namespace Hakaton.Trading.Unity
             // The first surface wins: no prompts or interaction through walls.
             var ray = World.ViewCamera.ViewportPointToRay(new Vector3(.5f, .5f));
             if (!Physics.Raycast(ray, out var hit, 5f, ~((1 << 2)), QueryTriggerInteraction.Collide)) return;
+            if (services && Session.ExpeditionId == 0)
+            {
+                var service = hit.collider.GetComponentInParent<ShopInteractionTarget>();
+                if (service && hit.distance <= service.reach)
+                {
+                    focusedService = service;
+                    ContextPrompt = services.PromptFor(service.kind);
+                    return;
+                }
+            }
             var target = hit.collider.GetComponentInParent<TradingInteractionTarget>();
+            int itemSlot = -1;
             // A displayed item belongs to its slot; aiming at the item must not select a slot behind it.
             for (int i = 0; i < displayed.Length; i++)
                 if (displayed[i] != null && hit.collider.transform.IsChildOf(displayed[i].transform))
                 {
-                    hoveredSlot = i;
+                    itemSlot = i;
                     target = World.SlotColliders[i].GetComponentInParent<TradingInteractionTarget>();
                     break;
                 }
             if (target == null || hit.distance > target.reach) return;
+            hoveredSlot = itemSlot;
             focusedTarget = target;
             if (target.kind == TradingTargetKind.DisplaySlot && Session.ExpeditionId == 0)
             {
@@ -184,13 +228,13 @@ namespace Hakaton.Trading.Unity
                 var item = Session.Slots[hoveredSlot];
                 if (item != null)
                 {
-                    ContextPrompt = "F  Забрать" + (Session.RemainingSeconds > 0 ? "     E  Открыть лавку" : string.Empty);
+                    ContextPrompt = "F  Забрать" + (World.openFromDisplaySlots && Session.RemainingSeconds > 0 ? "     E  Открыть лавку" : string.Empty);
                     ContextDetail = $"{item.Definition.Name} · {item.Definition.RecommendedPrice} монет";
                 }
                 else
                 {
                     ContextPrompt = Session.Inventory.Count > 0 ? "ЛКМ  Положить · удерживать — заполнить" : "Нет товара в запасе";
-                    ContextDetail = Session.DisplayCount > 0 && Session.RemainingSeconds > 0 ? "E  Открыть лавку" : string.Empty;
+                    ContextDetail = World.openFromDisplaySlots && Session.DisplayCount > 0 && Session.RemainingSeconds > 0 ? "E  Открыть лавку" : string.Empty;
                 }
             }
             else if (target.kind == TradingTargetKind.Counter && Session.ExpeditionId == 0)
@@ -212,6 +256,26 @@ namespace Hakaton.Trading.Unity
                     ContextPrompt = "E  Подобрать";
                     ContextDetail = catalog[focusedLoot % catalog.Length].Name;
                 }
+            }
+        }
+
+        void UpdateDisplaySelection()
+        {
+            var mouse = Mouse.current;
+            if (mouse == null || !ActionsReady || Session.CurrentDeal != null || hud.ContainsBlockingPanel(mouse.position.ReadValue())) return;
+            var ray = World.ViewCamera.ScreenPointToRay(mouse.position.ReadValue());
+            if (!Physics.Raycast(ray, out var hit, 4, ~(1 << 2), QueryTriggerInteraction.Collide)) return;
+            for (int i = 0; i < displayed.Length; i++)
+            {
+                var item = Session.Slots[i];
+                if (item == null || item.Definition.Category != Session.CurrentCustomer.RequestedCategory) continue;
+                bool overItem = displayed[i] && hit.collider.transform.IsChildOf(displayed[i].transform);
+                if (!overItem && hit.collider != World.SlotColliders[i]) continue;
+                hoveredSlot = i;
+                ContextPrompt = "ЛКМ  Предложить";
+                ContextDetail = $"{item.Definition.Name} · {item.Definition.RecommendedPrice} монет";
+                if (mouse.leftButton.wasPressedThisFrame) SelectCustomerItem(i, Session.CurrentCustomer.Id);
+                break;
             }
         }
 
@@ -271,6 +335,12 @@ namespace Hakaton.Trading.Unity
 
         void Interact()
         {
+            if (focusedService && GameplayActive && Session.ExpeditionId == 0)
+            {
+                services.TryInteract(focusedService.kind);
+                ResetPlacement();
+                return;
+            }
             if (focusedTarget == null || !GameplayActive) return;
             if (focusedTarget.kind == TradingTargetKind.Door)
             {
@@ -279,7 +349,7 @@ namespace Hakaton.Trading.Unity
                     if (Session.BeginExpedition() != 0)
                     {
                         foreach (var loot in World.LootColliders) loot.gameObject.SetActive(true);
-                        Teleport(World.DoorOutside.position, Quaternion.Euler(0, 0, 0));
+                        Teleport(World.DoorOutside.position, World.DoorOutside.rotation);
 
                     }
                 }
@@ -287,7 +357,7 @@ namespace Hakaton.Trading.Unity
                 {
                     bool fresh = Session.PendingLootCount > 0;
                     Session.CompleteExpedition(Session.ExpeditionId);
-                    Teleport(World.DoorInside.position, Quaternion.Euler(0, 90, 0));
+                    Teleport(World.DoorInside.position, World.DoorInside.rotation);
                     Notify(fresh ? "Добыча доставлена · новая смена" : "Без новой добычи · время сохранено");
                 }
                 return;
@@ -303,7 +373,7 @@ namespace Hakaton.Trading.Unity
                 }
                 return;
             }
-            if (focusedTarget.kind == TradingTargetKind.Counter || focusedTarget.kind == TradingTargetKind.DisplaySlot)
+            if (focusedTarget.kind == TradingTargetKind.Counter || (World.openFromDisplaySlots && focusedTarget.kind == TradingTargetKind.DisplaySlot))
                 OpenShop();
         }
 
@@ -311,11 +381,13 @@ namespace Hakaton.Trading.Unity
         {
             if (!GameplayActive || focusedTarget == null || Session.ExpeditionId != 0) return;
             if (focusedTarget.kind != TradingTargetKind.Counter && focusedTarget.kind != TradingTargetKind.DisplaySlot) return;
+            if (focusedTarget.kind == TradingTargetKind.DisplaySlot && !World.openFromDisplaySlots) return;
             if (!Session.Open()) Notify(Session.LastMessage);
             actionReadyAt = Time.unscaledTime + .25f;
+            World.Customers.Sync(Session);
             SyncControl();
         }
-        void CloseShop() { Session.Close(); SyncControl(); }
+        void CloseShop() { Session.Close(); World.Customers.Sync(Session); SyncControl(); }
         void Notify(string text) { notice = text; noticeUntil = Time.unscaledTime + 2.6f; }
         void Teleport(Vector3 position, Quaternion rotation)
         {
@@ -331,6 +403,8 @@ namespace Hakaton.Trading.Unity
         void OnDisable()
         {
             if (World != null && World.Control != null) World.Control.SetBlocked(this, false);
+            if (World != null && World.ShopView) World.ShopView.Close();
+            if (services) services.Close();
         }
 
         void ObserveSale()
@@ -343,6 +417,7 @@ namespace Hakaton.Trading.Unity
                 if (displayed[i] != null && displayedIds[i] == Session.LastSoldItem.Id)
                 {
                     var item = displayed[i]; displayed[i] = null; displayedIds[i] = 0;
+                    if (itemMotion[i] != null) { StopCoroutine(itemMotion[i]); itemMotion[i] = null; }
                     var collider = item.GetComponent<Collider>(); if (collider != null) collider.enabled = false;
                     StartCoroutine(Transfer(item));
                     break;
@@ -352,13 +427,14 @@ namespace Hakaton.Trading.Unity
         void RefreshWorld()
         {
             ClampSelection();
-            World.Customer.SetActive(Session.CurrentCustomer != null);
+            World.Customers.Sync(Session);
             for (int i = 0; i < 6; i++)
             {
                 var item = Session.Slots[i];
                 long id = item == null ? 0 : item.Id;
                 if (displayedIds[i] != id)
                 {
+                    if (itemMotion[i] != null) { StopCoroutine(itemMotion[i]); itemMotion[i] = null; }
                     if (displayed[i] != null) Destroy(displayed[i]);
                     displayed[i] = item == null ? null : Instantiate(World.ItemPrefabs[CategoryIndex(item.Definition.Category)], World.SlotAnchors[i].position, World.SlotAnchors[i].rotation, World.SoldItemsRoot);
                     displayedIds[i] = id;
@@ -371,9 +447,42 @@ namespace Hakaton.Trading.Unity
                 }
                 else World.SlotRenderers[i].SetPropertyBlock(null);
             }
-            heldItem.SetActive(!Session.IsOpen && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
+            PresentDealItem();
+            heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
             if (Session.Inventory.Count > 0)
                 heldItem.GetComponent<Renderer>().sharedMaterial = World.ItemMaterials[CategoryIndex(Session.Inventory[selectedInventory].Definition.Category)];
+        }
+
+        void PresentDealItem()
+        {
+            if (!World.DealItemAnchor) return;
+            int desired = CustomerReady && Session.CurrentDeal != null ? Session.CurrentDeal.SlotIndex : -1;
+            if (desired == presentedDealSlot) return;
+            if (presentedDealSlot >= 0 && displayed[presentedDealSlot])
+                MovePresentedItem(presentedDealSlot, World.SlotAnchors[presentedDealSlot]);
+            presentedDealSlot = desired;
+            if (desired >= 0 && displayed[desired]) MovePresentedItem(desired, World.DealItemAnchor);
+        }
+
+        void MovePresentedItem(int slot, Transform destination)
+        {
+            if (itemMotion[slot] != null) StopCoroutine(itemMotion[slot]);
+            itemMotion[slot] = StartCoroutine(MoveToAnchor(displayed[slot].transform, destination));
+        }
+
+        IEnumerator MoveToAnchor(Transform item, Transform destination)
+        {
+            Vector3 start = item.position;
+            Quaternion rotation = item.rotation;
+            const float duration = .24f;
+            for (float t = 0; t < duration && item; t += Time.deltaTime)
+            {
+                float f = Mathf.SmoothStep(0, 1, t / duration);
+                item.position = Vector3.Lerp(start, destination.position, f) + Vector3.up * (Mathf.Sin(f * Mathf.PI) * .09f);
+                item.rotation = Quaternion.Slerp(rotation, destination.rotation, f);
+                yield return null;
+            }
+            if (item) item.SetPositionAndRotation(destination.position, destination.rotation);
         }
 
         int CategoryIndex(string category) { for (int i = 0; i < catalog.Length; i++) if (catalog[i].Category == category) return i; return 0; }
@@ -411,24 +520,28 @@ namespace Hakaton.Trading.Unity
         {
             if (!ActionsReady || Session.CurrentCustomer == null) return;
             if (Session.SelectItem(slotIndex, customerId)) actionReadyAt = Time.unscaledTime + .3f;
+            World.Customers.Sync(Session);
+            if (World.ShopView && Session.CurrentDeal != null) World.ShopView.ReturnToCounter();
         }
 
         public void OfferPrice(long dealId, int revision, int optionIndex)
         {
-            if (!ActionsReady) return;
+            if (!ActionsReady || SelectingFromDisplay) return;
             int salesBefore = Session.SettlementSequence;
             if (!Session.Offer(dealId, revision, optionIndex)) return;
             if (Session.CurrentCustomer == null && Session.SettlementSequence == salesBefore)
                 Notify(Session.LastMessage + " Товар сохранён.");
             actionReadyAt = Time.unscaledTime + .65f;
             ObserveSale();
+            World.Customers.Sync(Session);
         }
 
         public void AcceptPrice(long dealId, int revision)
         {
-            if (!ActionsReady || !Session.Accept(dealId, revision)) return;
+            if (!ActionsReady || SelectingFromDisplay || !Session.Accept(dealId, revision)) return;
             actionReadyAt = Time.unscaledTime + .65f;
             ObserveSale();
+            World.Customers.Sync(Session);
         }
 
         public void RefuseCustomer(long customerId)
@@ -436,6 +549,7 @@ namespace Hakaton.Trading.Unity
             if (!ActionsReady || !Session.Refuse(customerId)) return;
             actionReadyAt = Time.unscaledTime + .65f;
             Notify("Товар остался в лавке");
+            World.Customers.Sync(Session);
         }
     }
 }
