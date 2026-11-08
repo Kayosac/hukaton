@@ -178,6 +178,9 @@ namespace Hakaton.Trading
         public string Reaction { get; internal set; }
         public int Patience { get; internal set; }
         public int MaxPrice { get; }
+        /// <summary>Prices up to this are accepted outright; drifts towards MaxPrice as the haggle goes on.</summary>
+        internal float Comfort { get; set; }
+        internal int LastAsk { get; set; } = -1;
 
         internal TradeDeal(long id, Customer customer, ItemInstance item, int slot)
         {
@@ -186,6 +189,7 @@ namespace Hakaton.Trading
             N = customer.AsksPrice ? (int?)null : B;
             Patience = customer.InitialPatience; MaxPrice = customer.MaxPrice;
             Reaction = customer.AsksPrice ? "Сколько стоит?" : $"Дам {B} монет. Договорились?";
+            Comfort = customer.AsksPrice ? R : B;
         }
 
         public PriceOption[] GetPriceOptions()

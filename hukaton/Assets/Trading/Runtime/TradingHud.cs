@@ -30,6 +30,8 @@ namespace Hakaton.Trading.Unity
         public Color staminaColor = new Color(.76f, .81f, .69f);
         public Color tiredColor = new Color(.88f, .48f, .32f);
 
+        [Tooltip("Set when a ShopFeel animates the wallet counter.")]
+        public bool feelDrivesWallet;
         TradingPrototype controller;
         long shownCustomerId, shownDealId;
         int shownDealRevision;
@@ -74,7 +76,8 @@ namespace Hakaton.Trading.Unity
             var session = controller.Session;
             bool exploring = !session.IsOpen;
             bool selecting = controller.SelectingFromDisplay && !controller.ViewTransitioning;
-            walletText.text = $"{session.Gold} монет";
+            // ShopFeel animates the wallet when present; otherwise show the balance directly.
+            if (!feelDrivesWallet) walletText.text = $"{session.Gold} монет";
             timeRemaining.gameObject.SetActive(session.IsOpen || (session.RemainingSeconds <= 15 && session.ExpeditionId == 0));
             int seconds = Mathf.CeilToInt(session.RemainingSeconds);
             timeRemaining.text = seconds > 0 ? $"{seconds / 60}:{seconds % 60:00}" : "Смена завершена";

@@ -1,45 +1,99 @@
+using System.Collections.Generic;
 using Hakaton.Character;
 using UnityEngine;
 
 namespace Hakaton.Trading.Unity
 {
-    /// <summary>Connects completed trade visits to an independently authored sprite actor.</summary>
+    /// <summary>
+    /// Connects trade visits to authored sprite actors. With two or more actors the next visitor walks in
+    /// while the previous one is still leaving (board: «следующий покупатель — без ожидания»).
+    /// </summary>
     public sealed class TradingCustomerPresenter : MonoBehaviour
     {
         public SpriteNpcActor actor;
+        [Tooltip("Additional authored actors on the same route.")]
+        public SpriteNpcActor[] extraActors;
         public NpcAppearance[] appearances;
-        long presentedCustomerId;
+        readonly Dictionary<SpriteNpcActor, long> presented = new Dictionary<SpriteNpcActor, long>();
 
-        public bool CanStartNextCustomer => presentedCustomerId == 0 && actor && !actor.IsBusy;
-        public string VisitorName => actor && actor.CurrentAppearance ? actor.CurrentAppearance.displayName : string.Empty;
-        public bool ReadyForTrade(Customer customer) => customer != null && customer.Id == presentedCustomerId
-            && actor && actor.ReadyForTrade;
+        IEnumerable<SpriteNpcActor> Actors
+        {
+            get
+            {
+                if (actor) yield return actor;
+                if (extraActors != null) foreach (var extra in extraActors) if (extra) yield return extra;
+            }
+        }
+
+        SpriteNpcActor Presenting(long customerId)
+        {
+            foreach (var pair in presented) if (pair.Value == customerId && pair.Key) return pair.Key;
+            return null;
+        }
+
+        SpriteNpcActor Idle()
+        {
+            foreach (var candidate in Actors) if (!candidate.IsBusy && !presented.ContainsKey(candidate)) return candidate;
+            return null;
+        }
+
+        /// <summary>A new visitor may start once nobody is arriving or standing at the counter.</summary>
+        public bool CanStartNextCustomer
+        {
+            get
+            {
+                foreach (var candidate in Actors)
+                    if (candidate.State == NpcActorState.Arriving || candidate.State == NpcActorState.AtCounter) return false;
+                return Idle() != null;
+            }
+        }
+
+        public string VisitorName
+        {
+            get
+            {
+                foreach (var pair in presented)
+                    if (pair.Key && !pair.Key.IsDeparting && pair.Key.CurrentAppearance) return pair.Key.CurrentAppearance.displayName;
+                return string.Empty;
+            }
+        }
+
+        public bool ReadyForTrade(Customer customer)
+        {
+            var presenter = customer == null ? null : Presenting(customer.Id);
+            return presenter && presenter.ReadyForTrade;
+        }
 
         public void Sync(TradingSession session)
         {
-            if (!actor || session == null) return;
+            if (session == null) return;
             var current = session.CurrentCustomer;
-            if (presentedCustomerId != 0)
+            var finished = new List<SpriteNpcActor>();
+            foreach (var pair in presented)
             {
-                if (!actor.IsBusy) presentedCustomerId = 0;
-                else if (current == null || current.Id != presentedCustomerId)
+                var visitor = pair.Key;
+                if (!visitor) { finished.Add(visitor); continue; }
+                if (!visitor.IsBusy) { finished.Add(visitor); continue; }
+                if (current == null || current.Id != pair.Value)
                 {
-                    if (!actor.IsDeparting)
+                    if (!visitor.IsDeparting)
                     {
                         var result = session.LastDeparture;
-                        bool sold = result != null && result.CustomerId == presentedCustomerId
-                            && result.Outcome == CustomerOutcome.Purchased;
-                        actor.Leave(sold ? NpcExpression.Happy : NpcExpression.Angry);
+                        bool sold = result != null && result.CustomerId == pair.Value && result.Outcome == CustomerOutcome.Purchased;
+                        visitor.Leave(sold ? NpcExpression.Happy : NpcExpression.Angry);
                     }
                 }
-                else if (actor.ReadyForTrade)
-                    actor.SetExpression(ExpressionFor(session.CurrentDeal?.Mood ?? CustomerMood.Neutral));
+                else if (visitor.ReadyForTrade)
+                    visitor.SetExpression(ExpressionFor(session.CurrentDeal?.Mood ?? CustomerMood.Neutral));
             }
-            if (presentedCustomerId == 0 && current != null && !actor.IsBusy)
+            foreach (var done in finished) presented.Remove(done);
+
+            if (current != null && !Presenting(current.Id))
             {
-                if (appearances == null || appearances.Length == 0) return;
+                var free = Idle();
+                if (!free || appearances == null || appearances.Length == 0) return;
                 var appearance = appearances[(int)((current.Id - 1) % appearances.Length)];
-                if (actor.BeginVisit(appearance)) presentedCustomerId = current.Id;
+                if (free.BeginVisit(appearance)) presented[free] = current.Id;
             }
         }
 

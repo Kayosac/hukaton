@@ -39,6 +39,7 @@ namespace Hakaton.Trading.Unity
         [Header("Game loop integration")]
         public bool externalExpeditions;
         public event System.Action ExpeditionRequested;
+        public event System.Action<int> ItemPlaced, ItemTaken, SlotHovered;
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
@@ -77,7 +78,7 @@ namespace Hakaton.Trading.Unity
         GameObject[] displayed;
         long[] displayedIds;
         GameObject heldItem;
-        int selectedInventory, hoveredSlot = -1, pressedSlot = -1;
+        int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt;
         TradingInteractionTarget focusedTarget;
@@ -162,7 +163,13 @@ namespace Hakaton.Trading.Unity
                 if (keyboard != null)
                 {
                     if (keyboard.escapeKey.wasPressedThisFrame && SelectingFromDisplay) World.ShopView.ReturnToCounter();
-                    else if (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame) CloseShop();
+                    else if (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame)
+                    {
+                        // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
+                        if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
+                        else CloseShop();
+                    }
+                    HaggleHotkeys(keyboard);
                 }
             }
             else if (GameplayActive && !World.Control.CapturedThisFrame)
@@ -172,7 +179,7 @@ namespace Hakaton.Trading.Unity
                 if (keyboard != null && keyboard.eKey.wasPressedThisFrame) Interact();
                 if (keyboard != null && keyboard.fKey.wasPressedThisFrame && hoveredSlot >= 0)
                 {
-                    if (Session.RemoveItem(hoveredSlot)) sound.PlayOneShot(placeSound, .18f);
+                    if (Session.RemoveItem(hoveredSlot)) ItemTaken?.Invoke(hoveredSlot);
                 }
             }
             else
@@ -183,6 +190,20 @@ namespace Hakaton.Trading.Unity
             ObserveSale();
             SyncControl();
             RefreshWorld();
+        }
+
+        void HaggleHotkeys(Keyboard keyboard)
+        {
+            var deal = Session.CurrentDeal;
+            var customer = Session.CurrentCustomer;
+            if (customer == null) return;
+            if (keyboard.backspaceKey.wasPressedThisFrame) { RefuseCustomer(customer.Id); return; }
+            if (deal == null) return;
+            var digits = new[] { keyboard.digit1Key, keyboard.digit2Key, keyboard.digit3Key, keyboard.digit4Key, keyboard.digit5Key };
+            for (int i = 0; i < digits.Length; i++)
+                if (digits[i].wasPressedThisFrame) { OfferPrice(deal.Id, deal.Revision, i); return; }
+            if ((keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame) && deal.N.HasValue)
+                AcceptPrice(deal.Id, deal.Revision);
         }
 
         void SyncControl()
@@ -238,6 +259,7 @@ namespace Hakaton.Trading.Unity
                     for (int i = 0; i < World.SlotColliders.Length; i++)
                         if (World.SlotColliders[i] == hit.collider) { hoveredSlot = i; break; }
                 if (hoveredSlot < 0) return;
+                if (hoveredSlot != lastHovered) { lastHovered = hoveredSlot; SlotHovered?.Invoke(hoveredSlot); }
                 var item = Session.Slots[hoveredSlot];
                 if (item != null)
                 {
@@ -335,7 +357,7 @@ namespace Hakaton.Trading.Unity
             ClampSelection();
             if (Session.PlaceItem(selectedInventory, slot))
             {
-                sound.PlayOneShot(placeSound, .25f);
+                ItemPlaced?.Invoke(slot);
                 // After the selected item, continue in inventory order.
                 selectedInventory = Session.Inventory.Count == 0 ? 0 : selectedInventory % Session.Inventory.Count;
                 RefreshWorld();
@@ -430,7 +452,6 @@ namespace Hakaton.Trading.Unity
         {
             if (Session.SettlementSequence == lastSettlement) return;
             lastSettlement = Session.SettlementSequence;
-            sound.PlayOneShot(saleSound, .25f);
             Notify($"Продано: {Session.LastSoldItem.Definition.Name} за {Session.LastSalePrice} монет.");
             for (int i = 0; i < 6; i++)
                 if (displayed[i] != null && displayedIds[i] == Session.LastSoldItem.Id)
@@ -540,10 +561,19 @@ namespace Hakaton.Trading.Unity
         public void ShowNotice(string text) => Notify(text);
         IEnumerator Snap(Transform item)
         {
-            var end = item.position; var start = end + Vector3.up * .2f;
-            for (float t = 0; t < .14f && item != null; t += Time.deltaTime)
-            { item.position = Vector3.Lerp(start, end, t / .14f); yield return null; }
-            if (item != null) item.position = end;
+            // Drop in, then a squash-and-settle: the "clack" of putting goods on a shelf.
+            var end = item.position; var start = end + Vector3.up * .25f;
+            var scale = item.localScale;
+            for (float t = 0; t < .12f && item != null; t += Time.deltaTime)
+            { float k = t / .12f; item.position = Vector3.Lerp(start, end, k * k); yield return null; }
+            for (float t = 0; t < .22f && item != null; t += Time.deltaTime)
+            {
+                float k = t / .22f, squash = Mathf.Sin(k * Mathf.PI * 2.5f) * (1 - k) * .22f;
+                item.position = end;
+                item.localScale = new Vector3(scale.x * (1 + squash), scale.y * (1 - squash), scale.z * (1 + squash));
+                yield return null;
+            }
+            if (item != null) { item.position = end; item.localScale = scale; }
         }
         IEnumerator Transfer(GameObject item)
         {
@@ -583,7 +613,7 @@ namespace Hakaton.Trading.Unity
             if (!Session.Offer(dealId, revision, optionIndex)) return;
             if (Session.CurrentCustomer == null && Session.SettlementSequence == salesBefore)
                 Notify(Session.LastMessage + " Товар сохранён.");
-            actionReadyAt = Time.unscaledTime + .65f;
+            actionReadyAt = Time.unscaledTime + .4f;
             ObserveSale();
             World.Customers.Sync(Session);
         }
@@ -591,7 +621,7 @@ namespace Hakaton.Trading.Unity
         public void AcceptPrice(long dealId, int revision)
         {
             if (!ActionsReady || SelectingFromDisplay || !Session.Accept(dealId, revision)) return;
-            actionReadyAt = Time.unscaledTime + .65f;
+            actionReadyAt = Time.unscaledTime + .4f;
             ObserveSale();
             World.Customers.Sync(Session);
         }
@@ -599,7 +629,7 @@ namespace Hakaton.Trading.Unity
         public void RefuseCustomer(long customerId)
         {
             if (!ActionsReady || !Session.Refuse(customerId)) return;
-            actionReadyAt = Time.unscaledTime + .65f;
+            actionReadyAt = Time.unscaledTime + .4f;
             Notify("Товар остался в лавке");
             World.Customers.Sync(Session);
         }

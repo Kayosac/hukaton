@@ -143,6 +143,14 @@ namespace Hakaton.Trading
             return true;
         }
 
+        /// <summary>
+        /// One round of haggling (board «торговля» 07–09, preset v0.1):
+        /// each answer costs patience by its boldness (1/1/1/2/3); a demand the visitor has no patience left for
+        /// makes them walk out; prices up to a drifting comfort level are accepted, prices between comfort and the
+        /// visitor's fixed limit are accepted with falling probability, prices above the limit never; otherwise the
+        /// visitor counters towards your ask — or stubbornly holds. Patience at zero means a last offer: accepting
+        /// it sells, any further price answer ends the visit.
+        /// </summary>
         public bool Offer(long dealId, int revision, int optionIndex)
         {
             if (!MatchesDeal(dealId, revision)) return false;
@@ -153,7 +161,7 @@ namespace Hakaton.Trading
             deal.Round++; deal.Revision++;
             if (deal.IsLastOffer)
             {
-                EndWithoutSale("Хватит. Я ухожу.", CustomerOutcome.WalkedAway);
+                EndWithoutSale(Pick(LeaveLines), CustomerOutcome.WalkedAway);
                 return true;
             }
             // The first answer at R is guaranteed only for a visitor who asks the price.
@@ -161,26 +169,62 @@ namespace Hakaton.Trading
             {
                 Settle(price); return true;
             }
-            int willing = Math.Min(deal.MaxPrice, TradeDeal.RoundMoney(deal.R * (.94 + deal.Round * .055)));
-            if (price <= willing) { Settle(price); return true; }
 
-            int patienceCost = Settings.UsePresetPatienceCosts
+            int cost = Settings.UsePresetPatienceCosts
                 ? (optionIndex == 4 ? 3 : optionIndex == 3 ? 2 : 1)
                 : 1 + (price > deal.MaxPrice ? 1 : 0) + (price > deal.R * 1.35 ? 1 : 0);
-            deal.Patience = Math.Max(0, deal.Patience - patienceCost);
-            int previous = deal.N ?? Math.Min(deal.MaxPrice, deal.R);
-            int increment = random.NextDouble() < .2 ? 0 : Math.Max(1, TradeDeal.RoundMoney(deal.R * Settings.CounterStepRatio));
+            if (deal.LastAsk == price) cost++;
+            deal.LastAsk = price;
+
+            if (price <= deal.MaxPrice && WillAccept(deal, price)) { Settle(price); return true; }
+
+            if (cost > deal.Patience)
+            {
+                deal.Patience = 0;
+                deal.Mood = CustomerMood.Angry;
+                EndWithoutSale(Pick(price > deal.MaxPrice ? InsultedLines : LeaveLines), CustomerOutcome.WalkedAway);
+                return true;
+            }
+            deal.Patience -= cost;
+
+            // Counter: move from the previous position towards what you asked (capped by the limit) — or hold.
+            int previous = deal.N ?? Math.Max(1, TradeDeal.RoundMoney(Math.Min(deal.MaxPrice, deal.R) * .9));
+            int target = Math.Min(price - 1, deal.MaxPrice);
+            bool stubborn = random.NextDouble() < .2 || target <= previous;
+            int counter = stubborn ? previous
+                : previous + Math.Max(1, TradeDeal.RoundMoney((target - previous) * (.3 + random.NextDouble() * .35)));
             // Never offer the requested price as a counter: agreeing is a settlement.
-            deal.N = Math.Max(1, Math.Min(price - 1, Math.Min(deal.MaxPrice, previous + increment)));
+            deal.N = Math.Max(1, Math.Min(price - 1, Math.Min(deal.MaxPrice, counter)));
+            deal.Comfort += (deal.MaxPrice - deal.Comfort) * .3f;
             deal.IsLastOffer = deal.Patience == 0;
-            deal.Mood = deal.IsLastOffer || deal.Patience <= 1 ? CustomerMood.Angry : CustomerMood.Displeased;
-            deal.Reaction = deal.IsLastOffer ? $"Последнее предложение: {deal.N}. Больше не дам."
-                : deal.Patience <= 1 ? $"Не испытывай терпение. Дам {deal.N}."
-                : $"Дороговато. Предлагаю {deal.N}.";
+            float left = deal.Patience / (float)Math.Max(1, CurrentCustomer.InitialPatience);
+            deal.Mood = deal.IsLastOffer || deal.Patience <= 1 ? CustomerMood.Angry : left <= .6f ? CustomerMood.Displeased : CustomerMood.Neutral;
+            deal.Reaction = string.Format(deal.IsLastOffer ? Pick(LastOfferLines)
+                : deal.Mood == CustomerMood.Angry ? Pick(AngryLines)
+                : stubborn ? Pick(StubbornLines)
+                : deal.Mood == CustomerMood.Displeased ? Pick(DispleasedLines) : Pick(CounterLines), deal.N);
             LastMessage = deal.Reaction;
             Touch();
             return true;
         }
+
+        bool WillAccept(TradeDeal deal, int price)
+        {
+            if (price <= deal.Comfort) return true;
+            float span = Math.Max(1, deal.MaxPrice - deal.Comfort);
+            double u = (price - deal.Comfort) / span;
+            double chance = (1 - Math.Pow(u, .7)) * .85;
+            return random.NextDouble() < chance;
+        }
+
+        static readonly string[] CounterLines = { "Хм. Дам {0}.", "Дороговато. Предлагаю {0}.", "Давай так: {0}.", "За {0} возьму." };
+        static readonly string[] StubbornLines = { "Нет. {0} — и точка.", "Не уступлю. {0}.", "{0}. Больше не проси." };
+        static readonly string[] DispleasedLines = { "Ты меня грабишь. {0}, не больше.", "Ну и цены… {0}.", "Хватит торговаться. {0}." };
+        static readonly string[] AngryLines = { "Не испытывай терпение. {0}.", "Ещё слово — и уйду. {0}.", "{0}, или я ухожу." };
+        static readonly string[] LastOfferLines = { "Последнее предложение: {0}.", "{0}. Это последнее слово.", "Всё. {0} — и разойдёмся." };
+        static readonly string[] LeaveLines = { "Хватит. Я ухожу.", "Да ну тебя!", "Найду в другом месте." };
+        static readonly string[] InsultedLines = { "Ты шутишь?! Прощай.", "За такие деньги? Ни за что!", "Наглость! Ухожу." };
+        string Pick(string[] lines) => lines[random.Next(lines.Length)];
 
         public bool Accept(long dealId, int revision)
         {
@@ -356,7 +400,8 @@ namespace Hakaton.Trading
             for (int i = 0; i < slots.Length; i++) if (slots[i] != null) occupied.Add(i);
             int selected = occupied[random.Next(occupied.Count)];
             bool categoryRequest = random.Next(3) == 0;
-            string category = categoryRequest ? catalog[random.Next(catalog.Count)].Category : null;
+            // Ask only for categories that are actually on display: an unanswerable request just burns the clock.
+            string category = categoryRequest ? slots[occupied[random.Next(occupied.Count)]].Definition.Category : null;
             int referencePrice = slots[selected].Definition.RecommendedPrice;
             int minimumPrice = referencePrice;
             if (categoryRequest)

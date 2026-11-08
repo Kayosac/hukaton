@@ -9,9 +9,9 @@ namespace Hakaton.Trading.Tests
         private static readonly ItemDefinition Horn = new ItemDefinition("horn", "Рог", "Трофеи", 100);
         private static readonly ItemDefinition Herb = new ItemDefinition("herb", "Трава", "Растения", 40);
 
-        private static TradingSession Stocked(float seconds = 120)
+        private static TradingSession Stocked(float seconds = 120, bool presetCosts = false, int seed = 42)
         {
-            var session = new TradingSession(new TradeSettings { ShiftSeconds = seconds }, 42);
+            var session = new TradingSession(new TradeSettings { ShiftSeconds = seconds, UsePresetPatienceCosts = presetCosts }, seed);
             session.SeedInventory(Horn, 6);
             session.SeedInventory(Herb, 2);
             for (int i = 0; i < 6; i++) Assert.That(session.PlaceItem(0, i), Is.True);
@@ -194,9 +194,9 @@ namespace Hakaton.Trading.Tests
             var session = Stocked(1);
             var deal = Visitor(session, ceiling: 100, patience: 1);
             session.Tick(2);
-            session.Offer(deal.Id, deal.Revision, 4);
-            Assert.That(deal.IsLastOffer, Is.True);
+            // A demand the visitor has no patience left for ends the visit; at zero time the shop then closes.
             Assert.That(session.Offer(deal.Id, deal.Revision, 4), Is.True);
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.WalkedAway));
             Assert.That(session.IsOpen, Is.False);
             Assert.That(session.TotalStockCount, Is.EqualTo(8));
             Assert.That(session.Gold, Is.Zero);
@@ -206,11 +206,13 @@ namespace Hakaton.Trading.Tests
         public void LastOfferRemainsAcceptableEvenWithExhaustedPatience()
         {
             var session = Stocked();
-            var deal = Visitor(session, ceiling: 100, patience: 1);
-            session.Offer(deal.Id, deal.Revision, 4);
+            // +5% over a 100 ceiling costs 2 (bold over the limit) — exactly the visitor's patience.
+            var deal = Visitor(session, ceiling: 100, patience: 2);
+            session.Offer(deal.Id, deal.Revision, 1);
             Assert.That(deal.IsLastOffer, Is.True);
             Assert.That(deal.Patience, Is.Zero);
             int price = deal.N.Value;
+            Assert.That(price, Is.LessThanOrEqualTo(100));
             Assert.That(session.Accept(deal.Id, deal.Revision), Is.True);
             Assert.That(session.Gold, Is.EqualTo(price));
         }
@@ -412,11 +414,11 @@ namespace Hakaton.Trading.Tests
         public void NewDealStartsNeutralAndCounterShowsDispleasureWithoutDeparture()
         {
             var session = Stocked();
-            var deal = Visitor(session, patience: 4);
+            var deal = Visitor(session, ceiling: 110, patience: 4);
             var priorDeparture = session.LastDeparture;
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Neutral));
             Assert.That(session.Offer(deal.Id, deal.Revision, 3), Is.True);
-            Assert.That(deal.Patience, Is.EqualTo(3));
+            Assert.That(deal.Patience, Is.EqualTo(2));
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Displeased));
             Assert.That(session.LastDeparture, Is.SameAs(priorDeparture));
             Assert.That(session.CurrentDeal, Is.SameAs(deal));
@@ -425,15 +427,15 @@ namespace Hakaton.Trading.Tests
         [Test]
         public void LowPatienceAndFinalCounterAreAngryBeforeCustomerLeaves()
         {
-            var session = Stocked();
-            var deal = Visitor(session, patience: 2);
+            var session = Stocked(presetCosts: true);
+            var deal = Visitor(session, ceiling: 100, patience: 3);
             long customerId = session.CurrentCustomer.Id;
             int departures = session.DepartureSequence;
             session.Offer(deal.Id, deal.Revision, 3);
             Assert.That(deal.Patience, Is.EqualTo(1));
             Assert.That(deal.IsLastOffer, Is.False);
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
-            session.Offer(deal.Id, deal.Revision, 4);
+            session.Offer(deal.Id, deal.Revision, 1);
             Assert.That(deal.IsLastOffer, Is.True);
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
             Assert.That(session.CurrentCustomer.Id, Is.EqualTo(customerId));
@@ -466,10 +468,11 @@ namespace Hakaton.Trading.Tests
         public void AcceptedFinalOfferRecordsPurchaseRatherThanWalkout()
         {
             var session = Stocked();
-            var deal = Visitor(session, ceiling: 100, patience: 1);
+            var deal = Visitor(session, ceiling: 100, patience: 2);
             long customerId = session.CurrentCustomer.Id;
             int departures = session.DepartureSequence;
-            session.Offer(deal.Id, deal.Revision, 4);
+            session.Offer(deal.Id, deal.Revision, 1);
+            Assert.That(deal.IsLastOffer, Is.True);
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Angry));
             session.Accept(deal.Id, deal.Revision);
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Happy));
@@ -572,7 +575,7 @@ namespace Hakaton.Trading.Tests
         public void StaleCounterCommandsCannotChangeMoodOrCreateDeparture()
         {
             var session = Stocked();
-            var deal = Visitor(session);
+            var deal = Visitor(session, ceiling: 110);
             int revision = deal.Revision;
             int departures = session.DepartureSequence;
             session.Offer(deal.Id, revision, 3);
@@ -581,6 +584,69 @@ namespace Hakaton.Trading.Tests
             Assert.That(session.Accept(deal.Id, revision), Is.False);
             Assert.That(deal.Mood, Is.EqualTo(CustomerMood.Displeased));
             Assert.That(session.DepartureSequence, Is.EqualTo(departures));
+        }
+            [Test]
+        public void GreedBeyondRemainingPatienceMakesTheVisitorWalkOut()
+        {
+            var session = Stocked(presetCosts: true);
+            var deal = Visitor(session, ceiling: 130, patience: 2);
+            Assert.That(session.Offer(deal.Id, deal.Revision, 4), Is.True);
+            Assert.That(session.CurrentCustomer, Is.Null);
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.WalkedAway));
+            Assert.That(session.TotalStockCount, Is.EqualTo(8));
+            Assert.That(session.Gold, Is.Zero);
+        }
+
+        [Test]
+        public void PricesAboveTheVisitorsLimitAreNeverAccepted()
+        {
+            for (int seed = 1; seed <= 40; seed++)
+            {
+                var session = Stocked(presetCosts: true, seed: seed);
+                var deal = Visitor(session, ceiling: 100, patience: 5);
+                while (session.CurrentDeal == deal && !deal.IsLastOffer)
+                {
+                    int option = deal.GetPriceOptions().ToList().FindIndex(o => o.Enabled && o.Price > 100);
+                    if (option < 0) break;
+                    session.Offer(deal.Id, deal.Revision, option);
+                }
+                Assert.That(session.Gold, Is.Zero, "seed " + seed);
+                Assert.That(session.SalesCount, Is.Zero, "seed " + seed);
+            }
+        }
+
+        [Test]
+        public void HigherAsksDrawHigherOrEqualCounters()
+        {
+            int Counter(int option)
+            {
+                var session = Stocked(presetCosts: true, seed: 7);
+                var deal = Visitor(session, ceiling: 300, patience: 5);
+                // Same seed, same rolls: if both asks drew a counter, the bolder ask must not draw a lower one.
+                session.Offer(deal.Id, deal.Revision, option);
+                return session.CurrentDeal == deal ? deal.N ?? -1 : -1;
+            }
+            int modest = Counter(2), bold = Counter(4);
+            if (modest > 0 && bold > 0) Assert.That(bold, Is.GreaterThanOrEqualTo(modest));
+        }
+
+        [Test]
+        public void CategoryVisitorsOnlyAskForCategoriesOnDisplay()
+        {
+            var session = new TradingSession(new TradeSettings(), 3);
+            session.SeedInventory(Horn, 3);
+            session.SeedInventory(Herb, 3);
+            // Only horns are displayed; herbs stay in stock.
+            for (int i = 0; i < 3; i++) Assert.That(session.PlaceItem(0, i), Is.True);
+            Assert.That(session.Open(), Is.True);
+            for (int visit = 0; visit < 60 && session.IsOpen; visit++)
+            {
+                var customer = session.CurrentCustomer;
+                if (customer == null) { session.AdvanceCustomer(); continue; }
+                if (customer.RequestedSlot < 0) Assert.That(customer.RequestedCategory, Is.EqualTo("Трофеи"));
+                session.Refuse(customer.Id);
+                session.AdvanceCustomer();
+            }
         }
     }
 }

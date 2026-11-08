@@ -5,6 +5,7 @@ using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Expeditions;
 using Hakaton.Game;
+using Hakaton.Trading.Unity;
 using UnityEngine;
 
 namespace Hakaton.Authoring
@@ -100,6 +101,49 @@ namespace Hakaton.Authoring
             float pitch = -Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg + (parts.Length > 1 ? float.Parse(parts[1], CultureInfo.InvariantCulture) : 0);
             world.motor.view.ResetPose(Quaternion.Euler(pitch, yaw, 0));
             return $"aim {target.displayName} d={to.magnitude:F1} state={target.State}";
+        }
+
+        static TradingPrototype Trade => Object.FindAnyObjectByType<TradingPrototype>();
+
+        /// <summary>args: "itemId count ..." — adds stock and fills the display.</summary>
+        public static string Stock(string args)
+        {
+            var parts = args.Split(' ');
+            var session = Trade.Session;
+            for (int i = 0; i + 1 < parts.Length; i += 2)
+                session.SeedInventory(session.FindDefinition(parts[i]), int.Parse(parts[i + 1]));
+            for (int slot = 0; slot < session.Slots.Count && session.Inventory.Count > 0; slot++)
+                if (session.Slots[slot] == null) session.PlaceItem(0, slot);
+            Trade.RefreshPresentation();
+            return $"stock={session.Inventory.Count} display={session.DisplayCount}";
+        }
+
+        public static string Open() { bool ok = Trade.Session.Open(); return "open=" + ok + " " + Trade.Session.LastMessage; }
+
+        public static string Haggle(string args)
+        {
+            var session = Trade.Session;
+            var deal = session.CurrentDeal;
+            if (deal == null && session.CurrentCustomer != null)
+            {
+                var customer = session.CurrentCustomer;
+                for (int i = 0; i < session.Slots.Count; i++)
+                    if (session.Slots[i] != null && session.Slots[i].Definition.Category == customer.RequestedCategory)
+                    { Trade.SelectCustomerItem(i, customer.Id); break; }
+                return "picked for category " + customer.RequestedCategory + ": " + session.CurrentDeal?.Item.Definition.Name;
+            }
+            if (deal == null) return "no customer";
+            if (args == "accept") Trade.AcceptPrice(deal.Id, deal.Revision);
+            else Trade.OfferPrice(deal.Id, deal.Revision, int.Parse(args));
+            var after = session.CurrentDeal;
+            return after == null ? $"done: {session.LastMessage} gold={session.Gold}" : $"R={after.R} B={after.B} N={after.N} patience={after.Patience} mood={after.Mood} «{after.Reaction}»";
+        }
+
+        public static string Shop()
+        {
+            var s = Trade.Session;
+            var d = s.CurrentDeal;
+            return $"open={s.IsOpen} time={s.RemainingSeconds:F0} gold={s.Gold} revenue={s.GrossRevenue} customer={s.CurrentCustomer?.Name} ready={Trade.CustomerReady} deal={(d == null ? "-" : $"{d.Item.Definition.Name} R={d.R} B={d.B} N={d.N} p={d.Patience} {d.Mood}")}";
         }
 
         public static string Switch() { World.thrower.SwitchDeck(); return "deck=" + World.workshop.Model.Current.ActiveKind; }

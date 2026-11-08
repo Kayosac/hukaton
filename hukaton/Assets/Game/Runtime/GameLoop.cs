@@ -7,6 +7,7 @@ using Hakaton.Decks;
 using Hakaton.Decks.Unity;
 using Hakaton.Economy.Unity;
 using Hakaton.Expeditions;
+using Hakaton.Feel;
 using Hakaton.ShopBlockout;
 using Hakaton.Trading;
 using Hakaton.Trading.Unity;
@@ -33,6 +34,11 @@ namespace Hakaton.Game
         public Canvas shopHud;
         public Canvas progressCanvas;
         public TMP_Text objectiveLabel, resultLabel;
+        [Header("Presentation")]
+        public ScreenFade fade;
+        public SfxPlayer sfx;
+        public SfxCue departCue, titleCue, goalCue;
+        [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
         [Min(1)] public int revenueGoal = 1000;
         public bool persistProgress = true;
@@ -99,6 +105,8 @@ namespace Hakaton.Game
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !workshop.EmbeddedOpen)
                 {
                     goalCelebrated = true; dirty = true;
+                    if (sfx) sfx.Play(goalCue);
+                    if (fade) fade.StartCoroutine(fade.ShowTitle("Лавка процветает!", revenueGoal + " монет выручки · можно продолжать", 2.4f));
                     Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — можно продолжать свободную игру.", 10);
                 }
                 if (dirty || Time.unscaledTime >= nextTimedSave) SaveNow();
@@ -114,13 +122,45 @@ namespace Hakaton.Game
         }
         public void Notify(string message, float seconds = 5)
         { LastNotice = message; noticeUntil = Time.unscaledTime + seconds; }
-        void TryDepartFromDoor() { TryDepart(); }
-        public bool TryDepart()
+        bool departing;
+        void TryDepartFromDoor()
         {
+            if (departing) return;
+            if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
+            StartCoroutine(DepartWithTransition());
+        }
+
+        bool CanDepartNow(out string error)
+        {
+            error = null;
             if (!Ready || Phase != GamePhase.Shop || expedition.Returning || trade.Session.IsOpen || services.IsOpen
                 || trade.ViewTransitioning || player.control.HasModalOwner) return false;
-            var error = workshop.Model.CanDepart();
-            if (error != null) { Notify(error); return false; }
+            error = workshop.Model.CanDepart();
+            return error == null;
+        }
+
+        /// <summary>Fade out of the shop, switch phases in the dark, fade into the valley under its title.</summary>
+        System.Collections.IEnumerator DepartWithTransition()
+        {
+            departing = true;
+            player.control.SetBlocked(this, true);
+            if (sfx) sfx.Play(departCue);
+            if (fade) yield return fade.FadeTo(1, departFadeSeconds);
+            player.control.SetBlocked(this, false);
+            bool departed = TryDepart();
+            departing = false;
+            if (!fade) yield break;
+            if (departed)
+            {
+                if (sfx) sfx.Play(titleCue);
+                fade.StartCoroutine(fade.ShowTitle(expedition.locationName, "Колоды собраны · добыча ждёт", 1.4f));
+            }
+            yield return fade.FadeTo(0, .6f);
+        }
+
+        public bool TryDepart()
+        {
+            if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return false; }
             // Capture the safe state before cards are shuffled or the world is changed.
             SaveNow();
             restoring = true;
