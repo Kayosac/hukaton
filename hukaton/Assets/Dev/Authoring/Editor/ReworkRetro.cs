@@ -134,6 +134,18 @@ namespace Hakaton.Authoring
                 });
         }
 
+        public static string Confetti()
+        {
+            Log.Clear();
+            var confetti = Burst("Goal confetti", "Interactive/Confetti/ConfettiExplosion.prefab");
+            var loop = Object.FindAnyObjectByType<Hakaton.Game.GameLoop>(FindObjectsInactive.Include);
+            loop.goalConfetti = confetti;
+            Record(loop);
+            EditorSceneManager.MarkSceneDirty(loop.gameObject.scene);
+            EditorSceneManager.SaveScene(loop.gameObject.scene);
+            return Log.ToString() + " wired";
+        }
+
         /// <summary>Removes every leftover instance of the old generated glint from loot prefabs and the scene.</summary>
         public static string CleanOldGlints()
         {

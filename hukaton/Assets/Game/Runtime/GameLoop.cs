@@ -38,6 +38,8 @@ namespace Hakaton.Game
         public ScreenFade fade;
         public SfxPlayer sfx;
         public SfxCue departCue, titleCue, goalCue;
+        [Tooltip("Celebration burst in front of the player when the revenue goal is reached.")]
+        public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
         [Min(1)] public int revenueGoal = 1000;
@@ -106,6 +108,8 @@ namespace Hakaton.Game
                 {
                     goalCelebrated = true; dirty = true;
                     if (sfx) sfx.Play(goalCue);
+                    var eye = trade.World.ViewCamera.transform;
+                    VfxBurst.Spawn(goalConfetti, eye.position + eye.forward * 2.5f + Vector3.up * .6f, Quaternion.identity, null, Color.white);
                     if (fade) fade.StartCoroutine(fade.ShowTitle("Лавка процветает!", revenueGoal + " монет выручки · можно продолжать", 2.4f));
                     Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — можно продолжать свободную игру.", 10);
                 }
