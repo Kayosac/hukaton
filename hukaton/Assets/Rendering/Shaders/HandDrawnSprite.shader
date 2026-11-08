@@ -3,6 +3,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+        [PerRendererData] _SpriteUVRect ("Sprite UV Rect", Vector) = (0,0,1,1)
         _Color ("Tint", Color) = (1,1,1,1)
         [Header(Crisp Pixels)]
         _PixelSize ("Pixel Size (source texels)", Range(1,32)) = 8
@@ -41,6 +42,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
 
         CBUFFER_START(UnityPerMaterial)
             half4 _Color;
+            float4 _SpriteUVRect;
             float _PixelSize, _AlphaCutoff, _Motion, _AnimationFPS;
             float _Speed, _Sway, _Breath, _Boil, _Anchor, _Seed;
         CBUFFER_END
@@ -77,9 +79,12 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         half4 Frag(Varyings input) : SV_Target
         {
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-            float2 cell = max(1.0, floor(_PixelSize + 0.5)) * _MainTex_TexelSize.xy;
+            // Sprite sheets share one texture: animate inside this sprite's cell, around its own feet.
+            float2 rectSize = max(_SpriteUVRect.zw, float2(0.00001, 0.00001));
+            float2 cell = max(1.0, floor(_PixelSize + 0.5)) * _MainTex_TexelSize.xy / rectSize;
             // Quantize BEFORE animation: deformation cannot bend or blur the pixel grid.
-            float2 uv = (floor(input.uv / cell) + 0.5) * cell;
+            float2 localUV = (input.uv - _SpriteUVRect.xy) / rectSize;
+            float2 uv = (floor(localUV / cell) + 0.5) * cell;
             float t = floor(_Time.y * max(_AnimationFPS, 1.0)) / max(_AnimationFPS, 1.0);
             float phase = t * _Speed * 2.0 + _Seed;
             float height = saturate((uv.y - _Anchor) / max(1.0 - _Anchor, 0.01));
@@ -98,7 +103,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
 
             // Reject outside the source; clamping alone would smear opaque edge texels.
             clip(min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)));
-            half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, uv, 0);
+            float2 atlasUV = _SpriteUVRect.xy + uv * rectSize;
+            half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0);
             clip(texel.a - _AlphaCutoff);
             // Binary source coverage, with ordinary material/renderer fade still supported.
             return half4(texel.rgb * input.color.rgb, input.color.a);
