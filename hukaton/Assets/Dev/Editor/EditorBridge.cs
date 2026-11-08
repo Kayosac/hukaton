@@ -47,8 +47,14 @@ namespace Hakaton.Dev
             EditorApplication.update += Poll;
             EditorApplication.playModeStateChanged -= OnPlayMode;
             EditorApplication.playModeStateChanged += OnPlayMode;
+            // A PlayMode run reloads the domain: re-attach the reporter of the run in progress.
+            string pendingTests = SessionState.GetString(PendingTestsKey, "");
+            if (pendingTests.Length > 0)
+                ScriptableObject.CreateInstance<TestRunnerApi>().RegisterCallbacks(new TestReporter(pendingTests, false));
             WriteState("domain-reloaded");
         }
+
+        const string PendingTestsKey = "Hakaton.Bridge.PendingTests";
 
         // ---------- mirrors ----------
 
@@ -201,35 +207,41 @@ namespace Hakaton.Dev
             var filter = new Filter { testMode = mode };
             if (parts.Length > 1) filter.groupNames = new[] { parts[1] };
             var api = ScriptableObject.CreateInstance<TestRunnerApi>();
-            api.RegisterCallbacks(new TestReporter(Path.Combine(Root, id + ".tests.txt")));
+            string path = Path.Combine(Root, id + ".tests.txt");
+            SessionState.SetString(PendingTestsKey, path);
+            api.RegisterCallbacks(new TestReporter(path, true));
             api.Execute(new ExecutionSettings(filter));
             return $"OK tests started mode={mode} filter={(parts.Length > 1 ? parts[1] : "*")}";
         }
 
+        /// <summary>Writes the run's outcome once it finishes; counts leaves of the final result tree.</summary>
         sealed class TestReporter : ICallbacks
         {
             readonly string path;
-            readonly StringBuilder failures = new StringBuilder();
-            int passed, failed, skipped;
-            public TestReporter(string path) { this.path = path; File.WriteAllText(path, "RUNNING\n"); }
+            public TestReporter(string path, bool fresh) { this.path = path; if (fresh) File.WriteAllText(path, "RUNNING\n"); }
             public void RunStarted(ITestAdaptor testsToRun) { }
             public void TestStarted(ITestAdaptor test) { }
-            public void TestFinished(ITestResultAdaptor result)
-            {
-                if (result.HasChildren) return;
-                switch (result.TestStatus)
-                {
-                    case TestStatus.Passed: passed++; break;
-                    case TestStatus.Failed:
-                        failed++;
-                        failures.AppendLine("FAIL " + result.FullName).AppendLine("    " + result.Message?.Trim())
-                            .AppendLine("    " + string.Join("\n    ", (result.StackTrace ?? "").Split('\n').Take(6)));
-                        break;
-                    default: skipped++; break;
-                }
-            }
+            public void TestFinished(ITestResultAdaptor result) { }
             public void RunFinished(ITestResultAdaptor result)
             {
+                int passed = 0, failed = 0, skipped = 0;
+                var failures = new StringBuilder();
+                void Walk(ITestResultAdaptor node)
+                {
+                    if (node.HasChildren) { foreach (var child in node.Children) Walk(child); return; }
+                    switch (node.TestStatus)
+                    {
+                        case TestStatus.Passed: passed++; break;
+                        case TestStatus.Failed:
+                            failed++;
+                            failures.AppendLine("FAIL " + node.FullName).AppendLine("    " + node.Message?.Trim())
+                                .AppendLine("    " + string.Join("\n    ", (node.StackTrace ?? "").Split('\n').Take(6)));
+                            break;
+                        default: skipped++; break;
+                    }
+                }
+                Walk(result);
+                SessionState.EraseString(PendingTestsKey);
                 File.WriteAllText(path, $"DONE passed={passed} failed={failed} skipped={skipped}\n{failures}");
             }
         }

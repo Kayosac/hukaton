@@ -187,7 +187,7 @@ namespace Hakaton.Character.Tests.PlayMode
             control.SetBlocked(secondOwner, false);
             yield return Advance(.6f);
             Assert.That(control.GameplayActive, Is.True);
-            Assert.That(motor.IsSprinting, Is.True);
+            Assert.That(motor.IsSprinting, Is.True, $"grounded={motor.IsGrounded} stamina={stamina.Value:0.00} canSprint={stamina.CanSprint} speed={motor.PlanarVelocity.magnitude:0.00}");
             Assert.That(HorizontalDistance(stopped, motor.transform.position), Is.GreaterThan(1));
             Assert.That(jumps, Is.Zero, "A Space press consumed during a modal must not become a jump on return.");
             Assert.That(motor.IsGrounded, Is.True);
