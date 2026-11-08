@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Hakaton.Trading
 {
@@ -42,6 +43,10 @@ namespace Hakaton.Trading
         public float MaxOpeningRatio { get; set; } = .9f;
         public float MinCeilingRatio { get; set; } = 1f;
         public float MaxCeilingRatio { get; set; } = 1.4f;
+        public float MinOfferCeilingRatio { get; set; } = .95f;
+        public float MaxOfferCeilingRatio { get; set; } = 1.2f;
+        public float AsksPriceProbability { get; set; } = .5f;
+        public bool UsePresetPatienceCosts { get; set; }
         public int MinPatience { get; set; } = 3;
         public int MaxPatience { get; set; } = 5;
         public float CounterStepRatio { get; set; } = .08f;
@@ -52,6 +57,9 @@ namespace Hakaton.Trading
                 || !Positive(MinOpeningRatio) || MaxOpeningRatio < MinOpeningRatio
                 || MaxOpeningRatio >= 1 || !Positive(MaxOpeningRatio)
                 || !Positive(MinCeilingRatio) || !Positive(MaxCeilingRatio)
+                || !Positive(MinOfferCeilingRatio) || !Positive(MaxOfferCeilingRatio)
+                || MaxOfferCeilingRatio < MinOfferCeilingRatio
+                || float.IsNaN(AsksPriceProbability) || AsksPriceProbability < 0 || AsksPriceProbability > 1
                 || MaxCeilingRatio < MinCeilingRatio || MinPatience < 1
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue
                 || !Positive(CounterStepRatio))
@@ -60,6 +68,35 @@ namespace Hakaton.Trading
         }
 
         private static bool Positive(float value) => value > 0 && !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    /// <summary>Persistent shop state. Coins belong to the shared game wallet, not this snapshot.</summary>
+    [Serializable]
+    public sealed class TradingSave
+    {
+        public int version = 1;
+        public float remainingSeconds;
+        public long grossRevenue, nextItemId, nextExpeditionId;
+        public int salesCount;
+        public List<TradingItemSave> items = new List<TradingItemSave>();
+    }
+
+    [Serializable]
+    public sealed class TradingItemSave
+    {
+        public long instanceId;
+        public string definitionId;
+        // Inventory entries retain their list order; nonnegative values identify display slots.
+        public int slot = -1;
+    }
+
+    [Serializable]
+    public sealed class StockDelivery
+    {
+        public string definitionId;
+        public int count;
+        public StockDelivery(string definitionId, int count)
+        { this.definitionId = definitionId; this.count = count; }
     }
 
     public sealed class ItemDefinition

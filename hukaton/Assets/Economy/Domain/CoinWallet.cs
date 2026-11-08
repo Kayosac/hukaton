@@ -26,5 +26,13 @@ namespace Hakaton.Economy
             Balance -= amount;
             return true;
         }
+
+        /// <summary>Restores a validated game snapshot without replacing the shared wallet object.</summary>
+        public bool TryRestoreBalance(int balance)
+        {
+            if (balance < 0) return false;
+            Balance = balance;
+            return true;
+        }
     }
 }

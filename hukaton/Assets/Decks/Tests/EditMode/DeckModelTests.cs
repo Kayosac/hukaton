@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
+using Hakaton.Economy;
 using NUnit.Framework;
 
 namespace Hakaton.Decks.Tests
@@ -148,6 +150,73 @@ namespace Hakaton.Decks.Tests
             Assert.That(b.Selected(DeckKind.Exploration).Select(c=>c.Id),Is.EqualTo(a.Selected(DeckKind.Exploration).Select(c=>c.Id)));
             Assert.That(b.HandSize(DeckKind.Combat),Is.EqualTo(4));
             b.Buy("fire",out var newer);Assert.That(newer.Id,Is.GreaterThan(copy.Id));
+        }
+        [Test] public void ExplicitStartingCopiesSupportZeroAndDifferentDeckTotals()
+        {
+            var specs=new[]{
+                new CardSpec("impulse","Импульс",DeckKind.Exploration,120,120,8,1),
+                new CardSpec("ice","Лёд",DeckKind.Exploration,120,100,2,1),
+                new CardSpec("fire","Огонь",DeckKind.Exploration,100,100,1,1),
+                new CardSpec("strike","Удар",DeckKind.Combat,120,100,3,1),
+                new CardSpec("heavy","Тяжёлый удар",DeckKind.Combat,140,140,2,0),
+                new CardSpec("heal","Лечение",DeckKind.Combat,140,120,2,1)};
+            var counts=new Dictionary<string,int>{{"impulse",3},{"ice",3},{"fire",2},{"strike",5},{"heavy",0},{"heal",2}};
+            var w=new DeckWorkshop(new DeckRules(maxCardLevel:2,handUpgradePrice:200,startingCoins:0),specs,initialCopies:counts);
+            Assert.That(w.Owned.Count,Is.EqualTo(15));
+            Assert.That(w.Selected(DeckKind.Exploration).Count,Is.EqualTo(8));
+            Assert.That(w.Selected(DeckKind.Combat).Count,Is.EqualTo(7));
+            Assert.That(w.Owned.Count(c=>c.Spec.Id=="heavy"),Is.Zero);
+            Assert.That(w.Owned.All(c=>w.IsSelected(c.Id)),Is.True);
+            Assert.That(w.Depart(42),Is.Null);
+            Assert.That(w.Current.Get(DeckKind.Exploration).StockCount,Is.EqualTo(5));
+            Assert.That(w.Current.Get(DeckKind.Combat).StockCount,Is.EqualTo(4));
+        }
+        [Test] public void SharedProgressRestoreNeverCreditsOrReplacesSceneWallet()
+        {
+            var source=Workshop();source.Buy("wind",out var copy);source.Toggle(copy.Id);source.Upgrade(copy.Id);
+            source.ImproveHand(DeckKind.Combat);source.DepositLoot("common_find","Гриб",2,20);
+            var wallet=new CoinWallet(73);
+            var target=new DeckWorkshop(source.Rules,Specs,1,wallet);
+            var save=source.Save();
+            Assert.That(target.TryRestore(save),Is.False);
+            Assert.That(target.CanRestoreProgress(save),Is.True);
+            Assert.That(target.TryRestoreProgress(save),Is.True);
+            Assert.That(target.TryRestoreProgress(save),Is.True,"Restoring twice must not add money twice.");
+            Assert.That(wallet.Balance,Is.EqualTo(73));Assert.That(target.Coins,Is.EqualTo(73));
+            Assert.That(target.Find(copy.Id).Level,Is.EqualTo(2));
+            Assert.That(target.HandSize(DeckKind.Combat),Is.EqualTo(4));
+            Assert.That(target.Goods.Single().id,Is.EqualTo("common_find"));
+            Assert.That(target.Buy("wind",out _),Is.Null);
+            Assert.That(wallet.Balance,Is.EqualTo(43),"Purchases must still spend the original scene wallet.");
+        }
+        [Test] public void InvalidSharedRestoreDoesNotPartiallyChangeCardsOrNotify()
+        {
+            var wallet=new CoinWallet(73);var w=new DeckWorkshop(new DeckRules(),Specs,1,wallet);
+            int changes=0;w.Changed+=()=>changes++;
+            var bad=w.Save();bad.selected.Add(9999);
+            Assert.That(w.CanRestoreProgress(bad),Is.False);Assert.That(w.TryRestoreProgress(bad),Is.False);
+            Assert.That(w.Owned.Count,Is.EqualTo(3));Assert.That(wallet.Balance,Is.EqualTo(73));Assert.That(changes,Is.Zero);
+        }
+        [Test] public void SuccessfulProgressChangesNotifyAfterCompleteMutation()
+        {
+            var w=Workshop();int changes=0;w.Changed+=()=>{changes++;Assert.That(w.Save().copies.Count,Is.EqualTo(w.Owned.Count));};
+            Assert.That(w.Toggle(999),Is.Not.Null);Assert.That(changes,Is.Zero);
+            w.Toggle(1);w.Buy("wind",out var copy);w.Upgrade(copy.Id);w.ImproveHand(DeckKind.Combat);
+            w.DepositLoot("hare_foot","Лапка",1,60);
+            Assert.That(changes,Is.EqualTo(5));
+            w.Depart(1);Assert.That(changes,Is.EqualTo(6));
+            Assert.That(w.Upgrade(copy.Id),Is.Not.Null);w.DepositLoot("hare_foot","Лапка",1,60);
+            Assert.That(changes,Is.EqualTo(6),"Rejected mutations during an outing cannot request a save.");
+        }
+        [Test] public void StableLootIdsSurviveSavesAndLegacyLootRemainsReadable()
+        {
+            var w=Workshop();w.DepositLoot("common_find","Гриб",1,20);w.DepositLoot("common_find","Mushroom",2,20);
+            w.DepositLoot("Старый трофей",1,10);
+            Assert.That(w.Goods.Count,Is.EqualTo(2));Assert.That(w.Goods[0].count,Is.EqualTo(3));
+            var save=w.Save();var restored=Workshop();Assert.That(restored.TryRestore(save),Is.True);
+            save.goods[0].count=99;
+            Assert.That(restored.Goods[0].count,Is.EqualTo(3));Assert.That(restored.Goods[0].id,Is.EqualTo("common_find"));
+            Assert.That(restored.Goods[1].id,Is.Null);Assert.That(restored.Goods[1].name,Is.EqualTo("Старый трофей"));
         }
         [Test] public void InvalidSaveIsRejectedAtomically()
         {

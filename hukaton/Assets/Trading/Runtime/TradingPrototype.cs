@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Hakaton.Economy.Unity;
@@ -16,6 +17,10 @@ namespace Hakaton.Trading.Unity
         [Range(.67f, .99f)] public float maxOpeningRatio = .9f;
         [Range(1, 2)] public float minCeilingRatio = 1;
         [Range(1, 2)] public float maxCeilingRatio = 1.4f;
+        [Range(.01f, 2)] public float minOfferCeilingRatio = .95f;
+        [Range(.01f, 2)] public float maxOfferCeilingRatio = 1.2f;
+        [Range(0, 1)] public float asksPriceProbability = .5f;
+        public bool usePresetPatienceCosts;
         [Min(1)] public int minPatience = 3;
         [Min(1)] public int maxPatience = 5;
         [Header("Controls")]
@@ -31,6 +36,9 @@ namespace Hakaton.Trading.Unity
         public ShopBackroomServices services;
         public AudioSource sound;
         public AudioClip placeSound, saleSound;
+        [Header("Game loop integration")]
+        public bool externalExpeditions;
+        public event System.Action ExpeditionRequested;
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
@@ -77,7 +85,8 @@ namespace Hakaton.Trading.Unity
         int focusedLoot = -1;
         public string ContextPrompt { get; private set; } = string.Empty;
         public string ContextDetail { get; private set; } = string.Empty;
-        public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen;
+        public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen
+            && !(externalExpeditions && Session.ExpeditionId != 0);
         public float StaminaFraction => World.Stamina.Normalized;
         public bool ShowStamina => World.Stamina.Normalized < .995f;
         public float ContextProgress => pressedSlot >= 0 ? Mathf.Clamp01((Time.unscaledTime - pressStarted) / holdThreshold) : 0;
@@ -109,6 +118,9 @@ namespace Hakaton.Trading.Unity
                 SlotCount = 6, ShiftSeconds = shiftSeconds,
                 MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
                 MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
+                MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
+                AsksPriceProbability = asksPriceProbability,
+                UsePresetPatienceCosts = usePresetPatienceCosts,
                 MinPatience = minPatience, MaxPatience = maxPatience
             }, randomSeed, walletHost ? walletHost.Wallet : null);
             catalog = new ItemDefinition[startingStock.Length];
@@ -117,6 +129,7 @@ namespace Hakaton.Trading.Unity
             {
                 var entry = startingStock[i];
                 catalog[i] = new ItemDefinition(entry.id, entry.displayName, entry.category, entry.recommendedPrice);
+                Session.SeedInventory(catalog[i], 0);
                 maxCount = Mathf.Max(maxCount, entry.count);
             }
             for (int n = 0; n < maxCount; n++)
@@ -344,6 +357,12 @@ namespace Hakaton.Trading.Unity
             if (focusedTarget == null || !GameplayActive) return;
             if (focusedTarget.kind == TradingTargetKind.Door)
             {
+                if (externalExpeditions)
+                {
+                    if (ExpeditionRequested != null) ExpeditionRequested.Invoke();
+                    else Notify("Вылазка не подключена к двери.");
+                    return;
+                }
                 if (Session.ExpeditionId == 0)
                 {
                     if (Session.BeginExpedition() != 0)
@@ -436,7 +455,7 @@ namespace Hakaton.Trading.Unity
                 {
                     if (itemMotion[i] != null) { StopCoroutine(itemMotion[i]); itemMotion[i] = null; }
                     if (displayed[i] != null) Destroy(displayed[i]);
-                    displayed[i] = item == null ? null : Instantiate(World.ItemPrefabs[CategoryIndex(item.Definition.Category)], World.SlotAnchors[i].position, World.SlotAnchors[i].rotation, World.SoldItemsRoot);
+                    displayed[i] = item == null ? null : Instantiate(World.ItemPrefabs[ItemIndex(item.Definition.Id)], World.SlotAnchors[i].position, World.SlotAnchors[i].rotation, World.SoldItemsRoot);
                     displayedIds[i] = id;
                 }
                 if (i == hoveredSlot)
@@ -450,7 +469,7 @@ namespace Hakaton.Trading.Unity
             PresentDealItem();
             heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
             if (Session.Inventory.Count > 0)
-                heldItem.GetComponent<Renderer>().sharedMaterial = World.ItemMaterials[CategoryIndex(Session.Inventory[selectedInventory].Definition.Category)];
+                heldItem.GetComponent<Renderer>().sharedMaterial = World.ItemMaterials[ItemIndex(Session.Inventory[selectedInventory].Definition.Id)];
         }
 
         void PresentDealItem()
@@ -485,7 +504,40 @@ namespace Hakaton.Trading.Unity
             if (item) item.SetPositionAndRotation(destination.position, destination.rotation);
         }
 
-        int CategoryIndex(string category) { for (int i = 0; i < catalog.Length; i++) if (catalog[i].Category == category) return i; return 0; }
+        int ItemIndex(string id) { for (int i = 0; i < catalog.Length; i++) if (catalog[i].Id == id) return i; throw new System.InvalidOperationException("Missing stock presentation: " + id); }
+
+        public ItemDefinition FindStock(string id) => Session?.FindDefinition(id);
+
+        public long BeginExternalExpedition()
+        {
+            if (!externalExpeditions || !isActiveAndEnabled || Session == null || Session.IsOpen
+                || (services && services.IsOpen)) return 0;
+            long id = Session.BeginExpedition();
+            if (id != 0)
+            {
+                ResetPlacement(); ClearFocus();
+                RefreshWorld();
+            }
+            return id;
+        }
+
+        public bool CompleteExternalExpedition(long id, IReadOnlyList<StockDelivery> delivery)
+        {
+            if (!externalExpeditions || Session == null || !Session.CompleteExpedition(id, delivery)) return false;
+            Notify(Session.LastMessage);
+            RefreshPresentation();
+            return true;
+        }
+
+        public void RefreshPresentation()
+        {
+            if (Session == null) return;
+            lastSettlement = Session.SettlementSequence;
+            ResetPlacement(); ClearFocus();
+            SyncControl(); RefreshWorld();
+        }
+
+        public void ShowNotice(string text) => Notify(text);
         IEnumerator Snap(Transform item)
         {
             var end = item.position; var start = end + Vector3.up * .2f;

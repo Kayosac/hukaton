@@ -25,7 +25,9 @@ namespace Hakaton.Trading
         public TradeDeal CurrentDeal { get; private set; }
         public string LastMessage { get; private set; } = "Лавка закрыта. Разложите товары на витрине.";
         public int Revision { get; private set; }
+        public event Action Changed;
         public int SalesCount { get; private set; }
+        public long GrossRevenue { get; private set; }
         public int LastSalePrice { get; private set; }
         public ItemInstance LastSoldItem { get; private set; }
         public int SettlementSequence { get; private set; }
@@ -56,7 +58,7 @@ namespace Hakaton.Trading
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             Register(definition);
             for (int i = 0; i < count; i++) inventory.Add(new ItemInstance(++nextItemId, definition));
-            Revision++;
+            Touch();
         }
 
         public bool PlaceItem(int inventoryIndex, int slotIndex)
@@ -66,7 +68,7 @@ namespace Hakaton.Trading
             slots[slotIndex] = inventory[inventoryIndex];
             inventory.RemoveAt(inventoryIndex);
             LastMessage = $"На витрине: {slots[slotIndex].Definition.Name}.";
-            Revision++;
+            Touch();
             return true;
         }
 
@@ -75,7 +77,7 @@ namespace Hakaton.Trading
             if (IsOpen || ExpeditionId != 0 || !ValidSlot(slotIndex) || slots[slotIndex] == null) return false;
             inventory.Add(slots[slotIndex]); slots[slotIndex] = null;
             LastMessage = "Предмет возвращён в запас.";
-            Revision++;
+            Touch();
             return true;
         }
 
@@ -84,7 +86,7 @@ namespace Hakaton.Trading
             if (IsOpen || ExpeditionId != 0) return false;
             if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Вернитесь из вылазки с новой добычей."; return false; }
             if (DisplayCount == 0) { LastMessage = "Сначала выставьте хотя бы один предмет."; return false; }
-            IsOpen = true; Revision++;
+            IsOpen = true; Touch();
             AdvanceCustomer();
             return true;
         }
@@ -95,7 +97,7 @@ namespace Hakaton.Trading
             RecordDeparture(CustomerOutcome.ShopClosed);
             IsOpen = false; CurrentCustomer = null; CurrentDeal = null;
             LastMessage = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
-            Revision++;
+            Touch();
         }
 
         public void Tick(float elapsedSeconds)
@@ -122,7 +124,7 @@ namespace Hakaton.Trading
             LastMessage = CurrentCustomer.RequestedSlot >= 0
                 ? "Покупатель выбрал предмет на витрине."
                 : $"Ищу товар категории «{CurrentCustomer.RequestedCategory}». Что предложите?";
-            Revision++;
+            Touch();
             if (CurrentCustomer.RequestedSlot >= 0)
                 SelectItem(CurrentCustomer.RequestedSlot, CurrentCustomer.Id);
             return true;
@@ -137,7 +139,7 @@ namespace Hakaton.Trading
             if (customer.RequestedSlot < 0 && slots[slotIndex].Definition.Category != customer.RequestedCategory) return false;
             CurrentDeal = new TradeDeal(++nextDealId, customer, slots[slotIndex], slotIndex);
             LastMessage = CurrentDeal.Reaction;
-            Revision++;
+            Touch();
             return true;
         }
 
@@ -148,7 +150,7 @@ namespace Hakaton.Trading
             var options = deal.GetPriceOptions();
             if (optionIndex < 0 || optionIndex >= options.Length || !options[optionIndex].Enabled) return false;
             int price = options[optionIndex].Price;
-            deal.Round++; deal.Revision++; Revision++;
+            deal.Round++; deal.Revision++;
             if (deal.IsLastOffer)
             {
                 EndWithoutSale("Хватит. Я ухожу.", CustomerOutcome.WalkedAway);
@@ -162,8 +164,9 @@ namespace Hakaton.Trading
             int willing = Math.Min(deal.MaxPrice, TradeDeal.RoundMoney(deal.R * (.94 + deal.Round * .055)));
             if (price <= willing) { Settle(price); return true; }
 
-            int patienceCost = 1 + (price > deal.MaxPrice ? 1 : 0)
-                + (price > deal.R * 1.35 ? 1 : 0);
+            int patienceCost = Settings.UsePresetPatienceCosts
+                ? (optionIndex == 4 ? 3 : optionIndex == 3 ? 2 : 1)
+                : 1 + (price > deal.MaxPrice ? 1 : 0) + (price > deal.R * 1.35 ? 1 : 0);
             deal.Patience = Math.Max(0, deal.Patience - patienceCost);
             int previous = deal.N ?? Math.Min(deal.MaxPrice, deal.R);
             int increment = random.NextDouble() < .2 ? 0 : Math.Max(1, TradeDeal.RoundMoney(deal.R * Settings.CounterStepRatio));
@@ -175,6 +178,7 @@ namespace Hakaton.Trading
                 : deal.Patience <= 1 ? $"Не испытывай терпение. Дам {deal.N}."
                 : $"Дороговато. Предлагаю {deal.N}.";
             LastMessage = deal.Reaction;
+            Touch();
             return true;
         }
 
@@ -198,7 +202,7 @@ namespace Hakaton.Trading
             ExpeditionId = ++nextExpeditionId;
             expeditionLoot.Clear();
             LastMessage = "Вылазка началась. Найдите новую добычу и вернитесь в лавку.";
-            Revision++;
+            Touch();
             return ExpeditionId;
         }
 
@@ -208,7 +212,7 @@ namespace Hakaton.Trading
             Register(definition);
             expeditionLoot.Add(new ItemInstance(++nextItemId, definition));
             LastMessage = $"Новая добыча: {definition.Name}.";
-            Revision++;
+            Touch();
             return true;
         }
 
@@ -220,9 +224,90 @@ namespace Hakaton.Trading
             if (freshLoot) RemainingSeconds = Settings.ShiftSeconds;
             LastMessage = freshLoot ? "Новая добыча доставлена. Время торговли восстановлено."
                 : "Вернулись без новой добычи. Остаток времени не изменился.";
-            Revision++;
+            Touch();
             return true;
         }
+
+        /// <summary>Validates the entire external delivery before changing inventory or the outing token.</summary>
+        public bool CompleteExpedition(long expeditionId, IReadOnlyList<StockDelivery> delivery)
+        {
+            if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId || delivery == null) return false;
+            var definitions = new List<ItemDefinition>();
+            long total = expeditionLoot.Count;
+            foreach (var entry in delivery)
+            {
+                if (entry == null || entry.count < 0) return false;
+                var definition = FindDefinition(entry.definitionId);
+                if (definition == null) return false;
+                definitions.Add(definition);
+                total += entry.count;
+                if (total > int.MaxValue - inventory.Count || total > long.MaxValue - nextItemId) return false;
+            }
+            for (int i = 0; i < delivery.Count; i++)
+                for (int n = 0; n < delivery[i].count; n++)
+                    expeditionLoot.Add(new ItemInstance(++nextItemId, definitions[i]));
+            return CompleteExpedition(expeditionId);
+        }
+
+        public ItemDefinition FindDefinition(string id) => catalog.Find(definition => definition.Id == id);
+
+        public TradingSave Save()
+        {
+            var save = new TradingSave {
+                remainingSeconds = RemainingSeconds, grossRevenue = GrossRevenue, salesCount = SalesCount,
+                nextItemId = nextItemId, nextExpeditionId = nextExpeditionId
+            };
+            foreach (var item in inventory)
+                save.items.Add(new TradingItemSave { instanceId = item.Id, definitionId = item.Definition.Id });
+            for (int i = 0; i < slots.Length; i++)
+                if (slots[i] != null)
+                    save.items.Add(new TradingItemSave { instanceId = slots[i].Id, definitionId = slots[i].Definition.Id, slot = i });
+            return save;
+        }
+
+        public bool CanRestore(TradingSave save)
+        {
+            if (save == null || save.version != 1 || save.items == null || save.salesCount < 0
+                || save.grossRevenue < save.salesCount || save.nextItemId < 0 || save.nextItemId == long.MaxValue
+                || save.nextExpeditionId < 0 || save.nextExpeditionId == long.MaxValue
+                || float.IsNaN(save.remainingSeconds) || float.IsInfinity(save.remainingSeconds)
+                || save.remainingSeconds < 0 || save.remainingSeconds > Settings.ShiftSeconds) return false;
+            var ids = new HashSet<long>();
+            var occupied = new HashSet<int>();
+            foreach (var entry in save.items)
+            {
+                if (entry == null || entry.instanceId <= 0 || entry.instanceId > save.nextItemId
+                    || !ids.Add(entry.instanceId) || FindDefinition(entry.definitionId) == null
+                    || entry.slot < -1 || entry.slot >= slots.Length
+                    || (entry.slot >= 0 && !occupied.Add(entry.slot))) return false;
+            }
+            return true;
+        }
+
+        /// <summary>Restores only at the shop boundary; transient conversations and unsaved expedition loot are excluded.</summary>
+        public bool TryRestore(TradingSave save)
+        {
+            if (IsOpen || ExpeditionId != 0 || !CanRestore(save)) return false;
+            var restoredInventory = new List<ItemInstance>();
+            var restoredSlots = new ItemInstance[slots.Length];
+            foreach (var entry in save.items)
+            {
+                var item = new ItemInstance(entry.instanceId, FindDefinition(entry.definitionId));
+                if (entry.slot < 0) restoredInventory.Add(item); else restoredSlots[entry.slot] = item;
+            }
+            inventory.Clear(); inventory.AddRange(restoredInventory);
+            Array.Copy(restoredSlots, slots, slots.Length);
+            expeditionLoot.Clear();
+            RemainingSeconds = save.remainingSeconds; GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;
+            nextItemId = save.nextItemId; nextExpeditionId = save.nextExpeditionId;
+            CurrentCustomer = null; CurrentDeal = null; LastSoldItem = null; LastDeparture = null;
+            SettlementSequence = DepartureSequence = LastSalePrice = 0;
+            LastMessage = "Прогресс лавки восстановлен.";
+            Touch();
+            return true;
+        }
+
+        private void Touch() { Revision++; Changed?.Invoke(); }
 
         private bool MatchesDeal(long id, int revision) => IsOpen && CurrentDeal != null
             && CurrentDeal.Id == id && CurrentDeal.Revision == revision;
@@ -232,13 +317,15 @@ namespace Hakaton.Trading
             var deal = CurrentDeal;
             // The displayed instance is the transaction's authority: one removal, one payment.
             if (deal == null || slots[deal.SlotIndex] != deal.Item) return;
+            long nextRevenue = checked(GrossRevenue + price);
+            int nextSalesCount = checked(SalesCount + 1);
             wallet.Credit(price);
             slots[deal.SlotIndex] = null;
-            SalesCount++; SettlementSequence++;
+            GrossRevenue = nextRevenue; SalesCount = nextSalesCount; SettlementSequence++;
             LastSalePrice = price; LastSoldItem = deal.Item;
             deal.Mood = CustomerMood.Happy;
             RecordDeparture(CustomerOutcome.Purchased);
-            CurrentDeal = null; CurrentCustomer = null; Revision++;
+            CurrentDeal = null; CurrentCustomer = null; Touch();
             LastMessage = $"Продано: {deal.Item.Definition.Name} за {price} монет.";
             if (RemainingSeconds <= 0 || DisplayCount == 0)
                 FinishShift(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
@@ -247,14 +334,14 @@ namespace Hakaton.Trading
         private void EndWithoutSale(string message, CustomerOutcome outcome)
         {
             RecordDeparture(outcome);
-            CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Revision++;
+            CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Touch();
             if (RemainingSeconds <= 0) FinishShift(message + " Смена окончена.");
         }
 
         private void FinishShift(string message)
         {
             RecordDeparture(CustomerOutcome.ShopClosed);
-            IsOpen = false; CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Revision++;
+            IsOpen = false; CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Touch();
         }
 
         private void RecordDeparture(CustomerOutcome outcome)
@@ -284,8 +371,9 @@ namespace Hakaton.Trading
                 }
             }
             // A one-coin item has no positive integer price below R. Such requests ask the price.
-            bool asksPrice = random.Next(2) == 0 || minimumPrice <= 1;
-            float ceilingRatio = Range(Settings.MinCeilingRatio, Settings.MaxCeilingRatio);
+            bool asksPrice = random.NextDouble() < Settings.AsksPriceProbability || minimumPrice <= 1;
+            float ceilingRatio = asksPrice ? Range(Settings.MinCeilingRatio, Settings.MaxCeilingRatio)
+                : Range(Settings.MinOfferCeilingRatio, Settings.MaxOfferCeilingRatio);
             float openingRatio = Range(Settings.MinOpeningRatio, Settings.MaxOpeningRatio);
             return new CustomerTerms
             {

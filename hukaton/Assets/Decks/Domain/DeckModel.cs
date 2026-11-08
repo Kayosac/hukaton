@@ -44,7 +44,7 @@ namespace Hakaton.Decks
     }
 
     [Serializable] public sealed class CopySave { public int id, level; public string definition; }
-    [Serializable] public sealed class LootSave { public string name; public int count, value; }
+    [Serializable] public sealed class LootSave { public string id, name; public int count, value; }
     [Serializable] public sealed class WorkshopSave
     {
         public int version=1, coins, nextId, explorationHand, combatHand, journeys;
@@ -65,11 +65,16 @@ namespace Hakaton.Decks
         int nextId=1;
         readonly List<LootSave> goods=new List<LootSave>();
         public IReadOnlyList<LootSave> Goods => goods.AsReadOnly();
-        public void DepositLoot(string name,int count,int value)
+        public event Action Changed;
+        public void DepositLoot(string name,int count,int value) => DepositLoot(null,name,count,value);
+        public void DepositLoot(string id,string name,int count,int value)
         {
             if(IsAway || string.IsNullOrWhiteSpace(name) || count<1 || value<0)return;
-            var entry=goods.Find(g=>g.name==name && g.value==value);
-            if(entry==null)goods.Add(new LootSave{name=name,count=count,value=value});else entry.count+=count;
+            id=string.IsNullOrWhiteSpace(id)?null:id;
+            var entry=goods.Find(g=>id!=null?g.id==id:string.IsNullOrEmpty(g.id) && g.name==name && g.value==value);
+            if(entry==null)goods.Add(new LootSave{id=id,name=name,count=count,value=value});
+            else entry.count=checked(entry.count+count);
+            Changed?.Invoke();
         }
         public DeckRules Rules { get; }
         public int Coins => wallet.Balance;
@@ -77,21 +82,27 @@ namespace Hakaton.Decks
         public IReadOnlyList<CardCopy> Owned => owned.AsReadOnly();
         public Expedition Current { get; private set; }
         public bool IsAway => Current != null && !Current.Completed;
-        public DeckWorkshop(DeckRules rules, IEnumerable<CardSpec> specs, int copiesPerType=3, CoinWallet wallet=null)
+        public DeckWorkshop(DeckRules rules, IEnumerable<CardSpec> specs, int copiesPerType=3, CoinWallet wallet=null,
+            IReadOnlyDictionary<string,int> initialCopies=null)
         {
             Rules=rules; catalog=specs.ToDictionary(s=>s.Id);
             if(catalog.Count==0 || catalog.Values.Any(s=>string.IsNullOrWhiteSpace(s.Id) || s.Id=="return" || s.Price<0 || s.UpgradePrice<0))
                 throw new ArgumentException("Invalid card catalogue");
             if(copiesPerType<0) throw new ArgumentOutOfRangeException(nameof(copiesPerType));
+            if(initialCopies!=null && initialCopies.Any(entry=>!catalog.ContainsKey(entry.Key) || entry.Value<0))
+                throw new ArgumentException("Invalid starting card copies",nameof(initialCopies));
             ownsWallet=wallet==null;
             this.wallet=wallet ?? new CoinWallet(rules.StartingCoins);
             handSizes=new[]{rules.InitialHand,rules.InitialHand};
             foreach(var spec in catalog.Values)
-                for(int i=0;i<copiesPerType;i++)
+            {
+                int count=initialCopies==null?copiesPerType:initialCopies.TryGetValue(spec.Id,out var configuredCount)?configuredCount:0;
+                for(int i=0;i<count;i++)
                 {
                     var copy=new CardCopy(nextId++,spec); owned.Add(copy);
                     if(Selected(spec.Kind).Count<rules.DeckLimit) selected.Add(copy.Id);
                 }
+            }
         }
         public CardCopy Find(int id) => owned.Find(c=>c.Id==id);
         public bool IsSelected(int id) => selected.Contains(id);
@@ -103,9 +114,9 @@ namespace Hakaton.Decks
         {
             if(IsAway) return "Сначала вернитесь в лавку.";
             var copy=Find(id); if(copy==null) return "Экземпляр не найден.";
-            if(selected.Remove(id)) return null;
+            if(selected.Remove(id)) { Changed?.Invoke(); return null; }
             if(Selected(copy.Spec.Kind).Count>=Rules.DeckLimit) return "Колода заполнена. Уберите одну карту.";
-            selected.Add(id); return null;
+            selected.Add(id); Changed?.Invoke(); return null;
         }
         public string Buy(string definition, out CardCopy copy)
         {
@@ -114,7 +125,7 @@ namespace Hakaton.Decks
             if(!catalog.TryGetValue(definition,out var spec)) return "Эта карта недоступна.";
             if(nextId==int.MaxValue) return "Коллекция заполнена.";
             if(!wallet.TrySpend(spec.Price)) return "Не хватает монет.";
-            copy=new CardCopy(nextId++,spec); owned.Add(copy); return null;
+            copy=new CardCopy(nextId++,spec); owned.Add(copy); Changed?.Invoke(); return null;
         }
         public string Upgrade(int id)
         {
@@ -122,14 +133,14 @@ namespace Hakaton.Decks
             var copy=Find(id); if(copy==null) return "Выберите экземпляр.";
             if(copy.Level>=Rules.MaxCardLevel) return "Экземпляр уже полностью улучшен.";
             int price=UpgradePrice(copy); if(!wallet.TrySpend(price)) return "Не хватает монет.";
-            copy.Upgrade(); return null;
+            copy.Upgrade(); Changed?.Invoke(); return null;
         }
         public string ImproveHand(DeckKind kind)
         {
             if(IsAway) return "Сначала вернитесь в лавку.";
             if(HandSize(kind)>=Rules.MaxHand) return "Рука уже максимального размера.";
             int price=HandPrice(kind); if(!wallet.TrySpend(price)) return "Не хватает монет.";
-            handSizes[(int)kind]++; return null;
+            handSizes[(int)kind]++; Changed?.Invoke(); return null;
         }
         public string CanDepart()
         {
@@ -142,18 +153,18 @@ namespace Hakaton.Decks
         {
             string error=CanDepart(); if(error!=null) return error;
             Current=new Expedition(Selected(DeckKind.Exploration),Selected(DeckKind.Combat),handSizes[0],handSizes[1],seed);
-            Journeys++; return null;
+            Journeys++; Changed?.Invoke(); return null;
         }
         public WorkshopSave Save() => new WorkshopSave {
             coins=Coins, nextId=nextId, explorationHand=handSizes[0], combatHand=handSizes[1], journeys=Journeys,
             copies=owned.Select(c=>new CopySave {id=c.Id, definition=c.Spec.Id,level=c.Level}).ToList(),
             selected=owned.Where(c=>selected.Contains(c.Id)).Select(c=>c.Id).ToList(),
-            goods=goods.Select(g=>new LootSave{name=g.name,count=g.count,value=g.value}).ToList()
+            goods=goods.Select(CloneLoot).ToList()
         };
-        public bool TryRestore(WorkshopSave save)
+        /// <summary>Validates the full card snapshot before a scene-wide restore changes any subsystem.</summary>
+        public bool CanRestoreProgress(WorkshopSave save)
         {
-            // A local workshop save cannot restore part of a scene-wide economy.
-            if(!ownsWallet || IsAway || save==null || save.version!=1 || save.copies==null || save.selected==null || save.coins<0
+            if(IsAway || save==null || save.version!=1 || save.copies==null || save.selected==null || save.coins<0
                 || save.journeys<0 || save.nextId<1 || save.explorationHand<Rules.InitialHand || save.explorationHand>Rules.MaxHand
                 || save.combatHand<Rules.InitialHand || save.combatHand>Rules.MaxHand) return false;
             var ids=new HashSet<int>(); var restored=new List<CardCopy>();
@@ -166,13 +177,37 @@ namespace Hakaton.Decks
             var equipped=new HashSet<int>(save.selected);
             if(save.goods!=null && save.goods.Any(g=>g==null || string.IsNullOrWhiteSpace(g.name) || g.count<0 || g.value<0))return false;
             if(equipped.Count!=save.selected.Count || !equipped.IsSubsetOf(ids)) return false;
-            if(restored.Count(c=>equipped.Contains(c.Id) && c.Spec.Kind==DeckKind.Exploration)>Rules.DeckLimit
-                || restored.Count(c=>equipped.Contains(c.Id) && c.Spec.Kind==DeckKind.Combat)>Rules.DeckLimit) return false;
-            owned.Clear(); owned.AddRange(restored); selected.Clear(); selected.UnionWith(equipped);
-            wallet=new CoinWallet(save.coins); nextId=save.nextId; Journeys=save.journeys;
-            goods.Clear();if(save.goods!=null)goods.AddRange(save.goods.Select(g=>new LootSave{name=g.name,count=g.count,value=g.value}));
-            handSizes[0]=save.explorationHand; handSizes[1]=save.combatHand; Current=null; return true;
+            return restored.Count(c=>equipped.Contains(c.Id) && c.Spec.Kind==DeckKind.Exploration)<=Rules.DeckLimit
+                && restored.Count(c=>equipped.Contains(c.Id) && c.Spec.Kind==DeckKind.Combat)<=Rules.DeckLimit;
         }
+        /// <summary>Standalone saves own their wallet. Shared economies must restore their one wallet separately.</summary>
+        public bool TryRestore(WorkshopSave save)
+        {
+            if(!ownsWallet || !CanRestoreProgress(save))return false;
+            ApplyProgress(save);
+            wallet=new CoinWallet(save.coins);
+            Changed?.Invoke();
+            return true;
+        }
+        /// <summary>Restores cards and delivered goods without replacing, crediting, or spending the shared wallet.</summary>
+        public bool TryRestoreProgress(WorkshopSave save)
+        {
+            if(!CanRestoreProgress(save))return false;
+            ApplyProgress(save);
+            Changed?.Invoke();
+            return true;
+        }
+        void ApplyProgress(WorkshopSave save)
+        {
+            owned.Clear();
+            owned.AddRange(save.copies.Select(c=>new CardCopy(c.id,catalog[c.definition],c.level)));
+            selected.Clear(); selected.UnionWith(save.selected);
+            nextId=save.nextId; Journeys=save.journeys;
+            goods.Clear();if(save.goods!=null)goods.AddRange(save.goods.Select(CloneLoot));
+            handSizes[0]=save.explorationHand; handSizes[1]=save.combatHand; Current=null;
+        }
+        static LootSave CloneLoot(LootSave g) => new LootSave{id=g.id,name=g.name,count=g.count,value=g.value};
+
     }
 
     public sealed class ExpeditionDeck

@@ -26,6 +26,7 @@ namespace Hakaton.Decks.Unity
         public Canvas presentation;
         public TMP_Text goodsLabel;
         public event Action Departed;
+        public event Action<IReadOnlyList<LootSave>,bool> OutingCompleted;
         [Header("Embedded shop service — optional")]
         public bool embeddedMode;
         public CanvasGroup embeddedVisibility;
@@ -252,7 +253,15 @@ namespace Hakaton.Decks.Unity
             detailTitle.text=definition.displayName;
             detailIdentity.text=Market?KindName(definition.kind)+" / новая копия":$"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.Level}";
             detailDescription.text=definition.description;
-            detailPower.text="Сила  "+(copy?.Power??definition.basePower)+(copy!=null && copy.Level<config.maximumCardLevel?"  →  "+(copy.Power+definition.powerPerLevel):"");
+            int level=copy?.Level??1;
+            bool canUpgrade=copy!=null && copy.Level<config.maximumCardLevel;
+            bool physical=definition.action==CardAction.Wind || definition.action==CardAction.HeavyStrike;
+            float power=physical?definition.ImpulseAtLevel(level):definition.basePower+(level-1)*definition.powerPerLevel;
+            float next=physical?definition.ImpulseAtLevel(level+1):power+definition.powerPerLevel;
+            string label=physical?"Импульс":definition.action==CardAction.Freeze?"Заморозка":definition.action==CardAction.Heal?"Лечение":"Сила";
+            string unit=definition.action==CardAction.Freeze?" с":definition.action==CardAction.Heal?" сердец":"";
+            if(definition.action==CardAction.Heal){power*=.5f;next*=.5f;}
+            detailPower.text=label+"  "+PowerText(power)+(canUpgrade?"  →  "+PowerText(next):"")+unit;
             if(Market) {
                 equipText.text="Купить  ·  "+definition.purchasePrice;equipButton.interactable=Model.Coins>=definition.purchasePrice;
                 upgradeText.text="Сначала купите копию";upgradeButton.interactable=false;
@@ -264,6 +273,7 @@ namespace Hakaton.Decks.Unity
                 upgradeButton.interactable=!max && Model.Coins>=Model.UpgradePrice(copy);
             }
         }
+        static string PowerText(float power) => power.ToString("0.#",System.Globalization.CultureInfo.InvariantCulture).Replace('.',',');
         void TintTab(Button button,bool active)
         {
             var colors=button.colors; colors.normalColor=active?new Color(.28f,.34f,.28f):new Color(.13f,.17f,.15f);
@@ -271,21 +281,43 @@ namespace Hakaton.Decks.Unity
         }
         public void Depart()
         {
-            if(embeddedMode || Busy)return;
-            if(Departed==null){SetFeedback("Сцена вылазки не подключена.",true);return;}
+            string error=TryDepart();
+            if(error!=null)SetFeedback(error,true);
+        }
+        /// <summary>Starts the same configured collection from either the standalone workshop or a shop door.</summary>
+        public string TryDepart()
+        {
+            if(!isActiveAndEnabled || Model==null)return "Мастерская недоступна.";
+            if(Busy)return "Сначала завершите текущую вылазку.";
+            if(Departed==null)return "Сцена вылазки не подключена.";
+            if(embeddedMode && OutingCompleted==null)return "Возвращение в лавку не подключено.";
             string error=Model.Depart(unchecked(Environment.TickCount*397+Model.Journeys));
-            if(error!=null){SetFeedback(error,true);return;}
+            if(error!=null)return error;
+            Busy=true;
+            if(embeddedMode)CloseEmbedded();
             presentation.enabled=false;
-            control.SetBlocked(this,false);
+            if(control)control.SetBlocked(this,false);
             Sound(config.cardSound);
             Departed.Invoke();
+            return null;
         }
-        public void CompleteOuting(string notice)
+        public void CompleteOuting(string notice) => CompleteOuting(notice,Array.Empty<LootSave>(),false);
+        /// <summary>Delivers one finished outing. Embedded games own loot transfer; the standalone workshop stores it locally.</summary>
+        public void CompleteOuting(string notice,IReadOnlyList<LootSave> loot,bool defeated)
         {
-            if(Model.IsAway)return;
-            control.SetBlocked(this,true);
+            if(Model==null || Model.IsAway || !Busy)return;
+            Busy=false;
+            var delivered=(loot??Array.Empty<LootSave>()).Select(g=>new LootSave {
+                id=g.id,name=g.name,count=g.count,value=g.value
+            }).ToArray();
+            if(!embeddedMode)
+                foreach(var entry in delivered)Model.DepositLoot(entry.id,entry.name,entry.count,entry.value);
             presentation.enabled=true;
-            RefreshWorkshop();SetFeedback(notice);Persist();
+            if(embeddedMode)CloseEmbedded();
+            else if(control)control.SetBlocked(this,true);
+            RefreshWorkshop();SetFeedback(notice);
+            OutingCompleted?.Invoke(delivered,defeated);
+            Persist();
         }
     }
 }
