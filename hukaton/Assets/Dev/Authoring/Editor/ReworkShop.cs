@@ -96,7 +96,7 @@ namespace Hakaton.Authoring
                 var feelHost = trade.gameObject;
                 var shopFeel = GetOrAdd<ShopFeel>(feelHost);
                 shopFeel.trade = trade; shopFeel.hud = trade.hud; shopFeel.sfx = sfx; shopFeel.cues = audio;
-                shopFeel.feel = feel; shopFeel.coinBurst = ps;
+                shopFeel.feel = feel; shopFeel.saleAnchor = ps.transform;
                 trade.hud.feelDrivesWallet = true;
                 EditorUtility.SetDirty(trade.hud);
                 if (PrefabUtility.IsPartOfPrefabInstance(trade.hud)) PrefabUtility.RecordPrefabInstancePropertyModifications(trade.hud);

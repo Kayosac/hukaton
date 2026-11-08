@@ -58,6 +58,14 @@ namespace Hakaton.Trading.Unity
             }
         }
 
+        /// <summary>The actor presenting this visitor (also while they walk out), or null.</summary>
+        public Transform Visitor(long customerId)
+        {
+            foreach (var pair in presented)
+                if (pair.Key && pair.Value == customerId) return pair.Key.transform;
+            return null;
+        }
+
         public bool ReadyForTrade(Customer customer)
         {
             var presenter = customer == null ? null : Presenting(customer.Id);

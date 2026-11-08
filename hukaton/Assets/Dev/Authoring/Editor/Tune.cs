@@ -37,7 +37,10 @@ namespace Hakaton.Authoring
             }
             if (path.StartsWith("scene:"))
             {
-                var go = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(t => t.name == path.Substring(6)).gameObject;
+                // "scene:@" finds the object by its component instead of by name.
+                var go = path == "scene:@"
+                    ? Object.FindObjectsByType<Component>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(c => c && c.GetType().Name == component).gameObject
+                    : Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(t => t.name == path.Substring(6)).gameObject;
                 Apply(go.GetComponent(component));
                 EditorSceneManager.MarkSceneDirty(go.scene);
                 EditorSceneManager.SaveScene(go.scene);

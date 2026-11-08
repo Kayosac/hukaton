@@ -133,12 +133,7 @@ namespace Hakaton.Expeditions
             => sfx && cue ? sfx.Play(cue, position, volume, pitch) : null;
 
         public VfxBurst Spawn(VfxBurst prefab, Vector3 position, Quaternion rotation, Color tint, float scale = 1)
-        {
-            if (!prefab) return null;
-            var burst = Instantiate(prefab, position, rotation, spawnedObjects);
-            burst.Play(tint, scale);
-            return burst;
-        }
+            => VfxBurst.Spawn(prefab, position, rotation, spawnedObjects, tint, scale);
 
         public Texture Artwork(CardCopy card)
         {

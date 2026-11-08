@@ -22,6 +22,8 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         [Header("Feedback")]
         public VfxBurst reactVfx;
+        [Tooltip("Looping effect while the obstacle transforms (flames over burning thorns).")]
+        public VfxBurst loopVfx;
         public SfxCue reactSound;
         public SfxCue loopSound;
         [Min(.1f)] public float transformSeconds = 1.1f;
@@ -108,6 +110,9 @@ namespace Hakaton.Expeditions
                 Vector3 along = Vector3.Lerp(bounds.min, bounds.max, (i + .5f) / 3f);
                 world.Spawn(reactVfx, new Vector3(along.x, bounds.min.y + .3f, along.z), Quaternion.identity, tint, 1.3f);
             }
+            var flames = world.Spawn(loopVfx, new Vector3(bounds.center.x, bounds.min.y, bounds.center.z), Quaternion.identity, tint,
+                Mathf.Clamp(Mathf.Max(bounds.size.x, bounds.size.z) / 2.5f, .6f, 2.5f));
+            if (flames) flames.HoldFor(transformSeconds);
             float time = 0;
             while (time < transformSeconds)
             {
@@ -127,6 +132,7 @@ namespace Hakaton.Expeditions
                 yield return null;
             }
             if (world.sfx) world.sfx.StopLoop(this);
+            if (flames) flames.Release(.8f);
             intact.SetActive(false);
         }
 

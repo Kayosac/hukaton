@@ -15,8 +15,14 @@ namespace Hakaton.Trading.Unity
         public SfxPlayer sfx;
         public ShopAudio cues;
         public CameraFeel feel;
-        [Tooltip("Authored coin burst at the counter, played on every sale.")]
-        public ParticleSystem coinBurst;
+        [Header("Effects (Retro Arsenal)")]
+        [Tooltip("Where sale coins burst from: the deal spot on the counter.")]
+        public Transform saleAnchor;
+        public VfxBurst saleBurst, bigSaleBurst;
+        [Tooltip("Emotes above the visitor's head: a happy face on a sale, an angry one on a walk-out.")]
+        public VfxBurst happyEmote, angryEmote;
+        public Vector3 emoteOffset = new Vector3(0, 2.05f, 0);
+        [Min(.1f)] public float emoteScale = .7f;
         [Tooltip("Sales at or above this price use the big coin cascade.")]
         [Min(1)] public int bigSale = 100;
         public Color walletFlash = new Color(1f, .84f, .45f);
@@ -39,6 +45,14 @@ namespace Hakaton.Trading.Unity
         {
             if (trade) { trade.ItemPlaced -= OnPlaced; trade.ItemTaken -= OnTaken; trade.SlotHovered -= OnHovered; }
             if (sfx) sfx.StopLoop(this);
+        }
+
+        void Emote(VfxBurst emote, CustomerDeparture departure)
+        {
+            var visitor = departure != null ? trade.World.Customers.Visitor(departure.CustomerId) : null;
+            if (!visitor || !emote) return;
+            VfxBurst.Spawn(emote, visitor.position + emoteOffset, Quaternion.identity, null, Color.white, emoteScale)
+                .Follow(visitor, emoteOffset);
         }
 
         void OnPlaced(int slot) => sfx?.Play(cues ? cues.placeItem : null, trade.World.SlotAnchors[slot].position);
@@ -101,11 +115,10 @@ namespace Hakaton.Trading.Unity
                 int price = session.LastSalePrice;
                 sfx.Play(price >= bigSale ? cues.saleBig : cues.saleSmall);
                 sfx.Play(cues.npcHappy, null, .8f);
-                if (coinBurst)
-                {
-                    var emission = coinBurst.emission;
-                    coinBurst.Emit(Mathf.Clamp(price / 6, 6, 40));
-                }
+                if (saleAnchor)
+                    VfxBurst.Spawn(price >= bigSale && bigSaleBurst ? bigSaleBurst : saleBurst, saleAnchor.position,
+                        Quaternion.identity, null, Color.white, price >= bigSale ? .8f : .6f);
+                Emote(happyEmote, session.LastDeparture);
                 if (feel) { feel.PunchFov(-14); feel.AddTrauma(.12f); }
                 walletPunch?.Hop(7);
                 walletGlow = 1;
@@ -118,6 +131,7 @@ namespace Hakaton.Trading.Unity
                 {
                     sfx.Play(cues.walkOut);
                     sfx.Play(cues.npcAngry);
+                    Emote(angryEmote, session.LastDeparture);
                     if (feel) feel.AddTrauma(.15f);
                 }
             }

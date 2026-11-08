@@ -103,6 +103,58 @@ namespace Hakaton.Authoring
             return $"aim {target.displayName} d={to.magnitude:F1} state={target.State}";
         }
 
+        /// <summary>args: "Object name|distance|height|pitchOffset" — stands the player in front of a scene object and aims at it.</summary>
+        public static string Approach(string args)
+        {
+            var parts = args.Split('|');
+            var world = World;
+            var target = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None).FirstOrDefault(t => t.name == parts[0]);
+            if (!target) return "no object " + parts[0];
+            var bounds = target.GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
+            float distance = float.Parse(parts[1], CultureInfo.InvariantCulture);
+            Vector3 from = world.motor.transform.position - bounds.center; from.y = 0;
+            Vector3 stand = bounds.center + from.normalized * distance;
+            if (Physics.Raycast(stand + Vector3.up * 30, Vector3.down, out var hit, 60, ~0, QueryTriggerInteraction.Ignore)) stand.y = hit.point.y + .05f;
+            world.motor.Teleport(stand, Quaternion.LookRotation(-from));
+            Vector3 eye = stand + Vector3.up * 1.6f;
+            Vector3 to = bounds.center + Vector3.up * float.Parse(parts[2], CultureInfo.InvariantCulture) - eye;
+            float yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+            float pitch = -Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg + float.Parse(parts[3], CultureInfo.InvariantCulture);
+            world.motor.view.ResetPose(Quaternion.Euler(pitch, yaw, 0));
+            return $"at {stand} facing {target.name} bounds={bounds.size}";
+        }
+
+        /// <summary>args: "Effect name|scale|distance" — spawns a Game/Prefabs/Effects/Retro effect on the ground ahead.</summary>
+        public static string SpawnFx(string args)
+        {
+            var parts = args.Split('|');
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<Hakaton.Feel.VfxBurst>($"Assets/Game/Prefabs/Effects/Retro/{parts[0]}.prefab");
+            if (!prefab) return "no effect " + parts[0];
+            var eye = World.viewCamera.transform;
+            Vector3 flat = eye.forward; flat.y = 0; flat.Normalize();
+            Vector3 point = eye.position + flat * float.Parse(parts[2], CultureInfo.InvariantCulture);
+            if (Physics.Raycast(point + Vector3.up * 5, Vector3.down, out var hit, 20, ~0, QueryTriggerInteraction.Ignore)) point = hit.point;
+            World.Spawn(prefab, point, Quaternion.LookRotation(Vector3.up), Color.white, float.Parse(parts[1], CultureInfo.InvariantCulture));
+            return "spawned " + parts[0] + " at " + point;
+        }
+
+        /// <summary>Reports which scene bindings of the shop are missing.</summary>
+        public static string Diag()
+        {
+            var trade = Object.FindAnyObjectByType<TradingPrototype>(FindObjectsInactive.Include);
+            var w = trade.World;
+            var b = new StringBuilder($"trade enabled={trade.enabled} session={(trade.Session != null)} world={(bool)w} hud={(bool)trade.hud} sound={(bool)trade.sound}\n");
+            if (w)
+                foreach (var f in w.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                {
+                    var v = f.GetValue(w);
+                    if (v is Object o && !o) b.Append("NULL ").AppendLine(f.Name);
+                    else if (v is System.Array a) foreach (var item in a) if (item is Object io && !io) { b.Append("NULL item in ").AppendLine(f.Name); break; }
+                }
+            if (w && w.ShopView) b.AppendLine("shopView configured=" + w.ShopView.IsConfigured);
+            return b.ToString();
+        }
+
         static TradingPrototype Trade => Object.FindAnyObjectByType<TradingPrototype>();
 
         /// <summary>args: "itemId count ..." — adds stock and fills the display.</summary>

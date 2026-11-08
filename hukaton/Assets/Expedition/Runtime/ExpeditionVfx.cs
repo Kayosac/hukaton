@@ -1,3 +1,4 @@
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.Expeditions
@@ -13,5 +14,7 @@ namespace Hakaton.Expeditions
         public VfxBurst dustPuff;
         public VfxBurst landingDust;
         public VfxBurst returnPoof;
+        [Tooltip("Stars circling a stunned creature's head; held for the stun.")]
+        public VfxBurst stunned;
     }
 }

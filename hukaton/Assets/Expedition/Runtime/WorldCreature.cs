@@ -25,6 +25,9 @@ namespace Hakaton.Expeditions
         public Transform visual, head;
         public Renderer[] skin;
         public CreatureOverhead overhead;
+        [Tooltip("Height of the stun stars above the head and their size.")]
+        public float stunStarsHeight = .35f, stunStarsScale = .8f;
+        VfxBurst stunStars;
         public WorldLoot trophyPrefab;
         [Tooltip("Optional authored alternatives for this creature's home territory.")]
         public Transform[] spawnPoints;
@@ -492,6 +495,13 @@ namespace Hakaton.Expeditions
             stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
             provokedUntil = Time.time + 8;
             squash.Kick(-5);
+            // Stars circle the head for as long as the creature stays knocked out.
+            if (!stunStars) stunStars = world.Spawn(world.vfx ? world.vfx.stunned : null, transform.position, Quaternion.identity, Color.white, stunStarsScale);
+            if (stunStars)
+            {
+                stunStars.Follow(head ? head : transform, Vector3.up * stunStarsHeight);
+                stunStars.HoldFor(stunnedUntil - Time.time);
+            }
         }
 
         /// <summary>Full freeze: interrupts the attack; physics still applies.</summary>
@@ -505,6 +515,7 @@ namespace Hakaton.Expeditions
 
         IEnumerator Die(Vector3 impulse)
         {
+            if (stunStars) stunStars.Release(.2f);
             dying = true;
             State = CreatureState.Dying;
             if (overhead) overhead.Clear();
