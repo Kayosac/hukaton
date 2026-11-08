@@ -11,6 +11,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 using Object = UnityEngine.Object;
 
 namespace Hakaton.Trading.Tests
@@ -181,7 +182,7 @@ namespace Hakaton.Trading.Tests
                 Assert.That(loot.GetComponentInParent<TradingInteractionTarget>().kind, Is.EqualTo(TradingTargetKind.Loot));
             var hud = controller.hud;
             Assert.That(hud.interactionPanel.gameObject.activeSelf, Is.False);
-            foreach (var text in hud.GetComponentsInChildren<Text>(true))
+            foreach (var text in hud.GetComponentsInChildren<TMP_Text>(true))
             {
                 Assert.That(text.text.ToLowerInvariant(), Does.Not.Contain("wasd"));
                 Assert.That(text.text.ToLowerInvariant(), Does.Not.Contain("колесо"));

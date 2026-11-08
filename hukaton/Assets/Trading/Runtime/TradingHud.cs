@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace Hakaton.Trading.Unity
 {
@@ -9,17 +10,17 @@ namespace Hakaton.Trading.Unity
         [Header("Compact exploration HUD")]
         public RectTransform layoutRoot, interactionPanel, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
         public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility, staminaVisibility;
-        public Text walletText, timeRemaining, selectedItemText, contextPrompt, contextDetail, noticeText;
+        public TMP_Text walletText, timeRemaining, selectedItemText, contextPrompt, contextDetail, noticeText;
         public Image staminaFill, contextProgressFill, reticleDot;
         public GameObject reticle;
         [Header("Conversation")]
         public GameObject categoryPanel, bargainingPanel;
-        public Text customerName, shiftEnded, categoryRequest, priceSummary, reaction, bargainHint, acceptLabel;
+        public TMP_Text customerName, shiftEnded, categoryRequest, priceSummary, reaction, bargainHint, acceptLabel;
         public Button closeShop;
         public Button[] categoryButtons = new Button[6];
-        public Text[] categoryLabels = new Text[6];
+        public TMP_Text[] categoryLabels = new TMP_Text[6];
         public Button[] priceButtons = new Button[5];
-        public Text[] priceLabels = new Text[5];
+        public TMP_Text[] priceLabels = new TMP_Text[5];
         public Button accept, refuseCategory, refuseBargain;
         [Header("Feedback")]
         [Min(0)] public float fadeSpeed = 8;
