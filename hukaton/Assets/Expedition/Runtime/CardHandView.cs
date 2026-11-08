@@ -6,9 +6,10 @@ using UnityEngine;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// First-person viewmodel of the active hand: a spring-driven fan under the camera that sways with the
+    /// First-person viewmodel of the active hand: a wide, close fan of large cards centred under the crosshair
+    /// (bottoms cut by the screen edge, like Shroom &amp; Gloom), spring-driven; it sways with the
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
-    /// The inactive deck sits as a small stack of backs bottom-left. Polls the model, so selection
+    /// The inactive deck sits as a small stack of backs bottom-right. Polls the model, so selection
     /// changes never re-deal the hand.
     /// </summary>
     [DefaultExecutionOrder(100)]
@@ -22,17 +23,17 @@ namespace Hakaton.Expeditions
         public Texture explorationBack, combatBack;
 
         [Header("Fan layout (camera space, metres)")]
-        public Vector3 pivot = new Vector3(.1f, -.78f, .62f);
-        [Min(.05f)] public float radius = .52f;
-        [Min(0)] public float degreesPerCard = 11f;
-        [Min(.01f)] public float cardWidth = .118f;
+        public Vector3 pivot = new Vector3(0, -1.42f, .55f);
+        [Min(.05f)] public float radius = 1.1f;
+        [Min(0)] public float degreesPerCard = 6.25f;
+        [Min(.01f)] public float cardWidth = .18f;
         [Tooltip("How far unselected cards sink below the fan arc.")]
-        public float restDrop = .035f;
-        public float selectedLift = .07f, selectedToward = .045f;
-        [Min(1)] public float selectedScale = 1.12f;
+        public float restDrop = .04f;
+        public float selectedLift = .08f, selectedToward = .04f;
+        [Min(1)] public float selectedScale = 1.15f;
         [Header("Inactive deck stack")]
-        public Vector3 stackPosition = new Vector3(-.33f, -.40f, .62f);
-        public float stackRoll = 16;
+        public Vector3 stackPosition = new Vector3(.6f, -.36f, .55f);
+        public float stackRoll = -16;
         [Header("Charge wind-up")]
         public Vector3 chargePull = new Vector3(.06f, -.025f, -.09f);
         public float chargeTilt = 22, chargeTremble = .0035f;

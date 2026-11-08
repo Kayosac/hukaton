@@ -273,6 +273,8 @@ namespace Hakaton.Expeditions
                 if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Во время заряда <b>Shift</b> + мышь — подкрутка в любую сторону";
                 else if (!hintedDeck && AnyHostileNearby()) text = "<b>Tab</b> — боевая колода";
                 else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
+                // The location title owns the top of the screen while it is shown.
+                if (world.fade && world.fade.titleGroup && world.fade.titleGroup.alpha > .05f) text = "";
                 hint.text = text;
             }
         }
