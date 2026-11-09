@@ -244,7 +244,7 @@ namespace Hakaton.Expeditions
                 if (!cardsLost && time >= settings.drownCardsDelay)
                 {
                     cardsLost = true;
-                    hand.ScatterAll(settings.drownCardsSpeed, settings.drownSeconds - time + .4f, viewCamera.transform);
+                    hand.ScatterAll(settings.drownCardsSpeed, Mathf.Max(.3f, settings.drownSeconds - time - .1f), viewCamera.transform);
                     Play(cues ? cues.discard : null);
                 }
                 // One even darkening from the first touch of deep water to full black — no hold, no second fade.
@@ -289,6 +289,8 @@ namespace Hakaton.Expeditions
             hand.Hide();
             if (fade && !drowned) yield return fade.FadeTo(1, settings.returnFadeSeconds);
             else if (fade) fade.Set(1, settings.drownColour);
+            // A beat of black before the shop: never tear down the outing in the frame that finished the sinking.
+            if (drowned) yield return new WaitForSecondsRealtime(.2f);
             if (time) time.ResetTime();
             if (sfx) sfx.StopLoop(this);
 
