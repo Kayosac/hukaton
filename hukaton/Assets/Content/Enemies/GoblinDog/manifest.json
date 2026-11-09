@@ -1,0 +1,415 @@
+{
+  "character": "GoblinDog",
+  "display_name": "Сутулый гоблин-пёс",
+  "status": "user_approved_atlas_and_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 1.56,
+  "user_brief": "Сутулый гоблин-пёс, рост 1.56 м. Голова сочетает гоблина и собаку. Плешивый, жёлто-зелёный, редкие участки шерсти. Тип: агрессивный.",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-default.png",
+  "monster_style": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "approved_monster_reference": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-default.png",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "aggression": "Агр",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "attack_variant": "Forward lunging bite",
+  "death_eyes": "Visible eyes are simple black X marks; no eyes on rear.",
+  "atlas": "GoblinDogAtlas.png",
+  "atlas_sha256": "c0949f5b80e6e99858f120f9d565c7416db81f64525f3d214823e072ae17243b",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 4032,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "GoblinDog_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-default.png",
+      "master_sha256": "a4d3bee11fe967d099f01eb1f184291a3a481030f5699611c9f724159ea82278",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-default.png",
+      "original_sha256": "6570d6fc65e4726b75d4aed30e89b3d58189a7a0729abcb08d3b5f5346334483",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        56
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        274,
+        221,
+        1047,
+        1234
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 7261344415380476354
+    },
+    {
+      "name": "GoblinDog_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/back-default.png",
+      "master_sha256": "e24ef06fb96edc3fd6332fe6918b69b8b00e14b7503adc850ab13c2106c27a55",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/back-default.png",
+      "original_sha256": "0d3d16aa3017571c06ee262dd8939eab5addbcdecf1d7eb831d86807856802be",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        68
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        295,
+        240,
+        1038,
+        1234
+      ],
+      "source_name": "back-default",
+      "unity_file_id": 5586814354813516459
+    },
+    {
+      "name": "GoblinDog_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-aggro.png",
+      "master_sha256": "a84dc6569469e52ec4359e94a1131e575fa935025a43a2d472d813432fb43ff8",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-aggro.png",
+      "original_sha256": "80343bdceaa345314e605ee2d0aff947302cf5eb9935c6f520e8e882b6d4911e",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        24
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        248,
+        181,
+        1109,
+        1234
+      ],
+      "source_name": "front-aggro",
+      "unity_file_id": -3560112244052889857
+    },
+    {
+      "name": "GoblinDog_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-hurt.png",
+      "master_sha256": "70e3679eb1f9a1e772a86c18c7186eb22f1251cfc751cd78df9009bb6e45e0c6",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-hurt.png",
+      "original_sha256": "43999ad1615279a465ac229c868c01a579d4f9854921943e9c4d81876a120fd9",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        29
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        231,
+        265,
+        1058,
+        1234
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": 2750305195348212259
+    },
+    {
+      "name": "GoblinDog_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-attack.png",
+      "master_sha256": "efd4ed47befa2dbd071fd2a786b259c7513585e134ed77b5df715773981f4fe8",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-attack.png",
+      "original_sha256": "e3150960ef71070dc78837b35a2191d2f1e1f6eded4d2d1abd3e9367dbc1800d",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        28
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        104,
+        439,
+        1266,
+        1234
+      ],
+      "source_name": "front-attack",
+      "unity_file_id": -890715448087976414
+    },
+    {
+      "name": "GoblinDog_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-death.png",
+      "master_sha256": "4fa42feb67cbca3d133151ea398ade4236ee2d1c15e6c3a042dce861c34e676d",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/front-death.png",
+      "original_sha256": "acd634b182af791ac1597faeff2847bae8da2d457e25dcd155581bfc62d2d89a",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        8
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        112,
+        721,
+        1237,
+        1234
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -7804408510686101309
+    },
+    {
+      "name": "GoblinDog_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/back-death.png",
+      "master_sha256": "a9a5dcf89b8e947a56e4829c523911c2f0e76c519fc8dad457f7d3efcc7d549e",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/back-death.png",
+      "original_sha256": "3fa4e8553643caf8720ae5f0cce0e952aca3b50afaffa65392cea4c5cf4615a2",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        32
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        107,
+        745,
+        1238,
+        1234
+      ],
+      "source_name": "back-death",
+      "unity_file_id": -3861444048739866919
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of entire source canvases before packing; no crop, resize, rotation or resampling.",
+    "source_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1234,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha threshold is only for visible contact measurement; original alpha bytes are preserved."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.0818452380952381
+  ],
+  "pixels_per_unit": 649.3589743589744,
+  "default_visible_height_px": 1013,
+  "physical_scale_note": "PPU derives from the default visible height and 1.56 m at transform scale one, assuming 1 Unity unit = 1 metre. Unity import has not been validated.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.0818452380952381
+    ],
+    "pixels_per_unit": 649.3589743589744,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/GoblinDog/GoblinDogAtlas.png",
+    "version": "6000.3.21f1",
+    "asset_guid": "c752262dcbcb347d0b28e04b458ec6cd",
+    "actual_pixels_per_unit": 649.3589477539062,
+    "actual_normalized_pivot": {
+      "x": 0.5,
+      "y": 0.0818452388048172
+    },
+    "texture_format": "RGBA32",
+    "verification_scope": "Editor import, exact sprite rectangles, common pivots/PPU/full-rect bounds and preserved source texture resolution. No gameplay scene or behaviour added."
+  },
+  "prompts": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/verification.json",
+  "preview": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/preview.png",
+  "download_archive": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/goblin-dog-test.zip",
+  "unity_import_instructions": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/unity-import.txt",
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 5,
+    "fill": "red",
+    "outline": "dark",
+    "placement": "transparent space around and above the head",
+    "original_creature_pixels_unchanged": true,
+    "verification": "work/red-aggro-marks-verification.json"
+  },
+  "revised_on": "2026-11-09",
+  "approval": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/approval-v1.json",
+  "approved_on": "2026-11-09",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/manifest.json",
+  "source_approval": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/approval-v1.json",
+  "unity_verification": "unity-verification.json"
+}

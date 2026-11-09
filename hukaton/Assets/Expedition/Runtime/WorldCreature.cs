@@ -10,8 +10,9 @@ namespace Hakaton.Expeditions
 
     /// <summary>
     /// A creature of the valley. Decisions run in Update (per temperament), locomotion in FixedUpdate on the
-    /// Rigidbody (so cards and rocks can really shove it), and all animation is procedural in LateUpdate.
-    /// Every attack is telegraphed: posture, sound and a red "!!" before the direction locks.
+    /// Rigidbody (so cards and rocks can really shove it), and in LateUpdate the state picks a hand-drawn pose
+    /// (<see cref="CreatureSpriteView"/>) that is squashed, hopped and tinted procedurally.
+    /// Every attack is telegraphed: the aggression drawing, a crouch, sound and a red "!!" before the direction locks.
     /// </summary>
     public sealed class WorldCreature : MonoBehaviour
     {
@@ -22,10 +23,9 @@ namespace Hakaton.Expeditions
         [Header("Authored parts")]
         public Rigidbody body;
         public NavMeshAgent navigator;
-        public Transform visual, head;
-        public Renderer[] skin;
+        public CreatureSpriteView view;
         public CreatureOverhead overhead;
-        [Tooltip("Height of the stun stars above the head and their size.")]
+        [Tooltip("Height of the stun stars above the top of the drawing and their size.")]
         public float stunStarsHeight = .35f, stunStarsScale = 1.2f;
         VfxBurst stunStars;
         public WorldLoot trophyPrefab;
@@ -59,7 +59,17 @@ namespace Hakaton.Expeditions
         public float threatRange = 10, calmRange = 13, aggroRange = 6, provokeSeconds = 1.1f;
         [Header("Animation")]
         public float hopHeight = .08f, gaitFrequency = 2.2f;
-        public Color frozenTint = new Color(.45f, .85f, 1f), burnTint = new Color(1f, .5f, .2f);
+        [Tooltip("How long the taking-damage drawing stays after a hit.")]
+        [Min(0)] public float hurtSeconds = .35f;
+        [Tooltip("The death drawing lies this long before it fades.")]
+        [Min(0)] public float corpseSeconds = 1.4f;
+        public Color hitTint = new Color(1f, .45f, .4f), frozenTint = new Color(.45f, .85f, 1f), burnTint = new Color(1f, .5f, .2f);
+        [Tooltip("Main colour of the creature, for the death puff.")]
+        public Color bodyColour = Color.white;
+        [Tooltip("Dust kicked up from under the feet: a world-space particle system that only emits when the creature steps.")]
+        public ParticleSystem stepDust;
+        [Min(0)] public int stepDustCount = 2;
+        public Color dustColour = new Color(.86f, .78f, .64f);
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
@@ -70,19 +80,19 @@ namespace Hakaton.Expeditions
 
         Vector3 home, authoredHome, lastSeen, strikeDirection, desired, wanderTarget, fleeDirection;
         Quaternion homeRotation, authoredRotation, facing;
-        float stateTime, nextSight, unseen, provokedUntil, frozenUntil, stunnedUntil, burnUntil, flashUntil;
-        float nextPath, nextThreatSound, provokeTimer, idleDuration, gaitPhase, crouch;
+        float stateTime, nextSight, unseen, provokedUntil, frozenUntil, stunnedUntil, burnUntil, flashUntil, hurtUntil;
+        float nextPath, nextThreatSound, provokeTimer, idleDuration, gaitPhase, crouch, nextDust;
         bool sees, hitThisStrike, dying;
         Vector3 faceTowards;
         SpringFloat squash;
-        MaterialPropertyBlock block;
-        Color[] baseColours;
-        static readonly int BaseColour = Shader.PropertyToID("_BaseColor");
+        CreaturePose pose;
 
         Vector3 PlayerPosition => world.motor.transform.position;
         Vector3 ToPlayer { get { var v = PlayerPosition - body.position; v.y = 0; return v; } }
         float PlayerDistance => ToPlayer.magnitude;
         bool Provoked => Time.time < provokedUntil;
+        /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
+        float TopHeight => view ? view.height * transform.lossyScale.y : 1;
 
         void Awake()
         {
@@ -91,8 +101,6 @@ namespace Hakaton.Expeditions
             navigator.updateRotation = false;
             home = authoredHome = transform.position;
             homeRotation = authoredRotation = facing = transform.rotation;
-            block = new MaterialPropertyBlock();
-            baseColours = System.Array.ConvertAll(skin, r => r.sharedMaterial.HasProperty(BaseColour) ? r.sharedMaterial.GetColor(BaseColour) : Color.white);
             Health = maximumHealth;
         }
 
@@ -103,23 +111,25 @@ namespace Hakaton.Expeditions
             dying = false;
             Health = maximumHealth;
             var point = random != null && spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[random.Next(spawnPoints.Length)] : null;
-            home = point ? point.position : authoredHome;
+            home = SnapToGround(point ? point.position : authoredHome);
             homeRotation = facing = point ? point.rotation : authoredRotation;
-            frozenUntil = stunnedUntil = burnUntil = flashUntil = provokedUntil = 0;
+            frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
             body.isKinematic = false;
+            body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
             body.position = home;
             body.rotation = homeRotation;
             transform.SetPositionAndRotation(home, homeRotation);
             navigator.enabled = true;
             if (navigator.isOnNavMesh) { navigator.Warp(home); navigator.ResetPath(); }
-            visual.localPosition = Vector3.zero;
-            visual.localRotation = Quaternion.identity;
-            visual.localScale = Vector3.one;
             squash.Snap(1);
+            crouch = 0;
+            if (stepDust) stepDust.Clear();
             if (overhead) overhead.Clear();
             Enter(CreatureState.Idle);
+            pose = CreaturePose.Default;
+            if (view) view.Present(pose, transform.forward, Vector3.zero, Vector2.one, 0);
             Tint(Color.white, 0);
         }
 
@@ -159,7 +169,8 @@ namespace Hakaton.Expeditions
 
         bool CanSeePlayer()
         {
-            Vector3 eye = body.position + Vector3.up * .9f;
+            // Eyes at the creature's own height: a small one loses you behind a low rock.
+            Vector3 eye = body.position + Vector3.up * Mathf.Max(.15f, TopHeight * .8f);
             Vector3 target = PlayerPosition + Vector3.up * 1.2f;
             Vector3 to = target - eye;
             float distance = to.magnitude;
@@ -182,7 +193,7 @@ namespace Hakaton.Expeditions
                 case CreatureState.Wander: wanderTarget = RandomPointNear(home, territoryRadius); break;
                 case CreatureState.Alert: world.Play(alertCue, body.position); squash.Kick(-3); break;
                 case CreatureState.Threat: nextThreatSound = 0; provokeTimer = 0; break;
-                case CreatureState.Flee: ChooseFleeDirection(); world.Play(alertCue, body.position, 1, 1.15f); break;
+                case CreatureState.Flee: ChooseFleeDirection(); world.Play(alertCue, body.position, 1, 1.15f); KickDust(stepDustCount * 2); break;
                 case CreatureState.Windup:
                     world.Play(windupCue, body.position);
                     squash.Kick(-4);
@@ -194,6 +205,7 @@ namespace Hakaton.Expeditions
                     hitThisStrike = false;
                     world.Play(strikeCue, body.position);
                     squash.Kick(6);
+                    if (dash) KickDust(stepDustCount * 3);
                     break;
             }
         }
@@ -240,7 +252,7 @@ namespace Hakaton.Expeditions
                     float phase = stateTime % cycle;
                     if (phase < dashSeconds)
                     {
-                        if (phase < Time.deltaTime * 1.5f && stateTime > .1f) ChooseFleeDirection();
+                        if (phase < Time.deltaTime * 1.5f && stateTime > .1f) { ChooseFleeDirection(); KickDust(stepDustCount * 2); }
                         desired = fleeDirection * dashSpeed;
                         Face(fleeDirection);
                     }
@@ -370,14 +382,8 @@ namespace Hakaton.Expeditions
         void UpdateOverhead()
         {
             if (!overhead) return;
-            int level = State switch
-            {
-                CreatureState.Windup or CreatureState.Strike => 2,
-                CreatureState.Alert or CreatureState.Threat => 1,
-                CreatureState.Chase when stateTime < 1.2f => temperament == Temperament.Aggressive ? 2 : 1,
-                _ => 0
-            };
-            overhead.SetAlert(level);
+            // Noticing is drawn into the fear and aggression poses; the mark above only warns of the attack itself.
+            overhead.SetAlert(State == CreatureState.Windup || State == CreatureState.Strike ? 2 : 0);
         }
 
         // ---------------- movement ----------------
@@ -437,6 +443,22 @@ namespace Hakaton.Expeditions
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
 
+        static readonly RaycastHit[] groundHits = new RaycastHit[8];
+
+        /// <summary>Stands an authored point on the ground below or above it: a small body started inside the terrain falls through.</summary>
+        Vector3 SnapToGround(Vector3 point)
+        {
+            int count = Physics.RaycastNonAlloc(point + Vector3.up * 3, Vector3.down, groundHits, 8, ~(1 << 2), QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                var hit = groundHits[i];
+                if (hit.rigidbody == body || hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (hit.distance < best) { best = hit.distance; point.y = hit.point.y; }
+            }
+            return point;
+        }
+
         void FixedUpdate()
         {
             if (!world || !world.Running || dying) return;
@@ -457,7 +479,8 @@ namespace Hakaton.Expeditions
         void CheckStrikeContact()
         {
             if (hitThisStrike) return;
-            Vector3 snout = body.position + transform.forward * .65f + Vector3.up * .6f;
+            float size = transform.lossyScale.y;
+            Vector3 snout = body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
             Vector3 player = PlayerPosition + Vector3.up * .9f;
             Vector3 to = player - snout;
             if (to.magnitude > contactRange || Vector3.Dot(strikeDirection, Flat(to).normalized) < .1f) return;
@@ -475,6 +498,7 @@ namespace Hakaton.Expeditions
             if (amount > 0)
             {
                 flashUntil = Time.time + .1f;
+                hurtUntil = Time.time + hurtSeconds;
                 squash.Kick(-6);
                 world.Play(hurtCue, body.position, 1, Random.Range(.95f, 1.15f));
                 if (overhead) overhead.ShowHealth(Health, maximumHealth);
@@ -499,7 +523,7 @@ namespace Hakaton.Expeditions
             if (!stunStars) stunStars = world.Spawn(world.vfx ? world.vfx.stunned : null, transform.position, Quaternion.identity, Color.white, stunStarsScale);
             if (stunStars)
             {
-                stunStars.Follow(head ? head : transform, Vector3.up * stunStarsHeight);
+                stunStars.Follow(transform, Vector3.up * (TopHeight + stunStarsHeight));
                 stunStars.HoldFor(stunnedUntil - Time.time);
             }
         }
@@ -523,29 +547,45 @@ namespace Hakaton.Expeditions
             world.Play(deathCue, body.position);
             if (world.time) world.time.HitStop(.09f);
             body.isKinematic = true;
+            // The body no longer stops cards or the player.
+            body.detectCollisions = false;
             Vector3 start = body.position;
-            Vector3 drift = Flat(impulse).normalized * 1.2f;
+            Vector3 drift = Flat(impulse).normalized * Mathf.Min(.8f, TopHeight * .5f);
+            Vector3 heading = transform.forward;
+            float hop = Mathf.Min(.45f, TopHeight * .4f);
+            // Knocked over: a short hop already in the death drawing, then a landing squash.
             float time = 0;
-            while (time < .38f)
+            while (time < .3f)
             {
                 time += Time.deltaTime;
-                float k = time / .38f;
-                transform.position = start + drift * k + Vector3.up * Mathf.Sin(k * Mathf.PI) * .9f;
-                visual.localRotation = Quaternion.Euler(k * 200, 0, k * 120);
-                visual.localScale = Vector3.one * Mathf.Lerp(1, .7f, k);
-                Tint(Color.white, 1 - k);
+                float k = Mathf.Clamp01(time / .3f);
+                transform.position = start + drift * k;
+                if (view) view.Present(CreaturePose.Death, heading, Vector3.up * Mathf.Sin(k * Mathf.PI) * hop, new Vector2(.92f, 1.08f), 0);
+                Tint(hitTint, 1 - k);
                 yield return null;
             }
-            world.Spawn(world.vfx ? world.vfx.creatureDeath : null, transform.position + Vector3.up * .5f, Quaternion.identity, baseColours.Length > 0 ? baseColours[0] : Color.white, 1.2f);
+            KickDust(stepDustCount * 3);
+            world.Spawn(world.vfx ? world.vfx.creatureDeath : null, transform.position + Vector3.up * TopHeight * .4f, Quaternion.identity, bodyColour, Mathf.Clamp(TopHeight, .5f, 1.2f));
             if (world.feel) world.feel.AddTrauma(.18f);
             if (trophyPrefab)
             {
-                var trophy = Instantiate(trophyPrefab, transform.position + Vector3.up * .6f, Quaternion.identity, world.spawnedObjects);
+                var trophy = Instantiate(trophyPrefab, transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f), Quaternion.identity, world.spawnedObjects);
                 trophy.world = world;
                 trophy.Pop(Vector3.up * 5.5f + Random.insideUnitSphere * 1.5f);
                 world.Play(world.cues ? world.cues.trophyDrop : null, trophy.transform.position);
             }
             world.Announce(displayName + ": трофей ждёт", 2.2f);
+            // The body lies in its death drawing for a moment, then fades away.
+            time = 0;
+            while (time < corpseSeconds + .45f)
+            {
+                time += Time.deltaTime;
+                float settle = Ease.OutBack(Mathf.Clamp01(time / .25f));
+                if (view) view.Present(CreaturePose.Death, heading, Vector3.zero, Vector2.LerpUnclamped(new Vector2(1.18f, .78f), Vector2.one, settle), 0);
+                float fade = Mathf.Clamp01((time - corpseSeconds) / .45f);
+                if (view) view.Tint(new Color(1, 1, 1, 1 - fade));
+                yield return null;
+            }
             gameObject.SetActive(false);
         }
 
@@ -572,11 +612,32 @@ namespace Hakaton.Expeditions
             }
         }
 
-        // ---------------- procedural animation ----------------
+        // ---------------- presentation ----------------
+
+        /// <summary>Which drawing the current state reads as.</summary>
+        CreaturePose PoseForState()
+        {
+            if (Time.time < hurtUntil || State == CreatureState.Stunned) return CreaturePose.Hurt;
+            switch (State)
+            {
+                case CreatureState.Alert:
+                case CreatureState.Threat:
+                case CreatureState.Chase:
+                case CreatureState.Windup:
+                    return CreaturePose.Alarm;
+                case CreatureState.Flee:
+                    // Runs off in its ordinary drawing (seen from behind), startles again on every stop.
+                    return stateTime % (dashSeconds + pauseSeconds) < dashSeconds ? CreaturePose.Default : CreaturePose.Alarm;
+                case CreatureState.Strike:
+                    return CreaturePose.Attack;
+                default:
+                    return CreaturePose.Default;
+            }
+        }
 
         void LateUpdate()
         {
-            if (!world || dying || !visual) return;
+            if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
             float planarSpeed = new Vector2(velocity.x, velocity.z).magnitude;
@@ -589,59 +650,43 @@ namespace Hakaton.Expeditions
                 {
                     squash.Kick(-1.2f);
                     if (planarSpeed > 1 && PlayerDistance < 18) world.Play(stepCue, body.position, .35f);
+                    if (planarSpeed > .5f) KickDust(stepDustCount);
                 }
             }
             float sq = squash.Step(1, 7, .35f, dt);
             float targetCrouch = State == CreatureState.Windup ? 1 : State == CreatureState.Threat ? .45f : 0;
             crouch = Mathf.MoveTowards(crouch, targetCrouch, dt * (State == CreatureState.Windup ? 3 : 5));
-            float hopScale = State == CreatureState.Flee ? 2.6f : 1;
-            float hop = frozen ? 0 : Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
-            Vector3 tremble = State == CreatureState.Windup ? Random.insideUnitSphere * .025f * crouch : Vector3.zero;
-            float stretch = State == CreatureState.Strike ? 1.18f : 1;
-            float stunRoll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 14 : 0;
+            // Frozen: the drawing and its squash stay exactly as the ice caught them.
             if (!frozen)
             {
-                visual.localPosition = Vector3.up * hop + tremble + Vector3.down * crouch * .08f;
-                visual.localScale = new Vector3(1 / Mathf.Sqrt(sq), sq * (1 - crouch * .16f), stretch * (1 + crouch * .06f));
-                visual.localRotation = Quaternion.Euler(-crouch * 8 + (State == CreatureState.Strike ? 6 : 0), 0, stunRoll);
+                pose = PoseForState();
+                float hopScale = State == CreatureState.Flee ? 2.6f : 1;
+                float hop = Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
+                Vector3 tremble = State == CreatureState.Windup ? Random.insideUnitSphere * .02f * TopHeight * crouch : Vector3.zero;
+                float stretch = State == CreatureState.Strike ? 1.12f : 1;
+                float roll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 10 : 0;
+                view.Present(pose, transform.forward, Vector3.up * hop + tremble,
+                    new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
-            if (head && !frozen)
-            {
-                float pitch = State switch
-                {
-                    CreatureState.Graze => 38,
-                    CreatureState.Alert => -14,
-                    CreatureState.Threat => 16 + Mathf.Sin(Time.time * 7) * 4,
-                    CreatureState.Windup => 22,
-                    _ => Mathf.Sin(Time.time * 1.3f + home.x) * 4
-                };
-                float yaw = 0;
-                if (State == CreatureState.Alert || State == CreatureState.Idle && sees)
-                {
-                    Vector3 local = transform.InverseTransformDirection(ToPlayer);
-                    yaw = Mathf.Clamp(Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg, -45, 45);
-                }
-                head.localRotation = Quaternion.Slerp(head.localRotation, Quaternion.Euler(pitch, yaw, 0), Ease.Damp(10, dt));
-            }
-            // Colour: white flash on hit, icy while frozen, flickering orange while burning.
-            if (Time.time < flashUntil) Tint(Color.white, 1);
+            // Colour: red flash on hit, icy while frozen, flickering orange while burning.
+            if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
         }
 
+        /// <summary>A puff of dust from under the feet; throttled so a fast gait does not turn into a smoke screen.</summary>
+        void KickDust(int count)
+        {
+            if (!stepDust || count <= 0 || Time.time < nextDust || PlayerDistance > 30) return;
+            nextDust = Time.time + .08f;
+            stepDust.Emit(new ParticleSystem.EmitParams { startColor = dustColour }, count);
+        }
+
         void Tint(Color colour, float amount)
         {
-            if (skin == null || block == null) return;
-            for (int i = 0; i < skin.Length; i++)
-            {
-                if (!skin[i]) continue;
-                Color baseColour = i < baseColours.Length ? baseColours[i] : Color.white;
-                Color result = colour == Color.white && amount > .99f ? Color.white * 1.6f : Color.Lerp(baseColour, colour, amount);
-                skin[i].GetPropertyBlock(block);
-                block.SetColor(BaseColour, result);
-                skin[i].SetPropertyBlock(block);
-            }
+            // The hand-drawn shader multiplies by the renderer colour, so tints only darken toward a hue.
+            if (view) view.Tint(Color.Lerp(Color.white, new Color(colour.r, colour.g, colour.b, 1), amount));
         }
     }
 }

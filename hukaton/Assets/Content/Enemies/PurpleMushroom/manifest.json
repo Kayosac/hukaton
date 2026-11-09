@@ -1,0 +1,357 @@
+{
+  "character": "PurpleMushroom",
+  "display_name": "Маленький фиолетовый грибной монстрик",
+  "status": "user_approved_atlas_and_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "peaceful",
+  "physical_height_m": 0.25,
+  "brief": "Фиолетовый грибной монстрик, рост 25 см; длинные бескостные руки расстилаются по земле; розовые пятна, чёрные глаза, без рта и носа.",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/front-default.png",
+  "states": [
+    "default",
+    "fear",
+    "taking_damage",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "fear": "Испуг",
+    "taking_damage": "Получение урона",
+    "death": "Смерть"
+  },
+  "fear_state_semantics": "Instantaneous startle; restored moderate raised-arm pose, reinforced by one white exclamation mark and five short white radiating head strokes with dark outlines. Extreme anatomy/eye exaggeration reverted.",
+  "fear_selected_pose_source": "work/front-fear-startle-v2-too-weak.png",
+  "fear_symbol_edit_verification": "work/white-marks-verification.json",
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "death_eyes": "Each visible eye is a small black X; no eye marks on the hidden rear surface.",
+  "atlas": "PurpleMushroomAtlas.png",
+  "atlas_sha256": "b4a26b5ec6e8b5c84784ef5c59421b0fcc328c59e5c5474a0f321e0143cc19ba",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 2688,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 2,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [],
+  "cells": [
+    {
+      "name": "PurpleMushroom_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-default.png",
+      "master_sha256": "d383c8198f76b8fcd759f97e47c77d1f9dbf8f7245044aa725beeb3bb91f2e34",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/front-default.png",
+      "original_sha256": "3b9d10fc3130c6f2e98f061567beaab237ce8f40ae658e5922d169833e724683",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        72
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        138,
+        382,
+        1210,
+        1200
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 7885444867996934284
+    },
+    {
+      "name": "PurpleMushroom_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/back-default.png",
+      "master_sha256": "8146c7a5669b8f7ad2598ebe843711bbf775edfceeb6a881a15160b302d8bf3c",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/back-default.png",
+      "original_sha256": "eae15b3ff524e19377d2dabc4275e4f1753fc33ab9f52f1f4508d7f86db91913",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        73
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        143,
+        381,
+        1201,
+        1200
+      ],
+      "source_name": "back-default",
+      "unity_file_id": -8593866464494493441
+    },
+    {
+      "name": "PurpleMushroom_StartleFront",
+      "state": "fear",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-fear.png",
+      "master_sha256": "7ba2f6fa0650b8a12d4642dfb8598fe7fa34b78234563f3970ec14fc633f9c80",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/front-fear.png",
+      "original_sha256": "0ce44216209e0651f4aaa98032ec76afd0b5e2bcf7d1a9d208be049253b76d9d",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        62
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        140,
+        118,
+        1093,
+        1200
+      ],
+      "source_name": "front-fear",
+      "unity_file_id": 8459688995279762349
+    },
+    {
+      "name": "PurpleMushroom_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-hurt.png",
+      "master_sha256": "573a73a7c0a6acf38a1b06e21cef38791beb6e96cb9bd4da3ec01c7267bd8c05",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/front-hurt.png",
+      "original_sha256": "8dee39e1fd82c85d5332c62a2cecea3d2dbbfc5a16378a60a0ec44c943311a55",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        67
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        140,
+        421,
+        1204,
+        1200
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": 8970225533905058586
+    },
+    {
+      "name": "PurpleMushroom_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-death.png",
+      "master_sha256": "efb52c470b68bcbf37b098eb09c7e162aacdd3224c145d0419bbfd33f9a5e9d5",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/front-death.png",
+      "original_sha256": "562e274b41aeb37b54c487355771571a7cd8153e4f3ceb76313db0451934326f",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        31
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        129,
+        671,
+        1217,
+        1200
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -4918360705154161690
+    },
+    {
+      "name": "PurpleMushroom_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/back-death.png",
+      "master_sha256": "a26b132adaf41fce8e55c9c893612860806dbedceb36d752bd9d0100ca8fddd9",
+      "original": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/back-death.png",
+      "original_sha256": "4eb79ddb24070e54d937ae02015e18e096fe7cd61d442e901f0aea2dd66a33cf",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        32
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        134,
+        673,
+        1205,
+        1200
+      ],
+      "source_name": "back-death",
+      "unity_file_id": -5490830785747777250
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of full original canvases before packing; no crop, rotation, resampling or independent horizontal centering.",
+    "source_offsets_recorded": true,
+    "original_rgba_preserved": true,
+    "ground_line_top_left_y": 1200,
+    "contact_threshold_alpha": 128,
+    "note": "Generated sources contain near-transparent alpha noise. Alpha>=128 is used only to measure the visible contact line; no source alpha values are removed or changed."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.10714285714285714
+  ],
+  "pixels_per_unit": 3272.0,
+  "default_visible_height_px": 818,
+  "physical_scale_note": "At transform scale (1,1,1), the default visible height at alpha>=128 is 0.25 Unity units; assumes 1 unit = 1 metre. Proposed import configuration, not validated in Unity.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.10714285714285714
+    ],
+    "pixels_per_unit": 3272.0,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/PurpleMushroom/PurpleMushroomAtlas.png",
+    "version": "6000.3.21f1",
+    "asset_guid": "75993eea6583f4b319c205e45d11db0e",
+    "actual_pixels_per_unit": 3272.0,
+    "actual_normalized_pivot": {
+      "x": 0.5,
+      "y": 0.1071428582072258
+    },
+    "texture_format": "RGBA32",
+    "verification_scope": "Editor import, exact sprite rectangles, common pivots/PPU/full-rect bounds and preserved source texture resolution. No gameplay scene or behaviour added."
+  },
+  "prompts": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/verification.json",
+  "unused_rear_tests": [
+    "work/back-fear.png",
+    "work/back-hurt.png"
+  ],
+  "rules_source": "kayospace://board/hakaton-f5xwo?element=01M6YH0JQ1HHVYNVMNYVZBC3X9",
+  "approved_on": "2026-11-09",
+  "approval": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/approval-v1.json",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/manifest.json",
+  "source_approval": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/approval-v1.json",
+  "unity_verification": "unity-verification.json"
+}

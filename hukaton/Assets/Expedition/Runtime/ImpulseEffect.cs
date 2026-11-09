@@ -28,7 +28,7 @@ namespace Hakaton.Expeditions
             {
                 var body = hit.attachedRigidbody;
                 if (!body || body.isKinematic || !seen.Add(body)) continue;
-                // ForceMode.Impulse: Δv = I / mass. Creature masses are the board's μ (hare 0.5, boar 2, wolf 1).
+                // ForceMode.Impulse: Δv = I / mass. Creature masses act as the board's μ (mushroom 0.3, goblin dog 1.5).
                 body.AddForce(ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse), ForceMode.Impulse);
                 var creature = body.GetComponent<WorldCreature>();
                 if (creature) { creature.Stagger(creatureStagger, c.Point); meaningful = true; }
