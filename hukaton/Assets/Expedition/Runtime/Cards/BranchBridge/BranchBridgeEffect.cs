@@ -58,6 +58,7 @@ namespace Hakaton.Expeditions.Cards
             Vector3 root = topPoint - wall * embed;
             var branch = c.World.SpawnForOuting(branchPrefab, root, Quaternion.LookRotation(direction, Vector3.up));
             if (!branch) return;
+            branch.GrowsFrom(target);
             branch.Grow(length + embed, width, thickness);
             Feedback(c, true);
         }

@@ -70,6 +70,8 @@ namespace Hakaton.Expeditions.Cards
         public bool Contains(Vector3 point) => walkway && walkway.enabled && (walkway.ClosestPoint(point) - point).sqrMagnitude < 1e-6f;
 
         float age, burnAge, collapseAge;
+        Collider support;
+        bool supported;
         bool collapsing, navigationAdded;
         NavMeshDataInstance navigation;
         NavMeshData navigationData;
@@ -81,6 +83,18 @@ namespace Hakaton.Expeditions.Cards
             World = world;
             if (world) world.Zones.Add(this);
         }
+
+        /// <summary>
+        /// The surface the branch grows out of. When it goes away (the tree awakens and walks off) the branch crumbles
+        /// like after burning, instead of hanging in the air.
+        /// </summary>
+        public void GrowsFrom(Collider surface)
+        {
+            support = surface;
+            supported = surface;
+        }
+
+        bool SupportLost => supported && (!support || !support.enabled || !support.gameObject.activeInHierarchy);
 
         /// <summary>Starts growing to <paramref name="length"/> metres (from the root, embedded part included).</summary>
         public void Grow(float length, float width, float thickness)
@@ -113,6 +127,7 @@ namespace Hakaton.Expeditions.Cards
         void Update()
         {
             float dt = Time.deltaTime;
+            if (!collapsing && SupportLost) Collapse();
             if (!Grown && !collapsing)
             {
                 age += dt;
