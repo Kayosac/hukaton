@@ -185,7 +185,7 @@ namespace Hakaton.Expeditions
                 chargeRing.rectTransform.localScale = Vector3.one * scale;
             }
             UpdateSpinArrow(preparation, accent);
-            if (reticle) reticle.color = world.FocusedLoot ? new Color(1f, .86f, .45f) : Color.white;
+            if (reticle) reticle.color = world.FocusedLoot || world.CardTargetFocused ? new Color(1f, .86f, .45f) : Color.white;
         }
 
         /// <summary>The spin as an arrow from the reticle: direction and length follow the mouse while Shift is held.</summary>
@@ -228,6 +228,7 @@ namespace Hakaton.Expeditions
 
             // Contextual prompt: pick-up first, then the Return card.
             if (world.FocusedLoot) prompt.text = $"<b>E</b>  {world.FocusedLoot.displayName}  <color=#F4D27A>{world.FocusedLoot.value}</color>";
+            else if (world.CardPrompt != null) prompt.text = world.CardPrompt;
             else if (card != null && card.IsReturn) prompt.text = world.thrower.ReturnReady ? "<b>ЛКМ</b>  Домой" : "";
             else prompt.text = "";
 

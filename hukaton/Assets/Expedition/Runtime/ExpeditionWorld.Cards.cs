@@ -109,6 +109,29 @@ namespace Hakaton.Expeditions
             OutingCleared?.Invoke();
         }
 
+        // ---------- prompts of card objects (cluster C: the rope) ----------
+
+        string cardPrompt;
+        int cardPromptFrame = -10;
+        bool cardPromptFocus;
+
+        /// <summary>
+        /// Prompt of the card-made object the player can use right now («E  Схватиться» at a rope), or null. Shown by
+        /// the HUD when no loot is focused. Owners call <see cref="ShowCardPrompt"/> every frame while it applies.
+        /// </summary>
+        public string CardPrompt => Time.frameCount - cardPromptFrame <= 1 ? cardPrompt : null;
+
+        /// <summary>True while <see cref="CardPrompt"/> is for a focused target (the reticle lights up like for loot).</summary>
+        public bool CardTargetFocused => CardPrompt != null && cardPromptFocus;
+
+        /// <summary>Shows <paramref name="text"/> as the interaction prompt this frame (call every frame; it lapses by itself).</summary>
+        public void ShowCardPrompt(string text, bool focusedTarget = true)
+        {
+            cardPrompt = text;
+            cardPromptFocus = focusedTarget;
+            cardPromptFrame = Time.frameCount;
+        }
+
         // ---------- reactions and senses ----------
 
         /// <summary>
