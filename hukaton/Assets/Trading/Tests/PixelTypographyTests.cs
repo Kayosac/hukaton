@@ -34,6 +34,27 @@ namespace Hakaton.Trading.Tests
             }
         }
 
+        // Shop HUD handoff (2026-11-10): the approved mockups set Ithaca 24 (goals title) and 18 (item card)
+        // inside the 736 × 368 reference layout, which is magnified to the window as a whole.
+        static bool ApprovedMockupSize(TMP_Text label) => label.GetComponentInParent<Hakaton.Feel.ReferenceUiScale>(true)
+            && label.font.faceInfo.pointSize == 16 && (label.fontSize == 24 || label.fontSize == 18);
+
+        [Test]
+        public void ShopHudUsesHandoffSprites()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Trading/Prefabs/TradingHUD.prefab").GetComponent<Hakaton.Trading.Unity.TradingHud>();
+            Assert.That(hud.shopLayout, Is.Not.Null);
+            Assert.That(hud.reticleDot.sprite.name, Is.EqualTo("CrosshairX"));
+            Assert.That(hud.selectedItemPanel.GetComponent<Image>().sprite.name, Is.EqualTo("ItemDescriptionPaper"));
+            Assert.That(hud.selectedItemPanel.localEulerAngles.z, Is.EqualTo(12).Within(.01f));
+            Assert.That(hud.selectedItemTitle.transform.IsChildOf(hud.selectedItemPanel), Is.True);
+            Assert.That(hud.selectedItemDetail.transform.IsChildOf(hud.selectedItemPanel), Is.True);
+            Assert.That(hud.contextPanel.GetComponent<Image>(), Is.Null, "The prompt has no plate");
+            var coin = hud.shopLayout.GetComponentInChildren<Hakaton.Feel.UiSpriteFlipbook>(true);
+            Assert.That(coin.frames.Select(f => f.name), Is.EqualTo(new[] { "Coin_Y_000", "Coin_Y_060", "Coin_Y_120", "Coin_Y_180", "Coin_Y_240", "Coin_Y_300" }));
+            Assert.That(Hakaton.Trading.Unity.TradingHud.FormatMoney(1250), Is.EqualTo("1 250"));
+        }
+
         [Test]
         public void SavedHudUsesIntegerPixelScaleAndConfiguredTmpLabels()
         {
@@ -50,7 +71,8 @@ namespace Hakaton.Trading.Tests
             {
                 Assert.That(label.font, Is.Not.Null, label.name);
                 Assert.That(label.enableAutoSizing, Is.False, label.name);
-                Assert.That(label.fontSize % label.font.faceInfo.pointSize, Is.Zero, label.name);
+                if (!ApprovedMockupSize(label))
+                    Assert.That(label.fontSize % label.font.faceInfo.pointSize, Is.Zero, label.name);
                 Assert.That(label.fontSharedMaterial, Is.EqualTo(label.font.material), label.name);
                 Assert.That(label.rectTransform.localScale, Is.EqualTo(Vector3.one), label.name);
             }

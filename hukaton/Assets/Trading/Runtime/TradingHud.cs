@@ -1,4 +1,6 @@
+using System.Globalization;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using TMPro;
 using Hakaton.Feel;
@@ -11,9 +13,17 @@ namespace Hakaton.Trading.Unity
         [Header("Compact exploration HUD")]
         public RectTransform layoutRoot, interactionPanel, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
         public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility, staminaVisibility;
-        public TMP_Text walletText, timeRemaining, selectedItemText, contextPrompt, contextDetail, noticeText;
+        public TMP_Text walletText, timeRemaining, contextPrompt, contextDetail, noticeText;
+        [Tooltip("Item card, first line: name and count (accent font).")]
+        [FormerlySerializedAs("selectedItemText")] public TMP_Text selectedItemTitle;
+        [Tooltip("Item card, second line: base price (body font).")]
+        public TMP_Text selectedItemDetail;
         public Image staminaFill, contextProgressFill, reticleDot;
         public GameObject reticle;
+        [Tooltip("Magnification of the shop HUD layout (736 × 368 mockup units).")]
+        public ReferenceUiScale shopLayout;
+        public Color reticleIdle = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+        public Color reticleFocused = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
         [Header("Conversation")]
         public GameObject categoryPanel, bargainingPanel;
         public TMP_Text customerName, shiftEnded, categoryRequest, priceSummary, reaction, bargainHint, acceptLabel;
@@ -27,6 +37,7 @@ namespace Hakaton.Trading.Unity
         [Min(0)] public float fadeSpeed = 8;
         [Min(20)] public float contextHeight = 44;
         [Min(20)] public float contextHeightWithDetail = 72;
+        [Tooltip("Screen pixels from the bottom for the prompt while picking goods during a conversation.")]
         [Min(0)] public float displayContextBottom = 240;
         public Color staminaColor = new Color(.76f, .81f, .69f);
         public Color tiredColor = new Color(.88f, .48f, .32f);
@@ -96,6 +107,10 @@ namespace Hakaton.Trading.Unity
 
         static string Hex(Color colour) => ColorUtility.ToHtmlStringRGB(colour);
 
+        static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
+        /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
+        public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);
+
         Color MoodColour(CustomerMood mood) => mood == CustomerMood.Angry ? angryColour
             : mood == CustomerMood.Displeased ? displeasedColour : calmColour;
 
@@ -105,7 +120,7 @@ namespace Hakaton.Trading.Unity
             bool exploring = !session.IsOpen;
             bool selecting = controller.SelectingFromDisplay && !controller.ViewTransitioning;
             // ShopFeel animates the wallet when present; otherwise show the balance directly.
-            if (!feelDrivesWallet) walletText.text = $"{session.Gold} монет";
+            if (!feelDrivesWallet) walletText.text = FormatMoney(session.Gold);
             timeRemaining.gameObject.SetActive(session.IsOpen || (session.RemainingSeconds <= 15 && session.ExpeditionId == 0));
             int seconds = Mathf.CeilToInt(session.RemainingSeconds);
             timeRemaining.text = seconds > 0 ? $"{seconds / 60}:{seconds % 60:00}" : "Смена завершена";
@@ -113,20 +128,27 @@ namespace Hakaton.Trading.Unity
             interactionPanel.gameObject.SetActive(session.IsOpen && controller.CustomerReady && !controller.ViewTransitioning);
             closeShop.interactable = !controller.ViewTransitioning;
             reticle.SetActive(exploring && controller.GameplayActive);
-            reticleDot.color = string.IsNullOrEmpty(controller.ContextPrompt)
-                ? new Color(1, 1, 1, .45f) : new Color(1, .92f, .68f, .95f);
+            reticleDot.color = string.IsNullOrEmpty(controller.ContextPrompt) ? reticleIdle : reticleFocused;
 
-            var item = controller.SelectedItem;
+            // The card describes what the aim rests on: the stock about to be placed on a free slot
+            // (with how many are left) or the item already lying on the hovered slot.
+            var item = controller.FocusedItem;
             bool showItem = exploring && controller.GameplayActive && session.ExpeditionId == 0 && item != null;
             if (showItem)
             {
-                int count = 0;
-                foreach (var stock in session.Inventory) if (stock.Definition.Id == item.Definition.Id) count++;
-                selectedItemText.text = $"{item.Definition.Name}  ×{count}\nОриентир: {item.Definition.RecommendedPrice}";
+                if (controller.PlacementFocused)
+                {
+                    int count = 0;
+                    foreach (var stock in session.Inventory) if (stock.Definition.Id == item.Definition.Id) count++;
+                    selectedItemTitle.text = $"{item.Definition.Name} ×{count}";
+                }
+                else selectedItemTitle.text = item.Definition.Name;
+                selectedItemDetail.text = $"Базовая цена: {item.Definition.RecommendedPrice}";
             }
             Fade(selectedVisibility, showItem);
+            float layoutScale = shopLayout ? shopLayout.Scale : 1;
             contextPanel.anchoredPosition = selecting
-                ? new Vector2(contextRestPosition.x, displayContextBottom) : contextRestPosition;
+                ? new Vector2(contextRestPosition.x, displayContextBottom / layoutScale) : contextRestPosition;
             bool hasContext = ((exploring && controller.GameplayActive) || selecting) && !string.IsNullOrEmpty(controller.ContextPrompt);
             if (hasContext)
             {

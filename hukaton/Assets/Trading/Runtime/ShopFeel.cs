@@ -126,7 +126,7 @@ namespace Hakaton.Trading.Unity
                     VfxBurst.Spawn(price >= bigSale && bigSaleBurst ? bigSaleBurst : saleBurst, saleAnchor.position,
                         Quaternion.identity, null, Color.white, price >= bigSale ? bigSaleScale : saleScale);
                 if (feel) { feel.PunchFov(-14); feel.AddTrauma(.12f); }
-                walletPunch?.Hop(7);
+                walletPunch?.Hop(3);
                 walletGlow = 1;
             }
 
@@ -158,7 +158,7 @@ namespace Hakaton.Trading.Unity
             }
             if (hud && hud.walletText)
             {
-                hud.walletText.text = $"{displayedGold} монет";
+                hud.walletText.text = TradingHud.FormatMoney(displayedGold);
                 walletGlow = Mathf.MoveTowards(walletGlow, 0, dt * 1.6f);
                 hud.walletText.color = Color.Lerp(walletRest, walletFlash, walletGlow);
                 walletPunch?.Update(dt);

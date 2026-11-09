@@ -133,7 +133,7 @@ namespace Hakaton.Game
                 return;
             }
             progressCanvas.enabled = Phase == GamePhase.Shop && !workshop.EmbeddedOpen && !trade.Session.IsOpen;
-            objectiveLabel.text = "Выручка  " + trade.Session.GrossRevenue + " / " + revenueGoal + (GoalReached ? "  ·  цель достигнута" : "");
+            objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
         public void Notify(string message, float seconds = 5)

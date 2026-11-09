@@ -89,6 +89,10 @@ namespace Hakaton.Trading.Unity
         ShopInteractionTarget focusedService;
         public string ContextPrompt { get; private set; } = string.Empty;
         public string ContextDetail { get; private set; } = string.Empty;
+        /// <summary>The aim rests on a reachable free display slot and there is stock to put there.</summary>
+        public bool PlacementFocused { get; private set; }
+        /// <summary>The item the aim describes: the stock about to be placed, or the one on the hovered slot.</summary>
+        public ItemInstance FocusedItem { get; private set; }
         public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen
             && Session.ExpeditionId == 0;
         public float StaminaFraction => World.Stamina.Normalized;
@@ -225,6 +229,8 @@ namespace Hakaton.Trading.Unity
             focusedTarget = null;
             focusedService = null;
             hoveredSlot = -1;
+            PlacementFocused = false;
+            FocusedItem = null;
             ContextPrompt = ContextDetail = string.Empty;
         }
 
@@ -267,12 +273,16 @@ namespace Hakaton.Trading.Unity
                 var item = Session.Slots[hoveredSlot];
                 if (item != null)
                 {
-                    ContextPrompt = "F  Забрать" + (World.openFromDisplaySlots && Session.RemainingSeconds > 0 ? "     E  Открыть лавку" : string.Empty);
-                    ContextDetail = $"{item.Definition.Name} · {item.Definition.RecommendedPrice} монет";
+                    // Same presentation as stocking: one bare hint line, the item itself on the paper card.
+                    FocusedItem = item;
+                    ContextPrompt = "F Забрать" + (World.openFromDisplaySlots && Session.RemainingSeconds > 0 ? " · E Открыть лавку" : string.Empty);
+                    ContextDetail = string.Empty;
                 }
                 else
                 {
-                    ContextPrompt = Session.Inventory.Count > 0 ? "ЛКМ  Положить · удерживать — заполнить" : "Нет товара в запасе";
+                    PlacementFocused = Session.Inventory.Count > 0;
+                    FocusedItem = PlacementFocused ? SelectedItem : null;
+                    ContextPrompt = PlacementFocused ? "ЛКМ Положить · удерживать - заполнить" : "Нет товара в запасе";
                     ContextDetail = World.openFromDisplaySlots && Session.DisplayCount > 0 && Session.RemainingSeconds > 0 ? "E  Открыть лавку" : string.Empty;
                 }
             }
