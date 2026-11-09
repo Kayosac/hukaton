@@ -4,10 +4,10 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Восходящий поток» (воздух, ранг 4/5). A vertical air column at the point of impact: radius 1.5 m, height 6 m (upgraded 8 m), 12 s. Lifts the player,
-    /// creatures and objects with μ ≤ 2 at up to 4 m/s; one can step out sideways.
-    /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
-    /// STUB from the foundation pass: only the impact feedback so far.
+    /// «Восходящий поток» (воздух, ранг 4/5). A vertical air column at the point of impact: radius 1.5 m, height 6 m
+    /// (upgraded 8 m), 12 s. Lifts the player, creatures and objects with μ ≤ 2 at up to 4 m/s; one can step out
+    /// sideways. A card that hits a wall, a ceiling or a creature stands the column on the ground below the contact.
+    /// See <see cref="UpdraftColumn"/>. Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class UpdraftEffect : CardEffect, ICardStatLine
     {
@@ -23,11 +23,36 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Heaviest body it lifts (μ).")]
         [Min(0)] public float maxMass = 2;
 
+        [Header("Placement")]
+        [Tooltip("A surface flatter than this is the column's floor; otherwise the column stands on the ground below.")]
+        [Range(0, 1)] public float floorNormal = .6f;
+        [Tooltip("How far below a wall or creature hit the ground is looked for, m.")]
+        [Min(0)] public float groundSearch = 8;
+
+        [Header("Prefab")]
+        public UpdraftColumn columnPrefab;
+
         public override void Apply(in ImpactContext c)
         {
-            // TODO(Updraft): spawn an updraft zone (Kind Updraft); lift the player with motor.SetVerticalSpeed and bodies with CardPhysics/velocity.
-            Feedback(c, false);
-            c.World.Announce(c.Definition.displayName + ": эффект в разработке", 1.5f);
+            Vector3 position = c.Point;
+            if (c.Normal.y < floorNormal && FindGround(c.Point + c.Normal * .15f, groundSearch, out var ground)) position = ground;
+            var column = c.World.SpawnForOuting(columnPrefab, position, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+            if (!column) { Feedback(c, false); return; }
+            column.Configure(c.Pick(heightBase, heightUpgraded), radius, durationSeconds, riseSpeed, maxMass);
+            Feedback(c, true);
+        }
+
+        /// <summary>The nearest static surface below the point (loose bodies and creatures are looked through).</summary>
+        static bool FindGround(Vector3 from, float distance, out Vector3 point)
+        {
+            point = from;
+            float best = float.MaxValue;
+            foreach (var hit in Physics.RaycastAll(from, Vector3.down, distance, ~(1 << 2), QueryTriggerInteraction.Ignore))
+            {
+                if (hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (hit.distance < best) { best = hit.distance; point = hit.point; }
+            }
+            return best < float.MaxValue;
         }
 
         public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
