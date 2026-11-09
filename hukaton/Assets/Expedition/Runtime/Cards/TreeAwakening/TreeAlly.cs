@@ -151,6 +151,8 @@ namespace Hakaton.Expeditions.Cards
             body.position = position;
             transform.position = position;
             navigator.enabled = true;
+            navigator.updatePosition = false;
+            navigator.updateRotation = false;
             if (navigator.isOnNavMesh) navigator.Warp(position);
             awakenedAt = Time.time;
             Enter(TreeAllyState.Awakening);
