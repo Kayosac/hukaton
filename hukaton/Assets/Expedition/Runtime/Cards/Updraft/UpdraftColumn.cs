@@ -134,10 +134,11 @@ namespace Hakaton.Expeditions.Cards
             for (int i = 0; i < count; i++)
             {
                 var body = overlaps[i].attachedRigidbody;
-                if (!body || body.isKinematic || !carried.Add(body)) continue;
+                if (!body || !carried.Add(body)) continue;
                 if (body.mass > MaxMass + .001f) continue;
                 Vector3 centre = body.worldCenterOfMass;
                 if (!Inside(centre)) continue;
+                if (body.isKinematic && !FreeLoot(body)) continue;
                 Vector3 velocity = body.linearVelocity;
                 float target = TargetSpeed(RiseSpeed, Top - centre.y, topEase);
                 if (velocity.y > RiseSpeed + .5f) continue;
@@ -147,6 +148,19 @@ namespace Hakaton.Expeditions.Cards
                 body.linearVelocity = new Vector3(velocity.x, next, velocity.z);
                 body.WakeUp();
             }
+        }
+
+        /// <summary>
+        /// Finds rest kinematic in the valley: one lying in the column becomes movable until the outing ends (as with
+        /// Attraction), so the updraft lifts it. Anything else kinematic stays put.
+        /// </summary>
+        bool FreeLoot(Rigidbody body)
+        {
+            var loot = body.GetComponent<WorldLoot>();
+            if (!loot || !loot.Available) return false;
+            body.isKinematic = false;
+            World.RestoreAtOutingEnd(() => { if (body) body.isKinematic = true; });
+            return true;
         }
 
         void End()
