@@ -234,10 +234,17 @@ namespace Hakaton.Expeditions
             float startPitch = view ? SignedPitch(view) : 0;
             float time = 0, nextTurn = 0, goalYaw = 0, goalPitch = 0, yaw = 0, pitch = 0, yawSpeed = 0, pitchSpeed = 0;
             int side = UnityEngine.Random.value < .5f ? -1 : 1;
+            bool cardsLost = false;
             while (time < settings.drownSeconds)
             {
                 float dt = Time.unscaledDeltaTime;
                 time += dt;
+                if (!cardsLost && time >= settings.drownCardsDelay)
+                {
+                    cardsLost = true;
+                    hand.ScatterAll(settings.drownCardsSpeed, settings.drownSeconds - time + .4f);
+                    Play(cues ? cues.discard : null);
+                }
                 float k = Mathf.Clamp01(time / settings.drownDarkenSeconds);
                 if (fade) fade.Set(Mathf.Lerp(0, settings.drownDarkness, Ease.OutCubic(k)), settings.drownColour);
                 // Thrashing: the head swings left and right, up and down — real, smooth turns of the view.

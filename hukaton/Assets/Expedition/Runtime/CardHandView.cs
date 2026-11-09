@@ -130,6 +130,31 @@ namespace Hakaton.Expeditions
                 }
         }
 
+        /// <summary>
+        /// The player loses grip (drowning): every shown card and the deck pile burst out of the hand in all
+        /// directions as cosmetic debris. Purely visual — the deck itself is untouched.
+        /// </summary>
+        public void ScatterAll(float speed, float seconds)
+        {
+            var camera = world.viewCamera.transform;
+            void Fling(CardView view)
+            {
+                Vector2 around = Random.insideUnitCircle.normalized;
+                Vector3 velocity = (camera.right * around.x * 1.4f + camera.up * (Mathf.Abs(around.y) + .6f) + camera.forward * Random.Range(.4f, 1.2f))
+                    * speed * Random.Range(.7f, 1.2f);
+                world.SpawnDebris(view, view.transform.position, view.transform.rotation, velocity,
+                    new Vector3(Random.Range(-700, 700), Random.Range(-400, 400), Random.Range(-900, 900)), seconds);
+                view.Hide();
+            }
+            foreach (var slot in active)
+            {
+                if (slot.copyId == int.MinValue || !slot.view.Visible) continue;
+                Fling(slot.view);
+                slot.copyId = int.MinValue;
+            }
+            foreach (var card in stack) if (card && card.Visible) Fling(card);
+        }
+
         void LateUpdate()
         {
             if (hidden || !world || !world.Running) return;

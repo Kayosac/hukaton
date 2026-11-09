@@ -63,6 +63,10 @@ namespace Hakaton.Expeditions
         public Vector2 drownTurnYaw = new Vector2(45, 95);
         [Tooltip("Each new direction looks up or down to this pitch, degrees (negative is up).")]
         public Vector2 drownTurnPitch = new Vector2(-60, 35);
+        [Tooltip("When it is clear the player is drowning, the cards burst out of the hand: delay after going under, seconds.")]
+        [Min(0)] public float drownCardsDelay = .2f;
+        [Tooltip("Speed the cards fly out of the hand at, m/s.")]
+        [Min(0)] public float drownCardsSpeed = 3.2f;
         [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
         [Range(0, 1)] public float drownDarkness = .72f;
         [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]
