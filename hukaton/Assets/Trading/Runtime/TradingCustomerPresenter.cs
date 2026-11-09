@@ -13,8 +13,10 @@ namespace Hakaton.Trading.Unity
         public SpriteNpcActor actor;
         [Tooltip("Additional authored actors on the same route.")]
         public SpriteNpcActor[] extraActors;
-        public NpcAppearance[] appearances;
+        [Tooltip("Who can visit. Shuffled: everyone once per round, never the same visitor twice in a row.")]
+        public VisitorRoster roster;
         readonly Dictionary<SpriteNpcActor, long> presented = new Dictionary<SpriteNpcActor, long>();
+        VisitorBag bag;
 
         IEnumerable<SpriteNpcActor> Actors
         {
@@ -105,9 +107,14 @@ namespace Hakaton.Trading.Unity
             if (current != null && !Presenting(current.Id))
             {
                 var free = Idle();
-                if (!free || appearances == null || appearances.Length == 0) return;
-                var appearance = appearances[(int)((current.Id - 1) % appearances.Length)];
-                if (free.BeginVisit(appearance)) presented[free] = current.Id;
+                if (!free || !roster) return;
+                bag ??= new VisitorBag(() => roster ? roster.visitors : null);
+                var appearance = bag.Peek();
+                if (appearance && free.BeginVisit(appearance))
+                {
+                    presented[free] = current.Id;
+                    bag.Take(appearance);
+                }
             }
         }
 

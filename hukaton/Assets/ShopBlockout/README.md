@@ -38,7 +38,7 @@
 ## Редактирование
 
 - `ShopTrader.prefab` — вариант общего контроллера с предметом в руках. Ходьба 2,1 м/с, бег 3,5 м/с, прыжок 0,45 м.
-- `ShopCustomer.prefab`, `ShopCustomerRoute.prefab` — спрайтовый посетитель и маршрут. Внешности и эмоции — `Assets/Content/NPCs` (все девять идут по очереди, порядок — список `appearances` у `TradingCustomerPresenter` в сцене), материал — `Assets/Rendering/Materials/HandDrawnSprite.mat`. Второй посетитель в сцене позволяет следующему входить, пока предыдущий уходит.
+- `ShopCustomer.prefab`, `ShopCustomerRoute.prefab` — спрайтовый посетитель и маршрут. Внешности и эмоции — `Assets/Content/NPCs` (кто ходит в лавку — ассет `Content/NPCs/Visitor roster.asset`; новый NPC добавляется туда, сцену трогать не нужно; порядок перемешивается по кругам, `VisitorBag`), материал — `Assets/Rendering/Materials/HandDrawnSprite.mat`. Второй посетитель в сцене позволяет следующему входить, пока предыдущий уходит.
 - `DisplayCase.prefab` (шесть `DisplaySlot`), `Counter.prefab` (точка товара сделки; точка «Sale anchor» для монет — в сцене у прилавка), `TrophyStock`, `HerbStock`, `RelicStock`.
 - `ShopTradingHUD.prefab` — панель сделки, подсказки, кнопки видов А/Б, накладка моргания. `ShopDeckWorkshop.prefab` — вариант мастерской колод со скрытым CanvasGroup и кнопкой «В лавку».
 - `GoblinCeilingRig.prefab` — люк, верёвка, тросы и рисованный гоблин с картами (атлас `Assets/Content/GoblinTrader/GoblinDiaperCards`). `SuspendedGoblin` анимирует их, не создавая заново; `SuspendedGoblinSprite` поворачивает рисунок к камере, пугается при спуске и радуется покупке.
