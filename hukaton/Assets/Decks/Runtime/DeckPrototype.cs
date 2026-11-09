@@ -43,6 +43,8 @@ namespace Hakaton.Decks.Unity
         public event Action Departed;
         public event Action<IReadOnlyList<LootSave>, bool> OutingCompleted;
         public event Action EmbeddedClosed;
+        /// <summary>A copy was bought at the goblin's market.</summary>
+        public event Action Bought;
 
         public DeckWorkshop Model { get; private set; }
         /// <summary>True from departure until the outing is delivered back.</summary>
@@ -215,6 +217,7 @@ namespace Hakaton.Decks.Unity
                 string error = Model.Buy(SelectedDefinitionId, out var copy);
                 if (copy != null && !marketOnly) SelectCopy(copy.Id);
                 Result(error, "Новая копия в коллекции. Теперь её можно взять в путь.", config.coinSound);
+                if (copy != null) Bought?.Invoke();
             }
             else
                 Result(Model.Toggle(SelectedCopyId), "Состав колоды сохранён.", config.cardSound);

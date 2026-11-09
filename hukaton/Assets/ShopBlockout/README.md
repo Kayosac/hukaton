@@ -41,6 +41,6 @@
 - `ShopCustomer.prefab`, `ShopCustomerRoute.prefab` — спрайтовый посетитель и маршрут. Внешности и эмоции — `Assets/Content/NPCs`, материал — `Assets/Rendering/Materials/HandDrawnSprite.mat`. Второй посетитель в сцене позволяет следующему входить, пока предыдущий уходит.
 - `DisplayCase.prefab` (шесть `DisplaySlot`), `Counter.prefab` (точка товара сделки; точка «Sale anchor» для монет — в сцене у прилавка), `TrophyStock`, `HerbStock`, `RelicStock`.
 - `ShopTradingHUD.prefab` — панель сделки, подсказки, кнопки видов А/Б, накладка моргания. `ShopDeckWorkshop.prefab` — вариант мастерской колод со скрытым CanvasGroup и кнопкой «В лавку».
-- `GoblinCeilingRig.prefab` — люк, верёвка, тросы и заглушка гоблина. `SuspendedGoblin` анимирует их, не создавая заново.
+- `GoblinCeilingRig.prefab` — люк, верёвка, тросы и рисованный гоблин с картами (атлас `Assets/Content/GoblinTrader/GoblinDiaperCards`). `SuspendedGoblin` анимирует их, не создавая заново; `SuspendedGoblinSprite` поворачивает рисунок к камере, пугается при спуске и радуется покупке.
 
 Код: `ShopBackroomServices` связывает компьютер и гоблина с мастерской, `ShopInteractionTarget` — точки взаимодействия, `SuspendedGoblin` — спуск и подъём. Тесты: `Tests/EditMode/SuspendedGoblinTests.cs`, `Tests/PlayMode/EmbeddedWorkshopTests.cs`.

@@ -619,6 +619,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!1 &125783222
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 125783223}
+  m_Layer: 0
+  m_Name: Troll spawn 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &125783223
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 125783222}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.64424103, z: -0, w: 0.76482254}
+  m_LocalPosition: {x: 29, y: 0.14999923, z: 3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &174875895
 GameObject:
   m_ObjectHideFlags: 0
@@ -858,6 +889,9 @@ MonoBehaviour:
   - {fileID: 82077272}
   - {fileID: 708613964}
   - {fileID: 716704762}
+  - {fileID: 339025050}
+  - {fileID: 1712732459}
+  - {fileID: 1947799134}
   props:
   - {fileID: 1802261543}
   - {fileID: 1802261542}
@@ -1031,6 +1065,95 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8822053871095261447, guid: b0d5fa073471a41f09539990c401d7c0, type: 3}
   m_PrefabInstance: {fileID: 320389206}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &339025048
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1887884190}
+    m_Modifications:
+    - target: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: spawnPoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: 'spawnPoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1923561350}
+    - target: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: 'spawnPoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 125783223}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 24
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.14999923
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.82192564
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.5695948
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_Name
+      value: Budding troll
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+--- !u!4 &339025049 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+  m_PrefabInstance: {fileID: 339025048}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &339025050 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+  m_PrefabInstance: {fileID: 339025048}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1001 &416848463
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1312,6 +1435,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!1 &429753866
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 429753867}
+  m_Layer: 0
+  m_Name: Lake bush spawn 1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &429753867
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 429753866}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.8944272, z: -0, w: -0.44721362}
+  m_LocalPosition: {x: 24, y: 0.14999923, z: 26}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &459082819
 GameObject:
   m_ObjectHideFlags: 0
@@ -2817,6 +2971,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7598682267442650627, guid: 7f5100eb14c23445ab759570b88a31c6, type: 3}
   m_PrefabInstance: {fileID: 3720532267241562228}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &634001153
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 634001154}
+  m_Layer: 0
+  m_Name: Lake bush spawn 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &634001154
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 634001153}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.872954, z: -0, w: -0.48780254}
+  m_LocalPosition: {x: 26, y: 0.14999923, z: 24}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &691535757
 GameObject:
   m_ObjectHideFlags: 0
@@ -4238,6 +4423,12 @@ Transform:
   - {fileID: 496472800}
   - {fileID: 520699368}
   - {fileID: 1325546765}
+  - {fileID: 1923561350}
+  - {fileID: 125783223}
+  - {fileID: 1928871928}
+  - {fileID: 1318402914}
+  - {fileID: 429753867}
+  - {fileID: 634001154}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1176082596 stripped
@@ -4482,6 +4673,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1318402913
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1318402914}
+  m_Layer: 0
+  m_Name: Bush spawn 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1318402914
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318402913}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.35538056, z: -0, w: 0.9347217}
+  m_LocalPosition: {x: -8, y: 0.16944373, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5258,6 +5480,95 @@ Transform:
   - {fileID: 1451054051}
   m_Father: {fileID: 215353184}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1712732457
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1887884190}
+    m_Modifications:
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: spawnPoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: 'spawnPoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1928871928}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: 'spawnPoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1318402914}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.14999923
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.8816746
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.47185794
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_Name
+      value: Hostile bush (thorns)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+--- !u!4 &1712732458 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+  m_PrefabInstance: {fileID: 1712732457}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1712732459 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+  m_PrefabInstance: {fileID: 1712732457}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1 &1727567408
 GameObject:
   m_ObjectHideFlags: 0
@@ -5840,6 +6151,9 @@ Transform:
   - {fileID: 82077271}
   - {fileID: 708613963}
   - {fileID: 716704761}
+  - {fileID: 339025049}
+  - {fileID: 1712732458}
+  - {fileID: 1947799133}
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1898697628
@@ -5872,6 +6186,68 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1701193630}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1923561349
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1923561350}
+  m_Layer: 0
+  m_Name: Troll spawn 1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1923561350
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923561349}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.5695948, z: -0, w: 0.82192564}
+  m_LocalPosition: {x: 24, y: 0.14999923, z: -1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1928871927
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1928871928}
+  m_Layer: 0
+  m_Name: Bush spawn 1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1928871928
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1928871927}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.47185794, z: -0, w: 0.8816746}
+  m_LocalPosition: {x: -9, y: 0.14999923, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1930096415
 PrefabInstance:
@@ -5955,6 +6331,95 @@ Transform:
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8211502770020729366, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
   m_PrefabInstance: {fileID: 1930096415}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!1001 &1947799132
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1887884190}
+    m_Modifications:
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: spawnPoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: 'spawnPoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 429753867}
+    - target: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: 'spawnPoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 634001154}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 24
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.14999923
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 26
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.44721362
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.8944272
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_Name
+      value: Hostile bush (lake)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+--- !u!4 &1947799133 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+  m_PrefabInstance: {fileID: 1947799132}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1947799134 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+  m_PrefabInstance: {fileID: 1947799132}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1

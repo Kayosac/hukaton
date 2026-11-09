@@ -39,6 +39,8 @@ namespace Hakaton.Expeditions
         public float recoveryOnMiss = -1;
         [Tooltip("Strike is a dash (boar charge, wolf lunge) rather than a standing bite.")]
         public bool dash;
+        [Tooltip("Camera shake and a burst of dust when the strike lands: a heavy ground slam. Zero for bites and lunges.")]
+        [Min(0)] public float strikeShake;
         [Header("Senses")]
         public float sightRange = 15;
         [Tooltip("Within this distance the creature notices you even from behind.")]
@@ -206,6 +208,11 @@ namespace Hakaton.Expeditions
                     world.Play(strikeCue, body.position);
                     squash.Kick(6);
                     if (dash) KickDust(stepDustCount * 3);
+                    if (strikeShake > 0)
+                    {
+                        KickDust(stepDustCount * 4);
+                        if (world.feel && PlayerDistance < 16) world.feel.AddTrauma(strikeShake);
+                    }
                     break;
             }
         }

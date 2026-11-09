@@ -18,6 +18,8 @@ namespace Hakaton.ShopBlockout
         public Transform[] cableMeshes = new Transform[2];
         public Transform[] cableTops = new Transform[2];
         public Transform[] cableHarnesses = new Transform[2];
+        [Tooltip("The goblin's hand-drawn sprite: startles on the way down, pleased after a purchase.")]
+        public SuspendedGoblinSprite drawing;
         [Tooltip("Length of each cable mesh at local Y scale 1. Unity cylinders are 2 units tall.")]
         [Min(.001f)]
         public float cableMeshLength = 2;

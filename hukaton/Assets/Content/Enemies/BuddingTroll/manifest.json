@@ -1,0 +1,423 @@
+{
+  "character": "BuddingTroll",
+  "display_name": "Почкующийся тролль",
+  "status": "atlas_and_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 2.5,
+  "user_brief": "Большой агрессивный тролль, рост более 2 м. Очень массивный; из сплетения плоти почкуются маленькие тролли, руки, рты и глаза. Для теста выбран рост 2.5 м.",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-default.png",
+  "monster_style": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "approved_monster_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-default.png",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "aggression": "Агр",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "attack_variant": "Two-handed ground slam",
+  "death_eyes": "Every visible eye of the main troll and its three attached buds becomes a black X. Six eyes in the fully visible front configuration; never add eyes on hidden rear surfaces.",
+  "atlas": "BuddingTrollAtlas.png",
+  "atlas_sha256": "f79e83d706e04dc63366ec6d7cd812966aa9515173ad4b7e8a70c1a2e76c5319",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 4032,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "BuddingTroll_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/front-default.png",
+      "master_sha256": "2aba7b8c1512e15fcefc301ec63c47e7a8601d9cf06711d05497905b0818ff2c",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-default.png",
+      "original_sha256": "a571cbeeaba3ad9dc4b78b2425abc0d8c15a4fd1bf73aa9f90364ef1c4dcd012",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        31
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        73,
+        130,
+        1274,
+        1256
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 8325167802017061738
+    },
+    {
+      "name": "BuddingTroll_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/back-default.png",
+      "master_sha256": "50bc010265754b13f2c4515642e0e357db628af56126f92b615fc66830988caa",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/back-default.png",
+      "original_sha256": "9a98186bdb918553a0534aaa7c0a19cd51d4c1ea462e38c373095cef40b6de28",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        25
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        73,
+        122,
+        1272,
+        1256
+      ],
+      "source_name": "back-default",
+      "unity_file_id": -4216532224625723569
+    },
+    {
+      "name": "BuddingTroll_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/front-aggro.png",
+      "master_sha256": "04869ce3d86a790af1ca8fd658502e094608b41bf721bb03d9ea19c3a7175965",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-aggro.png",
+      "original_sha256": "9eea468846f8b9ff74c6be49b0e9b1fcc13aeda566d8313d7460ca9f0d1a8c77",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        8
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        61,
+        43,
+        1281,
+        1256
+      ],
+      "source_name": "front-aggro",
+      "unity_file_id": 303209057088767939
+    },
+    {
+      "name": "BuddingTroll_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/front-hurt.png",
+      "master_sha256": "d2489bc08b79ef564a4a3070b1ecb75c1d021e0b30426c3a4ba93dfd7f3e836b",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-hurt.png",
+      "original_sha256": "fec31c48afa7ce7f7636fb327a594b770351f135b5af715acf75625e36e85446",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        20
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        68,
+        47,
+        1277,
+        1256
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": 6931027698211771903
+    },
+    {
+      "name": "BuddingTroll_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/front-attack.png",
+      "master_sha256": "0f9f00ef8b0045589760bbfb13611630302239a0b8d3250717a51efd52dae68b",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-attack.png",
+      "original_sha256": "9316605ecb5e204176d6d4ccca7b4fb3a2fdb15dff0906f26686f7002f850f11",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        40
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        61,
+        137,
+        1283,
+        1256
+      ],
+      "source_name": "front-attack",
+      "unity_file_id": -7873923731099856463
+    },
+    {
+      "name": "BuddingTroll_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/front-death.png",
+      "master_sha256": "486241e70d724e23771d2942a7f6d31caaa617cfa0fe9fac6e98fcb4b0d38791",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/front-death.png",
+      "original_sha256": "16a599e2f7a947b7637e6b0f5e417fa9fdb276376a539b23602bc0aa7c0d7d43",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        11
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        54,
+        617,
+        1292,
+        1256
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -471606295836528878
+    },
+    {
+      "name": "BuddingTroll_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/masters/back-death.png",
+      "master_sha256": "72a860fe319ac9cd4b6bf2f61772b95b217cdedcc66c922e313e880994a574a8",
+      "original": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/back-death.png",
+      "original_sha256": "d95471717a3f5c2f0c2e89e386532ac95496a338a1435742c0dc6900b6034f12",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        15
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        62,
+        620,
+        1286,
+        1256
+      ],
+      "source_name": "back-death",
+      "unity_file_id": 173503045808863135
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of entire source canvases before packing; no crop, resize, rotation or resampling.",
+    "source_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1256,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha threshold is only for visible contact measurement; original alpha bytes are preserved."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.06547619047619048
+  ],
+  "pixels_per_unit": 450.4,
+  "default_visible_height_px": 1126,
+  "physical_scale_note": "PPU derives from the default visible height and 2.5 m at transform scale one, assuming 1 Unity unit = 1 metre. Unity Editor import is verified; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.06547619047619048
+    ],
+    "pixels_per_unit": 450.4,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/BuddingTroll/BuddingTrollAtlas.png",
+    "version": "6000.3.21f1",
+    "asset_guid": "174bfb652ebf046fa81127db9f227bf1",
+    "actual_pixels_per_unit": 450.3999938964844,
+    "actual_normalized_pivot": [
+      0.5,
+      0.06547619615282331
+    ],
+    "texture_format": "RGBA32",
+    "frame_switch_geometry_stable": true,
+    "verification_scope": "Unity Editor import: source alpha, preserved texture resolution, exact rectangles, common pivot/PPU and FullRect mesh bounds. No gameplay scene or behaviour added."
+  },
+  "anatomy": {
+    "main_troll": 1,
+    "attached_buds": 3,
+    "front_visible_eyes": 6,
+    "faces": 4,
+    "bud_attachments": [
+      "anatomical right shoulder: two eyes and two small arms",
+      "anatomical left upper chest: one eye and one small arm",
+      "anatomical right lower belly/flank: one eye and two small arms"
+    ]
+  },
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 5,
+    "fill": "red",
+    "outline": "dark"
+  },
+  "height_assumption": "User requested more than 2 m; 2.5 m chosen for this test.",
+  "preview": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/preview.png",
+  "download_archive": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/budding-troll-test.zip",
+  "prompts": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/verification.json",
+  "unity_import_instructions": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/unity-import.txt",
+  "source_character_key": "budding-troll-test",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/budding-troll-test",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/budding-troll-test/manifest.json",
+  "unity_verification": "unity-verification.json",
+  "user_requested_project_import_on": "2026-11-09"
+}

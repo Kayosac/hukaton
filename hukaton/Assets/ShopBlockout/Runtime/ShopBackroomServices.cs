@@ -53,6 +53,21 @@ namespace Hakaton.ShopBlockout
             if (workshop) workshop.CloseEmbedded();
         }
 
-        void OnDisable() { Close(); }
+        void OnEnable()
+        {
+            if (workshop) workshop.Bought += OnBought;
+        }
+
+        void OnDisable()
+        {
+            if (workshop) workshop.Bought -= OnBought;
+            Close();
+        }
+
+        // Every purchase is made from the goblin: he looks pleased with the deal.
+        void OnBought()
+        {
+            if (goblin && goblin.drawing) goblin.drawing.Please();
+        }
     }
 }

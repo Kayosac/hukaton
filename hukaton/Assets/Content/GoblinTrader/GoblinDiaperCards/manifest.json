@@ -1,0 +1,338 @@
+{
+  "character": "GoblinDiaperCards",
+  "display_name": "Гоблин с картами",
+  "status": "partial_art_four_front_sprites_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "peaceful",
+  "physical_height_m": 0.25,
+  "user_brief": "Тот же выбранный первый гоблин, мирный, рост 25 см. В памперсе, с соской во рту и картами веером в руках. Висит в воздухе, ноги свободно свисают. Только для него вместо получения урона — довольное лицо. Сохранить исходные пропорции и злую смешную физиономию в дефолте.",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/front-default.png",
+  "source_character": "/Users/kayosac/hukaton/output/monsters/round-goblin-test/manifest.json",
+  "monster_style": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "approved_monster_reference": "/Users/kayosac/hukaton/output/monsters/purple-mushroom-test/masters/front-fear.png",
+  "states": [
+    "default",
+    "startle",
+    "contented",
+    "death"
+  ],
+  "state_exception": {
+    "scope": "this_character_only",
+    "replaces": "taking_damage",
+    "with": "contented",
+    "requested_by_user": true,
+    "global_rules_changed": false
+  },
+  "suspension": {
+    "mode": "hovering",
+    "legs": "freely dangling",
+    "support_visible": false
+  },
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "startle": "Испуг",
+    "contented": "Довольный",
+    "death": "Смерть"
+  },
+  "attack_variant": null,
+  "death_eyes": "Both visible eyes become simple black X marks. No added eyes or crosses on hidden rear surfaces.",
+  "atlas": "GoblinDiaperCardsAtlas.png",
+  "atlas_sha256": "09b240bffb97483c31e49d6bcebd606e6f6d92e59e8c53bbb9da62d506898666",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 2688,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 2,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 0
+    },
+    {
+      "column": 2,
+      "row": 1
+    }
+  ],
+  "cells": [
+    {
+      "name": "GoblinDiaperCards_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/masters/front-default.png",
+      "master_sha256": "7b3f2c0fa47e18c5b4a6d35ec651aab4106807b64a2125d425df9c48c28b3942",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/front-default.png",
+      "original_sha256": "93a7dd57be4d4e93730d1b95788948503fee350ab323df686ae5e77b6cb6be70",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        45
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        167,
+        106,
+        1122,
+        1254
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 8466873623100920895
+    },
+    {
+      "name": "GoblinDiaperCards_StartleFront",
+      "state": "startle",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/masters/front-fear.png",
+      "master_sha256": "620079f40a5e00d4d28c5cd0542f6eced4605f5b2d47d221f9246431ba335b4b",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/front-fear.png",
+      "original_sha256": "73faf43a2c6f63d08a0799226d681644ee67160b41303a6fafcb0e43fc00a298",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        45
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        217,
+        64,
+        1063,
+        1273
+      ],
+      "source_name": "front-fear",
+      "unity_file_id": 6620031438124906884
+    },
+    {
+      "name": "GoblinDiaperCards_ContentedFront",
+      "state": "contented",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/masters/front-happy.png",
+      "master_sha256": "02636ba49a4602e3cd64f1ec11cba3e0e97d5380f4e410bdcc5f293cca6b3405",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/front-happy.png",
+      "original_sha256": "28d5dc9f883ac242ee4c332b470991a6aae5ab4e87c4458d50466e7c8d9ff243",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        45
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        166,
+        106,
+        1121,
+        1254
+      ],
+      "source_name": "front-happy",
+      "unity_file_id": -369305357856736
+    },
+    {
+      "name": "GoblinDiaperCards_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/masters/front-death.png",
+      "master_sha256": "b000365d27b0c5c5a2df296b0d6837ce3dad5941d4df1ac70a6230030a6ad43e",
+      "original": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/front-death.png",
+      "original_sha256": "5c8df526a288c680092615c5b9192e0215f8f07476b4c6b0af4ee172ffda8d30",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        45
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        287,
+        77,
+        1105,
+        1286
+      ],
+      "source_name": "front-death",
+      "unity_file_id": 216256077267216776
+    }
+  ],
+  "required_sprite_count": 6,
+  "available_sprite_count": 4,
+  "missing_sprites": [
+    {
+      "name": "back-default",
+      "state": "default",
+      "view": "back",
+      "column": 1,
+      "row": 0
+    },
+    {
+      "name": "back-death",
+      "state": "death",
+      "view": "back",
+      "column": 2,
+      "row": 1
+    }
+  ],
+  "missing_reason": "Both rear image-generation outputs were rejected by the generator safety filter, category other, without a more specific explanation. Empty cells are placeholders, not completed sprites.",
+  "canvas_preparation": {
+    "method": "Transparent padding of entire source canvases before packing; no crop, resize, rotation or resampling.",
+    "source_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": null,
+    "alignment": "Common source canvas centre, preserved by equal transparent padding.",
+    "note": "Hovering character has no ground contact. Do not align changing dangling feet to a baseline. Alpha threshold 128 only measures visible bounds; original alpha bytes are preserved."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.5
+  ],
+  "pixels_per_unit": 3896.0,
+  "default_visible_height_px": 1148,
+  "default_visible_height_units": 0.2946611909650924,
+  "physical_height_reference": "Original standing goblin; 25 cm nominal height.",
+  "physical_scale_note": "PPU is inherited from the original goblin to preserve head/body scale. Freely dangling feet may extend the visible bounds beyond the original standing height. Shared pivot is the canvas centre for the suspended creature. Unity Editor import is verified; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "pixels_per_unit": 3896.0,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/GoblinDiaperCards/GoblinDiaperCardsAtlas.png",
+    "version": "6000.3.21f1",
+    "asset_guid": "3056db3b353dd48199c3ed091c24927f",
+    "actual_pixels_per_unit": 3896.0,
+    "actual_normalized_pivot": [
+      0.5,
+      0.5
+    ],
+    "texture_format": "RGBA32",
+    "frame_switch_geometry_stable": true,
+    "verification_scope": "Unity Editor import: source alpha, preserved texture resolution, exact rectangles, common pivot/PPU and FullRect mesh bounds. No gameplay scene or behaviour added."
+  },
+  "anatomy": {
+    "body": "stocky round-bellied adult goblin with original first-reference head and body proportions",
+    "arms": 2,
+    "legs": 2,
+    "skin": "very dark forest green",
+    "eyes": 2,
+    "face": "angry but funny in default; contented in character-specific replacement state",
+    "clothes": "opaque off-white diaper with muted blue tabs",
+    "mouth_accessory": "muted blue pacifier with ring",
+    "hand_prop": "burgundy-backed playing cards spread in a fan",
+    "rear": "matching diaper and mirrored ear asymmetry"
+  },
+  "startle_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 4,
+    "fill": "white",
+    "outline": "dark"
+  },
+  "preview": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/preview.png",
+  "download_archive": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/goblin-diaper-cards-test.zip",
+  "prompts": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/verification.json",
+  "source_character_key": "goblin-diaper-cards-test",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/manifest.json",
+  "unity_verification": "unity-verification.json",
+  "user_requested_project_import_on": "2026-11-09",
+  "unity_import_instructions": "/Users/kayosac/hukaton/output/monsters/goblin-diaper-cards-test/unity-import.txt"
+}

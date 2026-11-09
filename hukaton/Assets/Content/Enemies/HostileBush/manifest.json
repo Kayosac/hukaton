@@ -1,0 +1,421 @@
+{
+  "character": "HostileBush",
+  "display_name": "Враждебный куст",
+  "status": "atlas_and_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 1.0,
+  "user_brief": "Агрессивный куст высотой 1 м. Руки и ноги — ветки. В области лица тёмное пространство за листьями, в глубине спрятаны глаза.",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-default.png",
+  "monster_style": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "approved_monster_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-aggro.png",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "aggression": "Агр",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "attack_variant": "Forward whipping strike with a branch arm",
+  "death_eyes": "Two black X marks replace the pupils within the existing dull amber eye shapes in the dark leafy recess. No eyes or crosses on hidden rear surfaces.",
+  "atlas": "HostileBushAtlas.png",
+  "atlas_sha256": "8570735d76ea9fe1a1c76f683f2cd2a2be7978143cfc1d4725750096edcc7895",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 4032,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "HostileBush_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/front-default.png",
+      "master_sha256": "f1dbb4b13c85ad812fceb3d2d317bcf5e31a4c50edb3f7efef17bf01ca7c0ced",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-default.png",
+      "original_sha256": "fb00d05992671074f06cee10a3ea0cc165cbb32065dfd499a4c6a39fe33ada2d",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        59
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        142,
+        148,
+        1204,
+        1244
+      ],
+      "source_name": "front-default",
+      "unity_file_id": -4849238194825827672
+    },
+    {
+      "name": "HostileBush_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/back-default.png",
+      "master_sha256": "e5d810a1a32330623c20b8d7654b69c9d0d97dc5e731d1601cfcb97a681a8bc0",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/back-default.png",
+      "original_sha256": "81d59cbc40dd43a7215fed7f677bc83f84bfe65e19a47f6e45dff16e6905c48c",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        57
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        151,
+        142,
+        1185,
+        1244
+      ],
+      "source_name": "back-default",
+      "unity_file_id": 8240659667459084717
+    },
+    {
+      "name": "HostileBush_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/front-aggro.png",
+      "master_sha256": "3b9d7fb23a9abc2bbd4e3bc57e1387a5967cf444cf5a3e9017448ac3dc36a57d",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-aggro.png",
+      "original_sha256": "6ec7213c30f0d5b9e75726bf613318b7b4578761e1448669ce7f587015d76ce5",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        18
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        95,
+        57,
+        1249,
+        1244
+      ],
+      "source_name": "front-aggro",
+      "unity_file_id": -635550183237558505
+    },
+    {
+      "name": "HostileBush_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/front-hurt.png",
+      "master_sha256": "62f575fa2f5a95090803f87cad0ec5d932a9fac54e0e235f41ec83b13c097360",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-hurt.png",
+      "original_sha256": "9d4f36621b537fad878f9bc2d78b49ebc96e87865eb64ee29c6370c8782bdc7c",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        28
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        127,
+        85,
+        1217,
+        1244
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": -4316097897044864085
+    },
+    {
+      "name": "HostileBush_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/front-attack.png",
+      "master_sha256": "f04c4232c8bae85b0cc882921a9f9ca904bfdeb9924e1ecc625180bc762345fd",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-attack.png",
+      "original_sha256": "a40e5c325c0e32c1276e4448e7f80f8eeb5e1051c5c57d598adadfb947372133",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        63
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        81,
+        186,
+        1286,
+        1244
+      ],
+      "source_name": "front-attack",
+      "unity_file_id": -7228902854311674085
+    },
+    {
+      "name": "HostileBush_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/front-death.png",
+      "master_sha256": "a4887480b84f5d0e60f86b95b353c2de16acdb510a56b956520206c4f733ec12",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/front-death.png",
+      "original_sha256": "e3d2e113870c356d7bfdb3f1f805d710cd16ed1656683bbb1d6554a4a1b4be51",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        8
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        107,
+        605,
+        1237,
+        1244
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -4201653394881933684
+    },
+    {
+      "name": "HostileBush_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/masters/back-death.png",
+      "master_sha256": "ab2e3b14d4fa41fc048c645d6174adfd27b2bf500c42bbfb517e2fa934122c3f",
+      "original": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/back-death.png",
+      "original_sha256": "19ea3a3415892e043f93278e88447e28ca3072bd64d667ffc1d54beb76168515",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        16
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        109,
+        614,
+        1242,
+        1244
+      ],
+      "source_name": "back-death",
+      "unity_file_id": 5168000555423131218
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of entire source canvases before packing; no crop, resize, rotation or resampling.",
+    "source_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1244,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha threshold is only for visible contact measurement; original alpha bytes are preserved."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.0744047619047619
+  ],
+  "pixels_per_unit": 1096.0,
+  "default_visible_height_px": 1096,
+  "physical_scale_note": "PPU derives from the default visible height and 1.0 m at transform scale one, assuming 1 Unity unit = 1 metre. Unity Editor import is verified; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.0744047619047619
+    ],
+    "pixels_per_unit": 1096.0,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/HostileBush/HostileBushAtlas.png",
+    "version": "6000.3.21f1",
+    "asset_guid": "d1bc4d412e11d403baf9236a7d8ce819",
+    "actual_pixels_per_unit": 1096.0,
+    "actual_normalized_pivot": [
+      0.5,
+      0.0744047619047619
+    ],
+    "texture_format": "RGBA32",
+    "frame_switch_geometry_stable": true,
+    "verification_scope": "Unity Editor import: source alpha, preserved texture resolution, exact rectangles, common pivot/PPU and FullRect mesh bounds. No gameplay scene or behaviour added."
+  },
+  "anatomy": {
+    "body": "dense leafy shrub",
+    "arms": 2,
+    "legs": 2,
+    "limbs": "woody branching limbs with forked twig tips",
+    "eyes": 2,
+    "face": "opaque dark recess behind overlapping leaves with small dull amber eyes",
+    "mouth": false,
+    "nose": false
+  },
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 5,
+    "fill": "red",
+    "outline": "dark"
+  },
+  "preview": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/preview.png",
+  "download_archive": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/hostile-bush-test.zip",
+  "prompts": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/verification.json",
+  "source_character_key": "hostile-bush-test",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/manifest.json",
+  "unity_verification": "unity-verification.json",
+  "user_requested_project_import_on": "2026-11-09",
+  "unity_import_instructions": "/Users/kayosac/hukaton/output/monsters/hostile-bush-test/unity-import.txt"
+}
