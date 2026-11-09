@@ -10,7 +10,7 @@ namespace Hakaton.Expeditions.Cards
     /// trunk is hidden for the outing and the ally stands up in its place, no extra copy. Every copy awakens another
     /// tree; there is no squad limit. A hit on anything else, or on a tree that is already walking, spends the card
     /// with the miss feedback (no second ally, no healing). Health 12 (upgraded 18), branch strike 2 within 2.5 m,
-    /// cycle 2.5 s with a 0.8 s wind-up, μ = 3. The look is a placeholder in its own child prefab of the ally.
+    /// cycle 2.5 s with a 0.8 s wind-up, μ = 3. The ally looks like the owner's «Зловещее ожившее дерево» (its own child prefab of the ally).
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md (§ 13 for this card).
     /// </summary>
     public sealed class TreeAwakeningEffect : CardEffect, ICardStatLine

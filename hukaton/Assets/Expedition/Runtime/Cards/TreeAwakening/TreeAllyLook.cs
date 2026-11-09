@@ -22,8 +22,8 @@ namespace Hakaton.Expeditions.Cards
 
     /// <summary>
     /// The swappable look of the awakened tree: a child prefab under the ally that only presents the state
-    /// (gameplay, colliders and sizes stay on <see cref="TreeAlly"/>). The current look is a placeholder
-    /// (<see cref="PlaceholderTreeLook"/>); the owner's art replaces it by another child prefab with its own subclass.
+    /// (gameplay, colliders and sizes stay on <see cref="TreeAlly"/>). The current look is the owner's «Зловещее ожившее
+    /// дерево» drawn from its atlas (<see cref="SpriteTreeAllyLook"/>); another look is another child prefab with its own subclass.
     /// </summary>
     public abstract class TreeAllyLook : MonoBehaviour
     {
