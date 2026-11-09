@@ -6,7 +6,8 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>
     /// «Восходящий поток» (воздух, ранг 4/5). A vertical air column at the point of impact: radius 1.5 m, height 6 m
     /// (upgraded 8 m), 12 s. Lifts the player, creatures and objects with μ ≤ 2 at up to 4 m/s; one can step out
-    /// sideways. A card that hits a wall, a ceiling or a creature stands the column on the ground below the contact.
+    /// sideways. A card that hits a wall, a ceiling, a creature or a movable body (e.g. the top of a Stone cube)
+    /// stands the column on the ground below the contact, so it lifts what was hit.
     /// See <see cref="UpdraftColumn"/>. Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class UpdraftEffect : CardEffect, ICardStatLine
@@ -35,7 +36,8 @@ namespace Hakaton.Expeditions.Cards
         public override void Apply(in ImpactContext c)
         {
             Vector3 position = c.Point;
-            if (c.Normal.y < floorNormal && FindGround(c.Point + c.Normal * .15f, groundSearch, out var ground)) position = ground;
+            bool onBody = (c.Body && !c.Body.isKinematic) || c.Creature != null || c.HitCombatant != null;
+            if ((c.Normal.y < floorNormal || onBody) && FindGround(c.Point + c.Normal * .15f, groundSearch, out var ground)) position = ground;
             var column = c.World.SpawnForOuting(columnPrefab, position, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
             if (!column) { Feedback(c, false); return; }
             column.Configure(c.Pick(heightBase, heightUpgraded), radius, durationSeconds, riseSpeed, maxMass);
