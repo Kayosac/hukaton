@@ -15,12 +15,12 @@ namespace Hakaton.ShopBlockout.Tests
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShopBlockout/Prefabs/GoblinCeilingRig.prefab");
             fixture=Object.Instantiate(prefab);
             fixture.SetActive(false);
-            // The rig's own saved references: hatch, handle and cables live in the nested ShopArt mesh prefab.
+            // The saved mechanism and billboard are editable before Play.
             lift=fixture.GetComponent<SuspendedGoblin>();
             Assert.That(lift,Is.Not.Null);
             Assert.That(lift.goblinRoot&&lift.stowedPose&&lift.deployedPose&&lift.hatchHinge&&lift.pullHandle,Is.True);
             for(int i=0;i<2;i++)
-                Assert.That(lift.cableMeshes[i]&&lift.cableTops[i]&&lift.cableHarnesses[i]&&lift.cableHarnesses[i].IsChildOf(lift.goblinRoot),Is.True);
+                Assert.That(lift.cableSprites[i]&&lift.cableTops[i]&&lift.cableHarnesses[i]&&lift.cableHarnesses[i].IsChildOf(lift.goblinRoot),Is.True);
             lift.startDeployed=false;
         }
 
@@ -64,12 +64,48 @@ namespace Hakaton.ShopBlockout.Tests
         {
             for(int i=0;i<2;i++)
             {
-                var cable=lift.cableMeshes[i];
-                Vector3 top=cable.TransformPoint(Vector3.down*(lift.cableMeshLength*.5f));
-                Vector3 bottom=cable.TransformPoint(Vector3.up*(lift.cableMeshLength*.5f));
+                var rope=lift.cableSprites[i];
+                var cable=rope.transform;
+                Vector3 top=cable.TransformPoint(Vector3.up*(rope.size.y*.5f));
+                Vector3 bottom=cable.TransformPoint(Vector3.down*(rope.size.y*.5f));
                 Assert.That(Vector3.Distance(top,lift.cableTops[i].position),Is.LessThan(.0001f));
                 Assert.That(Vector3.Distance(bottom,lift.cableHarnesses[i].position),Is.LessThan(.0001f));
             }
+        }
+
+        [Test]
+        public void WholeSuspensionFacesPlayerWithoutPitchRollOrDetachedRopes()
+        {
+            var viewer = new GameObject("Test viewer").transform;
+            try
+            {
+                lift.viewer = viewer;
+                lift.Summon();
+                for (int step = 0; step < 24; step++)
+                {
+                    float angle = step * Mathf.PI / 6;
+                    viewer.position = lift.transform.position + new Vector3(Mathf.Sin(angle) * 3, step % 2 == 0 ? 5 : -2, Mathf.Cos(angle) * 3);
+                    lift.Advance(.1f);
+                    typeof(SuspendedGoblin).GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(lift, null);
+                    Vector3 away = lift.suspensionRoot.position - viewer.position;
+                    away.y = 0;
+                    Assert.That(Vector3.Dot(lift.suspensionRoot.forward, away.normalized), Is.GreaterThan(.9999f));
+                    Assert.That(Vector3.Distance(lift.suspensionRoot.up, Vector3.up), Is.LessThan(.0001f));
+                    Assert.That(Quaternion.Angle(lift.drawing.transform.rotation, lift.suspensionRoot.rotation), Is.LessThan(.001f));
+                    foreach (var rope in lift.cableSprites)
+                    {
+                        Assert.That(rope.drawMode, Is.EqualTo(SpriteDrawMode.Tiled));
+                        Assert.That(rope.transform.localScale, Is.EqualTo(Vector3.one));
+                        Assert.That(Vector3.Dot(rope.transform.forward, lift.suspensionRoot.forward), Is.GreaterThan(.9999f));
+                    }
+                    AssertCablesAttached();
+                }
+                Quaternion previous = lift.suspensionRoot.rotation;
+                viewer.position = lift.suspensionRoot.position + Vector3.up * 3;
+                typeof(SuspendedGoblin).GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(lift, null);
+                Assert.That(Quaternion.Angle(previous, lift.suspensionRoot.rotation), Is.LessThan(.001f));
+            }
+            finally { Object.DestroyImmediate(viewer.gameObject); }
         }
     }
 }

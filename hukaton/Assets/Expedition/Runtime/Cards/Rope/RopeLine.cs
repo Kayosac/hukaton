@@ -47,6 +47,10 @@ namespace Hakaton.Expeditions.Cards
         [Min(.1f)] public float topReach = .55f;
         [Tooltip("The hands are this far below the top of the player's capsule.")]
         public float handsBelowTop = .2f;
+        [Tooltip("Visual only: the held cord runs to the hands this far in front of the body and this far below the grip, not through the camera.")]
+        public float handsForward = .4f, handsDown = .5f;
+        [Tooltip("Visual only: pieces of a held rope this close to the camera are hidden.")]
+        [Min(0)] public float cameraClearance = .45f;
         [Tooltip("Swinging push from the movement keys, m/s² (real units).")]
         [Min(0)] public float pumpAcceleration = 5;
         [Tooltip("Looking further up/down than this, W/S climb; otherwise they swing forward/back.")]
@@ -77,7 +81,7 @@ namespace Hakaton.Expeditions.Cards
         public string grabPrompt = "<b>E</b>  Схватиться";
         public string holdPrompt = "<b>E</b>  Отпустить";
         [Tooltip("Shown for the first seconds of the first grab in a session.")]
-        [TextArea] public string firstHoldPrompt = "<b>W</b>/<b>S</b> — вверх-вниз, если смотреть вверх или вниз, иначе раскачка   <b>A</b>/<b>D</b> — вбок   <b>E</b> — отпустить";
+        [TextArea] public string firstHoldPrompt = "<b>W</b>/<b>S</b> — по взгляду: вверх, вниз или раскачка   <b>A</b>/<b>D</b> — вбок   <b>E</b> — отпустить";
         [Min(0)] public float firstHoldPromptSeconds = 5;
 
         // ---------- registry ----------
@@ -137,6 +141,7 @@ namespace Hakaton.Expeditions.Cards
         bool sleeping;
         Vector3[] positions = Array.Empty<Vector3>(), previous = Array.Empty<Vector3>(), safe = Array.Empty<Vector3>();
         bool[] contact = Array.Empty<bool>();
+        Renderer[] pieceRenderers = Array.Empty<Renderer>();
         int collisionMask;
 
         FirstPersonMotor motor;
@@ -231,7 +236,13 @@ namespace Hakaton.Expeditions.Cards
                 positions[i] = previous[i] = safe[i] = anchor + Vector3.down * (i * .012f) + n * (i * .002f);
                 contact[i] = false;
             }
-            for (int i = 0; i < pieces; i++) if (segments[i]) segments[i].gameObject.SetActive(i < links);
+            pieceRenderers = new Renderer[pieces];
+            for (int i = 0; i < pieces; i++)
+                if (segments[i])
+                {
+                    segments[i].gameObject.SetActive(i < links);
+                    pieceRenderers[i] = segments[i].GetComponent<Renderer>();
+                }
             lastAnchor = anchor;
             transform.position = anchor;
             Attached = true;
@@ -370,6 +381,15 @@ namespace Hakaton.Expeditions.Cards
         {
             var controller = motor.characterController;
             return motor.transform.position + Vector3.up * (controller.center.y + controller.height * .5f - handsBelowTop);
+        }
+
+        /// <summary>Where the held cord is drawn to: the hands in front of the chest (the body hangs from <see cref="GripPoint"/>).</summary>
+        Vector3 HandPoint()
+        {
+            Vector3 forward = world && world.viewCamera ? world.viewCamera.transform.forward : motor.transform.forward;
+            forward.y = 0;
+            forward = forward.sqrMagnitude > 1e-4f ? forward.normalized : Vector3.zero;
+            return GripPoint() + forward * handsForward + Vector3.down * handsDown;
         }
 
         void OnPlayerHealthChanged(int delta)
@@ -527,7 +547,7 @@ namespace Hakaton.Expeditions.Cards
         void Step(float h, Vector3 anchor)
         {
             int pinned = holding && motor ? GripIndex() : -1;
-            Vector3 grip = pinned >= 0 ? GripPoint() : Vector3.zero;
+            Vector3 grip = pinned >= 0 ? HandPoint() : Vector3.zero;
             Vector3 fall = Vector3.down * (gravity * h * h);
             for (int i = 0; i < count; i++)
             {
@@ -592,6 +612,7 @@ namespace Hakaton.Expeditions.Cards
             if (count == 0 || segments == null) return;
             float fade = detached ? Mathf.Clamp01((detachedLinger - (Time.time - detachedAt)) / .5f) : 1;
             int links = count - 1;
+            Vector3 eye = holding && world && world.viewCamera ? world.viewCamera.transform.position : new Vector3(1e6f, 1e6f, 1e6f);
             for (int i = 0; i < links && i < segments.Length; i++)
             {
                 var piece = segments[i];
@@ -599,13 +620,16 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 a = positions[i], b = positions[i + 1], offset = b - a;
                 float distance = offset.magnitude;
                 piece.position = (a + b) * .5f;
+                if (i < pieceRenderers.Length && pieceRenderers[i])
+                    pieceRenderers[i].enabled = (piece.position - eye).sqrMagnitude > cameraClearance * cameraClearance;
                 if (distance > 1e-4f)
                 {
                     Vector3 along = offset / distance;
                     Vector3 up = Mathf.Abs(along.y) > .95f ? Vector3.forward : Vector3.up;
                     piece.rotation = Quaternion.LookRotation(along, up) * Quaternion.Euler(0, 0, i * 47f);
                 }
-                float stretch = Mathf.Max(.25f, distance / segmentMeshLength) * segmentOverlap;
+                // A stretched link (the cord pulled between two held points) is capped: long thin pieces, never blades.
+                float stretch = Mathf.Clamp(distance / segmentMeshLength, .25f, 2.5f) * segmentOverlap;
                 piece.localScale = new Vector3(fade, fade, stretch * Mathf.Max(.05f, fade));
             }
             if (knot)

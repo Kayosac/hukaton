@@ -208,12 +208,11 @@ namespace Hakaton.Expeditions.Cards
             if (settings.agentTypeID == -1) return;
             settings.overrideVoxelSize = true;
             settings.voxelSize = navVoxelSize;
-            Vector3 forward = transform.forward;
-            // Links first, against the valley's mesh as it is (before the branch's own mesh exists).
-            Vector3 tip = transform.TransformPoint(0, 0, Length - .3f);
-            Vector3 root = transform.TransformPoint(0, 0, Mathf.Min(Length * .5f, .5f));
-            TryLink(tip, tip + forward * .8f);
-            TryLink(root, root - forward * .9f);
+            // Where the ends meet walkable ground: sampled on the valley's mesh before the branch's own mesh exists.
+            // The links start well inside the branch (its mesh is eroded by the agent radius at the ends).
+            float inside = Mathf.Min(Length * .5f, 1.1f);
+            bool toTip = SampleGround(transform.TransformPoint(0, 0, Length + .7f), Length, out var tipGround);
+            bool toRoot = SampleGround(transform.TransformPoint(0, 0, -.9f), 0, out var rootGround);
             var size = new Vector3(Width, Thickness, Length);
             var matrix = Matrix4x4.TRS(transform.TransformPoint(0, -Thickness * .5f, Length * .5f), transform.rotation, Vector3.one);
             var sources = new List<NavMeshBuildSource>
@@ -226,22 +225,30 @@ namespace Hakaton.Expeditions.Cards
                 bounds.Encapsulate(transform.TransformPoint(x * Width * .5f, 0, z * Length));
             bounds.Expand(new Vector3(1, 4, 1));
             navigationData = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
-            if (navigationData)
-            {
-                navigation = NavMesh.AddNavMeshData(navigationData);
-                navigationAdded = true;
-            }
+            if (!navigationData) return;
+            navigation = NavMesh.AddNavMeshData(navigationData);
+            navigationAdded = true;
+            if (toTip) AddLink(transform.TransformPoint(0, 0, Length - inside), tipGround);
+            if (toRoot) AddLink(transform.TransformPoint(0, 0, inside), rootGround);
         }
 
-        void TryLink(Vector3 onBranch, Vector3 probe)
+        /// <summary>Walkable valley ground near <paramref name="probe"/>, level enough with the branch end at <paramref name="end"/>.</summary>
+        bool SampleGround(Vector3 probe, float end, out Vector3 ground)
         {
-            if (!NavMesh.SamplePosition(probe, out var hit, linkSearch, NavMesh.AllAreas)) return;
-            if (Mathf.Abs(hit.position.y - onBranch.y) > linkMaxRise) return;
+            ground = default;
+            if (!NavMesh.SamplePosition(probe, out var hit, linkSearch, NavMesh.AllAreas)) return false;
+            if (Mathf.Abs(hit.position.y - transform.TransformPoint(0, 0, end).y) > linkMaxRise) return false;
+            ground = hit.position;
+            return true;
+        }
+
+        void AddLink(Vector3 onBranch, Vector3 ground)
+        {
             var link = new NavMeshLinkData
             {
                 startPosition = onBranch,
-                endPosition = hit.position,
-                width = Mathf.Max(.1f, Width * .5f),
+                endPosition = ground,
+                width = 0,
                 costModifier = -1,
                 bidirectional = true,
                 area = 0,

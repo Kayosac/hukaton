@@ -11,18 +11,20 @@ namespace Hakaton.ShopBlockout
     }
 
     /// <summary>Animates an authored ceiling rig. The body, hatch, cables and poses are all saved assets.</summary>
+    [DefaultExecutionOrder(600)]
     public sealed class SuspendedGoblin : MonoBehaviour
     {
         [Header("Authored mechanism")]
         public Transform goblinRoot, stowedPose, deployedPose, hatchHinge, pullHandle;
-        public Transform[] cableMeshes = new Transform[2];
+        [Tooltip("Common Y-only billboard for the goblin, rope sprites and ceiling attachment points.")]
+        public Transform suspensionRoot;
+        [Tooltip("Player camera, assigned by the scene.")]
+        public Transform viewer;
+        public SpriteRenderer[] cableSprites = new SpriteRenderer[2];
         public Transform[] cableTops = new Transform[2];
         public Transform[] cableHarnesses = new Transform[2];
         [Tooltip("The goblin's hand-drawn sprite: startles on the way down, pleased after a purchase.")]
         public SuspendedGoblinSprite drawing;
-        [Tooltip("Length of each cable mesh at local Y scale 1. Unity cylinders are 2 units tall.")]
-        [Min(.001f)]
-        public float cableMeshLength = 2;
         public Vector3 closedHatchEuler = Vector3.zero;
         public Vector3 openHatchEuler = new Vector3(0, 0, -105);
         public bool startDeployed;
@@ -56,11 +58,11 @@ namespace Hakaton.ShopBlockout
         {
             if (initialized) return true;
             if (!goblinRoot || !stowedPose || !deployedPose || !hatchHinge || !pullHandle || stowedPose.IsChildOf(goblinRoot)
-                || deployedPose.IsChildOf(goblinRoot) || !Complete(cableMeshes) || !Complete(cableTops)
+                || deployedPose.IsChildOf(goblinRoot) || !suspensionRoot || !Complete(cableSprites) || !Complete(cableTops)
                 || !Complete(cableHarnesses))
             {
                 Debug.LogError(
-                    "SuspendedGoblin needs an authored body, two external poses, hatch, handle and two complete cables.", this);
+                    "SuspendedGoblin needs an authored suspension, body, two external poses, hatch, handle and two complete sprite ropes.", this);
                 return false;
             }
             initialized = true;
@@ -70,7 +72,7 @@ namespace Hakaton.ShopBlockout
             return true;
         }
 
-        static bool Complete(Transform[] values) => values != null && values.Length == 2 && values[0] && values[1];
+        static bool Complete<T>(T[] values) where T : Object => values != null && values.Length == 2 && values[0] && values[1];
 
         /// <summary>A repeated pull during the descent cannot restart or duplicate it.</summary>
         public bool Summon()
@@ -84,6 +86,19 @@ namespace Hakaton.ShopBlockout
         }
 
         void Update() { Advance(Time.deltaTime); }
+
+        void LateUpdate()
+        {
+            if (!initialized) return;
+            if (viewer)
+            {
+                Vector3 away = suspensionRoot.position - viewer.position;
+                away.y = 0;
+                if (away.sqrMagnitude > .0001f)
+                    suspensionRoot.rotation = Quaternion.LookRotation(away, Vector3.up);
+            }
+            UpdateCables();
+        }
 
         public void Advance(float deltaTime)
         {
@@ -122,28 +137,34 @@ namespace Hakaton.ShopBlockout
             float eased = 1 - Mathf.Pow(1 - lower, 3);
             Vector3 position = Vector3.Lerp(stowedPose.position, deployedPose.position, eased);
             position += Vector3.down * (Mathf.Sin(lower * Mathf.PI) * lower * lower * landingOvershoot);
-            goblinRoot.SetPositionAndRotation(position, Quaternion.Slerp(stowedPose.rotation, deployedPose.rotation, eased));
+            goblinRoot.position = position;
             float pull = State == GoblinLiftState.OpeningHatch
                 ? Mathf.Sin(Mathf.Clamp01(phaseTime / Mathf.Max(.01f, hatchSeconds)) * Mathf.PI)
                 : 0;
             pullHandle.localPosition = handleRestPosition + Vector3.down * (pull * handlePullDistance);
-            for (int i = 0; i < 2; i++) UpdateCable(cableMeshes[i], cableTops[i].position, cableHarnesses[i].position);
+            UpdateCables();
         }
 
-        void UpdateCable(Transform cable, Vector3 top, Vector3 bottom)
+        void UpdateCables()
         {
-            // Work in the mesh parent's coordinates so authored rig rotation/scale remains editable.
+            for (int i = 0; i < 2; i++) UpdateCable(cableSprites[i], cableTops[i].position, cableHarnesses[i].position);
+        }
+
+        static void UpdateCable(SpriteRenderer rope, Vector3 top, Vector3 bottom)
+        {
+            Transform cable = rope.transform;
+            // All attachment points share the billboard plane; only the rope's visible length changes.
             if (cable.parent)
             {
                 top = cable.parent.InverseTransformPoint(top);
                 bottom = cable.parent.InverseTransformPoint(bottom);
             }
-            Vector3 direction = bottom - top;
+            Vector3 direction = top - bottom;
             cable.localPosition = (top + bottom) * .5f;
-            if (direction.sqrMagnitude > .000001f) cable.localRotation = Quaternion.FromToRotation(Vector3.up, direction);
-            Vector3 scale = cable.localScale;
-            scale.y = Mathf.Max(.00001f, direction.magnitude / Mathf.Max(.001f, cableMeshLength));
-            cable.localScale = scale;
+            if (direction.sqrMagnitude > .000001f)
+                cable.localRotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
+            // Tiled SpriteRenderers keep the strand spacing and width constant throughout descent.
+            rope.size = new Vector2(rope.size.x, Mathf.Max(.00001f, direction.magnitude));
         }
     }
 }
