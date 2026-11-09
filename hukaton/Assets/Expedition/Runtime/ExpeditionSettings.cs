@@ -46,6 +46,17 @@ namespace Hakaton.Expeditions
         [Range(0, 1)] public float defeatLootLoss = .5f;
         [Tooltip("Below this the world is out of bounds.")]
         public float killHeight = -8;
+        [Header("Water")]
+        [Tooltip("Water at least this deep over the player's feet, m, drowns at once. Shallower water does nothing.")]
+        [Min(.1f)] public float drownDepth = 1f;
+        [Tooltip("How long the view darkens while the body sinks before the defeat fade, seconds.")]
+        [Min(.05f)] public float drownSeconds = 1.2f;
+        [Tooltip("Sinking speed while drowning, m/s.")]
+        [Min(0)] public float drownSinkSpeed = .9f;
+        [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
+        [Range(0, 1)] public float drownDarkness = .72f;
+        [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]
+        public Color drownColour = new Color(.02f, .07f, .09f, 1);
         [Header("Creature physics (board v0.1)")]
         [Tooltip("Normal impact speed for 1 / 2 / 4 damage: 6 / 9 / 12 m/s.")]
         [Min(0)] public float collisionDamageSpeed = 6;

@@ -14,7 +14,7 @@ namespace Hakaton.Expeditions
     public sealed class WorldObstacle : MonoBehaviour
     {
         public ObstacleKind kind;
-        [Tooltip("Thorns: the solid wall. Lake: the deep-water hazard trigger.")]
+        [Tooltip("Thorns: the solid wall. Lake: the water volume; shallow water is harmless, deep water drowns (ExpeditionSettings.drownDepth).")]
         public Collider barrier;
         public GameObject intact, changed;
         [Tooltip("Lake only: solid surface on the Water layer that cards hit and the player falls through.")]
@@ -30,7 +30,8 @@ namespace Hakaton.Expeditions
         public Color tint = Color.white;
 
         public bool Resolved { get; private set; }
-        float nextHazard;
+        Vector3[] surfaceTriangles;
+        Renderer surfaceRenderer;
         Vector3 changedScale = Vector3.one, intactScale = Vector3.one;
         bool recorded;
         Renderer[] intactRenderers;
@@ -44,6 +45,33 @@ namespace Hakaton.Expeditions
             intactScale = intact.transform.localScale;
             intactRenderers = intact.GetComponentsInChildren<Renderer>(true);
             block = new MaterialPropertyBlock();
+            if (kind == ObstacleKind.Lake) RecordSurface();
+        }
+
+        /// <summary>The visible water mesh is the surface the depth is measured from (rivers slope and step).</summary>
+        void RecordSurface()
+        {
+            var filter = intact.GetComponent<MeshFilter>();
+            surfaceRenderer = intact.GetComponent<Renderer>();
+            var mesh = filter ? filter.sharedMesh : null;
+            if (!mesh || !mesh.isReadable) return;
+            var vertices = mesh.vertices;
+            var indices = mesh.triangles;
+            var toWorld = filter.transform.localToWorldMatrix;
+            surfaceTriangles = new Vector3[indices.Length];
+            for (int i = 0; i < indices.Length; i++) surfaceTriangles[i] = toWorld.MultiplyPoint3x4(vertices[indices[i]]);
+        }
+
+        /// <summary>Water surface height above <paramref name="point"/>; false when the point is beside the water.</summary>
+        public bool WaterLevelAt(Vector3 point, out float level)
+        {
+            Record();
+            if (surfaceTriangles != null) return ExpeditionEffectRules.SurfaceHeight(surfaceTriangles, point.x, point.z, out level);
+            // No readable mesh: the lowest level the surface collider allows, so a sloping river never drowns early.
+            if (waterSurface && waterSurface.enabled) level = waterSurface.bounds.min.y + .1f;
+            else if (surfaceRenderer) level = surfaceRenderer.bounds.max.y;
+            else level = barrier.bounds.max.y;
+            return true;
         }
 
         public void ResetForOuting()
@@ -138,11 +166,11 @@ namespace Hakaton.Expeditions
 
         void OnTriggerStay(Collider other)
         {
-            if (kind != ObstacleKind.Lake || Resolved || Time.time < nextHazard || !world.Running) return;
+            if (kind != ObstacleKind.Lake || Resolved || !world.Running) return;
             if (other.GetComponentInParent<PlayerVitals>() != world.vitals) return;
-            nextHazard = Time.time + 1.2f;
-            world.vitals.Hurt(1, Vector3.up * 5, null);
-            world.Announce("Глубокая вода. Заморозьте поверхность", 2.5f);
+            // Wading is free; deep water over the feet drowns at once.
+            Vector3 feet = world.motor.transform.position;
+            if (WaterLevelAt(feet, out float level) && level - feet.y >= world.settings.drownDepth) world.Drown();
         }
     }
 }

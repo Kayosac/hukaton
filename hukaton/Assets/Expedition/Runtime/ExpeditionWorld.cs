@@ -14,7 +14,7 @@ namespace Hakaton.Expeditions
     /// their effects and runs the return / defeat transitions. Spawns only authored prefabs.
     /// Services for card effects (objects until the end of the outing, zones, fighters) are in ExpeditionWorld.Cards.cs.
     /// </summary>
-    public sealed partial class ExpeditionWorld : MonoBehaviour
+    public sealed partial class ExpeditionWorld : MonoBehaviour, IExternalMotorControl
     {
         [Header("Game systems")]
         public DeckPrototype workshop;
@@ -204,7 +204,16 @@ namespace Hakaton.Expeditions
 
         // ---------- return and defeat ----------
 
-        public void ReturnToShop(bool defeated)
+        public void ReturnToShop(bool defeated) => ReturnToShop(defeated, false);
+
+        /// <summary>Deep water: no damage over time, the player drowns at once — the view darkens while the body sinks.</summary>
+        public void Drown()
+        {
+            if (!Running || !vitals.Drain()) return;
+            ReturnToShop(true, true);
+        }
+
+        void ReturnToShop(bool defeated, bool drowned)
         {
             if (!Running) return;
             if (!defeated && !workshop.Model.Current.ReturnHome()) return;
@@ -212,13 +221,35 @@ namespace Hakaton.Expeditions
             Returning = true;
             thrower.Cancel();
             control.SetBlocked(this, true);
-            StartCoroutine(ReturnTransition(defeated));
+            StartCoroutine(ReturnTransition(defeated, drowned));
         }
 
-        IEnumerator ReturnTransition(bool defeated)
+        /// <summary>The body sinks under water; nothing else steers it (a rope lets go).</summary>
+        IEnumerator Sink()
+        {
+            if (motor.ExternallyControlled) motor.RevokeExternalControl();
+            bool sinking = motor.TryClaimExternalControl(this);
+            if (feel) { feel.AddTrauma(.2f); feel.Kick(new Vector3(-30, 0, 14)); }
+            Play(cues ? cues.playerHurt : null);
+            float time = 0;
+            while (time < settings.drownSeconds)
+            {
+                time += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(time / settings.drownSeconds);
+                if (fade) fade.Set(Mathf.Lerp(0, settings.drownDarkness, Ease.OutCubic(k)), settings.drownColour);
+                if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
+                    motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
+                yield return null;
+            }
+        }
+
+        Vector3 IExternalMotorControl.OnControlRevoked() => Vector3.zero;
+
+        IEnumerator ReturnTransition(bool defeated, bool drowned)
         {
             var eye = viewCamera.transform;
-            if (defeated)
+            if (drowned) yield return Sink();
+            else if (defeated)
             {
                 if (time) time.SlowMotion(.9f, .25f, .2f);
                 if (feel) { feel.AddTrauma(.6f); feel.Kick(new Vector3(40, 0, 25)); }
@@ -256,7 +287,9 @@ namespace Hakaton.Expeditions
             hud.canvas.enabled = false;
             Returning = false;
             // Complete only after local cleanup: the integration callback disables this world root.
-            workshop.CompleteOuting(defeated
+            workshop.CompleteOuting(drowned
+                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}."
+                : defeated
                 ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}."
                 : $"Вы дома. В запас лавки добавлено: {kept}.", retained, defeated);
             if (fade) fade.StartCoroutine(fade.FadeTo(0, settings.arriveFadeSeconds));

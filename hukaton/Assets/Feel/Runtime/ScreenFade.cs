@@ -16,13 +16,19 @@ namespace Hakaton.Feel
 
         public float Amount { get; private set; }
         public bool Busy { get; private set; }
+        Color tint;
 
-        void Awake() => Set(0);
+        void Awake() { tint = colour; Set(0); }
 
-        public void Set(float amount)
+        /// <summary>Covers the screen in the current colour: <see cref="colour"/> unless a tinted cover is still up.</summary>
+        public void Set(float amount) => Set(amount, tint);
+
+        /// <summary>Covers the screen in a one-off colour (deep water). Once the cover clears, <see cref="colour"/> is back.</summary>
+        public void Set(float amount, Color with)
         {
             Amount = Mathf.Clamp01(amount);
-            cover.color = new Color(colour.r, colour.g, colour.b, Amount);
+            tint = Amount > 0 ? with : colour;
+            cover.color = new Color(tint.r, tint.g, tint.b, Amount);
             cover.raycastTarget = Amount > .01f;
             canvas.enabled = Amount > .001f || (titleGroup && titleGroup.alpha > .001f);
         }

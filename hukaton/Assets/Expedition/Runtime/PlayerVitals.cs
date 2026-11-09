@@ -94,6 +94,18 @@ namespace Hakaton.Expeditions
             return true;
         }
 
+        /// <summary>Instant death (deep water): hearts empty at once, ignoring protection. The caller runs the defeat.</summary>
+        public bool Drain()
+        {
+            if (!world.Running || HalfHearts == 0) return false;
+            PreviousHalfHearts = HalfHearts;
+            HalfHearts = 0;
+            LastChangeTime = Time.time;
+            LastChangeWasDamage = true;
+            Changed?.Invoke(HalfHearts - PreviousHalfHearts);
+            return true;
+        }
+
         void OnLanded(float speed)
         {
             if (!world || !world.Running) return;
