@@ -6,12 +6,12 @@ using UnityEngine.SceneManagement;
 
 namespace Hukaton.Rendering
 {
-    /// <summary>Renders the world once at an authored resolution, then presents it before native UI.</summary>
+    /// <summary>Renders the world at an authored resolution, then presents native artwork and UI.</summary>
     [DisallowMultipleComponent, RequireComponent(typeof(Camera)), DefaultExecutionOrder(500)]
     public sealed class WorldResolution : MonoBehaviour
     {
         public WorldResolutionSettings Settings;
-        [Tooltip("Renderer, который выводит 3D-кадр и UI в разрешении экрана.")]
+        [Tooltip("Renderer, который выводит 3D-кадр, исключённые слои и UI в разрешении экрана.")]
         public ScriptableRendererData PresentationRenderer;
 
         sealed class RuntimeState
@@ -35,7 +35,9 @@ namespace Hukaton.Rendering
 
         public RenderTexture Image => state?.Image;
         public Camera OutputCamera => state?.Output;
-        public int WorldLayerMask => state == null ? 0 : state.OriginalCullingMask & ~NativeWorldUI.Mask;
+        public int NativeArtworkLayerMask => state == null || !Settings ? 0
+            : state.OriginalCullingMask & Settings.NativeResolutionLayers.value & ~NativeWorldUI.Mask;
+        public int WorldLayerMask => state == null ? 0 : state.OriginalCullingMask & ~(NativeWorldUI.Mask | NativeArtworkLayerMask);
         public bool IsActive => isActiveAndEnabled && Settings && Settings.Enabled && Image;
 
         void OnEnable() { if (Application.isPlaying) Refresh(); }
@@ -65,7 +67,7 @@ namespace Hukaton.Rendering
                 var world = GetComponent<Camera>();
                 state = new RuntimeState { World = world, OriginalTarget = world.targetTexture, OriginalAspect = world.aspect, OriginalCullingMask = world.cullingMask,
                     OriginalDynamicResolution = world.allowDynamicResolution, OriginalMSAA = world.allowMSAA };
-                var output = new GameObject("World presentation · native UI") { hideFlags = HideFlags.HideAndDontSave };
+                var output = new GameObject("World presentation · native artwork and UI") { hideFlags = HideFlags.HideAndDontSave };
                 output.transform.SetParent(transform, false);
                 state.Output = output.AddComponent<Camera>();
                 state.Output.cullingMask = state.OriginalCullingMask;

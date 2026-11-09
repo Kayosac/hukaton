@@ -10,11 +10,13 @@ namespace Hukaton.Rendering
         public bool Enabled = true;
         [Tooltip("Ширина 3D-кадра для Integer и Fit. В Adaptive рассчитывается по высоте и пропорциям экрана.")]
         [Min(16)] public int Width = 640;
-        [Tooltip("Высота 3D-кадра, включая небо, частицы и дизеринг. UI использует разрешение экрана. Диапазон: 16–4096. В Adaptive при достижении предела ширины 4096 высота также уменьшается.")]
+        [Tooltip("Высота 3D-кадра, включая небо, частицы и дизеринг. UI и исключённые слои используют разрешение экрана. Диапазон: 16–4096. В Adaptive при достижении предела ширины 4096 высота также уменьшается.")]
         [Min(16)] public int Height = 360;
         [Tooltip("Adaptive: фиксированная высота, ширина под пропорции экрана, без полей. Integer: фиксированные Width/Height и целый множитель. Fit: фиксированные Width/Height с сохранением пропорций. Все режимы используют nearest-neighbor; Adaptive и Fit допускают дробный масштаб.")]
         public WorldUpscaling Upscaling = WorldUpscaling.Adaptive;
         public Color BorderColor = Color.black;
+        [Tooltip("Слои, которые рисуются в разрешении экрана поверх уменьшенного мира, с учётом его глубины. Native Artwork: NPC, существа и карты. UI исключается отдельно.")]
+        public LayerMask NativeResolutionLayers = 1 << 9;
 
         public Vector2Int Resolution => new Vector2Int(Mathf.Clamp(Width, 16, 4096), Mathf.Clamp(Height, 16, 4096));
 

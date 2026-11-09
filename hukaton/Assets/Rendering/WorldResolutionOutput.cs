@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Hukaton.Rendering
 {
-    /// <summary>Identifies the native-resolution presentation camera, which never renders 3D geometry.</summary>
+    /// <summary>Identifies the presentation camera for the upscaled world, native artwork and UI.</summary>
     [DisallowMultipleComponent]
     public sealed class WorldResolutionOutput : MonoBehaviour
     {

@@ -6,19 +6,19 @@ using UnityEngine.Rendering.Universal;
 
 namespace Hukaton.Rendering
 {
-    /// <summary>Native-resolution depth-only occlusion or UI, clipped to the displayed world's viewport.</summary>
+    /// <summary>Native-resolution world occlusion, artwork or UI, clipped to the displayed world's viewport.</summary>
     public sealed class NativeWorldUIPass : ScriptableRenderPass
     {
         static readonly ShaderTagId[] Tags = { new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly"), new ShaderTagId("SRPDefaultUnlit") };
-        readonly bool depthOnly, transparent;
-        readonly Material depthMaterial;
+        static readonly ShaderTagId[] DepthTags = { new ShaderTagId("DepthOnly"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly"), new ShaderTagId("SRPDefaultUnlit") };
+        readonly bool depthOnly, transparent, artwork;
         WorldResolution owner;
 
-        public NativeWorldUIPass(string name, int order, bool depthOnly, bool transparent, Material material = null)
+        public NativeWorldUIPass(string name, int order, bool depthOnly, bool transparent, bool artwork = false)
         {
             profilingSampler = new ProfilingSampler(name);
             renderPassEvent = (RenderPassEvent)((int)RenderPassEvent.AfterRenderingPostProcessing + order);
-            this.depthOnly = depthOnly; this.transparent = transparent; depthMaterial = material;
+            this.depthOnly = depthOnly; this.transparent = transparent; this.artwork = artwork;
         }
         public void Setup(WorldResolution source) => owner = source;
 
@@ -27,14 +27,26 @@ namespace Hukaton.Rendering
             var queue = transparent ? RenderQueueRange.transparent : RenderQueueRange.opaque;
             // Background sky meshes have no surface depth and must not occlude the UI.
             if (depthOnly) queue.lowerBound = (int)RenderQueue.Geometry;
-            return new RendererListDesc(Tags, culling, camera) {
-                layerMask = depthOnly ? owner.WorldLayerMask : NativeWorldUI.Mask,
+            // Keep each occluder's own alpha clipping and vertex animation (foliage, fences, etc.).
+            // Prefer its DepthOnly pass, with a colour-masked forward pass as fallback.
+            var state = new RenderStateBlock(RenderStateMask.Nothing);
+            if (depthOnly || !artwork)
+            {
+                state.mask = RenderStateMask.Depth;
+                state.depthState = new DepthState(!transparent, CompareFunction.LessEqual);
+            }
+            if (depthOnly)
+            {
+                state.mask |= RenderStateMask.Blend;
+                state.blendState = new BlendState { blendState0 = new RenderTargetBlendState((ColorWriteMask)0) };
+            }
+            // Artwork retains material depth rules: world cards are occluded, hand cards use ZTest Always.
+            return new RendererListDesc(depthOnly ? DepthTags : Tags, culling, camera) {
+                layerMask = depthOnly ? owner.WorldLayerMask : artwork ? owner.NativeArtworkLayerMask : NativeWorldUI.Mask,
                 renderQueueRange = queue,
                 sortingCriteria = transparent ? SortingCriteria.CommonTransparent : SortingCriteria.CommonOpaque,
                 rendererConfiguration = PerObjectData.Lightmaps | PerObjectData.LightProbe | PerObjectData.ReflectionProbes,
-                overrideMaterial = depthOnly ? depthMaterial : null,
-                overrideMaterialPassIndex = depthOnly ? 1 : 0,
-                stateBlock = new RenderStateBlock(RenderStateMask.Depth) { depthState = new DepthState(!transparent, CompareFunction.LessEqual) }
+                stateBlock = state
             };
         }
 
