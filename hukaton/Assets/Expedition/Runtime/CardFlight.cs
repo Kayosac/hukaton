@@ -10,6 +10,8 @@ namespace Hakaton.Expeditions
     public static class CardFlight
     {
         public const float Step = 1f / 120f;
+        /// <summary>Falling speed, m/s, over which up-spin lift fades to nothing after the top of the arc.</summary>
+        public const float LiftReleaseSpeed = 1.5f;
 
         public static void Advance(ref Vector3 position, ref Vector3 velocity, Vector2 spin, ExpeditionSettings settings, float seconds)
         {
@@ -24,11 +26,18 @@ namespace Hakaton.Expeditions
                     Vector3 side = Vector3.Cross(Vector3.up, forward);
                     // Straight up or down has no "right": the card only lifts or dips then.
                     if (side.sqrMagnitude > 1e-6f) side.Normalize();
-                    Vector3 lift = side.sqrMagnitude > 1e-6f ? Vector3.Cross(forward, side) : Vector3.up;
-                    // Sideways bend grows with speed, like real spin: a fast card sweeps a wide arc, a slow one
-                    // bends tighter but never loops. Lift is constant so up-spin always climbs.
+                    Vector3 lift = side.sqrMagnitude > 1e-6f ? Vector3.Cross(forward, side) : Vector3.zero;
+                    // Both bends grow with speed, like real spin: a fast card sweeps a wide arc, a slow one
+                    // bends tighter but never loops.
                     float speedShare = velocity.magnitude / Mathf.Max(.1f, settings.maximumSpeed);
-                    curve = side * (spin.x * settings.curveAcceleration * speedShare) + lift * (spin.y * settings.liftAcceleration);
+                    // Lift needs air flowing across the card: it fades as the flight turns vertical, so a card
+                    // spun upward can't keep climbing — climbing bleeds speed, the lift weakens, gravity wins.
+                    float horizontalShare = new Vector2(forward.x, forward.z).magnitude;
+                    float liftStrength = spin.y * settings.liftAcceleration * speedShare * horizontalShare;
+                    // Up-spin only holds a card up while it rises: past the top it lets go smoothly, so the card
+                    // falls with growing speed instead of hanging in the sky. Down-spin always pushes.
+                    if (liftStrength > 0) liftStrength *= Mathf.Clamp01(1 + velocity.y / LiftReleaseSpeed);
+                    curve = side * (spin.x * settings.curveAcceleration * speedShare) + lift * liftStrength;
                 }
                 velocity += (Vector3.down * settings.cardGravity + curve) * dt;
                 position += velocity * dt;

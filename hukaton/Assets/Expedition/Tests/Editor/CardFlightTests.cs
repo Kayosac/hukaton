@@ -75,6 +75,28 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(down.x, Is.EqualTo(0).Within(1e-5f));
         }
 
+        [TestCase(0f, 0f, 18f)]
+        [TestCase(0f, 8f, 16f)]
+        [TestCase(0f, 18f, .01f)]
+        public void FullUpSpinClimbsThenFallsFasterAndFaster(float x, float y, float z)
+        {
+            Vector3 position = Vector3.zero, velocity = new Vector3(x, y, z);
+            float previousFall = 0;
+            bool fell = false;
+            for (int second = 0; second < 6; second++)
+            {
+                CardFlight.Advance(ref position, ref velocity, Vector2.up, settings, 1f);
+                if (velocity.y < -1f)
+                {
+                    if (fell) Assert.That(-velocity.y, Is.GreaterThan(previousFall + 5f), "Past the top the card falls with growing speed, never hangs.");
+                    fell = true;
+                    previousFall = -velocity.y;
+                }
+            }
+            Assert.That(fell, "Up-spin can't keep a card climbing forever.");
+            Assert.That(position.y, Is.LessThan(0), "It comes back down.");
+        }
+
         [Test]
         public void DiagonalSpinCurvesBothWays()
         {

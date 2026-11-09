@@ -12,7 +12,7 @@ namespace Hakaton.Expeditions
         [Min(0)] public float cardGravity = 9.81f;
         [Tooltip("Sideways acceleration at full spin and maximum throw speed, m/s²; scales with the card's speed.")]
         [Min(0)] public float curveAcceleration = 22;
-        [Tooltip("Vertical acceleration at full up/down spin, m/s². Above gravity: full up-spin makes the card climb.")]
+        [Tooltip("Lift at full up/down spin and maximum throw speed, m/s²; scales with speed and fades as the flight turns vertical. Above gravity: a fast, flat, full up-spin throw climbs for a while, then loses speed and falls.")]
         [Min(0)] public float liftAcceleration = 15;
         [Tooltip("Mouse travel (any direction, Shift held) for a full-strength spin, pixels.")]
         [Min(1)] public float gesturePixels = 220;
