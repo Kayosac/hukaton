@@ -88,7 +88,7 @@ namespace Hakaton.Expeditions.Tests
             Vector3 position = Vector3.zero, velocity = new Vector3(x, y, z);
             float time = 0, previousFall = 0;
             bool fell = false;
-            for (int second = 0; second < 6; second++)
+            for (int second = 0; second < 10; second++)
             {
                 CardFlight.Advance(ref position, ref velocity, ref time, Vector2.up, settings, 1f);
                 if (velocity.y < -1f)
