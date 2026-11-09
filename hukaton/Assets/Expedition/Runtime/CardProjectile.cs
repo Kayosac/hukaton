@@ -26,7 +26,7 @@ namespace Hakaton.Expeditions
         CardDefinition definition;
         Vector3 velocity;
         Vector2 spin;
-        float age, spinAngle;
+        float age, spinAngle, flightTime;
         Vector3 launchPosition;
         bool resolved;
         Pose? handPose;
@@ -43,6 +43,7 @@ namespace Hakaton.Expeditions
             velocity = initialVelocity;
             launchPosition = transform.position;
             spin = curvature;
+            flightTime = 0;
             handPose = fromHand;
             spinAngle = Random.Range(0, 360f);
             if (source) view.CopyFrom(source);
@@ -62,7 +63,8 @@ namespace Hakaton.Expeditions
             if (resolved || !world) return;
             if (!world.Running) { Destroy(gameObject); return; }
             Vector3 position = transform.position, next = position, nextVelocity = velocity;
-            CardFlight.Advance(ref next, ref nextVelocity, spin, world.settings, Time.fixedDeltaTime);
+            float nextFlightTime = flightTime;
+            CardFlight.Advance(ref next, ref nextVelocity, ref nextFlightTime, spin, world.settings, Time.fixedDeltaTime);
             if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
             {
                 transform.position = hit.point;
@@ -71,6 +73,7 @@ namespace Hakaton.Expeditions
             }
             transform.position = next;
             velocity = nextVelocity;
+            flightTime = nextFlightTime;
         }
 
         void Update()
