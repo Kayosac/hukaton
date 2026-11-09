@@ -26,12 +26,29 @@ namespace Hakaton.ShopBlockout
         [Tooltip("The goblin's hand-drawn sprite: startles on the way down, pleased after a purchase.")]
         public SuspendedGoblinSprite drawing;
         public Vector3 closedHatchEuler = Vector3.zero;
-        public Vector3 openHatchEuler = new Vector3(0, 0, -105);
+        public Vector3 openHatchEuler = new Vector3(95, 0, 0);
         public bool startDeployed;
 
         [Header("Timing and weight")]
         [Min(.01f)]
-        public float hatchSeconds = .28f;
+        public float hatchSeconds = .36f;
+        [Tooltip("Normalized hatch rotation: anticipation, a fast overshoot, then two settling bounces.")]
+        public AnimationCurve hatchMotion = new AnimationCurve(
+            new Keyframe(0, 0, 0, 0),
+            new Keyframe(.12f, .025f, 0, 0),
+            new Keyframe(.40f, 1.22f, 0, 0),
+            new Keyframe(.64f, .86f, 0, 0),
+            new Keyframe(.82f, 1.07f, 0, 0),
+            new Keyframe(1, 1, 0, 0));
+        [Tooltip("Squash/stretch along the hatch depth, with an opposing width change. The hinge stays fixed.")]
+        public AnimationCurve hatchStretch = new AnimationCurve(
+            new Keyframe(0, 0, 0, 0),
+            new Keyframe(.12f, -.22f, 0, 0),
+            new Keyframe(.26f, .22f, 0, 0),
+            new Keyframe(.40f, -.22f, 0, 0),
+            new Keyframe(.64f, .12f, 0, 0),
+            new Keyframe(.82f, -.06f, 0, 0),
+            new Keyframe(1, 0, 0, 0));
         [Min(.01f)]
         public float lowerSeconds = 1.15f;
         [Range(0, .1f)]
@@ -48,6 +65,7 @@ namespace Hakaton.ShopBlockout
         bool initialized;
         float phaseTime;
         Vector3 handleRestPosition;
+        Vector3 hatchRestScale;
 
         void Awake()
         {
@@ -67,6 +85,7 @@ namespace Hakaton.ShopBlockout
             }
             initialized = true;
             handleRestPosition = pullHandle.localPosition;
+            hatchRestScale = hatchHinge.localScale;
             State = startDeployed ? GoblinLiftState.Deployed : GoblinLiftState.Stowed;
             Present();
             return true;
@@ -126,11 +145,14 @@ namespace Hakaton.ShopBlockout
 
         void Present()
         {
+            float hatchTime = Mathf.Clamp01(phaseTime / Mathf.Max(.01f, hatchSeconds));
             float hatch = State == GoblinLiftState.Stowed ? 0
-                : State == GoblinLiftState.OpeningHatch   ? Mathf.SmoothStep(0, 1, phaseTime / Mathf.Max(.01f, hatchSeconds))
+                : State == GoblinLiftState.OpeningHatch   ? hatchMotion.Evaluate(hatchTime)
                                                           : 1;
             hatchHinge.localRotation =
-                Quaternion.Slerp(Quaternion.Euler(closedHatchEuler), Quaternion.Euler(openHatchEuler), hatch);
+                Quaternion.SlerpUnclamped(Quaternion.Euler(closedHatchEuler), Quaternion.Euler(openHatchEuler), hatch);
+            float stretch = State == GoblinLiftState.OpeningHatch ? hatchStretch.Evaluate(hatchTime) : 0;
+            hatchHinge.localScale = Vector3.Scale(hatchRestScale, new Vector3(1 - stretch * .65f, 1, 1 + stretch));
             float lower = State == GoblinLiftState.Deployed ? 1
                 : State == GoblinLiftState.Lowering         ? Mathf.Clamp01(phaseTime / Mathf.Max(.01f, lowerSeconds))
                                                             : 0;

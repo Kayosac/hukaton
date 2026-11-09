@@ -60,6 +60,63 @@ namespace Hakaton.ShopBlockout.Tests
             Assert.That(lift.IsDeployed,Is.True);
         }
 
+        [Test]
+        public void HatchOvershootsAndReboundsBeforeTheGoblinDescends()
+        {
+            lift.Summon();
+            var closed = Quaternion.Euler(lift.closedHatchEuler);
+            var open = Quaternion.Euler(lift.openHatchEuler);
+            float openAngle = Quaternion.Angle(closed, open);
+            lift.Advance(lift.hatchSeconds * .40f);
+            Assert.That(Quaternion.Angle(closed, lift.hatchHinge.localRotation), Is.GreaterThan(openAngle + 10));
+            Assert.That(lift.goblinRoot.position, Is.EqualTo(lift.stowedPose.position));
+            lift.Advance(lift.hatchSeconds * .24f);
+            Assert.That(Quaternion.Angle(closed, lift.hatchHinge.localRotation), Is.LessThan(openAngle - 3));
+            Assert.That(lift.State, Is.EqualTo(GoblinLiftState.OpeningHatch));
+            lift.Advance(lift.hatchSeconds * .18f);
+            Assert.That(Quaternion.Angle(closed, lift.hatchHinge.localRotation), Is.GreaterThan(openAngle + 3));
+            lift.Advance(lift.hatchSeconds * .18f + .0001f);
+            Assert.That(Quaternion.Angle(open, lift.hatchHinge.localRotation), Is.LessThan(.001f));
+            Assert.That(lift.State, Is.EqualTo(GoblinLiftState.Lowering));
+            Assert.That(lift.hatchHinge.localScale, Is.EqualTo(Vector3.one));
+        }
+
+        [Test]
+        public void HatchSquashesAtItsFixedRearHingeAndClearsTheWallAndDoorway()
+        {
+            var panel = lift.hatchHinge.GetComponentInChildren<MeshFilter>();
+            var bounds = panel.sharedMesh.bounds;
+            var room = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShopBlockout/Prefabs/RoomShell.prefab");
+            BoxCollider wall = null;
+            foreach (var collider in room.GetComponentsInChildren<BoxCollider>())
+                if (collider.name == "Back wall") wall = collider;
+            Assert.That(wall, Is.Not.Null);
+            float wallFace = wall.transform.TransformPoint(wall.center + Vector3.forward * wall.size.z * .5f).z;
+            float closedFront = panel.transform.TransformPoint(bounds.center + Vector3.forward * bounds.extents.z).z;
+            Vector3 hingePosition = lift.hatchHinge.position;
+            Assert.That(hingePosition.z, Is.LessThan(panel.transform.position.z));
+            float minDepthScale = 1, maxDepthScale = 1;
+            lift.Summon();
+            for (int frame = 0; frame < 120; frame++)
+            {
+                lift.Advance(lift.hatchSeconds / 120);
+                Assert.That(lift.hatchHinge.position, Is.EqualTo(hingePosition));
+                minDepthScale = Mathf.Min(minDepthScale, lift.hatchHinge.localScale.z);
+                maxDepthScale = Mathf.Max(maxDepthScale, lift.hatchHinge.localScale.z);
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    var signs = new Vector3((corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1);
+                    var point = panel.transform.TransformPoint(bounds.center + Vector3.Scale(bounds.extents, signs));
+                    Assert.That(point.z, Is.GreaterThan(wallFace + .01f), "The bouncing lid must clear the back wall.");
+                    Assert.That(point.z, Is.LessThanOrEqualTo(closedFront + .001f), "The lid must never swing toward the doorway.");
+                }
+            }
+            Assert.That(minDepthScale, Is.LessThan(.8f));
+            Assert.That(maxDepthScale, Is.GreaterThan(1.2f));
+            lift.Advance(.001f);
+            Assert.That(lift.hatchHinge.localScale, Is.EqualTo(Vector3.one));
+        }
+
         void AssertCablesAttached()
         {
             for(int i=0;i<2;i++)
