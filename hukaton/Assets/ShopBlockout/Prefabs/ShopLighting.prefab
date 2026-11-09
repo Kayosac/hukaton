@@ -107,6 +107,7 @@ GameObject:
   m_Component:
   - component: {fileID: 941963536622975297}
   - component: {fileID: 1897753371078370241}
+  - component: {fileID: 5382196375674381215}
   m_Layer: 0
   m_Name: Backroom fill
   m_TagString: Untagged
@@ -194,6 +195,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &5382196375674381215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1166896693056962534}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 1897753371078370241}
+  emissive: []
+  amount: 0.06
+  speed: 1.2
+  jitter: 0.2
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 71
 --- !u!1 &1261084227989654193
 GameObject:
   m_ObjectHideFlags: 0
@@ -234,6 +256,7 @@ Transform:
   - {fileID: 941963536622975297}
   - {fileID: 1445155357750358863}
   - {fileID: 9188957871533448946}
+  - {fileID: 6897942979107003006}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2256472856196380801
@@ -251,6 +274,125 @@ MonoBehaviour:
   sky: {r: 0.36, g: 0.29, b: 0.24, a: 1}
   equator: {r: 0.25, g: 0.19, b: 0.15, a: 1}
   ground: {r: 0.13, g: 0.1, b: 0.08, a: 1}
+--- !u!1 &2943183479701224664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6897942979107003006}
+  - component: {fileID: 6696407458472958243}
+  - component: {fileID: 3885676665641082878}
+  m_Layer: 0
+  m_Name: "Candle \u2014 display"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6897942979107003006
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2943183479701224664}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.43, y: 2.06, z: 2.02}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 784716209962236409}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!108 &6696407458472958243
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2943183479701224664}
+  m_Enabled: 1
+  serializedVersion: 12
+  m_Type: 2
+  m_Color: {r: 1, g: 0.78, b: 0.5, a: 1}
+  m_Intensity: 0.5
+  m_Range: 1.3
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 0
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
+--- !u!114 &3885676665641082878
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2943183479701224664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 6696407458472958243}
+  emissive: []
+  amount: 0.22
+  speed: 2.6
+  jitter: 0.5
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.006
+  seed: 97
 --- !u!1 &5757258892483818165
 GameObject:
   m_ObjectHideFlags: 0
@@ -261,6 +403,7 @@ GameObject:
   m_Component:
   - component: {fileID: 427599122059190894}
   - component: {fileID: 3512229658448187324}
+  - component: {fileID: 2831564147361627766}
   m_Layer: 0
   m_Name: "Lantern \u2014 front"
   m_TagString: Untagged
@@ -348,6 +491,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &2831564147361627766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5757258892483818165}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 3512229658448187324}
+  emissive: []
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.01
+  seed: 11
 --- !u!1 &5991939652046122772
 GameObject:
   m_ObjectHideFlags: 0
@@ -358,6 +522,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1099751897731581505}
   - component: {fileID: 6609315003959371094}
+  - component: {fileID: 4974078153140184161}
   m_Layer: 0
   m_Name: "Candle \u2014 counter"
   m_TagString: Untagged
@@ -445,6 +610,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &4974078153140184161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5991939652046122772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 6609315003959371094}
+  emissive: []
+  amount: 0.22
+  speed: 2.6
+  jitter: 0.5
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.006
+  seed: 37
 --- !u!1 &6049108053156137268
 GameObject:
   m_ObjectHideFlags: 0
@@ -552,6 +738,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1768370231101675465}
   - component: {fileID: 760660765982948079}
+  - component: {fileID: 280598694572673702}
   m_Layer: 0
   m_Name: "Lantern \u2014 display"
   m_TagString: Untagged
@@ -639,6 +826,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &280598694572673702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7829744961551068181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 760660765982948079}
+  emissive: []
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.01
+  seed: 41
 --- !u!1 &8224037121053796642
 GameObject:
   m_ObjectHideFlags: 0
@@ -649,6 +857,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3258770345100199702}
   - component: {fileID: 552093410487474022}
+  - component: {fileID: 6072300217941775013}
   m_Layer: 0
   m_Name: Shop fill
   m_TagString: Untagged
@@ -736,6 +945,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &6072300217941775013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8224037121053796642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 552093410487474022}
+  emissive: []
+  amount: 0.06
+  speed: 1.2
+  jitter: 0.2
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 53
 --- !u!1 &8462135615296376656
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,6 +976,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2386042602855554603}
   - component: {fileID: 837087258041771713}
+  - component: {fileID: 801163613268266457}
   m_Layer: 0
   m_Name: "Lantern \u2014 partition"
   m_TagString: Untagged
@@ -833,6 +1064,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &801163613268266457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8462135615296376656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 837087258041771713}
+  emissive: []
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.01
+  seed: 23
 --- !u!1 &8682347988968366992
 GameObject:
   m_ObjectHideFlags: 0
@@ -843,6 +1095,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9105296511332086245}
   - component: {fileID: 8308083715630700037}
+  - component: {fileID: 1705310712054560551}
   m_Layer: 0
   m_Name: "Lantern \u2014 backroom"
   m_TagString: Untagged
@@ -930,6 +1183,27 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1705310712054560551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8682347988968366992}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 8308083715630700037}
+  emissive: []
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0.01
+  seed: 67
 --- !u!1 &8885704397759590728
 GameObject:
   m_ObjectHideFlags: 0
@@ -940,6 +1214,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1445155357750358863}
   - component: {fileID: 7365361689495430289}
+  - component: {fileID: 3441057928789891620}
   m_Layer: 0
   m_Name: CRT glow
   m_TagString: Untagged
@@ -1027,3 +1302,24 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &3441057928789891620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8885704397759590728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 7365361689495430289}
+  emissive: []
+  amount: 0.04
+  speed: 6
+  jitter: 0.7
+  dipChance: 0.12
+  dipDepth: 0.3
+  drift: 0
+  seed: 83

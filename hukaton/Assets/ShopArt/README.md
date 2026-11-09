@@ -33,6 +33,11 @@ Counter (0,025;0;0,675), DisplayCase (1,475;0;1,695), ComputerStation (−0,995;
 - Потолок: проём под люком исправлен — центрирован под коробом X 0,705…1,385, Z −2,06…−1,36, закрытая крышка 0,72×0,74 перекрывает его на 0,02 со всех сторон (в блокауте проём X 0,74…1,58, Z −2,18…−1,42 был смещён). При интеграции согласовать коллайдеры потолка.
 - Товар (`SA_Stock_*`): pivot — низ по центру, все в рекомендуемом объёме X≤0,28 Y≤0,23 Z≤0,39.
 
+## Живые детали
+- `SA_Candle`: меш-огонёк `Candle_Flame` выключен, вместо него `Flame` — вариант `Assets/Game/Prefabs/Effects/Retro/Candle flame.prefab` (FireTorch из Retro Arsenal без дыма, искр и звука).
+- `SA_Mug`: меш `Mug_Steam` выключен, вместо него `Steam` — `Mug steam.prefab` (SmokeTinyWhite: мелкие полупрозрачные клубы, проявление и угасание, лёгкий шум).
+- `T_Props`: со циферблата часов стёрты нарисованные стрелки (деления и центральная ось остались) — стрелки теперь отдельные и идут (`Assets/ShopBlockout/Prefabs/ClockHands.prefab`).
+
 ## Подключение к игре
 `SA_RoomShell`, `SA_EntranceDoor` и декор комнаты вложены в `RoomShell.prefab`; `SA_Counter`, `SA_DisplayCase`, `SA_ComputerStation`, `SA_CurtainedDoorway`, `SA_CeilingRig` — в одноимённые функциональные префабы вместе со своим декором; `SA_Stock_*` — в `Assets/Game/Prefabs/Stock *.prefab`; свет превью перенесён в `ShopLighting.prefab`. Коллайдеры и ссылки геймплея остались прежними, коллайдеры потолка совпадают с новым проёмом люка. `SA_ShopSet` и `ShopArtPreview` остаются эталоном арта: в игре расстановку правят в функциональных префабах.
 

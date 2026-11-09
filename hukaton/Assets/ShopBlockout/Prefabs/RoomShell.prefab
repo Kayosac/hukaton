@@ -1528,8 +1528,43 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1064584783499905407, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8484126439794731295}
   m_SourcePrefab: {fileID: 100100000, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+--- !u!23 &523491094384710113 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 117927236322429065, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+  m_PrefabInstance: {fileID: 495719568249330024}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &587451927822487575 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1064584783499905407, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+  m_PrefabInstance: {fileID: 495719568249330024}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8484126439794731295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 587451927822487575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 0}
+  emissive:
+  - {fileID: 523491094384710113}
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 11
 --- !u!4 &619091896347204140 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1042111204768547652, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
@@ -1652,8 +1687,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 958482448709575544, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1755792857638862388}
   m_SourcePrefab: {fileID: 100100000, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+--- !u!1 &318641621998618789 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 958482448709575544, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+  m_PrefabInstance: {fileID: 657873440214494173}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1755792857638862388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 318641621998618789}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0, y: 0.037499905, z: 0.0042500496}
+  angles: {x: 5, y: 0, z: 0}
+  period: 3.8
+  phase: 0
 --- !u!4 &1099612259368087082 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 460396230139872759, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
@@ -1714,11 +1773,46 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1027513447441562149, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7026180762475886819}
   m_SourcePrefab: {fileID: 100100000, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
 --- !u!4 &236631440719418698 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 668705875741022413, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+  m_PrefabInstance: {fileID: 724823876978576775}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &310011085249279906 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1027513447441562149, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+  m_PrefabInstance: {fileID: 724823876978576775}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7026180762475886819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310011085249279906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 0}
+  emissive:
+  - {fileID: 586927519330885881}
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 67
+--- !u!23 &586927519330885881 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 155998717442911614, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
   m_PrefabInstance: {fileID: 724823876978576775}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &816618071372284757
@@ -2085,7 +2179,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1061402284634804671, guid: e7f838407472105e4446a3d610ba2151, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8657612001950012248}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e7f838407472105e4446a3d610ba2151, type: 3}
 --- !u!4 &1787138901033020705 stripped
@@ -2458,8 +2555,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 730552419217754119, guid: 17c90d97c82118461c65d87f6f838cc9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7356070583783353580}
   m_SourcePrefab: {fileID: 100100000, guid: 17c90d97c82118461c65d87f6f838cc9, type: 3}
+--- !u!1 &1600607817501311953 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 730552419217754119, guid: 17c90d97c82118461c65d87f6f838cc9, type: 3}
+  m_PrefabInstance: {fileID: 2023789524561677270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7356070583783353580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1600607817501311953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: -0.0060437755, y: 0.00063806947, z: 0.027284384}
+  angles: {x: 1.5, y: 0, z: 1}
+  period: 4.4
+  phase: 1.9
 --- !u!4 &2135594775653761511 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 123525714755586609, guid: 17c90d97c82118461c65d87f6f838cc9, type: 3}
@@ -2520,11 +2641,46 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1027513447441562149, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2499272018891153943}
   m_SourcePrefab: {fileID: 100100000, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+--- !u!1 &1434314954512379554 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1027513447441562149, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+  m_PrefabInstance: {fileID: 2136328910790284423}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2499272018891153943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1434314954512379554}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 0}
+  emissive:
+  - {fileID: 2274313218649537017}
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 41
 --- !u!4 &1504901153388743754 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 668705875741022413, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
+  m_PrefabInstance: {fileID: 2136328910790284423}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2274313218649537017 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 155998717442911614, guid: 63aa0e4d59b4ae963f870fc379dab45b, type: 3}
   m_PrefabInstance: {fileID: 2136328910790284423}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2155701054795445125
@@ -2775,6 +2931,68 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1029413768401582211, guid: 15b210ac433ea47e89eef6292ed1e6a9, type: 3}
   m_PrefabInstance: {fileID: 3165731577025335776}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &3309768650323920173
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1787138901033020705}
+    m_Modifications:
+    - target: {fileID: 4727585011406857573, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_Name
+      value: ClockHands
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.0018650936
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.009765254
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.055907436
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.02192999
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.020217298
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.99909854
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.03020675
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 50967525645224ea58706196a2e2e781, type: 3}
+--- !u!4 &8657612001950012248 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+  m_PrefabInstance: {fileID: 3309768650323920173}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3343460752518740224
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2892,13 +3110,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 565569081152583157, guid: 249e6748408abd6c302c137c013d317f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3571088121287935247}
   m_SourcePrefab: {fileID: 100100000, guid: 249e6748408abd6c302c137c013d317f, type: 3}
 --- !u!4 &3482289816341870282 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 145176442764408839, guid: 249e6748408abd6c302c137c013d317f, type: 3}
   m_PrefabInstance: {fileID: 3625486862627262157}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &3857648653476133688 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 565569081152583157, guid: 249e6748408abd6c302c137c013d317f, type: 3}
+  m_PrefabInstance: {fileID: 3625486862627262157}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3571088121287935247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3857648653476133688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0, y: 2.31, z: -0.09225}
+  angles: {x: 4, y: 0, z: 0}
+  period: 4
+  phase: 2.6
 --- !u!1001 &3917557064123888445
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3016,13 +3258,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 34337051724238055, guid: 4d7632646052fac74c6d4baccbe222cb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1386651681183336946}
   m_SourcePrefab: {fileID: 100100000, guid: 4d7632646052fac74c6d4baccbe222cb, type: 3}
 --- !u!4 &3971021245142698266 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1009607320111185473, guid: 4d7632646052fac74c6d4baccbe222cb, type: 3}
   m_PrefabInstance: {fileID: 4114388223564642139}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4134518963880508348 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 34337051724238055, guid: 4d7632646052fac74c6d4baccbe222cb, type: 3}
+  m_PrefabInstance: {fileID: 4114388223564642139}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1386651681183336946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4134518963880508348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0, y: 0, z: 0.0039999485}
+  angles: {x: 0, y: 0, z: 3.5}
+  period: 3.3
+  phase: 0.4
 --- !u!1001 &4166126054425879352
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3140,8 +3406,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 585877239507591742, guid: e22e89356d54be6cd4fde94da73cb66f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7524584131879219390}
   m_SourcePrefab: {fileID: 100100000, guid: e22e89356d54be6cd4fde94da73cb66f, type: 3}
+--- !u!1 &3684633595968212272 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 585877239507591742, guid: e22e89356d54be6cd4fde94da73cb66f, type: 3}
+  m_PrefabInstance: {fileID: 4252249641500929806}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7524584131879219390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3684633595968212272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: -0.0001729228, y: -0.005963402, z: 0.02659583}
+  angles: {x: 0, y: 0, z: 3}
+  period: 3.6
+  phase: 2.2
 --- !u!4 &4510824273319748166 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 403824524503485768, guid: e22e89356d54be6cd4fde94da73cb66f, type: 3}
@@ -3202,8 +3492,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1037941285252818747, guid: 2bf60f062e6484b267bae36a87ce4083, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7839128607730985287}
   m_SourcePrefab: {fileID: 100100000, guid: 2bf60f062e6484b267bae36a87ce4083, type: 3}
+--- !u!1 &3485631641188028733 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1037941285252818747, guid: 2bf60f062e6484b267bae36a87ce4083, type: 3}
+  m_PrefabInstance: {fileID: 4483599077269517830}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7839128607730985287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3485631641188028733}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0.0013005806, y: 0.011233876, z: 0.026555307}
+  angles: {x: 0, y: 0, z: 3}
+  period: 3.9
+  phase: 3.1
 --- !u!4 &4146914434523838497 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 555135930379308583, guid: 2bf60f062e6484b267bae36a87ce4083, type: 3}
@@ -3698,12 +4012,98 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 958482448709575544, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3404949657429922889}
   m_SourcePrefab: {fileID: 100100000, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+--- !u!1 &4775494271169664629 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 958482448709575544, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
+  m_PrefabInstance: {fileID: 5695012876335248653}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3404949657429922889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4775494271169664629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0, y: 0.037499905, z: 0.00424999}
+  angles: {x: 5, y: 0, z: 0}
+  period: 4.2
+  phase: 1.3
 --- !u!4 &5290436429184659706 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 460396230139872759, guid: e648ad5d1af5f71e82866f3ed124e389, type: 3}
   m_PrefabInstance: {fileID: 5695012876335248653}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5729559275731880155
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7167260080666518472}
+    m_Modifications:
+    - target: {fileID: 4727585011406857573, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_Name
+      value: ClockHands
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.0018650936
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.009765254
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.055907436
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.02192999
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.020217298
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.99909854
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.03020675
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 50967525645224ea58706196a2e2e781, type: 3}
+--- !u!4 &1894844454072786606 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6181380926747678325, guid: 50967525645224ea58706196a2e2e781, type: 3}
+  m_PrefabInstance: {fileID: 5729559275731880155}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5919807887215148587
 PrefabInstance:
@@ -4380,11 +4780,46 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1064584783499905407, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4138345765552008010}
   m_SourcePrefab: {fileID: 100100000, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
 --- !u!4 &7143951382236592515 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1042111204768547652, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+  m_PrefabInstance: {fileID: 7877424050957482695}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7175379108379767736 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1064584783499905407, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
+  m_PrefabInstance: {fileID: 7877424050957482695}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4138345765552008010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7175379108379767736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e28099d41b8b42c88ffd03abe310081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Flicker
+  target: {fileID: 0}
+  emissive:
+  - {fileID: 7849999835068887630}
+  amount: 0.14
+  speed: 1.6
+  jitter: 0.35
+  dipChance: 0
+  dipDepth: 0.35
+  drift: 0
+  seed: 23
+--- !u!23 &7849999835068887630 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 117927236322429065, guid: 2bf1aa08e277ad2f74966fd8922c3f8e, type: 3}
   m_PrefabInstance: {fileID: 7877424050957482695}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7912229506755408503
@@ -4441,7 +4876,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1061402284634804671, guid: e7f838407472105e4446a3d610ba2151, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1894844454072786606}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e7f838407472105e4446a3d610ba2151, type: 3}
 --- !u!4 &7167260080666518472 stripped
@@ -4504,8 +4942,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1043943056453823238, guid: 1b4165fe7347070ab5a303c905e9ff9b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3674465179516955597}
   m_SourcePrefab: {fileID: 100100000, guid: 1b4165fe7347070ab5a303c905e9ff9b, type: 3}
+--- !u!1 &7045233585557972478 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1043943056453823238, guid: 1b4165fe7347070ab5a303c905e9ff9b, type: 3}
+  m_PrefabInstance: {fileID: 8050578181075226360}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3674465179516955597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7045233585557972478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3eb49ed093425bb42aa34280140e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.Sway
+  pivot: {x: 0.0046284064, y: 0.0049322485, z: 0.03286863}
+  angles: {x: 0, y: 0, z: 2.5}
+  period: 4.6
+  phase: 0.7
 --- !u!4 &7191064844368521734 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 896969851721835774, guid: 1b4165fe7347070ab5a303c905e9ff9b, type: 3}
