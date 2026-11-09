@@ -229,28 +229,42 @@ namespace Hakaton.Expeditions
         {
             if (motor.ExternallyControlled) motor.RevokeExternalControl();
             bool sinking = motor.TryClaimExternalControl(this);
-            if (feel) { feel.AddTrauma(.8f); feel.Kick(new Vector3(-240, 180, 120)); }
             Play(cues ? cues.playerHurt : null);
-            float time = 0, nextJerk = 0;
+            var view = motor.view;
+            float time = 0, turnTime = 0, turnSeconds = 0, turnYaw = 0, turnPitch = 0, turned = 0;
+            int side = UnityEngine.Random.value < .5f ? -1 : 1;
             while (time < settings.drownSeconds)
             {
-                time += Time.unscaledDeltaTime;
+                float dt = Time.unscaledDeltaTime;
+                time += dt;
                 float k = Mathf.Clamp01(time / settings.drownDarkenSeconds);
                 if (fade) fade.Set(Mathf.Lerp(0, settings.drownDarkness, Ease.OutCubic(k)), settings.drownColour);
-                // Struggling: the view jerks in random directions, weaker as the body gives up.
-                if (feel && time >= nextJerk)
+                // Thrashing: the head whips left and right, up and down — real turns of the view, not shake.
+                if (view)
                 {
-                    float strength = Mathf.Lerp(1, .7f, time / settings.drownSeconds);
-                    var jerk = settings.drownJerkStrength;
-                    feel.Kick(new Vector3(UnityEngine.Random.Range(-jerk.x, jerk.x * .6f), UnityEngine.Random.Range(-jerk.y, jerk.y),
-                        UnityEngine.Random.Range(-jerk.z, jerk.z)) * strength);
-                    nextJerk = time + UnityEngine.Random.Range(settings.drownJerkInterval.x, settings.drownJerkInterval.y);
+                    if (turnTime >= turnSeconds)
+                    {
+                        side = -side;
+                        turnSeconds = UnityEngine.Random.Range(settings.drownTurnSeconds.x, settings.drownTurnSeconds.y);
+                        turnYaw = side * UnityEngine.Random.Range(settings.drownTurnYaw.x, settings.drownTurnYaw.y);
+                        turnPitch = UnityEngine.Random.Range(settings.drownTurnPitch.x, settings.drownTurnPitch.y) - SignedPitch(view);
+                        turnTime = turned = 0;
+                    }
+                    turnTime += dt;
+                    float progress = Ease.InOutSine(Mathf.Clamp01(turnTime / turnSeconds));
+                    view.Turn(turnYaw * (progress - turned), turnPitch * (progress - turned));
+                    turned = progress;
                 }
-                if (feel) feel.Sustain(.6f);
                 if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
                     motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
                 yield return null;
             }
+        }
+
+        static float SignedPitch(Hakaton.Character.FirstPersonView view)
+        {
+            float x = view.pitchPivot.localEulerAngles.x;
+            return x > 180 ? x - 360 : x;
         }
 
         Vector3 IExternalMotorControl.OnControlRevoked() => Vector3.zero;

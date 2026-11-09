@@ -90,6 +90,13 @@ namespace Hakaton.Character
             viewCamera.fieldOfView = smoothedFov + (feel ? feel.FovOffset : 0);
         }
 
+        /// <summary>Turns the view by script (drowning, being thrown about): degrees, pitch positive looks down.</summary>
+        public void Turn(float yawDegrees, float pitchDegrees)
+        {
+            yawTarget += yawDegrees;
+            pitchTarget = Mathf.Clamp(pitchTarget + pitchDegrees, -pitchLimit, pitchLimit);
+        }
+
         public void ResetPose(Quaternion rotation)
         {
             yaw = yawTarget = rotation.eulerAngles.y;
