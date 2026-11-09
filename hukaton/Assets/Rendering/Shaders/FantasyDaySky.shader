@@ -10,6 +10,11 @@ Shader "Hukaton/Fantasy Day Sky"
         _Exposure("Exposure", Range(0,3)) = 1
         _PixelResolution("Vertical sky pixels", Range(96,1024)) = 360
         _Seed("Cloud seed", Float) = 108
+        [Header(Fog Catcher follows scene Fog Color)]
+        _FogStrength("Fog blend strength", Range(0,1)) = 1
+        _FogStart("Full fog below elevation in degrees", Range(-30,60)) = 0
+        _FogHeight("Fade height in degrees", Range(0.1,90)) = 25
+        _FogFalloff("Fade falloff", Range(0.25,4)) = 1
         [Header(Clouds)]
         _CloudLight("Sunlit cream", Color) = (1,0.96,0.82,1)
         _CloudShadow("Lavender shade", Color) = (0.55,0.59,0.73,1)
@@ -53,6 +58,7 @@ Shader "Hukaton/Fantasy Day Sky"
             #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment Frag
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Fog.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             struct Attributes { float4 positionOS : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
@@ -62,6 +68,7 @@ Shader "Hukaton/Fantasy Day Sky"
                 float4 _CloudLight, _CloudShadow, _Wind, _SunTint, _MoonColor;
                 float4 _SunEmber, _GalaxyColor, _GalaxyOne, _GalaxyTwo, _MoonTwo, _MoonThree;
                 float _Exposure, _PixelResolution, _Seed;
+                float _FogStrength, _FogStart, _FogHeight, _FogFalloff;
                 float _CloudCoverage, _CloudScale, _CloudSoftness, _CloudSteps;
                 float _SunRadius, _SunHalo, _MoonOpacity, _MoonYaw, _MoonElevation, _MoonRadius;
                 float _SunCorona, _SunDetail, _SunSpeed, _GalaxyVisibility, _StarVisibility, _StarDensity, _MoonPhase;
@@ -123,6 +130,30 @@ Shader "Hukaton/Fantasy Day Sky"
             {
                 yaw = radians(yaw); elevation = radians(elevation);
                 return float3(sin(yaw) * cos(elevation), sin(elevation), cos(yaw) * cos(elevation));
+            }
+
+            float3 ApplyFogCatcher(float3 sky, float3 direction)
+            {
+                // Follow the scene's fog switch, including URP's dynamic fog keywords.
+                bool fogEnabled = false;
+                #if defined(FOG_LINEAR_KEYWORD_DECLARED)
+                    if (FOG_LINEAR) fogEnabled = true;
+                #endif
+                #if defined(FOG_EXP_KEYWORD_DECLARED)
+                    if (FOG_EXP) fogEnabled = true;
+                #endif
+                #if defined(FOG_EXP2_KEYWORD_DECLARED)
+                    if (FOG_EXP2) fogEnabled = true;
+                #endif
+                if (!fogEnabled || !IsFogEnabled()) return sky;
+
+                // World elevation keeps the band at the horizon as the camera moves or tilts.
+                float bottom = sin(radians(_FogStart));
+                float top = sin(radians(min(90, _FogStart + max(0.1, _FogHeight))));
+                float height = saturate((direction.y - bottom) / max(top - bottom, 0.0001));
+                float blend = pow(saturate(1 - smoothstep(0, 1, height)), max(0.01, _FogFalloff));
+                // Unity supplies the same working-space color used by fog on scene geometry.
+                return lerp(sky, unity_FogColor.rgb, blend * saturate(_FogStrength));
             }
 
             float Galaxy(float3 d, float4 shape, float flattening)
@@ -263,7 +294,10 @@ Shader "Hukaton/Fantasy Day Sky"
                 cloudColor += _SunTint.rgb * rim * 0.22 * sunVisible;
                 // All celestial layers sit behind clouds. Screen dithering is applied once by URP.
                 sky = lerp(sky, cloudColor, cloud);
-                return half4(max(sky, 0) * _Exposure, 1);
+                // Blend after exposure so a fully fogged sky exactly matches fogged geometry.
+                // Keep the haze smooth even when celestial details use pixelated directions.
+                sky = ApplyFogCatcher(max(sky, 0) * _Exposure, normalize(input.direction));
+                return half4(sky, 1);
             }
             ENDHLSL
         }
