@@ -27,6 +27,8 @@ namespace Hakaton.Trading.Unity
         public float holdThreshold = .35f;
         public float autoPlaceInterval = .16f;
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
+        [Tooltip("Size of the selected stock in the shopkeeper's hand relative to the same item on the shelf.")]
+        [Range(.1f, 1)] public float heldItemScale = .5f;
         [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
         [Min(0)] public float reactionBeat = .38f;
 
@@ -78,7 +80,8 @@ namespace Hakaton.Trading.Unity
         ItemDefinition[] catalog;
         GameObject[] displayed;
         long[] displayedIds;
-        GameObject heldItem;
+        GameObject heldItem, heldVisual;
+        int heldVisualIndex = -1;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
@@ -108,7 +111,7 @@ namespace Hakaton.Trading.Unity
                 return;
             }
             if (!World.ValidateReferences() || startingStock == null || startingStock.Length == 0
-                || startingStock.Length != World.ItemPrefabs.Length || startingStock.Length != World.ItemMaterials.Length)
+                || startingStock.Length != World.ItemPrefabs.Length)
             {
                 Debug.LogError("TradingPrototype: scene references are incomplete.", World);
                 enabled = false;
@@ -289,7 +292,10 @@ namespace Hakaton.Trading.Unity
         {
             var mouse = Mouse.current;
             if (mouse == null || !ActionsReady || Session.CurrentDeal != null || hud.ContainsBlockingPanel(mouse.position.ReadValue())) return;
-            var ray = World.ViewCamera.ScreenPointToRay(mouse.position.ReadValue());
+            // The view camera may render into a low-resolution World Resolution texture, so its pixel
+            // space is not the screen's. Viewport coordinates are the same in both cases.
+            Vector2 pointer = mouse.position.ReadValue();
+            var ray = World.ViewCamera.ViewportPointToRay(new Vector3(pointer.x / Screen.width, pointer.y / Screen.height));
             if (!Physics.Raycast(ray, out var hit, 4, ~(1 << 2), QueryTriggerInteraction.Collide)) return;
             for (int i = 0; i < displayed.Length; i++)
             {
@@ -443,8 +449,18 @@ namespace Hakaton.Trading.Unity
             }
             PresentDealItem();
             heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
-            if (Session.Inventory.Count > 0)
-                heldItem.GetComponent<Renderer>().sharedMaterial = World.ItemMaterials[ItemIndex(Session.Inventory[selectedInventory].Definition.Id)];
+            if (Session.Inventory.Count > 0) PresentHeldItem(ItemIndex(Session.Inventory[selectedInventory].Definition.Id));
+        }
+
+        /// <summary>The hand shows a copy of the same stock prefab that goes on the shelf.</summary>
+        void PresentHeldItem(int index)
+        {
+            if (heldVisual && heldVisualIndex == index) return;
+            if (heldVisual) Destroy(heldVisual);
+            heldVisualIndex = index;
+            heldVisual = Instantiate(World.ItemPrefabs[index], heldItem.transform, false);
+            heldVisual.transform.localScale = Vector3.one * heldItemScale;
+            foreach (var collider in heldVisual.GetComponentsInChildren<Collider>()) collider.enabled = false;
         }
 
         void PresentDealItem()

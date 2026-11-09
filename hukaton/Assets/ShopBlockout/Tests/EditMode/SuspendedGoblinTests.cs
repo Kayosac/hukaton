@@ -15,20 +15,12 @@ namespace Hakaton.ShopBlockout.Tests
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShopBlockout/Prefabs/GoblinCeilingRig.prefab");
             fixture=Object.Instantiate(prefab);
             fixture.SetActive(false);
+            // The rig's own saved references: hatch, handle and cables live in the nested ShopArt mesh prefab.
             lift=fixture.GetComponent<SuspendedGoblin>();
-            if(!lift)lift=fixture.AddComponent<SuspendedGoblin>();
-            lift.goblinRoot=fixture.transform.Find("Suspended 35 cm goblin placeholder");
-            lift.stowedPose=fixture.transform.Find("Stowed pose");
-            lift.deployedPose=fixture.transform.Find("Deployed pose");
-            lift.hatchHinge=fixture.transform.Find("Hatch hinge");
-            lift.pullHandle=fixture.transform.Find("Pull rope interaction/Pull handle");
-            lift.cableMeshes=new Transform[2];lift.cableTops=new Transform[2];lift.cableHarnesses=new Transform[2];
+            Assert.That(lift,Is.Not.Null);
+            Assert.That(lift.goblinRoot&&lift.stowedPose&&lift.deployedPose&&lift.hatchHinge&&lift.pullHandle,Is.True);
             for(int i=0;i<2;i++)
-            {
-                lift.cableMeshes[i]=fixture.transform.Find("Suspension cable "+i);
-                lift.cableTops[i]=fixture.transform.Find("Cable top "+i);
-                lift.cableHarnesses[i]=lift.goblinRoot.Find("Harness "+i);
-            }
+                Assert.That(lift.cableMeshes[i]&&lift.cableTops[i]&&lift.cableHarnesses[i]&&lift.cableHarnesses[i].IsChildOf(lift.goblinRoot),Is.True);
             lift.startDeployed=false;
         }
 
