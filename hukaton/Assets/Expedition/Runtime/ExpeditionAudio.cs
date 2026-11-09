@@ -16,6 +16,8 @@ namespace Hakaton.Expeditions
         [Header("Player")]
         public SfxCue playerHurt;
         public SfxCue playerHeal, launch, landHeavy, heartbeat;
+        [Tooltip("Body falling into deep water: the drowning splash.")]
+        public SfxCue drownSplash;
         [Header("Loot")]
         public SfxCue pickup;
         public SfxCue trophyDrop;

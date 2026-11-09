@@ -230,12 +230,14 @@ namespace Hakaton.Expeditions
         {
             if (motor.ExternallyControlled) motor.RevokeExternalControl();
             bool sinking = motor.TryClaimExternalControl(this);
-            Play(cues ? cues.playerHurt : null);
+            Play(cues ? cues.drownSplash : null);
+            // The cards slip out of the hand and fly off, carried along with the view.
+            hand.ScatterAll(settings.drownCardsSpeed, settings.drownDarkenSeconds + .35f, viewCamera.transform);
             float time = 0, total = settings.drownDarkenSeconds + settings.drownSeconds;
             while (time < total)
             {
                 time += Time.unscaledDeltaTime;
-                if (fade) fade.Set(Mathf.Clamp01(time / settings.drownDarkenSeconds), settings.drownColour);
+                if (fade) fade.Set(Ease.InOutSine(time / settings.drownDarkenSeconds), settings.drownColour);
                 if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
                     motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
                 yield return null;
