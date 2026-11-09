@@ -4,10 +4,10 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Туман» (вода, ранг 2/5). A fog area of radius 3 m for 8 s (upgraded 12 s) blocks vision for the player and for creatures. Losing sight does
-    /// not erase aggression: creatures search at the last known place. Fog does not make anyone wet.
+    /// «Туман» (вода, ранг 2/5). A fog area (<see cref="FogZone"/>) of radius 3 m for 8 s (upgraded 12 s) at the point
+    /// of impact (on the ground below it) blocks vision for the player and for creatures. Losing sight does not erase
+    /// aggression: creatures search at the last known place. Fog does not make anyone wet.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
-    /// STUB from the foundation pass: only the impact feedback so far.
     /// </summary>
     public sealed class FogEffect : CardEffect, ICardStatLine
     {
@@ -17,12 +17,24 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Fog radius, m (same on both levels).")]
         [Min(0)] public float radius = 3;
 
+        [Header("Placement")]
+        public FogZone fogPrefab;
+        [Tooltip("The fog settles on the ground found this far below a wall or creature hit, m.")]
+        [Min(0)] public float dropDistance = 6;
+        [Tooltip("Surfaces steeper than this (walls) are not ground: the effect settles on the ground below, degrees.")]
+        [Range(0, 90)] public float groundSlope = 60;
+
         public override void Apply(in ImpactContext c)
         {
-            // TODO(Fog): spawn a fog zone (CardZoneBehaviour, Kind Fog) implementing IVisionBlocker; creatures already ask
-            // world.IsVisionBlocked. Add the visual (Retro Arsenal smoke) for the player.
-            Feedback(c, false);
-            c.World.Announce(c.Definition.displayName + ": эффект в разработке", 1.5f);
+            if (!fogPrefab)
+            {
+                Feedback(c, false);
+                return;
+            }
+            if (!CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var ground, out _)) ground = c.Point;
+            var fog = c.World.SpawnForOuting(fogPrefab, ground, Quaternion.identity);
+            if (fog) fog.Setup(c.Pick(durationBase, durationUpgraded), radius);
+            Feedback(c, fog);
         }
 
         public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
