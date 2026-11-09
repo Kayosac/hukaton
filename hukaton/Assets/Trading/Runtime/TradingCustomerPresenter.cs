@@ -48,6 +48,17 @@ namespace Hakaton.Trading.Unity
             }
         }
 
+        /// <summary>The appearance of the visitor arriving or at the counter, if any.</summary>
+        public NpcAppearance VisitorAppearance
+        {
+            get
+            {
+                foreach (var pair in presented)
+                    if (pair.Key && !pair.Key.IsDeparting && pair.Key.CurrentAppearance) return pair.Key.CurrentAppearance;
+                return null;
+            }
+        }
+
         public string VisitorName
         {
             get

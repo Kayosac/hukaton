@@ -1,3 +1,4 @@
+using Hakaton.Character;
 using Hakaton.Feel;
 using UnityEngine;
 
@@ -30,6 +31,9 @@ namespace Hakaton.Trading.Unity
         bool seenOpen;
         float voiceAt = -1;
         CustomerMood pendingMood;
+        long greetedCustomer;
+        // The visitor whose voice we heard last: still speaks while walking out.
+        NpcAppearance voice;
         TextPunch walletPunch;
         Color walletRest;
         float walletGlow;
@@ -44,6 +48,8 @@ namespace Hakaton.Trading.Unity
             if (trade) { trade.ItemPlaced -= OnPlaced; trade.ItemTaken -= OnTaken; trade.SlotHovered -= OnHovered; }
             if (sfx) sfx.StopLoop(this);
         }
+
+        static SfxCue Voice(SfxCue own, SfxCue common) => own ? own : common;
 
         void OnPlaced(int slot) => sfx?.Play(cues ? cues.placeItem : null, trade.World.SlotAnchors[slot].position);
         void OnTaken(int slot) => sfx?.Play(cues ? cues.takeItem : null, trade.World.SlotAnchors[slot].position);
@@ -84,6 +90,14 @@ namespace Hakaton.Trading.Unity
                 seenRevision = -1;
             }
 
+            // The visitor greets the shopkeeper in their own voice once they reach the counter.
+            if (customer != null && customer.Id != greetedCustomer && trade.CustomerReady)
+            {
+                greetedCustomer = customer.Id;
+                voice = trade.World.Customers.VisitorAppearance;
+                if (voice && voice.voiceArrive) sfx.Play(voice.voiceArrive);
+            }
+
             var deal = session.CurrentDeal;
             if (deal != null && deal.Revision != seenRevision && trade.CustomerReady)
             {
@@ -96,7 +110,10 @@ namespace Hakaton.Trading.Unity
             if (voiceAt > 0 && Time.unscaledTime >= voiceAt)
             {
                 voiceAt = -1;
-                sfx.Play(pendingMood == CustomerMood.Angry ? cues.npcAngry : pendingMood == CustomerMood.Happy ? cues.npcHappy : cues.npcNeutral);
+                // Each visitor answers in a voice of their own; the shop's common cues stand in when one is missing.
+                sfx.Play(pendingMood == CustomerMood.Angry ? Voice(voice ? voice.voiceAngry : null, cues.npcAngry)
+                    : pendingMood == CustomerMood.Happy ? Voice(voice ? voice.voiceHappy : null, cues.npcHappy)
+                    : Voice(voice ? voice.voiceThinking : null, cues.npcNeutral));
             }
 
             if (session.SettlementSequence != seenSettlement)
@@ -104,7 +121,7 @@ namespace Hakaton.Trading.Unity
                 seenSettlement = session.SettlementSequence;
                 int price = session.LastSalePrice;
                 sfx.Play(price >= bigSale ? cues.saleBig : cues.saleSmall);
-                sfx.Play(cues.npcHappy, null, .8f);
+                sfx.Play(Voice(voice ? voice.voiceHappy : null, cues.npcHappy), null, .8f);
                 if (saleAnchor)
                     VfxBurst.Spawn(price >= bigSale && bigSaleBurst ? bigSaleBurst : saleBurst, saleAnchor.position,
                         Quaternion.identity, null, Color.white, price >= bigSale ? bigSaleScale : saleScale);
@@ -119,7 +136,7 @@ namespace Hakaton.Trading.Unity
                 if (session.LastDeparture != null && session.LastDeparture.Outcome == CustomerOutcome.WalkedAway)
                 {
                     sfx.Play(cues.walkOut);
-                    sfx.Play(cues.npcAngry);
+                    sfx.Play(Voice(voice ? voice.voiceAngry : null, cues.npcAngry));
                     if (feel) feel.AddTrauma(.15f);
                 }
             }

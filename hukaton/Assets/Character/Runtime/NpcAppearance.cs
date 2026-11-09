@@ -14,6 +14,15 @@ namespace Hakaton.Character
         public Sprite happy;
         public Sprite angry;
         [Min(.001f)] public float bodyScale = .18f;
+        [Header("Voice (optional; the shop's common cues play when empty)")]
+        [Tooltip("Steps up to the counter.")]
+        public Hakaton.Feel.SfxCue voiceArrive;
+        [Tooltip("Weighs a neutral offer.")]
+        public Hakaton.Feel.SfxCue voiceThinking;
+        [Tooltip("Likes the offer, and buys.")]
+        public Hakaton.Feel.SfxCue voiceHappy;
+        [Tooltip("Dislikes the offer, and walks out.")]
+        public Hakaton.Feel.SfxCue voiceAngry;
 
         public Sprite ForExpression(NpcExpression expression)
         {
