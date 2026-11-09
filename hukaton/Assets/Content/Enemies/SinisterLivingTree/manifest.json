@@ -1,0 +1,415 @@
+{
+  "character": "SinisterLivingTree",
+  "display_name": "Зловещее ожившее дерево",
+  "status": "atlas_pixel_verified_and_unity_import_verified",
+  "user_art_approval": "not_yet_recorded",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 3.0,
+  "brief": "Агрессивное ожившее дерево с очень злым и зловещим лицом. Ноги-корни, руки-ветки. Рост 3 метра. Форма ствола и осенняя крона вдохновлены приложенным пользователем изображением.",
+  "identity": "Twisting reddish-brown trunk with olive moss, broad olive/ochre/rust canopy, two branch-arms with hooked twig fingers, two root-legs with splayed toes, carved sinister face with dark slanted eye hollows and tiny amber pupils, black mouth with wooden tooth splinters.",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "monster_style_rules": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "approved_workflow_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/manifest.json",
+  "user_design_reference": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/work/user-tree-reference.png",
+  "aggression_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-aggro.png",
+  "physical_height_provided_by_user": true,
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-default.png",
+  "generation_mode": "built-in image_gen; transparent_background=true",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Обычный вид",
+    "aggression": "Агрессия",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "aggression_state_semantics": "Deep threatening root crouch, raised branch claws, intensified snarl; ONE red exclamation mark and FIVE short red emphasis strokes.",
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 5,
+    "fill": "red",
+    "outline": "dark"
+  },
+  "attack_variant": "Forward lunge and broad sweeping branch-claw strike.",
+  "death_state_semantics": "Trunk slumps onto buckled spread roots, branch-arms lie limp, canopy droops. Two visible eyes become black X marks on bark; amber pupils and dark eye hollows are absent. No face or eye crosses on the rear trunk.",
+  "atlas": "SinisterLivingTreeAtlas.png",
+  "atlas_sha256": "dbcb5b7b21b4cfbc947ad4538c755c2b45efd97f81c10cd12230af44343aac9c",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 4032,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "SinisterLivingTree_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/front-default.png",
+      "master_sha256": "0509d1a4878102d07a5df04399e3ccf45116e97298b826ef7f40649d0dde1b10",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-default.png",
+      "original_sha256": "088887eca04b473efb8d6022df9da85b0e72d3865c7e64ca18f79cba4b4467fa",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        8
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        91,
+        21,
+        1237,
+        1260
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 136760290
+    },
+    {
+      "name": "SinisterLivingTree_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/back-default.png",
+      "master_sha256": "9efbb4a5873a9e2d673eec47dbdf377e8fbd25b025eefaa03a0d57527e8636e3",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/back-default.png",
+      "original_sha256": "710166ee7e818f017d889105c02f5c25304daefcbde50db25906ae772a269c6c",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        12
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        163,
+        24,
+        1199,
+        1260
+      ],
+      "source_name": "back-default",
+      "unity_file_id": 573312357
+    },
+    {
+      "name": "SinisterLivingTree_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/front-aggro.png",
+      "master_sha256": "2fba164b8b6b3d081512da4bb32829f6f939392fc468a891c372e7976c4e4fc5",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-aggro.png",
+      "original_sha256": "2a4f4e17dcfe9ca0a63d7924ac1eb6320d15a246b5040628b3b565852f1419d4",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        9
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        154,
+        25,
+        1185,
+        1260
+      ],
+      "source_name": "front-aggro",
+      "unity_file_id": -1591523610
+    },
+    {
+      "name": "SinisterLivingTree_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/front-hurt.png",
+      "master_sha256": "f311946f3840a749799bb88125769e1f468e9978b34b0f87fd10b83579dc9429",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-hurt.png",
+      "original_sha256": "7514dcf8ac02449c5d6c8e281a3a2d834ce066dfcf2ccd1232fd6929247650c1",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        12
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        64,
+        23,
+        1124,
+        1260
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": -1457520948
+    },
+    {
+      "name": "SinisterLivingTree_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/front-attack.png",
+      "master_sha256": "33b18226e3e41f4ca4e0153120e23e5848341a8eb39ef73528e2de2b8e0f8736",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-attack.png",
+      "original_sha256": "b93c46730330c0cee5ff3deaad332b50a56979311152c407d0c71c090c638be0",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        30
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        100,
+        68,
+        1280,
+        1260
+      ],
+      "source_name": "front-attack",
+      "unity_file_id": 231479350
+    },
+    {
+      "name": "SinisterLivingTree_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/front-death.png",
+      "master_sha256": "3cc5e43f6b83057e701123b86798a71311a491af3e606cc37c17a99ce3387887",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/front-death.png",
+      "original_sha256": "61aa70b29d0768933273af13f42f748e4f1e43692dfd2bbd92a5996aed6e0223",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        15
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        61,
+        279,
+        1288,
+        1260
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -44391068
+    },
+    {
+      "name": "SinisterLivingTree_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/masters/back-death.png",
+      "master_sha256": "06b3148abb89f56daf03ede54c9842859c172db316801a01b4c87073baf0a963",
+      "original": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/back-death.png",
+      "original_sha256": "714bed2b8a6f933894fe37190e16092fa8fcba1749ddcd80fc2465a7f0a801e9",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        17
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        50,
+        204,
+        1272,
+        1260
+      ],
+      "source_name": "back-death",
+      "unity_file_id": 2105092008
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of full source canvases. No cropping, trimming, rotation, resizing, resampling or per-sprite horizontal recentering.",
+    "original_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1260,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha>=128 measures the visible contact only. Generated source pixels, including faint alpha pixels, are retained unchanged."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.0625
+  ],
+  "pixels_per_unit": 413.0,
+  "default_visible_height_px": 1239,
+  "physical_scale_note": "The default visible height from canopy top to root contact is 3.0 Unity units at scale (1,1,1), assuming 1 unit = 1 metre. Unity Editor import validated; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.0625
+    ],
+    "pixels_per_unit": 413.0,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTreeAtlas.png",
+    "verification_scope": "Editor import, exact sprite rectangles, common pivots/PPU/full-rect bounds and preserved source texture resolution. No gameplay scene or behaviour added.",
+    "version": "6000.3.21f1",
+    "asset_guid": "c5151b48f0086461cb4266f13d92b64b",
+    "actual_pixels_per_unit": 413.0,
+    "actual_normalized_pivot": {
+      "x": 0.5,
+      "y": 0.0625
+    },
+    "texture_format": "RGBA32"
+  },
+  "prompts": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/verification.json",
+  "preview": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/preview.png",
+  "import_instructions": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/unity-import.txt",
+  "source_character": "sinister-living-tree",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/sinister-living-tree/manifest.json",
+  "unity_verification": "unity-verification.json"
+}

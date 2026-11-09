@@ -1,0 +1,460 @@
+{
+  "character": "RatPumpkin",
+  "display_name": "Крысиная тыква-светильник — яркий свет и блум",
+  "revision_of": "../rat-pumpkin-dark-v2/manifest.json",
+  "revision": 3,
+  "revision_request": "Только свет внутри тыквы сделай ярким, с явным блумом прямо на рисунке.",
+  "status": "atlas_pixel_verified_and_unity_import_verified",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 0.3,
+  "physical_height_is_maximum": true,
+  "user_brief": "Тыква-светильник, которая кишит крысами внутри и снаружи. Тип агрессивный. Рост до 30 см.",
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-default.png",
+  "monster_style": "../style-current.json",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "approved_monster_reference": "../purple-mushroom-test/masters/front-default.png",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Дефолт",
+    "aggression": "Агр",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "attack_variant": "Pumpkin pitches forward as its rats surge out to bite.",
+  "death_eyes": "All visible rat eyes and pumpkin face eyes are black X marks; no eyes on rear pumpkin surface.",
+  "atlas": "RatPumpkinAtlas.png",
+  "atlas_sha256": "9ac17875ea289975fa4acf324f4dac3e3b8172499af0637fc17efb2006ebef19",
+  "format": "RGBA8 PNG",
+  "width": 4032,
+  "height": 4032,
+  "cell_width": 1344,
+  "cell_height": 1344,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "RatPumpkin_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/front-default.png",
+      "master_sha256": "e1e5542e85cf1d0ee8ad0b172d7607c236ac12f9a88d72d6478a56ed5235907b",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-default.png",
+      "original_sha256": "dc37206e3de2d86f02973f02915ddf49caf1fc276da3e9cac0aa9a3e2c046336",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        12
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        127,
+        444,
+        1204,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/front-default.png",
+      "light_edit": "imagegen_bloom_localized_to_lantern_regions",
+      "light_mask": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/work/raw/front-default-mask.raw",
+      "light_mask_format": "uint8 single channel; dimensions match original_canvas",
+      "source_name": "front-default",
+      "unity_file_id": 221017076
+    },
+    {
+      "name": "RatPumpkin_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/back-default.png",
+      "master_sha256": "629d3e6b22e990c75c6241610ede00449a51a1dda6e8c06c39e630e802728548",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/back-default.png",
+      "original_sha256": "68bd883466e9768a1549c62914c7444f76c8207a2eef606457c64b95f5eaec6d",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        21
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1344,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        151,
+        450,
+        1193,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/back-default.png",
+      "light_edit": "imagegen_bloom_localized_to_lantern_regions",
+      "light_mask": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/work/raw/back-default-mask.raw",
+      "light_mask_format": "uint8 single channel; dimensions match original_canvas",
+      "source_name": "back-default",
+      "unity_file_id": -1414525331
+    },
+    {
+      "name": "RatPumpkin_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/front-aggro.png",
+      "master_sha256": "d5a62ccd44d60b426738488e86558e629c601ee49906b85e29018c9168e360ec",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-aggro.png",
+      "original_sha256": "7361cc134039f835ed5b3f3146ddcc540cf62b4a582e0978bad6a82eba4b60a4",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        25
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2688,
+        0,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        2688,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        105,
+        186,
+        1230,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/front-aggro.png",
+      "light_edit": "imagegen_bloom_localized_to_lantern_regions",
+      "light_mask": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/work/raw/front-aggro-mask.raw",
+      "light_mask_format": "uint8 single channel; dimensions match original_canvas",
+      "source_name": "front-aggro",
+      "unity_file_id": -1769842333
+    },
+    {
+      "name": "RatPumpkin_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/front-hurt.png",
+      "master_sha256": "85c2cc7604b7079b360cbe941071b5706ce8a1318ad1d32978ae4e57ba284f5e",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-hurt.png",
+      "original_sha256": "da33dd08a59577212130cda8a1914d792072869ee28f975cefc20c25d66fda8d",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        21
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        86,
+        451,
+        1208,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/front-hurt.png",
+      "light_edit": "imagegen_bloom_localized_to_lantern_regions",
+      "light_mask": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/work/raw/front-hurt-mask.raw",
+      "light_mask_format": "uint8 single channel; dimensions match original_canvas",
+      "source_name": "front-hurt",
+      "unity_file_id": 948557257
+    },
+    {
+      "name": "RatPumpkin_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/front-attack.png",
+      "master_sha256": "69bbd0fc62f6fb1d4b2e1f94b89845347517e2695a47f1140e7c8ad00a0b1e98",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-attack.png",
+      "original_sha256": "26643180bb46a7508b26f94bed93dd495047c6e43464b5bea3360a8970d88d8f",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        8
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        1344,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        121,
+        437,
+        1222,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/front-attack.png",
+      "light_edit": "imagegen_bloom_localized_to_lantern_regions",
+      "light_mask": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/work/raw/front-attack-mask.raw",
+      "light_mask_format": "uint8 single channel; dimensions match original_canvas",
+      "source_name": "front-attack",
+      "unity_file_id": -159782957
+    },
+    {
+      "name": "RatPumpkin_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/front-death.png",
+      "master_sha256": "326120c25cf336519103f4b683638ffa0db5a9d495ecbd6c45e1dc9008c7eb6b",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/front-death.png",
+      "original_sha256": "651124234109de4a811b89f9f886cd65fd9850ebb5f02392f593e38ef04e13ef",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        12
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        2688,
+        1344,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        114,
+        601,
+        1221,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/front-death.png",
+      "light_edit": "unchanged_extinguished_death",
+      "light_mask": null,
+      "light_mask_format": null,
+      "source_name": "front-death",
+      "unity_file_id": -1402435533
+    },
+    {
+      "name": "RatPumpkin_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/masters/back-death.png",
+      "master_sha256": "2ff0c642119456e18b2438d0a6b52c4a9c9c5dd066d6885aae47f7601c2cda5c",
+      "original": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/back-death.png",
+      "original_sha256": "bafc5a229da364e9e179527c0347531b749c2f2ceb31a51a029c7e4f7312f399",
+      "original_canvas": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        45,
+        16
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2688,
+        1344,
+        1344
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "visible_bounds_alpha_128": [
+        108,
+        603,
+        1235,
+        1246
+      ],
+      "source_version": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-dark-v2/back-death.png",
+      "light_edit": "unchanged_extinguished_death",
+      "light_mask": null,
+      "light_mask_format": null,
+      "source_name": "back-death",
+      "unity_file_id": 161547907
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Reused exact prior canvas, source offsets, common ground anchor, PPU and pivot; no trimming, resampling, scaling or recentering. Saved RGBA masters stitched exactly.",
+    "source_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1246,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha threshold is only for visible contact measurement; original alpha bytes are preserved."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.07291666666666667
+  ],
+  "pixels_per_unit": 2730.0,
+  "default_visible_height_px": 802,
+  "default_physical_height_m": 0.2937728937728938,
+  "maximum_state_body_height_px": 819,
+  "physical_scale_note": "PPU derives from the maximum body height across all seven states including rats, capped at 0.30 m at transform scale one, assuming 1 Unity unit = 1 metre. Isolated red symbols are excluded using connected component bounds. Unity Editor import validated; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1344,
+      1344
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.07291666666666667
+    ],
+    "pixels_per_unit": 2730.0,
+    "max_size": 4096,
+    "platform_override_max_size_minimum": 4096,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/RatPumpkin/RatPumpkinAtlas.png",
+    "verification_scope": "Editor import, exact sprite rectangles, common pivots/PPU/full-rect bounds and preserved source texture resolution. No gameplay scene or behaviour added.",
+    "version": "6000.3.21f1",
+    "asset_guid": "0dc3c5a3dde8b44c0a4ca82ec989e66e",
+    "actual_pixels_per_unit": 2730.0,
+    "actual_normalized_pivot": {
+      "x": 0.5,
+      "y": 0.0729166641831398
+    },
+    "texture_format": "RGBA32"
+  },
+  "prompts": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/verification.json",
+  "preview": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/preview.png",
+  "download_archive": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/rat-pumpkin-bloom-v3.zip",
+  "unity_import_instructions": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/unity-import.txt",
+  "generation_mode": "built-in image_gen",
+  "user_approved": false,
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 5,
+    "overlaps_body": false,
+    "component_bounds": "../rat-pumpkin-dark-v2/work/aggro-components.json",
+    "unchanged_from_previous": true
+  },
+  "light_effect": {
+    "baked_into_rgba": true,
+    "affected_states": [
+      "default",
+      "aggression",
+      "taking_damage",
+      "attack"
+    ],
+    "death_views_unchanged": true,
+    "method": "Built-in imagegen edits, composited only within local lantern-light masks; all RGBA pixels outside masks preserved.",
+    "mask_seed": "Existing amber interior pixels: a>=200, r>=150, g>=105, g>=0.60r, b<0.70g",
+    "mask_feather": "Full strength within 35px, smooth fade to zero within 80px (3/4 chamfer distance).",
+    "physical_scale": "Original body scale, PPU and pivot retained; bloom excluded from physical size."
+  },
+  "source_character": "rat-pumpkin-bloom-v3",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/rat-pumpkin-bloom-v3/manifest.json",
+  "unity_verification": "unity-verification.json"
+}

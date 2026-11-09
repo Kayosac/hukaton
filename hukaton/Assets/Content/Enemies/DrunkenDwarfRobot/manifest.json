@@ -1,0 +1,441 @@
+{
+  "character": "DrunkenDwarfRobot",
+  "display_name": "Самопальный робот пьяных дварфов",
+  "status": "atlas_pixel_verified_and_unity_import_verified",
+  "user_art_approval": "not_yet_recorded",
+  "created_on": "2026-11-09",
+  "type": "aggressive",
+  "physical_height_m": 4.0,
+  "brief": "Гигантский сложный самодельный неуклюжий агрессивный робот ростом 4 метра. Управляется одновременно группой дварфов алкоголиков на отдельных пультах в разных частях корпуса и на конечностях. Дичайший неумелый самопал с кучей бессмысленных деталей.",
+  "identity": "Crooked patched boiler and wooden barrel turret, mismatched hammer and three-pronged claw arms, metal boot and iron-bound crate foot, rusted plates, ropes, loose gears, kettle, bent pipes and dangling wire loops. Six adult red-nosed bearded dwarf operators, each at a separate control station with beer mugs or green bottles. Robot has no face or eyes.",
+  "drawing_style_reference": "/Users/kayosac/hukaton/output/shop-visitors/09-peasant-line-details.png",
+  "monster_style_rules": "/Users/kayosac/hukaton/output/monsters/style-current.json",
+  "approved_workflow_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/manifest.json",
+  "crew_count": 6,
+  "crew_stations_front": [
+    {
+      "station": "top barrel",
+      "operator": "ginger beard, saucepan helmet"
+    },
+    {
+      "station": "belly boiler",
+      "operator": "grey beard, bald head"
+    },
+    {
+      "station": "image-left hammer forearm",
+      "operator": "blond beard, leather cap"
+    },
+    {
+      "station": "image-right claw forearm",
+      "operator": "dark brown beard, red knit cap"
+    },
+    {
+      "station": "image-left shin above metal boot",
+      "operator": "brown beard, raised goggles"
+    },
+    {
+      "station": "image-right knee above crate foot",
+      "operator": "white beard, green cap"
+    }
+  ],
+  "aggression_reference": "/Users/kayosac/hukaton/output/monsters/goblin-dog-test/masters/front-aggro.png",
+  "physical_height_provided_by_user": true,
+  "canonical_default": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-default.png",
+  "generation_mode": "built-in image_gen; transparent_background=true",
+  "states": [
+    "default",
+    "aggression",
+    "taking_damage",
+    "attack",
+    "death"
+  ],
+  "state_labels_ru": {
+    "default": "Обычный вид",
+    "aggression": "Агрессия",
+    "taking_damage": "Получение урона",
+    "attack": "Атака",
+    "death": "Смерть"
+  },
+  "rear_views_required": [
+    "default",
+    "death"
+  ],
+  "aggression_state_semantics": "Wide uneven bent-leg threat stance, raised hammer and open claw, six pilots bickering and yanking controls. One red exclamation mark and four short red emphasis strokes above captain.",
+  "aggression_markers": {
+    "exclamation_marks": 1,
+    "radiating_strokes": 4,
+    "fill": "red",
+    "outline": "dark"
+  },
+  "attack_variant": "Heavy clumsy downward hammer smash with a forward step, body tilt and two black curved swing strokes.",
+  "death_state_semantics": "Machine collapses onto completely buckled splayed legs, arms lie limp, barrel tilts; all six pilots slump in their own stations. Every visible front eye is a simple black X (12 total). Rear shows backs of all six heads, no face or X marks. Robot has no eyes to mark.",
+  "atlas": "DrunkenDwarfRobotAtlas.png",
+  "atlas_sha256": "8dce8865956d38b3773a310af5227435c9d80606ff15f3d5252599211888eebd",
+  "format": "RGBA8 PNG",
+  "width": 4800,
+  "height": 4080,
+  "cell_width": 1600,
+  "cell_height": 1360,
+  "columns": 3,
+  "rows": 3,
+  "cell_coordinate_origin": "top-left",
+  "offset": [
+    0,
+    0
+  ],
+  "padding": [
+    0,
+    0
+  ],
+  "empty_cells": [
+    {
+      "column": 1,
+      "row": 2
+    },
+    {
+      "column": 2,
+      "row": 2
+    }
+  ],
+  "cells": [
+    {
+      "name": "DrunkenDwarfRobot_DefaultFront",
+      "state": "default",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/front-default.png",
+      "master_sha256": "4509d25304ae6831fce6bc8c8c7cae035ebc0597022204677f730e547a545f44",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-default.png",
+      "original_sha256": "9fad1df802cae0e15c41a4532e88d67702cbcb9b323e28cbe2a1a217a731f586",
+      "original_canvas": [
+        1239,
+        1269
+      ],
+      "source_offset": [
+        180,
+        14
+      ],
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        0,
+        2720,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        185,
+        25,
+        1409,
+        1280
+      ],
+      "source_name": "front-default",
+      "unity_file_id": 1933667486
+    },
+    {
+      "name": "DrunkenDwarfRobot_DefaultBack",
+      "state": "default",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/back-default.png",
+      "master_sha256": "084899058b7c84c835e480ffb8cc9c8e42a223a3fe51d85792a552e56899b803",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/back-default.png",
+      "original_sha256": "56474ac43fa0fc3aebf24d77c8885f7a117f9dfe03e85180116454ca1d8a234c",
+      "original_canvas": [
+        1240,
+        1269
+      ],
+      "source_offset": [
+        180,
+        17
+      ],
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1600,
+        0,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        1600,
+        2720,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        183,
+        28,
+        1397,
+        1280
+      ],
+      "source_name": "back-default",
+      "unity_file_id": 327272757
+    },
+    {
+      "name": "DrunkenDwarfRobot_AggroFront",
+      "state": "aggression",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/front-aggro.png",
+      "master_sha256": "3d4efe3334f5627c36617683439107029df9d4b29834b60cc0d383dc8f770af0",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-aggro.png",
+      "original_sha256": "a163a041c94bbd6a2233a8bcbeefeaf3c313ad79b1643c99880b1aab6cd2353f",
+      "original_canvas": [
+        1313,
+        1198
+      ],
+      "source_offset": [
+        143,
+        89
+      ],
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        3200,
+        0,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        3200,
+        2720,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        151,
+        96,
+        1449,
+        1280
+      ],
+      "source_name": "front-aggro",
+      "unity_file_id": -912930556
+    },
+    {
+      "name": "DrunkenDwarfRobot_HurtFront",
+      "state": "taking_damage",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/front-hurt.png",
+      "master_sha256": "021e03f30ffaaa80cfd5688202f67930259204eca0206b64e0c26f5b10154e26",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-hurt.png",
+      "original_sha256": "3cb1a17840ec1d811cb3f7a79278da849a6dcd7e268c9efed35bdb285169d023",
+      "original_canvas": [
+        1240,
+        1269
+      ],
+      "source_offset": [
+        180,
+        33
+      ],
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1360,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        0,
+        1360,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        194,
+        83,
+        1398,
+        1280
+      ],
+      "source_name": "front-hurt",
+      "unity_file_id": -1737873193
+    },
+    {
+      "name": "DrunkenDwarfRobot_AttackFront",
+      "state": "attack",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/front-attack.png",
+      "master_sha256": "74ad121add690144378b0ba7a8edf82d62e8bddbe3e99ca09b7330121ce43001",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-attack.png",
+      "original_sha256": "47a61438e06eef293a267bc4f94d94c9deb2f823195849bb9013da473e2a1c4f",
+      "original_canvas": [
+        1348,
+        1167
+      ],
+      "source_offset": [
+        126,
+        116
+      ],
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1600,
+        1360,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        1600,
+        1360,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        131,
+        190,
+        1469,
+        1280
+      ],
+      "source_name": "front-attack",
+      "unity_file_id": -1187731425
+    },
+    {
+      "name": "DrunkenDwarfRobot_DeathFront",
+      "state": "death",
+      "view": "front",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/front-death.png",
+      "master_sha256": "6b3af1376f891d490d1f119f1508ab6a10dbb0447133f3316b57530f053eb46e",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/front-death.png",
+      "original_sha256": "ce5b68a1a9d337e9ab6a8c21de00ee6a0de8c9c397e20a541700ce30d34be8df",
+      "original_canvas": [
+        1536,
+        1024
+      ],
+      "source_offset": [
+        32,
+        267
+      ],
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        3200,
+        1360,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        3200,
+        1360,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        38,
+        427,
+        1561,
+        1280
+      ],
+      "source_name": "front-death",
+      "unity_file_id": -1492861340
+    },
+    {
+      "name": "DrunkenDwarfRobot_DeathBack",
+      "state": "death",
+      "view": "back",
+      "master": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/masters/back-death.png",
+      "master_sha256": "221554dd3b8f57f4ab6082325927b473ee74eb11aa6d63703654a3cd8c2c764d",
+      "original": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/back-death.png",
+      "original_sha256": "cfd297d4a90079c40e8cb979620b958fe042b94ffe5a07e1cface1f83dad7a91",
+      "original_canvas": [
+        1536,
+        1024
+      ],
+      "source_offset": [
+        32,
+        281
+      ],
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2720,
+        1600,
+        1360
+      ],
+      "rect_unity": [
+        0,
+        0,
+        1600,
+        1360
+      ],
+      "visible_bounds_alpha_128": [
+        38,
+        360,
+        1563,
+        1280
+      ],
+      "source_name": "back-death",
+      "unity_file_id": 619040361
+    }
+  ],
+  "canvas_preparation": {
+    "method": "Transparent padding of full source canvases. No cropping, trimming, rotation, resizing, resampling or per-sprite horizontal recentering.",
+    "original_rgba_preserved": true,
+    "source_offsets_recorded": true,
+    "ground_line_top_left_y": 1280,
+    "contact_threshold_alpha": 128,
+    "note": "Alpha>=128 measures the visible contact only. Generated source pixels, including faint alpha pixels, are retained unchanged."
+  },
+  "shared_pivot_normalized_unity": [
+    0.5,
+    0.058823529411764705
+  ],
+  "pixels_per_unit": 313.75,
+  "default_visible_height_px": 1255,
+  "physical_scale_note": "The default visible height from captain saucepan top to feet contact is 4.0 Unity units at scale (1,1,1), assuming 1 unit = 1 metre. Unity Editor import validated; see unity-verification.json.",
+  "unity": {
+    "texture_type": "Sprite (2D and UI)",
+    "sprite_mode": "Multiple",
+    "slice": "Grid By Cell Size",
+    "pixel_size": [
+      1600,
+      1360
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "padding": [
+      0,
+      0
+    ],
+    "pivot": [
+      0.5,
+      0.058823529411764705
+    ],
+    "pixels_per_unit": 313.75,
+    "max_size": 8192,
+    "platform_override_max_size_minimum": 8192,
+    "npot_scale": "None",
+    "mesh_type": "FullRect",
+    "compression": "Uncompressed",
+    "mipmaps": false,
+    "wrap_mode": "Clamp",
+    "filter_mode": "Bilinear",
+    "automatic_slice": false,
+    "trim": false,
+    "import_verified": true,
+    "asset_path": "Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobotAtlas.png",
+    "verification_scope": "Editor import, exact sprite rectangles, common pivots/PPU/full-rect bounds and preserved source texture resolution. No gameplay scene or behaviour added.",
+    "version": "6000.3.21f1",
+    "asset_guid": "c2f31e336fb0548e294ed3a61ae4e86f",
+    "actual_pixels_per_unit": 313.75,
+    "actual_normalized_pivot": {
+      "x": 0.5,
+      "y": 0.05882352963089943
+    },
+    "texture_format": "RGBA32"
+  },
+  "prompts": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/prompts.json",
+  "verification": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/verification.json",
+  "preview": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/preview.png",
+  "import_instructions": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/unity-import.txt",
+  "source_character": "drunken-dwarf-scrap-robot",
+  "source_directory": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot",
+  "source_manifest": "/Users/kayosac/hukaton/output/monsters/drunken-dwarf-scrap-robot/manifest.json",
+  "unity_verification": "unity-verification.json"
+}
