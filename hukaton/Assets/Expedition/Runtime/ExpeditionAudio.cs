@@ -9,7 +9,7 @@ namespace Hakaton.Expeditions
     {
         [Header("Hand")]
         public SfxCue cardDraw;
-        public SfxCue cardSelect, deckSwitch, discard, charge, chargeReady, cancel, cardThrow, cardFlutter;
+        public SfxCue cardSelect, discard, charge, chargeReady, cancel, cardThrow, cardFlutter;
         [Header("Return")]
         public SfxCue returnAppears;
         public SfxCue returnCard;

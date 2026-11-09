@@ -2,14 +2,15 @@ using System.Collections.Generic;
 using Hakaton.Decks;
 using Hakaton.Feel;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// First-person viewmodel of the active hand: a wide, close fan of large cards centred under the crosshair
+    /// First-person viewmodel of the hand: a wide, close fan of large cards centred under the crosshair
     /// (bottoms cut by the screen edge, like Shroom &amp; Gloom), spring-driven; it sways with the
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
-    /// The inactive deck sits as a small stack of backs bottom-right. Polls the model, so selection
+    /// The draw pile sits as a small stack of backs bottom-right and thins out as it runs low. Polls the model, so selection
     /// changes never re-deal the hand.
     /// </summary>
     [DefaultExecutionOrder(100)]
@@ -18,9 +19,10 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         [Tooltip("Five authored card slots (children).")]
         public CardView[] slots;
-        [Tooltip("Up to three authored backs showing the inactive deck.")]
+        [Tooltip("Up to three authored backs showing what is left in the draw pile.")]
         public CardView[] stack;
-        public Texture explorationBack, combatBack;
+        [FormerlySerializedAs("explorationBack")]
+        public Texture cardBack;
 
         [Header("Fan layout (camera space, metres)")]
         public Vector3 pivot = new Vector3(0, -1.42f, .55f);
@@ -31,7 +33,7 @@ namespace Hakaton.Expeditions
         public float restDrop = .04f;
         public float selectedLift = .08f, selectedToward = .04f;
         [Min(1)] public float selectedScale = 1.15f;
-        [Header("Inactive deck stack")]
+        [Header("Draw pile stack")]
         public Vector3 stackPosition = new Vector3(.6f, -.36f, .55f);
         public float stackRoll = -16;
         [Header("Charge wind-up")]
@@ -61,7 +63,6 @@ namespace Hakaton.Expeditions
 
         readonly List<Slot> active = new List<Slot>();
         readonly List<int> lastIds = new List<int>();
-        DeckKind lastKind;
         int lastStackCount = -1;
         SpringVector3 sway;
         Quaternion lastCamera;
@@ -140,25 +141,21 @@ namespace Hakaton.Expeditions
         {
             var trip = world.workshop.Model.Current;
             if (trip == null) return;
-            var hand = trip.Active.Hand;
-            bool kindChanged = trip.ActiveKind != lastKind;
-            bool changed = fresh || kindChanged || hand.Count != lastIds.Count;
+            var hand = trip.Deck.Hand;
+            bool changed = fresh || hand.Count != lastIds.Count;
             if (!changed) for (int i = 0; i < hand.Count; i++) if (hand[i].Id != lastIds[i]) { changed = true; break; }
-            var other = trip.Get(trip.ActiveKind == DeckKind.Exploration ? DeckKind.Combat : DeckKind.Exploration);
-            int stackCount = Mathf.Min(stack.Length, other.Hand.Count);
-            if (stackCount != lastStackCount || kindChanged || fresh) UpdateStack(stackCount, other.Kind);
+            int stackCount = Mathf.Min(stack.Length, trip.Deck.StockCount);
+            if (stackCount != lastStackCount || fresh) UpdateStack(stackCount);
             if (!changed) return;
 
-            if (kindChanged && !fresh) world.Play(world.cues ? world.cues.deckSwitch : null);
-            lastKind = trip.ActiveKind;
             lastIds.Clear();
             foreach (var card in hand) lastIds.Add(card.Id);
 
-            // Release slots whose card left the hand (thrown or discarded) or every slot on a deck switch.
+            // Release slots whose card left the hand (thrown or discarded).
             foreach (var slot in active)
-                if (kindChanged || fresh || !Contains(hand, slot.copyId)) { slot.view.Hide(); slot.copyId = int.MinValue; }
+                if (fresh || !Contains(hand, slot.copyId)) { slot.view.Hide(); slot.copyId = int.MinValue; }
 
-            Texture back = trip.ActiveKind == DeckKind.Exploration ? explorationBack : combatBack;
+            Texture back = cardBack;
             int dealt = 0;
             foreach (var card in hand)
             {
@@ -180,10 +177,10 @@ namespace Hakaton.Expeditions
             }
         }
 
-        void UpdateStack(int count, DeckKind kind)
+        void UpdateStack(int count)
         {
             lastStackCount = count;
-            Texture back = kind == DeckKind.Exploration ? explorationBack : combatBack;
+            Texture back = cardBack;
             for (int i = 0; i < stack.Length; i++)
             {
                 if (i >= count) { stack[i].Hide(); continue; }
@@ -197,7 +194,7 @@ namespace Hakaton.Expeditions
         {
             var trip = world.workshop.Model.Current;
             if (trip == null) return;
-            var hand = trip.Active.Hand;
+            var hand = trip.Deck.Hand;
             var thrower = world.thrower;
             var selected = thrower.Selected;
             var preparation = thrower.Preparation;

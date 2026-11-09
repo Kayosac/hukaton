@@ -8,8 +8,8 @@ namespace Hakaton.Economy.Tests
     public sealed class CoinWalletTests
     {
         static readonly CardSpec[] Cards = {
-            new CardSpec("wind", "Вихрь", DeckKind.Exploration, 30, 20, 3, 1),
-            new CardSpec("fire", "Огонь", DeckKind.Combat, 40, 20, 8, 2)
+            new CardSpec("wind", "Вихрь", 30, 20, 3, 1),
+            new CardSpec("fire", "Огонь", 40, 20, 8, 2)
         };
 
         [Test]
@@ -57,8 +57,8 @@ namespace Hakaton.Economy.Tests
             Assert.That(workshop.Buy("wind", out var copy), Is.Null);
             Assert.That(workshop.Upgrade(copy.Id), Is.Null);
             Assert.That(trading.Gold, Is.EqualTo(50));
-            Assert.That(workshop.ImproveHand(DeckKind.Exploration), Is.Not.Null);
-            Assert.That(workshop.HandSize(DeckKind.Exploration), Is.EqualTo(3));
+            Assert.That(workshop.ImproveHand(), Is.Not.Null);
+            Assert.That(workshop.HandSize, Is.EqualTo(3));
             Assert.That(trading.Offer(deal.Id, revision, 0), Is.False, "A repeated sale cannot credit the shared wallet twice.");
             Assert.That(wallet.Balance, Is.EqualTo(50));
             Assert.That(trading.SalesCount, Is.EqualTo(1));

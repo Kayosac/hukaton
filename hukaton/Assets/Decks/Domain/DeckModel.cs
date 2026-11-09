@@ -5,22 +5,15 @@ using Hakaton.Economy;
 
 namespace Hakaton.Decks
 {
-    public enum DeckKind
-    {
-        Exploration,
-        Combat
-    }
-
+    /// <summary>A card type. Cards are not split into combat and exploration: what a card is for follows from its effect.</summary>
     public sealed class CardSpec
     {
         public readonly string Id, Name;
-        public readonly DeckKind Kind;
         public readonly int Price, UpgradePrice, BasePower, PowerPerLevel;
-        public CardSpec(string id, string name, DeckKind kind, int price, int upgradePrice, int power, int powerPerLevel)
+        public CardSpec(string id, string name, int price, int upgradePrice, int power, int powerPerLevel)
         {
             Id = id;
             Name = name;
-            Kind = kind;
             Price = price;
             UpgradePrice = upgradePrice;
             BasePower = power;
@@ -44,8 +37,7 @@ namespace Hakaton.Decks
 
         internal void Upgrade() { Level++; }
         internal CardCopy Snapshot() => new CardCopy(Id, Spec, Level);
-        internal static CardCopy Return() => new CardCopy(
-            -1, new CardSpec("return", "Пора домой", DeckKind.Exploration, 0, 0, 0, 0));
+        internal static CardCopy Return() => new CardCopy(-1, new CardSpec("return", "Пора домой", 0, 0, 0, 0));
     }
 
     public sealed class DeckRules
@@ -78,21 +70,25 @@ namespace Hakaton.Decks
         public string id, name;
         public int count, value;
     }
+    /// <summary>Version 2: one deck and one hand. Version 1 (exploration and combat decks) is still read.</summary>
     [Serializable]
     public sealed class WorkshopSave
     {
-        public int version = 1, coins, nextId, explorationHand, combatHand, journeys;
+        public const int CurrentVersion = 2;
+        public int version = CurrentVersion, coins, nextId, hand, journeys;
+        /// <summary>Version 1 only: the hands of the former exploration and combat decks.</summary>
+        public int explorationHand, combatHand;
         public List<CopySave> copies = new List<CopySave>();
         public List<int> selected = new List<int>();
     }
 
-    /// <summary>Collection and economy. Every equipped item is a particular owned copy.</summary>
+    /// <summary>Collection and economy. Every card in the deck is a particular owned copy; one deck, one hand.</summary>
     public sealed class DeckWorkshop
     {
         readonly List<CardCopy> owned = new List<CardCopy>();
         readonly HashSet<int> selected = new HashSet<int>();
         readonly Dictionary<string, CardSpec> catalog;
-        readonly int[] handSizes;
+        int handSize;
         CoinWallet wallet;
         readonly bool ownsWallet;
         int nextId = 1;
@@ -103,8 +99,10 @@ namespace Hakaton.Decks
         public IReadOnlyList<CardCopy> Owned => owned.AsReadOnly();
         public Expedition Current { get; private set; }
         public bool IsAway => Current != null && !Current.Completed;
+        /// <param name="initialDeck">Copies of each type that start in the deck. Without it the deck takes the
+        /// collection in order up to the limit.</param>
         public DeckWorkshop(DeckRules rules, IEnumerable<CardSpec> specs, int copiesPerType = 3, CoinWallet wallet = null,
-            IReadOnlyDictionary<string, int> initialCopies = null)
+            IReadOnlyDictionary<string, int> initialCopies = null, IReadOnlyDictionary<string, int> initialDeck = null)
         {
             Rules = rules;
             catalog = specs.ToDictionary(s => s.Id);
@@ -115,29 +113,31 @@ namespace Hakaton.Decks
             if (copiesPerType < 0) throw new ArgumentOutOfRangeException(nameof(copiesPerType));
             if (initialCopies != null && initialCopies.Any(entry => !catalog.ContainsKey(entry.Key) || entry.Value < 0))
                 throw new ArgumentException("Invalid starting card copies", nameof(initialCopies));
+            if (initialDeck != null && initialDeck.Any(entry => !catalog.ContainsKey(entry.Key) || entry.Value < 0))
+                throw new ArgumentException("Invalid starting deck", nameof(initialDeck));
             ownsWallet = wallet == null;
             this.wallet = wallet ?? new CoinWallet(rules.StartingCoins);
-            handSizes = new[] { rules.InitialHand, rules.InitialHand };
+            handSize = rules.InitialHand;
             foreach (var spec in catalog.Values)
             {
                 int count = initialCopies == null                                 ? copiesPerType
                     : initialCopies.TryGetValue(spec.Id, out var configuredCount) ? configuredCount
                                                                                   : 0;
+                int inDeck = initialDeck == null ? count : initialDeck.TryGetValue(spec.Id, out var deckCount) ? deckCount : 0;
                 for (int i = 0; i < count; i++)
                 {
                     var copy = new CardCopy(nextId++, spec);
                     owned.Add(copy);
-                    if (Selected(spec.Kind).Count < rules.DeckLimit) selected.Add(copy.Id);
+                    if (i < inDeck && selected.Count < rules.DeckLimit) selected.Add(copy.Id);
                 }
             }
         }
 
         public CardCopy Find(int id) => owned.Find(c => c.Id == id);
         public bool IsSelected(int id) => selected.Contains(id);
-        public List<CardCopy> Selected(
-            DeckKind kind) => owned.Where(c => c.Spec.Kind == kind && selected.Contains(c.Id)).ToList();
-        public int HandSize(DeckKind kind) => handSizes[(int)kind];
-        public int HandPrice(DeckKind kind) => checked(Rules.HandUpgradePrice * (HandSize(kind) - Rules.InitialHand + 1));
+        public List<CardCopy> Selected() => owned.Where(c => selected.Contains(c.Id)).ToList();
+        public int HandSize => handSize;
+        public int HandPrice => checked(Rules.HandUpgradePrice * (handSize - Rules.InitialHand + 1));
         public int UpgradePrice(CardCopy copy) => checked(copy.Spec.UpgradePrice * copy.Level);
         public string Toggle(int id)
         {
@@ -149,7 +149,7 @@ namespace Hakaton.Decks
                 Changed?.Invoke();
                 return null;
             }
-            if (Selected(copy.Spec.Kind).Count >= Rules.DeckLimit) return "Колода заполнена. Уберите одну карту.";
+            if (selected.Count >= Rules.DeckLimit) return "Колода заполнена. Уберите одну карту.";
             selected.Add(id);
             Changed?.Invoke();
             return null;
@@ -181,13 +181,12 @@ namespace Hakaton.Decks
             return null;
         }
 
-        public string ImproveHand(DeckKind kind)
+        public string ImproveHand()
         {
             if (IsAway) return "Сначала вернитесь в лавку.";
-            if (HandSize(kind) >= Rules.MaxHand) return "Рука уже максимального размера.";
-            int price = HandPrice(kind);
-            if (!wallet.TrySpend(price)) return "Не хватает монет.";
-            handSizes[(int)kind]++;
+            if (handSize >= Rules.MaxHand) return "Рука уже максимального размера.";
+            if (!wallet.TrySpend(HandPrice)) return "Не хватает монет.";
+            handSize++;
             Changed?.Invoke();
             return null;
         }
@@ -195,8 +194,7 @@ namespace Hakaton.Decks
         public string CanDepart()
         {
             if (IsAway) return "Вылазка уже началась.";
-            if (Selected(DeckKind.Exploration).Count == 0) return "Добавьте хотя бы одну карту исследования.";
-            if (Selected(DeckKind.Combat).Count == 0) return "Добавьте хотя бы одну боевую карту.";
+            if (selected.Count == 0) return "Добавьте в колоду хотя бы одну карту.";
             return null;
         }
 
@@ -204,37 +202,51 @@ namespace Hakaton.Decks
         {
             string error = CanDepart();
             if (error != null) return error;
-            Current = new Expedition(Selected(DeckKind.Exploration), Selected(DeckKind.Combat), handSizes[0], handSizes[1], seed);
+            Current = new Expedition(Selected(), handSize, seed);
             Journeys++;
             Changed?.Invoke();
             return null;
         }
 
-        public WorkshopSave Save() => new WorkshopSave { coins = Coins, nextId = nextId, explorationHand = handSizes[0],
-            combatHand = handSizes[1], journeys = Journeys,
+        public WorkshopSave Save() => new WorkshopSave { coins = Coins, nextId = nextId, hand = handSize, journeys = Journeys,
             copies = owned.Select(c => new CopySave { id = c.Id, definition = c.Spec.Id, level = c.Level }).ToList(),
             selected = owned.Where(c => selected.Contains(c.Id)).Select(c => c.Id).ToList() };
-        /// <summary>Validates the full card snapshot before a scene-wide restore changes any subsystem.</summary>
-        public bool CanRestoreProgress(WorkshopSave save)
+
+        /// <summary>
+        /// Validates a snapshot and brings an old one up to date: a version 1 save had two decks and two hands,
+        /// so it keeps the larger (paid) hand and the first copies of its selection that fit the one deck.
+        /// </summary>
+        bool Read(WorkshopSave save, out List<CardCopy> copies, out List<int> equipped, out int hand)
         {
-            if (IsAway || save == null || save.version != 1 || save.copies == null || save.selected == null || save.coins < 0
-                || save.journeys < 0 || save.nextId < 1 || save.explorationHand < Rules.InitialHand
-                || save.explorationHand > Rules.MaxHand || save.combatHand < Rules.InitialHand || save.combatHand > Rules.MaxHand)
+            copies = null;
+            equipped = null;
+            hand = 0;
+            if (save == null || save.version < 1 || save.version > WorkshopSave.CurrentVersion || save.copies == null
+                || save.selected == null || save.coins < 0 || save.journeys < 0 || save.nextId < 1)
+                return false;
+            bool legacy = save.version == 1;
+            hand = legacy ? Math.Max(save.explorationHand, save.combatHand) : save.hand;
+            if (hand < Rules.InitialHand || hand > Rules.MaxHand
+                || legacy && (save.explorationHand < Rules.InitialHand || save.combatHand < Rules.InitialHand))
                 return false;
             var ids = new HashSet<int>();
-            var restored = new List<CardCopy>();
+            copies = new List<CardCopy>();
             foreach (var c in save.copies)
             {
                 if (c == null || c.definition == null || c.id < 1 || c.id >= save.nextId || !ids.Add(c.id) || c.level < 1
                     || c.level > Rules.MaxCardLevel || !catalog.TryGetValue(c.definition, out var spec))
                     return false;
-                restored.Add(new CardCopy(c.id, spec, c.level));
+                copies.Add(new CardCopy(c.id, spec, c.level));
             }
-            var equipped = new HashSet<int>(save.selected);
-            if (equipped.Count != save.selected.Count || !equipped.IsSubsetOf(ids)) return false;
-            return restored.Count(c => equipped.Contains(c.Id) && c.Spec.Kind == DeckKind.Exploration) <= Rules.DeckLimit
-                && restored.Count(c => equipped.Contains(c.Id) && c.Spec.Kind == DeckKind.Combat) <= Rules.DeckLimit;
+            var unique = new HashSet<int>(save.selected);
+            if (unique.Count != save.selected.Count || !unique.IsSubsetOf(ids)) return false;
+            if (!legacy && save.selected.Count > Rules.DeckLimit) return false;
+            equipped = save.selected.Take(Rules.DeckLimit).ToList();
+            return true;
         }
+
+        /// <summary>Validates the full card snapshot before a scene-wide restore changes any subsystem.</summary>
+        public bool CanRestoreProgress(WorkshopSave save) => !IsAway && Read(save, out _, out _, out _);
 
         /// <summary>Standalone saves own their wallet. Shared economies must restore their one wallet separately.</summary>
         public bool TryRestore(WorkshopSave save)
@@ -257,32 +269,31 @@ namespace Hakaton.Decks
 
         void ApplyProgress(WorkshopSave save)
         {
+            Read(save, out var copies, out var equipped, out var hand);
             owned.Clear();
-            owned.AddRange(save.copies.Select(c => new CardCopy(c.id, catalog[c.definition], c.level)));
+            owned.AddRange(copies);
             selected.Clear();
-            selected.UnionWith(save.selected);
+            selected.UnionWith(equipped);
             nextId = save.nextId;
             Journeys = save.journeys;
-            handSizes[0] = save.explorationHand;
-            handSizes[1] = save.combatHand;
+            handSize = hand;
             Current = null;
         }
     }
 
+    /// <summary>One outing's deck: a shuffled draw pile, one hand and the spent pile.</summary>
     public sealed class ExpeditionDeck
     {
         readonly Queue<CardCopy> stock;
         readonly List<CardCopy> hand = new List<CardCopy>(), discard = new List<CardCopy>();
-        public DeckKind Kind { get; }
         public int Capacity { get; }
         public int Total { get; }
         public int StockCount => stock.Count;
         public IReadOnlyList<CardCopy> Hand => hand.AsReadOnly();
         public IReadOnlyList<CardCopy> Discard => discard.AsReadOnly();
         public bool HasReturn => hand.Any(c => c.IsReturn);
-        internal ExpeditionDeck(DeckKind kind, IEnumerable<CardCopy> cards, int capacity, int seed)
+        internal ExpeditionDeck(IEnumerable<CardCopy> cards, int capacity, int seed)
         {
-            Kind = kind;
             Capacity = capacity;
             var order = cards.Select(c => c.Snapshot()).ToList();
             Total = order.Count;
@@ -298,10 +309,11 @@ namespace Hakaton.Decks
             Fill();
         }
 
+        /// <summary>Draws into free places; once the pile and every ordinary card in hand are gone, the Return card appears.</summary>
         void Fill()
         {
             while (hand.Count < Capacity && stock.Count > 0) hand.Add(stock.Dequeue());
-            if (Kind == DeckKind.Exploration && stock.Count == 0 && hand.Count == 0) hand.Add(CardCopy.Return());
+            if (stock.Count == 0 && hand.Count == 0) hand.Add(CardCopy.Return());
         }
 
         internal CardCopy Release(int id)
@@ -330,32 +342,21 @@ namespace Hakaton.Decks
     /// <summary>No world effects are called by discarding. Only Release emits a played card.</summary>
     public sealed class Expedition
     {
-        readonly ExpeditionDeck[] decks;
-        public DeckKind ActiveKind { get; private set; }
-        public ExpeditionDeck Active => decks[(int)ActiveKind];
+        public ExpeditionDeck Deck { get; }
         public bool Completed { get; private set; }
         public int PlayedCount { get; private set; }
         public int DiscardedCount { get; private set; }
         public event Action<CardCopy> CardReleased;
-        public Expedition(
-            IEnumerable<CardCopy> exploration, IEnumerable<CardCopy> combat, int explorationHand, int combatHand, int seed)
+        public Expedition(IEnumerable<CardCopy> cards, int handSize, int seed)
         {
-            if (explorationHand < 1 || combatHand < 1) throw new ArgumentOutOfRangeException(nameof(explorationHand));
-            // Independent RNG streams: combat composition cannot affect exploration's order.
-            decks = new[] { new ExpeditionDeck(DeckKind.Exploration, exploration, explorationHand, seed),
-                new ExpeditionDeck(DeckKind.Combat, combat, combatHand, unchecked(seed * 397 ^ 0x51ED270B)) };
-        }
-
-        public ExpeditionDeck Get(DeckKind kind) => decks[(int)kind];
-        public void Switch(DeckKind kind)
-        {
-            if (!Completed) ActiveKind = kind;
+            if (handSize < 1) throw new ArgumentOutOfRangeException(nameof(handSize));
+            Deck = new ExpeditionDeck(cards, handSize, seed);
         }
 
         public CardCopy Release(int id)
         {
             if (Completed) return null;
-            var card = Active.Release(id);
+            var card = Deck.Release(id);
             if (card == null) return null;
             PlayedCount++;
             CardReleased?.Invoke(card);
@@ -365,14 +366,14 @@ namespace Hakaton.Decks
         public IReadOnlyList<CardCopy> DiscardHand()
         {
             if (Completed) return Array.Empty<CardCopy>();
-            var cards = Active.DiscardHand();
+            var cards = Deck.DiscardHand();
             DiscardedCount += cards.Count;
             return cards;
         }
 
         public bool ReturnHome()
         {
-            if (Completed || ActiveKind != DeckKind.Exploration || !Active.HasReturn) return false;
+            if (Completed || !Deck.HasReturn) return false;
             Completed = true;
             return true;
         }

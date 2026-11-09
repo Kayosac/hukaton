@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace Hakaton.Decks.Unity
 {
     /// <summary>
-    /// The deck workshop as a shop service: the magical computer (collection, decks, upgrades) and the goblin
+    /// The deck workshop as a shop service: the magical computer (collection, the deck, upgrades) and the goblin
     /// (card purchases) open the same authored panel. The game loop starts and finishes outings through
     /// <see cref="TryDepart"/> and <see cref="CompleteOuting"/>; the expedition world owns everything in between.
     /// </summary>
@@ -31,9 +31,9 @@ namespace Hakaton.Decks.Unity
         public TMP_Text pageTitle, eyebrow, wallet, feedback;
 
         [Header("Workshop")]
-        public Button explorationTab, combatTab, collectionTab, marketTab, previousPage, nextPage;
+        public Button collectionTab, marketTab, previousPage, nextPage;
         public Button equipButton, upgradeButton, handUpgradeButton;
-        public TMP_Text explorationTabText, combatTabText, collectionHeading, pageNumber, deckCount, handSize;
+        public TMP_Text collectionHeading, pageNumber, deckCount, handSize;
         public TMP_Text handUpgradeText, equipText, upgradeText;
         public DeckCardView[] collectionViews;
         public DeckRowView[] deckRows;
@@ -47,7 +47,6 @@ namespace Hakaton.Decks.Unity
         public DeckWorkshop Model { get; private set; }
         /// <summary>True from departure until the outing is delivered back.</summary>
         public bool Busy { get; private set; }
-        public DeckKind WorkshopKind { get; private set; }
         public bool Market { get; private set; }
         public int SelectedCopyId { get; private set; }
         public string SelectedDefinitionId { get; private set; }
@@ -63,8 +62,6 @@ namespace Hakaton.Decks.Unity
         void Awake()
         {
             Model = config.CreateWorkshop(walletHost ? walletHost.Wallet : null);
-            explorationTab.onClick.AddListener(() => ChooseKind(DeckKind.Exploration));
-            combatTab.onClick.AddListener(() => ChooseKind(DeckKind.Combat));
             collectionTab.onClick.AddListener(() => ChooseMarket(false));
             marketTab.onClick.AddListener(() => ChooseMarket(true));
             previousPage.onClick.AddListener(() => ChangePage(-1));
@@ -82,7 +79,7 @@ namespace Hakaton.Decks.Unity
                 var deckRow = row;
                 deckRow.button.onClick.AddListener(() => SelectCopy(deckRow.CopyId));
             }
-            ChooseKind(DeckKind.Exploration);
+            SelectFirst();
             SetFeedback("Выберите карту. Каждый экземпляр берётся в путь отдельно.");
             if (!embeddedVisibility || !embeddedCloseButton)
             {
@@ -122,9 +119,10 @@ namespace Hakaton.Decks.Unity
             page = 0;
             if (control) control.SetBlocked(this, true);
             SetVisible(true);
-            ChooseKind(WorkshopKind);
+            if (Model.Find(SelectedCopyId) == null) SelectFirst();
+            else RefreshWorkshop();
             SetFeedback(market ? "Выберите карту: купленная копия останется в коллекции."
-                               : "Соберите колоды и улучшите нужные экземпляры или руку.");
+                               : "Соберите колоду и улучшите нужные экземпляры или руку.");
             return true;
         }
 
@@ -147,7 +145,7 @@ namespace Hakaton.Decks.Unity
 
         // ---------- outings ----------
 
-        /// <summary>Starts an outing with the equipped decks. Returns an error to show, or null on success.</summary>
+        /// <summary>Starts an outing with the equipped deck. Returns an error to show, or null on success.</summary>
         public string TryDepart()
         {
             if (!isActiveAndEnabled || Model == null) return "Мастерская недоступна.";
@@ -180,13 +178,12 @@ namespace Hakaton.Decks.Unity
 
         // ---------- workshop actions ----------
 
-        public void ChooseKind(DeckKind kind)
+        void SelectFirst()
         {
             if (Model.IsAway || Busy) return;
-            WorkshopKind = kind;
             page = 0;
-            SelectedCopyId = Model.Owned.FirstOrDefault(c => c.Spec.Kind == kind)?.Id ?? 0;
-            SelectedDefinitionId = config.cards.First(c => c.kind == kind).id;
+            SelectedCopyId = Model.Owned.FirstOrDefault()?.Id ?? 0;
+            SelectedDefinitionId = config.cards.First().id;
             RefreshWorkshop();
         }
 
@@ -204,11 +201,9 @@ namespace Hakaton.Decks.Unity
             var copy = Model.Find(id);
             if (copy == null || Busy || Model.IsAway || marketOnly) return;
             Market = false;
-            WorkshopKind = copy.Spec.Kind;
             SelectedCopyId = id;
             SelectedDefinitionId = copy.Spec.Id;
-            page =
-                Model.Owned.Where(c => c.Spec.Kind == WorkshopKind).ToList().FindIndex(c => c.Id == id) / collectionViews.Length;
+            page = Model.Owned.ToList().FindIndex(c => c.Id == id) / collectionViews.Length;
             RefreshWorkshop();
         }
 
@@ -234,7 +229,7 @@ namespace Hakaton.Decks.Unity
         public void UpgradeHand()
         {
             if (!EmbeddedOpen || Busy || Model.IsAway || marketOnly) return;
-            Result(Model.ImproveHand(WorkshopKind), "В этой руке стало на одно место больше.", config.coinSound);
+            Result(Model.ImproveHand(), "В руке стало на одно место больше.", config.coinSound);
         }
 
         void SelectTile(DeckCardView tile)
@@ -272,7 +267,6 @@ namespace Hakaton.Decks.Unity
 
         // ---------- presentation ----------
 
-        static string KindName(DeckKind kind) => kind == DeckKind.Exploration ? "Исследование" : "Бой";
         CardDefinition Definition(CardCopy copy) => copy == null ? null : config.Find(copy.Spec.Id);
         Sprite Artwork(CardCopy copy) => copy.IsReturn ? config.returnArtwork : Definition(copy).artwork;
 
@@ -280,7 +274,7 @@ namespace Hakaton.Decks.Unity
         {
             if (Model == null || Model.IsAway) return;
             workshopPanel.SetActive(true);
-            pageTitle.text = marketOnly ? "Карточник" : "Колоды";
+            pageTitle.text = marketOnly ? "Карточник" : "Колода";
             eyebrow.text = marketOnly ? "ГОБЛИН / ПОКУПКА КАРТ" : "МАГИЧЕСКИЙ КОМПЬЮТЕР / ПОДГОТОВКА";
             wallet.text = Model.Coins.ToString();
             collectionTab.gameObject.SetActive(!marketOnly);
@@ -288,16 +282,12 @@ namespace Hakaton.Decks.Unity
             handUpgradeButton.gameObject.SetActive(!marketOnly);
             upgradeButton.gameObject.SetActive(!marketOnly);
 
-            explorationTabText.text = "Исследование   " + Model.Selected(DeckKind.Exploration).Count;
-            combatTabText.text = "Бой   " + Model.Selected(DeckKind.Combat).Count;
-            TintTab(explorationTab, WorkshopKind == DeckKind.Exploration);
-            TintTab(combatTab, WorkshopKind == DeckKind.Combat);
             TintTab(collectionTab, !Market);
             TintTab(marketTab, Market);
 
             RefreshCollection();
 
-            var equipped = Model.Selected(WorkshopKind);
+            var equipped = Model.Selected();
             deckCount.text = $"{equipped.Count:00} / {config.deckLimit:00}";
             for (int i = 0; i < deckRows.Length; i++)
             {
@@ -306,18 +296,18 @@ namespace Hakaton.Decks.Unity
                     copy, copy == null ? MutedColour : Definition(copy).accent, copy != null && copy.Id == SelectedCopyId);
             }
 
-            int hand = Model.HandSize(WorkshopKind);
+            int hand = Model.HandSize;
             bool maxHand = hand >= config.maximumHand;
             handSize.text = $"Рука  {hand} / {config.maximumHand}";
-            handUpgradeText.text = maxHand ? "Рука улучшена" : "+1 место   ·   " + Model.HandPrice(WorkshopKind);
-            handUpgradeButton.interactable = !maxHand && Model.Coins >= Model.HandPrice(WorkshopKind);
+            handUpgradeText.text = maxHand ? "Рука улучшена" : "+1 место   ·   " + Model.HandPrice;
+            handUpgradeButton.interactable = !maxHand && Model.Coins >= Model.HandPrice;
             RefreshDetail();
         }
 
         void RefreshCollection()
         {
-            var copies = Model.Owned.Where(c => c.Spec.Kind == WorkshopKind).ToList();
-            var offers = config.cards.Where(c => c.kind == WorkshopKind).ToList();
+            var copies = Model.Owned.ToList();
+            var offers = config.cards.ToList();
             int count = Market ? offers.Count : copies.Count;
             int pages = Mathf.Max(1, Mathf.CeilToInt((float)count / collectionViews.Length));
             page = Mathf.Clamp(page, 0, pages - 1);
@@ -370,7 +360,7 @@ namespace Hakaton.Decks.Unity
             detailAccent.color = definition.accent;
             detailTitle.text = definition.displayName;
             detailIdentity.text =
-                Market ? KindName(definition.kind) + " / новая копия" : $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.Level}";
+                Market ? "Новая копия" : $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.Level}";
             detailDescription.text = definition.description;
             detailPower.text = PowerLine(definition, copy);
 
@@ -384,7 +374,7 @@ namespace Hakaton.Decks.Unity
             }
             bool inDeck = Model.IsSelected(copy.Id);
             equipText.text = inDeck ? "Убрать из колоды" : "Взять в колоду";
-            equipButton.interactable = inDeck || Model.Selected(copy.Spec.Kind).Count < config.deckLimit;
+            equipButton.interactable = inDeck || Model.Selected().Count < config.deckLimit;
             bool maxLevel = copy.Level >= config.maximumCardLevel;
             upgradeText.text = maxLevel ? "Максимальный уровень" : "Улучшить  ·  " + Model.UpgradePrice(copy);
             upgradeButton.interactable = !maxLevel && Model.Coins >= Model.UpgradePrice(copy);

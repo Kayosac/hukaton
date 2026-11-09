@@ -55,7 +55,8 @@ namespace Hakaton.Expeditions
         TextPunch lootPunch;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
         Color vignetteColour;
-        bool subscribed, hintedThrow, hintedDeck, hintedPickup;
+        bool subscribed, hintedThrow, hintedDiscard, hintedPickup;
+        float discardHintUntil;
         Color[] heartBaseColours;
         Vector2 heartsBase;
 
@@ -120,7 +121,7 @@ namespace Hakaton.Expeditions
             else { vignetteColour = healColour; vignetteAmount = .4f; }
         }
 
-        void OnSelectionChanged() { cardLabelUntil = Time.time + 1.3f; hintedDeck |= world.workshop.Model.Current?.ActiveKind == DeckKind.Combat; }
+        void OnSelectionChanged() { cardLabelUntil = Time.time + 1.3f; }
         void OnThrown(Hakaton.Decks.CardCopy card) { hintedThrow = true; ringScale.Kick(-6); }
 
         void LateUpdate()
@@ -248,12 +249,8 @@ namespace Hakaton.Expeditions
 
             if (trip != null)
             {
-                var exploration = trip.Get(DeckKind.Exploration);
-                var combat = trip.Get(DeckKind.Combat);
-                string Format(string title, ExpeditionDeck d, bool active)
-                    => active ? $"<color=#{ColorUtility.ToHtmlStringRGB(activeDeckColour)}><b>{title}</b>  {d.Hand.Count}·{d.StockCount}</color>"
-                              : $"<alpha=#99>{title}  {d.Hand.Count}·{d.StockCount}";
-                deck.text = Format("ПУТЬ", exploration, trip.ActiveKind == DeckKind.Exploration) + "     " + Format("БОЙ", combat, trip.ActiveKind == DeckKind.Combat);
+                // What is left for this outing: the draw pile (the hand is on screen).
+                deck.text = $"<color=#{ColorUtility.ToHtmlStringRGB(activeDeckColour)}><b>КОЛОДА</b>  {trip.Deck.StockCount}</color>";
             }
 
             bool showLabel = card != null && (Time.time < cardLabelUntil || world.thrower.Preparation.Active);
@@ -271,20 +268,18 @@ namespace Hakaton.Expeditions
             {
                 string text = "";
                 if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Во время заряда <b>Shift</b> + мышь — подкрутка в любую сторону";
-                else if (!hintedDeck && AnyHostileNearby()) text = "<b>Tab</b> — боевая колода";
+                else if (!hintedDiscard && trip != null && trip.PlayedCount >= 2 && trip.Deck.StockCount > 0)
+                {
+                    // One shared hand: discarding it is how you dig for a card (and, at the end, for the Return card).
+                    if (discardHintUntil == 0) discardHintUntil = Time.time + 6;
+                    if (Time.time > discardHintUntil || trip.DiscardedCount > 0) hintedDiscard = true;
+                    else text = "<b>R</b> — сбросить руку и взять новую";
+                }
                 else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
                 // The location title owns the top of the screen while it is shown.
                 if (world.fade && world.fade.titleGroup && world.fade.titleGroup.alpha > .05f) text = "";
                 hint.text = text;
             }
-        }
-
-        bool AnyHostileNearby()
-        {
-            foreach (var creature in world.creatures)
-                if (creature && creature.Alive && creature.gameObject.activeInHierarchy && creature.temperament != Temperament.Timid
-                    && Vector3.Distance(creature.transform.position, world.motor.transform.position) < 14) return true;
-            return false;
         }
 
         void UpdateVignette(float dt)

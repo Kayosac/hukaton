@@ -8,7 +8,7 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
-    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select, Tab switches deck, R discards the hand,
+    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select from the one shared hand, R discards the hand (a new one is drawn),
     /// E picks up. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
@@ -27,8 +27,7 @@ namespace Hakaton.Expeditions
         public event Action SelectionChanged;
         public bool HasThrown { get; private set; }
 
-        readonly int[] selectedId = { int.MinValue, int.MinValue };
-        readonly int[] selectedIndex = new int[2];
+        int selectedId = int.MinValue, selectedIndex;
         float returnReadyAt, nextDiscard;
         bool returnWasInHand, fullChargeCued;
         readonly Vector3[] previewPoints = new Vector3[64];
@@ -40,14 +39,13 @@ namespace Hakaton.Expeditions
             {
                 var trip = world.workshop.Model?.Current;
                 if (trip == null || trip.Completed) return null;
-                var hand = trip.Active.Hand;
+                var hand = trip.Deck.Hand;
                 if (hand.Count == 0) return null;
-                int kind = (int)trip.ActiveKind;
                 for (int i = 0; i < hand.Count; i++)
-                    if (hand[i].Id == selectedId[kind]) { selectedIndex[kind] = i; return hand[i]; }
+                    if (hand[i].Id == selectedId) { selectedIndex = i; return hand[i]; }
                 // The selected copy left the hand: keep the same position in the fan instead of jumping.
-                int index = Mathf.Clamp(selectedIndex[kind], 0, hand.Count - 1);
-                selectedId[kind] = hand[index].Id;
+                int index = Mathf.Clamp(selectedIndex, 0, hand.Count - 1);
+                selectedId = hand[index].Id;
                 return hand[index];
             }
         }
@@ -65,7 +63,6 @@ namespace Hakaton.Expeditions
             if (mouse == null) return;
             if (keys != null)
             {
-                if (keys.tabKey.wasPressedThisFrame || keys.qKey.wasPressedThisFrame) SwitchDeck();
                 if (keys.rKey.wasPressedThisFrame) Discard();
                 if (keys.eKey.wasPressedThisFrame) world.TryPickUpFocused();
                 if (keys.digit1Key.wasPressedThisFrame) Select(0);
@@ -178,29 +175,20 @@ namespace Hakaton.Expeditions
         public void ResetSelection()
         {
             Cancel();
-            selectedId[0] = selectedId[1] = int.MinValue;
-            selectedIndex[0] = selectedIndex[1] = 0;
+            selectedId = int.MinValue;
+            selectedIndex = 0;
             nextDiscard = 0;
             returnWasInHand = false;
-        }
-
-        public void SwitchDeck()
-        {
-            if (!world.Running) return;
-            Cancel();
-            var trip = world.workshop.Model.Current;
-            trip.Switch(trip.ActiveKind == DeckKind.Exploration ? DeckKind.Combat : DeckKind.Exploration);
-            SelectionChanged?.Invoke();
         }
 
         void Step(int direction)
         {
             var trip = world.workshop.Model.Current;
-            int count = trip.Active.Hand.Count;
+            int count = trip.Deck.Hand.Count;
             if (count < 2) return;
             var current = Selected;
             int index = 0;
-            for (int i = 0; i < count; i++) if (trip.Active.Hand[i].Id == current.Id) index = i;
+            for (int i = 0; i < count; i++) if (trip.Deck.Hand[i].Id == current.Id) index = i;
             Select((index + direction + count) % count);
         }
 
@@ -208,13 +196,12 @@ namespace Hakaton.Expeditions
         {
             if (!world.Running) return;
             var trip = world.workshop.Model.Current;
-            var hand = trip.Active.Hand;
+            var hand = trip.Deck.Hand;
             if (index < 0 || index >= hand.Count) return;
-            int kind = (int)trip.ActiveKind;
-            if (selectedId[kind] == hand[index].Id) return;
+            if (selectedId == hand[index].Id) return;
             Cancel();
-            selectedId[kind] = hand[index].Id;
-            selectedIndex[kind] = index;
+            selectedId = hand[index].Id;
+            selectedIndex = index;
             world.Play(world.cues ? world.cues.cardSelect : null, null, .6f);
             SelectionChanged?.Invoke();
         }
@@ -224,7 +211,7 @@ namespace Hakaton.Expeditions
             if (!world.Running || Time.time < nextDiscard) return;
             var trip = world.workshop.Model.Current;
             bool any = false;
-            foreach (var card in trip.Active.Hand) if (!card.IsReturn) { any = true; break; }
+            foreach (var card in trip.Deck.Hand) if (!card.IsReturn) { any = true; break; }
             if (!any) return;
             Cancel();
             var discarded = trip.DiscardHand();

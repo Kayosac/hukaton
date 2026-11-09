@@ -15,8 +15,8 @@ namespace Hakaton.Game.Tests
         static readonly ItemDefinition Find = new ItemDefinition("common_find", "Обычная находка", "Находки", 20);
         static readonly ItemDefinition Tusk = new ItemDefinition("boar_tusk", "Кабаний клык", "Трофеи", 120);
         static readonly CardSpec[] Cards = {
-            new CardSpec("wind", "Импульс", DeckKind.Exploration, 30, 20, 3, 1),
-            new CardSpec("hit", "Удар", DeckKind.Combat, 40, 20, 8, 2)
+            new CardSpec("wind", "Импульс", 30, 20, 3, 1),
+            new CardSpec("hit", "Удар", 40, 20, 8, 2)
         };
         string directory, path;
 
@@ -181,7 +181,7 @@ namespace Hakaton.Game.Tests
             source.Shop.Tick(37.5f); source.Shop.Close();
             Assert.That(source.Workshop.Buy("wind", out var bought), Is.Null);
             Assert.That(source.Workshop.Upgrade(bought.Id), Is.Null);
-            Assert.That(source.Workshop.ImproveHand(DeckKind.Exploration), Is.Null);
+            Assert.That(source.Workshop.ImproveHand(), Is.Null);
             int originalWind = source.Workshop.Owned.First(copy => copy.Spec.Id == "wind" && copy.Id != bought.Id).Id;
             source.Workshop.Toggle(originalWind); source.Workshop.Toggle(bought.Id);
             var captured = source.Capture();
@@ -204,8 +204,9 @@ namespace Hakaton.Game.Tests
             Assert.That(restored.Shop.Slots[2].Definition.Id, Is.EqualTo(Find.Id));
             Assert.That(restored.Workshop.Owned.Count, Is.EqualTo(3));
             Assert.That(restored.Workshop.Find(bought.Id).Level, Is.EqualTo(2));
-            Assert.That(restored.Workshop.Selected(DeckKind.Exploration).Single().Id, Is.EqualTo(bought.Id));
-            Assert.That(restored.Workshop.HandSize(DeckKind.Exploration), Is.EqualTo(4));
+            Assert.That(restored.Workshop.Selected().Select(copy => copy.Id), Does.Contain(bought.Id));
+            Assert.That(restored.Workshop.Selected().Select(copy => copy.Id), Has.No.Member(originalWind));
+            Assert.That(restored.Workshop.HandSize, Is.EqualTo(4));
             Assert.That(restored.Workshop.Journeys, Is.EqualTo(1));
             Assert.That(restored.Shop.CompleteExpedition(outing, delivery), Is.False, "Old delivery cannot be credited after load.");
 
@@ -219,7 +220,7 @@ namespace Hakaton.Game.Tests
             long nextOuting = restored.Shop.BeginExpedition();
             Assert.That(nextOuting, Is.GreaterThan(outing));
             Assert.That(restored.Workshop.Depart(84), Is.Null);
-            Assert.That(restored.Workshop.Current.Active.Hand.Single().Level, Is.EqualTo(2));
+            Assert.That(restored.Workshop.Current.Deck.Hand.Single(card => card.Id == bought.Id).Level, Is.EqualTo(2));
         }
 
         static void SellAtReferencePrice(TradingSession shop, int slot)

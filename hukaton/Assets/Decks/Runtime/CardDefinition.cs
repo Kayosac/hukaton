@@ -16,7 +16,6 @@ namespace Hakaton.Decks.Unity
     public sealed class CardDefinition : ScriptableObject
     {
         public string id, displayName;
-        public DeckKind kind;
         public CardAction action;
         public Sprite artwork;
         public Color accent = Color.white;
@@ -30,6 +29,6 @@ namespace Hakaton.Decks.Unity
         [Min(0)]
         public float impulse = 8, impulsePerLevel = 1.5f, effectRadius = 2.5f;
         public float ImpulseAtLevel(int level) => impulse + Mathf.Max(0, level - 1) * impulsePerLevel;
-        public CardSpec ToSpec() => new CardSpec(id, displayName, kind, purchasePrice, upgradePrice, basePower, powerPerLevel);
+        public CardSpec ToSpec() => new CardSpec(id, displayName, purchasePrice, upgradePrice, basePower, powerPerLevel);
     }
 }
