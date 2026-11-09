@@ -164,13 +164,28 @@ namespace Hakaton.Expeditions
             intact.SetActive(false);
         }
 
+        // Ground only: not the player (Ignore Raycast), the water surface, cards or their artwork.
+        const int BedMask = ~((1 << 2) | (1 << 4) | (1 << 8) | (1 << 9));
+
+        /// <summary>Distance from the water surface down to the bed at this point; infinite when no bed is found.</summary>
+        public float DepthAt(Vector3 point, float level)
+        {
+            var from = new Vector3(point.x, level + .05f, point.z);
+            return Physics.Raycast(from, Vector3.down, out var hit, 20, BedMask, QueryTriggerInteraction.Ignore)
+                ? level - hit.point.y
+                : float.PositiveInfinity;
+        }
+
         void OnTriggerStay(Collider other)
         {
             if (kind != ObstacleKind.Lake || Resolved || !world.Running) return;
             if (other.GetComponentInParent<PlayerVitals>() != world.vitals) return;
-            // Wading is free; deep water over the feet drowns at once.
+            // Wading is free. The moment the feet touch water over a deep bed the player is lost — drown at once,
+            // no waiting until the body has sunk.
             Vector3 feet = world.motor.transform.position;
-            if (WaterLevelAt(feet, out float level) && level - feet.y >= world.settings.drownDepth) world.Drown();
+            if (!WaterLevelAt(feet, out float level) || feet.y > level + .05f) return;
+            float limit = world.settings.drownDepth;
+            if (level - feet.y >= limit || DepthAt(feet, level) >= limit) world.Drown();
         }
     }
 }
