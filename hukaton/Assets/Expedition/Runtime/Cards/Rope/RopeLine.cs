@@ -61,6 +61,8 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float playerMass = 1;
         [Tooltip("Pull on a movable anchor is capped at this many player weights (no explosive yanks).")]
         [Min(1)] public float maxPullWeights = 6;
+        [Tooltip("Speed limit of the hanging body, m/s (a jerk of a moving anchor never launches the player).")]
+        [Min(1)] public float maxHangingSpeed = 25;
         [Tooltip("The rope slips out of the hands when the body is held this much farther than the rope allows (stuck behind geometry).")]
         [Min(.2f)] public float slipDistance = 1.5f;
         [Tooltip("How far from the crosshair ray the cord may pass and still be grabbed.")]
@@ -350,7 +352,7 @@ namespace Hakaton.Expeditions.Cards
                 float candidate = distance + t * .05f;
                 if (candidate < score) { score = candidate; bestIndex = i; bestU = u; bestT = t; }
             }
-            if (bestIndex < 0) return false;
+            if (bestIndex < 0 || (world && world.motor && !WithinRopeLength(world.motor))) return false;
             Vector3 target = Vector3.Lerp(positions[bestIndex], positions[bestIndex + 1], bestU);
             Vector3 toTarget = target - eye;
             float d = toTarget.magnitude;
@@ -364,11 +366,12 @@ namespace Hakaton.Expeditions.Cards
         void Grab(float arc)
         {
             var m = world ? world.motor : null;
-            if (!m || holding || !m.TryClaimExternalControl(this)) return;
+            if (!m || holding || !WithinRopeLength(m) || !m.TryClaimExternalControl(this)) return;
             motor = m;
             holding = true;
             mantling = false;
-            gripLength = Mathf.Clamp(arc, topReach, length);
+            // The hands take the cord where they are: never shorter than the straight line to the anchor (that would yank the body).
+            gripLength = Mathf.Clamp(Mathf.Max(arc, Vector3.Distance(AnchorPoint, GripPoint())), topReach, length);
             gripVelocity = m.Velocity;
             holdStart = Time.time;
             hurtSource = world.vitals;
@@ -377,11 +380,16 @@ namespace Hakaton.Expeditions.Cards
             Wake();
         }
 
-        Vector3 GripPoint()
+        Vector3 GripPoint() => GripPointOf(motor);
+
+        Vector3 GripPointOf(FirstPersonMotor body)
         {
-            var controller = motor.characterController;
-            return motor.transform.position + Vector3.up * (controller.center.y + controller.height * .5f - handsBelowTop);
+            var controller = body.characterController;
+            return body.transform.position + Vector3.up * (controller.center.y + controller.height * .5f - handsBelowTop);
         }
+
+        /// <summary>The hands can reach the cord only if the anchor is no farther than the rope is long.</summary>
+        bool WithinRopeLength(FirstPersonMotor body) => Vector3.Distance(AnchorPoint, GripPointOf(body)) <= length + .3f;
 
         /// <summary>Where the held cord is drawn to: the hands in front of the chest (the body hangs from <see cref="GripPoint"/>).</summary>
         Vector3 HandPoint()
@@ -465,7 +473,7 @@ namespace Hakaton.Expeditions.Cards
                 motor.MoveExternally(constrained - grip);
                 Vector3 moved = motor.transform.position - before;
                 grip += moved;
-                gripVelocity = moved / h;
+                gripVelocity = Vector3.ClampMagnitude(moved / h, maxHangingSpeed);
             }
             // Stuck behind something while the anchor moved on: the rope slips out of the hands.
             if ((grip - anchor).magnitude > gripLength + slipDistance) LetGo();
