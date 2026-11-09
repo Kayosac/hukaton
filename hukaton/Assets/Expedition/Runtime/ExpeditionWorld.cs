@@ -247,8 +247,8 @@ namespace Hakaton.Expeditions
                     hand.ScatterAll(settings.drownCardsSpeed, settings.drownSeconds - time + .4f, viewCamera.transform);
                     Play(cues ? cues.discard : null);
                 }
-                float k = Mathf.Clamp01(time / settings.drownDarkenSeconds);
-                if (fade) fade.Set(Mathf.Lerp(0, settings.drownDarkness, Ease.OutCubic(k)), settings.drownColour);
+                // One even darkening from the first touch of deep water to full black — no hold, no second fade.
+                if (fade) fade.Set(Mathf.Pow(Mathf.Clamp01(time / settings.drownSeconds), settings.drownDarkenCurve), settings.drownColour);
                 // The current takes the head in a slow dance: a steady turn plus long, overlapping swings.
                 // Driven by angular speed, eased in from stillness, so there is never a jolt.
                 if (view && dt > 0)
@@ -287,7 +287,8 @@ namespace Hakaton.Expeditions
                 Spawn(vfx ? vfx.returnPoof : null, eye.position + eye.forward * 2.5f + Vector3.up * 1.5f, Quaternion.identity, new Color(1f, .82f, .35f));
             }
             hand.Hide();
-            if (fade) yield return fade.FadeTo(1, settings.returnFadeSeconds);
+            if (fade && !drowned) yield return fade.FadeTo(1, settings.returnFadeSeconds);
+            else if (fade) fade.Set(1, settings.drownColour);
             if (time) time.ResetTime();
             if (sfx) sfx.StopLoop(this);
 

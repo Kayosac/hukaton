@@ -49,12 +49,10 @@ namespace Hakaton.Expeditions
         [Header("Water")]
         [Tooltip("Water at least this deep over the player's feet, m, drowns at once. Shallower water does nothing.")]
         [Min(.1f)] public float drownDepth = 1f;
-        [Tooltip("How long the view darkens while the body sinks before the defeat fade, seconds.")]
+        [Tooltip("How long the body sinks; the screen darkens evenly from the first touch of deep water to full black over this time, seconds.")]
         [Min(.05f)] public float drownSeconds = 1.8f;
         [Tooltip("Sinking speed while drowning, m/s.")]
         [Min(0)] public float drownSinkSpeed = .9f;
-        [Tooltip("How quickly the screen darkens once the head goes under, seconds.")]
-        [Min(.01f)] public float drownDarkenSeconds = .12f;
         [Tooltip("Under water the current turns the view in a slow dance: swing left/right, degrees.")]
         [Min(0)] public float drownSwayYaw = 60;
         [Tooltip("Swing up/down, degrees.")]
@@ -69,8 +67,8 @@ namespace Hakaton.Expeditions
         [Min(0)] public float drownCardsDelay = .05f;
         [Tooltip("Speed the cards fly out of the hand at, m/s.")]
         [Min(0)] public float drownCardsSpeed = 2.4f;
-        [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
-        [Range(0, 1)] public float drownDarkness = .6f;
+        [Tooltip("Darkening curve: 1 is even; below 1 it starts a little faster so the first moment already reads as dark.")]
+        [Range(.3f, 2)] public float drownDarkenCurve = .8f;
         [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]
         public Color drownColour = new Color(.02f, .07f, .09f, 1);
         [Header("Creature physics (board v0.1)")]
