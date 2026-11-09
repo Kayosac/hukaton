@@ -1,4 +1,5 @@
 using System.Collections;
+using Hakaton.Character;
 using Hakaton.Feel;
 using UnityEngine;
 using UnityEngine.AI;
@@ -6,7 +7,7 @@ using UnityEngine.AI;
 namespace Hakaton.Expeditions
 {
     public enum Temperament { Timid, Territorial, Aggressive }
-    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying }
+    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying, Investigate }
 
     /// <summary>
     /// A creature of the valley. Decisions run in Update (per temperament), locomotion in FixedUpdate on the
@@ -14,7 +15,7 @@ namespace Hakaton.Expeditions
     /// (<see cref="CreatureSpriteView"/>) that is squashed, hopped and tinted procedurally.
     /// Every attack is telegraphed: the aggression drawing, a crouch, sound and a red "!!" before the direction locks.
     /// </summary>
-    public sealed class WorldCreature : MonoBehaviour
+    public sealed class WorldCreature : MonoBehaviour, ICombatant
     {
         [Header("Identity")]
         public ExpeditionWorld world;
@@ -88,10 +89,20 @@ namespace Hakaton.Expeditions
         Vector3 faceTowards;
         SpringFloat squash;
         CreaturePose pose;
+        // Extension points for cards (tmp/new-cards/API.md): slowdown, lure, attack target.
+        TimedModifier moveSpeedScale;
+        Vector3 noisePoint;
+        float investigateUntil;
+        ICombatant attackTarget;
 
         Vector3 PlayerPosition => world.motor.transform.position;
         Vector3 ToPlayer { get { var v = PlayerPosition - body.position; v.y = 0; return v; } }
         float PlayerDistance => ToPlayer.magnitude;
+        // The hostile logic follows the attack target (the player unless an ally drew the attack);
+        // fleeing, sounds and dust stay about the player.
+        Vector3 TargetPosition => Target.Position;
+        Vector3 ToTarget { get { var v = TargetPosition - body.position; v.y = 0; return v; } }
+        float TargetDistance => ToTarget.magnitude;
         bool Provoked => Time.time < provokedUntil;
         /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
         float TopHeight => view ? view.height * transform.lossyScale.y : 1;
@@ -117,6 +128,9 @@ namespace Hakaton.Expeditions
             homeRotation = facing = point ? point.rotation : authoredRotation;
             frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
+            moveSpeedScale.Clear();
+            attackTarget = null;
+            investigateUntil = 0;
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -163,25 +177,30 @@ namespace Hakaton.Expeditions
             if (Time.time >= nextSight)
             {
                 nextSight = Time.time + .12f;
-                sees = CanSeePlayer();
+                sees = CanSeeTarget();
             }
-            if (sees) { lastSeen = PlayerPosition; unseen = 0; }
+            if (sees) { lastSeen = TargetPosition; unseen = 0; }
             else unseen += dt;
         }
 
-        bool CanSeePlayer()
+        bool CanSeeTarget()
         {
             // Eyes at the creature's own height: a small one loses you behind a low rock.
             Vector3 eye = body.position + Vector3.up * Mathf.Max(.15f, TopHeight * .8f);
-            Vector3 target = PlayerPosition + Vector3.up * 1.2f;
+            var seen = Target;
+            bool player = ReferenceEquals(seen, world.Player);
+            Vector3 target = TargetPosition + Vector3.up * 1.2f;
             Vector3 to = target - eye;
             float distance = to.magnitude;
             if (distance > sightRange) return false;
-            bool calm = State == CreatureState.Idle || State == CreatureState.Wander || State == CreatureState.Graze;
-            bool loud = world.motor.IsSprinting && distance < hearingRange * 2;
+            bool calm = IsCalm;
+            bool loud = player && world.motor.IsSprinting && distance < hearingRange * 2;
             if (calm && distance > hearingRange && !loud && Vector3.Dot(transform.forward, to / distance) < -.25f) return false;
-            // The player rig is on Ignore Raycast: anything hit means the view is blocked.
-            return !Physics.Raycast(eye, to / distance, distance - .3f, ~(1 << 2), QueryTriggerInteraction.Ignore);
+            // Card zones (fog) hide the target.
+            if (world.IsVisionBlocked(eye, target)) return false;
+            // The player rig is on Ignore Raycast: anything hit means the view is blocked. An ally may be hit itself.
+            if (!Physics.Raycast(eye, to / distance, out var hit, distance - .3f, ~(1 << 2), QueryTriggerInteraction.Ignore)) return true;
+            return !player && hit.transform.IsChildOf(seen.Root);
         }
 
         void Enter(CreatureState next)
@@ -193,6 +212,7 @@ namespace Hakaton.Expeditions
                 case CreatureState.Idle: idleDuration = Random.Range(1.2f, 2.8f); Halt(); break;
                 case CreatureState.Graze: idleDuration = Random.Range(1.5f, 3.2f); Halt(); break;
                 case CreatureState.Wander: wanderTarget = RandomPointNear(home, territoryRadius); break;
+                case CreatureState.Investigate: squash.Kick(-2); break;
                 case CreatureState.Alert: world.Play(alertCue, body.position); squash.Kick(-3); break;
                 case CreatureState.Threat: nextThreatSound = 0; provokeTimer = 0; break;
                 case CreatureState.Flee: ChooseFleeDirection(); world.Play(alertCue, body.position, 1, 1.15f); KickDust(stepDustCount * 2); break;
@@ -201,7 +221,7 @@ namespace Hakaton.Expeditions
                     squash.Kick(-4);
                     break;
                 case CreatureState.Strike:
-                    Vector3 to = ToPlayer;
+                    Vector3 to = ToTarget;
                     strikeDirection = to.sqrMagnitude > .01f ? to.normalized : transform.forward;
                     facing = Quaternion.LookRotation(strikeDirection);
                     hitThisStrike = false;
@@ -231,10 +251,17 @@ namespace Hakaton.Expeditions
                     Go(wanderTarget, wanderSpeed);
                     if (Flat(body.position - wanderTarget).magnitude < .8f || stateTime > 7) Enter(CreatureState.Idle);
                     break;
+                case CreatureState.Investigate:
+                    // Lure: walk over to the noise, then stand and look until it stops.
+                    if (Flat(body.position - noisePoint).magnitude > 1.2f) Go(noisePoint, wanderSpeed * 1.6f);
+                    else { Halt(); Face(noisePoint - body.position); }
+                    if (Time.time >= investigateUntil) Enter(CreatureState.Idle);
+                    break;
             }
         }
 
-        bool IsCalm => State == CreatureState.Idle || State == CreatureState.Wander || State == CreatureState.Graze;
+        bool IsCalm => State == CreatureState.Idle || State == CreatureState.Wander || State == CreatureState.Graze
+            || State == CreatureState.Investigate;
 
         void ThinkTimid()
         {
@@ -279,11 +306,11 @@ namespace Hakaton.Expeditions
 
         void ThinkTerritorial()
         {
-            float distance = PlayerDistance;
+            float distance = TargetDistance;
             if (IsCalm)
             {
                 if (Provoked) { Enter(CreatureState.Chase); return; }
-                if (sees && distance < threatRange && Flat(PlayerPosition - home).magnitude < leash) { Enter(CreatureState.Threat); return; }
+                if (sees && distance < threatRange && Flat(TargetPosition - home).magnitude < leash) { Enter(CreatureState.Threat); return; }
                 ThinkIdle(false);
                 return;
             }
@@ -291,7 +318,7 @@ namespace Hakaton.Expeditions
             {
                 case CreatureState.Threat:
                     Halt();
-                    Face(ToPlayer);
+                    Face(ToTarget);
                     if (Time.time >= nextThreatSound) { nextThreatSound = Time.time + 1.3f; world.Play(threatCue, body.position); squash.Kick(-2.5f); }
                     if (distance < aggroRange) provokeTimer += Time.deltaTime;
                     else provokeTimer = Mathf.Max(0, provokeTimer - Time.deltaTime);
@@ -308,7 +335,7 @@ namespace Hakaton.Expeditions
         {
             if (IsCalm)
             {
-                if (Provoked || (sees && PlayerDistance < sightRange)) { Aggro(); return; }
+                if (Provoked || (sees && TargetDistance < sightRange)) { Aggro(); return; }
                 ThinkIdle(false);
                 return;
             }
@@ -325,14 +352,14 @@ namespace Hakaton.Expeditions
         /// <summary>Chase → wind-up → strike → recover, with search and return when the trail goes cold.</summary>
         void ThinkHostile()
         {
-            float distance = PlayerDistance;
+            float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
             switch (State)
             {
                 case CreatureState.Chase:
                     if (fromHome > leash && !Provoked) { Enter(CreatureState.Return); break; }
                     if (!sees) { Enter(CreatureState.Search); break; }
-                    Go(PlayerPosition, speed);
+                    Go(TargetPosition, speed);
                     if (distance <= attackRange) Enter(CreatureState.Windup);
                     break;
                 case CreatureState.Search:
@@ -347,7 +374,7 @@ namespace Hakaton.Expeditions
                     break;
                 case CreatureState.Windup:
                     Halt();
-                    Face(ToPlayer);
+                    Face(ToTarget);
                     if (stateTime >= windup) Enter(CreatureState.Strike);
                     break;
                 case CreatureState.Strike:
@@ -367,7 +394,7 @@ namespace Hakaton.Expeditions
                     else Enter(sees ? CreatureState.Chase : CreatureState.Search);
                     break;
                 case CreatureState.Reposition:
-                    Vector3 away = -ToPlayer.normalized;
+                    Vector3 away = -ToTarget.normalized;
                     desired = away * speed;
                     Face(away);
                     if (distance >= attackRange * .85f || stateTime > 1.8f) Enter(CreatureState.Windup);
@@ -476,7 +503,7 @@ namespace Hakaton.Expeditions
             Vector3 planar = new Vector3(velocity.x, 0, velocity.z);
             // While frozen or knocked about, physics keeps the momentum: cards and rocks still push it around.
             float acceleration = controlled ? 3 : State == CreatureState.Strike && dash ? 90 : State == CreatureState.Flee ? 45 : 18;
-            Vector3 target = controlled ? Vector3.zero : desired;
+            Vector3 target = controlled ? Vector3.zero : desired * MoveSpeedScale;
             planar = Vector3.MoveTowards(planar, target, acceleration * dt);
             body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
             if (!controlled) body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt * (State == CreatureState.Windup ? 1.6f : 1)));
@@ -488,12 +515,13 @@ namespace Hakaton.Expeditions
             if (hitThisStrike) return;
             float size = transform.lossyScale.y;
             Vector3 snout = body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
-            Vector3 player = PlayerPosition + Vector3.up * .9f;
-            Vector3 to = player - snout;
+            var victim = Target;
+            Vector3 aim = victim.Position + Vector3.up * .9f;
+            Vector3 to = aim - snout;
             if (to.magnitude > contactRange || Vector3.Dot(strikeDirection, Flat(to).normalized) < .1f) return;
             hitThisStrike = true;
             Vector3 knockback = (strikeDirection * (dash ? 7 : 4) + Vector3.up * 2.5f);
-            world.vitals.Hurt(attackHalfHearts, knockback, body.position);
+            victim.TakeDamage(new DamageInfo(attackHalfHearts, knockback, aim, body.position, DamageKind.Hit, this));
         }
 
         // ---------------- reactions ----------------
@@ -510,7 +538,7 @@ namespace Hakaton.Expeditions
                 world.Play(hurtCue, body.position, 1, Random.Range(.95f, 1.15f));
                 if (overhead) overhead.ShowHealth(Health, maximumHealth);
             }
-            if (impulse.sqrMagnitude > 0) body.AddForce(impulse, ForceMode.Impulse);
+            if (impulse.sqrMagnitude > 0) CardPhysics.Push(body, impulse);
             if (burnSeconds > 0) burnUntil = Time.time + burnSeconds;
             provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
@@ -542,6 +570,70 @@ namespace Hakaton.Expeditions
             frozenUntil = Time.time + seconds;
             provokedUntil = Time.time + 8 + seconds;
             Enter(CreatureState.Frozen);
+        }
+
+        // ---------------- card hooks (tmp/new-cards/API.md) ----------------
+
+        /// <summary>Movement multiplier from cards (tar ×0.5); 1 normally. Several sources do not multiply.</summary>
+        public float MoveSpeedScale => moveSpeedScale.Current(Time.time, 1);
+
+        /// <summary>Slows (or speeds) the creature for a while. Refresh it every tick from a zone it stands in.</summary>
+        public void ApplyMoveSpeedScale(float scale, float seconds) => moveSpeedScale.Apply(Mathf.Max(0, scale), seconds, Time.time);
+
+        /// <summary>Received-impulse multiplier on this body (Lightness ×1.5); 1 normally.</summary>
+        public float ImpulseScale => BodyModifierStatus.ImpulseScaleOf(body);
+
+        /// <summary>Lightness on the creature: impulses ×multiplier and falling limited to fallSpeedLimit m/s.</summary>
+        public void ApplyLightness(float multiplier, float fallSpeedLimit, float seconds)
+        {
+            var status = BodyModifierStatus.On(body, world);
+            status.ApplyImpulseScale(multiplier, seconds);
+            status.ApplyFallSpeedLimit(fallSpeedLimit, seconds);
+        }
+
+        /// <summary>The point lies in the creature's territory: within <see cref="leash"/> of its home.</summary>
+        public bool InTerritory(Vector3 point) => Flat(point - home).magnitude <= leash;
+
+        /// <summary>
+        /// Lure: a calm creature (idle, wandering, grazing) walks over to a noise at <paramref name="point"/> and stays
+        /// for <paramref name="seconds"/>. Ignored when it is alert, fleeing or attacking, or the point is outside its
+        /// territory. Seeing the player still interrupts it as usual. Returns true when it goes.
+        /// </summary>
+        public bool Investigate(Vector3 point, float seconds)
+        {
+            if (!world || !world.Running || !Alive || !IsCalm || seconds <= 0 || !InTerritory(point)) return false;
+            noisePoint = point;
+            investigateUntil = Time.time + seconds;
+            if (State != CreatureState.Investigate) Enter(CreatureState.Investigate);
+            return true;
+        }
+
+        public bool Investigating => State == CreatureState.Investigate;
+
+        /// <summary>Who the creature fights: the player, unless <see cref="SetTarget"/> chose another live fighter.</summary>
+        public ICombatant Target => Combat.IsAlive(attackTarget) ? attackTarget : world.Player;
+
+        /// <summary>Makes the creature fight this fighter (an ally); null goes back to the player.</summary>
+        public void SetTarget(ICombatant fighter) => attackTarget = ReferenceEquals(fighter, this) ? null : fighter;
+
+        // ICombatant
+        public Faction Faction => Faction.Wild;
+        public Vector3 Position => body ? body.position : transform.position;
+        public Vector3 Centre => Position + Vector3.up * TopHeight * .5f;
+        public Transform Root => transform;
+
+        /// <summary>
+        /// A hit from a card effect or a fighter. A hit from a fighter of the other side that is not the player
+        /// (an ally) turns the creature against it.
+        /// </summary>
+        public bool TakeDamage(in DamageInfo damage)
+        {
+            if (!Alive) return false;
+            var by = damage.Instigator;
+            bool fromAlly = Combat.IsAlive(by) && !ReferenceEquals(by, world.Player) && by.Faction != Faction;
+            Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0);
+            if (fromAlly && Alive) { SetTarget(by); lastSeen = by.Position; }
+            return true;
         }
 
         IEnumerator Die(Vector3 impulse)

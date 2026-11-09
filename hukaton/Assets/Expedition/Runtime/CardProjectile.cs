@@ -27,6 +27,7 @@ namespace Hakaton.Expeditions
         Vector3 velocity;
         Vector2 spin;
         float age, spinAngle;
+        Vector3 launchPosition;
         bool resolved;
         Pose? handPose;
 
@@ -40,6 +41,7 @@ namespace Hakaton.Expeditions
             card = copy;
             definition = copy.IsReturn ? null : owner.workshop.config.Find(copy.Spec.Id);
             velocity = initialVelocity;
+            launchPosition = transform.position;
             spin = curvature;
             handPose = fromHand;
             spinAngle = Random.Range(0, 360f);
@@ -111,7 +113,7 @@ namespace Hakaton.Expeditions
             if (resolved || !world) return;
             resolved = true;
             world.sfx?.StopLoop(this);
-            if (world.Running) world.ApplyImpact(card, definition, target, point, normal, velocity);
+            if (world.Running) world.ApplyImpact(card, definition, target, point, normal, velocity, launchPosition);
             // The card itself sticks where it hit, edge first, quivers, then burns away in its element's colour.
             Vector3 direction = velocity.sqrMagnitude > .001f ? velocity.normalized : -normal;
             Vector3 side = Vector3.Cross(Vector3.up, direction);

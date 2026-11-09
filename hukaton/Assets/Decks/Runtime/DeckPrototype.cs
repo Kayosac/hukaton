@@ -379,15 +379,23 @@ namespace Hakaton.Decks.Unity
             equipText.text = inDeck ? "Убрать из колоды" : "Взять в колоду";
             equipButton.interactable = inDeck || Model.Selected().Count < config.deckLimit;
             bool maxLevel = copy.Level >= config.maximumCardLevel;
-            upgradeText.text = maxLevel ? "Максимальный уровень" : "Улучшить  ·  " + Model.UpgradePrice(copy);
-            upgradeButton.interactable = !maxLevel && Model.Coins >= Model.UpgradePrice(copy);
+            upgradeText.text = !definition.upgradable ? "Не улучшается"
+                : maxLevel                           ? "Максимальный уровень"
+                                                     : "Улучшить  ·  " + Model.UpgradePrice(copy);
+            upgradeButton.interactable = Model.CanUpgrade(copy) && Model.Coins >= Model.UpgradePrice(copy);
         }
 
         /// <summary>"Импульс 8 → 9,5": the card's main number now and after the next upgrade.</summary>
         string PowerLine(CardDefinition definition, CardCopy copy)
         {
             int level = copy?.Level ?? 1;
-            bool canUpgrade = copy != null && copy.Level < config.maximumCardLevel;
+            bool canUpgrade = copy != null && definition.upgradable && copy.Level < config.maximumCardLevel;
+            // New cards name their main number in their effect asset (one source for the number).
+            if (definition.effectAsset is ICardStatLine stats
+                && stats.TryGetStat(out var statLabel, out var statBase, out var statUpgraded, out var statUnit))
+                return statLabel + "  " + Number(level > 1 ? statUpgraded : statBase)
+                    + (canUpgrade ? "  →  " + Number(statUpgraded) : "") + statUnit;
+            if (!definition.upgradable) return "Без улучшения";
             bool physical = definition.action == CardAction.Impulse || definition.action == CardAction.HeavyStrike;
             float power =
                 physical ? definition.ImpulseAtLevel(level) : definition.basePower + (level - 1) * definition.powerPerLevel;

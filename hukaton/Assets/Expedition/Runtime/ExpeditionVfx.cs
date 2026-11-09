@@ -16,5 +16,7 @@ namespace Hakaton.Expeditions
         public VfxBurst returnPoof;
         [Tooltip("Stars circling a stunned creature's head; held for the stun.")]
         public VfxBurst stunned;
+        [Tooltip("Drops falling from a wet body (WetStatus); held while it stays wet.")]
+        public VfxBurst wetDrips;
     }
 }

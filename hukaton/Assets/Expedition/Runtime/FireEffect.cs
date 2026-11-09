@@ -9,6 +9,8 @@ namespace Hakaton.Expeditions
     public sealed class FireEffect : CardEffect
     {
         [Min(0)] public float burnVisualSeconds = 1.6f;
+        [Tooltip("Tar and the branch bridge catch fire when hit directly or when the hit point is this close to them.")]
+        [Min(0)] public float igniteReach = .4f;
 
         public override void Apply(in ImpactContext c)
         {
@@ -16,6 +18,8 @@ namespace Hakaton.Expeditions
             if (c.Creature) { c.Creature.Damage(c.Power, c.Direction * 1.5f, c.Point, burnVisualSeconds); meaningful = true; }
             var thicket = c.Obstacle ? c.Obstacle : c.World.ObstacleNear(c.Point, c.Radius, ObstacleKind.Thorns);
             if (thicket && thicket.React(CardAction.Fire, c.Point)) meaningful = true;
+            // Card-made things that burn (IIgnitable): tar puddle, branch bridge.
+            if (c.World.Ignite(c.Target, c.Point, igniteReach, IgnitionSource.Fire) > 0) meaningful = true;
             Feedback(c, meaningful);
         }
     }

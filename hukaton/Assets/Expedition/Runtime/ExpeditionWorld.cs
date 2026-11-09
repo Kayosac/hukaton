@@ -12,8 +12,9 @@ namespace Hakaton.Expeditions
     /// <summary>
     /// Owns one outing in the authored valley: resets the world, keeps the loot ledger, routes card impacts to
     /// their effects and runs the return / defeat transitions. Spawns only authored prefabs.
+    /// Services for card effects (objects until the end of the outing, zones, fighters) are in ExpeditionWorld.Cards.cs.
     /// </summary>
-    public sealed class ExpeditionWorld : MonoBehaviour
+    public sealed partial class ExpeditionWorld : MonoBehaviour
     {
         [Header("Game systems")]
         public DeckPrototype workshop;
@@ -67,6 +68,7 @@ namespace Hakaton.Expeditions
             Impacts = 0;
             LootValue = 0;
             loot.Clear();
+            ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             var random = new System.Random(workshop.Model.Journeys * 1637);
             foreach (var obstacle in obstacles) obstacle.ResetForOuting();
@@ -183,11 +185,12 @@ namespace Hakaton.Expeditions
 
         // ---------- impacts ----------
 
-        public void ApplyImpact(CardCopy copy, CardDefinition definition, Collider target, Vector3 point, Vector3 normal, Vector3 velocity)
+        public void ApplyImpact(CardCopy copy, CardDefinition definition, Collider target, Vector3 point, Vector3 normal, Vector3 velocity,
+            Vector3? throwOrigin = null)
         {
             if (!Running || !definition) return;
             Impacts++;
-            var context = new ImpactContext(this, copy, definition, target, point, normal, velocity);
+            var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
             if (definition.effectAsset is CardEffect effect) effect.Apply(context);
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
         }
@@ -245,6 +248,8 @@ namespace Hakaton.Expeditions
                 lost += entry.count - count;
                 if (count > 0) retained.Add(new LootSave { id = entry.id, name = entry.name, count = count, value = entry.value });
             }
+            // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
+            ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
             vitals.Restore();
             control.SetBlocked(this, false);

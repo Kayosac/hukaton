@@ -4,8 +4,11 @@ using UnityEngine;
 
 namespace Hakaton.Expeditions
 {
-    /// <summary>Hearts in half steps (board v0.1: 4 hearts, 0.75 s protection after a hit, falls by reference speed).</summary>
-    public sealed class PlayerVitals : MonoBehaviour
+    /// <summary>
+    /// Hearts in half steps (board v0.1: 4 hearts, 0.75 s protection after a hit, falls by reference speed).
+    /// The player as a fighter (<see cref="ICombatant"/>): damage units are half hearts.
+    /// </summary>
+    public sealed class PlayerVitals : MonoBehaviour, ICombatant
     {
         public ExpeditionSettings settings;
         public FirstPersonMotor motor;
@@ -50,7 +53,22 @@ namespace Hakaton.Expeditions
             return true;
         }
 
-        /// <summary>One hit. <paramref name="source"/> (world position) aims the camera kick away from the attacker.</summary>
+        // ---------- the player as a fighter ----------
+
+        public Faction Faction => Faction.Player;
+        public bool Alive => HalfHearts > 0;
+        public Vector3 Position => motor.transform.position;
+        public Vector3 Centre => motor.transform.TransformPoint(motor.characterController.center);
+        public Transform Root => motor.transform;
+
+        /// <summary>A hit from a creature, an ally or a card effect: <see cref="DamageInfo.Amount"/> half hearts.</summary>
+        public bool TakeDamage(in DamageInfo damage) => Hurt(damage.Amount, damage.Impulse, damage.Source);
+
+        /// <summary>
+        /// One hit of <paramref name="halfHearts"/> (1 = ½ heart). <paramref name="knockback"/> is a normalized impulse;
+        /// <paramref name="source"/> (world position) aims the camera kick away from the attacker. Ignored while
+        /// protected after the previous hit and outside an outing.
+        /// </summary>
         public bool Hurt(int halfHearts, Vector3 knockback, Vector3? source)
         {
             if (halfHearts <= 0 || !world.Running || HalfHearts == 0 || Invulnerable) return false;
@@ -79,6 +97,9 @@ namespace Hakaton.Expeditions
         void OnLanded(float speed)
         {
             if (!world || !world.Running) return;
+            // A card surface (the mushroom cap) may take the landing over: no fall damage, maybe a bounce.
+            var surface = motor.GroundCollider ? motor.GroundCollider.GetComponentInParent<ILandingSurface>() : null;
+            if (surface != null && surface.AbsorbLanding(motor, speed)) return;
             float reference = motor.ToReferenceSpeed(speed);
             int damage = ExpeditionEffectRules.ImpactDamage(reference, settings.fallDamageSpeed, settings.fallDamageStep);
             if (reference > 7)

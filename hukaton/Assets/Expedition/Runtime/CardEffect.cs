@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
 using Hakaton.Feel;
@@ -15,15 +16,46 @@ namespace Hakaton.Expeditions
         public readonly Vector3 Point, Normal, Velocity;
         public readonly WorldCreature Creature;
         public readonly WorldObstacle Obstacle;
+        /// <summary>Where the card left the hand (the branch bridge grows back toward it). The player's feet when unknown.</summary>
+        public readonly Vector3 ThrowOrigin;
 
         public ImpactContext(ExpeditionWorld world, CardCopy copy, CardDefinition definition, Collider target,
-            Vector3 point, Vector3 normal, Vector3 velocity)
+            Vector3 point, Vector3 normal, Vector3 velocity, Vector3? throwOrigin = null)
         {
             World = world; Copy = copy; Definition = definition; Target = target;
             Point = point; Normal = normal; Velocity = velocity;
             Creature = target ? target.GetComponentInParent<WorldCreature>() : null;
             Obstacle = target ? target.GetComponentInParent<WorldObstacle>() : null;
+            ThrowOrigin = throwOrigin ?? (world && world.motor ? world.motor.transform.position : point);
         }
+
+        // ---------- card parameters ----------
+
+        /// <summary>True for an upgraded copy (the board's single step «база → ↑»: any level above 1).</summary>
+        public bool Upgraded => Copy != null && Copy.Upgraded;
+        /// <summary>The base or the upgraded value of a card parameter: <c>c.Pick(durationBase, durationUpgraded)</c>.</summary>
+        public float Pick(float baseValue, float upgradedValue) => Upgraded ? upgradedValue : baseValue;
+        /// <inheritdoc cref="Pick(float, float)"/>
+        public int Pick(int baseValue, int upgradedValue) => Upgraded ? upgradedValue : baseValue;
+
+        // ---------- the player and the world ----------
+
+        public FirstPersonMotor Motor => World.motor;
+        public PlayerVitals Vitals => World.vitals;
+        public CardHandView Hand => World.hand;
+        /// <summary>The player as a fighter (for chain lightning, burning tar).</summary>
+        public ICombatant Player => World.Player;
+
+        // ---------- what was hit ----------
+
+        /// <summary>The Rigidbody that was hit (creature, prop, cube, loot), if any.</summary>
+        public Rigidbody Body => Target ? Target.attachedRigidbody : null;
+        /// <summary>The fighter hit directly (creature, ally), if any.</summary>
+        public ICombatant HitCombatant => Combat.Of(Target);
+        /// <summary>A component of type T on the hit collider or its parents; null when nothing was hit.</summary>
+        public T TargetAs<T>() where T : class => Target ? Target.GetComponentInParent<T>() : null;
+        /// <summary>Card zones containing the impact point (the puddle the card landed in). Appends; returns the count.</summary>
+        public int ZonesAtPoint(List<ICardZone> results, CardZoneKind? kind = null) => World.Zones.Containing(Point, results, kind);
 
         public int Power => Copy.Power;
         public float Radius => Definition.effectRadius;

@@ -10,7 +10,9 @@ namespace Hakaton.Decks
     {
         public readonly string Id, Name;
         public readonly int Price, UpgradePrice, BasePower, PowerPerLevel;
-        public CardSpec(string id, string name, int price, int upgradePrice, int power, int powerPerLevel)
+        /// <summary>False for a card without an upgrade (Teleport): its copies stay at level 1.</summary>
+        public readonly bool Upgradable;
+        public CardSpec(string id, string name, int price, int upgradePrice, int power, int powerPerLevel, bool upgradable = true)
         {
             Id = id;
             Name = name;
@@ -18,6 +20,7 @@ namespace Hakaton.Decks
             UpgradePrice = upgradePrice;
             BasePower = power;
             PowerPerLevel = powerPerLevel;
+            Upgradable = upgradable;
         }
     }
 
@@ -27,6 +30,8 @@ namespace Hakaton.Decks
         public CardSpec Spec { get; }
         public int Level { get; private set; }
         public bool IsReturn => Id == -1;
+        /// <summary>The board has one upgrade step (base → ↑): any level above 1 uses the upgraded numbers.</summary>
+        public bool Upgraded => Level > 1;
         public int Power => Spec.BasePower + (Level - 1) * Spec.PowerPerLevel;
         internal CardCopy(int id, CardSpec spec, int level = 1)
         {
@@ -139,6 +144,8 @@ namespace Hakaton.Decks
         public int HandSize => handSize;
         public int HandPrice => checked(Rules.HandUpgradePrice * (handSize - Rules.InitialHand + 1));
         public int UpgradePrice(CardCopy copy) => checked(copy.Spec.UpgradePrice * copy.Level);
+        /// <summary>The copy's card has an upgrade and the copy is below the maximum level.</summary>
+        public bool CanUpgrade(CardCopy copy) => copy != null && copy.Spec.Upgradable && copy.Level < Rules.MaxCardLevel;
         public string Toggle(int id)
         {
             if (IsAway) return "Сначала вернитесь в лавку.";
@@ -173,6 +180,7 @@ namespace Hakaton.Decks
             if (IsAway) return "Сначала вернитесь в лавку.";
             var copy = Find(id);
             if (copy == null) return "Выберите экземпляр.";
+            if (!copy.Spec.Upgradable) return "Эту карту нельзя улучшить.";
             if (copy.Level >= Rules.MaxCardLevel) return "Экземпляр уже полностью улучшен.";
             int price = UpgradePrice(copy);
             if (!wallet.TrySpend(price)) return "Не хватает монет.";
