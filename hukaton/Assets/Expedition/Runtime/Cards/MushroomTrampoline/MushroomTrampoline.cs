@@ -64,6 +64,9 @@ namespace Hakaton.Expeditions.Cards
         Vector3 visualScale = Vector3.one;
         Quaternion capRotation = Quaternion.identity;
 
+        Collider support;
+        bool supported;
+
         bool Alive => vanishAge < 0;
         Vector3 CapCentre => transform.position + transform.up * capTop * transform.lossyScale.y;
 
@@ -80,6 +83,18 @@ namespace Hakaton.Expeditions.Cards
             radius = capDiameter * .5f;
             height = capTop;
         }
+
+        /// <summary>
+        /// The surface the mushroom grows on. When it goes away (a Branch bridge burns down, a tree awakens and walks
+        /// off) the mushroom wilts instead of hanging in the air.
+        /// </summary>
+        public void RestOn(Collider surface)
+        {
+            support = surface;
+            supported = surface;
+        }
+
+        bool SupportLost => supported && (!support || !support.enabled || !support.gameObject.activeInHierarchy);
 
         public override void OnSpawned(ExpeditionWorld world)
         {
@@ -128,7 +143,7 @@ namespace Hakaton.Expeditions.Cards
             float dt = Time.deltaTime;
             if (!Alive) { Vanishing(dt); return; }
             age += dt;
-            if (age >= Lifetime) { BeginVanish(); return; }
+            if (age >= Lifetime || SupportLost) { BeginVanish(); return; }
             CatchSoftLanding();
             Animate(dt);
         }

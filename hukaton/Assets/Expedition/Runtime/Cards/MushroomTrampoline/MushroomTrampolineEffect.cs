@@ -49,6 +49,7 @@ namespace Hakaton.Expeditions.Cards
                 mushroom.transform.localScale = new Vector3(1 / Mathf.Max(.01f, lossy.x), 1 / Mathf.Max(.01f, lossy.y), 1 / Mathf.Max(.01f, lossy.z));
             }
             mushroom.Configure(lifetimeSeconds, c.Pick(heightReturnBase, heightReturnUpgraded), minBounceHeight, maxBounceHeight, capDiameter);
+            mushroom.RestOn(c.Target);
             Feedback(c, true);
         }
 
