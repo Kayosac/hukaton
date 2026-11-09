@@ -117,9 +117,21 @@ namespace Hakaton.Game
             }
             RefreshProgress();
         }
+        bool progressHudLost;
         void RefreshProgress()
         {
             if (!Ready) return;
+            if (!progressCanvas || !objectiveLabel || !resultLabel || trade.Session == null)
+            {
+                if (!progressHudLost)
+                {
+                    progressHudLost = true;
+                    Debug.LogError("GameLoop: Progress HUD was destroyed at runtime (canvas=" + (bool)progressCanvas
+                        + ", objective=" + (bool)objectiveLabel + ", result=" + (bool)resultLabel
+                        + ", session=" + (trade.Session != null) + "). The revenue HUD is skipped; the game keeps running.", this);
+                }
+                return;
+            }
             progressCanvas.enabled = Phase == GamePhase.Shop && !workshop.EmbeddedOpen && !trade.Session.IsOpen;
             objectiveLabel.text = "Выручка  " + trade.Session.GrossRevenue + " / " + revenueGoal + (GoalReached ? "  ·  цель достигнута" : "");
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
