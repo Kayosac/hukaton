@@ -239,6 +239,7 @@ namespace Hakaton.Decks
             var card=hand.Find(c=>c.Id==id && !c.IsReturn); if(card==null) return null;
             hand.Remove(card); discard.Add(card); Fill(); return card;
         }
+        internal void AddToHand(CardCopy card) { hand.Add(card); }
         internal List<CardCopy> DiscardHand()
         {
             var cards=hand.Where(c=>!c.IsReturn).ToList();
@@ -276,6 +277,14 @@ namespace Hakaton.Decks
         {
             if(Completed) return Array.Empty<CardCopy>();
             var cards=Active.DiscardHand(); DiscardedCount+=cards.Count; return cards;
+        }
+        int nextGrantedId=-1000;
+        /// <summary>Debug/cheat helper: adds a temporary copy (never owned or saved) to the hand of its deck and switches to it.</summary>
+        public CardCopy GrantToHand(CardSpec spec,int level=1)
+        {
+            if(Completed || spec==null) return null;
+            var card=new CardCopy(nextGrantedId--,spec,Math.Max(1,level));
+            decks[(int)spec.Kind].AddToHand(card); ActiveKind=spec.Kind; return card;
         }
         public bool ReturnHome()
         {

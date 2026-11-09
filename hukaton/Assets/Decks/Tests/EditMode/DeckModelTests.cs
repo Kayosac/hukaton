@@ -12,6 +12,16 @@ namespace Hakaton.Decks.Tests
             new CardSpec("water","Вода",DeckKind.Exploration,40,25,4,2),new CardSpec("fire","Огонь",DeckKind.Combat,50,30,8,2)};
         static DeckWorkshop Workshop(int copies=3,int limit=12) => new DeckWorkshop(new DeckRules(limit,3,5,3,60,1000),Specs,copies);
         static int[] Ids(ExpeditionDeck deck) => deck.Hand.Select(c=>c.Id).ToArray();
+        [Test] public void GrantedCardJoinsItsDeckHandWithoutBecomingOwned()
+        {
+            var w=Workshop();w.Depart(5);var e=w.Current;int owned=w.Owned.Count;
+            var card=e.GrantToHand(Specs[2],2);
+            Assert.That(card,Is.Not.Null);Assert.That(card.IsReturn,Is.False);Assert.That(card.Level,Is.EqualTo(2));
+            Assert.That(e.ActiveKind,Is.EqualTo(DeckKind.Combat));Assert.That(e.Active.Hand,Does.Contain(card));
+            Assert.That(w.Owned.Count,Is.EqualTo(owned));Assert.That(w.Find(card.Id),Is.Null);
+            Assert.That(e.Release(card.Id),Is.SameAs(card));
+            Assert.That(e.GrantToHand(Specs[0]).Id,Is.Not.EqualTo(card.Id));
+        }
         [Test] public void StartingHandsCountInsideDeckLimit()
         {
             var w=Workshop();Assert.That(w.Depart(42),Is.Null);

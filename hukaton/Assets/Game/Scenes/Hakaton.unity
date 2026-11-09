@@ -4016,6 +4016,58 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 45b7578fe548d4a048196e4dd2f63c4a, type: 3}
+--- !u!1 &1990000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1990000002}
+  - component: {fileID: 1990000003}
+  m_Layer: 0
+  m_Name: Cheat Menu (F1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1990000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1990000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0e896f4aa7a4be9acd480b740b2bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.CheatMenu
+  game: {fileID: 997696185}
+  titleFont: {fileID: 12800000, guid: a59b8b8ab48d9476385b75a9f6b0c528, type: 3}
+  bodyFont: {fileID: 12800000, guid: fa594d2cc60b14056b55e66626662e4a, type: 3}
+  toggleKey: 94
+  availableInPlayerBuilds: 1
+  pixelScale: 1
+  panelPosition: {x: 16, y: 16}
+  panelSize: {x: 460, y: 560}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4031,3 +4083,4 @@ SceneRoots:
   - {fileID: 1185710251063120883}
   - {fileID: 459082821}
   - {fileID: 7565336393182723748}
+  - {fileID: 1990000002}
