@@ -286,6 +286,8 @@ namespace Hakaton.Expeditions.Cards
         void Tint(Color baseColour, Color emission)
         {
             if (!blobRenderer) return;
+            // Survives a script reload in Play (Awake does not run again).
+            if (block == null) block = new MaterialPropertyBlock();
             blobRenderer.GetPropertyBlock(block);
             block.SetColor(BaseColorId, baseColour);
             block.SetColor(EmissionId, emission);

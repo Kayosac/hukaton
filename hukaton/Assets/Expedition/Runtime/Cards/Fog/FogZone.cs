@@ -134,6 +134,7 @@ namespace Hakaton.Expeditions.Cards
             }
             if (domeRenderer)
             {
+                if (block == null) block = new MaterialPropertyBlock();
                 domeRenderer.GetPropertyBlock(block);
                 block.SetColor(TintId, new Color(colour.r, colour.g, colour.b, colour.a * density * Mathf.Clamp01(grow * 1.5f) * fade));
                 domeRenderer.SetPropertyBlock(block);
