@@ -220,44 +220,22 @@ namespace Hakaton.Expeditions
             if (defeated) workshop.Model.Current.Defeat();
             Returning = true;
             thrower.Cancel();
-            control.SetBlocked(this, true);
+            // Drowning keeps the mouse: the player can still look around while sinking; the body is held by Sink.
+            if (!drowned) control.SetBlocked(this, true);
             StartCoroutine(ReturnTransition(defeated, drowned));
         }
 
-        /// <summary>The body sinks under water; nothing else steers it (a rope lets go).</summary>
+        /// <summary>The body sinks under water and the screen goes black at once; the mouse still looks around.</summary>
         IEnumerator Sink()
         {
             if (motor.ExternallyControlled) motor.RevokeExternalControl();
             bool sinking = motor.TryClaimExternalControl(this);
             Play(cues ? cues.playerHurt : null);
-            var view = motor.view;
-            float time = 0;
-            float side = UnityEngine.Random.value < .5f ? -1 : 1;
-            float yawPhase = UnityEngine.Random.value * Mathf.PI * 2, pitchPhase = UnityEngine.Random.value * Mathf.PI * 2;
-            float yawRate = 2 * Mathf.PI / Mathf.Max(.1f, settings.drownSwayPeriod.x);
-            float pitchRate = 2 * Mathf.PI / Mathf.Max(.1f, settings.drownSwayPeriod.y);
-            bool cardsLost = false;
-            while (time < settings.drownSeconds)
+            float time = 0, total = settings.drownDarkenSeconds + settings.drownSeconds;
+            while (time < total)
             {
-                float dt = Time.unscaledDeltaTime;
-                time += dt;
-                if (!cardsLost && time >= settings.drownCardsDelay)
-                {
-                    cardsLost = true;
-                    hand.ScatterAll(settings.drownCardsSpeed, Mathf.Max(.3f, settings.drownSeconds - time - .1f), viewCamera.transform);
-                    Play(cues ? cues.discard : null);
-                }
-                // One even darkening from the first touch of deep water to full black — no hold, no second fade.
-                if (fade) fade.Set(Mathf.Pow(Mathf.Clamp01(time / settings.drownSeconds), settings.drownDarkenCurve), settings.drownColour);
-                // The current takes the head in a slow dance: a steady turn plus long, overlapping swings.
-                // Driven by angular speed, eased in from stillness, so there is never a jolt.
-                if (view && dt > 0)
-                {
-                    float ease = Ease.InOutSine(time / settings.drownSwayEaseIn);
-                    float yawSpeed = side * settings.drownSpin + settings.drownSwayYaw * yawRate * Mathf.Cos(yawRate * time + yawPhase);
-                    float pitchSpeed = settings.drownSwayPitch * pitchRate * Mathf.Cos(pitchRate * time + pitchPhase);
-                    view.Turn(yawSpeed * ease * dt, pitchSpeed * ease * dt);
-                }
+                time += Time.unscaledDeltaTime;
+                if (fade) fade.Set(Mathf.Clamp01(time / settings.drownDarkenSeconds), settings.drownColour);
                 if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
                     motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
                 yield return null;
@@ -269,7 +247,7 @@ namespace Hakaton.Expeditions
         IEnumerator ReturnTransition(bool defeated, bool drowned)
         {
             var eye = viewCamera.transform;
-            if (drowned) yield return Sink();
+            if (drowned) { yield return Sink(); control.SetBlocked(this, true); }
             else if (defeated)
             {
                 if (time) time.SlowMotion(.9f, .25f, .2f);
