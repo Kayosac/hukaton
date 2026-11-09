@@ -1,0 +1,189 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4563227951750434723
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 374363081233045720}
+  - component: {fileID: 623058875753693407}
+  - component: {fileID: 457907446406161454}
+  m_Layer: 0
+  m_Name: Branch bridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &374363081233045720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4563227951750434723}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4370640387512683304}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &623058875753693407
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4563227951750434723}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2, y: 0.42, z: 5}
+  m_Center: {x: 0, y: -0.21, z: 2.5}
+--- !u!114 &457907446406161454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4563227951750434723}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c36f3de10bb8442a4ad19daebcd68334, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.Cards.BranchBridge
+  walkway: {fileID: 623058875753693407}
+  visual: {fileID: 4370640387512683304}
+  barkRenderers:
+  - {fileID: 2625583990141951764}
+  authoredLength: 5
+  authoredWidth: 1.2
+  authoredThickness: 0.42
+  growSeconds: 0.9
+  rootVfx: {fileID: 8948856644754878334, guid: 92d4a009a27f0419fa408275dd5ba337, type: 3}
+  tipVfx: {fileID: 4703588941398405656, guid: d8571ca6b47134d31892c43b00e97913, type: 3}
+  leafTint: {r: 0.55, g: 0.7, b: 0.35, a: 1}
+  growSound: {fileID: 11400000, guid: 9394b7657b382456d93c15884236c753, type: 2}
+  charredMaterial: {fileID: 2100000, guid: efefaa11112c54884ac61f62605be8dc, type: 2}
+  fireVfx: {fileID: 3012070673887216586, guid: 40b80550388374f72a36150a39fb3d81, type: 3}
+  fireTint: {r: 1, g: 0.55, b: 0.2, a: 1}
+  fireSpacing: 1.4
+  burnSeconds: 2.4
+  igniteReach: 0.7
+  ashVfx: {fileID: 210331487175838093, guid: 86dd5c845deda4001b280dfdef5fdd64, type: 3}
+  ashTint: {r: 0.35, g: 0.33, b: 0.3, a: 1}
+  igniteSound: {fileID: 11400000, guid: a7ef1d25e7e664753b75a51a4803f109, type: 2}
+  crackleLoop: {fileID: 11400000, guid: 3070caddd61f843dd8ba16ca7c10784a, type: 2}
+  collapseSound: {fileID: 11400000, guid: 646dc90095a334f7aa952c26bb193ac9, type: 2}
+  collapseSeconds: 0.5
+  buildNavigation: 1
+  agentTypeId: 0
+  navVoxelSize: 0.05
+  linkSearch: 1.6
+  linkMaxRise: 1.1
+--- !u!1 &6876749809637559886
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4370640387512683304}
+  - component: {fileID: 4440536889478074821}
+  - component: {fileID: 2625583990141951764}
+  m_Layer: 0
+  m_Name: Branch
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4370640387512683304
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876749809637559886}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 374363081233045720}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4440536889478074821
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876749809637559886}
+  m_Mesh: {fileID: 4300000, guid: 67bd58ca1fd634be3883e5cbcd0cf0c3, type: 2}
+--- !u!23 &2625583990141951764
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6876749809637559886}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a3d11816156024fffb002d0aa1ebdeca, type: 2}
+  - {fileID: 2100000, guid: 55268cc13812d4b92b7ec0f0cd911847, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
