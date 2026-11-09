@@ -72,6 +72,24 @@ namespace Hakaton.Trading
             return true;
         }
 
+        /// <summary>Debug/cheat helper: puts a new random catalogue item on every empty display slot.</summary>
+        public int StockEmptySlotsRandomly(Random picker = null)
+        {
+            if (IsOpen || ExpeditionId != 0 || catalog.Count == 0) return 0;
+            if (picker == null) picker = random;
+            int added = 0;
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (slots[i] != null) continue;
+                slots[i] = new ItemInstance(++nextItemId, catalog[picker.Next(catalog.Count)]);
+                added++;
+            }
+            if (added == 0) return 0;
+            LastMessage = $"На витрину добавлено товаров: {added}.";
+            Touch();
+            return added;
+        }
+
         public bool RemoveItem(int slotIndex)
         {
             if (IsOpen || ExpeditionId != 0 || !ValidSlot(slotIndex) || slots[slotIndex] == null) return false;
@@ -249,6 +267,7 @@ namespace Hakaton.Trading
             return CompleteExpedition(expeditionId);
         }
 
+        public IReadOnlyList<ItemDefinition> Catalog => catalog.AsReadOnly();
         public ItemDefinition FindDefinition(string id) => catalog.Find(definition => definition.Id == id);
 
         public TradingSave Save()
