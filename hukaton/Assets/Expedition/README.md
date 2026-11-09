@@ -24,6 +24,12 @@
 | `ExpeditionHud` | Сердца, кольцо заряда, стрелка подкрутки от прицела (направление и длина = подкрутка, круг полной силы, пока зажат Shift), остаток колоды, название выбранной карты, сумка, подсказки обучения, уведомления. |
 | `ExpeditionSettings`, `ExpeditionAudio`, `ExpeditionVfx` | Данные: `Game/Data/Expedition.asset`, `Expedition Audio.asset`, `Expedition Effects.asset`. |
 
+### Расширенный каталог карт (доска, 09.11.2026)
+
+- `Runtime/Cards/<Карта>/` — по папке на каждую из 16 новых карт: класс эффекта с числами доски (база / улучшение) в полях ассета и его вспомогательные скрипты. Ассеты эффектов — `Game/Data/Effects`, определения карт — `Game/Data/<slug>.asset`, арт — `Decks/Art/<slug>.png`.
+- `Runtime/CardSystems/` и `ExpeditionWorld.Cards.cs` — общее для карт: объекты до конца вылазки (`SpawnForOuting`, `HideForOuting`, очистка при возвращении, поражении и перед новой вылазкой), реестр зон карт (`ICardZone`, `CardZoneBehaviour`), реакции (`IIgnitable` — поджигают Огонь и Молния, `IWashable` — дождь, `IVisionBlocker` — туман, `ILandingSurface` — гриб), состояние «мокрый» (`WetStatus`: 30 с после дождя, Лёд по мокрому ×2), модификаторы тел (`BodyModifierStatus`, `CardPhysics.Push`), бойцы (`ICombatant`, `DamageInfo`; игрок — `PlayerVitals`, союзники — `world.Allies`).
+- Игрок: временные модификаторы `FirstPersonMotor.ApplyModifier` (гравитация, импульсы, предел падения, скорость шага; повтор обновляет время, не складывается), скорость, перенос с сохранением скорости, внешнее управление (`IExternalMotorControl`). Существа: замедление, Манок (`Investigate`), видимость через мир, цель атаки (`Target`).
+
 `ExpeditionEffectRules` — общие формулы урона от столкновений и радиального импульса. Импульсы и пороги падения заданы для g = 9,81 и пересчитываются под реальную гравитацию игрока (`FirstPersonMotor.ApplyNormalizedImpulse`), поэтому высоты прыжков остаются расчётными.
 
 ## Где менять
