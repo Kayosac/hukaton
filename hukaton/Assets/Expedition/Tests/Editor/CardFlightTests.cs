@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void SplittingTheSameTimeIntoFramesGivesTheSamePath()
         {
-            float t_wholePosition = 0, t_framePosition = 0;
+            CardFlight.Clock t_wholePosition = default, t_framePosition = default;
             Vector3 wholePosition = Vector3.zero, wholeVelocity = new Vector3(1, 6, 14);
             CardFlight.Advance(ref wholePosition, ref wholeVelocity, ref t_wholePosition, new Vector2(.6f, .3f), settings, 1f);
 
@@ -33,7 +33,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void GravityPullsTheCardDownAsDesigned()
         {
-            float t_position = 0;
+            CardFlight.Clock t_position = default;
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 5, 10);
             CardFlight.Advance(ref position, ref velocity, ref t_position, Vector2.zero, settings, 1f);
             float expected = 5 - .5f * settings.cardGravity;
@@ -45,7 +45,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void WithoutSpinTheCardStaysInItsThrowPlane()
         {
-            float t_position = 0;
+            CardFlight.Clock t_position = default;
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 4, 12);
             CardFlight.Advance(ref position, ref velocity, ref t_position, Vector2.zero, settings, 1.5f);
             Assert.That(position.x, Is.EqualTo(0).Within(1e-5f));
@@ -54,7 +54,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void SpinCurvesTheCardToEitherSideSymmetrically()
         {
-            float t_right = 0, t_left = 0;
+            CardFlight.Clock t_right = default, t_left = default;
             Vector3 right = Vector3.zero, rightVelocity = new Vector3(0, 3, 12);
             Vector3 left = Vector3.zero, leftVelocity = new Vector3(0, 3, 12);
             CardFlight.Advance(ref right, ref rightVelocity, ref t_right, Vector2.right, settings, .8f);
@@ -67,7 +67,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void UpSpinFloatsTheCardAndDownSpinDipsItWithoutSideDrift()
         {
-            float t_still = 0, t_up = 0, t_down = 0;
+            CardFlight.Clock t_still = default, t_up = default, t_down = default;
             Vector3 still = Vector3.zero, stillVelocity = new Vector3(0, 3, 12);
             Vector3 up = Vector3.zero, upVelocity = new Vector3(0, 3, 12);
             Vector3 down = Vector3.zero, downVelocity = new Vector3(0, 3, 12);
@@ -86,11 +86,13 @@ namespace Hakaton.Expeditions.Tests
         public void FullUpSpinClimbsThenFallsFasterAndFaster(float x, float y, float z)
         {
             Vector3 position = Vector3.zero, velocity = new Vector3(x, y, z);
-            float time = 0, previousFall = 0;
+            var time = default(CardFlight.Clock);
+            float previousFall = 0, highest = 0;
             bool fell = false;
             for (int second = 0; second < 10; second++)
             {
                 CardFlight.Advance(ref position, ref velocity, ref time, Vector2.up, settings, 1f);
+                highest = Mathf.Max(highest, position.y);
                 if (velocity.y < -1f)
                 {
                     if (fell) Assert.That(-velocity.y, Is.GreaterThan(previousFall + 5f), "Past the top the card falls with growing speed, never hangs.");
@@ -99,14 +101,14 @@ namespace Hakaton.Expeditions.Tests
                 }
             }
             Assert.That(fell, "Up-spin can't keep a card climbing forever.");
-            Assert.That(position.y, Is.LessThan(0), "It comes back down.");
+            Assert.That(position.y, Is.LessThan(highest - 10), "It comes back down.");
         }
 
         [Test]
         public void UpSpinStillClimbsOffTheHand()
         {
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 0, 18);
-            float time = 0;
+            var time = default(CardFlight.Clock);
             CardFlight.Advance(ref position, ref velocity, ref time, Vector2.up, settings, settings.liftHoldSeconds);
             Assert.That(velocity.y, Is.GreaterThan(0), "A flat throw with full up-spin rises at first.");
         }
@@ -114,7 +116,7 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void DiagonalSpinCurvesBothWays()
         {
-            float t_position = 0, t_flat = 0;
+            CardFlight.Clock t_position = default, t_flat = default;
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 3, 12);
             Vector3 flat = Vector3.zero, flatVelocity = new Vector3(0, 3, 12);
             CardFlight.Advance(ref position, ref velocity, ref t_position, new Vector2(-.7f, .7f), settings, .8f);

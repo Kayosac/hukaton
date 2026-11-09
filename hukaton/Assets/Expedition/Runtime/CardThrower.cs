@@ -235,11 +235,11 @@ namespace Hakaton.Expeditions
             float step = seconds / (count - 1);
             previewPoints[0] = position;
             int used = 1;
-            float flightTime = 0;
+            var clock = default(CardFlight.Clock);
             for (int i = 1; i < count; i++)
             {
                 Vector3 next = position, nextVelocity = velocity;
-                CardFlight.Advance(ref next, ref nextVelocity, ref flightTime, new Vector2(Preparation.SpinX, Preparation.SpinY), world.settings, step);
+                CardFlight.Advance(ref next, ref nextVelocity, ref clock, new Vector2(Preparation.SpinX, Preparation.SpinY), world.settings, step);
                 if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
                 {
                     previewPoints[used++] = hit.point;

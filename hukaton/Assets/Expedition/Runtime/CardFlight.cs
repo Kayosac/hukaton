@@ -11,15 +11,29 @@ namespace Hakaton.Expeditions
     {
         public const float Step = 1f / 120f;
 
-        /// <param name="flightTime">Seconds since launch; advanced by <paramref name="seconds"/>. Up/down spin wears off
-        /// with it, so a card spun upward still climbs off the hand, then slows and falls under gravity alone.</param>
-        public static void Advance(ref Vector3 position, ref Vector3 velocity, ref float flightTime, Vector2 spin, ExpeditionSettings settings, float seconds)
+        /// <summary>Per-card flight state: time since launch and when the up/down spin let go.</summary>
+        public struct Clock
+        {
+            public float time;
+            public bool released;
+            public float releasedAt;
+        }
+
+        /// <param name="clock">Starts as default at launch; advanced by <paramref name="seconds"/>. Up/down spin climbs exactly
+        /// as it always did, but lets go once the card stalls at the top (or after liftHoldSeconds at most), so the
+        /// card falls faster and faster instead of hanging in the sky or climbing forever.</param>
+        public static void Advance(ref Vector3 position, ref Vector3 velocity, ref Clock clock, Vector2 spin, ExpeditionSettings settings, float seconds)
         {
             int steps = Mathf.Max(1, Mathf.CeilToInt(seconds / Step));
             float dt = seconds / steps;
             for (int i = 0; i < steps; i++)
             {
                 Vector3 curve = Vector3.zero;
+                if (!clock.released && velocity.magnitude < settings.liftReleaseSpeed)
+                {
+                    clock.released = true;
+                    clock.releasedAt = clock.time;
+                }
                 if (velocity.sqrMagnitude > .0001f)
                 {
                     Vector3 forward = velocity.normalized;
@@ -30,20 +44,21 @@ namespace Hakaton.Expeditions
                     // Sideways bend grows with speed, like real spin: a fast card sweeps a wide arc, a slow one
                     // bends tighter but never loops. Lift is full off the hand (up-spin climbs), then wears off.
                     float speedShare = velocity.magnitude / Mathf.Max(.1f, settings.maximumSpeed);
-                    curve = side * (spin.x * settings.curveAcceleration * speedShare) + lift * (spin.y * settings.liftAcceleration * LiftShare(flightTime, settings));
+                    curve = side * (spin.x * settings.curveAcceleration * speedShare) + lift * (spin.y * settings.liftAcceleration * LiftShare(clock, settings));
                 }
                 velocity += (Vector3.down * settings.cardGravity + curve) * dt;
                 position += velocity * dt;
-                flightTime += dt;
+                clock.time += dt;
             }
         }
 
-        /// <summary>Share of the up/down spin lift still acting: 1 during the hold, then eases smoothly to 0.</summary>
-        public static float LiftShare(float flightTime, ExpeditionSettings settings)
+        /// <summary>Share of the up/down spin lift still acting: 1 until the card stalls or the hold runs out, then eases to 0.</summary>
+        public static float LiftShare(Clock clock, ExpeditionSettings settings)
         {
-            if (flightTime <= settings.liftHoldSeconds) return 1;
+            float start = clock.released ? Mathf.Min(clock.releasedAt, settings.liftHoldSeconds) : settings.liftHoldSeconds;
+            if (clock.time <= start) return 1;
             if (settings.liftFadeSeconds <= 0) return 0;
-            float t = Mathf.Clamp01((flightTime - settings.liftHoldSeconds) / settings.liftFadeSeconds);
+            float t = Mathf.Clamp01((clock.time - start) / settings.liftFadeSeconds);
             return 1 - t * t * (3 - 2 * t);
         }
 
