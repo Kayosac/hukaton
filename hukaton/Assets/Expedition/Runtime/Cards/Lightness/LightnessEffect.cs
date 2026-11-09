@@ -1,13 +1,18 @@
+using System.Collections.Generic;
+using Hakaton.Character;
 using Hakaton.Decks.Unity;
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Лёгкость» (воздух, ранг 3/5). A burst of radius 2.5 m puts Lightness on bodies for 6 s (upgraded 9 s): received impulses ×1.5, falling speed
-    /// limited to 8 m/s. Independent of Moon gravity (no multiplying of bonuses).
+    /// «Лёгкость» (воздух, ранг 3/5). A burst of radius 2.5 m at the point of impact puts Lightness on every body in it
+    /// — the player, creatures, objects, loot — for 6 s (upgraded 9 s): received impulses ×1.5, falling speed limited to
+    /// 8 m/s. Same refresh rule as every timed modifier (longer of the two, never multiplied). Independent of Moon
+    /// gravity: the Moon changes only the player's g, Lightness only impulses and the falling limit, so both simply act
+    /// together without multiplying any bonus. The player gets a HUD badge; other bodies a light aura while it lasts.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
-    /// STUB from the foundation pass: only the impact feedback so far.
     /// </summary>
     public sealed class LightnessEffect : CardEffect, ICardStatLine
     {
@@ -21,12 +26,76 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Falling speed limit, design m/s (same on both levels).")]
         [Min(0)] public float fallSpeedLimit = 8;
 
+        [Header("Presentation")]
+        [Tooltip("HUD badge while the player is light.")]
+        public PlayerStatusBadge badge;
+        [Tooltip("Burst over the whole radius (scaled to it).")]
+        public VfxBurst burstVfx;
+        [Tooltip("Radius the burst prefab is authored for, m.")]
+        [Min(.1f)] public float burstAuthoredRadius = 2.5f;
+        [Tooltip("Light aura that follows every other body while it is light.")]
+        public VfxBurst bodyAura;
+        public Color tint = new Color(.7f, .92f, 1f);
+
+        static readonly Dictionary<Rigidbody, VfxBurst> Auras = new Dictionary<Rigidbody, VfxBurst>();
+        static readonly List<Rigidbody> DeadAuras = new List<Rigidbody>();
+
+        public float Duration(bool upgraded) => upgraded ? durationUpgraded : durationBase;
+
+        /// <summary>Lightness on the player's motor (separate so it can be tested on a bare motor).</summary>
+        public void ApplyTo(FirstPersonMotor motor, bool upgraded)
+        {
+            if (!motor) return;
+            float seconds = Duration(upgraded);
+            motor.ApplyModifier(MotorModifier.ReceivedImpulse, impulseMultiplier, seconds);
+            motor.ApplyFallSpeedLimit(fallSpeedLimit, seconds);
+        }
+
         public override void Apply(in ImpactContext c)
         {
-            // TODO(Lightness): player: motor.ApplyModifier(MotorModifier.ReceivedImpulse, …) + motor.ApplyFallSpeedLimit(…);
-            // creatures: WorldCreature.ApplyLightness; other bodies: BodyModifierStatus.On(body, world).
-            Feedback(c, false);
-            c.World.Announce(c.Definition.displayName + ": эффект в разработке", 1.5f);
+            var world = c.World;
+            float seconds = Duration(c.Upgraded);
+            int affected = 0;
+            if (c.PlayerWithin(radius))
+            {
+                ApplyTo(c.Motor, c.Upgraded);
+                PlayerStatusBadge.Show(world, badge);
+                affected++;
+            }
+            var seen = new HashSet<Rigidbody>();
+            foreach (var hit in Physics.OverlapSphere(c.Point, radius, ~0, QueryTriggerInteraction.Ignore))
+            {
+                var body = hit.attachedRigidbody;
+                if (!body || body.isKinematic || !seen.Add(body)) continue;
+                var creature = body.GetComponent<WorldCreature>();
+                if (creature) creature.ApplyLightness(impulseMultiplier, fallSpeedLimit, seconds);
+                else
+                {
+                    var status = BodyModifierStatus.On(body, world);
+                    status.ApplyImpulseScale(impulseMultiplier, seconds);
+                    status.ApplyFallSpeedLimit(fallSpeedLimit, seconds);
+                }
+                ShowAura(world, body, seconds);
+                affected++;
+            }
+            world.Spawn(burstVfx, c.Point + c.Normal * .1f, Quaternion.identity, tint, radius / burstAuthoredRadius);
+            Feedback(c, affected > 0);
+        }
+
+        void ShowAura(ExpeditionWorld world, Rigidbody body, float seconds)
+        {
+            if (!bodyAura) return;
+            DeadAuras.Clear();
+            foreach (var pair in Auras) if (!pair.Key || !pair.Value) DeadAuras.Add(pair.Key);
+            foreach (var dead in DeadAuras) Auras.Remove(dead);
+            if (!Auras.TryGetValue(body, out var aura) || !aura)
+            {
+                aura = world.Spawn(bodyAura, body.worldCenterOfMass, Quaternion.identity, tint);
+                if (!aura) return;
+                Auras[body] = aura;
+            }
+            aura.Follow(body.transform, body.worldCenterOfMass - body.transform.position);
+            aura.HoldFor(seconds);
         }
 
         public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
