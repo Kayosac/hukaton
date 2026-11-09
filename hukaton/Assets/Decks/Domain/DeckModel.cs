@@ -214,7 +214,7 @@ namespace Hakaton.Decks
 
         /// <summary>
         /// Validates a snapshot and brings an old one up to date: a version 1 save had two decks and two hands,
-        /// so it keeps the larger (paid) hand and the first copies of its selection that fit the one deck.
+        /// so it keeps the larger (paid) hand and trims its selection to the one deck's limit.
         /// </summary>
         bool Read(WorkshopSave save, out List<CardCopy> copies, out List<int> equipped, out int hand)
         {
@@ -241,8 +241,20 @@ namespace Hakaton.Decks
             var unique = new HashSet<int>(save.selected);
             if (unique.Count != save.selected.Count || !unique.IsSubsetOf(ids)) return false;
             if (!legacy && save.selected.Count > Rules.DeckLimit) return false;
-            equipped = save.selected.Take(Rules.DeckLimit).ToList();
+            equipped = Trim(save.selected, copies.ToDictionary(c => c.Id), Rules.DeckLimit);
             return true;
+        }
+
+        /// <summary>Drops copies from the most numerous type first, so every type that was equipped stays in the deck.</summary>
+        static List<int> Trim(List<int> selection, Dictionary<int, CardCopy> copies, int limit)
+        {
+            var kept = new List<int>(selection);
+            while (kept.Count > limit)
+            {
+                var largest = kept.GroupBy(id => copies[id].Spec.Id).OrderByDescending(g => g.Count()).First();
+                kept.Remove(largest.Last());
+            }
+            return kept;
         }
 
         /// <summary>Validates the full card snapshot before a scene-wide restore changes any subsystem.</summary>

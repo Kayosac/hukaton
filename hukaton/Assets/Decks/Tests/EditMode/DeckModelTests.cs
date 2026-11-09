@@ -301,21 +301,27 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void TwoDeckSaveKeepsCollectionPaidHandAndFirstCopiesThatFit()
+        public void TwoDeckSaveKeepsCollectionPaidHandAndEveryEquippedType()
         {
-            var w = Workshop(5);
+            var w = Workshop(6);
             var old = w.Save();
             old.version = 1;
             old.hand = 0;
             old.explorationHand = 3;
             old.combatHand = 4;
-            // Version 1 allowed 12 cards in each deck: 15 equipped copies here.
-            old.selected = w.Owned.Select(c => c.Id).ToList();
-            var target = Workshop(5);
+            // Version 1 allowed 12 cards in each deck: wind 6, water 6 and fire 2 equipped, fire listed last.
+            old.selected = w.Owned.Where(c => c.Spec.Id != "fire" || c.Id <= 14).Select(c => c.Id).ToList();
+            Assert.That(old.selected.Count, Is.EqualTo(14));
+            var target = Workshop(6);
             Assert.That(target.TryRestore(old), Is.True);
-            Assert.That(target.Owned.Count, Is.EqualTo(15));
-            Assert.That(target.HandSize, Is.EqualTo(4));
-            Assert.That(target.Selected().Select(c => c.Id), Is.EqualTo(old.selected.Take(12)));
+            Assert.That(target.Owned.Count, Is.EqualTo(18));
+            Assert.That(target.HandSize, Is.EqualTo(4), "The larger paid hand is kept.");
+            var kept = target.Selected();
+            Assert.That(kept.Count, Is.EqualTo(12));
+            Assert.That(kept.Select(c => c.Id), Is.SubsetOf(old.selected));
+            Assert.That(kept.Count(c => c.Spec.Id == "fire"), Is.EqualTo(2), "The rarest type is never dropped.");
+            Assert.That(kept.Count(c => c.Spec.Id == "wind"), Is.EqualTo(5));
+            Assert.That(kept.Count(c => c.Spec.Id == "water"), Is.EqualTo(5));
             Assert.That(target.Save().version, Is.EqualTo(2));
         }
 
