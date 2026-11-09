@@ -229,7 +229,7 @@ namespace Hakaton.Expeditions
         {
             if (motor.ExternallyControlled) motor.RevokeExternalControl();
             bool sinking = motor.TryClaimExternalControl(this);
-            if (feel) { feel.AddTrauma(.5f); feel.Kick(new Vector3(-160, 0, 60)); }
+            if (feel) { feel.AddTrauma(.8f); feel.Kick(new Vector3(-240, 180, 120)); }
             Play(cues ? cues.playerHurt : null);
             float time = 0, nextJerk = 0;
             while (time < settings.drownSeconds)
@@ -240,13 +240,13 @@ namespace Hakaton.Expeditions
                 // Struggling: the view jerks in random directions, weaker as the body gives up.
                 if (feel && time >= nextJerk)
                 {
-                    float strength = Mathf.Lerp(1, .45f, time / settings.drownSeconds);
+                    float strength = Mathf.Lerp(1, .7f, time / settings.drownSeconds);
                     var jerk = settings.drownJerkStrength;
                     feel.Kick(new Vector3(UnityEngine.Random.Range(-jerk.x, jerk.x * .6f), UnityEngine.Random.Range(-jerk.y, jerk.y),
                         UnityEngine.Random.Range(-jerk.z, jerk.z)) * strength);
                     nextJerk = time + UnityEngine.Random.Range(settings.drownJerkInterval.x, settings.drownJerkInterval.y);
                 }
-                if (feel) feel.Sustain(.35f);
+                if (feel) feel.Sustain(.6f);
                 if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
                     motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
                 yield return null;

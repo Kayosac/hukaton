@@ -54,11 +54,11 @@ namespace Hakaton.Expeditions
         [Tooltip("Sinking speed while drowning, m/s.")]
         [Min(0)] public float drownSinkSpeed = .9f;
         [Tooltip("How quickly the screen darkens once the head goes under, seconds.")]
-        [Min(.01f)] public float drownDarkenSeconds = .35f;
+        [Min(.01f)] public float drownDarkenSeconds = .12f;
         [Tooltip("Struggling under water: seconds between camera jerks (random within the range).")]
-        public Vector2 drownJerkInterval = new Vector2(.12f, .28f);
+        public Vector2 drownJerkInterval = new Vector2(.06f, .16f);
         [Tooltip("Strength of each struggling jerk, degrees per second (pitch, yaw, roll).")]
-        public Vector3 drownJerkStrength = new Vector3(120, 70, 110);
+        public Vector3 drownJerkStrength = new Vector3(220, 260, 200);
         [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
         [Range(0, 1)] public float drownDarkness = .72f;
         [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]
