@@ -47,6 +47,20 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
+        public void RandomStockFillsOnlyEmptySlotsFromCatalogue()
+        {
+            var session = new TradingSession();
+            session.SeedInventory(Horn, 1);
+            session.PlaceItem(0, 2);
+            long kept = session.Slots[2].Id;
+            Assert.That(session.StockEmptySlotsRandomly(new System.Random(3)), Is.EqualTo(session.Slots.Count - 1));
+            Assert.That(session.Slots.All(slot => slot != null), Is.True);
+            Assert.That(session.Slots[2].Id, Is.EqualTo(kept));
+            Assert.That(session.Slots.Select(slot => slot.Id).Distinct().Count(), Is.EqualTo(session.Slots.Count));
+            Assert.That(session.StockEmptySlotsRandomly(), Is.Zero);
+        }
+
+        [Test]
         public void ClosedShopDoesNotSpendTimeAndReopeningDoesNotRefill()
         {
             var session = Stocked();

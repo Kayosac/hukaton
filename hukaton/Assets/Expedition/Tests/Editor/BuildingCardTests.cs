@@ -193,7 +193,12 @@ namespace Hakaton.Expeditions.Tests
         {
             var cube = AssetDatabase.LoadAssetAtPath<StoneCubeEffect>("Assets/Game/Data/Effects/Stone cube.asset");
             Assert.That(cube, Is.Not.Null);
-            Assert.That(cube.sizeBase, Is.EqualTo(1.5f)); Assert.That(cube.sizeUpgraded, Is.EqualTo(2)); Assert.That(cube.mass, Is.EqualTo(1));
+            // Owner, 09.11 evening: the base cube is a step for the 1.2 m jump; the upgrade keeps the board's ×4/3 growth (1.5 → 2).
+            Assert.That(cube.sizeBase, Is.EqualTo(1.1f)); Assert.That(cube.sizeUpgraded, Is.EqualTo(1.47f)); Assert.That(cube.mass, Is.EqualTo(1));
+            Assert.That(cube.sizeBase, Is.LessThan(1.2f), "Lower than the player's jump: climbed with an ordinary jump.");
+            Assert.That(cube.sizeUpgraded / cube.sizeBase, Is.EqualTo(2f / 1.5f).Within(.01f), "Grows by the board's ratio when upgraded.");
+            Assert.That(cube.TryGetStat(out var label, out var baseSide, out var upgradedSide, out var unit), Is.True);
+            Assert.That((label, baseSide, upgradedSide, unit), Is.EqualTo(("Сторона", 1.1f, 1.47f, " м")), "The workshop line: «Сторона 1,1 → 1,5 м».");
             Assert.That(cube.cubePrefab, Is.Not.Null, "The cube prefab is referenced from the effect asset.");
             Assert.That(cube.cubePrefab.body.isKinematic, Is.False, "A real physical body: Impulse and Attraction move it.");
             Assert.That(cube.cubePrefab.transform.localScale, Is.EqualTo(Vector3.one), "Unscaled root: what rides on the cube keeps its size.");

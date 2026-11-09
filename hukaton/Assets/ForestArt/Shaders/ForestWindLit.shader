@@ -1,5 +1,5 @@
 // Hukaton forest: URP Lit (same lighting, shadows, fog, Forward+ light loop) plus vertex wind for trees, foliage,
-// grass, ivy and hanging cloth. Wind amplitudes come from UV2 (see ForestWind.hlsl); no UV2 = static.
+// grass, ivy and hanging cloth. Wind amplitudes come from marked UV2 (see ForestWind.hlsl); meshes without it stay still.
 Shader "Hukaton/Forest Wind Lit"
 {
     Properties

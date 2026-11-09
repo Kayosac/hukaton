@@ -263,6 +263,46 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(LightningChain.Damage(4, true, 2), Is.EqualTo(8));
         }
 
+        FakeCardZone FakeZone(CardZoneKind kind, Vector3 position, float radius)
+        {
+            var zone = ScriptableObject.CreateInstance<FakeCardZone>();
+            zone.kind = kind;
+            zone.position = position;
+            zone.radius = radius;
+            created.Add(zone);
+            return zone;
+        }
+
+        [Test]
+        public void LightningOnAFighterInTarLightsThatPuddle()
+        {
+            // Owner, 09.11 evening: a strike on a fighter standing in tar (or touching it) sets the puddle alight.
+            var zones = new CardZoneRegistry();
+            var tar = FakeZone(CardZoneKind.TarPuddle, Vector3.zero, 2);
+            var otherTar = FakeZone(CardZoneKind.TarPuddle, new Vector3(10, 0, 0), 2);
+            var fog = FakeZone(CardZoneKind.Fog, Vector3.zero, 3);
+            zones.Add(tar);
+            zones.Add(otherTar);
+            zones.Add(fog);
+
+            Assert.That(LightningTar.IgniteUnder(zones, new Vector3(1, 0, .5f), .3f), Is.EqualTo(1), "Feet in the tar.");
+            Assert.That((tar.ignitions, otherTar.ignitions, fog.ignitions), Is.EqualTo((1, 0, 0)),
+                "Only the puddle under the struck fighter; other kinds of zones are not lit by this rule.");
+            Assert.That(LightningTar.IgniteUnder(zones, new Vector3(2.2f, 0, 0), .3f), Is.EqualTo(1), "Touching the edge counts.");
+            Assert.That(LightningTar.IgniteUnder(zones, new Vector3(3, 0, 0), .3f), Is.Zero, "A step beyond the edge: nothing.");
+            Assert.That(LightningTar.IgniteUnder(zones, new Vector3(0, 3, 0), .3f), Is.Zero, "High above the tar (on a branch, mid-jump): nothing.");
+            Assert.That(tar.ignitions, Is.EqualTo(2));
+            Assert.That(LightningTar.IgniteUnder(null, Vector3.zero, .3f), Is.Zero);
+        }
+
+        [Test]
+        public void LightningAssetLightsTarUnderTheStruckFighter()
+        {
+            var lightning = Effect<LightningEffect>("Lightning");
+            Assert.That(lightning.tarTouchMargin, Is.GreaterThan(0).And.LessThanOrEqualTo(.5f),
+                "A fighter touching the puddle's edge counts, one a step away does not.");
+        }
+
         // ---------- fog ----------
 
         [Test]

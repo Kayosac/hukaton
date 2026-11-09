@@ -7,14 +7,20 @@ using UnityEngine.UI;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// A small HUD badge under the hearts while a timed card modifier is on the player (Moon gravity, Lightness): an
-    /// icon inside a ring that drains with the remaining time and blinks for the last seconds; it pops when refreshed
-    /// and disappears with a soft sound when the modifier ends. Optionally keeps an aura effect around the camera for
-    /// as long. Instantiated from its prefab under the expedition HUD canvas and destroyed with the outing.
+    /// A small HUD badge under the hearts while a timed card modifier is on the player (Moon gravity, Lightness) or the
+    /// player is wet (<see cref="WetStatus"/>, rain): an icon inside a ring that drains with the remaining time and
+    /// blinks for the last seconds; it pops when refreshed and disappears with a soft sound when the state ends.
+    /// Optionally keeps an aura effect around the camera for as long. Instantiated from its prefab under the expedition
+    /// HUD canvas and destroyed with the outing.
     /// </summary>
     public sealed class PlayerStatusBadge : MonoBehaviour
     {
-        [Tooltip("The motor modifier this badge follows.")]
+        public enum Source { MotorModifier, Wet }
+
+        [Tooltip("What the badge follows: a timed motor modifier, or the player being wet (the ring is full under the rain " +
+                 "and drains over the 30 s after leaving it).")]
+        public Source source = Source.MotorModifier;
+        [Tooltip("The motor modifier this badge follows (Source = MotorModifier).")]
         public MotorModifier modifier;
         public RectTransform rect;
         public Image icon;
@@ -52,7 +58,7 @@ namespace Hakaton.Expeditions.Cards
             if (!world || !prefab || !world.motor) return null;
             Shown.RemoveAll(b => !b);
             foreach (var shown in Shown)
-                if (shown.world == world && shown.modifier == prefab.modifier && !shown.ending) { shown.Refresh(); return shown; }
+                if (shown.world == world && shown.Follows(prefab) && !shown.ending) { shown.Refresh(); return shown; }
             var canvas = world.hud ? world.hud.canvas : null;
             if (!canvas) return null;
             var badge = Instantiate(prefab, canvas.transform, false);
@@ -72,9 +78,23 @@ namespace Hakaton.Expeditions.Cards
             Layout();
         }
 
+        bool Follows(PlayerStatusBadge other) => source == other.source && (source == Source.Wet || modifier == other.modifier);
+
+        /// <summary>Seconds left of what the badge follows (0 when it is over).</summary>
+        float Remaining()
+        {
+            if (!world || !world.motor) return 0;
+            if (source == Source.Wet)
+            {
+                var wet = world.motor.GetComponentInParent<WetStatus>();
+                return wet ? wet.Remaining : 0;
+            }
+            return world.motor.ModifierRemaining(modifier);
+        }
+
         void Refresh()
         {
-            total = Mathf.Max(.01f, world.motor.ModifierRemaining(modifier));
+            total = Mathf.Max(.01f, Remaining());
             pop.Kick(9);
             if (aura && world.viewCamera)
             {
@@ -86,7 +106,7 @@ namespace Hakaton.Expeditions.Cards
         void LateUpdate()
         {
             if (ending) return;
-            float remaining = world && world.motor ? world.motor.ModifierRemaining(modifier) : 0;
+            float remaining = Remaining();
             if (remaining <= 0 || !world.Running) { End(); return; }
             if (remaining > total) total = remaining;
             if (ring) ring.fillAmount = remaining / total;

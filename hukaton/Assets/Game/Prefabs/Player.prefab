@@ -822,8 +822,7 @@ MonoBehaviour:
   - {fileID: 3279596518738608212}
   - {fileID: 4357968283359540170}
   - {fileID: 5069959554119026512}
-  explorationBack: {fileID: 2800000, guid: 8c5a03c6b33014ef4abf1f0735d616ab, type: 3}
-  combatBack: {fileID: 2800000, guid: 7f512f4c98ffa4e9c84c8e055722bf64, type: 3}
+  cardBack: {fileID: 2800000, guid: 8c5a03c6b33014ef4abf1f0735d616ab, type: 3}
   pivot: {x: 0, y: -1.42, z: 0.55}
   radius: 1.1
   degreesPerCard: 6.25
@@ -1208,6 +1207,10 @@ PrefabInstance:
       propertyPath: far clip plane
       value: 350
       objectReference: {fileID: 0}
+    - target: {fileID: 6678930126949702311, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
+      propertyPath: m_RenderPostProcessing
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8812922522322315659, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
       propertyPath: m_Name
       value: Player
@@ -1293,6 +1296,20 @@ MonoBehaviour:
   fovFrequency: 4.5
   fovDamping: 0.6
   intensity: 1
+--- !u!114 &3859357729038018559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7465709544512254693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c44fdda824154c1b9d3aae1502e6419, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Settings: {fileID: 11400000, guid: b94bef816f5d1422b85cfe0a7b1225ff, type: 2}
+  PresentationRenderer: {fileID: 11400000, guid: 878f8a050580a43c49d7cff385c3ffa4, type: 2}
 --- !u!114 &8226337724585652909 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 9182178774789774182, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
@@ -1358,17 +1375,3 @@ MonoBehaviour:
   control: {fileID: 8226337724585652909}
   trajectory: {fileID: 3930792634561049511}
   launchSocket: {fileID: 4371904746417722637}
---- !u!114 &3859357729038018559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7465709544512254693}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c44fdda824154c1b9d3aae1502e6419, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Settings: {fileID: 11400000, guid: b94bef816f5d1422b85cfe0a7b1225ff, type: 2}
-  PresentationRenderer: {fileID: 11400000, guid: 878f8a050580a43c49d7cff385c3ffa4, type: 2}

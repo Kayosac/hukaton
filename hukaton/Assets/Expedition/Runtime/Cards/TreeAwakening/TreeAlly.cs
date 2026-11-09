@@ -21,7 +21,7 @@ namespace Hakaton.Expeditions.Cards
     /// The look is a swappable child (<see cref="TreeAllyLook"/>).
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class TreeAlly : MonoBehaviour, ICombatant, IMoveSpeedScalable, IOutingSpawned
+    public sealed class TreeAlly : MonoBehaviour, ICombatant, IHealable, IMoveSpeedScalable, IOutingSpawned
     {
         [Header("Authored parts")]
         public Rigidbody body;
@@ -440,8 +440,9 @@ namespace Hakaton.Expeditions.Cards
         // ---------------- reactions ----------------
 
         /// <summary>
-        /// A hit from a creature, burning tar, a chain of lightning. Damage stays (no healing); impulses push the
-        /// body by its mass. A second awakening card on a live tree does nothing (the card handles that).
+        /// A hit from a creature, burning tar, a chain of lightning. Damage stays until «Лечение» restores it
+        /// (<see cref="Heal"/>); impulses push the body by its mass. A second awakening card on a live tree does
+        /// nothing (the card handles that).
         /// </summary>
         public bool TakeDamage(in DamageInfo damage)
         {
@@ -461,6 +462,24 @@ namespace Hakaton.Expeditions.Cards
             if (Health == 0) StartCoroutine(Die());
             return true;
         }
+
+        /// <summary>
+        /// «Лечение» (owner, 09.11 evening): restores units of health — 1 unit = ½ heart of the player — up to the
+        /// maximum, and shows the pips. The card plays the healing poof and sound on the tree.
+        /// </summary>
+        public int Heal(int units)
+        {
+            if (!Alive || !Running) return 0;
+            int restored = HealRules.Restored(Health, maximumHealth, units);
+            if (restored <= 0) return 0;
+            Health += restored;
+            if (overhead) overhead.ShowHealth(Health, maximumHealth);
+            return restored;
+        }
+
+        /// <summary>The healing splash reaches the trunk (its axis from the roots to the crown, plus the agent's radius).</summary>
+        public bool WithinHealReach(Vector3 point, float radius)
+            => HealRules.Reaches(point, radius, Position, Height, navigator ? navigator.radius : .5f);
 
         void Kill()
         {

@@ -176,5 +176,38 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(trunk, Is.Not.Null);
             Assert.That(trunk.GetComponentInParent<AwakenableTree>(true), Is.Not.Null, "A card hitting the trunk finds the tree.");
         }
+
+        // ---------- healing (owner, 09.11 evening) ----------
+
+        [Test]
+        public void HealingRestoresAllyUnitsUpToTheMaximumOnly()
+        {
+            Assert.That(HealRules.Restored(5, 12, 2), Is.EqualTo(2), "Base Heal: 2 half hearts = 2 units of the ally.");
+            Assert.That(HealRules.Restored(5, 12, 3), Is.EqualTo(3), "Upgraded Heal: 3 units.");
+            Assert.That(HealRules.Restored(11, 12, 3), Is.EqualTo(1), "Never above the maximum.");
+            Assert.That(HealRules.Restored(12, 12, 2), Is.Zero, "Full health: nothing to heal.");
+            Assert.That(HealRules.Restored(0, 12, 2), Is.Zero, "The fallen tree is not brought back.");
+            Assert.That(HealRules.Restored(17, 18, 2), Is.EqualTo(1), "The upgraded tree's own maximum (18).");
+        }
+
+        [Test]
+        public void HealingSplashReachesTheTrunkWithinTheCardRadius()
+        {
+            var feet = new Vector3(10, 0, 0);
+            Assert.That(HealRules.Reaches(new Vector3(12.9f, 0, 0), 2.5f, feet, 2.6f, .45f), Is.True, "Thrown at the ground next to the roots.");
+            Assert.That(HealRules.Reaches(new Vector3(10, 2, 2), 2.5f, feet, 2.6f, .45f), Is.True, "Beside the crown.");
+            Assert.That(HealRules.Reaches(new Vector3(13.1f, 0, 0), 2.5f, feet, 2.6f, .45f), Is.False, "Beyond radius + trunk.");
+            Assert.That(HealRules.Reaches(new Vector3(10, 6, 0), 2.5f, feet, 2.6f, .45f), Is.False, "Far above the crown.");
+        }
+
+        [Test]
+        public void TheHealCardHealsAlliesWithItsOwnPowerByLevel()
+        {
+            Assert.That(typeof(IHealable).IsAssignableFrom(typeof(TreeAlly)), Is.True, "The awakened tree can be healed.");
+            var heal = AssetDatabase.LoadAssetAtPath<CardDefinition>("Assets/Game/Data/heal.asset");
+            Assert.That(heal.effectAsset, Is.InstanceOf<HealEffect>());
+            Assert.That((heal.basePower, heal.basePower + heal.powerPerLevel), Is.EqualTo((2, 3)),
+                "Half hearts for the player = units for the ally: 2, upgraded 3.");
+        }
     }
 }

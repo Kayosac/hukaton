@@ -14,17 +14,17 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 0
-  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_Fog: 1
+  m_FogColor: {r: 0.15187451, g: 0.27789804, b: 0.40392157, a: 1}
   m_FogMode: 3
-  m_FogDensity: 0.01
+  m_FogDensity: 0.024
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.6, g: 0.6, b: 0.57, a: 1}
-  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
-  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientSkyColor: {r: 0.08508443, g: 0.704249, b: 1.3875301, a: 1}
+  m_AmbientEquatorColor: {r: 0.585186, g: 0.24607085, b: 0, a: 1}
+  m_AmbientGroundColor: {r: 0, g: 2.2685158, b: 3.2111173, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 3
+  m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: faf1588a6991414ebcf1bca6670597e1, type: 2}
   m_HaloStrength: 0.5
@@ -530,6 +530,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5ccda926ad4343d9aef9d1782b73de3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.ExpeditionHud
+--- !u!1 &75378866 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7829744961551068181, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &75378868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 75378866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &82077270
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -598,6 +632,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Goblin dog
       objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -608,17 +646,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
   m_PrefabInstance: {fileID: 82077270}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &82077272 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
-  m_PrefabInstance: {fileID: 82077270}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1 &125783222
 GameObject:
   m_ObjectHideFlags: 0
@@ -820,6 +847,7 @@ Transform:
   - {fileID: 1738622701}
   - {fileID: 7839571730799914001}
   - {fileID: 554340022}
+  - {fileID: 525992467}
   - {fileID: 320389207}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -867,34 +895,79 @@ MonoBehaviour:
   fade: {fileID: 21109319}
   cues: {fileID: 11400000, guid: bfd4ae630de064a31b9ba2d89eac36df, type: 2}
   vfx: {fileID: 11400000, guid: 9a8d5d7b547ab476585d7b1d8492d4b8, type: 2}
-  departurePose: {fileID: 949677942}
+  departurePose: {fileID: 387234492}
   shopPose: {fileID: 282889092}
   spawnedObjects: {fileID: 1263977266}
   projectilePrefab: {fileID: 3837108158686769321, guid: 377a6ecd743e9454aa766d011cb10647, type: 3}
   debrisPrefab: {fileID: 7656167651544192248, guid: ad97bc0fc8bbe4bff85d679b8ea1de3f, type: 3}
-  locationName: "\u0422\u0438\u0445\u0430\u044F \u043B\u043E\u0449\u0438\u043D\u0430"
+  locationName: "\u0421\u0442\u0430\u0440\u0430\u044F \u043F\u0430\u0441\u0435\u043A\u0430"
   finds:
-  - {fileID: 1802261554}
-  - {fileID: 1802261553}
-  - {fileID: 1802261552}
-  - {fileID: 1802261551}
-  - {fileID: 1802261557}
-  - {fileID: 1802261555}
+  - {fileID: 387234555}
+  - {fileID: 387234554}
+  - {fileID: 387234553}
+  - {fileID: 387234552}
+  - {fileID: 387234551}
+  - {fileID: 387234550}
+  - {fileID: 387234549}
+  - {fileID: 387234548}
+  - {fileID: 387234547}
+  - {fileID: 387234546}
+  - {fileID: 387234545}
+  - {fileID: 387234544}
+  - {fileID: 387234543}
+  - {fileID: 387234542}
+  - {fileID: 387234541}
+  - {fileID: 387234540}
+  - {fileID: 387234539}
+  - {fileID: 387234538}
+  - {fileID: 387234537}
   obstacles:
-  - {fileID: 1802261545}
-  - {fileID: 1802261544}
+  - {fileID: 387234536}
+  - {fileID: 387234535}
+  - {fileID: 387234534}
+  - {fileID: 387234533}
+  - {fileID: 387234532}
+  - {fileID: 387234531}
+  - {fileID: 387234530}
+  - {fileID: 387234529}
+  - {fileID: 387234528}
+  - {fileID: 387234527}
+  - {fileID: 387234526}
+  - {fileID: 387234525}
+  - {fileID: 387234524}
+  - {fileID: 387234523}
+  - {fileID: 387234522}
+  - {fileID: 387234521}
+  - {fileID: 387234520}
+  - {fileID: 387234519}
+  - {fileID: 387234518}
+  - {fileID: 387234517}
+  - {fileID: 387234516}
+  - {fileID: 387234515}
+  - {fileID: 387234514}
+  - {fileID: 387234513}
+  - {fileID: 387234512}
+  - {fileID: 387234511}
+  - {fileID: 387234510}
+  - {fileID: 387234509}
+  - {fileID: 387234508}
+  - {fileID: 387234507}
+  - {fileID: 387234506}
+  - {fileID: 387234505}
+  - {fileID: 387234504}
+  - {fileID: 387234503}
+  - {fileID: 387234502}
+  - {fileID: 387234501}
+  - {fileID: 387234500}
+  - {fileID: 387234499}
+  - {fileID: 387234498}
   creatures:
-  - {fileID: 1930096417}
-  - {fileID: 419942414}
-  - {fileID: 82077272}
-  - {fileID: 708613964}
-  - {fileID: 716704762}
-  - {fileID: 339025050}
-  - {fileID: 1712732459}
-  - {fileID: 1947799134}
+  - {fileID: 387234497}
+  - {fileID: 387234496}
+  - {fileID: 387234495}
+  - {fileID: 387234494}
   props:
-  - {fileID: 1802261543}
-  - {fileID: 1802261542}
+  - {fileID: 387234493}
 --- !u!4 &218823680
 Transform:
   m_ObjectHideFlags: 0
@@ -1133,6 +1206,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Budding troll
       objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1143,10 +1220,334 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
   m_PrefabInstance: {fileID: 339025048}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &339025050 stripped
+--- !u!1001 &387234491
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 484824918686172395, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 545841161247817731, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 798807655659560859, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1037401639481920155, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1083176000914348963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1465440233971977686, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1480072461416099112, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1504062176229600096, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1616371833805932858, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1688178869597271305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1777157033653831305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1783233761753315546, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1815874052111920816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1931392994135251717, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2046216239807748459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2152263676548436963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2424486773360102197, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2683978649151760235, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3037577930026424457, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3077517074381369656, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3096934562137975376, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3148660835612185904, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3202613988482700469, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3471911559659509747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3603174233228851509, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3823540305911302650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3842801825400532988, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3862277231804562026, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4082019286308872442, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4086892808080372128, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4144219048740071310, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4170492767080751702, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4353522832543620816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4433491523383037298, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4442154970776762643, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4445031291070389459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4614617243464250873, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4744576828482737029, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4859729547691355480, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4932995363061431248, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4949953092890463257, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 5149994172103515786, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 5421899235829829804, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6046323569111969277, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6176005088667400258, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6205926054404829965, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6468609926977201487, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6496754583777567063, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6652701020717222772, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6973428300907750874, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7127682405036674580, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7674233989592007787, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7681497714254176926, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7880753819056147868, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7928602612784479597, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7974667419685962968, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8598141918406321583, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8692940864662242263, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8695879056374835523, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8703493808513046229, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8928791598588885251, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8997181835086602910, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 9160732953638214343, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_Name
+      value: Old Apiary
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1567258074}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+--- !u!4 &387234492 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3727456996271446948, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &387234493 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
-  m_PrefabInstance: {fileID: 339025048}
+  m_CorrespondingSourceObject: {fileID: 1254276302827098671, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &387234494 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4082019286308872442, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -1154,6 +1555,677 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &387234495 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1777157033653831305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &387234496 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1783233761753315546, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &387234497 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8997181835086602910, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &387234498 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3202613988482700469, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234499 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4433491523383037298, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234500 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3842801825400532988, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234501 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1480072461416099112, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234502 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4932995363061431248, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234503 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4144219048740071310, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234504 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3148660835612185904, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234505 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8695879056374835523, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234506 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6652701020717222772, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234507 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5149994172103515786, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234508 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8703493808513046229, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234509 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2152263676548436963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234510 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1037401639481920155, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234511 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1688178869597271305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234512 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4353522832543620816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234513 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3603174233228851509, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234514 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6176005088667400258, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234515 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 798807655659560859, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234516 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8928791598588885251, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234517 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4859729547691355480, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234518 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1815874052111920816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234519 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2683978649151760235, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234520 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1616371833805932858, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234521 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4442154970776762643, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234522 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4949953092890463257, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234523 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 484824918686172395, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234524 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1083176000914348963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234525 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3037577930026424457, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234526 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7974667419685962968, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234527 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6973428300907750874, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234528 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3823540305911302650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234529 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8692940864662242263, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234530 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8598141918406321583, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234531 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2046216239807748459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234532 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1931392994135251717, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234533 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1504062176229600096, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234534 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6496754583777567063, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234535 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3862277231804562026, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234536 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1465440233971977686, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &387234537 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5421899235829829804, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234538 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4170492767080751702, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234539 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4744576828482737029, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234540 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6468609926977201487, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234541 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4445031291070389459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234542 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2424486773360102197, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234543 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 545841161247817731, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234544 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7880753819056147868, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234545 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7127682405036674580, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234546 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4614617243464250873, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234547 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3096934562137975376, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234548 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7928602612784479597, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234549 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7674233989592007787, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234550 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6205926054404829965, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234551 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3077517074381369656, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234552 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3471911559659509747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234553 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6046323569111969277, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234554 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7681497714254176926, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &387234555 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4086892808080372128, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
 --- !u!1001 &416848463
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1414,6 +2486,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Goblin dog (den)
       objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1424,17 +2500,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
   m_PrefabInstance: {fileID: 419942412}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &419942414 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
-  m_PrefabInstance: {fileID: 419942412}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1 &429753866
 GameObject:
   m_ObjectHideFlags: 0
@@ -2169,11 +3234,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5943752383269110698, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 1232
+      value: 1440
       objectReference: {fileID: 0}
     - target: {fileID: 5943752383269110698, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 768
+      value: 920
       objectReference: {fileID: 0}
     - target: {fileID: 6065537807169541388, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -2225,7 +3290,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6879018194952134953, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6985167064484980600, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -2674,6 +3739,77 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &525992466
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 525992467}
+  - component: {fileID: 525992469}
+  - component: {fileID: 525992468}
+  m_Layer: 0
+  m_Name: Box Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &525992467
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 525992466}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 215353184}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &525992468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 525992466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 0
+  priority: 0
+  blendDistance: 1
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 38677e55cac844548a3f0a8ff4927656, type: 2}
+--- !u!65 &525992469
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 525992466}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.060074, y: 3.5574932, z: 7.507906}
+  m_Center: {x: -0.021751404, y: 1.2787466, z: 0.9818945}
 --- !u!1001 &554340021
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3002,6 +4138,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &657625245 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8885704397759590728, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &657625247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 657625245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &691535757
 GameObject:
   m_ObjectHideFlags: 0
@@ -3174,6 +4344,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Purple mushroom (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 5263722189231579610, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
       propertyPath: m_LocalPosition.x
       value: 9
@@ -3240,17 +4414,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
   m_PrefabInstance: {fileID: 708613962}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &708613964 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8211502770020729366, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
-  m_PrefabInstance: {fileID: 708613962}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1001 &716704760
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3262,6 +4425,10 @@ PrefabInstance:
     - target: {fileID: 5263722189231579610, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
       propertyPath: m_Name
       value: Purple mushroom (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5263722189231579610, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3329,17 +4496,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
   m_PrefabInstance: {fileID: 716704760}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &716704762 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8211502770020729366, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
-  m_PrefabInstance: {fileID: 716704760}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1 &727953221
 GameObject:
   m_ObjectHideFlags: 0
@@ -3402,6 +4558,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &749453948 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6049108053156137268, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &749453951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 749453948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &764124497
 GameObject:
   m_ObjectHideFlags: 0
@@ -3464,6 +4654,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1701193630}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &833893517 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5757258892483818165, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &833893519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 833893517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
+--- !u!1 &930871480 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8224037121053796642, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &930871482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 930871480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &933312602
 GameObject:
   m_ObjectHideFlags: 0
@@ -3624,6 +4882,40 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &945959515 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8682347988968366992, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &945959517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 945959515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &949677941
 GameObject:
   m_ObjectHideFlags: 0
@@ -3867,6 +5159,7 @@ MonoBehaviour:
   holdThreshold: 0.35
   autoPlaceInterval: 0.16
   slotHighlightColor: {r: 0.9, g: 0.8, b: 0.35, a: 1}
+  heldItemScale: 0.5
   reactionBeat: 0.38
   World: {fileID: 997696183}
   hud: {fileID: 416848467}
@@ -3953,12 +5246,6 @@ MonoBehaviour:
   - {fileID: 4536625458728804905, guid: 64f83fbfbfad94cc186cc12db9d924e3, type: 3}
   - {fileID: 2004508948350208396, guid: f557356da8c0c447b8627284c534d3bb, type: 3}
   - {fileID: 4660981348816512334, guid: bcae557c05bd14567b655e34e89f62aa, type: 3}
-  ItemMaterials:
-  - {fileID: 2100000, guid: 724741cbdb2494499aed94eeb452138b, type: 2}
-  - {fileID: 2100000, guid: 3b8eb1dfb8a614bcd80a55747abd69e8, type: 2}
-  - {fileID: 2100000, guid: d599d593c63514014aca906a45d0be82, type: 2}
-  - {fileID: 2100000, guid: d599d593c63514014aca906a45d0be82, type: 2}
-  - {fileID: 2100000, guid: d599d593c63514014aca906a45d0be82, type: 2}
 --- !u!4 &997696184
 Transform:
   m_ObjectHideFlags: 0
@@ -4039,6 +5326,11 @@ MonoBehaviour:
   bigSaleScale: 0.15
   bigSale: 100
   walletFlash: {r: 1, g: 0.84, b: 0.45, a: 1}
+--- !u!4 &1008668336 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 387234491}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1016939224
 GameObject:
   m_ObjectHideFlags: 0
@@ -4429,40 +5721,6 @@ Transform:
   - {fileID: 634001154}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1176082596 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3806385791595486032, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
-  m_PrefabInstance: {fileID: 4967954529354968841}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1176082598
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1176082596}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
-  m_UsePipelineSettings: 1
-  m_AdditionalLightsShadowResolutionTier: 2
-  m_CustomShadowLayers: 0
-  m_LightCookieSize: {x: 1, y: 1}
-  m_LightCookieOffset: {x: 0, y: 0}
-  m_SoftShadowQuality: 0
-  m_RenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_ShadowRenderingLayersMask:
-    serializedVersion: 0
-    m_Bits: 1
-  m_Version: 4
-  m_LightLayerMask: 1
-  m_ShadowLayerMask: 1
-  m_RenderingLayers: 1
-  m_ShadowRenderingLayers: 1
 --- !u!1 &1203518844
 GameObject:
   m_ObjectHideFlags: 0
@@ -4867,6 +6125,40 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1403448993 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2943183479701224664, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1403448995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1403448993}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1405528416
 GameObject:
   m_ObjectHideFlags: 0
@@ -5120,6 +6412,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1508030769 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8462135615296376656, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1508030771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508030769}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1525923935
 GameObject:
   m_ObjectHideFlags: 0
@@ -5280,6 +6606,111 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1557466246 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1166896693056962534, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1557466248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1557466246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
+--- !u!1 &1567258073
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1567258074}
+  - component: {fileID: 1567258076}
+  - component: {fileID: 1567258075}
+  m_Layer: 0
+  m_Name: Box Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1567258074
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1567258073}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1008668336}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1567258075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1567258073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 0
+  priority: 0
+  blendDistance: 1
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 3f85198cfad884f35bd02beebad7482a, type: 2}
+--- !u!65 &1567258076
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1567258073}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 201.77972, y: 118.99666, z: 148.70963}
+  m_Center: {x: 75.92563, y: 32.16446, z: 60.828033}
 --- !u!1 &1575227173
 GameObject:
   m_ObjectHideFlags: 0
@@ -5546,6 +6977,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Hostile bush (thorns)
       objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5556,17 +6991,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
   m_PrefabInstance: {fileID: 1712732457}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1712732459 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
-  m_PrefabInstance: {fileID: 1712732457}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1 &1727567408
 GameObject:
   m_ObjectHideFlags: 0
@@ -5971,18 +7395,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1779586775 stripped
+--- !u!1 &1882959239 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 3084798335196091504, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_CorrespondingSourceObject: {fileID: 5991939652046122772, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
   m_PrefabInstance: {fileID: 4967954529354968841}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1779586777
+--- !u!114 &1882959241
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1779586775}
+  m_GameObject: {fileID: 1882959239}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
@@ -6005,116 +7429,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1802261542 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 621294208979081605, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
---- !u!114 &1802261543 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 721757906165182845, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
---- !u!114 &1802261544 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4046241134780436199, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
---- !u!114 &1802261545 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7048412433912826898, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
---- !u!114 &1802261551 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7867358134875746890, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
---- !u!114 &1802261552 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1211752611070629326, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
---- !u!114 &1802261553 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1787398151394007820, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
---- !u!114 &1802261554 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4685724649414856565, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
---- !u!114 &1802261555 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5103431619347743020, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
---- !u!114 &1802261557 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2921840420311812805, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
-  m_PrefabInstance: {fileID: 4696191276854685167}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
 --- !u!1 &1887884189
 GameObject:
   m_ObjectHideFlags: 0
@@ -6259,6 +7573,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Purple mushroom
       objectReference: {fileID: 0}
+    - target: {fileID: 5263722189231579610, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7
@@ -6325,17 +7643,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6233387474604262816, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
   m_PrefabInstance: {fileID: 1930096415}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1930096417 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8211502770020729366, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
-  m_PrefabInstance: {fileID: 1930096415}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
 --- !u!1001 &1947799132
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6404,6 +7711,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Hostile bush (lake)
       objectReference: {fileID: 0}
+    - target: {fileID: 4141966203500242417, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6414,17 +7725,40 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
   m_PrefabInstance: {fileID: 1947799132}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1947799134 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
-  m_PrefabInstance: {fileID: 1947799132}
+--- !u!1 &1959754548 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 974932255770657100, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+  m_PrefabInstance: {fileID: 4967954529354968841}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+--- !u!114 &1959754550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1959754548}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1964300334
 GameObject:
   m_ObjectHideFlags: 0
@@ -6526,6 +7860,59 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hakaton.Feel::Hakaton.Feel.TimeFeel
   hitStopScale: 1
   maximumHitStop: 0.14
+--- !u!1 &1990000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1990000002}
+  - component: {fileID: 1990000003}
+  m_Layer: 0
+  m_Name: Cheat Menu (F1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1990000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1990000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0e896f4aa7a4be9acd480b740b2bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.CheatMenu
+  game: {fileID: 997696185}
+  titleFont: {fileID: 12800000, guid: a59b8b8ab48d9476385b75a9f6b0c528, type: 3}
+  bodyFont: {fileID: 12800000, guid: fa594d2cc60b14056b55e66626662e4a, type: 3}
+  toggleKey: 94
+  alternativeKey: 4
+  availableInPlayerBuilds: 1
+  pixelScale: 1
+  panelPosition: {x: 16, y: 16}
+  panelSize: {x: 460, y: 560}
 --- !u!1 &1995989241
 GameObject:
   m_ObjectHideFlags: 0
@@ -7108,13 +8495,13 @@ PrefabInstance:
     m_TransformParent: {fileID: 215353184}
     m_Modifications:
     - target: {fileID: 3459451131506623702, guid: 4f7c7356065444f69b6fb5075d2246cf, type: 3}
-      propertyPath: viewer
-      value: 
-      objectReference: {fileID: 1042966976}
-    - target: {fileID: 3459451131506623702, guid: 4f7c7356065444f69b6fb5075d2246cf, type: 3}
       propertyPath: sound
       value: 
       objectReference: {fileID: 997696177}
+    - target: {fileID: 3459451131506623702, guid: 4f7c7356065444f69b6fb5075d2246cf, type: 3}
+      propertyPath: viewer
+      value: 
+      objectReference: {fileID: 1042966976}
     - target: {fileID: 3459451131506623702, guid: 4f7c7356065444f69b6fb5075d2246cf, type: 3}
       propertyPath: pullSound
       value: 
@@ -7425,6 +8812,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Quiet Hollow
       objectReference: {fileID: 0}
+    - target: {fileID: 674442478084016540, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1211752611070629326, guid: 4b06d7ac20c394439839c6c25dd311e0, type: 3}
       propertyPath: world
       value: 
@@ -7661,6 +9052,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 215353184}
     m_Modifications:
+    - target: {fileID: 760660765982948079, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.b
+      value: 0.6283896
+      objectReference: {fileID: 0}
+    - target: {fileID: 760660765982948079, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.g
+      value: 0.25943398
+      objectReference: {fileID: 0}
+    - target: {fileID: 760660765982948079, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 784716209962236409, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -7705,6 +9108,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shop Lighting
       objectReference: {fileID: 0}
+    - target: {fileID: 3512229658448187324, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.b
+      value: 0.2993608
+      objectReference: {fileID: 0}
+    - target: {fileID: 3512229658448187324, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.g
+      value: 0.8584906
+      objectReference: {fileID: 0}
+    - target: {fileID: 3512229658448187324, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      propertyPath: m_Color.r
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5692747056704817588, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -7713,12 +9128,39 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3084798335196091504, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 6049108053156137268, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1779586777}
-    - targetCorrespondingSourceObject: {fileID: 3806385791595486032, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      addedObject: {fileID: 749453951}
+    - targetCorrespondingSourceObject: {fileID: 5757258892483818165, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1176082598}
+      addedObject: {fileID: 833893519}
+    - targetCorrespondingSourceObject: {fileID: 8462135615296376656, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1508030771}
+    - targetCorrespondingSourceObject: {fileID: 5991939652046122772, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1882959241}
+    - targetCorrespondingSourceObject: {fileID: 7829744961551068181, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 75378868}
+    - targetCorrespondingSourceObject: {fileID: 8224037121053796642, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 930871482}
+    - targetCorrespondingSourceObject: {fileID: 8682347988968366992, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 945959517}
+    - targetCorrespondingSourceObject: {fileID: 1166896693056962534, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1557466248}
+    - targetCorrespondingSourceObject: {fileID: 8885704397759590728, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 657625247}
+    - targetCorrespondingSourceObject: {fileID: 974932255770657100, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1959754550}
+    - targetCorrespondingSourceObject: {fileID: 2943183479701224664, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1403448995}
   m_SourcePrefab: {fileID: 100100000, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
 --- !u!4 &4967954529354968842 stripped
 Transform:
@@ -7777,6 +9219,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5905388929365226348, guid: 9421487f06f244d908f892718bf77247, type: 3}
+      propertyPath: m_RenderPostProcessing
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5986463076903841709, guid: 9421487f06f244d908f892718bf77247, type: 3}
       propertyPath: blinkOverlay
       value: 
@@ -7796,6 +9242,10 @@ PrefabInstance:
     - target: {fileID: 8577596105702031424, guid: 9421487f06f244d908f892718bf77247, type: 3}
       propertyPath: m_Name
       value: ShopTrader
+      objectReference: {fileID: 0}
+    - target: {fileID: 8577596105702031424, guid: 9421487f06f244d908f892718bf77247, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8848012960365199984, guid: 9421487f06f244d908f892718bf77247, type: 3}
       propertyPath: motor
@@ -8306,3 +9756,5 @@ SceneRoots:
   - {fileID: 1964300336}
   - {fileID: 64077435}
   - {fileID: 21109318}
+  - {fileID: 1990000002}
+  - {fileID: 387234491}

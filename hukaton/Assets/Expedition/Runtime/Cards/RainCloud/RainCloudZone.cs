@@ -30,8 +30,9 @@ namespace Hakaton.Expeditions.Cards
         [Min(.5f)] public float cloudHeight = 4.2f;
         [Tooltip("How often the rain wets fighters and washes zones, s.")]
         [Min(.02f)] public float tickSeconds = .1f;
-        [Tooltip("Shown to the player the moment the rain makes them wet (no drops are drawn in first person).")]
-        public string wetNotice = "Вы промокли";
+        [Tooltip("HUD badge under the hearts while the player is wet (no drops are drawn in first person): full under the " +
+                 "rain, its ring drains over the 30 s after leaving it.")]
+        public PlayerStatusBadge wetBadge;
 
         [Header("Look")]
         public Transform cloud;
@@ -142,7 +143,8 @@ namespace Hakaton.Expeditions.Cards
                 bool player = ReferenceEquals(fighter, World.Player);
                 bool wasWet = player && WetStatus.IsWet(fighter.Root);
                 WetStatus.Soak(fighter.Root, World, linger);
-                if (player && !wasWet && !string.IsNullOrEmpty(wetNotice)) World.Announce(wetNotice, 1.6f);
+                // The badge follows the wet status itself: shown when the player gets wet, it stays while they are.
+                if (player && !wasWet && wetBadge) PlayerStatusBadge.Show(World, wetBadge);
             }
         }
 

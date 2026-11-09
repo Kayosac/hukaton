@@ -5,7 +5,9 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Каменный куб» (земля, ранг 3/5). A movable stone cube 1.5 m (upgraded 2 m), mass μ = 1, until the end of the outing: a step, cover, an obstacle;
+    /// «Каменный куб» (земля, ранг 3/5). A movable stone cube 1.1 m (upgraded 1.47 m), mass μ = 1, until the end of the outing: a step, cover, an obstacle;
+    /// the base cube is a step the player climbs with an ordinary jump (1.2 m), the upgraded one is 4/3 taller as on the board (1.5 → 2)
+    /// and a wall to hide behind (owner, 09.11 evening: the board's 1.5 m was too tall to climb);
     /// physical effects move it (Impulse, Attraction), Swap may exchange places with it, a Rope may hang from it, a mushroom may stand on its top.
     /// It appears only where it does not intersect geometry (or the player): next to the surface that was hit, moved out along its
     /// normal when needed (<see cref="StoneCubePlacement"/>). No room — a miss.
@@ -14,8 +16,9 @@ namespace Hakaton.Expeditions.Cards
     public sealed class StoneCubeEffect : CardEffect, ICardStatLine
     {
         [Header("Board numbers (base / upgraded)")]
-        [Tooltip("Cube side, m (board: 1.5 → 2).")]
-        [Min(0)] public float sizeBase = 1.5f, sizeUpgraded = 2;
+        [Tooltip("Cube side, m. Owner (09.11 evening): the base cube is a step for an ordinary 1.2 m jump — 1.1 m; " +
+                 "the upgraded one keeps the board's growth 1.5 → 2 (×4/3) — 1.47 m, shown as 1,5.")]
+        [Min(0)] public float sizeBase = 1.1f, sizeUpgraded = 1.47f;
         [Tooltip("Rigidbody mass = board μ (same on both levels; the player is μ = 1 too).")]
         [Min(0)] public float mass = 1;
 

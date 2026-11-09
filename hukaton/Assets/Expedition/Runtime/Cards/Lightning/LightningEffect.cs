@@ -9,7 +9,9 @@ namespace Hakaton.Expeditions.Cards
     /// «Разряд молнии» (воздух*, ранг 2/5, 150 монет). Strikes only the fighter hit directly (no area): 3 damage
     /// (upgraded 4). A wet target takes double and passes the strike on (<see cref="LightningChain"/>): to the nearest
     /// wet fighter not hit yet within 4 m in direct sight, up to 3 targets in all, either side (the wet player and allies
-    /// too). Wet is not used up. A strike in tar (or within <see cref="igniteReach"/> of it) sets the puddle alight.
+    /// too). Wet is not used up. A strike in tar (or within <see cref="igniteReach"/> of it) sets the puddle alight, and so
+    /// does a strike on any fighter standing in tar or touching it (<see cref="LightningTar"/>, owner 09.11); the
+    /// strike's damage still goes to the struck fighters only.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class LightningEffect : CardEffect, ICardStatLine
@@ -25,6 +27,8 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float chainRange = 4;
         [Tooltip("Tar catches fire when the strike lands this close to it, m.")]
         [Min(0)] public float igniteReach = .4f;
+        [Tooltip("A struck fighter whose feet are in a tar puddle or this close to it sets the puddle alight, m.")]
+        [Min(0)] public float tarTouchMargin = .3f;
 
         [Header("Hit")]
         [Tooltip("Small shove along each jump (impulse units; the player gets it as a normalized impulse).")]
@@ -71,6 +75,8 @@ namespace Hakaton.Expeditions.Cards
                         world.Spawn(sparkVfx, target.Centre, Quaternion.identity, tint);
                         world.Play(jumpSound, target.Centre, 1, 1 + i * .08f);
                     }
+                    // Standing in tar (or touching it): the strike lights the puddle under the fighter's feet.
+                    LightningTar.IgniteUnder(world.Zones, target.Position, tarTouchMargin);
                     target.TakeDamage(new DamageInfo(LightningChain.Damage(baseDamage, wet[i], wetDamageMultiplier), push, target.Centre, from,
                         DamageKind.Lightning));
                 }

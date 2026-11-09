@@ -17,6 +17,24 @@ namespace Hakaton.Decks.Tests
         static int[] Ids(ExpeditionDeck deck) => deck.Hand.Select(c => c.Id).ToArray();
 
         [Test]
+        public void GrantedCardJoinsHandWithoutBecomingOwned()
+        {
+            var w = Workshop();
+            w.Depart(5);
+            var e = w.Current;
+            int owned = w.Owned.Count;
+            var card = e.GrantToHand(Specs[2], 2);
+            Assert.That(card, Is.Not.Null);
+            Assert.That(card.IsReturn, Is.False);
+            Assert.That(card.Level, Is.EqualTo(2));
+            Assert.That(e.Deck.Hand, Does.Contain(card));
+            Assert.That(w.Owned.Count, Is.EqualTo(owned));
+            Assert.That(w.Find(card.Id), Is.Null);
+            Assert.That(e.Release(card.Id), Is.SameAs(card));
+            Assert.That(e.GrantToHand(Specs[0]).Id, Is.Not.EqualTo(card.Id));
+        }
+
+        [Test]
         public void StartingHandCountsInsideDeckLimit()
         {
             var w = Workshop();
