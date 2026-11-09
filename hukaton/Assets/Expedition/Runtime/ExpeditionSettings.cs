@@ -55,20 +55,22 @@ namespace Hakaton.Expeditions
         [Min(0)] public float drownSinkSpeed = .9f;
         [Tooltip("How quickly the screen darkens once the head goes under, seconds.")]
         [Min(.01f)] public float drownDarkenSeconds = .12f;
-        [Tooltip("Thrashing under water: the head heads for a new direction this often, seconds (random within the range).")]
-        public Vector2 drownTurnSeconds = new Vector2(.45f, .75f);
-        [Tooltip("How softly the head follows each new direction, seconds; larger is smoother and slower.")]
-        [Min(.01f)] public float drownTurnSmoothing = .28f;
-        [Tooltip("Each new direction is this far left or right of where the player was looking, degrees; sides alternate.")]
-        public Vector2 drownTurnYaw = new Vector2(45, 95);
-        [Tooltip("Each new direction looks up or down to this pitch, degrees (negative is up).")]
-        public Vector2 drownTurnPitch = new Vector2(-60, 35);
+        [Tooltip("Under water the current turns the view in a slow dance: swing left/right, degrees.")]
+        [Min(0)] public float drownSwayYaw = 60;
+        [Tooltip("Swing up/down, degrees.")]
+        [Min(0)] public float drownSwayPitch = 24;
+        [Tooltip("Length of one full swing, seconds: x left/right, y up/down. Different lengths make the path loop and wander.")]
+        public Vector2 drownSwayPeriod = new Vector2(2.6f, 1.9f);
+        [Tooltip("Steady turn the current pulls the body round with, degrees per second.")]
+        public float drownSpin = 28;
+        [Tooltip("The dance eases in from stillness over this long, seconds.")]
+        [Min(.01f)] public float drownSwayEaseIn = .6f;
         [Tooltip("When it is clear the player is drowning, the cards burst out of the hand: delay after going under, seconds.")]
-        [Min(0)] public float drownCardsDelay = .2f;
+        [Min(0)] public float drownCardsDelay = .05f;
         [Tooltip("Speed the cards fly out of the hand at, m/s.")]
-        [Min(0)] public float drownCardsSpeed = 3.2f;
+        [Min(0)] public float drownCardsSpeed = 2.4f;
         [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
-        [Range(0, 1)] public float drownDarkness = .72f;
+        [Range(0, 1)] public float drownDarkness = .6f;
         [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]
         public Color drownColour = new Color(.02f, .07f, .09f, 1);
         [Header("Creature physics (board v0.1)")]
