@@ -50,17 +50,19 @@ namespace Hakaton.Expeditions
         [Tooltip("Water at least this deep over the player's feet, m, drowns at once. Shallower water does nothing.")]
         [Min(.1f)] public float drownDepth = 1f;
         [Tooltip("How long the view darkens while the body sinks before the defeat fade, seconds.")]
-        [Min(.05f)] public float drownSeconds = 1.2f;
+        [Min(.05f)] public float drownSeconds = 1.8f;
         [Tooltip("Sinking speed while drowning, m/s.")]
         [Min(0)] public float drownSinkSpeed = .9f;
         [Tooltip("How quickly the screen darkens once the head goes under, seconds.")]
         [Min(.01f)] public float drownDarkenSeconds = .12f;
-        [Tooltip("Thrashing under water: each head turn takes this long, seconds (random within the range).")]
-        public Vector2 drownTurnSeconds = new Vector2(.14f, .26f);
-        [Tooltip("Each head turn swings left or right by this many degrees (random within the range).")]
-        public Vector2 drownTurnYaw = new Vector2(55, 130);
-        [Tooltip("Head turns look up or down to this pitch, degrees (negative is up).")]
-        public Vector2 drownTurnPitch = new Vector2(-70, 45);
+        [Tooltip("Thrashing under water: the head heads for a new direction this often, seconds (random within the range).")]
+        public Vector2 drownTurnSeconds = new Vector2(.45f, .75f);
+        [Tooltip("How softly the head follows each new direction, seconds; larger is smoother and slower.")]
+        [Min(.01f)] public float drownTurnSmoothing = .28f;
+        [Tooltip("Each new direction is this far left or right of where the player was looking, degrees; sides alternate.")]
+        public Vector2 drownTurnYaw = new Vector2(45, 95);
+        [Tooltip("Each new direction looks up or down to this pitch, degrees (negative is up).")]
+        public Vector2 drownTurnPitch = new Vector2(-60, 35);
         [Tooltip("How dark the screen gets while sinking, before the defeat fade.")]
         [Range(0, 1)] public float drownDarkness = .72f;
         [Tooltip("Colour of the darkening under water; the defeat fade keeps it.")]

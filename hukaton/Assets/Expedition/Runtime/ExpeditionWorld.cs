@@ -231,7 +231,8 @@ namespace Hakaton.Expeditions
             bool sinking = motor.TryClaimExternalControl(this);
             Play(cues ? cues.playerHurt : null);
             var view = motor.view;
-            float time = 0, turnTime = 0, turnSeconds = 0, turnYaw = 0, turnPitch = 0, turned = 0;
+            float startPitch = view ? SignedPitch(view) : 0;
+            float time = 0, nextTurn = 0, goalYaw = 0, goalPitch = 0, yaw = 0, pitch = 0, yawSpeed = 0, pitchSpeed = 0;
             int side = UnityEngine.Random.value < .5f ? -1 : 1;
             while (time < settings.drownSeconds)
             {
@@ -239,21 +240,22 @@ namespace Hakaton.Expeditions
                 time += dt;
                 float k = Mathf.Clamp01(time / settings.drownDarkenSeconds);
                 if (fade) fade.Set(Mathf.Lerp(0, settings.drownDarkness, Ease.OutCubic(k)), settings.drownColour);
-                // Thrashing: the head whips left and right, up and down — real turns of the view, not shake.
-                if (view)
+                // Thrashing: the head swings left and right, up and down — real, smooth turns of the view.
+                // A new direction is picked before the last one is reached, so the motion never stops dead.
+                if (view && dt > 0)
                 {
-                    if (turnTime >= turnSeconds)
+                    if (time >= nextTurn)
                     {
                         side = -side;
-                        turnSeconds = UnityEngine.Random.Range(settings.drownTurnSeconds.x, settings.drownTurnSeconds.y);
-                        turnYaw = side * UnityEngine.Random.Range(settings.drownTurnYaw.x, settings.drownTurnYaw.y);
-                        turnPitch = UnityEngine.Random.Range(settings.drownTurnPitch.x, settings.drownTurnPitch.y) - SignedPitch(view);
-                        turnTime = turned = 0;
+                        goalYaw = side * UnityEngine.Random.Range(settings.drownTurnYaw.x, settings.drownTurnYaw.y);
+                        goalPitch = UnityEngine.Random.Range(settings.drownTurnPitch.x, settings.drownTurnPitch.y) - startPitch;
+                        nextTurn = time + UnityEngine.Random.Range(settings.drownTurnSeconds.x, settings.drownTurnSeconds.y);
                     }
-                    turnTime += dt;
-                    float progress = Ease.InOutSine(Mathf.Clamp01(turnTime / turnSeconds));
-                    view.Turn(turnYaw * (progress - turned), turnPitch * (progress - turned));
-                    turned = progress;
+                    float newYaw = Mathf.SmoothDamp(yaw, goalYaw, ref yawSpeed, settings.drownTurnSmoothing, Mathf.Infinity, dt);
+                    float newPitch = Mathf.SmoothDamp(pitch, goalPitch, ref pitchSpeed, settings.drownTurnSmoothing, Mathf.Infinity, dt);
+                    view.Turn(newYaw - yaw, newPitch - pitch);
+                    yaw = newYaw;
+                    pitch = newPitch;
                 }
                 if (sinking && motor.ExternalOwner == (IExternalMotorControl)this)
                     motor.MoveExternally(Vector3.down * settings.drownSinkSpeed * Time.deltaTime);
