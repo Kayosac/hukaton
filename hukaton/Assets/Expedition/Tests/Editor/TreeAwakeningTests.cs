@@ -162,7 +162,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(ally.look, Is.Not.Null);
             Assert.That(ally.look.transform.IsChildOf(ally.transform), Is.True);
             Assert.That(PrefabUtility.IsAnyPrefabInstanceRoot(ally.look.gameObject), Is.True,
-                "The placeholder look is its own nested prefab, replaceable by the owner's art.");
+                "The look (the Sinister living tree) is its own nested prefab, swappable for other art.");
             Assert.That(ally.GetComponentsInChildren<Collider>(true).Length, Is.GreaterThan(0));
             Assert.That(ally.overhead.pips.Length, Is.GreaterThanOrEqualTo(effect.healthUpgraded), "One pip per health point.");
         }

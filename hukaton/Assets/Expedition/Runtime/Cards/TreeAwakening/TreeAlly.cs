@@ -26,7 +26,7 @@ namespace Hakaton.Expeditions.Cards
         [Header("Authored parts")]
         public Rigidbody body;
         public NavMeshAgent navigator;
-        [Tooltip("Swappable look: a child prefab with a TreeAllyLook (placeholder for now).")]
+        [Tooltip("Swappable look: a child prefab with a TreeAllyLook (now the Sinister living tree drawings).")]
         public TreeAllyLook look;
         [Tooltip("Health pips above the crown (one pip per point).")]
         public CreatureOverhead overhead;
@@ -291,6 +291,8 @@ namespace Hakaton.Expeditions.Cards
             Vector3 to = target - eye;
             float distance = to.magnitude;
             if (distance < .05f) return true;
+            // Fog hides creatures from the tree as from any creature (board: fog blocks sight).
+            if (world && world.IsVisionBlocked(eye, target)) return false;
             if (!Physics.Raycast(eye, to / distance, out var hit, distance, ~(1 << 2), QueryTriggerInteraction.Ignore)) return true;
             return hit.transform.IsChildOf(creature.transform) || hit.transform.IsChildOf(transform);
         }
