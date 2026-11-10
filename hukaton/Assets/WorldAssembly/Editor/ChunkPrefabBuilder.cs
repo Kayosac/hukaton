@@ -430,8 +430,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 if (r.width > 5 && r.height > 5 && rng.NextDouble() < .6)
                 {
-                    var tree = Place(block, "Trees/" + Trees[rng.Next(Trees.Length)], t, r.center, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .6f));
-                    if (tree) foreach (var c in tree.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                    // Keeps its collider: a card can hit it and wake it up.
+                    Place(block, "Trees/" + Trees[rng.Next(Trees.Length)], t, r.center, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .6f));
                 }
             }
         }
@@ -580,13 +580,15 @@ namespace Hakaton.WorldAssembly.EditorTools
             for (int i = points.Count - 1; i > 0; i--) { int j = rng.Next(i + 1); (points[i], points[j]) = (points[j], points[i]); }
 
             // Giant trees: the biggest that fits at each spot, trunks inside the wall and inside the chunk.
+            // They keep their colliders: cards hit them, «Оживление дерева» wakes even the greatest.
             var trunks = new List<(Vector2 at, float radius)>();
             var trees = new GameObject("Giant trees").transform;
             trees.SetParent(root, false);
+            GameObject great = null;
             if (f.Heart)
             {
-                var great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
-                Bare(great);
+                // Its own collider is the heart's middle (the barrier leaves the trunk out): woken, it leaves the place open.
+                great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
                 trunks.Add((f.Hub, ForestLayout.TrunkRadius));
             }
             foreach (var p in points)
@@ -601,7 +603,6 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + radius + 1.6f)) continue;
                     var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
                     if (!tree) continue;
-                    Bare(tree);
                     trunks.Add((p, radius));
                     // Moss and fungus on the big ones.
                     if (radius > 1.4f && rng.NextDouble() < .7)
@@ -611,6 +612,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                         var fungus = Place(trees, "Plants/FA_VG16_ShelfFungusGroup", null, Vector2.zero, -a * Mathf.Rad2Deg + 90, Vector3.one * Rnd(1.2f, 1.7f));
                         if (fungus) fungus.transform.localPosition = new Vector3(side.x - 8, GroundY(t, side) + Rnd(.9f, 2.2f), side.y - 8);
                         Bare(fungus);
+                        // Goes with its tree when the tree walks off.
+                        if (fungus) fungus.transform.SetParent(tree.transform, true);
                     }
                     break;
                 }
@@ -743,6 +746,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var mask = Place(shrine, "Markers/FA_MK15_WoodMask", null, Vector2.zero, Mathf.Atan2(toward.x, toward.y) * Mathf.Rad2Deg, Vector3.one * 1.8f);
                 if (mask) mask.transform.localPosition = new Vector3(face.x - 8, GroundY(t, face) + 2.6f, face.y - 8);
                 Bare(mask);
+                // The mask and the charms belong to the great tree: they go with it when it wakes.
+                if (mask && great) mask.transform.SetParent(great.transform, true);
                 for (int k = 0; k < 4; k++)
                 {
                     float a = Mathf.Atan2(toward.y, toward.x) + (k - 1.5f) * .9f;
@@ -750,6 +755,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     var charm = Place(shrine, "Markers/" + (k % 2 == 0 ? "FA_MK17_MobileTwigs" : "FA_MK10_CharmTwigDiamond"), null, Vector2.zero, Rnd(0, 360), Vector3.one * 1.3f);
                     if (charm) charm.transform.localPosition = new Vector3(at.x - 8, GroundY(t, at) + Rnd(2.6f, 3.4f), at.y - 8);
                     Bare(charm);
+                    if (charm && great) charm.transform.SetParent(great.transform, true);
                 }
                 var flies = Place(shrine, "VFX/Insects/Fireflies/FirefliesGreen", null, Vector2.zero, 0, Vector3.one);
                 if (flies) flies.transform.localPosition = new Vector3(f.Hub.x - 8, GroundY(t, f.PocketSpot) + 1.2f, f.Hub.y - 8);

@@ -200,7 +200,8 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         /// <summary>
         /// The wall as rectangles on a half-metre grid (runs along rows merged with equal runs above), for the
-        /// barriers: what blocks is exactly what the ground plan calls wall.
+        /// barriers: what blocks is exactly what the ground plan calls wall. The great tree's trunk is left out: its own
+        /// collider blocks there, and once it wakes and walks off the place is open.
         /// </summary>
         public List<Rect> WallRects(float cell = .5f)
         {
@@ -208,7 +209,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var wall = new bool[n, n];
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
-                    wall[i, j] = IsWall(new Vector2((i + .5f) * cell, (j + .5f) * cell));
+                    wall[i, j] = WallDepth(new Vector2((i + .5f) * cell, (j + .5f) * cell)) > 0;
             var rects = new List<Rect>();
             var done = new bool[n, n];
             for (int j = 0; j < n; j++)
