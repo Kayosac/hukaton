@@ -109,8 +109,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 pose.localPosition = new Vector3(0, terrain.Height(new Vector2(8, 8.6f)) + .1f, .6f);
                 view.departurePose = pose;
                 // The beacon stands behind the player's start, seen from far away through the fog.
-                Place(go.transform, "Structures/FA_ST04_Post", terrain, new Vector2(7.3f, 6.6f), 0, new Vector3(1.4f, 9f, 1.4f));
-                var lantern = Place(go.transform, "Props/FA_PR01_LanternHanging", terrain, new Vector2(7.3f, 6.6f), 0, Vector3.one * 2.2f);
+                Place(go.transform, "Structures/FA_ST04_Post", terrain, new Vector2(8f, 3.4f), 0, new Vector3(1.4f, 9f, 1.4f));
+                var lantern = Place(go.transform, "Props/FA_PR01_LanternHanging", terrain, new Vector2(8f, 3.4f), 0, Vector3.one * 2.2f);
                 if (lantern) lantern.transform.localPosition += Vector3.up * 13f;
                 Place(go.transform, "Markers/FA_MK16_StoneCircle", terrain, new Vector2(8, 8), 0, Vector3.one);
             }
@@ -185,7 +185,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (normal.y < .72f) return Surface.Rock;
             bool wet = t.Shape.Kind == ShapeKind.River || (t.Shape.Kind == ShapeKind.Plain && t.Variant == "pond");
             if (wet && h < TileTerrain.WaterLevel + .05f) return Surface.Bed;
-            if (wet && h < .08f && (t.Shape.Kind != ShapeKind.River || t.DistanceToCentre(p) < TileTerrain.BankHalf + .8f || t.Shape.Id == "river-end")) return Surface.Bank;
+            if (wet && h < .08f && t.NearWater(p, .8f)) return Surface.Bank;
             if (t.Shape.Kind == ShapeKind.Canyon && h < -t.CanyonDepth + .4f) return Surface.Bed;
             if (t.OnRamp(p)) return Surface.Path;
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
@@ -220,7 +220,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 for (int j = 0; j < n; j++)
                 {
                     var p0 = new Vector2(i * Step, j * Step);
-                    bool any = t.IsWater(p0) || t.IsWater(p0 + new Vector2(Step, 0)) || t.IsWater(p0 + new Vector2(0, Step)) || t.IsWater(p0 + new Vector2(Step, Step));
+                    // Only where the water has some depth: shallow rims would show as a band of foam.
+                    bool any = t.IsDeep(p0) || t.IsDeep(p0 + new Vector2(Step, 0)) || t.IsDeep(p0 + new Vector2(0, Step)) || t.IsDeep(p0 + new Vector2(Step, Step));
                     if (!any) continue;
                     int b = verts.Count;
                     verts.Add(new Vector3(p0.x - 8, y, p0.y - 8));
@@ -318,13 +319,20 @@ namespace Hakaton.WorldAssembly.EditorTools
         static void RiverMaterial()
         {
             const string path = "Assets/WorldAssembly/Materials/River water.mat";
-            if (AssetDatabase.LoadAssetAtPath<Material>(path)) return;
-            Directory.CreateDirectory("Assets/WorldAssembly/Materials");
-            var source = AssetDatabase.LoadAssetAtPath<Material>("Assets/OldApiary/Materials/OA_WaterFlow.mat");
-            if (!source) return;
-            var mat = new Material(source);
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!mat)
+            {
+                Directory.CreateDirectory("Assets/WorldAssembly/Materials");
+                var source = AssetDatabase.LoadAssetAtPath<Material>("Assets/OldApiary/Materials/OA_WaterFlow.mat");
+                if (!source) return;
+                mat = new Material(source);
+                AssetDatabase.CreateAsset(mat, path);
+            }
             mat.SetFloat("_UseMeshFlow", 1);
-            AssetDatabase.CreateAsset(mat, path);
+            // A thin lip of foam: the banks are gentle, so the default shore foam reads as snow.
+            mat.SetFloat("_FoamDepth", .1f);
+            mat.SetFloat("_ShoreFoam", .18f);
+            EditorUtility.SetDirty(mat);
         }
 
         // ---------- thickets ----------
@@ -354,14 +362,15 @@ namespace Hakaton.WorldAssembly.EditorTools
                 live.transform.SetParent(root.transform, false);
                 var burnt = new GameObject("Burnt thorns");
                 burnt.transform.SetParent(root.transform, false);
-                for (float x = r.xMin + .8f; x < r.xMax; x += 1.6f)
-                    for (float z = r.yMin + .7f; z < r.yMax; z += 1.3f)
+                // Kept inside the piece so corridors stay open; tall enough to hide what is behind.
+                for (float x = r.xMin + .9f; x < r.xMax - .5f; x += 1.5f)
+                    for (float z = r.yMin + .8f; z < r.yMax - .5f; z += 1.2f)
                     {
-                        var p = new Vector2(x + (float)rng.NextDouble() * .5f - .25f, z + (float)rng.NextDouble() * .4f - .2f);
-                        float yaw = (float)rng.NextDouble() * 360, s = 1.3f + (float)rng.NextDouble() * .5f;
-                        var a = Place(live.transform, "Plants/FA_VG10_ThornThicket", null, Vector2.zero, yaw, new Vector3(s, s * 1.5f, s * 1.4f));
+                        var p = new Vector2(x + (float)rng.NextDouble() * .6f - .3f, z + (float)rng.NextDouble() * .6f - .3f);
+                        float yaw = (float)rng.NextDouble() * 360, s = .85f + (float)rng.NextDouble() * .45f;
+                        var a = Place(live.transform, "Plants/FA_VG10_ThornThicket", null, Vector2.zero, yaw, new Vector3(s, s * 1.9f, s));
                         if (a) a.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
-                        var b = Place(burnt.transform, "Plants/FA_VG10_ThornThicketBurnt", null, Vector2.zero, yaw, new Vector3(s, s * .6f, s * 1.4f));
+                        var b = Place(burnt.transform, "Plants/FA_VG10_ThornThicketBurnt", null, Vector2.zero, yaw, new Vector3(s, s * .6f, s));
                         if (b) b.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
                     }
                 foreach (var c in live.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);

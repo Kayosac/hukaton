@@ -217,6 +217,24 @@ namespace Hakaton.WorldAssembly.EditorTools
             return wet && Base(p) < WaterLevel + .02f;
         }
 
+        /// <summary>Water at least a hand deep here.</summary>
+        public bool IsDeep(Vector2 p)
+        {
+            bool wet = Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond");
+            return wet && Base(p) < WaterLevel - .1f;
+        }
+
+        /// <summary>Within <paramref name="margin"/> of the water's own banks.</summary>
+        public bool NearWater(Vector2 p, float margin)
+        {
+            if (Shape.Kind == ShapeKind.Plain) return Vector2.Distance(p, PondCentre) < PondBank + margin;
+            if (Shape.Kind != ShapeKind.River) return false;
+            if (DistanceToCentre(p) < BankHalf + margin) return true;
+            if (Shape.Id != "river-end") return false;
+            float bank = Variant == "spring" ? SpringBank : LakeBank;
+            return Vector2.Distance(p, new Vector2(8, 8)) < bank + margin;
+        }
+
         public bool InMazeWall(Vector2 p)
         {
             if (Shape.Kind != ShapeKind.Maze) return false;

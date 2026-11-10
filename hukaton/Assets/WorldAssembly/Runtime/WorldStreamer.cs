@@ -29,11 +29,6 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("0: a new random world every outing. Any other value: always this world (testing).")]
         public int fixedSeed;
 
-        [Header("Fog during the outing")]
-        public bool fog = true;
-        public Color fogColour = new Color(.46f, .44f, .38f);
-        public float fogStart = 30, fogEnd = 60;
-
         public WorldMap Map { get; private set; }
         public int Seed { get; private set; }
         public bool Active { get; private set; }
@@ -66,7 +61,6 @@ namespace Hakaton.WorldAssembly.Unity
         readonly List<ChunkCoord> wanted = new List<ChunkCoord>();
         readonly List<ChunkCoord> leaving = new List<ChunkCoord>();
         ExpeditionWorld world;
-        (bool fog, Color colour, float start, float end, FogMode mode) savedFog;
 
         float Size => Map.Rules.ChunkSize;
         /// <summary>The world is laid out around the chunk root (rotation is ignored).</summary>
@@ -85,15 +79,6 @@ namespace Hakaton.WorldAssembly.Unity
             world.obstacles.Clear();
             world.creatures.Clear();
             world.props.Clear();
-            if (fog)
-            {
-                savedFog = (RenderSettings.fog, RenderSettings.fogColor, RenderSettings.fogStartDistance, RenderSettings.fogEndDistance, RenderSettings.fogMode);
-                RenderSettings.fog = true;
-                RenderSettings.fogMode = FogMode.Linear;
-                RenderSettings.fogColor = fogColour;
-                RenderSettings.fogStartDistance = fogStart;
-                RenderSettings.fogEndDistance = fogEnd;
-            }
             // Everything around the start loads behind the departure fade.
             Stream(Origin, int.MaxValue);
             var start = loaded.TryGetValue(new ChunkCoord(0, 0), out var s) && s.view.departurePose ? s.view.departurePose : null;
@@ -117,14 +102,6 @@ namespace Hakaton.WorldAssembly.Unity
                 world.obstacles.Clear();
                 world.creatures.Clear();
                 world.props.Clear();
-            }
-            if (fog && savedFog.mode != 0)
-            {
-                RenderSettings.fog = savedFog.fog;
-                RenderSettings.fogColor = savedFog.colour;
-                RenderSettings.fogStartDistance = savedFog.start;
-                RenderSettings.fogEndDistance = savedFog.end;
-                RenderSettings.fogMode = savedFog.mode;
             }
         }
 
