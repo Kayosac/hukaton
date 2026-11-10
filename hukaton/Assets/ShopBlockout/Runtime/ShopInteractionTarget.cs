@@ -6,7 +6,8 @@ namespace Hakaton.ShopBlockout
     {
         Computer,
         GoblinRope,
-        Goblin
+        Goblin,
+        Brazier
     }
 
     /// <summary>A saved world target. The caller supplies the first unobstructed focus ray.</summary>

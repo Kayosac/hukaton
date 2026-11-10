@@ -14,6 +14,7 @@ namespace Hakaton.ShopBlockout
     {
         public SuspendedGoblin goblin;
         public DeckPrototype workshop;
+        public Brazier brazier;
 
         /// <summary>The dealer's table comes with his rig prefab.</summary>
         public GoblinCardShop cardShop => goblin ? goblin.table : null;
@@ -24,7 +25,7 @@ namespace Hakaton.ShopBlockout
             if (cardShop) cardShop.Bind(workshop, workshop ? workshop.control : null);
         }
 
-        public bool IsOpen => workshop && workshop.EmbeddedOpen || cardShop && cardShop.IsOpen;
+        public bool IsOpen => workshop && workshop.EmbeddedOpen || cardShop && cardShop.IsOpen || brazier && brazier.IsOpen;
 
         /// <summary>Call only for a focused, reachable target while the shop is closed.</summary>
         public bool TryInteract(ShopServiceKind kind)
@@ -34,6 +35,8 @@ namespace Hakaton.ShopBlockout
             {
                 case ShopServiceKind.Computer:
                     return workshop.OpenEmbedded();
+                case ShopServiceKind.Brazier:
+                    return brazier && brazier.Open();
                 case ShopServiceKind.GoblinRope:
                 case ShopServiceKind.Goblin:
                     if (!goblin || !cardShop) return false;
@@ -53,6 +56,8 @@ namespace Hakaton.ShopBlockout
             {
                 case ShopServiceKind.Computer:
                     return "E  Колода и мердж";
+                case ShopServiceKind.Brazier:
+                    return brazier ? "E  Жаровня" : string.Empty;
                 case ShopServiceKind.GoblinRope:
                     if (!goblin || !cardShop || goblin.IsMoving) return string.Empty;
                     return goblin.IsDeployed ? "E  Карточник" : cardShop.Visits.CanCall ? "E  Потянуть за верёвку" : string.Empty;
@@ -67,6 +72,7 @@ namespace Hakaton.ShopBlockout
         {
             if (workshop) workshop.CloseEmbedded();
             if (cardShop) cardShop.Close();
+            if (brazier) brazier.Close();
         }
 
         void OnEnable()
