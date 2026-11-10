@@ -87,6 +87,7 @@ namespace Hakaton.Backroom
         /// <summary>Seconds the list takes to fade over the world card that takes the thrown one's place.</summary>
         const float HandOver = .12f;
         AudioSource loop, fearVoice;
+        bool fearing;
         SpringFloat jump;
         float fireTarget;
         readonly List<OfferCardView> tiles = new List<OfferCardView>();
@@ -172,7 +173,7 @@ namespace Hakaton.Backroom
             IsOpen = false;
             SetVisible(visibility, false);
             HideTax();
-            if (fearVoice) fearVoice.Stop();
+            fearing = false;
             // The burner is turned off: a click and the fire dies down.
             Play(extinguishSound);
             fireTarget = 0;
@@ -192,6 +193,12 @@ namespace Hakaton.Backroom
             {
                 loop.volume = Mathf.MoveTowards(loop.volume, IsOpen ? burnLoopVolume : 0, Time.unscaledDeltaTime * (IsOpen ? .9f : 1.5f));
                 if (!IsOpen && loop.volume <= 0 && loop.isPlaying) loop.Stop();
+            }
+            if (fearVoice)
+            {
+                // Quick in and out, so stopping never clicks.
+                fearVoice.volume = Mathf.MoveTowards(fearVoice.volume, fearing && IsOpen ? fearVolume : 0, Time.unscaledDeltaTime * 12);
+                if (!fearing && fearVoice.volume <= 0 && fearVoice.isPlaying) fearVoice.Stop();
             }
             if (!IsOpen) return;
             // While a card is in the air the list steps aside so the throw is seen in the room.
@@ -221,7 +228,7 @@ namespace Hakaton.Backroom
                 tile.name = "Card " + (tiles.Count + 1);
                 tile.Clicked += OnTileClicked;
                 tile.Hovered += OnTileHovered;
-                tile.Unhovered += _ => HideTax();
+                tile.Unhovered += _ => { HideTax(); fearing = false; };
                 // The card shivers under the pointer: hover is read from its still slot, not the moving card.
                 tile.UseStillHitArea();
                 tiles.Add(tile);
@@ -254,12 +261,16 @@ namespace Hakaton.Backroom
             ShowTax(tile, Model.BurnPrice(copy));
             if (fearSound && audioSource)
             {
-                if (!fearVoice) fearVoice = MakeVoice(false);
-                fearVoice.Stop();
-                fearVoice.pitch = Random.Range(.95f, 1.06f);
-                fearVoice.clip = fearSound;
-                fearVoice.volume = fearVolume;
-                fearVoice.Play();
+                // The teeth chatter for as long as the pointer stays on the card (a seamless loop).
+                if (!fearVoice) fearVoice = MakeVoice(true);
+                fearVoice.pitch = Random.Range(.96f, 1.05f);
+                if (fearVoice.clip != fearSound || !fearVoice.isPlaying)
+                {
+                    fearVoice.clip = fearSound;
+                    fearVoice.volume = 0;
+                    fearVoice.Play();
+                }
+                fearing = true;
             }
         }
 
@@ -328,14 +339,21 @@ namespace Hakaton.Backroom
                 return;
             }
             HideTax();
-            if (fearVoice) fearVoice.Stop();
+            fearing = false;
             title.text = $"{Model.Owned.Count}/{Model.CollectionLimit}";
 
             // The card leaves the list where it lay and flies into the bowl in the room.
+            // Where the card lies, as fractions of the screen, read in the list's own root canvas.
             var corners = new Vector3[4];
             tile.body.GetWorldCorners(corners);
-            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, (corners[0] + corners[2]) * .5f);
-            float width = Vector2.Distance(RectTransformUtility.WorldToScreenPoint(null, corners[0]), RectTransformUtility.WorldToScreenPoint(null, corners[3]));
+            var root = (RectTransform)tile.GetComponentInParent<Canvas>().rootCanvas.transform;
+            Vector2 Fraction(Vector3 world)
+            {
+                Vector2 local = root.InverseTransformPoint(world);
+                return new Vector2((local.x - root.rect.xMin) / root.rect.width, (local.y - root.rect.yMin) / root.rect.height);
+            }
+            Vector2 screen = Fraction((corners[0] + corners[2]) * .5f);
+            float width = Fraction(corners[3]).x - Fraction(corners[0]).x;
             var camera = viewCamera ? viewCamera : Camera.main;
             var thrown = BrazierThrow.Launch(worldCardPrefab, tile.face.sprite ? tile.face.sprite.texture : null, tile.back ? tile.back.texture : null,
                 copy.Level, camera, screen, width, firePoint.position + Vector3.up * .04f, cardBurnFx, Landed, HandOver, tile.ShadeTint);

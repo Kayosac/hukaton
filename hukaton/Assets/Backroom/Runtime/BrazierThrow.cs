@@ -29,11 +29,11 @@ namespace Hakaton.Backroom
         public static readonly Color Ember = new Color(1, .45f, .12f);
 
         /// <summary>
-        /// Throws a world card from a point of the screen (pixels) into <paramref name="bowl"/>. <paramref name="cardPrefab"/>
+        /// Throws a world card from a point of the screen (as fractions of its width and height) into <paramref name="bowl"/>. <paramref name="cardPrefab"/>
         /// is the expedition's card debris (a two-sided card quad); only its <see cref="CardView"/> is used.
         /// </summary>
         public static BrazierThrow Launch(GameObject cardPrefab, Texture front, Texture back, int level, Camera camera,
-            Vector2 screen, float screenWidth, Vector3 bowl, VfxBurst burnFx, Action landed, float hold = 0, Color? startTint = null)
+            Vector2 screenFraction, float widthFraction, Vector3 bowl, VfxBurst burnFx, Action landed, float hold = 0, Color? startTint = null)
         {
             if (!cardPrefab || !camera)
             {
@@ -50,11 +50,16 @@ namespace Hakaton.Backroom
             var tint = startTint ?? Color.white;
             view.SetTint(tint);
 
-            // Start where the card is on screen, as big as it looks there.
+            // Start where the card is on screen, as big as it looks there. The world may be drawn at its own
+            // resolution into a rect of the screen (WorldResolution), so screen pixels go through that rect.
             const float distance = .62f;
-            var ray = camera.ScreenPointToRay(screen);
-            float worldPerPixel = 2 * distance * Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad) / camera.pixelHeight;
-            float width = Mathf.Max(.02f, screenWidth * worldPerPixel);
+            // Fractions of the screen, so UI points, screen pixels and the world's own resolution never mix.
+            Rect output = OutputRect(camera);
+            var pixel = new Vector2(screenFraction.x * Screen.width, screenFraction.y * Screen.height);
+            var viewport = new Vector2((pixel.x - output.x) / output.width, (pixel.y - output.y) / output.height);
+            var ray = camera.ViewportPointToRay(viewport);
+            float worldPerPixel = 2 * distance * Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad) / output.height;
+            float width = Mathf.Max(.01f, widthFraction * Screen.width * worldPerPixel);
 
             var t = go.AddComponent<BrazierThrow>();
             t.view = view;
@@ -80,6 +85,26 @@ namespace Hakaton.Backroom
             // Where it comes to rest: lying back in the bowl, at an odd angle.
             t.restRotation = Quaternion.Euler(-70 + UnityEngine.Random.Range(-12f, 12f), camera.transform.eulerAngles.y + UnityEngine.Random.Range(-35f, 35f), UnityEngine.Random.Range(-15f, 15f));
             return t;
+        }
+
+        /// <summary>
+        /// The rect of the screen the camera's picture is shown in: the whole screen, or the presented rect when the
+        /// world is drawn at its own resolution (Hukaton.Rendering.WorldResolution lives outside this assembly, so it
+        /// is asked by name).
+        /// </summary>
+        static Rect OutputRect(Camera camera)
+        {
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            foreach (var behaviour in camera.GetComponents<MonoBehaviour>())
+            {
+                if (!behaviour || behaviour.GetType().Name != "WorldResolution") continue;
+                var type = behaviour.GetType();
+                if (!(type.GetProperty("IsActive")?.GetValue(behaviour) is bool active) || !active) return screen;
+                var settings = type.GetField("Settings")?.GetValue(behaviour);
+                var method = settings?.GetType().GetMethod("OutputRect", new[] { typeof(int), typeof(int) });
+                if (method != null && method.Invoke(settings, new object[] { Screen.width, Screen.height }) is Rect rect) return rect;
+            }
+            return screen;
         }
 
         /// <summary>When the card reaches the bowl after launch, seconds (the hold included).</summary>
