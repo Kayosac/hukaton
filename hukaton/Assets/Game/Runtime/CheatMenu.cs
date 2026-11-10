@@ -139,6 +139,12 @@ namespace Hakaton.Game
             GUILayout.Label("F1 или Esc — закрыть", body);
             GUILayout.Space(8);
 
+            if (game.tutorial.Active || game.cave && game.cave.Active)
+            {
+                if (GUILayout.Button("Пропустить туториал", button)) game.SkipTutorial();
+                GUILayout.Space(8);
+            }
+
             GUILayout.Label("Лавка", title);
             GUI.enabled = game.Phase == GamePhase.Shop && !game.trade.Session.IsOpen;
             if (GUILayout.Button("Случайные товары на все пустые слоты", button)) StockDisplayRandomly();

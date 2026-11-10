@@ -166,6 +166,18 @@ namespace Hakaton.Tutorial
             if (linesRead >= lines.Length) Advance(next);
         }
 
+        /// <summary>Ends the shop lesson where it stands (cheats, tests): the goblin leaves, the shop is free.</summary>
+        public void Skip()
+        {
+            if (!Active) return;
+            bubble.Hide();
+            goblin.Show(false);
+            Stage = ShopTutorialStage.Done;
+            linesRead = 0;
+            Apply();
+            Changed?.Invoke();
+        }
+
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {

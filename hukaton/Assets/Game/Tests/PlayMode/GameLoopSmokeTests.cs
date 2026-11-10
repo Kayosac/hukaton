@@ -53,7 +53,11 @@ namespace Hakaton.Game.Tests
         {
             var game = Object.FindAnyObjectByType<GameLoop>();
             Assert.That(game.Ready, Is.True, "The authored scene wires every system the loop needs.");
+            Assert.That(game.cave && game.cave.Active, Is.True, "A fresh game opens in the cave prologue.");
+            Assert.That(game.Phase, Is.EqualTo(GamePhase.Expedition));
+            game.SkipTutorial();
             Assert.That(game.Phase, Is.EqualTo(GamePhase.Shop));
+            Assert.That(game.tutorial.Active, Is.False);
 
             Assert.That(game.TryDepart(), Is.True, "A fresh game can leave on an outing.");
             var world = Object.FindAnyObjectByType<ExpeditionWorld>();

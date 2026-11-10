@@ -264,6 +264,13 @@ namespace Hakaton.Game
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
         }
 
+        /// <summary>Skips whatever part of the tutorial is running (cheats, tests).</summary>
+        public void SkipTutorial()
+        {
+            if (cave && cave.Active) cave.Skip();
+            tutorial.Skip();
+        }
+
         void SetPhase(GamePhase phase)
         {
             Phase = phase;

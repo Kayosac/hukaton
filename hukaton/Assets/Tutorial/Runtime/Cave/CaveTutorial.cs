@@ -317,6 +317,17 @@ namespace Hakaton.Tutorial
             yield return Leave();
         }
 
+        /// <summary>Straight out of the cave (cheats, tests): the same exit as after the last line, without the dark.</summary>
+        public void Skip()
+        {
+            if (!Active) return;
+            StopAllCoroutines();
+            bubble.Hide();
+            Close();
+            Stage = CaveStage.Done;
+            Finished?.Invoke();
+        }
+
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {
