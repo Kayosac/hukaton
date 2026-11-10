@@ -36,7 +36,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/Core2D.hlsl"
 
         TEXTURE2D(_MainTex);
-        // Explicit-LOD sampling with URP's global sampler_LinearClamp (GlobalSamplers.hlsl).
+        // Explicit point sampling at mip zero: sharp even on bilinear source textures.
+        // sampler_PointClamp is supplied by URP's GlobalSamplers.hlsl.
         float4 _MainTex_TexelSize;
 
         CBUFFER_START(UnityPerMaterial)
@@ -128,17 +129,15 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
 
             // Reject outside the source; clamping alone would smear opaque edge texels.
             clip(min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)));
-            // ONE read per world pixel from the mip level whose texels match the world pixel: every
-            // creature, NPC and item shows the same averaged drawing per world pixel, whatever its
-            // source resolution or scale. Sources coarser than the grid are interpolated at level 0,
-            // so their texels never show as bigger blocks. Needs mipmaps on the sprite texture.
-            float2 footprint = cell * rectSize * _MainTex_TexelSize.zw;
-            float lod = max(0.0, log2(max(footprint.x, footprint.y)));
             // Keep sampling inside this cell even at an exact edge (never the neighbouring pose).
             float2 inset = _MainTex_TexelSize.xy * 0.5;
             float2 atlasUV = clamp(_SpriteUVRect.xy + uv * rectSize,
                 _SpriteUVRect.xy + inset, _SpriteUVRect.xy + rectSize - inset);
-            half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_LinearClamp, atlasUV, lod);
+            // Land on source texel centres explicitly. Derivative roundoff around an integer
+            // texel edge must not choose different texels inside the same world pixel.
+            atlasUV = (floor(atlasUV * _MainTex_TexelSize.zw + 0.01) + 0.5) * _MainTex_TexelSize.xy;
+            // Hard pixels: one source texel per world pixel, no filtering or colour blending.
+            half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0);
             clip(texel.a - _AlphaCutoff);
             // Binary source coverage, with ordinary material/renderer fade still supported.
             return half4(MixFog(texel.rgb * input.color.rgb, input.fogFactor), input.color.a);

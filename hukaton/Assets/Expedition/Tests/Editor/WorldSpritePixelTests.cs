@@ -249,13 +249,10 @@ namespace Hakaton.Expeditions.Tests
             // SpriteRenderer adds Z padding to its flat bounds; only the drawn XY size matters.
             Assert.That(Vector2.Distance(renderer.bounds.size, worldSize), Is.LessThan(0.000001f));
             var baked = RenderThroughCamera(renderer, 1024, perspective, frameCenter: centre);
-            // Filtered sampling may round a colour by one step; count only real differences.
-            var changed = original.Zip(baked, (a, b) => a.a != b.a || System.Math.Abs(a.r - b.r) > 2
-                || System.Math.Abs(a.g - b.g) > 2 || System.Math.Abs(a.b - b.b) > 2 ? 1 : 0).Sum();
-            // Recreating an imported sprite rounds its mesh coordinates differently. Allow <0.05%
-            // raster/sample boundary differences (filtered alpha flips a few silhouette cells near the
-            // cutoff); the view-override regression above remains bit-exact.
-            Assert.That(changed / (float)original.Length, Is.LessThan(.0005f),
+            var changed = original.Zip(baked, (a, b) => a.Equals(b) ? 0 : 1).Sum();
+            // Recreating an imported sprite rounds its mesh coordinates differently. Allow <0.01%
+            // raster/sample boundary differences; the view-override regression above remains bit-exact.
+            Assert.That(changed / (float)original.Length, Is.LessThan(.0001f),
                 $"Bush at x={worldX}: {changed} changed pixels after baking only Transform scale.");
         }
 
