@@ -98,6 +98,30 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
+        {
+            var powers = Object.FindAnyObjectByType<CheatPowers>();
+            Assert.That(powers, Is.Not.Null, "cheat powers come with the game loop");
+            var vitals = world.vitals;
+            int hearts = vitals.HalfHearts;
+            powers.SetInvulnerable(true);
+            Assert.That(vitals.Hurt(99, Vector3.zero, null), Is.False, "no damage");
+            Assert.That(vitals.Drain(), Is.False, "no drowning");
+            Assert.That(vitals.HalfHearts, Is.EqualTo(hearts));
+            powers.SetInvulnerable(false);
+
+            powers.SetFlying(true);
+            yield return null;
+            yield return null;
+            Assert.That(world.motor.ExternalOwner, Is.SameAs(powers), "flight drives the body");
+            Assert.That(world.motor.characterController.enabled, Is.False, "and flies through everything");
+            powers.SetFlying(false);
+            yield return null;
+            Assert.That(world.motor.ExternallyControlled, Is.False);
+            Assert.That(world.motor.characterController.enabled, Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator ChunksComeBackAsTheyWereLeft()
         {
             // Take one find near the start.
