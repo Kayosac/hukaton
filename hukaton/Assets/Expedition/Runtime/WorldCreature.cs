@@ -29,6 +29,9 @@ namespace Hakaton.Expeditions
         [Header("Size")]
         [Tooltip("Size relative to the art (the atlas is drawn at the manifest's physical height). Scales the drawing, the body capsule, the navigation agent and the marks above the head; the root stays at scale one. The capsule and agent are authored at size one and scaled when the game runs.")]
         [Min(.05f)] public float size = 1;
+        [Tooltip("Every spawn rolls the size between these multiples of the default size above.")]
+        public Vector2 spawnSizeRange = new Vector2(.9f, 1.2f);
+        float spawnSize = 1;
         [Tooltip("Height of the stun stars above the top of the drawing and their size.")]
         public float stunStarsHeight = .35f, stunStarsScale = 1.2f;
         VfxBurst stunStars;
@@ -110,7 +113,8 @@ namespace Hakaton.Expeditions
         /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
         float TopHeight => view ? view.height * Size : 1;
         /// <summary>The creature's size in the world: the size field times any scale of the root.</summary>
-        public float Size => size * transform.lossyScale.y;
+        public float Size => CurrentSize * transform.lossyScale.y;
+        float CurrentSize => size * spawnSize;
 
         // The body as authored at size one, captured once so the size can change while playing.
         CapsuleCollider capsule;
@@ -128,11 +132,11 @@ namespace Hakaton.Expeditions
                 if (navigator) { agentRadius = navigator.radius; agentHeight = navigator.height; }
                 if (overhead) overheadPosition = overhead.transform.localPosition;
             }
-            appliedSize = size;
-            if (capsule) { capsule.radius = capsuleRadius * size; capsule.height = capsuleHeight * size; capsule.center = capsuleCentre * size; }
-            if (navigator) { navigator.radius = agentRadius * size; navigator.height = agentHeight * size; }
-            if (overhead) overhead.transform.localPosition = overheadPosition * size;
-            if (view) view.Size = size;
+            float s = appliedSize = CurrentSize;
+            if (capsule) { capsule.radius = capsuleRadius * s; capsule.height = capsuleHeight * s; capsule.center = capsuleCentre * s; }
+            if (navigator) { navigator.radius = agentRadius * s; navigator.height = agentHeight * s; }
+            if (overhead) overhead.transform.localPosition = overheadPosition * s;
+            if (view) view.Size = s;
         }
 
 #if UNITY_EDITOR
@@ -169,6 +173,10 @@ namespace Hakaton.Expeditions
             var point = random != null && spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[random.Next(spawnPoints.Length)] : null;
             home = SnapToGround(point ? point.position : authoredHome);
             homeRotation = facing = point ? point.rotation : authoredRotation;
+            // A little different every time it appears: the outing's random keeps a seeded outing repeatable.
+            float roll = random != null ? (float)random.NextDouble() : Random.value;
+            spawnSize = Mathf.Lerp(Mathf.Min(spawnSizeRange.x, spawnSizeRange.y), Mathf.Max(spawnSizeRange.x, spawnSizeRange.y), roll);
+            ApplySize();
             frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
@@ -779,7 +787,7 @@ namespace Hakaton.Expeditions
 
         void LateUpdate()
         {
-            if (appliedSize != size) ApplySize();
+            if (appliedSize != CurrentSize) ApplySize();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
