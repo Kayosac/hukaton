@@ -17,7 +17,7 @@ namespace Hakaton.Expeditions
     /// (<see cref="CreatureSpriteView"/>) that is squashed, hopped and tinted procedurally.
     /// Every attack is telegraphed: the aggression drawing, a crouch, sound and a red "!!" before the direction locks.
     /// </summary>
-    public sealed class WorldCreature : MonoBehaviour, ICombatant
+    public sealed partial class WorldCreature : MonoBehaviour, ICombatant
     {
         [Header("Identity")]
         public ExpeditionWorld world;
@@ -165,6 +165,7 @@ namespace Hakaton.Expeditions
             home = authoredHome = transform.position;
             homeRotation = authoredRotation = facing = transform.rotation;
             Health = maximumHealth;
+            PrepareFlight(false);
         }
 
         public void ResetForOuting(System.Random random)
@@ -193,6 +194,7 @@ namespace Hakaton.Expeditions
             transform.SetPositionAndRotation(home, homeRotation);
             navigator.enabled = true;
             if (navigator.isOnNavMesh) { navigator.Warp(home); navigator.ResetPath(); }
+            PrepareFlight(true);
             squash.Snap(1);
             crouch = 0;
             if (stepDust) stepDust.Clear();
@@ -478,6 +480,7 @@ namespace Hakaton.Expeditions
 
         void Go(Vector3 destination, float moveSpeed)
         {
+            if (flying) { Fly(destination, moveSpeed); return; }
             if (!navigator.enabled || !navigator.isOnNavMesh) { desired = Flat(destination - body.position).normalized * moveSpeed; return; }
             navigator.speed = moveSpeed;
             if (Time.time >= nextPath)
@@ -561,6 +564,7 @@ namespace Hakaton.Expeditions
             planar = Vector3.MoveTowards(planar, target, acceleration * dt);
             body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
             if (!controlled) body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt * (State == CreatureState.Windup ? 1.6f : 1)));
+            if (flying) FlyVertical(dt, controlled);
             if (State == CreatureState.Strike) CheckStrikeContact();
         }
 
@@ -568,7 +572,8 @@ namespace Hakaton.Expeditions
         {
             if (hitThisStrike) return;
             float size = Size;
-            Vector3 snout = body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
+            // A flyer dives in with its whole body: the reach is measured from the middle of the drawing.
+            Vector3 snout = flying ? Centre + transform.forward * Mathf.Max(.3f, TopHeight * .5f) : body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
             var victim = Target;
             Vector3 aim = victim.Position + Vector3.up * .9f;
             Vector3 to = aim - snout;
@@ -706,13 +711,16 @@ namespace Hakaton.Expeditions
             Vector3 drift = Flat(impulse).normalized * Mathf.Min(.8f, TopHeight * .5f);
             Vector3 heading = transform.forward;
             float hop = Mathf.Min(.45f, TopHeight * .4f);
+            // A flyer drops out of the air first.
+            float fall = FallHeight(start);
+            float fallSeconds = Mathf.Max(.3f, Mathf.Sqrt(2 * fall / 14));
             // Knocked over: a short hop already in the death drawing, then a landing squash.
             float time = 0;
-            while (time < .3f)
+            while (time < fallSeconds)
             {
                 time += Time.deltaTime;
-                float k = Mathf.Clamp01(time / .3f);
-                transform.position = start + drift * k;
+                float k = Mathf.Clamp01(time / fallSeconds);
+                transform.position = start + drift * k + Vector3.down * fall * k * k;
                 if (view) view.Present(CreaturePose.Death, heading, Vector3.up * Mathf.Sin(k * Mathf.PI) * hop, new Vector2(.92f, 1.08f), 0);
                 Tint(hitTint, 1 - k);
                 yield return null;
@@ -784,6 +792,7 @@ namespace Hakaton.Expeditions
         void LateUpdate()
         {
             if (appliedSize != CurrentSize) ApplySize();
+            if (flying) UpdateShadow();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
@@ -808,11 +817,11 @@ namespace Hakaton.Expeditions
             {
                 pose = PoseForState();
                 float hopScale = State == CreatureState.Flee ? 2.6f : 1;
-                float hop = Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
+                float hop = flying ? 0 : Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
                 Vector3 tremble = State == CreatureState.Windup ? Random.insideUnitSphere * .02f * TopHeight * crouch : Vector3.zero;
                 float stretch = State == CreatureState.Strike ? 1.12f : 1;
                 float roll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 10 : 0;
-                view.Present(pose, transform.forward, Vector3.up * hop + tremble,
+                view.Present(pose, transform.forward, Vector3.up * hop + tremble + FlightSway(),
                     new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
             // Colour: red flash on hit, icy while frozen, flickering orange while burning.
@@ -825,7 +834,8 @@ namespace Hakaton.Expeditions
         /// <summary>A puff of dust from under the feet; throttled so a fast gait does not turn into a smoke screen.</summary>
         void KickDust(int count)
         {
-            if (!stepDust || count <= 0 || Time.time < nextDust || PlayerDistance > 30) return;
+            // No dust from under a flyer; it only kicks some up when it hits the ground dead.
+            if (!stepDust || count <= 0 || flying && Alive || Time.time < nextDust || PlayerDistance > 30) return;
             nextDust = Time.time + .08f;
             stepDust.Emit(new ParticleSystem.EmitParams { startColor = dustColour }, count);
         }
