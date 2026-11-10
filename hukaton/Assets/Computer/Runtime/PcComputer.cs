@@ -42,6 +42,13 @@ namespace Hakaton.Computer
         [Tooltip("2D source for the cards' own sounds (card, coin, merge).")]
         public AudioSource uiSource;
 
+        [Header("Music")]
+        [Tooltip("The PC's own quiet looping music (the 'phone earpiece' sound is baked into the clip, so it is the same in WebGL). " +
+                 "Fades in only once the desktop is up, fades out when the PC switches off.")]
+        public AudioSource music;
+        [Range(0, 1)] public float musicVolume = .15f;
+        [Min(0)] public float musicFadeInSeconds = 2.5f, musicFadeOutSeconds = .4f;
+
         Phase phase;
         bool everBooted;
         int bootJourneys;
@@ -49,6 +56,7 @@ namespace Hakaton.Computer
         float blinkTime, blinkFrom;
         PlayerControlGate Gate => workshop ? workshop.control : null;
         float fadeVoice = -1, fadeFrom;
+        bool fullBoot, musicOn, musicPaused;
 
         public bool IsOpen => phase != Phase.Off;
         /// <summary>The desktop is up and takes input.</summary>
@@ -107,6 +115,7 @@ namespace Hakaton.Computer
                 case Phase.Running:
                     SetInput(false);
                     StopBootVoice();
+                    MusicOff(false);
                     boot.PowerOff();
                     if (sfx) sfx.Play(offCue);
                     phase = Phase.ShuttingDown;
@@ -120,6 +129,7 @@ namespace Hakaton.Computer
             if (phase == Phase.Off) return;
             SetInput(false);
             StopBootVoice();
+            MusicOff(true);
             if (boot) boot.SetOff();
             SetDisplay(0);
             Release();
@@ -142,6 +152,7 @@ namespace Hakaton.Computer
         void Update()
         {
             FadeBootVoice();
+            FadeMusic();
             switch (phase)
             {
                 case Phase.Closing:
@@ -194,6 +205,7 @@ namespace Hakaton.Computer
             SetDisplay(1);
             screen.SetPictureVisible(true);
             bool full = !everBooted || bootJourneys != workshop.Model.Journeys;
+            fullBoot = full;
             everBooted = true;
             bootJourneys = workshop.Model.Journeys;
             if (full) desktop.CloseAll();
@@ -207,6 +219,7 @@ namespace Hakaton.Computer
         {
             phase = Phase.Running;
             SetInput(true);
+            MusicOn(fullBoot);
             // Windows left open stay open across a short wake; refresh what they show.
             if (cards.window.IsOpen) cards.Refresh();
             if (upgrades.window.IsOpen) upgrades.Refresh();
@@ -246,6 +259,47 @@ namespace Hakaton.Computer
         public void Play(AudioClip clip, float volume = .65f)
         {
             if (clip && uiSource) uiSource.PlayOneShot(clip, volume);
+        }
+
+        // ---------- music ----------
+
+        /// <summary>Fade the music in; after a full boot it starts from the top, after a short wake it carries on.</summary>
+        void MusicOn(bool fromStart)
+        {
+            if (!music || !music.clip) return;
+            if (fromStart || !musicPaused)
+            {
+                music.volume = 0;
+                music.Play();
+            }
+            else music.UnPause();
+            musicPaused = false;
+            musicOn = true;
+        }
+
+        void MusicOff(bool now)
+        {
+            musicOn = false;
+            if (!music || !now) return;
+            music.volume = 0;
+            PauseMusic();
+        }
+
+        void PauseMusic()
+        {
+            if (!music.isPlaying) return;
+            music.Pause();
+            musicPaused = true;
+        }
+
+        void FadeMusic()
+        {
+            if (!music || !music.isPlaying) return;
+            float target = musicOn ? musicVolume : 0;
+            float seconds = musicOn ? musicFadeInSeconds : musicFadeOutSeconds;
+            float step = seconds > 0 ? musicVolume / seconds * Time.unscaledDeltaTime : 1;
+            music.volume = Mathf.MoveTowards(music.volume, target, step);
+            if (!musicOn && music.volume <= 0) PauseMusic();
         }
 
         void FadeOutBootVoice()

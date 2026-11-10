@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hakaton.Computer;
 using Hakaton.Expeditions;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -122,6 +123,51 @@ namespace Hakaton.Game.Tests
             yield return WaitFor(() => game.Phase == GamePhase.Shop && !world.Returning, 10);
             Assert.That(game.Phase, Is.EqualTo(GamePhase.Shop), "Defeat brings the player back to the shop.");
             Assert.That(world.workshop.Model.IsAway, Is.False);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator PcMusicStartsAfterTheBootAndFadesOutWhenSwitchedOff()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            game.SkipTutorial();
+            var pc = Object.FindAnyObjectByType<PcComputer>();
+            Assert.That(pc, Is.Not.Null);
+            var music = pc.music;
+            Assert.That(music && music.clip, Is.True, "The PC prefab wires its music source and clip.");
+            Assert.That((music.loop, music.playOnAwake, music.spatialBlend), Is.EqualTo((true, false, 0f)));
+            Assert.That(pc.musicVolume, Is.InRange(.01f, .3f), "The PC music is meant to be very quiet.");
+
+            Assert.That(pc.Open(), Is.True);
+            bool playedDuringBoot = false;
+            float end = Time.realtimeSinceStartup + 8;
+            while (!pc.Running && Time.realtimeSinceStartup < end)
+            {
+                playedDuringBoot |= music.isPlaying && music.volume > 0;
+                yield return null;
+            }
+            Assert.That(pc.Running, Is.True, "The PC boots up.");
+            Assert.That(playedDuringBoot, Is.False, "No music while the PC is still booting.");
+            yield return null;
+            Assert.That(music.isPlaying, Is.True, "The music starts once the desktop is up.");
+            Assert.That(music.volume, Is.LessThan(pc.musicVolume), "…and fades in rather than jumping to full volume.");
+            yield return new WaitForSecondsRealtime(pc.musicFadeInSeconds + .3f);
+            Assert.That(music.volume, Is.EqualTo(pc.musicVolume).Within(.001f));
+
+            pc.Close();
+            yield return WaitFor(() => !pc.IsOpen, 5);
+            Assert.That(pc.IsOpen, Is.False);
+            Assert.That((music.isPlaying, music.volume), Is.EqualTo((false, 0f)), "Switching off fades the music out and pauses it.");
+            float pausedAt = music.time;
+            Assert.That(pausedAt, Is.GreaterThan(0));
+
+            Assert.That(pc.Open(), Is.True, "A short wake this time.");
+            yield return WaitFor(() => pc.Running, 5);
+            yield return null;
+            Assert.That(music.isPlaying, Is.True);
+            Assert.That(music.time, Is.GreaterThanOrEqualTo(pausedAt), "After a short wake the music carries on where it stopped.");
+            pc.CloseImmediately();
+            Assert.That(music.isPlaying, Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 
