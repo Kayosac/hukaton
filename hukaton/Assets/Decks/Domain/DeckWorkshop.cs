@@ -235,6 +235,18 @@ namespace Hakaton.Decks
             return null;
         }
 
+        /// <summary>
+        /// The cave prologue: an outing without the deck — the tutorial puts its cards into the hand itself. Spells come
+        /// back after every throw and no Return card appears.
+        /// </summary>
+        public string DepartPrologue(int handSize = 3)
+        {
+            if (IsAway) return "Вылазка уже началась.";
+            Current = new Expedition(Enumerable.Empty<CardCopy>(), handSize, 0, true);
+            Changed?.Invoke();
+            return null;
+        }
+
         // ---------- saving ----------
 
         public WorkshopSave Save() => new WorkshopSave { coins = Coins, nextId = nextId, hand = handSize, journeys = Journeys,

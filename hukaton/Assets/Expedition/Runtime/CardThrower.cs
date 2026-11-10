@@ -6,6 +6,15 @@ using UnityEngine.InputSystem;
 
 namespace Hakaton.Expeditions
 {
+    /// <summary>Limits on what the player may do with the hand (the tutorial's instruction cards).</summary>
+    public interface IThrowRules
+    {
+        bool CanSelect(CardCopy card);
+        bool CanThrow(CardCopy card);
+        bool CanDiscard();
+        void Discarded();
+    }
+
     /// <summary>
     /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
     /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select from the one shared hand, R discards the hand (a new one is drawn),
@@ -23,6 +32,8 @@ namespace Hakaton.Expeditions
         public Transform launchSocket;
 
         public ThrowPreparation Preparation { get; } = new ThrowPreparation();
+        /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
+        public IThrowRules rules;
         public event Action<CardCopy> Thrown;
         public event Action SelectionChanged;
         public bool HasThrown { get; private set; }
@@ -107,6 +118,11 @@ namespace Hakaton.Expeditions
             if (card.IsReturn)
             {
                 if (Time.time >= returnReadyAt) world.ReturnToShop(false);
+                return;
+            }
+            if (rules != null && !rules.CanThrow(card))
+            {
+                world.Play(world.cues ? world.cues.cancel : null);
                 return;
             }
             Preparation.Begin();
@@ -199,6 +215,7 @@ namespace Hakaton.Expeditions
             var hand = trip.Deck.Hand;
             if (index < 0 || index >= hand.Count) return;
             if (selectedId == hand[index].Id) return;
+            if (rules != null && !rules.CanSelect(hand[index])) return;
             Cancel();
             selectedId = hand[index].Id;
             selectedIndex = index;
@@ -206,15 +223,33 @@ namespace Hakaton.Expeditions
             SelectionChanged?.Invoke();
         }
 
+        /// <summary>Selects a particular copy (a card the tutorial just handed over), ignoring the rules.</summary>
+        public void SelectCopy(int copyId)
+        {
+            var hand = world.workshop.Model?.Current?.Deck.Hand;
+            if (hand == null) return;
+            for (int i = 0; i < hand.Count; i++)
+            {
+                if (hand[i].Id != copyId) continue;
+                Cancel();
+                selectedId = copyId;
+                selectedIndex = i;
+                SelectionChanged?.Invoke();
+                return;
+            }
+        }
+
         public void Discard()
         {
             if (!world.Running || Time.time < nextDiscard) return;
+            if (rules != null && !rules.CanDiscard()) return;
             var trip = world.workshop.Model.Current;
             bool any = false;
             foreach (var card in trip.Deck.Hand) if (!card.IsReturn) { any = true; break; }
             if (!any) return;
             Cancel();
             var discarded = trip.DiscardHand();
+            rules?.Discarded();
             nextDiscard = Time.time + world.settings.discardCooldown;
             world.hand.Scatter(discarded);
             world.Play(world.cues ? world.cues.discard : null);

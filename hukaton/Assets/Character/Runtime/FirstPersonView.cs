@@ -47,8 +47,31 @@ namespace Hakaton.Character
             motor.Landed += OnLanded;
         }
 
+        Vector3? guide;
+
+        /// <summary>Turns the view toward a point and holds it there (whoever is talking in a cutscene); null frees the mouse.</summary>
+        public void Guide(Vector3? point) => guide = point;
+
         void Update()
         {
+            if (guide.HasValue)
+            {
+                Vector3 to = guide.Value - pitchPivot.position;
+                if (to.sqrMagnitude > .0001f)
+                {
+                    float wantedYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                    float wantedPitch = -Mathf.Asin(Mathf.Clamp(to.normalized.y, -1, 1)) * Mathf.Rad2Deg;
+                    yawTarget = yaw + Mathf.DeltaAngle(yaw, wantedYaw);
+                    pitchTarget = Mathf.Clamp(wantedPitch, -pitchLimit, pitchLimit);
+                }
+                float step = Time.deltaTime;
+                if (step <= 0) return;
+                yaw = Mathf.SmoothDampAngle(yaw, yawTarget, ref yawVelocity, .22f, Mathf.Infinity, step);
+                pitch = Mathf.SmoothDampAngle(pitch, pitchTarget, ref pitchVelocity, .22f, Mathf.Infinity, step);
+                yawRoot.rotation = Quaternion.Euler(0, yaw, 0);
+                pitchPivot.localRotation = Quaternion.Euler(pitch, 0, 0);
+                return;
+            }
             if (input.LookBlocked) return;
             if (control.GameplayActive && !control.CapturedThisFrame)
             {

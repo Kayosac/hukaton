@@ -20,10 +20,13 @@ namespace Hakaton.Decks
         /// <summary>Cards in the air that come back to the hand when their attempt settles.</summary>
         public IReadOnlyList<CardCopy> Held => held.AsReadOnly();
         public bool HasReturn => hand.Any(c => c.IsReturn);
+        /// <summary>The cave prologue: spells come back after every throw, no Return card, R keeps the spells.</summary>
+        public bool Prologue { get; }
 
-        internal ExpeditionDeck(IEnumerable<CardCopy> cards, int capacity, int seed)
+        internal ExpeditionDeck(IEnumerable<CardCopy> cards, int capacity, int seed, bool prologue = false)
         {
             Capacity = capacity;
+            Prologue = prologue;
             var order = cards.Select(c => c.Snapshot()).ToList();
             Total = order.Count;
             var random = new Random(seed);
@@ -42,7 +45,7 @@ namespace Hakaton.Decks
         void Fill()
         {
             while (hand.Count + held.Count < Capacity && stock.Count > 0) hand.Add(stock.Dequeue());
-            if (stock.Count == 0 && hand.Count == 0 && held.Count == 0) hand.Add(CardCopy.Return());
+            if (!Prologue && stock.Count == 0 && hand.Count == 0 && held.Count == 0) hand.Add(CardCopy.Return());
         }
 
         internal CardCopy Release(int id)
@@ -50,7 +53,8 @@ namespace Hakaton.Decks
             var card = hand.Find(c => c.Id == id && !c.IsReturn);
             if (card == null) return null;
             hand.Remove(card);
-            card.UsesLeft = Math.Max(0, card.UsesLeft - 1);
+            // In the prologue a spell is never used up: it comes back once its throw is over.
+            if (!(Prologue && card.Spec.Mergeable)) card.UsesLeft = Math.Max(0, card.UsesLeft - 1);
             if (card.UsesLeft > 0) held.Add(card);
             else discard.Add(card);
             Fill();
@@ -76,7 +80,8 @@ namespace Hakaton.Decks
 
         internal List<CardCopy> DiscardHand()
         {
-            var cards = hand.Where(c => !c.IsReturn).ToList();
+            // The prologue's R restores the spells: only the instruction cards (not mergeable) leave.
+            var cards = hand.Where(c => !c.IsReturn && !(Prologue && c.Spec.Mergeable)).ToList();
             foreach (var c in cards)
             {
                 hand.Remove(c);
@@ -96,11 +101,13 @@ namespace Hakaton.Decks
         public int DiscardedCount { get; private set; }
         public event Action<CardCopy> CardReleased;
 
-        public Expedition(IEnumerable<CardCopy> cards, int handSize, int seed)
+        public Expedition(IEnumerable<CardCopy> cards, int handSize, int seed, bool prologue = false)
         {
             if (handSize < 1) throw new ArgumentOutOfRangeException(nameof(handSize));
-            Deck = new ExpeditionDeck(cards, handSize, seed);
+            Deck = new ExpeditionDeck(cards, handSize, seed, prologue);
         }
+
+        public bool Prologue => Deck.Prologue;
 
         public CardCopy Release(int id)
         {
@@ -125,11 +132,13 @@ namespace Hakaton.Decks
 
         int nextGrantedId = -1000;
 
-        /// <summary>Debug/cheat helper: adds a temporary copy (never owned or saved) to the hand.</summary>
+        /// <summary>Adds a temporary copy (never owned or saved) to the hand: the cave prologue's cards, cheats.</summary>
         public CardCopy GrantToHand(CardSpec spec, int level = 1)
         {
             if (Completed || spec == null) return null;
             var card = new CardCopy(nextGrantedId--, spec, spec.Mergeable ? Math.Max(1, Math.Min(CardSpec.MaxLevel, level)) : 1);
+            // A spell given in the prologue never runs out.
+            if (Prologue && spec.Mergeable) card.UsesLeft = int.MaxValue;
             Deck.AddToHand(card);
             return card;
         }

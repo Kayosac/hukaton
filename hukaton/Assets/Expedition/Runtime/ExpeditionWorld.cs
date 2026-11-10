@@ -58,12 +58,21 @@ namespace Hakaton.Expeditions
         /// <summary>Raised for each item picked up: display name, value.</summary>
         public event Action<string, int> Collected;
         public event Action<Vector3> PlayerLaunched;
+        /// <summary>Every card landing: the copy and what it hit (the tutorial watches its bush).</summary>
+        public event Action<CardCopy, Collider, Vector3> Impacted;
+        /// <summary>The cave prologue runs instead of an outing to the valley.</summary>
+        public bool InPrologue { get; private set; }
+        /// <summary>Where a fall into the prologue's water puts the player back (the nearest shore).</summary>
+        public Transform prologueShore;
+        /// <summary>The cave's roots and water: searched instead of the valley's while the prologue runs.</summary>
+        public WorldObstacle[] prologueObstacles = new WorldObstacle[0];
 
         void Awake() { workshop.Departed += BeginOuting; }
         void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
 
         public void BeginOuting()
         {
+            InPrologue = false;
             Returning = false;
             Impacts = 0;
             LootValue = 0;
@@ -90,7 +99,7 @@ namespace Hakaton.Expeditions
         {
             FocusedLoot = null;
             if (!Running) return;
-            if (sfx && cues) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
+            if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
@@ -178,7 +187,7 @@ namespace Hakaton.Expeditions
 
         public WorldObstacle ObstacleNear(Vector3 point, float radius, ObstacleKind kind)
         {
-            foreach (var obstacle in obstacles)
+            foreach (var obstacle in InPrologue ? prologueObstacles : obstacles)
                 if (obstacle.kind == kind && obstacle.DistanceTo(point) <= radius) return obstacle;
             return null;
         }
@@ -193,6 +202,7 @@ namespace Hakaton.Expeditions
             var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
             if (definition.effectAsset is CardEffect effect) effect.Apply(context);
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
+            Impacted?.Invoke(copy, target, point);
         }
 
         public void OnPlayerLaunched(Vector3 push)
@@ -209,8 +219,69 @@ namespace Hakaton.Expeditions
         /// <summary>Deep water: no damage over time, the player drowns at once — the view darkens while the body sinks.</summary>
         public void Drown()
         {
+            if (InPrologue)
+            {
+                // The prologue has no death: a short dip into the dark and back on the nearest shore.
+                if (!shoreTrip) StartCoroutine(BackToShore());
+                return;
+            }
             if (!Running || !vitals.Drain()) return;
             ReturnToShop(true, true);
+        }
+
+        bool shoreTrip;
+
+        IEnumerator BackToShore()
+        {
+            shoreTrip = true;
+            thrower.Cancel();
+            control.SetBlocked(this, true);
+            Play(cues ? cues.drownSplash : null);
+            if (fade) yield return fade.FadeTo(1, .25f);
+            if (prologueShore) motor.Teleport(prologueShore.position, prologueShore.rotation);
+            yield return new WaitForSecondsRealtime(.15f);
+            control.SetBlocked(this, false);
+            if (fade) yield return fade.FadeTo(0, .35f);
+            shoreTrip = false;
+        }
+
+        /// <summary>
+        /// The cave prologue (board, «Туториал», 01–04): the outing the tutorial runs itself, starting at its own spot,
+        /// with an empty hand the tutorial fills. No loot, no Return card, no death.
+        /// </summary>
+        public void BeginPrologue(Transform start)
+        {
+            InPrologue = true;
+            Returning = false;
+            Impacts = 0;
+            LootValue = 0;
+            loot.Clear();
+            ClearCardEffects();
+            foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
+            foreach (var obstacle in prologueObstacles) obstacle.ResetForOuting();
+            vitals.Restore();
+            motor.Teleport(start.position, start.rotation);
+            thrower.ResetSelection();
+            control.CaptureCursor();
+            hud.canvas.enabled = true;
+            hud.BeginOuting();
+            hand.Deal();
+            if (time) time.ResetTime();
+        }
+
+        /// <summary>Ends the prologue on the spot (the screen is already dark): clears it and moves the player to the shop.</summary>
+        public void EndPrologue()
+        {
+            if (!InPrologue) return;
+            workshop.Model.Current?.Defeat();
+            thrower.Cancel();
+            ClearCardEffects();
+            hand.Hide();
+            hud.canvas.enabled = false;
+            motor.Teleport(shopPose.position, shopPose.rotation);
+            vitals.Restore();
+            if (sfx) sfx.StopLoop(this);
+            InPrologue = false;
         }
 
         void ReturnToShop(bool defeated, bool drowned)

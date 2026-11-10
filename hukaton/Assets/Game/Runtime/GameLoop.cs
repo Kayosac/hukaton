@@ -31,6 +31,8 @@ namespace Hakaton.Game
         public ShopBackroomServices services;
         [Tooltip("A new game starts with the goblin on the counter.")]
         public ShopTutorial tutorial;
+        [Tooltip("A new game opens in the cave prologue; the shop tutorial follows it. Empty: straight to the shop.")]
+        public CaveTutorial cave;
         public FirstPersonMotor player;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
@@ -90,10 +92,14 @@ namespace Hakaton.Game
                 }
             }
             SetPhase(GamePhase.Shop);
-            // A new game (no save): the goblin partner greets the player on the counter.
-            if (!loaded && warning == null) tutorial.Begin();
+            // A new game (no save): the cave prologue, then the goblin partner on the counter.
+            if (!loaded && warning == null)
+            {
+                if (cave) EnterCave();
+                else tutorial.Begin();
+            }
             restoring = false; Ready = true;
-            if (tutorial.Active) Notify(string.Empty, 0);
+            if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
             else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
                 : "С возвращением. Запас, колоды и выручка сохранены."), 9);
@@ -237,6 +243,25 @@ namespace Hakaton.Game
                 : "Вы вернулись без добычи. Остаток смены сохранён.", 8);
             dirty = true;
         }
+        /// <summary>The prologue runs in the expedition phase (nothing is saved there) with the valley switched off.</summary>
+        void EnterCave()
+        {
+            SetPhase(GamePhase.Expedition);
+            expeditionGeometry.SetActive(false);
+            cave.Finished += LeaveCave;
+            cave.Begin();
+        }
+
+        /// <summary>The screen is dark after the goblin's last line: the shop, the goblin on the counter, light.</summary>
+        void LeaveCave()
+        {
+            cave.Finished -= LeaveCave;
+            SetPhase(GamePhase.Shop);
+            tutorial.Begin();
+            dirty = true;
+            if (fade) StartCoroutine(fade.FadeTo(0, .6f));
+        }
+
         void SetPhase(GamePhase phase)
         {
             Phase = phase;

@@ -49,6 +49,9 @@ namespace Hakaton.ShopBlockout
         /// <summary>A purchase was made: the goblin is pleased with the deal.</summary>
         public void Please() => pleasedUntil = Time.time + pleasedSeconds;
 
+        /// <summary>The startled drawing for a while (hit by a card, caught in a bush).</summary>
+        public void Startle(float seconds) => startledUntil = Mathf.Max(startledUntil, Time.time + seconds);
+
         void LateUpdate()
         {
             if (!Application.IsPlaying(gameObject)) return;

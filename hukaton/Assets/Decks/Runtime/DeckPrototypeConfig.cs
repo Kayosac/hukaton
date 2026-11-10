@@ -29,6 +29,8 @@ namespace Hakaton.Decks.Unity
     public sealed class DeckPrototypeConfig : ScriptableObject
     {
         public CardDefinition[] cards;
+        [Tooltip("Cards that exist only in the story (the cave's instruction cards): never sold, dealt or kept.")]
+        public CardDefinition[] storyCards = Array.Empty<CardDefinition>();
         public Sprite returnArtwork;
         [Tooltip("Deck limit at the start. The collection holds twice the current deck limit.")]
         [Min(1)]
@@ -56,6 +58,6 @@ namespace Hakaton.Decks.Unity
         public DeckWorkshop CreateWorkshop(CoinWallet wallet = null) => new DeckWorkshop(Rules(), cards.Select(c => c.ToSpec()),
             wallet, initialCopies.Select(c => new StartingCopies(c.definitionId, c.count, c.inDeck, c.protectedFromBurning)));
 
-        public CardDefinition Find(string id) => cards.FirstOrDefault(c => c.id == id);
+        public CardDefinition Find(string id) => cards.FirstOrDefault(c => c.id == id) ?? storyCards.FirstOrDefault(c => c && c.id == id);
     }
 }
