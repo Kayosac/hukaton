@@ -130,6 +130,7 @@ namespace Hakaton.EnemyDebug
             foreach (Transform child in liveRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             live.Clear();
             world.creatures.Clear();
+            EnemyProjectile.ClearAll();
             foreach (var preview in previews) preview.PlayPose(CreaturePose.Default);
             ReceivedDamage = 0;
             world.vitals.Restore();
@@ -147,7 +148,8 @@ namespace Hakaton.EnemyDebug
             {
                 string alarm = Focused.source.temperament == Temperament.Timid ? "испуг" : "агрессия";
                 string attack = Focused.HasAttack ? "3 атака" : "3 нет атаки";
-                focusText.text = $"{Focused.source.displayName} / {Focused.PoseLabel}\n1 {alarm}   2 урон   {attack}   4 смерть\n0 исходное   E живая копия";
+                string shoots = Focused.source.HasRangedAttack ? "   стреляет" : "";
+                focusText.text = $"{Focused.source.displayName} / {Focused.PoseLabel}{shoots}\n1 {alarm}   2 урон   {attack}   4 смерть\n0 исходное   E живая копия";
             }
         }
     }
