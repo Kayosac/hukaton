@@ -14,21 +14,8 @@ namespace Hakaton.ShopBlockout
         public Color equator = new Color(.25f, .19f, .15f);
         public Color ground = new Color(.13f, .10f, .08f);
 
-        [Tooltip("Also replace the scene's fog while active (the cave: dark, close fog instead of the valley's haze).")]
-        public bool overrideFog;
-        public Color fogColor = new Color(.03f, .03f, .05f);
-        [Min(0)] public float fogDensity = .045f;
-
-        [Tooltip("Lights from outside switched off while active (the valley's sun must not reach into the cave).")]
-        public Light[] lightsOff = new Light[0];
-        bool[] savedLights;
-
         AmbientMode savedMode;
         Color savedSky, savedEquator, savedGround;
-        bool savedFog;
-        Color savedFogColor;
-        float savedFogDensity;
-        FogMode savedFogMode;
         bool applied;
 
         void OnEnable()
@@ -41,24 +28,6 @@ namespace Hakaton.ShopBlockout
             RenderSettings.ambientSkyColor = sky;
             RenderSettings.ambientEquatorColor = equator;
             RenderSettings.ambientGroundColor = ground;
-            if (overrideFog)
-            {
-                savedFog = RenderSettings.fog;
-                savedFogColor = RenderSettings.fogColor;
-                savedFogDensity = RenderSettings.fogDensity;
-                savedFogMode = RenderSettings.fogMode;
-                RenderSettings.fog = true;
-                RenderSettings.fogMode = FogMode.ExponentialSquared;
-                RenderSettings.fogColor = fogColor;
-                RenderSettings.fogDensity = fogDensity;
-            }
-            savedLights = new bool[lightsOff.Length];
-            for (int i = 0; i < lightsOff.Length; i++)
-            {
-                if (!lightsOff[i]) continue;
-                savedLights[i] = lightsOff[i].enabled;
-                lightsOff[i].enabled = false;
-            }
             applied = true;
         }
 
@@ -70,15 +39,6 @@ namespace Hakaton.ShopBlockout
             RenderSettings.ambientSkyColor = savedSky;
             RenderSettings.ambientEquatorColor = savedEquator;
             RenderSettings.ambientGroundColor = savedGround;
-            if (overrideFog)
-            {
-                RenderSettings.fog = savedFog;
-                RenderSettings.fogColor = savedFogColor;
-                RenderSettings.fogDensity = savedFogDensity;
-                RenderSettings.fogMode = savedFogMode;
-            }
-            for (int i = 0; i < lightsOff.Length && savedLights != null && i < savedLights.Length; i++)
-                if (lightsOff[i]) lightsOff[i].enabled = savedLights[i];
         }
     }
 }

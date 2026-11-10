@@ -8,6 +8,7 @@ using Hakaton.Expeditions;
 using Hakaton.Feel;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace Hakaton.Tutorial
 {
@@ -20,37 +21,32 @@ namespace Hakaton.Tutorial
     /// back after every throw. Only a Strike on the bush brings out the goblin: ~5 s of panic around the bush, then
     /// seven lines on E with the view held on him, and the screen goes dark into the shop.
     /// Nothing is saved in here: quitting the cave starts it again from the awakening.
+    /// The place itself (<see cref="CaveLevel"/>) lives in its own scene with its own lighting: it is loaded next to the
+    /// game scene when the prologue begins and unloaded on the way to the shop.
     /// </summary>
     public sealed class CaveTutorial : MonoBehaviour, IThrowRules
     {
+        [Header("Level")]
+        [Tooltip("The scene with the cave itself (CaveLevel inside), loaded next to this one for the prologue.")]
+        public string caveScene = "TutorialCave";
+        [Tooltip("What the goblin turns to face (the player's view).")]
+        public Transform goblinViewer;
+
         [Header("Scene")]
         public ExpeditionWorld world;
         public PlayerControlGate control;
         public FirstPersonView view;
         public ScreenFade fade;
         public TutorialBubble bubble;
-        [Tooltip("The plain goblin (no nappy, no dummy), hidden in the bush until the Strike.")]
-        public CounterGoblin goblin;
-        [Tooltip("The cave's geometry: shown only while the prologue runs.")]
-        public GameObject geometry;
-        public Transform start;
 
         [Header("Where each card is handed over")]
-        public Transform rootsZone;
-        public Transform waterZone, bushZone;
         [Min(.5f)] public float zoneRadius = 3.5f;
         [Tooltip("A card is handed over only within this height of its zone (the cave folds over itself).")]
         [Min(.5f)] public float zoneHeight = 2.5f;
-        [Tooltip("Ice is handed over only once these roots have burnt: the corridors fold, a zone can be near through a wall.")]
-        public WorldObstacle rootsObstacle;
-        [Tooltip("Strike is handed over only once this water has frozen.")]
-        public WorldObstacle waterObstacle;
         [Tooltip("What blocks the view to a zone: rock and props, not the player, cards or the water surface.")]
         public LayerMask sightBlockers = ~((1 << 2) | (1 << 4) | (1 << 8));
 
         [Header("Bush")]
-        [Tooltip("The bush: any card landing on it shakes it; only Strike brings the goblin out.")]
-        public Transform bush;
         [Min(.1f)] public float panicSeconds = 5, panicRadius = 1.7f, panicSpeed = 3.2f;
         [Tooltip("He stops this far in front of the player, on the way to the bush, to talk.")]
         [Min(1)] public float talkDistance = 2.8f;
@@ -83,9 +79,24 @@ namespace Hakaton.Tutorial
         [Min(.05f)] public float darkSeconds = .7f;
 
         public CaveStage Stage { get; private set; } = CaveStage.Off;
-        public bool Active => Stage != CaveStage.Off && Stage != CaveStage.Done;
+        /// <summary>From the moment the cave's scene starts loading until the screen is dark on the way to the shop.</summary>
+        public bool Active => loading || Stage != CaveStage.Off && Stage != CaveStage.Done;
+        /// <summary>The loaded cave (null outside the prologue).</summary>
+        public CaveLevel Level { get; private set; }
         /// <summary>The screen is dark and the player stands in the shop: the shop tutorial takes over.</summary>
         public event Action Finished;
+
+        bool loading;
+        Scene levelScene;
+        AsyncOperation levelLoad;
+        Transform start => Level ? Level.start : null;
+        Transform rootsZone => Level ? Level.rootsZone : null;
+        Transform waterZone => Level ? Level.waterZone : null;
+        Transform bushZone => Level ? Level.bushZone : null;
+        Transform bush => Level ? Level.bush : null;
+        CounterGoblin goblin => Level ? Level.goblin : null;
+        WorldObstacle rootsObstacle => Level ? Level.rootsObstacle : null;
+        WorldObstacle waterObstacle => Level ? Level.waterObstacle : null;
 
         int instructionsThrown;
         bool continueRequested, wheelHintPending;
@@ -100,7 +111,34 @@ namespace Hakaton.Tutorial
         public void Begin()
         {
             if (Active) return;
-            if (geometry) geometry.SetActive(true);
+            StartCoroutine(LoadLevelAndBegin());
+        }
+
+        IEnumerator LoadLevelAndBegin()
+        {
+            loading = true;
+            if (fade) fade.Set(1);
+            levelLoad = SceneManager.LoadSceneAsync(caveScene, LoadSceneMode.Additive);
+            if (levelLoad == null) { loading = false; Debug.LogError($"Cave prologue: scene '{caveScene}' is not in the build.", this); yield break; }
+            yield return levelLoad;
+            levelLoad = null;
+            levelScene = SceneManager.GetSceneByName(caveScene);
+            foreach (var root in levelScene.GetRootGameObjects())
+                if (root.TryGetComponent<CaveLevel>(out var level)) { Level = level; break; }
+            if (!Level) { loading = false; Debug.LogError($"Cave prologue: no CaveLevel at the root of '{caveScene}'.", this); yield break; }
+            // the cave's own lighting (ambient, fog) comes with its scene
+            SceneManager.SetActiveScene(levelScene);
+            if (goblin) goblin.viewer = goblinViewer;
+            world.prologueObstacles = new[] { rootsObstacle, waterObstacle };
+            foreach (var obstacle in world.prologueObstacles) if (obstacle) obstacle.world = world;
+            world.prologueShores = Level.shores;
+            loading = false;
+            StartInCave();
+            if (fade) yield return fade.FadeTo(0, .5f);
+        }
+
+        void StartInCave()
+        {
             goblin.Show(false);
             if (bush) bushRest = bush.localPosition;
             instructions.Clear();
@@ -366,9 +404,27 @@ namespace Hakaton.Tutorial
             world.Impacted -= OnImpacted;
             if (view) view.Guide(null);
             control.SetBlocked(this, false);
-            goblin.Show(false);
+            if (goblin) goblin.Show(false);
             if (bush) bush.localPosition = bushRest;
-            if (geometry) geometry.SetActive(false);
+            UnloadLevel();
+        }
+
+        void UnloadLevel()
+        {
+            loading = false;
+            world.prologueObstacles = new WorldObstacle[0];
+            world.prologueShores = new Transform[0];
+            Level = null;
+            if (SceneManager.GetActiveScene() != gameObject.scene) SceneManager.SetActiveScene(gameObject.scene);
+            if (levelLoad != null)
+            {
+                // skipped while still loading: drop the scene as soon as it arrives
+                string name = caveScene;
+                levelLoad.completed += _ => SceneManager.UnloadSceneAsync(name);
+                levelLoad = null;
+            }
+            else if (levelScene.IsValid() && levelScene.isLoaded) SceneManager.UnloadSceneAsync(levelScene);
+            levelScene = default;
         }
 
         void OnDisable()
