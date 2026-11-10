@@ -180,84 +180,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &6916390347776412206
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 947006928767519143}
-  - component: {fileID: 5034247660324682044}
-  - component: {fileID: 4538186802902273555}
-  m_Layer: 0
-  m_Name: "\u0417\u0432\u0435\u0440\u0438\u043D\u044B\u0439 \u043A\u043B\u044B\u043A"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &947006928767519143
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6916390347776412206}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 8180770014209727822}
-  - {fileID: 6854841327429663704}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5034247660324682044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6916390347776412206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
-  itemId: 
-  displayName: "\u0417\u0432\u0435\u0440\u0438\u043D\u044B\u0439 \u043A\u043B\u044B\u043A"
-  value: 65
-  guaranteed: 1
-  spawnChance: 0.7
-  body: {fileID: 0}
-  visual: {fileID: 8180770014209727822}
-  world: {fileID: 0}
-  spawnPoints: []
-  glint: {fileID: 4916456099536263918}
---- !u!135 &4538186802902273555
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6916390347776412206}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.45
-  m_Center: {x: 0, y: 0.35, z: 0}
 --- !u!1 &8918975326895350035
 GameObject:
   m_ObjectHideFlags: 0
@@ -268,7 +190,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8180770014209727822}
   m_Layer: 0
-  m_Name: Artwork
+  m_Name: "Loot crystal"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -289,72 +211,5 @@ Transform:
   m_Children:
   - {fileID: 8539272330615745602}
   - {fileID: 5392708346719593869}
-  m_Father: {fileID: 947006928767519143}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &2578463041306073942
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 947006928767519143}
-    m_Modifications:
-    - target: {fileID: 6022513902343771386, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_Name
-      value: Glint
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
---- !u!198 &4916456099536263918 stripped
-ParticleSystem:
-  m_CorrespondingSourceObject: {fileID: 7490129118351901112, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-  m_PrefabInstance: {fileID: 2578463041306073942}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &6854841327429663704 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 9000940456105287822, guid: 25b0402c89cdd4143b77fb3d35e20df9, type: 3}
-  m_PrefabInstance: {fileID: 2578463041306073942}
-  m_PrefabAsset: {fileID: 0}
