@@ -3,17 +3,23 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 using TMPro;
+using Hakaton.DialogueUI;
 using Hakaton.Feel;
 
 namespace Hakaton.Trading.Unity
 {
-    /// <summary>Presentation only: updates controls already authored in TradingHUD.prefab.</summary>
+    /// <summary>
+    /// Presentation only: updates controls already authored in TradingHUD.prefab. Shop HUD and the trading
+    /// conversation follow the 2026-11-10 UI handoff (736 × 368 reference layout): balance top left, shift clock
+    /// top right, the visitor's lines in the stitched-linen bubble, linen buttons along the bottom. During a
+    /// conversation the visitor's name, the goals block and the aim point are never shown.
+    /// </summary>
     public sealed class TradingHud : MonoBehaviour
     {
         [Header("Compact exploration HUD")]
-        public RectTransform layoutRoot, interactionPanel, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
+        public RectTransform layoutRoot, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
         public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility, staminaVisibility;
-        public TMP_Text walletText, timeRemaining, contextPrompt, contextDetail, noticeText;
+        public TMP_Text walletText, contextPrompt, contextDetail, noticeText;
         [Tooltip("Item card, first line: name and count (accent font).")]
         [FormerlySerializedAs("selectedItemText")] public TMP_Text selectedItemTitle;
         [Tooltip("Item card, second line: base price (body font).")]
@@ -24,33 +30,65 @@ namespace Hakaton.Trading.Unity
         public ReferenceUiScale shopLayout;
         public Color reticleIdle = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
         public Color reticleFocused = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+
+        [Header("Shift clock")]
+        [Tooltip("Shown while the shop is open.")]
+        public GameObject shiftClock;
+        [Tooltip("Dial, fill, frame and cross: faded together once the shift is over.")]
+        public CanvasGroup clockBody;
+        [Tooltip("Radial fill: remaining share of the shift.")]
+        public Image clockFill;
+        [Tooltip("The red cross on the clock closes the shop.")]
+        [FormerlySerializedAs("closeShop")] public Button clockClose;
+        [Tooltip("White resting face over the faded clock when the shift has ended (outside Clock Body, never faded).")]
+        public GameObject clockRestingFace;
+        [Range(0, 1)] public float endedClockAlpha = .38f;
+
         [Header("Conversation")]
-        public GameObject categoryPanel, bargainingPanel;
-        public TMP_Text customerName, shiftEnded, categoryRequest, priceSummary, reaction, bargainHint, acceptLabel;
-        public Button closeShop;
-        public Button[] categoryButtons = new Button[6];
-        public TMP_Text[] categoryLabels = new TMP_Text[6];
-        public Button[] priceButtons = new Button[5];
+        [Tooltip("Everything shown only while a visitor stands at the counter.")]
+        public GameObject conversation;
+        [Tooltip("Positions the speech bubble: at the counter or, while picking goods, on the left.")]
+        public RectTransform speechAnchor;
+        [Tooltip("The bubble itself; hops when the visitor answers.")]
+        public RectTransform speechBubble;
+        public TMP_Text speech;
+        [Tooltip("Small red 'ПОСЛЕДНЕЕ' inside the bubble on a last offer.")]
+        public GameObject lastOfferMark;
+        public Vector2 speechAtCounter = new Vector2(410, -8);
+        public Vector2 speechAtDisplay = new Vector2(8, -40);
+        [Tooltip("Request: 'Выбрать с витрины' / 'К покупателю' and 'Отказать'.")]
+        public GameObject requestActions;
+        public StitchedLinenButton browseDisplay, backToCounter, refuseRequest;
+        public TMP_Text browseLabel;
+        [Tooltip("Haggling: price row and the two small actions.")]
+        public GameObject dealActions;
+        public StitchedLinenButton[] priceButtons = new StitchedLinenButton[5];
+        [Tooltip("Top line of each price button: key and markup.")]
+        public TMP_Text[] priceKeyLabels = new TMP_Text[5];
+        [Tooltip("Price on each button.")]
         public TMP_Text[] priceLabels = new TMP_Text[5];
-        public Button accept, refuseCategory, refuseBargain;
+        public StitchedLinenButton accept, refuseDeal;
+        public TMP_Text acceptLabel;
+        [Tooltip("'Space' hint, shown only while selling is possible.")]
+        public GameObject acceptKey;
+
+        [Header("Approved tints")]
+        public Color positiveTint = new Color32(0x94, 0xCE, 0x80, 0xFF);
+        public Color negativeTint = new Color32(0xF0, 0x78, 0x72, 0xFF);
+        public Color startPriceTint = new Color32(0xFF, 0xE4, 0x88, 0xFF);
+        [Tooltip("The sell action while it cannot be pressed (waiting for the visitor's offer); authored on the button.")]
+        public Color waitingTint = new Color32(0x9B, 0xA1, 0x91, 0xFF);
+
         [Header("Feedback")]
         [Min(0)] public float fadeSpeed = 8;
-        [Min(20)] public float contextHeight = 44;
-        [Min(20)] public float contextHeightWithDetail = 72;
-        [Tooltip("Screen pixels from the bottom for the prompt while picking goods during a conversation.")]
-        [Min(0)] public float displayContextBottom = 240;
+        [Min(4)] public float contextHeight = 12;
+        [Min(4)] public float contextHeightWithDetail = 24;
+        [Tooltip("Reference units from the bottom for the prompt while picking goods during a conversation (above the buttons).")]
+        [Min(0)] public float displayContextBottom = 68;
+        [Tooltip("Reference units the bubble hops when the visitor answers.")]
+        [Min(0)] public float answerHop = 2;
         public Color staminaColor = new Color(.76f, .81f, .69f);
         public Color tiredColor = new Color(.88f, .48f, .32f);
-
-        [Header("Haggling presentation")]
-        public Color thinkingColour = new Color(.55f, .63f, .57f);
-        public Color calmColour = new Color(.91f, .90f, .81f);
-        public Color displeasedColour = new Color(.95f, .74f, .42f);
-        public Color angryColour = new Color(.96f, .48f, .36f);
-        [Tooltip("Hotkey hints on buttons.")]
-        public Color keyColour = new Color(.55f, .63f, .57f);
-        [Tooltip("Greedy asks (+25% and up) are tinted so their risk reads at a glance.")]
-        public Color greedColour = new Color(.95f, .74f, .42f);
 
         [Tooltip("Set when a ShopFeel animates the wallet counter.")]
         public bool feelDrivesWallet;
@@ -59,7 +97,7 @@ namespace Hakaton.Trading.Unity
         int shownDealRevision;
         float displayedStamina = 1;
         Vector2 contextRestPosition;
-        TextPunch reactionPunch;
+        TextPunch speechPunch;
         long revealedDealId;
         int revealedRevision = -1;
 
@@ -68,51 +106,45 @@ namespace Hakaton.Trading.Unity
             if (controller != null) return;
             controller = value;
             contextRestPosition = contextPanel.anchoredPosition;
-            closeShop.onClick.AddListener(controller.ToggleShop);
-            for (int i = 0; i < categoryButtons.Length; i++)
-            {
-                int index = i;
-                categoryButtons[i].onClick.AddListener(() => controller.SelectCustomerItem(index, shownCustomerId));
-            }
+            clockClose.onClick.AddListener(controller.ToggleShop);
             for (int i = 0; i < priceButtons.Length; i++)
             {
                 int index = i;
                 priceButtons[i].onClick.AddListener(() => controller.OfferPrice(shownDealId, shownDealRevision, index));
             }
             accept.onClick.AddListener(() => controller.AcceptPrice(shownDealId, shownDealRevision));
-            refuseCategory.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
-            refuseBargain.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
+            refuseRequest.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
+            refuseDeal.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
+            browseDisplay.onClick.AddListener(() => { if (controller.UsesDisplayView) controller.World.ShopView.BeginSelection(); });
+            backToCounter.onClick.AddListener(() => { if (controller.UsesDisplayView) controller.World.ShopView.ReturnToCounter(); });
             selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = staminaVisibility.alpha = 0;
-            reactionPunch = new TextPunch(reaction.rectTransform);
-            string refuse = $"Отказать  <color=#{Hex(keyColour)}>Bksp</color>";
-            foreach (var button in new[] { refuseCategory, refuseBargain })
-            {
-                var label = button.GetComponentInChildren<TMP_Text>(true);
-                if (label) label.text = refuse;
-            }
+            speechPunch = new TextPunch(speechBubble);
             Refresh();
         }
 
-        public bool ContainsBlockingPanel(Vector2 position) => (interactionPanel.gameObject.activeInHierarchy
-            && RectTransformUtility.RectangleContainsScreenPoint(interactionPanel, position))
-            || (contextPanel.gameObject.activeInHierarchy && contextVisibility.alpha > .01f
-            && RectTransformUtility.RectangleContainsScreenPoint(contextPanel, position));
+        /// <summary>True over a visible conversation button: clicks there never pick goods from the display.</summary>
+        public bool ContainsBlockingPanel(Vector2 position)
+        {
+            if (!conversation.activeInHierarchy) return false;
+            foreach (var button in conversation.GetComponentsInChildren<Selectable>())
+                if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)button.transform, position)) return true;
+            return false;
+        }
 
         void LateUpdate()
         {
             if (controller == null || controller.Session == null) return;
             Refresh();
-            reactionPunch?.Update(Time.unscaledDeltaTime);
+            speechPunch?.Update(Time.unscaledDeltaTime);
         }
-
-        static string Hex(Color colour) => ColorUtility.ToHtmlStringRGB(colour);
 
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
         /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
         public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);
 
-        Color MoodColour(CustomerMood mood) => mood == CustomerMood.Angry ? angryColour
-            : mood == CustomerMood.Displeased ? displeasedColour : calmColour;
+        /// <summary>Radial fill of the shift clock: the remaining share of the shift.</summary>
+        public static float ClockFill(float remainingSeconds, float shiftSeconds)
+            => shiftSeconds > 0 ? Mathf.Clamp01(remainingSeconds / shiftSeconds) : 0;
 
         void Refresh()
         {
@@ -121,22 +153,25 @@ namespace Hakaton.Trading.Unity
             bool selecting = controller.SelectingFromDisplay && !controller.ViewTransitioning;
             // ShopFeel animates the wallet when present; otherwise show the balance directly.
             if (!feelDrivesWallet) walletText.text = FormatMoney(session.Gold);
-            timeRemaining.gameObject.SetActive(session.IsOpen || (session.RemainingSeconds <= 15 && session.ExpeditionId == 0));
-            int seconds = Mathf.CeilToInt(session.RemainingSeconds);
-            timeRemaining.text = seconds > 0 ? $"{seconds / 60}:{seconds % 60:00}" : "Смена завершена";
-            timeRemaining.color = seconds <= 15 ? tiredColor : new Color(.88f, .9f, .88f);
-            interactionPanel.gameObject.SetActive(session.IsOpen && controller.CustomerReady && !controller.ViewTransitioning);
-            closeShop.interactable = !controller.ViewTransitioning;
+            RefreshClock(session);
             reticle.SetActive(exploring && controller.GameplayActive);
             reticleDot.color = string.IsNullOrEmpty(controller.ContextPrompt) ? reticleIdle : reticleFocused;
 
-            // The card describes what the aim rests on: the stock about to be placed on a free slot
-            // (with how many are left) or the item already lying on the hovered slot.
+            // The card describes what the aim rests on: the stock about to be placed on a free slot (with how many
+            // are left), the item on the hovered slot, the goods hovered for a visitor, or the item being haggled over.
             var item = controller.FocusedItem;
-            bool showItem = exploring && controller.GameplayActive && session.ExpeditionId == 0 && item != null;
-            if (showItem)
+            var deal = session.CurrentDeal;
+            bool haggling = session.IsOpen && deal != null && !selecting && controller.CustomerReady && !controller.ViewTransitioning;
+            bool showItem = haggling || (item != null && session.ExpeditionId == 0
+                && ((exploring && controller.GameplayActive) || selecting));
+            if (haggling)
             {
-                if (controller.PlacementFocused)
+                selectedItemTitle.text = deal.Item.Definition.Name;
+                selectedItemDetail.text = $"Базовая цена: {deal.R}";
+            }
+            else if (showItem)
+            {
+                if (exploring && controller.PlacementFocused)
                 {
                     int count = 0;
                     foreach (var stock in session.Inventory) if (stock.Definition.Id == item.Definition.Id) count++;
@@ -146,9 +181,7 @@ namespace Hakaton.Trading.Unity
                 selectedItemDetail.text = $"Базовая цена: {item.Definition.RecommendedPrice}";
             }
             Fade(selectedVisibility, showItem);
-            float layoutScale = shopLayout ? shopLayout.Scale : 1;
-            contextPanel.anchoredPosition = selecting
-                ? new Vector2(contextRestPosition.x, displayContextBottom / layoutScale) : contextRestPosition;
+            contextPanel.anchoredPosition = selecting ? new Vector2(contextRestPosition.x, displayContextBottom) : contextRestPosition;
             bool hasContext = ((exploring && controller.GameplayActive) || selecting) && !string.IsNullOrEmpty(controller.ContextPrompt);
             if (hasContext)
             {
@@ -167,7 +200,25 @@ namespace Hakaton.Trading.Unity
             staminaFill.fillAmount = displayedStamina;
             staminaFill.color = Color.Lerp(tiredColor, staminaColor, Mathf.InverseLerp(.12f, .4f, controller.StaminaFraction));
             Fade(staminaVisibility, exploring && controller.ShowStamina);
-            if (session.IsOpen) RefreshTrade();
+            bool talking = session.IsOpen && session.CurrentCustomer != null && controller.CustomerReady && !controller.ViewTransitioning;
+            conversation.SetActive(talking);
+            if (talking) RefreshTrade(selecting);
+        }
+
+        /// <summary>
+        /// Radial fill of the remaining shift. Once time is up the cross goes (the shift is over already), the clock
+        /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served.
+        /// </summary>
+        void RefreshClock(TradingSession session)
+        {
+            shiftClock.SetActive(session.IsOpen);
+            if (!session.IsOpen) return;
+            bool ended = session.RemainingSeconds <= 0;
+            clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.Settings.ShiftSeconds);
+            clockClose.gameObject.SetActive(!ended);
+            clockClose.interactable = !controller.ViewTransitioning;
+            clockBody.alpha = ended ? endedClockAlpha : 1;
+            clockRestingFace.SetActive(ended);
         }
 
         void Fade(CanvasGroup group, bool visible)
@@ -175,55 +226,34 @@ namespace Hakaton.Trading.Unity
             group.alpha = Mathf.MoveTowards(group.alpha, visible ? 1 : 0, fadeSpeed * Time.unscaledDeltaTime);
         }
 
-        void RefreshTrade()
+        void RefreshTrade(bool selecting)
         {
             var session = controller.Session;
             var customer = session.CurrentCustomer;
             var deal = session.CurrentDeal;
-            shownCustomerId = customer == null ? 0 : customer.Id;
+            shownCustomerId = customer.Id;
             shownDealId = deal == null ? 0 : deal.Id;
             shownDealRevision = deal == null ? 0 : deal.Revision;
             bool ready = controller.ActionsReady;
-            bool selecting = controller.SelectingFromDisplay;
-            bool category = customer != null && deal == null;
-            categoryPanel.SetActive(category);
-            bargainingPanel.SetActive(deal != null && !selecting);
-            if (controller.UsesDisplayView)
+            bool request = deal == null;
+            speechAnchor.anchoredPosition = request && selecting ? speechAtDisplay : speechAtCounter;
+            requestActions.SetActive(request);
+            dealActions.SetActive(!request);
+            if (request)
             {
-                var view = controller.World.ShopView;
-                if (view.browseButton)
-                {
-                    view.browseButton.gameObject.SetActive(category && !selecting && controller.HasMatchingStock);
-                    view.browseButton.interactable = ready;
-                }
-                if (view.backButton)
-                {
-                    view.backButton.gameObject.SetActive(category && selecting);
-                    view.backButton.interactable = ready;
-                }
-            }
-            customerName.text = customer == null ? "Следующий покупатель…" : controller.CustomerName;
-            shiftEnded.gameObject.SetActive(session.RemainingSeconds <= 0);
-            if (customer == null) return;
-            refuseCategory.interactable = refuseBargain.interactable = ready;
-            if (deal == null)
-            {
-                categoryRequest.text = $"«Ищу: {customer.RequestedCategory}»."
-                    + (controller.UsesDisplayView && !controller.HasMatchingStock ? "\nПодходящего товара нет." : string.Empty);
-                for (int i = 0; i < categoryButtons.Length; i++)
-                {
-                    var item = session.Slots[i];
-                    bool matches = item != null && item.Definition.Category == customer.RequestedCategory;
-                    categoryButtons[i].gameObject.SetActive(matches && !controller.UsesDisplayView);
-                    if (matches) categoryLabels[i].text = $"{item.Definition.Name}\n{item.Definition.RecommendedPrice} монет";
-                    categoryButtons[i].interactable = ready && matches;
-                }
+                speech.text = $"Ищу: {customer.RequestedCategory}.";
+                lastOfferMark.SetActive(false);
+                bool display = controller.UsesDisplayView;
+                bool stock = controller.HasMatchingStock;
+                browseDisplay.gameObject.SetActive(display && !selecting);
+                backToCounter.gameObject.SetActive(display && selecting);
+                browseDisplay.interactable = ready && stock;
+                browseLabel.text = stock ? "Выбрать с витрины" : "Подходящего нет";
+                backToCounter.interactable = refuseRequest.interactable = ready;
                 return;
             }
-            priceSummary.text = controller.UsesDisplayView
-                ? $"{deal.Item.Definition.Name}   ·   Ориентир {deal.R}"
-                : $"{deal.Item.Definition.Name}   ·   Ориентир {deal.R}   ·   Старт {deal.B}   ·   Покупатель {(deal.N.HasValue ? deal.N.Value.ToString() : "—")}";
-            // The answer, the counter and the face land together after the visitor's thinking beat.
+
+            // The answer, the counter offer and the face land together after the visitor's thinking beat.
             bool revealed = controller.ReactionRevealed;
             if (revealed && (deal.Id != revealedDealId || deal.Revision != revealedRevision))
             {
@@ -232,30 +262,25 @@ namespace Hakaton.Trading.Unity
                 revealedRevision = deal.Revision;
                 if (answer)
                 {
-                    reactionPunch.Hop(5);
-                    if (deal.Mood == CustomerMood.Angry || deal.IsLastOffer) reactionPunch.Shake(.35f, 2);
+                    speechPunch.Hop(answerHop);
+                    if (deal.Mood == CustomerMood.Angry || deal.IsLastOffer) speechPunch.Shake(.35f, 1);
                 }
             }
-            reaction.text = revealed ? deal.Reaction : "…";
-            reaction.color = revealed ? MoodColour(deal.Mood) : thinkingColour;
-            string key = Hex(keyColour), greed = Hex(greedColour);
+            speech.text = revealed ? deal.Reaction : "…";
+            lastOfferMark.SetActive(revealed && deal.IsLastOffer);
             var options = deal.GetPriceOptions();
             for (int i = 0; i < priceButtons.Length; i++)
             {
                 var option = options[i];
-                string ask = option.Percent == 0 ? "Старт" : $"+{option.Percent}%";
-                if (option.Percent >= 25) ask = $"<color=#{greed}>{ask}</color>";
-                priceLabels[i].text = $"<color=#{key}>{i + 1}</color> {ask}\n{option.Price}";
+                priceKeyLabels[i].text = $"{i + 1} {(option.Percent == 0 ? "Старт" : $"+{option.Percent}%")}";
+                priceLabels[i].text = option.Price.ToString(CultureInfo.InvariantCulture);
                 priceButtons[i].interactable = ready && option.Enabled;
             }
-            acceptLabel.text = !revealed ? "…"
-                : deal.N.HasValue ? $"Продать за {deal.N.Value}  <color=#{key}>Space</color>" : "Ждём предложение";
-            accept.interactable = ready && revealed && deal.N.HasValue;
-            bool lastOffer = revealed && deal.IsLastOffer;
-            bargainHint.text = lastOffer ? "Последнее предложение — новая цена сорвёт сделку" : string.Empty;
-            bargainHint.color = angryColour;
-            bargainHint.alpha = .7f + .3f * Mathf.Sin(Time.unscaledTime * 6);
-            bargainHint.gameObject.SetActive(lastOffer);
+            bool offer = revealed && deal.N.HasValue;
+            acceptLabel.text = offer ? $"Продать за {deal.N.Value}" : "Ждём предложение";
+            accept.interactable = ready && offer;
+            acceptKey.SetActive(offer);
+            refuseDeal.interactable = ready;
         }
     }
 }

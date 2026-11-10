@@ -28,6 +28,11 @@ namespace Hakaton.DialogueUI
         [SerializeField, Min(1)] float density = 8;
         [Tooltip("Plain linen, green for a positive decision (buy, burn, agree), red for a negative one (leave, cancel).")]
         [SerializeField] Tone tone;
+        [Tooltip("Paint the exact colours below instead of the tone's (approved mockup tints).")]
+        [SerializeField] bool customTint;
+        [SerializeField] Color normalTint = new Color32(0x94, 0xCE, 0x80, 0xFF);
+        [Tooltip("Colour of the non-interactable button when Custom Tint is on.")]
+        [SerializeField] Color disabledTint = new Color(.6f, .58f, .54f, .75f);
         [Tooltip("Visual preview in Edit mode only. Play mode always follows real Button input.")]
         [SerializeField] VisualState editorPreview = VisualState.Normal;
 
@@ -59,6 +64,16 @@ namespace Hakaton.DialogueUI
             tone = colour;
             Rebuild();
         }
+
+        /// <summary>Authoring: exact normal and disabled colours instead of the tone's palette.</summary>
+        public void SetTint(Color normal, Color disabled)
+        {
+            customTint = true;
+            normalTint = normal;
+            disabledTint = disabled;
+            Rebuild();
+        }
+
 
         /// <summary>
         /// Brings the whole skin to <see cref="Density"/>: every piece of the shadow and the frame, the shadow drop,
@@ -95,7 +110,12 @@ namespace Hakaton.DialogueUI
                 ((RectTransform)transform).sizeDelta *= ratio;
             }
             var block = colors;
-            switch (tone)
+            if (customTint)
+            {
+                Paint(ref block, normalTint);
+                block.disabledColor = disabledTint;
+            }
+            else switch (tone)
             {
                 case Tone.Positive: Paint(ref block, new Color(.62f, .86f, .52f)); break;
                 case Tone.Negative: Paint(ref block, new Color(.95f, .55f, .48f)); break;
