@@ -19,6 +19,10 @@ namespace Hakaton.ShopBlockout
         public Color fogColor = new Color(.03f, .03f, .05f);
         [Min(0)] public float fogDensity = .045f;
 
+        [Tooltip("Lights from outside switched off while active (the valley's sun must not reach into the cave).")]
+        public Light[] lightsOff = new Light[0];
+        bool[] savedLights;
+
         AmbientMode savedMode;
         Color savedSky, savedEquator, savedGround;
         bool savedFog;
@@ -48,6 +52,13 @@ namespace Hakaton.ShopBlockout
                 RenderSettings.fogColor = fogColor;
                 RenderSettings.fogDensity = fogDensity;
             }
+            savedLights = new bool[lightsOff.Length];
+            for (int i = 0; i < lightsOff.Length; i++)
+            {
+                if (!lightsOff[i]) continue;
+                savedLights[i] = lightsOff[i].enabled;
+                lightsOff[i].enabled = false;
+            }
             applied = true;
         }
 
@@ -66,6 +77,8 @@ namespace Hakaton.ShopBlockout
                 RenderSettings.fogDensity = savedFogDensity;
                 RenderSettings.fogMode = savedFogMode;
             }
+            for (int i = 0; i < lightsOff.Length && savedLights != null && i < savedLights.Length; i++)
+                if (lightsOff[i]) lightsOff[i].enabled = savedLights[i];
         }
     }
 }

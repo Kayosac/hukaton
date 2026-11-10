@@ -9,6 +9,7 @@ Shader "Hukaton/Cave Godray"
         _Intensity ("Intensity", Range(0, 4)) = 1.2
         _Scroll ("Streak drift", Float) = 0.015
         _NearFade ("Fade near camera (m)", Float) = 2.5
+        _EdgeSoftness ("Soft edges", Range(0.1, 4)) = 1.5
     }
     SubShader
     {
@@ -33,10 +34,11 @@ Shader "Hukaton/Cave Godray"
                 half _Intensity;
                 float _Scroll;
                 float _NearFade;
+                float _EdgeSoftness;
             CBUFFER_END
 
-            struct Attributes { float4 positionOS : POSITION; float2 uv : TEXCOORD0; };
-            struct Varyings { float4 positionCS : SV_POSITION; float2 uv : TEXCOORD0; float3 positionWS : TEXCOORD1; float fog : TEXCOORD2; };
+            struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; float2 uv : TEXCOORD0; };
+            struct Varyings { float4 positionCS : SV_POSITION; float2 uv : TEXCOORD0; float3 positionWS : TEXCOORD1; float fog : TEXCOORD2; float3 normalWS : TEXCOORD3; };
 
             Varyings vert (Attributes input)
             {
@@ -44,6 +46,7 @@ Shader "Hukaton/Cave Godray"
                 VertexPositionInputs p = GetVertexPositionInputs(input.positionOS.xyz);
                 o.positionCS = p.positionCS;
                 o.positionWS = p.positionWS;
+                o.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 o.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 o.uv.x += _Time.y * _Scroll;
                 o.fog = ComputeFogFactor(p.positionCS.z);
@@ -54,7 +57,10 @@ Shader "Hukaton/Cave Godray"
             {
                 half4 t = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
                 half nearFade = saturate(distance(i.positionWS, _WorldSpaceCameraPos) / max(_NearFade, 0.01));
-                half3 c = _Color.rgb * t.rgb * t.a * _Intensity * nearFade;
+                // faces seen edge-on fade out: the shaft reads as a soft volume, not a prism
+                half3 view = normalize(_WorldSpaceCameraPos - i.positionWS);
+                half edge = pow(saturate(abs(dot(normalize(i.normalWS), view))), _EdgeSoftness);
+                half3 c = _Color.rgb * t.rgb * t.a * _Intensity * nearFade * edge;
                 c = MixFogColor(c, half3(0, 0, 0), i.fog);
                 return half4(c, 1);
             }
