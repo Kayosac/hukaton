@@ -21,7 +21,11 @@ namespace Hakaton.Backroom
     {
         [Header("Sound")]
         public AudioSource audioSource;
-        public AudioClip dealSound, flipSound, buySound, refuseSound, revealSound, lineSound;
+        public AudioClip dealSound, flipSound, buySound, refuseSound, revealSound;
+        [Tooltip("His voice: gruff merchant patter for lines, a smug laugh on a sale, a scoff when the buyer is short, " +
+                 "a haggling «э-э?» on the reveal.")]
+        public AudioClip[] voice;
+        public AudioClip laughVoice, scoffVoice, haggleVoice;
 
         [Header("Authored overlay")]
         public CanvasGroup visibility;
@@ -178,12 +182,14 @@ namespace Hakaton.Backroom
             {
                 view.Refuse();
                 Play(refuseSound);
+                Play(scoffVoice);
                 Say(Model.CollectionFull ? fullLine : Pick(poorLines));
                 Refused?.Invoke();
                 Visits.Touch();
                 return false;
             }
             Play(buySound);
+            Play(laughVoice);
             if (blind)
             {
                 // Bought face down: it turns over for the player first, then goes.
@@ -204,6 +210,7 @@ namespace Hakaton.Backroom
             var offer = Visits.Offer;
             if (!IsOpen || Talking || offer == null || !offer.RevealAll()) return;
             Play(revealSound);
+            Play(haggleVoice);
             // A cascade left to right.
             int order = 0;
             for (int i = 0; i < cards.Length; i++)
@@ -232,14 +239,14 @@ namespace Hakaton.Backroom
 
         // ---------- the goblin speaks ----------
 
-        void Say(string line, bool waitForPlayer = false)
+        void Say(string line, bool waitForPlayer = false, bool voiced = true)
         {
             if (!bubble) return;
             bubble.SetText(line);
             bubbleGroup.alpha = 1;
             if (continueHint) continueHint.gameObject.SetActive(waitForPlayer);
             lineUntil = waitForPlayer ? 0 : Time.unscaledTime + 2.6f;
-            Play(lineSound);
+            if (voiced && waitForPlayer && voice != null && voice.Length > 0) Play(voice[(lineSeed++ * 3 + Visits.IntroductionRead) % voice.Length]);
         }
 
         void HideBubble()
