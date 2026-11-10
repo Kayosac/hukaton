@@ -88,6 +88,28 @@ namespace Hakaton.Game
 
         // ---------- Actions (public so tests and other tools can call them) ----------
 
+        public bool UnlockCollection()
+        {
+            if (!game.Ready || game.Phase != GamePhase.Shop || game.expedition.Returning)
+            { status = "Коллекция доступна после возвращения в лавку."; return false; }
+            var model = game.workshop.Model;
+            string error = model.UnlockAllCards(out int added);
+            if (error != null) { status = error; return false; }
+            if (game.workshop.EmbeddedOpen) game.workshop.RefreshWorkshop();
+            game.SaveNow();
+            status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
+                + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit + ".";
+            return true;
+        }
+
+        public bool AddThousandCoins()
+        {
+            bool granted = game.AddThousandCoins();
+            status = granted ? "+1000 монет. Баланс: " + game.wallet.Wallet.Balance
+                : "Не удалось добавить монеты: игра не готова или достигнут предел баланса.";
+            return granted;
+        }
+
         public int StockDisplayRandomly()
         {
             var trade = game.trade;
@@ -132,7 +154,7 @@ namespace Hakaton.Game
             if (title != null) return;
             title = new GUIStyle(GUI.skin.label) { font = titleFont, fontSize = 32, wordWrap = false };
             body = new GUIStyle(GUI.skin.label) { font = bodyFont, fontSize = 18, wordWrap = true };
-            button = new GUIStyle(GUI.skin.button) { font = bodyFont, fontSize = 18, alignment = TextAnchor.MiddleLeft,
+            button = new GUIStyle(GUI.skin.button) { font = bodyFont, fontSize = 18, alignment = TextAnchor.MiddleLeft, wordWrap = true,
                 padding = new RectOffset(10, 10, 6, 6) };
             box = new GUIStyle(GUI.skin.box);
             title.normal.textColor = new Color(.95f, .86f, .55f);
@@ -149,7 +171,16 @@ namespace Hakaton.Game
             GUI.Box(rect, GUIContent.none, box); // second pass darkens the translucent default skin
             GUILayout.BeginArea(new Rect(rect.x + 12, rect.y + 8, rect.width - 24, rect.height - 16));
             GUILayout.Label("Читы", title);
-            GUILayout.Label("F1 или Esc — закрыть", body);
+            GUILayout.Label("F1 / Ё / Esc — закрыть", body);
+            GUILayout.Space(8);
+            scroll = GUILayout.BeginScrollView(scroll);
+
+            GUILayout.Label("Коллекция и деньги", title);
+            GUI.enabled = game.Ready && game.Phase == GamePhase.Shop && !game.expedition.Returning;
+            if (GUILayout.Button("Все карты + прокачки", button)) UnlockCollection();
+            GUI.enabled = game.Ready;
+            if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
+            GUI.enabled = true;
             GUILayout.Space(8);
 
             GUILayout.Label("Новая игра", title);
@@ -182,13 +213,11 @@ namespace Hakaton.Game
                 if (GUILayout.Button("+", button, GUILayout.Width(40))) grantLevel = Mathf.Min(maxLevel, grantLevel + 1);
                 GUILayout.EndHorizontal();
                 grantLevel = Mathf.Clamp(grantLevel, 1, maxLevel);
-                scroll = GUILayout.BeginScrollView(scroll);
                 foreach (var definition in world.workshop.config.cards.Where(c => c))
                     if (GUILayout.Button(definition.displayName, button)) GrantCard(definition, grantLevel);
-                GUILayout.EndScrollView();
             }
 
-            GUILayout.FlexibleSpace();
+            GUILayout.EndScrollView();
             if (!string.IsNullOrEmpty(status)) GUILayout.Label(status, body);
             GUILayout.EndArea();
         }

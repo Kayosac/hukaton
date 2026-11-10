@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Hakaton.Expeditions;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -46,6 +47,51 @@ namespace Hakaton.Game.Tests
             if (Directory.Exists(saveFolder))
                 foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
             foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+        }
+
+        [UnityTest]
+        public IEnumerator CollectionAndMoneyCheatsUseTheSharedEconomyAndPersist()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            var menu = Object.FindAnyObjectByType<CheatMenu>();
+            Assert.That(menu, Is.Not.Null);
+            Assert.That(menu.game, Is.SameAs(game));
+            Assert.That(menu.UnlockCollection(), Is.False, "The cave is still an outing.");
+            int initialCoins = game.wallet.Wallet.Balance;
+            Assert.That(menu.AddThousandCoins(), Is.True, "Money can be granted during the cave too.");
+            game.SkipTutorial();
+            var model = game.workshop.Model;
+            var selected = model.Selected().Select(c => c.Id).ToArray();
+            long revenue = game.trade.Session.GrossRevenue;
+            Assert.That(menu.UnlockCollection(), Is.True);
+            Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Select(c => c.Id)));
+            Assert.That(model.HandSize, Is.EqualTo(model.Rules.MaxHand));
+            Assert.That(model.DeckAtMaximum, Is.True);
+            Assert.That(model.Owned.Count, Is.LessThanOrEqualTo(model.CollectionLimit));
+            Assert.That(model.Selected().Select(c => c.Id), Is.EqualTo(selected));
+            int count = model.Owned.Count;
+            Assert.That(menu.UnlockCollection(), Is.True);
+            Assert.That(model.Owned.Count, Is.EqualTo(count));
+            Assert.That(menu.AddThousandCoins(), Is.True);
+            Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(initialCoins + 2000));
+            Assert.That(model.Coins, Is.EqualTo(initialCoins + 2000));
+            Assert.That(game.trade.Session.GrossRevenue, Is.EqualTo(revenue), "Cheat money is not sales revenue.");
+
+            Assert.That(GameSaveStore.Load(game.SavePath, game.ValidateSave, out var save, out var warning), Is.True, warning);
+            Assert.That(save.coins, Is.EqualTo(initialCoins + 2000));
+            Assert.That(game.Restore(save), Is.True);
+            Assert.That((model.Owned.Count, model.HandSize, model.DeckAtMaximum), Is.EqualTo((count, model.Rules.MaxHand, true)));
+
+            menu.SetOpen(true);
+            Assert.That(game.player.control.HasModalOwner, Is.True);
+            yield return null; // Exercise the expanded, scrollable menu in the real Game View.
+            menu.SetOpen(false);
+            Assert.That(game.player.control.HasModalOwner, Is.False);
+
+            game.wallet.Wallet.TryRestoreBalance(int.MaxValue - 500);
+            Assert.That(menu.AddThousandCoins(), Is.False);
+            Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(int.MaxValue - 500), "Overflow leaves the balance intact.");
+            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]

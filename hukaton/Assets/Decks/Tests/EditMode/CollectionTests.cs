@@ -70,6 +70,75 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
+        public void UnlockGrantsMissingTypesAndCapacityWithoutChangingOwnedCopiesOrSpendingCoins()
+        {
+            var w = Workshop(37, 4, new[] { 6, 8 }, new[] { 300, 500 });
+            w.Purchase("fire", 0, out var duplicate);
+            w.Merge(w.Owned[0].Id, duplicate.Id, out var upgraded);
+            var original = w.Owned.ToArray();
+            var selected = w.Selected().Select(c => c.Id).ToArray();
+            int changes = 0;
+            w.Changed += () => changes++;
+
+            Assert.That(w.UnlockAllCards(out int added), Is.Null);
+            Assert.That(added, Is.EqualTo(1));
+            Assert.That(w.Owned.Select(c => c.Spec.Id), Is.EquivalentTo(Specs.Select(s => s.Id)));
+            Assert.That(w.Owned.Take(original.Length), Is.EqualTo(original));
+            Assert.That((upgraded.Level, upgraded.Protected, upgraded.PaidPrice), Is.EqualTo((2, true, 100)));
+            Assert.That(w.Selected().Select(c => c.Id), Is.EqualTo(selected));
+            Assert.That((w.HandSize, w.DeckLimit, w.CollectionLimit, w.Coins), Is.EqualTo((4, 8, 16, 37)));
+            var granted = w.Owned.Single(c => c.Spec.Id == "teleport");
+            Assert.That((granted.Level, granted.PaidPrice, granted.Protected), Is.EqualTo((1, 0, false)));
+            Assert.That(w.UnlockAllCards(out added), Is.Null);
+            Assert.That(added, Is.Zero);
+            Assert.That(changes, Is.EqualTo(1), "The repeated unlock is a no-op.");
+
+            var restored = Workshop(0, 4, new[] { 6, 8 }, new[] { 300, 500 });
+            Assert.That(restored.TryRestore(w.Save()), Is.True);
+            Assert.That((restored.HandSize, restored.DeckLimit, restored.Coins), Is.EqualTo((4, 8, 37)));
+            Assert.That(restored.Owned.Select(c => (c.Id, c.Spec.Id, c.Level, c.Protected)),
+                Is.EqualTo(w.Owned.Select(c => (c.Id, c.Spec.Id, c.Level, c.Protected))));
+        }
+
+        [Test]
+        public void UnlockExpandsAFullCollectionBeforeGrantingMissingCards()
+        {
+            var w = Workshop(0, 4, new[] { 8 }, new[] { 300 });
+            while (!w.CollectionFull) w.Purchase("fire", 0, out _);
+            Assert.That(w.UnlockAllCards(out int added), Is.Null);
+            Assert.That(added, Is.EqualTo(1));
+            Assert.That((w.Owned.Count, w.CollectionLimit), Is.EqualTo((9, 16)));
+        }
+
+        [Test]
+        public void UnlockRefusesWithoutPartialChangesWhenEvenTheMaximumCollectionIsFull()
+        {
+            var w = Workshop(0);
+            while (!w.CollectionFull) w.Purchase("fire", 0, out _);
+            int changes = 0;
+            w.Changed += () => changes++;
+            Assert.That(w.UnlockAllCards(out int added), Is.Not.Null);
+            Assert.That((added, changes, w.HandSize, w.Owned.Count), Is.EqualTo((0, 0, 3, 8)));
+            Assert.That(w.Owned.Any(c => c.Spec.Id == "teleport"), Is.False);
+        }
+
+        [Test]
+        public void UnlockRefusesDuringAnOutingAndWhenCopyIdsAreExhausted()
+        {
+            var w = Workshop(0, 4, new[] { 8 }, new[] { 300 });
+            w.Depart(1);
+            Assert.That(w.UnlockAllCards(out int added), Is.Not.Null);
+            Assert.That((added, w.HandSize, w.DeckLimit, w.Owned.Count), Is.EqualTo((0, 3, 4, 3)));
+
+            var atHome = Workshop(0, 4, new[] { 8 }, new[] { 300 });
+            var save = atHome.Save();
+            save.nextId = int.MaxValue;
+            Assert.That(atHome.TryRestore(save), Is.True);
+            Assert.That(atHome.UnlockAllCards(out added), Is.Not.Null);
+            Assert.That((added, atHome.HandSize, atHome.DeckLimit, atHome.Owned.Count), Is.EqualTo((0, 3, 4, 3)));
+        }
+
+        [Test]
         public void BurningCostsThreeQuartersOfThePaidPriceRoundedUp()
         {
             var w = Workshop(1000);
