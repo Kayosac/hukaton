@@ -260,9 +260,9 @@ namespace Hakaton.Expeditions
             if (showLabel)
             {
                 string name = card.IsReturn ? "Пора домой" : world.workshop.config.Find(card.Spec.Id)?.displayName ?? card.Spec.Name;
-                // Level I / II / III; a card with several uses (Teleport) also shows how many are left.
+                // The level is on the card; show only remaining charges here.
                 string uses = card.Spec.UsesAt(card.Level) > 1 ? $"  ×{card.UsesLeft}" : "";
-                cardLabel.text = card.IsReturn ? name : $"{name}  <alpha=#88>{card.LevelNumeral}{uses}";
+                cardLabel.text = card.IsReturn ? name : $"{name}<alpha=#88>{uses}";
             }
             cardLabel.alpha = Mathf.MoveTowards(cardLabel.alpha, showLabel ? 1 : 0, dt * 5);
 

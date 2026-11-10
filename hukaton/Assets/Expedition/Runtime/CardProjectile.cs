@@ -48,7 +48,7 @@ namespace Hakaton.Expeditions
             handPose = fromHand;
             spinAngle = Random.Range(0, 360f);
             if (source) view.CopyFrom(source);
-            else view.Show(owner.Artwork(copy), owner.hand ? owner.hand.cardBack : null);
+            else view.Show(owner.Artwork(copy), owner.hand ? owner.hand.cardBack : null, copy.Level);
             Color accent = owner.Accent(copy);
             if (trail)
             {

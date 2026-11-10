@@ -76,6 +76,19 @@ namespace Hakaton.Decks
         internal CardCopy Snapshot() => new CardCopy(Id, Spec, Level, PaidPrice, Protected);
         internal static CardCopy Return() => new CardCopy(-1, new CardSpec("return", "Пора домой", 0));
 
+        /// <summary>Corner upgrade mark: the base card is unmarked; level 2 is I, level 3 is II.</summary>
+        public static string UpgradeMark(int level)
+        {
+            if (level <= 1) return "";
+            int value = level - 1;
+            var text = new System.Text.StringBuilder();
+            int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
+            string[] marks = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
+            for (int i = 0; i < values.Length; i++)
+                while (value >= values[i]) { text.Append(marks[i]); value -= values[i]; }
+            return text.ToString();
+        }
+
         public static string Numeral(int level) => level >= 3 ? "III" : level == 2 ? "II" : "I";
     }
 

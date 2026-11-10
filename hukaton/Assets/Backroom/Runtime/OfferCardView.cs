@@ -20,6 +20,7 @@ namespace Hakaton.Backroom
         public TMP_Text price;
         [Tooltip("Optional line under the card: level, «в колоде» (the brazier's list).")]
         public TMP_Text badge;
+        public TMP_Text levelMark;
         public CanvasGroup group;
         [Tooltip("How far the card rises under the pointer.")]
         public float hoverLift = 26;
@@ -42,11 +43,12 @@ namespace Hakaton.Backroom
         void Awake() => home = body.anchoredPosition;
 
         /// <summary>Puts the card back on the table: face down or up, with a staggered deal from below.</summary>
-        public void Deal(Sprite art, bool up, float delay)
+        public void Deal(Sprite art, bool up, float delay, int level = 1)
         {
             Lower();
             gameObject.SetActive(true);
             face.sprite = art;
+            Hakaton.Decks.Unity.CardLevelPresentation.SetMark(levelMark, level);
             faceUp = up;
             flipTarget = 1;
             flip.Snap(1);
@@ -184,6 +186,7 @@ namespace Hakaton.Backroom
             body.localScale = new Vector3(Mathf.Max(.02f, sx) * scale.Value, scale.Value, 1);
             body.localRotation = Quaternion.Euler(0, 0, -shake.Value * .08f + (flying && flyTime > 0 ? flyTime * 40 : 0));
             face.enabled = faceUp;
+            if (levelMark) levelMark.transform.parent.gameObject.SetActive(faceUp && levelMark.text.Length > 0);
             back.enabled = !faceUp;
             price.gameObject.SetActive(showPrice && faceUp && Hovering && !flying);
         }

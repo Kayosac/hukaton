@@ -170,7 +170,7 @@ namespace Hakaton.Decks
             if (a.Spec.Id != b.Spec.Id) return "Объединяются только одинаковые карты.";
             if (!a.Spec.Mergeable) return "Эту карту нельзя объединить.";
             if (a.Level != b.Level) return "Нужны копии одного уровня.";
-            if (a.Level >= Rules.MaxCardLevel) return "Уровень III — максимум.";
+            if (a.Level >= Rules.MaxCardLevel) return "Уровень 3 — максимум.";
             return null;
         }
 

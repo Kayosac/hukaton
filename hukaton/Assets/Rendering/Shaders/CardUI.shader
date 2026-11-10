@@ -19,6 +19,11 @@ Shader "Hakaton/Card UI"
         _ReliefStrength ("Emboss depth from sprite", Range(0,16)) = 7
         _ReliefRadius ("Emboss radius (source pixels)", Range(1,16)) = 5
 
+        [Header(Card Back Always Hologram And Glow)]
+        _BackEmissionStrength ("Back glow intensity", Range(0.01,12)) = 2.4
+        _BackHologramStrength ("Back hologram coverage", Range(0.01,1)) = 0.85
+        [HideInInspector] _FrontIsBack ("Face displays a card back", Float) = 0
+
         [Header(Emission)]
         [ToggleUI] _EmissionEnabled ("Enable glow", Float) = 0
         [HDR] _EmissionColor ("Glow colour", Color) = (1,1,1,1)
@@ -128,11 +133,12 @@ Shader "Hakaton/Card UI"
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 half4 original = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
-                float2 uv = CardDrawingUV(input.uv, _MainTex_TexelSize.xy, 1.0);
+                bool backStyle = _FrontIsBack > 0.5;
+                float2 uv = CardDrawingUV(input.uv, _MainTex_TexelSize.xy, backStyle ? 0.0 : 1.0);
                 half4 drawing = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
                 half3 art = drawing.a >= _Cutoff ? drawing.rgb : original.rgb;
                 // Overlay UI has no physical tilt. Coatings still animate at their own speeds.
-                half3 colour = CardFinish(art, input.uv, uv, _MainTex_TexelSize.xy, float2(0,0), true, 1.0) * input.color.rgb;
+                half3 colour = CardFinish(art, input.uv, uv, _MainTex_TexelSize.xy, float2(0,0), true, backStyle) * input.color.rgb;
                 colour = CardFeedback(colour, input.uv);
                 half alpha = original.a * input.color.a * _Alpha;
                 #ifdef UNITY_UI_CLIP_RECT

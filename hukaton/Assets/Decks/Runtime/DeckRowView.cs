@@ -13,7 +13,7 @@ namespace Hakaton.Decks.Unity
         {
             CopyId = copy?.Id ?? 0;
             title.text = copy == null ? "—" : $"{copy.Id:00}  {copy.Spec.Name}";
-            level.text = copy == null ? "" : copy.Level == 1 ? "I" : copy.Level == 2 ? "II" : "III";
+            level.text = copy == null ? "" : CardCopy.UpgradeMark(copy.Level);
             marker.color = copy == null ? new Color(.17f, .20f, .18f) : color;
             button.interactable = copy != null;
             title.color = selected ? new Color(.95f, .80f, .49f)

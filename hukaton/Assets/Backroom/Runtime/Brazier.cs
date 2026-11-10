@@ -144,9 +144,9 @@ namespace Hakaton.Backroom
                 if (i >= owned.Count) { tile.Hide(); continue; }
                 var copy = owned[i];
                 tile.Slot = copy.Id;
-                tile.Deal(workshop.config.Find(copy.Spec.Id)?.artwork, true, deal ? Mathf.Min(i, 12) * .02f : 0);
-                // The level; green while the copy is in the deck (legend under the table).
-                tile.SetBadge(Model.IsSelected(copy.Id) ? "<color=#9BE07A>" + copy.LevelNumeral + "</color>" : copy.LevelNumeral);
+                tile.Deal(workshop.config.Find(copy.Spec.Id)?.artwork, true, deal ? Mathf.Min(i, 12) * .02f : 0, copy.Level);
+                // Deck membership stays separate from the upgrade mark on the face.
+                tile.SetBadge(Model.IsSelected(copy.Id) ? "<color=#9BE07A>в колоде</color>" : "");
                 tile.group.alpha = copy.Protected ? .45f : 1;
             }
             title.text = $"Жаровня  ·  коллекция {owned.Count} / {Model.CollectionLimit}";
@@ -170,7 +170,7 @@ namespace Hakaton.Backroom
                 return;
             }
             pending = copy.Id;
-            confirmBubble.SetText($"Сжечь «{copy.Spec.Name}» {copy.LevelNumeral} за {Model.BurnPrice(copy)} монет?"
+            confirmBubble.SetText($"Сжечь «{copy.Spec.Name}» (ур. {copy.Level}) за {Model.BurnPrice(copy)} монет?"
                 + (Model.IsSelected(copy.Id) ? "\nКарта уйдёт и из колоды." : ""));
             SetVisible(confirmGroup, true);
         }
