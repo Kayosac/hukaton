@@ -114,7 +114,8 @@ namespace Hakaton.WorldAssembly
             PlanPaths(Feature.River, riverPoints, Salt.RiverPair, c => Inside(c) && Usable(c), dx, dy, plan, used, reserved, At,
                 Hash.Unit(seed, Salt.InnerRiver, dx, dy) < rules.InnerRiver[ring]);
             PlanPaths(Feature.Canyon, canyonPoints, Salt.RiverPair + 1, c => Inside(c) && Usable(c) && CanyonAllowed(c), dx, dy, plan, used, reserved, At, false);
-            if (Hash.Unit(seed, Salt.Maze, dx, dy) < rules.Maze[ring]) PlanMaze(origin, dx, dy, plan, used, At);
+            if (Hash.Unit(seed, Salt.Maze, dx, dy) < rules.Maze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 0);
+            if (Hash.Unit(seed, Salt.Maze + 9, dx, dy) < rules.SecondMaze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 1);
             return plan;
         }
 
@@ -279,25 +280,36 @@ namespace Hakaton.WorldAssembly
         // ---------- mazes ----------
 
         void PlanMaze(ChunkCoord origin, int dx, int dy, Dictionary<ChunkCoord, ChunkFeature> plan, HashSet<ChunkCoord> used,
-            Func<ChunkCoord, ChunkFeature> at)
+            Func<ChunkCoord, ChunkFeature> at, int which)
         {
-            for (int attempt = 0; attempt < 8; attempt++)
+            bool Free(ChunkCoord c)
             {
-                int w = 3 + Hash.Range(seed, 2, Salt.Maze + 1, dx, dy, attempt);
-                int h = 3 + Hash.Range(seed, 3, Salt.Maze + 2, dx, dy, attempt);
-                int ox = origin.X + 1 + Hash.Range(seed, Math.Max(1, size - 1 - w), Salt.Maze + 3, dx, dy, attempt);
-                int oy = origin.Y + 1 + Hash.Range(seed, Math.Max(1, size - 1 - h), Salt.Maze + 4, dx, dy, attempt);
-                if (ox + w > origin.X + size - 1 || oy + h > origin.Y + size - 1) continue;
-                var cells = new List<ChunkCoord>();
-                bool ok = true;
-                for (int x = ox; x < ox + w && ok; x++)
-                    for (int y = oy; y < oy + h; y++)
-                    {
-                        var c = new ChunkCoord(x, y);
-                        if (used.Contains(c) || WorldRules.IsStartArea(c) || !corners.IsFlatLow(c)) { ok = false; break; }
-                        cells.Add(c);
-                    }
-                if (!ok) continue;
+                if (c.X <= origin.X || c.Y <= origin.Y || c.X >= origin.X + size - 1 || c.Y >= origin.Y + size - 1) return false;
+                if (used.Contains(c) || WorldRules.IsStartArea(c) || !corners.IsFlatLow(c)) return false;
+                // A second maze keeps a chunk of open ground from the first.
+                foreach (var side in Sides.All)
+                    if (plan.TryGetValue(c.Step(side), out var near) && near.Feature == Feature.Maze) return false;
+                return true;
+            }
+            for (int attempt = 0; attempt < 12; attempt++)
+            {
+                // A patch grown over whatever flat ground is free, so it fits between rivers and plateaus: 4…9 chunks.
+                int key = attempt + 31 * which;
+                var first = new ChunkCoord(origin.X + 1 + Hash.Range(seed, size - 2, Salt.Maze + 3, dx, dy, key),
+                    origin.Y + 1 + Hash.Range(seed, size - 2, Salt.Maze + 4, dx, dy, key));
+                if (!Free(first)) continue;
+                int target = 4 + Hash.Range(seed, 6, Salt.Maze + 1, dx, dy, key);
+                var cells = new List<ChunkCoord> { first };
+                var taken = new HashSet<ChunkCoord> { first };
+                for (int grow = 0; grow < 64 && cells.Count < target; grow++)
+                {
+                    var from = cells[Hash.Range(seed, cells.Count, Salt.Maze + 2, dx, dy, key * 64 + grow)];
+                    var next = from.Step((Side)Hash.Range(seed, 4, Salt.Maze + 5, dx, dy, key * 64 + grow));
+                    if (taken.Contains(next) || !Free(next)) continue;
+                    taken.Add(next);
+                    cells.Add(next);
+                }
+                if (cells.Count < 4) continue;
                 var set = new HashSet<ChunkCoord>(cells);
 
                 // Entrances: patch edges facing a free flat chunk.
@@ -316,7 +328,7 @@ namespace Hakaton.WorldAssembly
                 var passages = new HashSet<(ChunkCoord, ChunkCoord)>();
                 var visited = new HashSet<ChunkCoord>();
                 var stack = new Stack<ChunkCoord>();
-                stack.Push(cells[Hash.Range(seed, cells.Count, Salt.MazeDfs, dx, dy)]);
+                stack.Push(cells[Hash.Range(seed, cells.Count, Salt.MazeDfs, dx, dy, which)]);
                 visited.Add(stack.Peek());
                 int step = 0;
                 while (stack.Count > 0)
@@ -325,7 +337,7 @@ namespace Hakaton.WorldAssembly
                     var options = new List<ChunkCoord>();
                     foreach (var side in Sides.All) { var n = cell.Step(side); if (set.Contains(n) && !visited.Contains(n)) options.Add(n); }
                     if (options.Count == 0) { stack.Pop(); continue; }
-                    var next = options[Hash.Range(seed, options.Count, Salt.MazeDfs + 1, dx, dy, step++)];
+                    var next = options[Hash.Range(seed, options.Count, Salt.MazeDfs + 1, dx, dy, step++ + 997 * which)];
                     passages.Add(Key(cell, next));
                     visited.Add(next);
                     stack.Push(next);

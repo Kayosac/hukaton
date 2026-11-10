@@ -101,8 +101,8 @@ namespace Hakaton.WorldAssembly
             var list = new List<TileShape>
             {
                 Flat("start", ShapeKind.Start, 0, new Variant("hill")),
-                Flat("plain", ShapeKind.Plain, 0, new Variant("meadow"), new Variant("woods"), new Variant("rocks"), new Variant("pond")),
-                Flat("plateau-top", ShapeKind.PlateauTop, 0, new Variant("bare"), new Variant("rocks")),
+                Flat("plain", ShapeKind.Plain, 0, Scenes(PlainScenes)),
+                Flat("plateau-top", ShapeKind.PlateauTop, 0, Scenes(TopScenes)),
                 Cliff("cliff-corner", new[] { 1, 0, 0, 0 }, true),
                 Cliff("cliff-edge", new[] { 1, 1, 0, 0 }, true, ledge: true),
                 Cliff("cliff-saddle", new[] { 1, 0, 1, 0 }, false),
@@ -117,6 +117,30 @@ namespace Hakaton.WorldAssembly
             };
             All = list.ToArray();
             foreach (var shape in All) byId[shape.Id] = shape;
+        }
+
+        /// <summary>
+        /// Scenes of a flat chunk: every one has something to see and two or three ways through, and all edges stay
+        /// connected on foot. "thorns" (a thicket to burn, Fire) and "tower" (a rock pillar to jump onto, Impulse) also
+        /// hold a pocket with a reward.
+        /// </summary>
+        public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower" };
+        public static readonly string[] TopScenes = { "gap", "boulders", "knoll", "ruins", "hollow", "thorns", "tower" };
+
+        /// <summary>Scenes with a pocket only a card reaches.</summary>
+        public static bool IsPocketScene(string id) => id == "thorns" || id == "tower";
+
+        static Variant[] Scenes(string[] ids)
+        {
+            var result = new Variant[ids.Length];
+            for (int i = 0; i < ids.Length; i++)
+            {
+                string id = ids[i];
+                if (id == "thorns") result[i] = new Variant(id, new[] { new Link(0, 1, Need.Fire) }, new[] { new Region("thicket", 0, pocket: true) });
+                else if (id == "tower") result[i] = new Variant(id, new[] { new Link(0, 1, Need.Impulse), new Link(1, 0, Need.Drop) }, new[] { new Region("pillar", 0, pocket: true) });
+                else result[i] = new Variant(id);
+            }
+            return result;
         }
 
         static readonly Mid[] NoMids = { Mid.None, Mid.None, Mid.None, Mid.None };

@@ -12,6 +12,38 @@ namespace Hakaton.WorldAssembly.EditorTools
         [MenuItem("Hakaton/World/Draw plans (seeds 1-3)")]
         static void Menu() => Debug.Log(Draw("1,2,3") + " → Logs/world-plans");
 
+        /// <summary>Share of chunk kinds per ring over seeds "a-b": how much of the world is plain ground.</summary>
+        public static string Stats(string seeds)
+        {
+            var parts = seeds.Split('-');
+            int from = int.Parse(parts[0]), to = int.Parse(parts[parts.Length - 1]);
+            var counts = new System.Collections.Generic.SortedDictionary<string, int>[3];
+            var totals = new int[3];
+            for (int r = 0; r < 3; r++) counts[r] = new System.Collections.Generic.SortedDictionary<string, int>();
+            for (int seed = from; seed <= to; seed++)
+            {
+                var map = new WorldMap(seed);
+                for (int x = -14; x <= 14; x++)
+                    for (int y = -14; y <= 14; y++)
+                    {
+                        if (x * x + y * y > 14 * 14) continue;
+                        var plan = map.Chunk(x, y);
+                        string key = plan.Shape.Kind + (plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.PlateauTop ? "/" + plan.Variant.Id : "");
+                        counts[plan.Ring].TryGetValue(key, out int c);
+                        counts[plan.Ring][key] = c + 1;
+                        totals[plan.Ring]++;
+                    }
+            }
+            var sb = new System.Text.StringBuilder();
+            for (int r = 0; r < 3; r++)
+            {
+                sb.Append($"ring {r}:");
+                foreach (var kv in counts[r]) sb.Append($" {kv.Key} {100f * kv.Value / totals[r]:0}%");
+                sb.Append('\n');
+            }
+            return sb.ToString();
+        }
+
         public static string Draw(string seeds)
         {
             var dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");

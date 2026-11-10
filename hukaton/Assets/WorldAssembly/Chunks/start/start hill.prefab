@@ -72,6 +72,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5392329119433270505}
   - component: {fileID: 3732618466320062921}
+  - component: {fileID: 8737689975407796113}
   m_Layer: 0
   m_Name: start hill
   m_TagString: Untagged
@@ -115,7 +116,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hakaton.WorldAssembly::Hakaton.WorldAssembly.Unity.ChunkView
   shapeId: start
   variantId: hill
-  navMesh: {fileID: 8817796742544243512, guid: 08b64587552b04f19b30bc563b754f39, type: 2}
+  navMesh: {fileID: 876789509311325734, guid: 08b64587552b04f19b30bc563b754f39, type: 2}
   worldUv:
   - {fileID: 7577587916444947952}
   findSockets: []
@@ -124,6 +125,29 @@ MonoBehaviour:
   departurePose: {fileID: 1861202602400150353}
   obstacles: []
   props: []
+--- !u!205 &8737689975407796113
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7372332608646447489}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0, y: 2, z: 0}
+  m_Size: 16
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.2
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7873776496642740819}
+    - renderer: {fileID: 3000963319028928717}
+    - renderer: {fileID: 2402024425609617922}
+    - renderer: {fileID: 3426600704758081587}
+    - renderer: {fileID: 2535132047968813356}
+  m_Enabled: 1
 --- !u!1 &7390552769507726145
 GameObject:
   m_ObjectHideFlags: 0
@@ -342,9 +366,24 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5b860b3f2878e03dc4cd27783f7099cc, type: 3}
+--- !u!23 &2402024425609617922 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 311009827281923040, guid: 5b860b3f2878e03dc4cd27783f7099cc, type: 3}
+  m_PrefabInstance: {fileID: 2667636998185847266}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2420105626184031548 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 328948083273569502, guid: 5b860b3f2878e03dc4cd27783f7099cc, type: 3}
+  m_PrefabInstance: {fileID: 2667636998185847266}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3000963319028928717 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 909948721221654831, guid: 5b860b3f2878e03dc4cd27783f7099cc, type: 3}
+  m_PrefabInstance: {fileID: 2667636998185847266}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3426600704758081587 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 759105683713679825, guid: 5b860b3f2878e03dc4cd27783f7099cc, type: 3}
   m_PrefabInstance: {fileID: 2667636998185847266}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3364418900636138014
@@ -404,6 +443,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b37c6a033d7ee0d77a928e3bfdbd2763, type: 3}
+--- !u!23 &2535132047968813356 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 981300935024524082, guid: b37c6a033d7ee0d77a928e3bfdbd2763, type: 3}
+  m_PrefabInstance: {fileID: 3364418900636138014}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2996199336396796353 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 514661903108656095, guid: b37c6a033d7ee0d77a928e3bfdbd2763, type: 3}
@@ -481,5 +525,10 @@ PrefabInstance:
 --- !u!4 &7032220090894194779 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 834765598769182391, guid: a3b36862ad99e575d05a59ef22e097d0, type: 3}
+  m_PrefabInstance: {fileID: 7638905454315663084}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7873776496642740819 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 524561639051279551, guid: a3b36862ad99e575d05a59ef22e097d0, type: 3}
   m_PrefabInstance: {fileID: 7638905454315663084}
   m_PrefabAsset: {fileID: 0}

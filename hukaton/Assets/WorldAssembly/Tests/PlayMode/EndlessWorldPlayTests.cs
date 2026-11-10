@@ -162,6 +162,11 @@ namespace Hakaton.WorldAssembly.Tests
                 ["bridge"] = v => v.variantId == "bridge",
                 ["island"] = v => v.variantId == "island",
                 ["summit"] = v => v.shapeId.StartsWith("cliff") && v.transform.position.y > streamer.root.position.y + 3,
+                ["gap"] = v => v.variantId == "gap",
+                ["camp"] = v => v.variantId == "camp",
+                ["ruins"] = v => v.variantId == "ruins",
+                ["gully"] = v => v.variantId == "gully",
+                ["tower"] = v => v.variantId == "tower",
             };
             var home = world.motor.transform.position;
             for (int step = 0; step < 12 && wanted.Count > 0; step++)
@@ -178,6 +183,20 @@ namespace Hakaton.WorldAssembly.Tests
                     yield return Shot(dir, "play-" + key, eye, centre + Vector3.up);
                     wanted.Remove(key);
                 }
+            }
+            // From the player's own eyes, out in the first and second rings.
+            int walk = 0;
+            foreach (var (offset, look) in new[] { (new Vector3(56, 0, 8), Vector3.right), (new Vector3(-10, 0, 64), Vector3.forward), (new Vector3(-60, 0, -40), new Vector3(-1, 0, -.4f)), (new Vector3(90, 0, 70), new Vector3(1, 0, .6f)) })
+            {
+                var spot = home + offset;
+                world.motor.Teleport(spot + Vector3.up * 20, Quaternion.identity);
+                for (int f = 0; f < 50; f++) yield return null;
+                // The ground under the spot, not the player falling onto it.
+                var hits = Physics.RaycastAll(spot + Vector3.up * 40, Vector3.down, 80, ~(1 << 4), QueryTriggerInteraction.Ignore)
+                    .Where(h => !h.collider.transform.IsChildOf(world.motor.transform)).OrderBy(h => h.distance).ToList();
+                if (hits.Count == 0) continue;
+                var eye = hits[0].point + Vector3.up * 1.7f;
+                yield return Shot(dir, "play-walk-" + ++walk, eye, eye + look.normalized * 10 - Vector3.up * .6f);
             }
             // Far away, looking back at the start: the beacon and mountains through the fog.
             world.motor.Teleport(home + new Vector3(140, 0, 0), Quaternion.identity);

@@ -22,7 +22,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         public const float ChannelHalf = 2.4f, BankHalf = 3.4f, Deep = 1.9f, FordDeep = .75f;
         public const float LakeRadius = 4.2f, LakeBank = 5.4f, SpringRadius = 2.2f, SpringBank = 3.2f, SpringDeep = .85f;
         public const float IslandRadius = 1.8f, IslandHeight = .5f;
-        public const float PondRadius = 2.2f, PondBank = 3.0f, PondDeep = .55f;
+        public const float PondRadius = 2.8f, PondBank = 3.6f, PondDeep = 1.2f;
         public static readonly Vector2 PondCentre = new Vector2(10, 5.5f);
         // Canyon profile.
         public const float FloorHalf = 2.0f, RimHalf = 3.3f;
@@ -31,6 +31,8 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         public readonly List<Vector2[]> Centreline = new List<Vector2[]>();
         public readonly List<Ramp> Ramps = new List<Ramp>();
+        /// <summary>The scene of a plain or plateau-top chunk; null for other shapes.</summary>
+        public readonly ChunkScene Scene;
         readonly int seed;
 
         public readonly struct Ramp
@@ -44,6 +46,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
             seed = (shape.Id + "/" + variant).GetHashCode();
+            if (shape.Kind == ShapeKind.Plain || shape.Kind == ShapeKind.PlateauTop) Scene = ChunkScene.Get(variant);
             if (shape.Kind == ShapeKind.River || shape.Kind == ShapeKind.Canyon)
             {
                 if (shape.Id.EndsWith("straight")) Centreline.Add(Line(new Vector2(8, 0), new Vector2(8, 16)));
@@ -56,7 +59,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "cliff-edge/ramp": Ramps.Add(new Ramp(new Vector2(11.5f, 2.5f), 0, new Vector2(11.5f, 13.5f), p, 3.2f)); break;
                 case "cliff-corner/ramp": Ramps.Add(new Ramp(new Vector2(9.5f, 6.5f), 0, new Vector2(2.5f, 13.5f), p, 3.2f)); break;
                 case "cliff-inner/ramp": Ramps.Add(new Ramp(new Vector2(2.5f, 2.5f), 0, new Vector2(9.5f, 9.5f), p, 3.2f)); break;
-                case "canyon-straight/descent": Ramps.Add(new Ramp(new Vector2(4.4f, 2f), 0, new Vector2(8f, 13.5f), d, 2.6f)); break;
+                case "canyon-straight/descent": Ramps.Add(new Ramp(new Vector2(3.4f, 1.6f), 0, new Vector2(6.6f, 13.6f), d, 2.6f)); break;
                 case "canyon-bend/descent": Ramps.Add(new Ramp(new Vector2(4.25f, 11.7f), 0, new Vector2(12f, 9.1f), d, 2.6f)); break;
                 case "canyon-end/descent": Ramps.Add(new Ramp(new Vector2(8f, .8f), 0, new Vector2(8f, 9.2f), d, 2.6f)); break;
             }
@@ -166,7 +169,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case ShapeKind.Plain when Variant == "pond":
                     return Bed(Vector2.Distance(p, PondCentre) + Noise(p, 2f, 11) * .3f * fade, PondRadius, PondBank, PondDeep);
                 default:
-                    return 0;
+                    return Scene != null ? Scene.Relief(this, p) : 0;
             }
         }
 
@@ -264,6 +267,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (Shape.Id == "river-straight") return p.x < 8 ? 0 : 1;
                     if (Shape.Id == "river-bend") return Vector2.Distance(p, new Vector2(16, 16)) < 8 ? 1 : 0;
                     return Variant == "island" && Vector2.Distance(p, new Vector2(8, 8)) < IslandRadius ? 1 : 0;
+                case ShapeKind.Plain:
+                case ShapeKind.PlateauTop:
+                    return Scene?.Pocket != null && Vector2.Distance(p, Scene.Pocket.Value) < 1.6f ? 1 : 0;
                 default:
                     return 0;
             }

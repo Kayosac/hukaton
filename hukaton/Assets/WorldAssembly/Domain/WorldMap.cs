@@ -140,10 +140,8 @@ namespace Hakaton.WorldAssembly
             switch (shape.Id)
             {
                 case "plain":
-                    id = roll < .4 ? "meadow" : roll < .77 ? "woods" : roll < .96 ? "rocks" : "pond";
-                    break;
                 case "plateau-top":
-                    id = roll < .6 ? "bare" : "rocks";
+                    id = Scene(plan);
                     break;
                 case "river-end":
                     id = roll < .45 ? "lake" : roll < .8 || plan.Ring == 0 ? "spring" : "island";
@@ -174,6 +172,35 @@ namespace Hakaton.WorldAssembly
             plan.Variant = shape.FindVariant(id);
         }
 
+        /// <summary>
+        /// The scene of a flat chunk. Never the same as the chunk to the west or south would take first, so like scenes
+        /// do not run in rows; pockets stay out of ring 0, where everything is reached on foot.
+        /// </summary>
+        string Scene(ChunkPlan plan)
+        {
+            var c = plan.Coord;
+            var ids = plan.Shape.Kind == ShapeKind.Plain ? TileShapes.PlainScenes : TileShapes.TopScenes;
+            string First(int x, int y, int salt)
+            {
+                for (int k = 0; k < 8; k++)
+                {
+                    string id = ids[Hash.Range(Seed, ids.Length, Salt.Scene + salt, x, y, k)];
+                    if (plan.Ring == 0 && TileShapes.IsPocketScene(id)) continue;
+                    return id;
+                }
+                return ids[0];
+            }
+            string west = First(c.X - 1, c.Y, 0), south = First(c.X, c.Y - 1, 0);
+            for (int k = 0; k < 12; k++)
+            {
+                string id = ids[Hash.Range(Seed, ids.Length, Salt.Scene, c.X, c.Y, k)];
+                if (plan.Ring == 0 && TileShapes.IsPocketScene(id)) continue;
+                if (k < 11 && (id == west || id == south)) continue;
+                return id;
+            }
+            return ids[0];
+        }
+
         // ---------- creatures and loot ----------
 
         void Populate(ChunkPlan plan)
@@ -193,9 +220,15 @@ namespace Hakaton.WorldAssembly
             switch (plan.Shape.Kind)
             {
                 case ShapeKind.Plain:
-                    bool open = plan.Variant.Id == "meadow" || plan.Variant.Id == "pond";
+                {
+                    string scene = plan.Variant.Id;
+                    bool open = scene == "pond" || scene == "farm" || scene == "knoll" || scene == "grove";
                     creature = ring == 0 ? "peaceful" : ring == 1 ? (open && pick < .5 ? "peaceful" : open ? "small-hostile" : "hostile") : "hostile";
+                    // Someone lives at a camp; ruins and hollows are lairs.
+                    if (scene == "camp") chance = Math.Max(chance, .7);
+                    else if (scene == "ruins" || scene == "hollow") chance *= 1.5;
                     break;
+                }
                 case ShapeKind.Maze: creature = "thicket"; chance *= 1.5; break;
                 case ShapeKind.River: creature = ring == 0 ? "peaceful" : "small-hostile"; chance *= .6; break;
                 case ShapeKind.Canyon: creature = "hostile"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
@@ -212,12 +245,17 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.Cliff:
                     if (plan.Variant.Id == "ledge" && findRoll < .5) plan.Loot.Add("find-hard");
                     break;
+                case ShapeKind.Plain:
+                    // Every scene has a place for a find; most of them hold one.
+                    if (findRoll < Rules.SceneFindChance[ring]) plan.Loot.Add("find");
+                    break;
                 default:
                     if (findRoll < Rules.FindChance[ring]) plan.Loot.Add("find");
                     break;
             }
             if (plan.MazeHeart) plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
-            if (plan.Variant.Id == "island") plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
+            if (plan.Variant.Id == "island" || TileShapes.IsPocketScene(plan.Variant.Id))
+                plan.PocketReward = ring == 2 || plan.BaseLevel >= 2 ? "crystal" : "find-hard";
         }
 
         // ---------- ring 0–1 guarantee ----------

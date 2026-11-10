@@ -51,17 +51,22 @@ namespace Hakaton.WorldAssembly.EditorTools
             }
             catalogue.entries.Clear();
             int count = 0;
+            var stale = new HashSet<string>(AssetDatabase.FindAssets("", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath).Where(p => !AssetDatabase.IsValidFolder(p)));
             foreach (var shape in TileShapes.All)
                 foreach (var variant in shape.Variants)
                 {
                     var view = Build(shape, variant.Id);
                     catalogue.entries.Add(new ChunkCatalog.Entry { shape = shape.Id, variant = variant.Id, prefab = view });
+                    stale.Remove(AssetDatabase.GetAssetPath(view.gameObject));
+                    stale.Remove($"{Root}/{shape.Id}/{shape.Id} {variant.Id} data.asset");
                     count++;
                 }
+            // Variants that are gone (an old scene list) leave no prefabs behind.
+            foreach (var path in stale) AssetDatabase.DeleteAsset(path);
             EditorUtility.SetDirty(catalogue);
             EnsureContent();
             AssetDatabase.SaveAssets();
-            return $"built {count} chunk prefabs";
+            return $"built {count} chunk prefabs, removed {stale.Count} old assets";
         }
 
         // ---------- one chunk ----------
@@ -96,6 +101,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (shape.Kind == ShapeKind.River || (shape.Kind == ShapeKind.Plain && variant == "pond"))
                 obstacles.Add(Water(go.transform, terrain, meshPath, name));
             if (shape.Kind == ShapeKind.Maze) obstacles.AddRange(Thickets(go.transform, terrain, rng));
+            if (terrain.Scene != null) ScenePieces(go.transform, terrain, rng, obstacles);
             view.obstacles = obstacles.ToArray();
 
             Crossings(go.transform, terrain, rng);
@@ -115,6 +121,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Place(go.transform, "Markers/FA_MK16_StoneCircle", terrain, new Vector2(8, 8), 0, Vector3.one);
             }
 
+            CullDetail(go.transform);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
 
@@ -189,6 +196,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Kind == ShapeKind.Canyon && h < -t.CanyonDepth + .4f) return Surface.Bed;
             if (t.OnRamp(p)) return Surface.Path;
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
+            if (t.Scene != null && (t.Scene.OnFloor(p) || t.Scene.OnTrail(t, p))) return Surface.Path;
+            if (t.Scene != null && t.Scene.InThicket(p)) return Surface.Humus;
             if (t.Shape.Kind == ShapeKind.Start && Vector2.Distance(p, new Vector2(8, 8)) < 7.2f) return Surface.Path;
             return Surface.Main;
         }
@@ -348,43 +357,85 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Mids[1] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(c1, c0, 16, c1));
             if (t.Shape.Mids[2] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(c0, 0, c1, c0));
             if (t.Shape.Mids[3] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(0, c0, c0, c1));
-            foreach (var r in pieces)
+            foreach (var r in pieces) yield return ThornPiece(parent, r, rng);
+        }
+
+        /// <summary>A block of thorns over a rectangle (canonical metres): a wall until Fire burns it.</summary>
+        static WorldObstacle ThornPiece(Transform parent, Rect r, System.Random rng)
+        {
+            var root = new GameObject("Thorns");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = new Vector3(r.center.x - 8, 0, r.center.y - 8);
+            var barrierGo = new GameObject("Barrier");
+            barrierGo.transform.SetParent(root.transform, false);
+            var barrier = barrierGo.AddComponent<BoxCollider>();
+            barrier.center = new Vector3(0, 1.3f, 0);
+            barrier.size = new Vector3(r.width, 2.6f, r.height);
+            var live = new GameObject("Live thorns");
+            live.transform.SetParent(root.transform, false);
+            var burnt = new GameObject("Burnt thorns");
+            burnt.transform.SetParent(root.transform, false);
+            // Kept inside the piece so corridors stay open; tall enough to hide what is behind.
+            for (float x = r.xMin + .9f; x < r.xMax - .5f; x += 1.5f)
+                for (float z = r.yMin + .8f; z < r.yMax - .5f; z += 1.2f)
+                {
+                    var p = new Vector2(x + (float)rng.NextDouble() * .6f - .3f, z + (float)rng.NextDouble() * .6f - .3f);
+                    float yaw = (float)rng.NextDouble() * 360, s = .85f + (float)rng.NextDouble() * .45f;
+                    var a = Place(live.transform, "Plants/FA_VG10_ThornThicket", null, Vector2.zero, yaw, new Vector3(s, s * 1.9f, s));
+                    if (a) a.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
+                    var b = Place(burnt.transform, "Plants/FA_VG10_ThornThicketBurnt", null, Vector2.zero, yaw, new Vector3(s, s * .6f, s));
+                    if (b) b.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
+                }
+            foreach (var c in live.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            foreach (var c in burnt.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            burnt.SetActive(false);
+            var obstacle = root.AddComponent<WorldObstacle>();
+            obstacle.kind = ObstacleKind.Thorns;
+            obstacle.barrier = barrier;
+            obstacle.intact = live;
+            obstacle.changed = burnt;
+            obstacle.tint = new Color(1f, .62f, .3f);
+            Feedback(obstacle, "1c053b046a88e4e7b8c543f06e64b7e2", "40b80550388374f72a36150a39fb3d81", "a7ef1d25e7e664753b75a51a4803f109", "3070caddd61f843dd8ba16ca7c10784a");
+            return obstacle;
+        }
+
+        // ---------- scenes ----------
+
+        static readonly string[] RidgeStones = { "FA_RK03_BoulderLarge", "FA_RK06_BoulderSplit", "FA_RK08_RocksTallGroup", "FA_RK02_BoulderMedium", "FA_RK05_StoneTall" };
+
+        /// <summary>Set pieces of a plain or plateau-top scene: props, rocks along its ridges, its thicket.</summary>
+        static void ScenePieces(Transform parent, TileTerrain t, System.Random rng, List<WorldObstacle> obstacles)
+        {
+            var scene = t.Scene;
+            var group = new GameObject("Scene " + scene.Id).transform;
+            group.SetParent(parent, false);
+            foreach (var prop in scene.Props)
             {
-                var root = new GameObject("Thorns");
-                root.transform.SetParent(parent, false);
-                root.transform.localPosition = new Vector3(r.center.x - 8, 0, r.center.y - 8);
-                var barrierGo = new GameObject("Barrier");
-                barrierGo.transform.SetParent(root.transform, false);
-                var barrier = barrierGo.AddComponent<BoxCollider>();
-                barrier.center = new Vector3(0, 1.3f, 0);
-                barrier.size = new Vector3(r.width, 2.6f, r.height);
-                var live = new GameObject("Live thorns");
-                live.transform.SetParent(root.transform, false);
-                var burnt = new GameObject("Burnt thorns");
-                burnt.transform.SetParent(root.transform, false);
-                // Kept inside the piece so corridors stay open; tall enough to hide what is behind.
-                for (float x = r.xMin + .9f; x < r.xMax - .5f; x += 1.5f)
-                    for (float z = r.yMin + .8f; z < r.yMax - .5f; z += 1.2f)
-                    {
-                        var p = new Vector2(x + (float)rng.NextDouble() * .6f - .3f, z + (float)rng.NextDouble() * .6f - .3f);
-                        float yaw = (float)rng.NextDouble() * 360, s = .85f + (float)rng.NextDouble() * .45f;
-                        var a = Place(live.transform, "Plants/FA_VG10_ThornThicket", null, Vector2.zero, yaw, new Vector3(s, s * 1.9f, s));
-                        if (a) a.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
-                        var b = Place(burnt.transform, "Plants/FA_VG10_ThornThicketBurnt", null, Vector2.zero, yaw, new Vector3(s, s * .6f, s));
-                        if (b) b.transform.position = root.transform.position + new Vector3(p.x - r.center.x, 0, p.y - r.center.y);
-                    }
-                foreach (var c in live.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
-                foreach (var c in burnt.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
-                burnt.SetActive(false);
-                var obstacle = root.AddComponent<WorldObstacle>();
-                obstacle.kind = ObstacleKind.Thorns;
-                obstacle.barrier = barrier;
-                obstacle.intact = live;
-                obstacle.changed = burnt;
-                obstacle.tint = new Color(1f, .62f, .3f);
-                Feedback(obstacle, "1c053b046a88e4e7b8c543f06e64b7e2", "40b80550388374f72a36150a39fb3d81", "a7ef1d25e7e664753b75a51a4803f109", "3070caddd61f843dd8ba16ca7c10784a");
-                yield return obstacle;
+                var go = Place(group, prop.Asset, t, prop.At, prop.Yaw, prop.Scale);
+                if (!go) continue;
+                if (prop.Lift != 0) go.transform.position += Vector3.up * prop.Lift;
+                if (prop.NoCollider) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
             }
+            foreach (var (index, spacing) in scene.RidgeRocks)
+            {
+                var ridge = scene.Ridges[index];
+                for (int i = 0; i + 1 < ridge.Line.Length; i++)
+                {
+                    var a = ridge.Line[i];
+                    var ab = ridge.Line[i + 1] - a;
+                    int n = Mathf.Max(1, Mathf.RoundToInt(ab.magnitude / spacing));
+                    for (int k = 0; k < n; k++)
+                    {
+                        var p = a + ab * ((k + .3f + (float)rng.NextDouble() * .4f) / n);
+                        // The pass stays open.
+                        if (scene.Gaps.Any(g => Vector2.Distance(p, g.Centre) < g.Radius + 1.1f)) continue;
+                        float s = Mathf.Lerp(.75f, 1.15f, (float)rng.NextDouble()) * Mathf.Clamp(ridge.Half / .85f, .7f, 1.1f);
+                        var stone = Place(group, "Rocks/" + RidgeStones[rng.Next(RidgeStones.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
+                        if (stone) stone.transform.position += Vector3.down * .35f;
+                    }
+                }
+            }
+            if (scene.Thicket.HasValue) obstacles.Add(ThornPiece(group, scene.Thicket.Value, rng));
         }
 
         // ---------- bridges, logs, fords ----------
@@ -432,6 +483,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         static readonly string[] Grass = { "FA_VG04_GrassLow", "FA_VG05_GrassTall", "FA_VG06_GrassSparse", "FA_VG07_GrassDrooping", "FA_VG01_FernLow", "FA_VG11_BroadLeavesLow" };
         static readonly string[] Ferns = { "FA_VG01_FernLow", "FA_VG02_FernTall", "FA_VG03_FernDrooping", "FA_VG12_BroadLeavesTall", "FA_VG08_BushRound" };
         static readonly string[] Boulders = { "FA_RK01_BoulderSmall", "FA_RK02_BoulderMedium", "FA_RK03_BoulderLarge", "FA_RK05_StoneTall", "FA_RK06_BoulderSplit", "FA_RK07_RocksLowGroup" };
+        static readonly string[] Bushes = { "FA_VG08_BushRound", "FA_VG09_BushTallThorny", "FA_VG12_BroadLeavesTall", "FA_VG02_FernTall", "FA_VG08_BushRound" };
+        static readonly string[] Litter = { "FA_DW05_StumpLow", "FA_DW09_SticksSmall", "FA_DW11_BranchForked", "FA_DW04_LogRotten", "FA_DW07_StumpHollow" };
+        static readonly string[] Pebbles = { "FA_RK01_BoulderSmall", "FA_RK07_RocksLowGroup", "FA_RK04_BoulderFlat" };
         static readonly string[] Deadwood = { "FA_DW01_LogWhole", "FA_DW04_LogRotten", "FA_DW05_StumpLow", "FA_DW06_StumpTall", "FA_DW09_SticksSmall", "FA_DW11_BranchForked" };
 
         static void Dress(Transform parent, TileTerrain t, System.Random rng)
@@ -447,7 +501,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (!Free(t, p) || (where != null && !where(p)) || placed.Any(q => Vector2.Distance(p, q) < minSpacing)) continue;
                     placed.Add(p);
                     float s = Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble());
-                    Place(dressing, folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
+                    var placedGo = Place(dressing, folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
+                    // Grass and bushes cast no shadows: many small draws for little.
+                    if (placedGo && folder == "Plants")
+                        foreach (var r in placedGo.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
             }
             bool High(Vector2 p) => t.Height(p) > Plateau * .8f;
@@ -455,15 +512,21 @@ namespace Hakaton.WorldAssembly.EditorTools
             switch (t.Shape.Kind)
             {
                 case ShapeKind.Plain:
-                    if (t.Variant == "woods") { Scatter("Trees", Trees, 7, 2.6f, 3.2f, .8f, 1.1f); Scatter("Plants", Ferns, 10, 1, 1.2f, .8f, 1.3f); Scatter("Deadwood", Deadwood, 3, 2, 2, .8f, 1.1f); }
-                    else if (t.Variant == "rocks") { Scatter("Rocks", Boulders, 6, 2.2f, 2.4f, .9f, 1.6f); Scatter("Plants", Grass, 8, 1, 1.2f, .8f, 1.2f); }
-                    else if (t.Variant == "pond") { Scatter("Plants", Grass, 12, 1, 1, .9f, 1.4f); Scatter("Trees", Trees, 1, 3, 3, .9f, 1f); }
-                    else { Scatter("Plants", Grass, 14, 1, 1, .8f, 1.3f); Scatter("Rocks", Boulders, 1, 3, 3, .6f, .9f); }
-                    break;
                 case ShapeKind.PlateauTop:
-                    if (t.Variant == "rocks") Scatter("Rocks", Boulders, 5, 2.4f, 2.6f, 1f, 1.8f);
-                    Scatter("Plants", Grass, 8, 1, 1.2f, .7f, 1.1f);
+                {
+                    var scene = t.Scene;
+                    Func<Vector2, bool> open = p => !scene.Busy(p) && !scene.OnTrail(t, p);
+                    Scatter("Plants", Grass, scene.Grass, 1, 1.1f, .8f, 1.3f, open);
+                    if (scene.Ferns > 0) Scatter("Plants", Ferns, scene.Ferns, 1.2f, 1.3f, .8f, 1.2f, open);
+                    // Undergrowth and litter so no corner of a scene is bare: bushes without colliders, a few stumps and stones.
+                    Scatter("Plants", Bushes, scene.Bushes, 1.2f, 1.9f, 1f, 1.7f, open);
+                    // Things with colliders keep clear of the edges, where neighbours' navigation links land.
+                    Scatter("Deadwood", Litter, 2, 2.6f, 2.4f, .8f, 1.1f, open);
+                    Scatter("Rocks", Pebbles, 2, 2.6f, 2.4f, .7f, 1f, open);
+                    // Trees only near the edges' corners, clear of the scene's lanes.
+                    if (scene.Trees > 0) Scatter("Trees", Trees, scene.Trees, 1.6f, 4, .8f, 1f, p => open(p) && Mathf.Min(Mathf.Min(p.x, 16 - p.x), Mathf.Min(p.y, 16 - p.y)) < 3);
                     break;
+                }
                 case ShapeKind.Cliff:
                     Scatter("Plants", Grass, 6, 1, 1.4f, .7f, 1.1f);
                     Scatter("Rocks", Boulders, 2, 2.4f, 3, .7f, 1.2f, Low);
@@ -484,6 +547,23 @@ namespace Hakaton.WorldAssembly.EditorTools
             }
         }
 
+        /// <summary>
+        /// Everything on a chunk but its ground and water vanishes together once the chunk is small on screen (about
+        /// 70 m away, deep in the fog): the camera reaches far for the silhouettes, and the loaded chunks out there
+        /// would be thousands of draws for nothing. Their ground stays, so the land runs on into the fog.
+        /// </summary>
+        static void CullDetail(Transform chunk)
+        {
+            var renderers = chunk.GetComponentsInChildren<Renderer>(true)
+                .Where(r => !r.transform.IsChildOf(chunk.Find("Ground")) && !(chunk.Find("Water") && r.transform.IsChildOf(chunk.Find("Water"))))
+                .ToArray();
+            if (renderers.Length == 0) return;
+            var group = chunk.gameObject.AddComponent<LODGroup>();
+            group.SetLODs(new[] { new LOD(.2f, renderers) });
+            group.localReferencePoint = new Vector3(0, 2, 0);
+            group.size = 16;
+        }
+
         /// <summary>A rock shelf halfway up a straight cliff: Impulse I twice.</summary>
         static void Ledge(Transform parent, TileTerrain t)
         {
@@ -500,6 +580,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         static bool Free(TileTerrain t, Vector2 p)
         {
             if (t.IsWater(p) || t.OnRamp(p) || t.InMazeWall(p)) return false;
+            if (t.Scene != null && t.Scene.InThicket(p)) return false;
             if (t.Shape.Kind == ShapeKind.River && t.DistanceToCentre(p) < TileTerrain.BankHalf + .6f) return false;
             if (t.Shape.Kind == ShapeKind.Canyon && t.DistanceToCentre(p) < TileTerrain.RimHalf + .4f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .3f) return false;
             if (t.Shape.Kind == ShapeKind.Start && Vector2.Distance(p, new Vector2(8, 8)) < 8) return false;
@@ -559,11 +640,14 @@ namespace Hakaton.WorldAssembly.EditorTools
             };
             var finds = Spread(candidates.Where(prefer).ToList(), 4, rng);
             if (finds.Count == 0) finds = Spread(candidates, 3, rng);
+            // Scenes put their finds where the scene points: the top of the knoll, the floor of the ruin.
+            if (t.Scene != null) finds = t.Scene.Finds.ToList();
             if (t.Variant == "ledge") finds.Insert(0, new Vector2(4.5f, 7.2f));
             view.findSockets = finds.Select((p, i) => Socket(group, "Find " + i, t, p, t.Variant == "ledge" && i == 0 ? Plateau * .5f + .05f : (float?)null)).ToArray();
 
             if (t.Variant == "island") view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
             if (t.Shape.Kind == ShapeKind.Maze) view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
+            if (t.Scene?.Pocket != null) view.pocketSocket = Socket(group, "Pocket", t, t.Scene.Pocket.Value, null);
 
             Func<Vector2, bool> home = t.Shape.Kind switch
             {
@@ -573,6 +657,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             };
             var creatures = Spread(candidates.Where(home).ToList(), 2, rng);
             if (t.Shape.Kind == ShapeKind.Maze) creatures = new List<Vector2> { new Vector2(8, 8) };
+            if (t.Scene != null) creatures = t.Scene.Creatures.ToList();
             view.creatureSockets = creatures.Select((p, i) => Socket(group, "Creature " + i, t, p, null)).ToArray();
         }
 
@@ -615,19 +700,30 @@ namespace Hakaton.WorldAssembly.EditorTools
             var bounds = new Bounds(new Vector3(0, 2, 0), new Vector3(16, 24, 16));
             NavMeshBuilder.CollectSources(bounds, ~(1 << 4), NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
             foreach (var c in triggers) c.enabled = true;
-            // Water is not walkable for creatures.
-            foreach (var obstacle in root.GetComponentsInChildren<WorldObstacle>())
+            // Water is not walkable for creatures: one box per run of deep cells along each row, so dry ground inside
+            // a river's bend stays walkable.
+            if (t.Shape.Kind == ShapeKind.River || (t.Shape.Kind == ShapeKind.Plain && t.Variant == "pond"))
             {
-                if (obstacle.kind != ObstacleKind.Lake || !obstacle.intact) continue;
-                var mesh = obstacle.intact.GetComponent<MeshFilter>().sharedMesh;
-                var b = mesh.bounds;
-                sources.Add(new NavMeshBuildSource
+                int n = Mathf.RoundToInt(TileTerrain.Size / Step);
+                for (int j = 0; j < n; j++)
                 {
-                    shape = NavMeshBuildSourceShape.ModifierBox,
-                    transform = Matrix4x4.Translate(new Vector3(b.center.x, -1f, b.center.z)),
-                    size = new Vector3(b.size.x, 3.4f, b.size.z),
-                    area = 1,
-                });
+                    int run = -1;
+                    for (int i = 0; i <= n; i++)
+                    {
+                        bool wet = i < n && t.IsWater(new Vector2((i + .5f) * Step, (j + .5f) * Step));
+                        if (wet && run < 0) run = i;
+                        if (wet || run < 0) continue;
+                        float x0 = run * Step, x1 = i * Step, z = (j + .5f) * Step;
+                        sources.Add(new NavMeshBuildSource
+                        {
+                            shape = NavMeshBuildSourceShape.ModifierBox,
+                            transform = Matrix4x4.Translate(new Vector3((x0 + x1) / 2 - 8, -1f, z - 8)),
+                            size = new Vector3(x1 - x0 + .1f, 3.4f, Step + .1f),
+                            area = 1,
+                        });
+                        run = -1;
+                    }
+                }
             }
             var settings = NavMesh.GetSettingsByID(0);
             var data = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);

@@ -33,6 +33,11 @@ namespace Hakaton.WorldAssembly.Unity
         public int Seed { get; private set; }
         public bool Active { get; private set; }
         public int LoadedCount => loaded.Count;
+        public bool IsLoaded(ChunkCoord c) => loaded.ContainsKey(c);
+        /// <summary>The expedition of the current outing (null between outings).</summary>
+        public ExpeditionWorld World => Active ? world : null;
+        /// <summary>Changes whenever a chunk loads or unloads.</summary>
+        public int Version { get; private set; }
 
         sealed class Loaded
         {
@@ -153,7 +158,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (!prefab)
             {
                 Debug.LogWarning($"[World] no prefab for {plan.Shape.Id}/{plan.Variant.Id}");
-                prefab = catalog ? catalog.Find("plain", "meadow") : null;
+                prefab = catalog ? catalog.Find("plain", "grove") : null;
                 if (!prefab) return;
             }
             var position = Origin + new Vector3(coord.X * Size, plan.BaseLevel * Map.Rules.PlateauHeight, coord.Y * Size);
@@ -162,6 +167,7 @@ namespace Hakaton.WorldAssembly.Unity
             view.name = $"{plan.Shape.Id}/{plan.Variant.Id} {coord}";
             var entry = new Loaded { plan = plan, view = view };
             loaded[coord] = entry;
+            Version++;
             memory.TryGetValue(coord, out var mem);
 
             foreach (var filter in view.worldUv) if (filter) entry.meshes.Add(WorldSpaceUv(filter));
@@ -259,6 +265,7 @@ namespace Hakaton.WorldAssembly.Unity
         {
             if (!loaded.TryGetValue(coord, out var entry)) return;
             loaded.Remove(coord);
+            Version++;
             if (remember && world)
             {
                 if (!memory.TryGetValue(coord, out var mem)) memory[coord] = mem = new Memory();

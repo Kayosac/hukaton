@@ -22,7 +22,7 @@ namespace Hakaton.WorldAssembly
         public float CanyonDepth = 5f;
 
         /// <summary>Corner noise above this lifts the corner to the plateau, per ring (ring 0 unused: flat).</summary>
-        public double[] PlateauThreshold = { 2, .66, .6 };
+        public double[] PlateauThreshold = { 2, .6, .55 };
         /// <summary>Corner noise above this lifts a plateau corner to the summit (ring 2 only).</summary>
         public double SummitThreshold = .76;
         /// <summary>Noise feature size, in corners.</summary>
@@ -33,7 +33,7 @@ namespace Hakaton.WorldAssembly
         public double[] CanyonCrossing = { 0, .4, .5 };
         /// <summary>Chance of a river that starts and ends inside a district without crossings.</summary>
         public double[] InnerRiver = { .2, .12, .08 };
-        public double[] Maze = { .3, .45, .45 };
+        public double[] Maze = { .5, .85, .85 };
 
         /// <summary>A bridge or ford every N river chunks along the river (0 = by chance only), per ring.</summary>
         public int[] RiverCrossingEvery = { 2, 4, 0 };
@@ -50,6 +50,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
         public double[] CreatureChance = { .12, .2, .33 };
         public double[] FindChance = { .35, .45, .5 };
+        public double[] SceneFindChance = { .6, .65, .7 };
+        public double[] SecondMaze = { 0, .5, .6 };
 
         public int RingOf(ChunkCoord c)
         {

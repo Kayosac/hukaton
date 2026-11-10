@@ -4,25 +4,33 @@ namespace Hakaton.WorldAssembly.Unity
 {
     /// <summary>
     /// Mountains and the start beacon beyond the fog (Kayospace «Открытый мир v2», 2: силуэты до 200 м): a coarse
-    /// height field of the world's raised corners, drawn without fog in colours that fade into the fog colour, and a
-    /// tall beacon over the start once the player is away from it. Rebuilt whenever the player enters another chunk.
+    /// height field of the world's raised corners over every chunk that is not loaded, at the real heights so it meets
+    /// the loaded chunks' edges, and a tall beacon over the start once the player is away from it. The shader fades
+    /// both in from the fog colour by distance. Rebuilt when the player enters another chunk or chunks load or unload.
     /// </summary>
     [RequireComponent(typeof(WorldStreamer))]
     public sealed class FarSilhouettes : MonoBehaviour
     {
         public Material material;
-        [Tooltip("Silhouettes start where the loaded chunks end.")]
-        [Min(16)] public float nearRadius = 60;
-        [Min(32)] public float farRadius = 200;
-        [Tooltip("Heights are stretched a little so far mountains read as mountains.")]
-        public float heightScale = 1.4f;
+        [Tooltip("Silhouettes fade in from the fog from this distance on: about where loaded chunks end (they stay up to the streamer's unload radius), so the two meet where both are fog.")]
+        [Min(16)] public float nearRadius = 96;
+        [Tooltip("Over this many metres past Near Radius.")]
+        [Min(1)] public float fadeIn = 40;
+        [Min(32)] public float farRadius = 250;
+        [Tooltip("How dark the silhouettes get against the fog.")]
         [Range(0, 1)] public float strength = .5f;
+        [Tooltip("The beacon over the start shows once the player is this far from it (the start chunk's own beacon is culled with its detail at about this distance) and comes out of the fog over Fade In.")]
+        [Min(0)] public float beaconFrom = 66;
         public float beaconHeight = 34;
 
         WorldStreamer streamer;
         Mesh mesh, beaconMesh;
+        Material fieldMaterial, beaconMaterial;
+        Camera stretched;
+        float savedFar;
         GameObject field, beacon;
         ChunkCoord last = new ChunkCoord(int.MinValue, int.MinValue);
+        int lastLoaded = -1;
 
         void Awake() => streamer = GetComponent<WorldStreamer>();
 
@@ -31,14 +39,40 @@ namespace Hakaton.WorldAssembly.Unity
             bool on = streamer.Active && streamer.player && material;
             if (field) field.SetActive(on);
             if (beacon) beacon.SetActive(false);
-            if (!on) { last = new ChunkCoord(int.MinValue, int.MinValue); return; }
+            Reach(on ? streamer.World?.viewCamera : null);
+            if (!on) { last = new ChunkCoord(int.MinValue, int.MinValue); lastLoaded = -1; return; }
             var here = streamer.CoordAt(streamer.player.position);
-            if (!here.Equals(last)) { last = here; Rebuild(here); }
+            if (!here.Equals(last) || streamer.Version != lastLoaded)
+            {
+                last = here;
+                lastLoaded = streamer.Version;
+                Rebuild(here);
+            }
             var origin = streamer.root ? streamer.root.position : transform.position;
             var flat = streamer.player.position - origin;
             flat.y = 0;
-            if (beacon) beacon.SetActive(flat.magnitude > nearRadius);
+            if (beacon) beacon.SetActive(flat.magnitude > beaconFrom);
         }
+
+        /// <summary>
+        /// The player's camera stops at the fog (60 m) everywhere else; out in the world it has to reach the
+        /// silhouettes. Chunks cull their own detail at about 70 m, so only their ground is drawn further out.
+        /// Restored when the outing ends.
+        /// </summary>
+        void Reach(Camera cam)
+        {
+            if (stretched && stretched != cam)
+            {
+                stretched.farClipPlane = savedFar;
+                stretched = null;
+            }
+            if (!cam || stretched == cam) return;
+            savedFar = cam.farClipPlane;
+            cam.farClipPlane = Mathf.Max(savedFar, farRadius + 20);
+            stretched = cam;
+        }
+
+        void OnDisable() => Reach(null);
 
         void Ensure()
         {
@@ -47,8 +81,12 @@ namespace Hakaton.WorldAssembly.Unity
             field.transform.SetParent(transform, false);
             mesh = new Mesh { name = "Far silhouettes", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             field.AddComponent<MeshFilter>().sharedMesh = mesh;
+            fieldMaterial = new Material(material) { name = "Far silhouettes" };
+            fieldMaterial.SetFloat("_Near", nearRadius);
+            fieldMaterial.SetFloat("_FadeIn", fadeIn);
+            fieldMaterial.SetFloat("_Far", farRadius);
             var r = field.AddComponent<MeshRenderer>();
-            r.sharedMaterial = material;
+            r.sharedMaterial = fieldMaterial;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
 
@@ -56,8 +94,13 @@ namespace Hakaton.WorldAssembly.Unity
             beacon.transform.SetParent(transform, false);
             beaconMesh = Beacon();
             beacon.AddComponent<MeshFilter>().sharedMesh = beaconMesh;
+            // The beacon comes out of the fog where the start chunk's own beacon is culled, and stays much further.
+            beaconMaterial = new Material(material) { name = "Beacon silhouette" };
+            beaconMaterial.SetFloat("_Near", beaconFrom);
+            beaconMaterial.SetFloat("_FadeIn", 30);
+            beaconMaterial.SetFloat("_Far", farRadius * 1.6f);
             var br = beacon.AddComponent<MeshRenderer>();
-            br.sharedMaterial = material;
+            br.sharedMaterial = beaconMaterial;
             br.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
@@ -85,7 +128,7 @@ namespace Hakaton.WorldAssembly.Unity
             var fog = RenderSettings.fogColor;
             var dark = new Color(fog.r * .45f, fog.g * .42f, fog.b * .4f);
             // Vertex colours are not converted to linear space: convert here, as the fog colour is.
-            return Color.Lerp(fog, dark, Mathf.Clamp01(strength * (.6f + .2f * level))).linear;
+            return Color.Lerp(fog, dark, Mathf.Clamp01(strength * (.7f + .3f * level))).linear;
         }
 
         void Rebuild(ChunkCoord here)
@@ -100,17 +143,17 @@ namespace Hakaton.WorldAssembly.Unity
             int n = reach * 2 + 1;
             var vertices = new Vector3[(n + 1) * (n + 1)];
             var colours = new Color[vertices.Length];
-            var fog = RenderSettings.fogColor;
             for (int i = 0; i <= n; i++)
                 for (int j = 0; j <= n; j++)
                 {
                     int ci = here.X - reach + i, cj = here.Y - reach + j;
                     int level = map.Corners.Level(ci, cj);
-                    // Corner (ci, cj) is the south-west corner of chunk (ci, cj).
+                    // Corner (ci, cj) is the south-west corner of chunk (ci, cj). Real heights, a little lower, so the
+                    // field meets the edges of the loaded chunks and never shows above them.
                     float x = (ci - .5f) * size, z = (cj - .5f) * size;
-                    float y = level > 0 ? level * map.Rules.PlateauHeight * heightScale : -.6f;
+                    float y = level > 0 ? level * map.Rules.PlateauHeight - .3f : -.6f;
                     vertices[i * (n + 1) + j] = origin + new Vector3(x, y, z);
-                    colours[i * (n + 1) + j] = level > 0 ? Colour(level) : fog.linear;
+                    colours[i * (n + 1) + j] = Colour(level);
                 }
             var triangles = new System.Collections.Generic.List<int>();
             for (int i = 0; i < n; i++)
@@ -118,11 +161,12 @@ namespace Hakaton.WorldAssembly.Unity
                 {
                     int ci = here.X - reach + i, cj = here.Y - reach + j;
                     float dx = (ci - here.X) * size, dz = (cj - here.Y) * size;
-                    float d = Mathf.Sqrt(dx * dx + dz * dz);
-                    if (d < nearRadius || d > farRadius) continue;
-                    int a = i * (n + 1) + j, b = (i + 1) * (n + 1) + j, c = (i + 1) * (n + 1) + j + 1, e = i * (n + 1) + j + 1;
+                    if (dx * dx + dz * dz > farRadius * farRadius) continue;
+                    // Cell (ci, cj) is chunk (ci, cj): where the real chunk stands, it shows itself.
+                    if (streamer.IsLoaded(new ChunkCoord(ci, cj))) continue;
                     // Only cells that rise: flat country stays to the fog.
                     if (map.Corners.Level(ci, cj) == 0 && map.Corners.Level(ci + 1, cj) == 0 && map.Corners.Level(ci, cj + 1) == 0 && map.Corners.Level(ci + 1, cj + 1) == 0) continue;
+                    int a = i * (n + 1) + j, b = (i + 1) * (n + 1) + j, c = (i + 1) * (n + 1) + j + 1, e = i * (n + 1) + j + 1;
                     triangles.AddRange(new[] { a, e, c, a, c, b });
                 }
             mesh.Clear();
@@ -136,6 +180,8 @@ namespace Hakaton.WorldAssembly.Unity
         {
             if (mesh) Destroy(mesh);
             if (beaconMesh) Destroy(beaconMesh);
+            if (fieldMaterial) Destroy(fieldMaterial);
+            if (beaconMaterial) Destroy(beaconMaterial);
         }
     }
 }
