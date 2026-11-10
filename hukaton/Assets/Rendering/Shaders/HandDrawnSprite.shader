@@ -36,8 +36,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/Core2D.hlsl"
 
         TEXTURE2D(_MainTex);
-        // Explicit point sampling at mip zero: sharp even on bilinear source textures.
-        // sampler_PointClamp is supplied by URP's GlobalSamplers.hlsl.
+        // Explicit mip-zero sampling with URP's global sampler_LinearClamp/PointClamp (GlobalSamplers.hlsl):
+        // the shader filters each world pixel itself, so texture import filtering/mips do not matter.
         float4 _MainTex_TexelSize;
 
         CBUFFER_START(UnityPerMaterial)
@@ -95,7 +95,62 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
                 length(worldY * uvX.x - worldX * uvY.x));
             // The common determinant cancels when converting one world pixel to local UV.
             // Keep a tiny/edge-on sprite finite, and allow at least one cell on either axis.
-            return clamp(determinant / max(axisLengths * max(_PixelsPerUnit, 0.001), 1e-12), 1e-7, 1.0);
+            float2 cell = clamp(determinant / max(axisLengths * max(_PixelsPerUnit, 0.001), 1e-12), 1e-7, 1.0);
+            // A whole number of cells across the drawing. Derivatives differ in their last bits
+            // between 2x2 pixel quads; the rounded count is identical for every fragment of one
+            // sprite, so the grid never frays. The density error is at most half a cell per sprite.
+            return 1.0 / max(floor(1.0 / cell + 0.5), 1.0);
+        }
+
+        // Taps per axis inside one world pixel. Bilinear taps two texels apart cover the cell
+        // footprint exactly up to 2 * MAX_CELL_TAPS source texels per world pixel.
+        #define MAX_CELL_TAPS 6
+
+        // Bilinear sample weighted by alpha. Hardware filtering is used inside the drawing; where
+        // it meets transparency the four texels are premultiplied individually, so the colour of
+        // invisible texels never bleeds into the outline (no halos, whatever the PNG stores there).
+        float4 PremultipliedBilinear(float2 atlasUV, float2 low, float2 high)
+        {
+            half4 filtered = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_LinearClamp, atlasUV, 0);
+            if (filtered.a <= 0.002 || filtered.a >= 0.998) return float4(filtered.rgb * filtered.a, filtered.a);
+            float2 texelPosition = atlasUV * _MainTex_TexelSize.zw - 0.5;
+            float2 f = frac(texelPosition);
+            float2 origin = (floor(texelPosition) + 0.5) * _MainTex_TexelSize.xy;
+            float2 step = _MainTex_TexelSize.xy;
+            half4 t00 = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, clamp(origin, low, high), 0);
+            half4 t10 = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, clamp(origin + float2(step.x, 0), low, high), 0);
+            half4 t01 = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, clamp(origin + float2(0, step.y), low, high), 0);
+            half4 t11 = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, clamp(origin + step, low, high), 0);
+            float4 bottom = lerp(float4(t00.rgb * t00.a, t00.a), float4(t10.rgb * t10.a, t10.a), f.x);
+            float4 top = lerp(float4(t01.rgb * t01.a, t01.a), float4(t11.rgb * t11.a, t11.a), f.x);
+            return lerp(bottom, top, f.y);
+        }
+
+        // Average (alpha-weighted) of the drawing under one world pixel, centred at uv (sprite-local).
+        // Dense sources are box-filtered, so thin lines survive identically whatever the source
+        // resolution; coarse sources are interpolated, so their texels never show as bigger blocks.
+        float4 CellCoverage(float2 uv, float2 cell, float2 rectSize)
+        {
+            float2 footprint = cell * rectSize * _MainTex_TexelSize.zw; // source texels per world pixel
+            int2 taps = (int2)clamp(ceil(footprint * 0.5), 1.0, (float)MAX_CELL_TAPS);
+            // Keep every bilinear tap inside this sprite's atlas cell (never the neighbouring pose).
+            float2 inset = _MainTex_TexelSize.xy * 0.5;
+            float2 low = _SpriteUVRect.xy + inset, high = _SpriteUVRect.xy + rectSize - inset;
+            float4 sum = 0;
+            [loop] for (int y = 0; y < MAX_CELL_TAPS; y++)
+            {
+                if (y >= taps.y) break;
+                [loop] for (int x = 0; x < MAX_CELL_TAPS; x++)
+                {
+                    if (x >= taps.x) break;
+                    float2 p = uv + ((float2(x, y) + 0.5) / float2(taps) - 0.5) * cell;
+                    // Outside the drawing counts as empty, not as a smeared edge texel.
+                    if (any(p < 0.0) || any(p > 1.0)) continue;
+                    float2 atlasUV = clamp(_SpriteUVRect.xy + p * rectSize, low, high);
+                    sum += PremultipliedBilinear(atlasUV, low, high);
+                }
+            }
+            return sum / float(taps.x * taps.y);
         }
 
         half4 Frag(Varyings input) : SV_Target
@@ -123,19 +178,12 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
                 sin(uv.x * 21.0 + phase * 1.37) + sin(uv.y * 13.0 - phase * 1.91));
             uv += wobble * 0.5 * cell * _Boil * height * _Motion;
 
-            // Reject outside the source; clamping alone would smear opaque edge texels.
-            clip(min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)));
-            // Keep sampling inside this cell even at an exact edge (never the neighbouring pose).
-            float2 inset = _MainTex_TexelSize.xy * 0.5;
-            float2 atlasUV = clamp(_SpriteUVRect.xy + uv * rectSize,
-                _SpriteUVRect.xy + inset, _SpriteUVRect.xy + rectSize - inset);
-            // Land on source texel centres explicitly. Derivative roundoff around an integer
-            // texel edge must not choose different texels inside the same world pixel.
-            atlasUV = (floor(atlasUV * _MainTex_TexelSize.zw + 0.01) + 0.5) * _MainTex_TexelSize.xy;
-            half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0);
-            clip(texel.a - _AlphaCutoff);
-            // Binary source coverage, with ordinary material/renderer fade still supported.
-            return half4(texel.rgb * input.color.rgb, input.color.a);
+            // One colour per world pixel, independent of the source resolution and import size.
+            float4 coverage = CellCoverage(uv, cell, rectSize);
+            clip(coverage.a - _AlphaCutoff);
+            half3 colour = coverage.rgb / max(coverage.a, 1e-5);
+            // Binary coverage, with ordinary material/renderer fade still supported.
+            return half4(colour * input.color.rgb, input.color.a);
         }
         ENDHLSL
 
@@ -144,7 +192,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             Name "ForwardUnlit"
             Tags { "LightMode"="UniversalForward" }
             HLSLPROGRAM
-            #pragma target 3.0
+            #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_instancing
@@ -155,7 +203,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             Name "SpriteUnlit"
             Tags { "LightMode"="Universal2D" }
             HLSLPROGRAM
-            #pragma target 3.0
+            #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_instancing

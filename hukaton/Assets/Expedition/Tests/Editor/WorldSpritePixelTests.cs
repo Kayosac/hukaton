@@ -117,6 +117,60 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(image.Count(c => c.a > 0 && c.b > 100), Is.Zero, "No adjacent atlas cell may leak.");
         }
 
+        SpriteRenderer Upscaled(Color32[] pattern, int baseSize, int factor)
+        {
+            // The same drawing stored at a different source resolution (nearest-neighbour upscale).
+            int size = baseSize * factor;
+            var texture = Own(new Texture2D(size, size, TextureFormat.RGBA32, false, true));
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+                pixels[y * size + x] = pattern[y / factor * baseSize + x / factor];
+            texture.SetPixels32(pixels); texture.Apply();
+            var sprite = Own(Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f), size, 0, SpriteMeshType.FullRect));
+            var renderer = Own(new GameObject("Source resolution fixture")).AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sharedMaterial = material;
+            return renderer;
+        }
+
+        [Test]
+        public void SourceResolutionDoesNotChangeTheDrawingInsideWorldPixels()
+        {
+            // One-texel details (lines, dots, holes) at 2 base texels per world pixel. Point sampling kept or
+            // dropped them depending on the source size; every world pixel must now see the whole drawing.
+            const int baseSize = 32;
+            var random = new System.Random(7);
+            var pattern = new Color32[baseSize * baseSize];
+            for (int i = 0; i < pattern.Length; i++)
+                pattern[i] = new Color32((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256),
+                    (byte)(random.Next(4) == 0 ? 0 : 255));
+            Color32[] reference = null;
+            foreach (int factor in new[] { 1, 2, 4 })
+            {
+                var renderer = Upscaled(pattern, baseSize, factor);
+                var image = Render(renderer);
+                renderer.gameObject.SetActive(false);
+                Assert.That(image.Count(c => c.a > 0), Is.GreaterThan(1000));
+                if (reference == null) { reference = image; continue; }
+                int differing = 0;
+                for (int i = 0; i < image.Length; i++)
+                {
+                    var a = image[i]; var b = reference[i];
+                    if (a.a != b.a || System.Math.Abs(a.r - b.r) > 2 || System.Math.Abs(a.g - b.g) > 2 || System.Math.Abs(a.b - b.b) > 2) differing++;
+                }
+                Assert.That(differing, Is.Zero, $"{baseSize * factor}px source changed {differing} pixels against {baseSize}px.");
+            }
+        }
+
+        [Test]
+        public void CoarseSourceStillFollowsTheWorldGrid()
+        {
+            // 8 source texels per unit under 16 world pixels per unit: blocks are world pixels, not texels.
+            var image = Render(Drawing(8));
+            Assert.That(Runs(image), Is.EqualTo(Enumerable.Repeat(4, 16)));
+            Assert.That(Runs(image, true), Is.EqualTo(Enumerable.Repeat(4, 16)));
+        }
+
         [Test]
         public void ParentAndNonUniformScaleChangeCellCountButKeepSquareWorldPixels()
         {
