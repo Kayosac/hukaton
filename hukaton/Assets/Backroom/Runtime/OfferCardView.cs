@@ -18,7 +18,7 @@ namespace Hakaton.Backroom
         public RawImage back;
         [Tooltip("Price over the card: shown on hover, only for a face-up card.")]
         public TMP_Text price;
-        [Tooltip("Optional line under the card: level, «в колоде» (the brazier's list).")]
+        [Tooltip("Optional line under the card: a short note under the card.")]
         public TMP_Text badge;
         public TMP_Text levelMark;
         public CanvasGroup group;
@@ -37,6 +37,7 @@ namespace Hakaton.Backroom
         bool faceUp, showPrice, flying, toTarget;
         Vector2 home, target;
         Sprite pendingFace;
+        Image shade;
 
         int restingIndex = -1;
 
@@ -49,6 +50,7 @@ namespace Hakaton.Backroom
             gameObject.SetActive(true);
             face.sprite = art;
             Hakaton.Decks.Unity.CardLevelPresentation.SetMark(levelMark, level);
+            SetDimmed(false);
             faceUp = up;
             flipTarget = 1;
             flip.Snap(1);
@@ -70,6 +72,31 @@ namespace Hakaton.Backroom
             Lower();
             Hovering = false;
             gameObject.SetActive(false);
+        }
+
+        /// <summary>Shades the whole face, upgrade mark included (the brazier: a copy that is not in the deck).
+        /// Every deal starts unshaded.</summary>
+        public void SetDimmed(bool dimmed)
+        {
+            if (!dimmed && !shade) return;
+            if (!shade)
+            {
+                var go = new GameObject("Shade", typeof(RectTransform), typeof(Image));
+                var rect = (RectTransform)go.transform;
+                rect.SetParent(face.transform, false);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                shade = go.GetComponent<Image>();
+                shade.raycastTarget = false;
+                shade.color = new Color(0, 0, 0, .62f);
+            }
+            // Same sprite as the face, so the shade keeps the card's rounded corners.
+            shade.sprite = face.sprite;
+            shade.type = face.type;
+            shade.preserveAspect = face.preserveAspect;
+            shade.transform.SetAsLastSibling();
+            shade.gameObject.SetActive(dimmed);
         }
 
         public void SetBadge(string text)
@@ -150,6 +177,7 @@ namespace Hakaton.Backroom
                 // Edge-on: show the other side and open back up with a little overshoot.
                 faceUp = true;
                 if (pendingFace) face.sprite = pendingFace;
+                if (shade) shade.sprite = face.sprite;
                 flipTarget = 1;
                 flip.Snap(0);
                 flip.Kick(9);

@@ -14,9 +14,10 @@ namespace Hakaton.Backroom
 {
     /// <summary>
     /// The gas brazier in the backroom (board, «Гоблин-торговец», 11 and 13): it frees collection places by burning
-    /// copies. Interacting lights it and lays every owned copy over the game view in a scrolling grid of four
-    /// (level, «в колоде», burn price on hover). Choosing one asks to confirm the card and the sum; agreeing throws the card into the fire and it flares
-    /// up. The list stays open for the next one. The three starting copies cannot burn. 75% of what was paid, rounded
+    /// copies. A small flame always burns in its bowl. Interacting lays every owned copy over the game view in a
+    /// scrolling grid of four: copies in the deck as they are, the rest shaded; the burn price on hover. Choosing one
+    /// asks to confirm the card and the sum; agreeing throws the card into the bowl and the flame jumps for a moment.
+    /// The list stays open for the next one. The three starting copies cannot burn. 75% of what was paid, rounded
     /// up — the rule lives in <see cref="DeckWorkshop.Burn"/>.
     /// </summary>
     public sealed class Brazier : MonoBehaviour
@@ -27,11 +28,14 @@ namespace Hakaton.Backroom
         public Camera viewCamera;
 
         [Header("World")]
-        [Tooltip("Where the fire burns and cards land.")]
+        [Tooltip("The bowl: where the flame burns and cards land.")]
         public Transform firePoint;
-        [Tooltip("Small pilot flame while closed; the full fire while the list is open.")]
-        public VfxBurst pilotFlame, fullFlame, burnFlare;
-        public Color fireTint = new Color(1, .62f, .25f);
+        [Tooltip("The small flame in the bowl (Retro Arsenal torch fire); burns all the time.")]
+        public GameObject flamePrefab;
+        [Tooltip("Flame size against the prefab's own.")]
+        [Min(.1f)] public float flameSize = 3;
+        [Tooltip("How much the flame jumps when a card lands in it.")]
+        [Min(1)] public float burnJump = 1.7f;
         public AudioSource audioSource;
         public AudioClip igniteSound, burnSound, refuseSound;
 
@@ -54,7 +58,9 @@ namespace Hakaton.Backroom
         public bool IsOpen { get; private set; }
         DeckWorkshop Model => workshop.Model;
         int pending;
-        VfxBurst pilot, fire;
+        Transform flame;
+        Vector3 flameScale;
+        SpringFloat jump;
         readonly List<OfferCardView> tiles = new List<OfferCardView>();
 
         /// <summary>The cards currently in the list (tests, tools).</summary>
@@ -71,15 +77,20 @@ namespace Hakaton.Backroom
 
         void OnEnable()
         {
-            if (!pilot && firePoint) pilot = VfxBurst.Spawn(pilotFlame, firePoint.position, Quaternion.identity, firePoint, fireTint, .5f);
-            if (pilot) pilot.HoldFor(float.MaxValue / 4);
+            if (flame || !flamePrefab || !firePoint) return;
+            flame = Instantiate(flamePrefab, firePoint, false).transform;
+            flame.localPosition = Vector3.zero;
+            flame.localRotation = Quaternion.identity;
+            flameScale = flame.localScale * flameSize;
+            flame.localScale = flameScale;
+            jump.Snap(1);
         }
 
         void OnDisable()
         {
             Close();
-            if (pilot) Destroy(pilot.gameObject);
-            pilot = null;
+            if (flame) Destroy(flame.gameObject);
+            flame = null;
         }
 
         public bool Open()
@@ -90,10 +101,6 @@ namespace Hakaton.Backroom
             if (control) control.SetBlocked(this, true);
             SetVisible(visibility, true);
             SetVisible(confirmGroup, false);
-            // The gas catches with a whoomp and burns while the list is open.
-            fire = VfxBurst.Spawn(fullFlame, firePoint.position, Quaternion.identity, firePoint, fireTint);
-            if (fire) fire.HoldFor(float.MaxValue / 4);
-            Play(igniteSound);
             Lay(true);
             if (scroll) scroll.verticalNormalizedPosition = 1;
             return true;
@@ -106,13 +113,16 @@ namespace Hakaton.Backroom
             pending = 0;
             SetVisible(visibility, false);
             SetVisible(confirmGroup, false);
-            if (fire) fire.Release(.8f);
-            fire = null;
             if (control) control.SetBlocked(this, false);
         }
 
         void Update()
         {
+            if (flame)
+            {
+                jump.Step(1, 9, .45f, Time.deltaTime);
+                flame.localScale = flameScale * Mathf.Max(.2f, jump.Value);
+            }
             if (!IsOpen) return;
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
@@ -145,9 +155,9 @@ namespace Hakaton.Backroom
                 var copy = owned[i];
                 tile.Slot = copy.Id;
                 tile.Deal(workshop.config.Find(copy.Spec.Id)?.artwork, true, deal ? Mathf.Min(i, 12) * .02f : 0, copy.Level);
-                // Deck membership stays separate from the upgrade mark on the face.
-                tile.SetBadge(Model.IsSelected(copy.Id) ? "<color=#9BE07A>в колоде</color>" : "");
-                tile.group.alpha = copy.Protected ? .45f : 1;
+                // In the deck: as is. Not in the deck: shaded.
+                tile.SetBadge("");
+                tile.SetDimmed(!Model.IsSelected(copy.Id));
             }
             title.text = $"Жаровня  ·  коллекция {owned.Count} / {Model.CollectionLimit}";
         }
@@ -197,15 +207,14 @@ namespace Hakaton.Backroom
             }
             Play(burnSound);
             if (tile) tile.FlyTo(FireOnScreen(tile), .05f);
-            // The flare when the card reaches the fire.
+            // The flame jumps when the card reaches the bowl.
             Invoke(nameof(Flare), .55f);
             title.text = $"Жаровня  ·  коллекция {Model.Owned.Count} / {Model.CollectionLimit}";
         }
 
         void Flare()
         {
-            if (!firePoint) return;
-            VfxBurst.Spawn(burnFlare, firePoint.position, Quaternion.identity, null, fireTint);
+            if (flame) jump.Snap(burnJump);
         }
 
         /// <summary>The fire's place in the tile's parent space, clamped to the screen so the throw always reads.</summary>
