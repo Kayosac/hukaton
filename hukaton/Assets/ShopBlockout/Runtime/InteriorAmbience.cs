@@ -14,8 +14,17 @@ namespace Hakaton.ShopBlockout
         public Color equator = new Color(.25f, .19f, .15f);
         public Color ground = new Color(.13f, .10f, .08f);
 
+        [Tooltip("Also replace the scene's fog while active (the cave: dark, close fog instead of the valley's haze).")]
+        public bool overrideFog;
+        public Color fogColor = new Color(.03f, .03f, .05f);
+        [Min(0)] public float fogDensity = .045f;
+
         AmbientMode savedMode;
         Color savedSky, savedEquator, savedGround;
+        bool savedFog;
+        Color savedFogColor;
+        float savedFogDensity;
+        FogMode savedFogMode;
         bool applied;
 
         void OnEnable()
@@ -28,6 +37,17 @@ namespace Hakaton.ShopBlockout
             RenderSettings.ambientSkyColor = sky;
             RenderSettings.ambientEquatorColor = equator;
             RenderSettings.ambientGroundColor = ground;
+            if (overrideFog)
+            {
+                savedFog = RenderSettings.fog;
+                savedFogColor = RenderSettings.fogColor;
+                savedFogDensity = RenderSettings.fogDensity;
+                savedFogMode = RenderSettings.fogMode;
+                RenderSettings.fog = true;
+                RenderSettings.fogMode = FogMode.ExponentialSquared;
+                RenderSettings.fogColor = fogColor;
+                RenderSettings.fogDensity = fogDensity;
+            }
             applied = true;
         }
 
@@ -39,6 +59,13 @@ namespace Hakaton.ShopBlockout
             RenderSettings.ambientSkyColor = savedSky;
             RenderSettings.ambientEquatorColor = savedEquator;
             RenderSettings.ambientGroundColor = savedGround;
+            if (overrideFog)
+            {
+                RenderSettings.fog = savedFog;
+                RenderSettings.fogColor = savedFogColor;
+                RenderSettings.fogDensity = savedFogDensity;
+                RenderSettings.fogMode = savedFogMode;
+            }
         }
     }
 }

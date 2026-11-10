@@ -62,8 +62,10 @@ namespace Hakaton.Expeditions
         public event Action<CardCopy, Collider, Vector3> Impacted;
         /// <summary>The cave prologue runs instead of an outing to the valley.</summary>
         public bool InPrologue { get; private set; }
-        /// <summary>Where a fall into the prologue's water puts the player back (the nearest shore).</summary>
+        /// <summary>Where a fall into the prologue's water puts the player back when no shores are listed below.</summary>
         public Transform prologueShore;
+        /// <summary>Safe spots on both banks of the prologue's water: a fall returns the player to the nearest one.</summary>
+        public Transform[] prologueShores = new Transform[0];
         /// <summary>The cave's roots and water: searched instead of the valley's while the prologue runs.</summary>
         public WorldObstacle[] prologueObstacles = new WorldObstacle[0];
 
@@ -238,11 +240,27 @@ namespace Hakaton.Expeditions
             control.SetBlocked(this, true);
             Play(cues ? cues.drownSplash : null);
             if (fade) yield return fade.FadeTo(1, .25f);
-            if (prologueShore) motor.Teleport(prologueShore.position, prologueShore.rotation);
+            var shore = NearestShore(motor.transform.position);
+            if (shore) motor.Teleport(shore.position, shore.rotation);
             yield return new WaitForSecondsRealtime(.15f);
             control.SetBlocked(this, false);
             if (fade) yield return fade.FadeTo(0, .35f);
             shoreTrip = false;
+        }
+
+        /// <summary>The listed prologue shore closest to the point (on the ground plane), or the single fallback.</summary>
+        public Transform NearestShore(Vector3 point)
+        {
+            Transform best = null;
+            float bestDistance = float.MaxValue;
+            foreach (var shore in prologueShores)
+            {
+                if (!shore) continue;
+                Vector3 offset = shore.position - point;
+                offset.y = 0;
+                if (offset.sqrMagnitude < bestDistance) { bestDistance = offset.sqrMagnitude; best = shore; }
+            }
+            return best ? best : prologueShore;
         }
 
         /// <summary>

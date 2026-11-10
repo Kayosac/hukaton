@@ -39,6 +39,14 @@ namespace Hakaton.Tutorial
         public Transform rootsZone;
         public Transform waterZone, bushZone;
         [Min(.5f)] public float zoneRadius = 3.5f;
+        [Tooltip("A card is handed over only within this height of its zone (the cave folds over itself).")]
+        [Min(.5f)] public float zoneHeight = 2.5f;
+        [Tooltip("Ice is handed over only once these roots have burnt: the corridors fold, a zone can be near through a wall.")]
+        public WorldObstacle rootsObstacle;
+        [Tooltip("Strike is handed over only once this water has frozen.")]
+        public WorldObstacle waterObstacle;
+        [Tooltip("What blocks the view to a zone: rock and props, not the player, cards or the water surface.")]
+        public LayerMask sightBlockers = ~((1 << 2) | (1 << 4) | (1 << 8));
 
         [Header("Bush")]
         [Tooltip("The bush: any card landing on it shakes it; only Strike brings the goblin out.")]
@@ -174,12 +182,12 @@ namespace Hakaton.Tutorial
                     Grant(fireId);
                     Stage = CaveStage.Water;
                     break;
-                case CaveStage.Water when Near(waterZone, player):
+                case CaveStage.Water when Passed(rootsObstacle) && Near(waterZone, player):
                     Grant(iceId);
                     wheelHintPending = true;
                     Stage = CaveStage.Bush;
                     break;
-                case CaveStage.Bush when Near(bushZone, player) && !HasCard(strikeId):
+                case CaveStage.Bush when Passed(waterObstacle) && Near(bushZone, player) && !HasCard(strikeId):
                     Grant(strikeId);
                     break;
                 case CaveStage.Talk:
@@ -189,12 +197,18 @@ namespace Hakaton.Tutorial
             }
         }
 
+        static bool Passed(WorldObstacle obstacle) => !obstacle || obstacle.Resolved;
+
+        /// <summary>Within the zone's circle and height, and the zone is in plain view (not behind the next wall).</summary>
         bool Near(Transform zone, Vector3 point)
         {
             if (!zone) return false;
             Vector3 offset = zone.position - point;
+            if (Mathf.Abs(offset.y) > zoneHeight) return false;
             offset.y = 0;
-            return offset.magnitude <= zoneRadius;
+            if (offset.magnitude > zoneRadius) return false;
+            Vector3 eye = world.viewCamera ? world.viewCamera.transform.position : point + Vector3.up * 1.6f;
+            return !Physics.Linecast(eye, zone.position + Vector3.up * 1.2f, sightBlockers, QueryTriggerInteraction.Ignore);
         }
 
         bool HasCard(string id)
