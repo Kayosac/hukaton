@@ -7,6 +7,7 @@ using Hakaton.Decks.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Feel;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
@@ -53,6 +54,14 @@ namespace Hakaton.Tutorial
         [Tooltip("How far out of the bush's centre he stands to talk.")]
         [Min(0)] public float bushClearance = 1.5f;
         public AudioClip[] yelps;
+        [Header("Hitting the goblin")]
+        [Tooltip("Spawned where a card hits him during the ambush (a Retro Arsenal hit).")]
+        public GameObject goblinHitEffect;
+        public SfxCue goblinHurt;
+        [Tooltip("Knock-back speed of a hit, m/s (Strike knocks him twice as far).")]
+        [Min(0)] public float goblinKnock = 2.6f;
+        [Tooltip("Ice holds him still this long.")]
+        [Min(0)] public float goblinFreezeSeconds = .9f;
 
         [Header("Cards")]
         public CardDefinition throwInstruction;
@@ -101,6 +110,9 @@ namespace Hakaton.Tutorial
         int instructionsThrown;
         bool continueRequested, wheelHintPending;
         float bushShake;
+        Vector3 goblinShove, goblinOffset;
+        float goblinFrozenUntil, goblinTintUntil, goblinTintSeconds = .35f;
+        Color goblinTint = Color.white;
         Vector3 bushRest;
         readonly List<int> instructions = new List<int>();
 
@@ -215,6 +227,7 @@ namespace Hakaton.Tutorial
         {
             if (!Active) return;
             if (bush) Shake();
+            if (Stage == CaveStage.Ambush || Stage == CaveStage.Talk) TintGoblin();
             if (wheelHintPending) world.Announce(wheelHint, .5f);
             Vector3 player = world.motor.transform.position;
             switch (Stage)
@@ -262,7 +275,7 @@ namespace Hakaton.Tutorial
         void OnImpacted(CardCopy card, Collider target, Vector3 point)
         {
             if (!target) return;
-            if (Stage == CaveStage.Ambush && goblin && target.transform.IsChildOf(goblin.transform)) { Yelp(); return; }
+            if (Stage == CaveStage.Ambush && goblin && target.transform.IsChildOf(goblin.transform)) { HurtGoblin(card.Spec.Id, point); return; }
             if (!bush || !target.transform.IsChildOf(bush)) return;
             // Fire and Ice only rustle it; the Strike flushes out whoever sleeps inside.
             bushShake = 1;
@@ -308,30 +321,113 @@ namespace Hakaton.Tutorial
             time = 0;
             while (time < panicSeconds)
             {
-                time += Time.deltaTime;
-                angle += panicSpeed / panicRadius * Time.deltaTime;
-                goblin.face.Startle(.2f);
-                body.position = new Vector3(centre.x + Mathf.Cos(angle) * panicRadius, from.y + Mathf.Abs(Mathf.Sin(time * 13)) * .16f,
-                    centre.z + Mathf.Sin(angle) * panicRadius);
+                float dt = Time.deltaTime;
+                bool frozen = Time.time < goblinFrozenUntil;
+                if (!frozen)
+                {
+                    time += dt;
+                    angle += panicSpeed / panicRadius * dt;
+                    goblin.face.Startle(.2f);
+                }
+                // knocked off his lap by a hit, he drifts back onto it
+                goblinOffset += goblinShove * dt;
+                if (!frozen) goblinOffset = Vector3.MoveTowards(goblinOffset, Vector3.zero, (goblinShove.sqrMagnitude > .01f ? 0 : .9f) * dt);
+                StepShove(dt);
+                body.position = new Vector3(centre.x + Mathf.Cos(angle) * panicRadius, from.y + (frozen ? 0 : Mathf.Abs(Mathf.Sin(time * 13)) * .16f),
+                    centre.z + Mathf.Sin(angle) * panicRadius) + goblinOffset;
                 yield return null;
             }
-            // He stops in front of the player, between them and the bush, and starts talking.
+            // He runs up to the player the way he runs round the bush (no sliding), stops in front of them,
+            // between them and the bush, and starts talking. The player may still move: he keeps after them.
+            var path = new NavMeshPath();
+            Vector3[] corners = null;
+            int corner = 0;
+            float repath = 0, run = 0;
+            while (run < 10)
+            {
+                float dt = Time.deltaTime;
+                Vector3 stop = StopPoint(centre, from.y);
+                Vector3 flat = stop - body.position; flat.y = 0;
+                if (flat.magnitude < .06f) break;
+                StepShove(dt);
+                body.position += goblinShove * dt;
+                if (Time.time >= goblinFrozenUntil)
+                {
+                    run += dt;
+                    repath -= dt;
+                    if (repath <= 0)
+                    {
+                        repath = .25f;
+                        corners = null;
+                        if (NavMesh.SamplePosition(body.position, out var a, 2.5f, NavMesh.AllAreas) && NavMesh.SamplePosition(stop, out var b, 2.5f, NavMesh.AllAreas)
+                            && NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, path) && path.corners.Length > 1)
+                        { corners = path.corners; corner = 1; }
+                    }
+                    Vector3 target = stop;
+                    if (corners != null)
+                    {
+                        while (corner < corners.Length - 1 && FlatDistance(body.position, corners[corner]) < .2f) corner++;
+                        target = corner < corners.Length - 1 ? corners[corner] : stop;
+                    }
+                    Vector3 step = target - body.position; step.y = 0;
+                    float reach = panicSpeed * dt;
+                    body.position += step.magnitude > reach ? step.normalized * reach : step;
+                    body.position = new Vector3(body.position.x, from.y + Mathf.Abs(Mathf.Sin(run * 13)) * .16f, body.position.z);
+                }
+                yield return null;
+            }
+            body.position = new Vector3(body.position.x, from.y, body.position.z);
+            yield return Talk();
+        }
+
+        /// <summary>Where he stops to talk: in front of the player, between them and the bush, never on top of them.</summary>
+        Vector3 StopPoint(Vector3 centre, float height)
+        {
             Vector3 player = world.motor.transform.position;
             Vector3 toBush = centre - player;
             toBush.y = 0;
             Vector3 along = toBush.sqrMagnitude > .25f ? toBush.normalized : Flat(world.viewCamera.transform.forward);
-            // Out in front of the leaves, never on top of the player.
             float gap = Mathf.Clamp(toBush.magnitude - bushClearance, 1.3f, talkDistance);
-            Vector3 stopFrom = body.position, stop = player + along * gap;
-            stop.y = from.y;
-            time = 0;
-            while (time < .3f)
+            Vector3 stop = player + along * gap;
+            stop.y = height;
+            return stop;
+        }
+
+        static float FlatDistance(Vector3 a, Vector3 b) { a.y = b.y = 0; return Vector3.Distance(a, b); }
+
+        void StepShove(float dt) => goblinShove = Vector3.MoveTowards(goblinShove, Vector3.zero, 9 * dt);
+
+        /// <summary>
+        /// A card hits the goblin during the ambush. He cannot be beaten (he still has his lines to say), but every hit
+        /// lands: a yelp and a hurt sound, a flash in the colour of the card, a hit effect, a knock back he recovers from;
+        /// Ice holds him still for a moment.
+        /// </summary>
+        public void HurtGoblin(string cardId, Vector3 point)
+        {
+            if (!goblin || !goblin.isActiveAndEnabled) return;
+            Yelp();
+            goblin.face.Startle(.6f);
+            world.Play(goblinHurt, point, 1, UnityEngine.Random.Range(1.05f, 1.25f));
+            if (goblinHitEffect)
             {
-                time += Time.deltaTime;
-                body.position = Vector3.Lerp(stopFrom, stop, time / .3f);
-                yield return null;
+                var effect = Instantiate(goblinHitEffect, point, Quaternion.LookRotation(Flat(point - world.viewCamera.transform.position)), goblin.transform.parent);
+                CaveMoment.CaveOnly(effect);
+                Destroy(effect, 2);
             }
-            yield return Talk();
+            bool ice = cardId == iceId, fire = cardId == fireId, strike = cardId == strikeId;
+            goblinTint = ice ? new Color(.45f, .85f, 1f) : fire ? new Color(1f, .5f, .2f) : new Color(1f, .45f, .4f);
+            goblinTintSeconds = ice ? goblinFreezeSeconds : .35f;
+            goblinTintUntil = Time.time + goblinTintSeconds;
+            // Ice stops him dead; anything else knocks him back
+            if (ice) { goblinFrozenUntil = Time.time + goblinFreezeSeconds; goblinShove = Vector3.zero; }
+            else goblinShove += Flat(goblin.transform.position - world.viewCamera.transform.position) * goblinKnock * (strike ? 2 : 1);
+        }
+
+        void TintGoblin()
+        {
+            if (!goblin || !goblin.face || !goblin.face.spriteRenderer) return;
+            float k = goblinTintUntil > Time.time ? (goblinTintUntil - Time.time) / Mathf.Max(.01f, goblinTintSeconds) : 0;
+            goblin.face.spriteRenderer.color = Color.Lerp(Color.white, goblinTint, Mathf.Clamp01(k * 1.5f));
         }
 
         static Vector3 Flat(Vector3 direction)
