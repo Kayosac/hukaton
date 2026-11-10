@@ -64,6 +64,8 @@ namespace Hakaton.Game
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
+        /// <summary>The door asks "ready-made location or endless world" only after the revenue goal.</summary>
+        public bool PlaceChoiceUnlocked => GoalReached;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
         public string LastNotice { get; private set; }
         public bool Ready { get; private set; }
@@ -160,7 +162,7 @@ namespace Hakaton.Game
                     var eye = trade.World.ViewCamera.transform;
                     VfxBurst.Spawn(goalConfetti, eye.position + eye.forward * 2.5f + Vector3.up * .6f, Quaternion.identity, null, Color.white);
                     if (fade) fade.StartCoroutine(fade.ShowTitle("Лавка процветает!", revenueGoal + " монет выручки · можно продолжать", 2.4f));
-                    Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — можно продолжать свободную игру.", 10);
+                    Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — у двери теперь можно выбрать место вылазки.", 10);
                 }
                 if (dirty || Time.unscaledTime >= nextTimedSave) SaveNow();
             }
@@ -200,7 +202,8 @@ namespace Hakaton.Game
         {
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
-            if (outingChoice && expedition.HasPlaceChoice)
+            // The choice of place opens only once the shop has made its revenue goal; before that every outing is the endless world.
+            if (outingChoice && expedition.HasPlaceChoice && PlaceChoiceUnlocked)
             {
                 outingChoice.Open(expedition.readyWorld.placeName, place =>
                 {
