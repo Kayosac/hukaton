@@ -1155,18 +1155,36 @@ namespace Hakaton.WorldAssembly.EditorTools
             return cue;
         }
 
+        /// <summary>Asset ids of the common and the special find prefab (was Assets/Game/Prefabs/Trophy …).</summary>
+        const string CommonFind = "e63587611541a43df91765f109770ab8", SpecialFind = "3ce5eb435103343309e6c134c49adce5";
+
+        /// <summary>A prefab by file name: in Assets/Game/Prefabs, or wherever else it was moved.</summary>
+        static GameObject Prefab(string file)
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{file}.prefab");
+            if (go) return go;
+            foreach (var guid in AssetDatabase.FindAssets($"\"{file}\" t:Prefab"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (System.IO.Path.GetFileNameWithoutExtension(path) == file) return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return null;
+        }
+
         /// <summary>The content asset: loot by id and every creature the themes name, by id ("bee-swarm" → Bee swarm.prefab).</summary>
         static void EnsureContent()
         {
             var content = AssetDatabase.LoadAssetAtPath<WorldContent>(ContentPath);
             bool created = !content;
             if (created) content = ScriptableObject.CreateInstance<WorldContent>();
-            WorldLoot Loot(string file) => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{file}.prefab")?.GetComponent<WorldLoot>();
-            WorldCreature[] Creatures(params string[] files) => files.Select(f => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{f}.prefab")?.GetComponent<WorldCreature>()).Where(c => c).ToArray();
+            // Loot by asset id: the find prefabs keep it wherever they are moved or renamed.
+            WorldLoot Loot(string guid) => AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid))?.GetComponent<WorldLoot>();
+            WorldCreature[] Creatures(params string[] files) => files.Select(f => Prefab(f)?.GetComponent<WorldCreature>()).Where(c => c).ToArray();
             content.loot.Clear();
-            content.loot.Add(new WorldContent.LootEntry { id = "find", prefab = Loot("Trophy common_find") });
-            content.loot.Add(new WorldContent.LootEntry { id = "find-hard", prefab = Loot("Trophy special_find") });
-            content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot("Trophy special_find") });
+            content.loot.Add(new WorldContent.LootEntry { id = "find", prefab = Loot(CommonFind) });
+            content.loot.Add(new WorldContent.LootEntry { id = "find-hard", prefab = Loot(SpecialFind) });
+            content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot(SpecialFind) });
+            if (content.loot.Any(e => !e.prefab)) Debug.LogWarning("[World] a find prefab is missing: " + string.Join(", ", content.loot.Where(e => !e.prefab).Select(e => e.id)));
             const string sparkle = "Assets/Plugins/Retro Arsenal/Prefabs/Environment/Sparkle/Mini/";
             content.hardGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniYellowLoop.prefab");
             content.crystalGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniPurpleLoop.prefab");
