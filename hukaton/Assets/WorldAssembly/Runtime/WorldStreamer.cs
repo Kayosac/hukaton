@@ -101,6 +101,7 @@ namespace Hakaton.WorldAssembly.Unity
             links.Clear();
             Active = false;
             Map = null;
+            roadLines.Clear();
             if (world)
             {
                 world.finds.Clear();
@@ -120,6 +121,161 @@ namespace Hakaton.WorldAssembly.Unity
             Stream(player.position, Application.platform == RuntimePlatform.WebGLPlayer ? 1 : loadsPerFrame);
             Ambience();
             LookOut();
+        }
+
+        // ---------- roads ----------
+
+        [Tooltip("Width of the worn roads between landmarks, m.")]
+        [Min(.5f)] public float roadWidth = 1.7f;
+        public int RoadsPainted { get; private set; }
+
+        /// <summary>
+        /// The roads through a chunk, laid on its ground as it stands: a strip of path ground following a smooth line
+        /// from edge middle to edge middle (where chunks join) through a wandering point inside. Where something stands
+        /// on the road, the ground is steep or under water, the strip breaks. Landmarks keep their own trails.
+        /// </summary>
+        void PaintRoads(Loaded entry, ChunkCoord coord)
+        {
+            if (!content || !content.roadMaterial || entry.plan.Shape.Kind == ShapeKind.Landmark) return;
+            var roads = Map.RoadsThrough(coord);
+            if (roads.Count == 0) return;
+            var ground = entry.view.worldUv.Length > 0 && entry.view.worldUv[0] ? entry.view.worldUv[0].GetComponent<MeshCollider>() : null;
+            if (!ground) return;
+            Physics.SyncTransforms();
+            float baseY = entry.view.transform.position.y;
+            foreach (var road in roads)
+            {
+                int k = road.Cells.IndexOf(coord);
+                var mesh = RoadStrip(road, k, ground, baseY);
+                if (!mesh) continue;
+                var go = new GameObject("Road");
+                go.transform.SetParent(entry.view.transform, false);
+                go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = content.roadMaterial;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                entry.meshes.Add(mesh);
+                RoadsPainted++;
+            }
+        }
+
+        sealed class RoadLine
+        {
+            public readonly List<Vector2> Points = new List<Vector2>();
+            /// <summary>Per cell of the road: the control points from where it comes in to where it goes out.</summary>
+            public int[] In, Out;
+        }
+
+        readonly Dictionary<int, RoadLine> roadLines = new Dictionary<int, RoadLine>();
+
+        /// <summary>
+        /// Control points of a road in world XZ: the edge middles where it passes from chunk to chunk and, inside each
+        /// chunk, a wandering point — the middle at its ends and over river crossings, the two ends of a ramp.
+        /// </summary>
+        RoadLine Line(Road road)
+        {
+            if (roadLines.TryGetValue(road.Id, out var line)) return line;
+            line = new RoadLine { In = new int[road.Cells.Count], Out = new int[road.Cells.Count] };
+            var o = new Vector2(Origin.x, Origin.z);
+            int last = road.Cells.Count - 1;
+            for (int k = 0; k <= last; k++)
+            {
+                var c = road.Cells[k];
+                var centre = o + new Vector2(c.X, c.Y) * Size;
+                if (k > 0)
+                {
+                    var p = road.Cells[k - 1];
+                    line.Points.Add(o + new Vector2(p.X + c.X, p.Y + c.Y) * Size / 2);
+                    line.Out[k - 1] = line.In[k] = line.Points.Count - 1;
+                }
+                else line.In[k] = 0;
+                var plan = Map.Chunk(c);
+                var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id) : null;
+                if (k == 0 || k == last || plan.Shape.Kind == ShapeKind.River) line.Points.Add(centre);
+                else if (prefab && prefab.roadGuide.Length >= 2)
+                {
+                    // Up the ramp: its end nearer to where the road comes in first.
+                    var turn = Quaternion.Euler(0, 90 * plan.Rotation, 0);
+                    var a = turn * prefab.roadGuide[0];
+                    var b = turn * prefab.roadGuide[prefab.roadGuide.Length - 1];
+                    Vector2 pa = centre + new Vector2(a.x, a.z), pb = centre + new Vector2(b.x, b.z);
+                    var entry = line.Points[line.Points.Count - 1];
+                    if (Vector2.Distance(entry, pb) < Vector2.Distance(entry, pa)) (pa, pb) = (pb, pa);
+                    line.Points.Add(pa);
+                    line.Points.Add(pb);
+                }
+                else
+                {
+                    float jx = (float)Hash.Unit(Seed, road.Id, c.X, c.Y) * 2 - 1, jy = (float)Hash.Unit(Seed, road.Id + 1, c.X, c.Y) * 2 - 1;
+                    line.Points.Add(centre + new Vector2(jx, jy) * 2.6f);
+                }
+                if (k == last) line.Out[k] = line.Points.Count - 1;
+            }
+            roadLines[road.Id] = line;
+            return line;
+        }
+
+        static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
+        {
+            float t2 = t * t, t3 = t2 * t;
+            return .5f * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3);
+        }
+
+        readonly List<Vector2> roadLine = new List<Vector2>();
+        readonly List<Vector3> roadVertices = new List<Vector3>();
+        readonly List<Vector2> roadUv = new List<Vector2>();
+        readonly List<int> roadTriangles = new List<int>();
+
+        Mesh RoadStrip(Road road, int k, MeshCollider ground, float baseY)
+        {
+            if (k < 0) return null;
+            // The line over this chunk: from the edge middle where it comes in to the one where it goes out.
+            var line = Line(road);
+            var pts = line.Points;
+            Vector2 At(int i) => pts[Mathf.Clamp(i, 0, pts.Count - 1)];
+            roadLine.Clear();
+            for (int seg = line.In[k]; seg < line.Out[k]; seg++)
+            {
+                Vector2 p0 = At(seg - 1), p1 = At(seg), p2 = At(seg + 1), p3 = At(seg + 2);
+                int n = Mathf.Max(2, Mathf.CeilToInt(Vector2.Distance(p1, p2) / .5f));
+                for (int s = roadLine.Count == 0 ? 0 : 1; s <= n; s++) roadLine.Add(CatmullRom(p0, p1, p2, p3, s / (float)n));
+            }
+            if (roadLine.Count < 2) return null;
+            roadVertices.Clear(); roadUv.Clear(); roadTriangles.Clear();
+            bool open = false;
+            float waterY = baseY - .25f;
+            for (int i = 0; i < roadLine.Count; i++)
+            {
+                var p = roadLine[i];
+                var along = (roadLine[Mathf.Min(i + 1, roadLine.Count - 1)] - roadLine[Mathf.Max(i - 1, 0)]).normalized;
+                var across = new Vector2(-along.y, along.x);
+                float w = roadWidth * (.85f + .3f * (float)Hash.Unit(Seed, road.Id + 2, Mathf.RoundToInt(p.x * 2), Mathf.RoundToInt(p.y * 2))) / 2;
+                bool ok = true;
+                var row = new Vector3[3];
+                for (int j = 0; j < 3 && ok; j++)
+                {
+                    var q = p + across * (j - 1) * w;
+                    var from = new Vector3(q.x, baseY + 40, q.y);
+                    if (!ground.Raycast(new Ray(from, Vector3.down), out var hit, 80) || hit.normal.y < .8f || hit.point.y < waterY) { ok = false; break; }
+                    // Anything standing on the road (a rock, a fence, a bridge) breaks it.
+                    if (Physics.Raycast(from, Vector3.down, out var any, 80, ~(1 << 4), QueryTriggerInteraction.Ignore) && any.collider != ground && any.point.y > hit.point.y + .1f) { ok = false; break; }
+                    row[j] = hit.point + hit.normal * .045f;
+                }
+                if (!ok) { open = false; continue; }
+                int b = roadVertices.Count;
+                for (int j = 0; j < 3; j++) { roadVertices.Add(row[j]); roadUv.Add(new Vector2(row[j].x, row[j].z) / 4f); }
+                if (open) roadTriangles.AddRange(new[] { b - 3, b - 2, b, b - 2, b + 1, b, b - 2, b - 1, b + 1, b - 1, b + 2, b + 1 });
+                open = true;
+            }
+            if (roadTriangles.Count == 0) return null;
+            var mesh = new Mesh { name = "Road" };
+            mesh.SetVertices(roadVertices);
+            mesh.SetUVs(0, roadUv);
+            mesh.SetTriangles(roadTriangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         // ---------- places that sound, lookouts ----------
@@ -301,6 +457,7 @@ namespace Hakaton.WorldAssembly.Unity
 
             SpawnLoot(entry, mem);
             SpawnCreatures(entry, mem);
+            PaintRoads(entry, coord);
             if (mem != null)
             {
                 foreach (var go in mem.loose) if (go) go.SetActive(true);

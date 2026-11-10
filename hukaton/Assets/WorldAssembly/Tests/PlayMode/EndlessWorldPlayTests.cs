@@ -166,6 +166,7 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(silhouettes.MarkerRange, Is.GreaterThan(silhouettes.farRadius));
             yield return null;
             Assert.That(world.viewCamera.farClipPlane, Is.GreaterThanOrEqualTo(silhouettes.MarkerRange), "the camera sees as far as the markers");
+            Assert.That(streamer.RoadsPainted, Is.GreaterThan(0), "roads lead away from the start");
 
             // The nearest camp: its fire loops once the player stands by it.
             ChunkCoord camp = default;
@@ -270,6 +271,12 @@ namespace Hakaton.WorldAssembly.Tests
                 ["stone-forest"] = v => v.shapeId == "stone-forest-10",
                 ["giant-log"] = v => v.shapeId == "giant-log-01",
                 ["apiary"] = v => v.variantId == "apiary",
+                ["road"] = v => v.transform.Find("Road") && v.shapeId == "plain",
+                ["falls"] = v => v.variantId == "falls",
+                ["mesa"] = v => v.shapeId == "mesa-01",
+                ["sinkhole"] = v => v.shapeId == "sinkhole-10",
+                ["swamp"] = v => v.shapeId == "swamp-11",
+                ["lake"] = v => v.shapeId == "lake-11",
             };
             var home = world.motor.transform.position;
             for (int step = 0; step < 20 && wanted.Count > 0; step++)
@@ -307,7 +314,8 @@ namespace Hakaton.WorldAssembly.Tests
             for (int f = 0; f < 60; f++) yield return null;
             var under = Physics.RaycastAll(back + Vector3.up * 40, Vector3.down, 80, ~(1 << 4), QueryTriggerInteraction.Ignore)
                 .Where(h => !h.collider.transform.IsChildOf(world.motor.transform)).OrderBy(h => h.distance).ToList();
-            var backEye = (under.Count > 0 ? under[0].point : back) + Vector3.up * 1.7f;
+            // Where the player came down, if nothing was found under the spot (the ground may still be streaming in).
+            var backEye = (under.Count > 0 ? under[0].point : world.motor.transform.position) + Vector3.up * 1.7f;
             yield return Shot(dir, "play-far-back", backEye, home + Vector3.up * 6);
             Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys));
         }

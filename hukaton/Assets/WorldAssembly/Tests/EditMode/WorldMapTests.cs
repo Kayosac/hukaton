@@ -187,6 +187,45 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void RoadsRunOverFlatGroundFromLandmarkToLandmark()
+        {
+            int roads = 0;
+            for (int seed = 1; seed <= 6; seed++)
+            {
+                var map = new WorldMap(seed);
+                var seen = new HashSet<int>();
+                foreach (var c in Square(Area))
+                    foreach (var road in map.RoadsThrough(c))
+                    {
+                        Assert.IsTrue(road.Contains(c));
+                        if (!seen.Add(road.Id)) continue;
+                        roads++;
+                        for (int k = 1; k < road.Cells.Count; k++)
+                        {
+                            var a = road.Cells[k - 1];
+                            var b = road.Cells[k];
+                            Assert.AreEqual(1, System.Math.Abs(a.X - b.X) + System.Math.Abs(a.Y - b.Y), $"seed {seed}: road steps one chunk at a time");
+                        }
+                        foreach (var cell in road.Cells)
+                        {
+                            var p = map.Chunk(cell);
+                            bool flat = p.Shape.Kind == ShapeKind.Plain || p.Shape.Kind == ShapeKind.PlateauTop || p.Shape.Kind == ShapeKind.Landmark;
+                            bool crossing = p.Shape.Kind == ShapeKind.River && (p.Variant.Id == "bridge" || p.Variant.Id == "ford" || p.Shape.Id == "river-straight");
+                            bool ramp = p.Shape.Id == "cliff-edge" && p.Variant.Id == "ramp";
+                            Assert.IsTrue(flat || crossing || ramp, $"seed {seed}: road over {p}");
+                        }
+                        foreach (var end in new[] { road.Cells[0], road.Cells[road.Cells.Count - 1] })
+                        {
+                            var p = map.Chunk(end);
+                            bool start = end.X == 0 && end.Y == 0;
+                            Assert.IsTrue(start || p.Shape.Kind == ShapeKind.Landmark, $"seed {seed}: road ends at {p}");
+                        }
+                    }
+            }
+            Assert.GreaterOrEqual(roads, 6 * 2, "roads in every world");
+        }
+
+        [Test]
         public void LandmarksComeWholeAndOften()
         {
             int found = 0;

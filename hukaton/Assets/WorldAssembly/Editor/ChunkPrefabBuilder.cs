@@ -122,6 +122,12 @@ namespace Hakaton.WorldAssembly.EditorTools
             }
 
             view.edgeHeights = EdgeHeights(terrain);
+            // Roads climb a cliff by its ramp, from its foot to its top.
+            if (shape.Kind == ShapeKind.Cliff && terrain.Ramps.Count > 0)
+            {
+                var ramp = terrain.Ramps[0];
+                view.roadGuide = new[] { new Vector3(ramp.A.x - 8, 0, ramp.A.y - 8), new Vector3(ramp.B.x - 8, Plateau, ramp.B.y - 8) };
+            }
             CullDetail(go.transform);
 
             string prefabPath = $"{folder}/{name}.prefab";
@@ -1165,6 +1171,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             content.hardGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniYellowLoop.prefab");
             content.crystalGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniPurpleLoop.prefab");
             content.lookoutCue = LookoutCue();
+            content.roadMaterial = GroundMat("OA_Ground_Path");
             content.creatures.Clear();
             foreach (var id in CreatureThemes.AllCreatures())
             {

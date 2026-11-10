@@ -32,5 +32,7 @@ namespace Hakaton.WorldAssembly.Unity
         public AmbientSpot[] ambient = new AmbientSpot[0];
         [Tooltip("High places that show far landmarks for a while.")]
         public Lookout[] lookouts = new Lookout[0];
+        [Tooltip("Where a road runs inside this chunk when it has to (up a ramp): local points from one end to the other.")]
+        public Vector3[] roadGuide = new Vector3[0];
     }
 }

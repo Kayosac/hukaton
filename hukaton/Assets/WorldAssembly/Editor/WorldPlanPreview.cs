@@ -61,6 +61,22 @@ namespace Hakaton.WorldAssembly.EditorTools
             return sb.ToString();
         }
 
+        /// <summary>Debug: roads tried from the start and the landmarks near it, "seed".</summary>
+        public static string Roads(string seed)
+        {
+            var map = new WorldMap(int.Parse(seed));
+            var text = new System.Text.StringBuilder();
+            text.Append(map.RoadReport(new ChunkCoord(0, 0))).Append('\n');
+            foreach (var (f, _, _) in map.LandmarkFoci(new ChunkCoord(0, 0), 200)) text.Append(map.RoadReport(f)).Append('\n');
+            // The ring of chunks round the start hill.
+            for (int y = 2; y >= -2; y--)
+            {
+                for (int x = -2; x <= 2; x++) { var p = map.Chunk(x, y); text.Append($"{p.Shape.Id}/{p.Variant.Id} L{p.BaseLevel} | "); }
+                text.Append('\n');
+            }
+            return text.ToString();
+        }
+
         public static string Draw(string seeds)
         {
             var dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
@@ -75,6 +91,27 @@ namespace Hakaton.WorldAssembly.EditorTools
                 for (int x = -R; x <= R; x++)
                     for (int y = -R; y <= R; y++)
                         Chunk(map.Chunk(x, y), (x + R) * P, (y + R) * P, px, n);
+                // Roads: a line from chunk middle to chunk middle.
+                var drawn = new System.Collections.Generic.HashSet<int>();
+                var road = new Color32(255, 140, 30, 255);
+                for (int x = -R; x <= R; x++)
+                    for (int y = -R; y <= R; y++)
+                        foreach (var r in map.RoadsThrough(new ChunkCoord(x, y)))
+                        {
+                            if (!drawn.Add(r.Id)) continue;
+                            for (int k = 1; k < r.Cells.Count; k++)
+                            {
+                                var a0 = r.Cells[k - 1];
+                                var a1 = r.Cells[k];
+                                for (int s = 0; s <= P; s++)
+                                {
+                                    float t = s / (float)P;
+                                    int ix = (int)((Mathf.Lerp(a0.X, a1.X, t) + R) * P + P / 2), iy = (int)((Mathf.Lerp(a0.Y, a1.Y, t) + R) * P + P / 2);
+                                    for (int d = 0; d < 2; d++)
+                                        if (ix + d >= 0 && iy >= 0 && ix + d < n && iy + 1 < n) { px[iy * n + ix + d] = road; px[(iy + 1) * n + ix + d] = road; }
+                                }
+                            }
+                        }
                 // Ring outlines.
                 foreach (float radius in new[] { map.Rules.InnerRadius, map.Rules.MiddleRadius })
                     for (int a = 0; a < 2000; a++)

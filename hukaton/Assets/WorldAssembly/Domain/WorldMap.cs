@@ -79,6 +79,28 @@ namespace Hakaton.WorldAssembly
             return plan.TryGetValue(c, out var f) ? f : null;
         }
 
+        RoadPlanner roads;
+
+        /// <summary>Roads running through chunk <paramref name="c"/> (see <see cref="RoadPlanner"/>).</summary>
+        public List<Road> RoadsThrough(ChunkCoord c) => (roads ??= new RoadPlanner(this, Seed, Rules.District)).Through(c);
+
+        public string RoadReport(ChunkCoord f) => (roads ??= new RoadPlanner(this, Seed, Rules.District)).Report(f);
+
+        /// <summary>The reward chunk of every landmark planned in district (dx, dy), with its ground level.</summary>
+        public List<(ChunkCoord focus, LandmarkKind kind, int level)> LandmarkFociOf(int dx, int dy)
+        {
+            var found = new List<(ChunkCoord, LandmarkKind, int)>();
+            if (!districtCache.TryGetValue((dx, dy), out var plan)) districtCache[(dx, dy)] = plan = districts.Plan(dx, dy);
+            foreach (var pair in plan)
+            {
+                var f = pair.Value;
+                if (f.Feature != Feature.Landmark || f.Landmark == null || !f.Landmark.HasFocus) continue;
+                if (f.PartI != f.Landmark.FocusI || f.PartJ != f.Landmark.FocusJ) continue;
+                found.Add((pair.Key, f.Landmark, Corners.Level(pair.Key.X, pair.Key.Y)));
+            }
+            return found;
+        }
+
         /// <summary>
         /// The reward chunk of every landmark within <paramref name="radius"/> m of <paramref name="here"/>, with its
         /// ground level: read from the district plans alone, so far ones cost no chunk plans (markers, lookouts).

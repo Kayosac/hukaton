@@ -55,7 +55,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (markers) markers.SetActive(on);
             if (beacon) beacon.SetActive(false);
             Reach(on ? streamer.World?.viewCamera : null, MarkerRange);
-            if (!on) { last = new ChunkCoord(int.MinValue, int.MinValue); lastLoaded = -1; revealUntil = -1; return; }
+            if (!on) { last = new ChunkCoord(int.MinValue, int.MinValue); fieldAt = last; lastLoaded = -1; revealUntil = -1; return; }
             var here = streamer.CoordAt(streamer.player.position);
             if (!here.Equals(last) || streamer.Version != lastLoaded || Revealed != shownRevealed)
             {
@@ -162,6 +162,11 @@ namespace Hakaton.WorldAssembly.Unity
             return Color.Lerp(fog, dark, Mathf.Clamp01(strength * (.7f + .3f * level))).linear;
         }
 
+        /// <summary>Sub-steps per chunk side: enough for a cliff to stand as a wall in the middle of its chunk.</summary>
+        const int Sub = 4;
+        ChunkCoord fieldAt = new ChunkCoord(int.MinValue, int.MinValue);
+        readonly System.Collections.Generic.List<int> fieldTriangles = new System.Collections.Generic.List<int>();
+
         void Rebuild(ChunkCoord here)
         {
             Ensure();
@@ -172,42 +177,69 @@ namespace Hakaton.WorldAssembly.Unity
             beacon.transform.position = origin + Vector3.up * 3;
             int reach = Mathf.CeilToInt(farRadius / size);
             int n = reach * 2 + 1;
-            var vertices = new Vector3[(n + 1) * (n + 1)];
-            var colours = new Color[vertices.Length];
-            for (int i = 0; i <= n; i++)
-                for (int j = 0; j <= n; j++)
-                {
-                    int ci = here.X - reach + i, cj = here.Y - reach + j;
-                    int level = map.Corners.Level(ci, cj);
-                    // Corner (ci, cj) is the south-west corner of chunk (ci, cj). Real heights, a little lower, so the
-                    // field meets the edges of the loaded chunks and never shows above them.
-                    float x = (ci - .5f) * size, z = (cj - .5f) * size;
-                    float y = level > 0 ? level * map.Rules.PlateauHeight - .3f : -.6f;
-                    vertices[i * (n + 1) + j] = origin + new Vector3(x, y, z);
-                    // Low ground is the fog itself; raised ground and its foot darken out of it, so a plateau stands
-                    // on the ground instead of floating over a fog-coloured slope.
-                    bool foot = level == 0 && (map.Corners.Level(ci - 1, cj) > 0 || map.Corners.Level(ci + 1, cj) > 0 || map.Corners.Level(ci, cj - 1) > 0 || map.Corners.Level(ci, cj + 1) > 0);
-                    colours[i * (n + 1) + j] = level > 0 ? Colour(level) : foot ? Colour(.4f) : Ground;
-                }
-            var triangles = new System.Collections.Generic.List<int>();
+            // Heights and colours only change when the player enters another chunk; the holes for loaded chunks
+            // change with every load.
+            if (!here.Equals(fieldAt)) Field(here, origin, reach, n);
+            fieldTriangles.Clear();
+            int row = n * Sub + 1;
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
                 {
                     int ci = here.X - reach + i, cj = here.Y - reach + j;
                     float dx = (ci - here.X) * size, dz = (cj - here.Y) * size;
                     if (dx * dx + dz * dz > farRadius * farRadius) continue;
-                    // Cell (ci, cj) is chunk (ci, cj): where the real chunk stands, it shows itself.
+                    // Where the real chunk stands, it shows itself.
                     if (streamer.IsLoaded(new ChunkCoord(ci, cj))) continue;
-                    // Flat country too, in the fog's colour: without it the sky shows under the far mountains.
-                    int a = i * (n + 1) + j, b = (i + 1) * (n + 1) + j, c = (i + 1) * (n + 1) + j + 1, e = i * (n + 1) + j + 1;
-                    triangles.AddRange(new[] { a, e, c, a, c, b });
+                    for (int u = 0; u < Sub; u++)
+                        for (int v = 0; v < Sub; v++)
+                        {
+                            int x = i * Sub + u, z = j * Sub + v;
+                            int a = x * row + z, b = (x + 1) * row + z, c = (x + 1) * row + z + 1, e = x * row + z + 1;
+                            fieldTriangles.Add(a); fieldTriangles.Add(e); fieldTriangles.Add(c);
+                            fieldTriangles.Add(a); fieldTriangles.Add(c); fieldTriangles.Add(b);
+                        }
                 }
+            mesh.SetTriangles(fieldTriangles, 0);
+            mesh.RecalculateBounds();
             Markers(here, origin);
+        }
+
+        /// <summary>
+        /// The world's raised ground round <paramref name="here"/> at its real heights, Sub × Sub steps a chunk: inside
+        /// a chunk whose corners differ the ground rises as a wall where the real cliff stands (its middle), not as a
+        /// slope over the whole chunk, so far plateaus stand on the land instead of floating over a fogged slope.
+        /// </summary>
+        void Field(ChunkCoord here, Vector3 origin, int reach, int n)
+        {
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize, plateau = map.Rules.PlateauHeight;
+            int row = n * Sub + 1;
+            var vertices = new Vector3[row * row];
+            var colours = new Color[vertices.Length];
+            for (int x = 0; x < row; x++)
+                for (int z = 0; z < row; z++)
+                {
+                    // Chunk (ci, cj) runs from corner (ci, cj) (south-west) to corner (ci + 1, cj + 1).
+                    int i = Mathf.Min(x / Sub, n - 1), j = Mathf.Min(z / Sub, n - 1);
+                    float fx = (x - i * Sub) / (float)Sub, fz = (z - j * Sub) / (float)Sub;
+                    int ci = here.X - reach + i, cj = here.Y - reach + j;
+                    int sw = map.Corners.Level(ci, cj), se = map.Corners.Level(ci + 1, cj), nw = map.Corners.Level(ci, cj + 1), ne = map.Corners.Level(ci + 1, cj + 1);
+                    int low = Mathf.Min(Mathf.Min(sw, se), Mathf.Min(nw, ne)), high = Mathf.Max(Mathf.Max(sw, se), Mathf.Max(nw, ne));
+                    float f = Mathf.Lerp(Mathf.Lerp(sw, se, fx), Mathf.Lerp(nw, ne, fx), fz) - low;
+                    float level = high > low ? low + Mathf.Clamp01((f - .5f) * 8 + .5f) : low;
+                    float px = (ci - .5f + fx) * size, pz = (cj - .5f + fz) * size;
+                    // A little lower than the real ground, so the field meets the loaded chunks' edges and never shows over them.
+                    float y = level > .01f ? level * plateau - .3f : -.6f;
+                    vertices[x * row + z] = origin + new Vector3(px, y, pz);
+                    // Low ground is the fog itself; raised ground darkens out of it, its walls darkest, and the ground at
+                    // their foot a little, so a plateau stands on the land.
+                    bool wall = level > low + .05f && level < high - .05f;
+                    colours[x * row + z] = level > .05f ? Colour(wall ? level + 1 : level) : high > low ? Colour(.4f) : Ground;
+                }
             mesh.Clear();
             mesh.vertices = vertices;
             mesh.colors = colours;
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateBounds();
+            fieldAt = here;
         }
 
         static readonly System.Collections.Generic.Dictionary<string, Color> markerTips = new System.Collections.Generic.Dictionary<string, Color>

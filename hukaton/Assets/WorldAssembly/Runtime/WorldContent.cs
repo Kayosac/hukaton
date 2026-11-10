@@ -32,6 +32,8 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Looping sparkle over a crystal.")]
         public GameObject crystalGlow;
 
+        [Tooltip("Ground of the roads between landmarks (the world's path ground).")]
+        public Material roadMaterial;
         [Tooltip("Played once when a lookout shows the far landmarks.")]
         public Hakaton.Feel.SfxCue lookoutCue;
 

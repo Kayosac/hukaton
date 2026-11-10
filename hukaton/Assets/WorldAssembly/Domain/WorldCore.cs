@@ -79,6 +79,6 @@ namespace Hakaton.WorldAssembly
     {
         public const int Noise = 11, Noise2 = 12, RiverBorder = 21, CanyonBorder = 22, RiverPair = 23, InnerRiver = 24,
             Path = 25, Maze = 31, MazeDfs = 32, MazeLoop = 33, MazeEntrance = 34, Variant = 41, Crossing = 42, Rotation = 43,
-            Creature = 51, Loot = 52, Ramp = 53, EndKind = 54, Scene = 61, Landmark = 71;
+            Creature = 51, Loot = 52, Ramp = 53, EndKind = 54, Scene = 61, Landmark = 71, Road = 81;
     }
 }
