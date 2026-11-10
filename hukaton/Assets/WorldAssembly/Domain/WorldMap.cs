@@ -1,0 +1,270 @@
+using System;
+using System.Collections.Generic;
+
+namespace Hakaton.WorldAssembly
+{
+    /// <summary>Everything the game needs to build one chunk.</summary>
+    public sealed class ChunkPlan
+    {
+        public ChunkCoord Coord;
+        public int Ring;
+        public TileShape Shape;
+        public Variant Variant;
+        /// <summary>Quarter turns clockwise from the shape's canonical orientation.</summary>
+        public int Rotation;
+        /// <summary>0 low, 1 plateau; regions add their own level on top.</summary>
+        public int BaseLevel;
+        /// <summary>World corner levels clockwise NW, NE, SE, SW.</summary>
+        public int[] Corners = new int[4];
+        /// <summary>World edge middles by side.</summary>
+        public Mid[] Mids = new Mid[4];
+        public bool MazeHeart;
+        /// <summary>Creature id ("mushroom", "goblin-dog", "troll", "bush") or null; Count for packs.</summary>
+        public string Creature;
+        public int CreatureCount;
+        /// <summary>Loot to place: item ids ("find", "find-hard", "crystal").</summary>
+        public readonly List<string> Loot = new List<string>();
+        /// <summary>Guaranteed reward on the island / maze heart.</summary>
+        public string PocketReward;
+
+        public int RegionCount => Shape.Regions.Length + Variant.ExtraRegions.Length;
+        public Region RegionAt(int index) => index < Shape.Regions.Length ? Shape.Regions[index] : Variant.ExtraRegions[index - Shape.Regions.Length];
+        public int AbsoluteLevel(int region) => BaseLevel + RegionAt(region).Level;
+
+        /// <summary>Region opening onto world side and segment (segments clockwise), or −1.</summary>
+        public int Port(Side worldSide, int segment) => Shape.Ports[((int)worldSide - Rotation) & 3, segment];
+        public Need Gate(Side worldSide, int segment) => Shape.Gates[((int)worldSide - Rotation) & 3, segment];
+
+        public override string ToString() => $"{Coord} {Shape.Id}/{Variant.Id} r{Rotation} b{BaseLevel}";
+    }
+
+    /// <summary>
+    /// The endless world of one outing. Chunk plans are pure functions of the seed and the coordinate (districts are
+    /// planned on demand and cached), except for the ring 0–1 guarantee: at creation the walk graph of rings 0–1 is
+    /// checked and river tiles are switched to bridge / ford variants until ring 0 is walkable and has a way out.
+    /// </summary>
+    public sealed class WorldMap
+    {
+        public readonly int Seed;
+        public readonly WorldRules Rules;
+        public readonly CornerField Corners;
+        readonly DistrictPlanner districts;
+        readonly Dictionary<(int, int), Dictionary<ChunkCoord, ChunkFeature>> districtCache = new Dictionary<(int, int), Dictionary<ChunkCoord, ChunkFeature>>();
+        readonly Dictionary<ChunkCoord, ChunkPlan> plans = new Dictionary<ChunkCoord, ChunkPlan>();
+        readonly Dictionary<ChunkCoord, string> overrides = new Dictionary<ChunkCoord, string>();
+        public readonly List<string> Diagnostics = new List<string>();
+
+        public WorldMap(int seed, WorldRules rules = null)
+        {
+            Seed = seed;
+            Rules = rules ?? new WorldRules();
+            Corners = new CornerField(seed, Rules);
+            districts = new DistrictPlanner(seed, Rules, Corners);
+            Guarantee();
+        }
+
+        public ChunkPlan Chunk(ChunkCoord c)
+        {
+            if (plans.TryGetValue(c, out var plan)) return plan;
+            plan = Build(c);
+            plans[c] = plan;
+            return plan;
+        }
+
+        public ChunkPlan Chunk(int x, int y) => Chunk(new ChunkCoord(x, y));
+
+        public ChunkFeature FeatureAt(ChunkCoord c)
+        {
+            var key = DistrictPlanner.DistrictOf(c, Rules.District);
+            if (!districtCache.TryGetValue(key, out var plan)) districtCache[key] = plan = districts.Plan(key.dx, key.dy);
+            return plan.TryGetValue(c, out var f) ? f : null;
+        }
+
+        // ---------- building one chunk ----------
+
+        ChunkPlan Build(ChunkCoord c)
+        {
+            var plan = new ChunkPlan { Coord = c, Ring = Rules.RingOf(c) };
+            Corners.Corners(c, plan.Corners);
+            var feature = FeatureAt(c);
+            if (feature != null) Array.Copy(feature.Mids, plan.Mids, 4);
+            plan.MazeHeart = feature?.MazeHeart ?? false;
+
+            int min = Math.Min(Math.Min(plan.Corners[0], plan.Corners[1]), Math.Min(plan.Corners[2], plan.Corners[3]));
+            int max = Math.Max(Math.Max(plan.Corners[0], plan.Corners[1]), Math.Max(plan.Corners[2], plan.Corners[3]));
+            plan.BaseLevel = min;
+            var relative = new int[4];
+            for (int i = 0; i < 4; i++) relative[i] = plan.Corners[i] - min;
+
+            if (c.X == 0 && c.Y == 0) Set(plan, TileShapes.Get("start"), 0);
+            else if (max > min) MatchCliff(plan, relative);
+            else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
+            else MatchFeature(plan);
+
+            ChooseVariant(plan, feature);
+            if (overrides.TryGetValue(c, out var forced)) plan.Variant = plan.Shape.FindVariant(forced);
+            Populate(plan);
+            return plan;
+        }
+
+        static void Set(ChunkPlan plan, TileShape shape, int rotation) { plan.Shape = shape; plan.Rotation = rotation; plan.Variant = shape.Variants[0]; }
+
+        void MatchCliff(ChunkPlan plan, int[] relative)
+        {
+            foreach (var shape in TileShapes.All)
+            {
+                if (shape.Kind != ShapeKind.Cliff) continue;
+                for (int r = 0; r < 4; r++)
+                    if (shape.MatchesCorners(relative, r)) { Set(plan, shape, r); return; }
+            }
+            throw new InvalidOperationException($"No cliff shape for corners {string.Join(",", plan.Corners)} at {plan.Coord}");
+        }
+
+        void MatchFeature(ChunkPlan plan)
+        {
+            foreach (var shape in TileShapes.All)
+            {
+                if (shape.Kind != ShapeKind.River && shape.Kind != ShapeKind.Canyon && shape.Kind != ShapeKind.Maze) continue;
+                for (int r = 0; r < 4; r++)
+                    if (shape.MatchesMids(plan.Mids, r)) { Set(plan, shape, r); return; }
+            }
+            throw new InvalidOperationException($"No shape for edges {string.Join(",", plan.Mids)} at {plan.Coord}");
+        }
+
+        void ChooseVariant(ChunkPlan plan, ChunkFeature feature)
+        {
+            var c = plan.Coord;
+            double roll = Hash.Unit(Seed, Salt.Variant, c.X, c.Y);
+            var shape = plan.Shape;
+            string id = shape.Variants[0].Id;
+            switch (shape.Id)
+            {
+                case "plain":
+                    id = roll < .4 ? "meadow" : roll < .75 ? "woods" : roll < .92 ? "rocks" : "pond";
+                    break;
+                case "plateau-top":
+                    id = roll < .6 ? "bare" : "rocks";
+                    break;
+                case "river-end":
+                    id = roll < .45 ? "lake" : roll < .8 || plan.Ring == 0 ? "spring" : "island";
+                    break;
+                case "river-straight":
+                    if (feature != null && feature.Crossing) id = roll < .6 ? "bridge" : "ford";
+                    break;
+                case "river-bend":
+                    if (feature != null && feature.Crossing) id = "ford";
+                    break;
+                case "canyon-straight":
+                    if (feature != null && feature.Crossing) id = roll < .5 ? "log" : "descent";
+                    break;
+                case "canyon-bend":
+                    if (feature != null && feature.Crossing) id = "descent";
+                    break;
+                case "cliff-edge":
+                case "cliff-corner":
+                case "cliff-inner":
+                {
+                    double ramp = plan.BaseLevel >= 1 ? Rules.SummitRampChance : Rules.RampChance[plan.Ring];
+                    if (shape.Id != "cliff-edge") ramp *= .5;
+                    double ledgeRoll = Hash.Unit(Seed, Salt.Ramp, c.X, c.Y);
+                    id = roll < ramp ? "ramp" : shape.Id == "cliff-edge" && ledgeRoll < Rules.LedgeChance ? "ledge" : "cliff";
+                    break;
+                }
+            }
+            plan.Variant = shape.FindVariant(id);
+        }
+
+        // ---------- creatures and loot ----------
+
+        void Populate(ChunkPlan plan)
+        {
+            var c = plan.Coord;
+            plan.Creature = null;
+            plan.CreatureCount = 0;
+            plan.Loot.Clear();
+            plan.PocketReward = null;
+            if (WorldRules.IsStartArea(c)) return;
+            int ring = plan.Ring;
+            double creatureRoll = Hash.Unit(Seed, Salt.Creature, c.X, c.Y);
+            double pick = Hash.Unit(Seed, Salt.Creature + 1, c.X, c.Y);
+            string creature = null;
+            int count = 1;
+            double chance = Rules.CreatureChance[ring];
+            switch (plan.Shape.Kind)
+            {
+                case ShapeKind.Plain:
+                    if (plan.Variant.Id == "meadow" || plan.Variant.Id == "pond") creature = ring == 0 || pick < .5 ? "mushroom" : "goblin-dog";
+                    else creature = ring == 0 ? "mushroom" : "goblin-dog";
+                    break;
+                case ShapeKind.Maze: creature = "bush"; chance *= 1.5; break;
+                case ShapeKind.River: creature = ring == 0 ? null : "bush"; chance *= .6; break;
+                case ShapeKind.Canyon: creature = "goblin-dog"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
+                case ShapeKind.PlateauTop: creature = "troll"; chance *= 1.2; break;
+            }
+            if (creature != null && creatureRoll < chance) { plan.Creature = creature; plan.CreatureCount = count; }
+
+            double findRoll = Hash.Unit(Seed, Salt.Loot, c.X, c.Y);
+            switch (plan.Shape.Kind)
+            {
+                case ShapeKind.PlateauTop:
+                    if (findRoll < (plan.BaseLevel >= 2 ? .8 : .6)) plan.Loot.Add(plan.BaseLevel >= 2 ? "crystal" : "find-hard");
+                    break;
+                case ShapeKind.Cliff:
+                    if (plan.Variant.Id == "ledge" && findRoll < .5) plan.Loot.Add("find-hard");
+                    break;
+                default:
+                    if (findRoll < Rules.FindChance[ring]) plan.Loot.Add("find");
+                    break;
+            }
+            if (plan.MazeHeart) plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
+            if (plan.Variant.Id == "island") plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
+        }
+
+        // ---------- ring 0–1 guarantee ----------
+
+        /// <summary>Chunks within this many of the start are checked for the guarantee.</summary>
+        int GuaranteeRadius => (int)Math.Ceiling(Rules.MiddleRadius / Rules.ChunkSize) + 1;
+
+        void Guarantee()
+        {
+            int r = GuaranteeRadius;
+            for (int pass = 0; pass < 200; pass++)
+            {
+                var graph = new WalkGraph(this, -r, -r, r, r);
+                var reach = graph.Reachable(new ChunkCoord(0, 0), 0, walkOnly: true);
+                bool ring0Done = true, exit = false;
+                foreach (var node in graph.Nodes)
+                {
+                    var plan = Chunk(node.Coord);
+                    if (plan.RegionAt(node.Region).Pocket) continue;
+                    if (plan.Ring == 0 && !reach.Contains(node)) ring0Done = false;
+                    if (plan.Ring == 1 && reach.Contains(node)) exit = true;
+                }
+                if (ring0Done && exit) return;
+
+                // Bridge the first river tile that splits reached ground from unreached ground, nearest to the start.
+                ChunkPlan best = null;
+                foreach (var node in graph.Nodes)
+                {
+                    var plan = Chunk(node.Coord);
+                    if (plan.Shape.Kind != ShapeKind.River || plan.Variant.Id != "plain") continue;
+                    if (plan.Ring > (ring0Done ? 1 : 0)) continue;
+                    bool reached = false, unreached = false;
+                    for (int region = 0; region < plan.Shape.Regions.Length; region++)
+                    {
+                        if (reach.Contains(new WalkGraph.Node(plan.Coord, region))) reached = true; else unreached = true;
+                    }
+                    if (!reached || !unreached) continue;
+                    if (best == null || Dist(plan.Coord) < Dist(best.Coord)) best = plan;
+                }
+                if (best == null) { Diagnostics.Add($"guarantee not met (ring0 {ring0Done}, exit {exit})"); return; }
+                string variant = best.Shape.Id == "river-straight" ? "bridge" : "ford";
+                overrides[best.Coord] = variant;
+                plans.Remove(best.Coord);
+                Diagnostics.Add($"bridged {best.Coord} ({variant})");
+            }
+        }
+
+        static int Dist(ChunkCoord c) => c.X * c.X + c.Y * c.Y;
+    }
+}
