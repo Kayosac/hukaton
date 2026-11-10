@@ -1,3 +1,7 @@
+# Working copy
+
+- By default work directly in the user's open main project (`/Users/kayosac/hukaton`) and its already open Unity Editor. Before creating your own worktree, clone, branch copy or separate Unity project, ASK the user and wait for a clear yes; never create one on your own initiative.
+
 # Project art direction
 
 For shop visitors and NPC character illustrations, use the user-approved style in `output/shop-visitors/style-current.json`.
