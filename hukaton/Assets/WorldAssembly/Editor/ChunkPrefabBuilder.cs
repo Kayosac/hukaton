@@ -94,7 +94,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             AssetDatabase.CreateAsset(mesh, meshPath);
             ground.AddComponent<MeshFilter>().sharedMesh = mesh;
             ground.AddComponent<MeshRenderer>().sharedMaterials = mats;
-            ground.AddComponent<MeshCollider>().sharedMesh = mesh;
+            groundCollider = ground.AddComponent<MeshCollider>();
+            groundCollider.sharedMesh = mesh;
+            Physics.SyncTransforms();
             view.worldUv = new[] { ground.GetComponent<MeshFilter>() };
 
             var obstacles = new List<WorldObstacle>();
@@ -106,24 +108,21 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             Crossings(go.transform, terrain, rng);
             Dress(go.transform, terrain, rng);
-            Sockets(view, terrain, rng);
-
-            if (shape.Kind == ShapeKind.Start)
-            {
-                var pose = new GameObject("Departure pose").transform;
-                pose.SetParent(go.transform, false);
-                pose.localPosition = new Vector3(0, terrain.Height(new Vector2(8, 8.6f)) + .1f, .6f);
-                view.departurePose = pose;
-                // The beacon stands behind the player's start, seen from far away through the fog.
-                Place(go.transform, "Structures/FA_ST04_Post", terrain, new Vector2(8f, 3.4f), 0, new Vector3(1.4f, 9f, 1.4f));
-                var lantern = Place(go.transform, "Props/FA_PR01_LanternHanging", terrain, new Vector2(8f, 3.4f), 0, Vector3.one * 2.2f);
-                if (lantern) lantern.transform.localPosition += Vector3.up * 13f;
-                Place(go.transform, "Markers/FA_MK16_StoneCircle", terrain, new Vector2(8, 8), 0, Vector3.one);
-            }
-
-            CullDetail(go.transform);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
+            Sockets(view, terrain, rng);
+
+            if (shape.Id == Landmarks.StartHill.PartId(1, 1))
+            {
+                // The top of the start hill, facing north; the beacon stands behind (a prop of the hill's scene).
+                var pose = new GameObject("Departure pose").transform;
+                pose.SetParent(go.transform, false);
+                pose.localPosition = new Vector3(0, GroundY(terrain, new Vector2(8, 8.6f)) + .1f, .6f);
+                view.departurePose = pose;
+            }
+
+            view.edgeHeights = EdgeHeights(terrain);
+            CullDetail(go.transform);
 
             string prefabPath = $"{folder}/{name}.prefab";
             var saved = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
@@ -196,9 +195,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Kind == ShapeKind.Canyon && h < -t.CanyonDepth + .4f) return Surface.Bed;
             if (t.OnRamp(p)) return Surface.Path;
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
-            if (t.Scene != null && (t.Scene.OnFloor(p) || t.Scene.OnTrail(t, p))) return Surface.Path;
-            if (t.Scene != null && t.Scene.InThicket(p)) return Surface.Humus;
-            if (t.Shape.Kind == ShapeKind.Start && Vector2.Distance(p, new Vector2(8, 8)) < 7.2f) return Surface.Path;
+            if (t.SceneFloor(p) || t.SceneTrail(p)) return Surface.Path;
+            if (t.SceneThicket(p)) return Surface.Humus;
             return Surface.Main;
         }
 
@@ -411,11 +409,15 @@ namespace Hakaton.WorldAssembly.EditorTools
             group.SetParent(parent, false);
             foreach (var prop in scene.Props)
             {
-                var go = Place(group, prop.Asset, t, prop.At, prop.Yaw, prop.Scale);
+                // A landmark's things go to the part they stand in.
+                if (!t.InPart(prop.At)) continue;
+                var go = Place(group, prop.Asset, t, t.Local(prop.At), prop.Yaw, prop.Scale);
                 if (!go) continue;
                 if (prop.Lift != 0) go.transform.position += Vector3.up * prop.Lift;
                 if (prop.NoCollider) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
             }
+            // Same stones in every part of a landmark: each part keeps those standing on it.
+            var stones = new System.Random(scene.Id.GetHashCode());
             foreach (var (index, spacing) in scene.RidgeRocks)
             {
                 var ridge = scene.Ridges[index];
@@ -426,16 +428,23 @@ namespace Hakaton.WorldAssembly.EditorTools
                     int n = Mathf.Max(1, Mathf.RoundToInt(ab.magnitude / spacing));
                     for (int k = 0; k < n; k++)
                     {
-                        var p = a + ab * ((k + .3f + (float)rng.NextDouble() * .4f) / n);
+                        var p = a + ab * ((k + .3f + (float)stones.NextDouble() * .4f) / n);
+                        float s = Mathf.Lerp(.75f, 1.15f, (float)stones.NextDouble()) * Mathf.Clamp(ridge.Half / .85f, .7f, 1.1f);
+                        float yaw = (float)stones.NextDouble() * 360;
+                        string stoneName = RidgeStones[stones.Next(RidgeStones.Length)];
                         // The pass stays open.
                         if (scene.Gaps.Any(g => Vector2.Distance(p, g.Centre) < g.Radius + 1.1f)) continue;
-                        float s = Mathf.Lerp(.75f, 1.15f, (float)rng.NextDouble()) * Mathf.Clamp(ridge.Half / .85f, .7f, 1.1f);
-                        var stone = Place(group, "Rocks/" + RidgeStones[rng.Next(RidgeStones.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
-                        if (stone) stone.transform.position += Vector3.down * .35f;
+                        if (!t.InPart(p)) continue;
+                        var stone = Place(group, "Rocks/" + stoneName, t, t.Local(p), yaw, Vector3.one * s);
+                        if (stone) stone.transform.position += Vector3.down * .15f;
                     }
                 }
             }
-            if (scene.Thicket.HasValue) obstacles.Add(ThornPiece(group, scene.Thicket.Value, rng));
+            if (scene.Thicket.HasValue && t.InPart(scene.Thicket.Value.center))
+            {
+                var r = scene.Thicket.Value;
+                obstacles.Add(ThornPiece(group, new Rect(r.position - t.Offset, r.size), rng));
+            }
         }
 
         // ---------- bridges, logs, fords ----------
@@ -499,9 +508,15 @@ namespace Hakaton.WorldAssembly.EditorTools
                 {
                     var p = new Vector2(edge + (float)rng.NextDouble() * (16 - 2 * edge), edge + (float)rng.NextDouble() * (16 - 2 * edge));
                     if (!Free(t, p) || (where != null && !where(p)) || placed.Any(q => Vector2.Distance(p, q) < minSpacing)) continue;
-                    placed.Add(p);
                     float s = Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble());
                     var placedGo = Place(dressing, folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
+                    // Nothing on ground that falls away under it: trees and stones would hang over the slope.
+                    if (placedGo && lastFall > (folder == "Trees" ? .25f : folder == "Plants" ? .5f : .35f))
+                    {
+                        Object.DestroyImmediate(placedGo);
+                        continue;
+                    }
+                    placed.Add(p);
                     // Grass and bushes cast no shadows: many small draws for little.
                     if (placedGo && folder == "Plants")
                         foreach (var r in placedGo.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -513,9 +528,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 case ShapeKind.Plain:
                 case ShapeKind.PlateauTop:
+                case ShapeKind.Landmark:
                 {
                     var scene = t.Scene;
-                    Func<Vector2, bool> open = p => !scene.Busy(p) && !scene.OnTrail(t, p);
+                    Func<Vector2, bool> open = p => !t.SceneBusy(p) && !t.SceneTrail(p);
                     Scatter("Plants", Grass, scene.Grass, 1, 1.1f, .8f, 1.3f, open);
                     if (scene.Ferns > 0) Scatter("Plants", Ferns, scene.Ferns, 1.2f, 1.3f, .8f, 1.2f, open);
                     // Undergrowth and litter so no corner of a scene is bare: bushes without colliders, a few stumps and stones.
@@ -580,10 +596,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         static bool Free(TileTerrain t, Vector2 p)
         {
             if (t.IsWater(p) || t.OnRamp(p) || t.InMazeWall(p)) return false;
-            if (t.Scene != null && t.Scene.InThicket(p)) return false;
+            if (t.SceneThicket(p)) return false;
             if (t.Shape.Kind == ShapeKind.River && t.DistanceToCentre(p) < TileTerrain.BankHalf + .6f) return false;
             if (t.Shape.Kind == ShapeKind.Canyon && t.DistanceToCentre(p) < TileTerrain.RimHalf + .4f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .3f) return false;
-            if (t.Shape.Kind == ShapeKind.Start && Vector2.Distance(p, new Vector2(8, 8)) < 8) return false;
             if (t.Shape.Kind == ShapeKind.Maze && Mathf.Abs(p.x - 8) < 1.6f && Mathf.Abs(p.y - 8) < 1.6f) return false;
             // Steep ground (cliff faces) stays bare.
             float h = t.Height(p);
@@ -591,6 +606,27 @@ namespace Hakaton.WorldAssembly.EditorTools
             return slope < .5f;
         }
 
+        /// <summary>The ground collider of the chunk being built: things are set on the mesh as built, not on the height function.</summary>
+        static MeshCollider groundCollider;
+        /// <summary>How far the ground falls away under the footprint of the last thing placed on it, m.</summary>
+        static float lastFall;
+
+        /// <summary>Height of the built ground mesh at a canonical point (the mesh's vertices wander a little from the height function).</summary>
+        static float GroundY(TileTerrain t, Vector2 p)
+        {
+            if (groundCollider)
+            {
+                var from = groundCollider.transform.TransformPoint(new Vector3(p.x - 8, 80, p.y - 8));
+                if (groundCollider.Raycast(new Ray(from, Vector3.down), out var hit, 200)) return groundCollider.transform.InverseTransformPoint(hit.point).y;
+            }
+            return t.Height(p);
+        }
+
+        /// <summary>
+        /// A ForestArt prefab on the chunk. With terrain: set on the lowest point of the ground under its footprint (its
+        /// colliders, or a little of its renderers for plants), so no edge hangs in the air; <see cref="lastFall"/> says
+        /// how far the ground falls away under it, for callers that would rather not place it on such ground.
+        /// </summary>
         static GameObject Place(Transform parent, string asset, TileTerrain t, Vector2 p, float yaw, Vector3 scale)
         {
             string path = $"Assets/ForestArt/Prefabs/{asset}.prefab";
@@ -600,20 +636,61 @@ namespace Hakaton.WorldAssembly.EditorTools
                 prefabs[path] = prefab;
                 if (!prefab) Debug.LogWarning("[World] missing prefab " + path);
             }
+            lastFall = 0;
             if (!prefab) return null;
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            float y = t != null ? t.Height(p) : 0;
-            go.transform.localPosition = new Vector3(p.x - 8, y, p.y - 8);
+            go.transform.localPosition = new Vector3(p.x - 8, 0, p.y - 8);
             go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = scale;
-            if (t != null)
+            if (t == null) return go;
+            // Chunk-local: the parent may be a nested group at the chunk origin.
+            var chunk = parent;
+            while (chunk.parent) chunk = chunk.parent;
+            go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, 0, p.y - 8));
+            Physics.SyncTransforms();
+            float radius = Footprint(go);
+            float low = GroundY(t, p), high = low;
+            for (int k = 0; k < 8 && radius > .05f; k++)
             {
-                // Chunk-local: the parent may be a nested group at the chunk origin.
-                var chunk = parent;
-                while (chunk.parent) chunk = chunk.parent;
-                go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, y - .05f, p.y - 8));
+                float a = k * Mathf.PI / 4;
+                var q = p + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+                float h = GroundY(t, q);
+                low = Mathf.Min(low, h);
+                high = Mathf.Max(high, h);
             }
+            lastFall = high - low;
+            go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, low - .04f, p.y - 8));
             return go;
+        }
+
+        /// <summary>Radius of what stands on the ground: the colliders' footprint, else a little of the renderers'.</summary>
+        static float Footprint(GameObject go)
+        {
+            var colliders = go.GetComponentsInChildren<Collider>();
+            Bounds? b = null;
+            foreach (var c in colliders) { if (b == null) b = c.bounds; else { var x = b.Value; x.Encapsulate(c.bounds); b = x; } }
+            if (b != null) return Mathf.Clamp(Mathf.Min(b.Value.extents.x, b.Value.extents.z) * .85f, .1f, 2.2f);
+            foreach (var r in go.GetComponentsInChildren<Renderer>()) { if (b == null) b = r.bounds; else { var x = b.Value; x.Encapsulate(r.bounds); b = x; } }
+            return b != null ? Mathf.Clamp(Mathf.Min(b.Value.extents.x, b.Value.extents.z) * .4f, .1f, .6f) : .1f;
+        }
+
+        static readonly Vector2[] CornerAt = { new Vector2(0, 16), new Vector2(16, 16), new Vector2(16, 0), new Vector2(0, 0) };
+
+        /// <summary>
+        /// Ground height next to the middle of each edge segment (canonical side × 3 + segment, 0.9 m inside): where
+        /// the streamer's navigation links between chunks land. Landmark parts meet their neighbours above ground level.
+        /// </summary>
+        static float[] EdgeHeights(TileTerrain t)
+        {
+            var result = new float[12];
+            for (int side = 0; side < 4; side++)
+                for (int seg = 0; seg < 3; seg++)
+                {
+                    var p = Vector2.Lerp(CornerAt[side], CornerAt[(side + 1) & 3], (seg + .5f) / 3);
+                    p += (new Vector2(8, 8) - p).normalized * .9f;
+                    result[side * 3 + seg] = GroundY(t, p);
+                }
+            return result;
         }
 
         // ---------- sockets ----------
@@ -627,10 +704,17 @@ namespace Hakaton.WorldAssembly.EditorTools
                 for (float z = 1.5f; z <= 14.5f; z += 1f)
                 {
                     var p = new Vector2(x, z);
-                    if (!Free(t, p) && !(t.Shape.Kind == ShapeKind.Start && Vector2.Distance(p, new Vector2(8, 8)) > 2)) continue;
-                    if (t.Shape.Kind == ShapeKind.Start) continue;
+                    if (!Free(t, p)) continue;
                     candidates.Add(p);
                 }
+            // Only where the chunk's own navigation is: never inside a rock or under a wall.
+            if (view.navMesh)
+            {
+                var far = new Vector3(-20000, 0, -20000);
+                var instance = NavMesh.AddNavMeshData(view.navMesh, far, Quaternion.identity);
+                candidates = candidates.Where(p => NavMesh.SamplePosition(far + new Vector3(p.x - 8, GroundY(t, p), p.y - 8), out var hit, .3f, NavMesh.AllAreas)).ToList();
+                NavMesh.RemoveNavMeshData(instance);
+            }
             // Finds: on the best ground the shape has — the top of a cliff, the floor of a canyon, the corridor of a maze.
             Func<Vector2, bool> prefer = t.Shape.Kind switch
             {
@@ -641,13 +725,18 @@ namespace Hakaton.WorldAssembly.EditorTools
             var finds = Spread(candidates.Where(prefer).ToList(), 4, rng);
             if (finds.Count == 0) finds = Spread(candidates, 3, rng);
             // Scenes put their finds where the scene points: the top of the knoll, the floor of the ruin.
-            if (t.Scene != null) finds = t.Scene.Finds.ToList();
+            if (t.Scene != null)
+            {
+                var own = t.Scene.Finds.Where(t.InPart).Select(t.Local).ToList();
+                // Landmark parts without a spot of their own keep the spread ones.
+                if (own.Count > 0 || t.Shape.Kind != ShapeKind.Landmark) finds = own;
+            }
             if (t.Variant == "ledge") finds.Insert(0, new Vector2(4.5f, 7.2f));
             view.findSockets = finds.Select((p, i) => Socket(group, "Find " + i, t, p, t.Variant == "ledge" && i == 0 ? Plateau * .5f + .05f : (float?)null)).ToArray();
 
             if (t.Variant == "island") view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
             if (t.Shape.Kind == ShapeKind.Maze) view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
-            if (t.Scene?.Pocket != null) view.pocketSocket = Socket(group, "Pocket", t, t.Scene.Pocket.Value, null);
+            if (t.Scene?.Pocket != null && t.InPart(t.Scene.Pocket.Value)) view.pocketSocket = Socket(group, "Pocket", t, t.Local(t.Scene.Pocket.Value), null);
 
             Func<Vector2, bool> home = t.Shape.Kind switch
             {
@@ -657,7 +746,11 @@ namespace Hakaton.WorldAssembly.EditorTools
             };
             var creatures = Spread(candidates.Where(home).ToList(), 2, rng);
             if (t.Shape.Kind == ShapeKind.Maze) creatures = new List<Vector2> { new Vector2(8, 8) };
-            if (t.Scene != null) creatures = t.Scene.Creatures.ToList();
+            if (t.Scene != null)
+            {
+                var own = t.Scene.Creatures.Where(t.InPart).Select(t.Local).ToList();
+                if (own.Count > 0 || t.Shape.Kind != ShapeKind.Landmark) creatures = own;
+            }
             view.creatureSockets = creatures.Select((p, i) => Socket(group, "Creature " + i, t, p, null)).ToArray();
         }
 
@@ -665,7 +758,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             var s = new GameObject(name).transform;
             s.SetParent(parent, false);
-            s.localPosition = new Vector3(p.x - 8, (height ?? t.Height(p)) + .15f, p.y - 8);
+            s.localPosition = new Vector3(p.x - 8, (height ?? GroundY(t, p)) + .15f, p.y - 8);
             return s;
         }
 

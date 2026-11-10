@@ -25,6 +25,8 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Start overlook only: where the player stands when an outing begins.")]
         public Transform departurePose;
         public WorldObstacle[] obstacles = new WorldObstacle[0];
+        [Tooltip("Ground height next to the middle of each edge segment (canonical side × 3 + segment): where links to neighbours land.")]
+        public float[] edgeHeights = new float[12];
         public PhysicsProp[] props = new PhysicsProp[0];
     }
 }

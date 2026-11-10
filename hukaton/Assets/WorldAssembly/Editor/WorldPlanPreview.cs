@@ -122,7 +122,11 @@ namespace Hakaton.WorldAssembly.EditorTools
             string v = p.Variant.Id;
             if (v == "bridge" || v == "ford" || v == "log" || v == "descent" || v == "ramp") Fill(m - 1, m - 1, m + 1, m + 1, mark);
             if (v == "island") Fill(m - 1, m - 1, m + 1, m + 1, mark);
-            if (p.Shape.Kind == ShapeKind.Start) Fill(m - 3, m - 3, m + 3, m + 3, red);
+            if (p.Shape.Kind == ShapeKind.Landmark)
+            {
+                var (kind, _, _) = Landmarks.Parse(p.Shape.Id);
+                Fill(1, 1, P - 1, P - 1, kind == Landmarks.StartHill ? red : new Color32(200, 120, 220, 255));
+            }
             if (p.Creature != null) px[(oy + 1) * n + ox + 1] = red;
         }
     }

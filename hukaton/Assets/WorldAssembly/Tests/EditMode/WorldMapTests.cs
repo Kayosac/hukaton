@@ -100,8 +100,8 @@ namespace Hakaton.WorldAssembly.Tests
                         Assert.GreaterOrEqual(Math.Sqrt(c.X * c.X + c.Y * c.Y) * 16, map.Rules.MiddleRadius - 16, $"seed {seed} {p}: summits only far out");
                     if (p.Shape.Kind == ShapeKind.Canyon) Assert.GreaterOrEqual(p.Ring, 1, $"seed {seed} {p}");
                 }
-                Assert.AreEqual("start", map.Chunk(0, 0).Shape.Id);
-                foreach (var c in Square(1)) if (!c.Equals(new ChunkCoord(0, 0))) Assert.AreEqual("plain", map.Chunk(c).Shape.Id, $"seed {seed} {c}");
+                Assert.AreEqual(Landmarks.StartHill.PartId(1, 1), map.Chunk(0, 0).Shape.Id);
+                foreach (var c in Square(1)) Assert.AreEqual(ShapeKind.Landmark, map.Chunk(c).Shape.Kind, $"seed {seed} {c}: the start hill");
             }
         }
 
@@ -180,6 +180,38 @@ namespace Hakaton.WorldAssembly.Tests
                     Assert.AreEqual(component.Count, open.Count, $"seed {seed} maze at {c} has sealed cells");
                 }
             }
+        }
+
+        [Test]
+        public void LandmarksComeWholeAndOften()
+        {
+            int found = 0;
+            for (int seed = 1; seed <= 40; seed++)
+            {
+                var map = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    var p = map.Chunk(c);
+                    if (p.Shape.Kind != ShapeKind.Landmark || WorldRules.IsStartArea(c)) continue;
+                    var (kind, i, j) = Landmarks.Parse(p.Shape.Id);
+                    if (i == 0 && j == 0) found++;
+                    // Find where this part sits in its landmark, then every other part must be where the turn puts it.
+                    ChunkCoord? origin = null;
+                    for (int wi = 0; wi < kind.Size; wi++)
+                        for (int wj = 0; wj < kind.Size; wj++)
+                            if (kind.PartAt(p.Rotation, wi, wj) == (i, j)) origin = new ChunkCoord(c.X - wi, c.Y - wj);
+                    Assert.IsNotNull(origin, $"seed {seed} {p}");
+                    for (int wi = 0; wi < kind.Size; wi++)
+                        for (int wj = 0; wj < kind.Size; wj++)
+                        {
+                            var other = map.Chunk(origin.Value.X + wi, origin.Value.Y + wj);
+                            var (oi, oj) = kind.PartAt(p.Rotation, wi, wj);
+                            Assert.AreEqual(kind.PartId(oi, oj), other.Shape.Id, $"seed {seed} {p}: part at +{wi},{wj}");
+                            Assert.AreEqual(p.Rotation, other.Rotation, $"seed {seed} {other}");
+                        }
+                }
+            }
+            Assert.GreaterOrEqual(found, 40 * 3, "a few landmarks in every world");
         }
 
         [Test]

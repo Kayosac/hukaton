@@ -31,8 +31,10 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         public readonly List<Vector2[]> Centreline = new List<Vector2[]>();
         public readonly List<Ramp> Ramps = new List<Ramp>();
-        /// <summary>The scene of a plain or plateau-top chunk; null for other shapes.</summary>
+        /// <summary>The scene of a plain or plateau-top chunk, or the whole landmark of a landmark part; null otherwise.</summary>
         public readonly ChunkScene Scene;
+        /// <summary>Where this chunk sits in its scene: (0, 0) for one chunk, the part's corner for a landmark part.</summary>
+        public readonly Vector2 Offset;
         readonly int seed;
 
         public readonly struct Ramp
@@ -47,6 +49,14 @@ namespace Hakaton.WorldAssembly.EditorTools
             Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
             seed = (shape.Id + "/" + variant).GetHashCode();
             if (shape.Kind == ShapeKind.Plain || shape.Kind == ShapeKind.PlateauTop) Scene = ChunkScene.Get(variant);
+            if (shape.Kind == ShapeKind.Landmark)
+            {
+                // One piece of ground for the whole landmark: same scene and same noise in every part.
+                var (kind, i, j) = Landmarks.Parse(shape.Id);
+                Scene = ChunkScene.Get(kind.Id);
+                Offset = new Vector2(i * Size, j * Size);
+                seed = kind.Id.GetHashCode();
+            }
             if (shape.Kind == ShapeKind.River || shape.Kind == ShapeKind.Canyon)
             {
                 if (shape.Id.EndsWith("straight")) Centreline.Add(Line(new Vector2(8, 0), new Vector2(8, 16)));
@@ -102,8 +112,20 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>0 at an edge, 1 from <paramref name="width"/> metres inside.</summary>
-        public static float EdgeFade(Vector2 p, float width = 2f) =>
-            Mathf.Clamp01(Mathf.Min(Mathf.Min(p.x, Size - p.x), Mathf.Min(p.y, Size - p.y)) / width);
+        public static float EdgeFade(Vector2 p, float width = 2f) => EdgeFade(p, width, Size);
+
+        public static float EdgeFade(Vector2 p, float width, float size) =>
+            Mathf.Clamp01(Mathf.Min(Mathf.Min(p.x, size - p.x), Mathf.Min(p.y, size - p.y)) / width);
+
+        // ---------- the scene, from this chunk's own coordinates ----------
+
+        public Vector2 Big(Vector2 p) => p + Offset;
+        public Vector2 Local(Vector2 big) => big - Offset;
+        public bool InPart(Vector2 big) => big.x >= Offset.x && big.x < Offset.x + Size && big.y >= Offset.y && big.y < Offset.y + Size;
+        public bool SceneTrail(Vector2 p) => Scene != null && Scene.OnTrail(this, p + Offset);
+        public bool SceneFloor(Vector2 p) => Scene != null && Scene.OnFloor(p + Offset);
+        public bool SceneThicket(Vector2 p) => Scene != null && Scene.InThicket(p + Offset);
+        public bool SceneBusy(Vector2 p) => Scene != null && Scene.Busy(p + Offset);
 
         public float Noise(Vector2 p, float cell, int salt)
         {
@@ -161,15 +183,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (d < RimHalf) return -CanyonDepth * (1 - Mathf.SmoothStep(0, 1, (d - FloorHalf) / (RimHalf - FloorHalf)));
                     return 0;
                 }
-                case ShapeKind.Start:
-                {
-                    float r = Vector2.Distance(p, new Vector2(8, 8));
-                    return 3f * Mathf.Clamp01((7.6f - r) / 5.6f);
-                }
                 case ShapeKind.Plain when Variant == "pond":
                     return Bed(Vector2.Distance(p, PondCentre) + Noise(p, 2f, 11) * .3f * fade, PondRadius, PondBank, PondDeep);
                 default:
-                    return Scene != null ? Scene.Relief(this, p) : 0;
+                    return Scene != null ? Scene.Relief(this, p + Offset) : 0;
             }
         }
 
@@ -269,7 +286,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     return Variant == "island" && Vector2.Distance(p, new Vector2(8, 8)) < IslandRadius ? 1 : 0;
                 case ShapeKind.Plain:
                 case ShapeKind.PlateauTop:
-                    return Scene?.Pocket != null && Vector2.Distance(p, Scene.Pocket.Value) < 1.6f ? 1 : 0;
+                    return Scene?.Pocket != null && Vector2.Distance(p + Offset, Scene.Pocket.Value) < 1.6f ? 1 : 0;
                 default:
                     return 0;
             }

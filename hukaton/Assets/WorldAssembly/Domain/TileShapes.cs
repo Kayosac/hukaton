@@ -6,7 +6,7 @@ namespace Hakaton.WorldAssembly
     /// <summary>What it takes to move from one walkable region to another.</summary>
     public enum Need { Walk = 0, Drop = 1, Ice = 2, Impulse = 3, Fire = 4 }
 
-    public enum ShapeKind { Start, Plain, PlateauTop, Cliff, River, Canyon, Maze }
+    public enum ShapeKind { Plain, PlateauTop, Cliff, River, Canyon, Maze, Landmark }
 
     /// <summary>A walkable part of a chunk at one level. Pockets are the places only cards reach; they always hold a reward.</summary>
     public sealed class Region
@@ -100,7 +100,6 @@ namespace Hakaton.WorldAssembly
         {
             var list = new List<TileShape>
             {
-                Flat("start", ShapeKind.Start, 0, new Variant("hill")),
                 Flat("plain", ShapeKind.Plain, 0, Scenes(PlainScenes)),
                 Flat("plateau-top", ShapeKind.PlateauTop, 0, Scenes(TopScenes)),
                 Cliff("cliff-corner", new[] { 1, 0, 0, 0 }, true),
@@ -115,6 +114,11 @@ namespace Hakaton.WorldAssembly
                 Maze("maze-tee", true, true, true, false),
                 Maze("maze-cross", true, true, true, true),
             };
+            // Parts of landmarks: flat low ground on every edge, one region open all round.
+            foreach (var kind in Landmarks.All)
+                for (int i = 0; i < kind.Size; i++)
+                    for (int j = 0; j < kind.Size; j++)
+                        list.Add(Flat(kind.PartId(i, j), ShapeKind.Landmark, 0, new Variant("part")));
             All = list.ToArray();
             foreach (var shape in All) byId[shape.Id] = shape;
         }

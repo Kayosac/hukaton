@@ -85,6 +85,7 @@ namespace Hakaton.WorldAssembly.Unity
             fieldMaterial.SetFloat("_Near", nearRadius);
             fieldMaterial.SetFloat("_FadeIn", fadeIn);
             fieldMaterial.SetFloat("_Far", farRadius);
+            fieldMaterial.SetFloat("_FogDensity", RenderSettings.fog ? RenderSettings.fogDensity : 0);
             var r = field.AddComponent<MeshRenderer>();
             r.sharedMaterial = fieldMaterial;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -99,6 +100,7 @@ namespace Hakaton.WorldAssembly.Unity
             beaconMaterial.SetFloat("_Near", beaconFrom);
             beaconMaterial.SetFloat("_FadeIn", 30);
             beaconMaterial.SetFloat("_Far", farRadius * 1.6f);
+            beaconMaterial.SetFloat("_FogDensity", RenderSettings.fog ? RenderSettings.fogDensity : 0);
             var br = beacon.AddComponent<MeshRenderer>();
             br.sharedMaterial = beaconMaterial;
             br.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -122,6 +124,9 @@ namespace Hakaton.WorldAssembly.Unity
             m.RecalculateBounds();
             return m;
         }
+
+        /// <summary>Low ground in clear air: about the moss of the chunks' ground (alpha 0: only the scene's fog applies).</summary>
+        static readonly Color Ground = new Color(.43f, .45f, .27f, 0).linear;
 
         Color Colour(float level)
         {
@@ -153,7 +158,10 @@ namespace Hakaton.WorldAssembly.Unity
                     float x = (ci - .5f) * size, z = (cj - .5f) * size;
                     float y = level > 0 ? level * map.Rules.PlateauHeight - .3f : -.6f;
                     vertices[i * (n + 1) + j] = origin + new Vector3(x, y, z);
-                    colours[i * (n + 1) + j] = Colour(level);
+                    // Low ground is the fog itself; raised ground and its foot darken out of it, so a plateau stands
+                    // on the ground instead of floating over a fog-coloured slope.
+                    bool foot = level == 0 && (map.Corners.Level(ci - 1, cj) > 0 || map.Corners.Level(ci + 1, cj) > 0 || map.Corners.Level(ci, cj - 1) > 0 || map.Corners.Level(ci, cj + 1) > 0);
+                    colours[i * (n + 1) + j] = level > 0 ? Colour(level) : foot ? Colour(.4f) : Ground;
                 }
             var triangles = new System.Collections.Generic.List<int>();
             for (int i = 0; i < n; i++)
@@ -164,8 +172,7 @@ namespace Hakaton.WorldAssembly.Unity
                     if (dx * dx + dz * dz > farRadius * farRadius) continue;
                     // Cell (ci, cj) is chunk (ci, cj): where the real chunk stands, it shows itself.
                     if (streamer.IsLoaded(new ChunkCoord(ci, cj))) continue;
-                    // Only cells that rise: flat country stays to the fog.
-                    if (map.Corners.Level(ci, cj) == 0 && map.Corners.Level(ci + 1, cj) == 0 && map.Corners.Level(ci, cj + 1) == 0 && map.Corners.Level(ci + 1, cj + 1) == 0) continue;
+                    // Flat country too, in the fog's colour: without it the sky shows under the far mountains.
                     int a = i * (n + 1) + j, b = (i + 1) * (n + 1) + j, c = (i + 1) * (n + 1) + j + 1, e = i * (n + 1) + j + 1;
                     triangles.AddRange(new[] { a, e, c, a, c, b });
                 }

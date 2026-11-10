@@ -327,11 +327,11 @@ namespace Hakaton.WorldAssembly.Unity
                 if (a.Gate(side, segment) != Need.Walk || b.Gate(side.Opposite(), 2 - segment) != Need.Walk) continue;
                 int level = a.AbsoluteLevel(ra);
                 if (level != b.AbsoluteLevel(rb)) continue;
-                var mid = SegmentMiddle(a.Coord, side, segment) + Vector3.up * (Origin.y + Height(level));
+                var mid = SegmentMiddle(a.Coord, side, segment) + Vector3.up * Origin.y;
                 var data = new NavMeshLinkData
                 {
-                    startPosition = mid - normal * .9f,
-                    endPosition = mid + normal * .9f,
+                    startPosition = mid - normal * .9f + Vector3.up * LinkHeight(loaded[coord], side, segment, level),
+                    endPosition = mid + normal * .9f + Vector3.up * LinkHeight(loaded[coord.Step(side)], side.Opposite(), 2 - segment, level),
                     width = Size / 3 * .8f,
                     bidirectional = true,
                     costModifier = -1,
@@ -352,6 +352,19 @@ namespace Hakaton.WorldAssembly.Unity
         }
 
         float Height(int level) => level >= 0 ? level * Map.Rules.PlateauHeight : -Map.Rules.CanyonDepth;
+
+        /// <summary>
+        /// Where a link lands on one side of an edge: the region's level, except on a landmark part, whose ground
+        /// meets its neighbours wherever its hill or crater has it (the heights its prefab measured).
+        /// </summary>
+        float LinkHeight(Loaded chunk, Side side, int segment, int level)
+        {
+            var plan = chunk.plan;
+            var heights = chunk.view ? chunk.view.edgeHeights : null;
+            if (plan.Shape.Kind != ShapeKind.Landmark || heights == null || heights.Length != 12) return Height(level);
+            int canonical = ((int)side - plan.Rotation) & 3;
+            return plan.BaseLevel * Map.Rules.PlateauHeight + heights[canonical * 3 + segment];
+        }
 
         /// <summary>World position (height 0) of the middle of an edge segment; segments run clockwise.</summary>
         Vector3 SegmentMiddle(ChunkCoord c, Side side, int segment)

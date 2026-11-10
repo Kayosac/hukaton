@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Hakaton.WorldAssembly
 {
-    public enum Feature { None, River, Canyon, Maze }
+    public enum Feature { None, River, Canyon, Maze, Landmark }
 
     /// <summary>What the large-form plan says about one chunk; terrain heights come from the corner field.</summary>
     public sealed class ChunkFeature
@@ -13,6 +13,9 @@ namespace Hakaton.WorldAssembly
         /// <summary>Along a river: a bridge or ford goes here. Along a canyon: a log or a descent.</summary>
         public bool Crossing;
         public bool MazeHeart;
+        /// <summary>Landmark part: which landmark, its canonical part and the landmark's quarter turns.</summary>
+        public LandmarkKind Landmark;
+        public int PartI, PartJ, LandmarkRotation;
     }
 
     /// <summary>
@@ -114,6 +117,9 @@ namespace Hakaton.WorldAssembly
             PlanPaths(Feature.River, riverPoints, Salt.RiverPair, c => Inside(c) && Usable(c), dx, dy, plan, used, reserved, At,
                 Hash.Unit(seed, Salt.InnerRiver, dx, dy) < rules.InnerRiver[ring]);
             PlanPaths(Feature.Canyon, canyonPoints, Salt.RiverPair + 1, c => Inside(c) && Usable(c) && CanyonAllowed(c), dx, dy, plan, used, reserved, At, false);
+            // Landmarks first: they need a whole square of even ground; mazes grow over whatever is left.
+            if (Hash.Unit(seed, Salt.Landmark, dx, dy) < rules.Landmark[ring]) PlanLandmark(origin, dx, dy, used, At, 0);
+            if (Hash.Unit(seed, Salt.Landmark + 1, dx, dy) < rules.SecondLandmark[ring]) PlanLandmark(origin, dx, dy, used, At, 1);
             if (Hash.Unit(seed, Salt.Maze, dx, dy) < rules.Maze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 0);
             if (Hash.Unit(seed, Salt.Maze + 9, dx, dy) < rules.SecondMaze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 1);
             return plan;
@@ -274,6 +280,49 @@ namespace Hakaton.WorldAssembly
                 sinceLast++;
                 bool place = every[ring] > 0 ? sinceLast >= every[ring] : Hash.Unit(seed, Salt.Crossing, cell.X, cell.Y, salt + 1) < far;
                 if (place) { f.Crossing = true; sinceLast = 0; }
+            }
+        }
+
+        // ---------- landmarks ----------
+
+        /// <summary>A landmark on a square of free even chunks inside the district (low ground or a plateau top), turned at random.</summary>
+        void PlanLandmark(ChunkCoord origin, int dx, int dy, HashSet<ChunkCoord> used, Func<ChunkCoord, ChunkFeature> at, int which)
+        {
+            for (int attempt = 0; attempt < 24; attempt++)
+            {
+                int key = attempt + 37 * which;
+                var kind = Landmarks.Placed[Hash.Range(seed, Landmarks.Placed.Length, Salt.Landmark + 2, dx, dy, key)];
+                int n = kind.Size;
+                int ox = origin.X + 1 + Hash.Range(seed, Math.Max(1, size - 1 - n), Salt.Landmark + 3, dx, dy, key);
+                int oy = origin.Y + 1 + Hash.Range(seed, Math.Max(1, size - 1 - n), Salt.Landmark + 4, dx, dy, key);
+                if (ox + n > origin.X + size - 1 || oy + n > origin.Y + size - 1) continue;
+                bool ok = true;
+                int level = corners.Level(ox, oy);
+                for (int x = ox; x <= ox + n && ok; x++)
+                    for (int y = oy; y <= oy + n && ok; y++)
+                        if (corners.Level(x, y) != level) ok = false;
+                for (int x = ox; x < ox + n && ok; x++)
+                    for (int y = oy; y < oy + n && ok; y++)
+                    {
+                        var c = new ChunkCoord(x, y);
+                        if (used.Contains(c) || WorldRules.IsStartArea(c)) ok = false;
+                    }
+                if (!ok) continue;
+                int rotation = Hash.Range(seed, 4, Salt.Landmark + 5, dx, dy, key);
+                for (int wi = 0; wi < n; wi++)
+                    for (int wj = 0; wj < n; wj++)
+                    {
+                        var c = new ChunkCoord(ox + wi, oy + wj);
+                        var (i, j) = kind.PartAt(rotation, wi, wj);
+                        var f = at(c);
+                        f.Feature = Feature.Landmark;
+                        f.Landmark = kind;
+                        f.PartI = i;
+                        f.PartJ = j;
+                        f.LandmarkRotation = rotation;
+                        used.Add(c);
+                    }
+                return;
             }
         }
 

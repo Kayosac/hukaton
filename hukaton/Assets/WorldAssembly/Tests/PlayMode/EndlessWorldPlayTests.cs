@@ -72,7 +72,7 @@ namespace Hakaton.WorldAssembly.Tests
             foreach (var view in Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None))
             {
                 var coord = streamer.CoordAt(view.transform.position);
-                if (streamer.Map.Chunk(coord).Ring != 0 || view.shapeId == "start") continue;
+                if (streamer.Map.Chunk(coord).Ring != 0 || view.shapeId == Landmarks.StartHill.PartId(1, 1)) continue;
                 var targets = view.findSockets.Concat(view.creatureSockets).Where(s => s).ToList();
                 if (targets.Count == 0) continue;
                 checkedChunks++;
@@ -167,6 +167,9 @@ namespace Hakaton.WorldAssembly.Tests
                 ["ruins"] = v => v.variantId == "ruins",
                 ["gully"] = v => v.variantId == "gully",
                 ["tower"] = v => v.variantId == "tower",
+                ["watchhill"] = v => v.shapeId == "watchhill-11",
+                ["crater"] = v => v.shapeId == "crater-11",
+                ["fort"] = v => v.shapeId == "fort-10",
             };
             var home = world.motor.transform.position;
             for (int step = 0; step < 12 && wanted.Count > 0; step++)
@@ -199,9 +202,13 @@ namespace Hakaton.WorldAssembly.Tests
                 yield return Shot(dir, "play-walk-" + ++walk, eye, eye + look.normalized * 10 - Vector3.up * .6f);
             }
             // Far away, looking back at the start: the beacon and mountains through the fog.
-            world.motor.Teleport(home + new Vector3(140, 0, 0), Quaternion.identity);
+            var back = home + new Vector3(140, 0, 0);
+            world.motor.Teleport(back + Vector3.up * 20, Quaternion.identity);
             for (int f = 0; f < 60; f++) yield return null;
-            yield return Shot(dir, "play-far-back", world.motor.transform.position + Vector3.up * 1.6f, home);
+            var under = Physics.RaycastAll(back + Vector3.up * 40, Vector3.down, 80, ~(1 << 4), QueryTriggerInteraction.Ignore)
+                .Where(h => !h.collider.transform.IsChildOf(world.motor.transform)).OrderBy(h => h.distance).ToList();
+            var backEye = (under.Count > 0 ? under[0].point : back) + Vector3.up * 1.7f;
+            yield return Shot(dir, "play-far-back", backEye, home + Vector3.up * 6);
             Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys));
         }
 
@@ -209,7 +216,9 @@ namespace Hakaton.WorldAssembly.Tests
         {
             // Stand where the camera will be, so streaming and far silhouettes follow it as in play.
             world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
-            yield return null;
+            // Let the chunks round the new spot stream in, as they would ahead of a walking player.
+            for (int f = 0; f < 45; f++) yield return null;
+            world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
             yield return null;
             var cam = world.viewCamera;
             var saved = (cam.transform.position, cam.transform.rotation);

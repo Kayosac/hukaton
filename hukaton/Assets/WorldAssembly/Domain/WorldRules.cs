@@ -52,6 +52,9 @@ namespace Hakaton.WorldAssembly
         public double[] FindChance = { .35, .45, .5 };
         public double[] SceneFindChance = { .6, .65, .7 };
         public double[] SecondMaze = { 0, .5, .6 };
+        /// <summary>Chance of a landmark (2 × 2 chunks) in a district, and of a second one, per ring.</summary>
+        public double[] Landmark = { .6, .85, .85 };
+        public double[] SecondLandmark = { 0, .45, .5 };
 
         public int RingOf(ChunkCoord c)
         {

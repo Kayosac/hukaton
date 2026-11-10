@@ -16,7 +16,10 @@ namespace Hakaton.WorldAssembly.EditorTools
     public sealed class ChunkScene
     {
         public readonly string Id;
+        /// <summary>Side of the scene, m: 16 for one chunk, more for a landmark cut into parts.</summary>
+        public float Size = 16;
 
+        public struct Block { public Rect Area; public float Height, Run; }
         public struct Ridge { public Vector2[] Line; public float Height, Half, Run, Taper; }
         public struct Bump { public Vector2 Centre; public float Radius, Height, Run; }
         public struct Dome { public Vector2 Centre; public float Radius, Height; }
@@ -29,7 +32,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly List<Bump> Bumps = new List<Bump>();
         /// <summary>Gentle rises and hollows, walkable everywhere.</summary>
         public readonly List<Dome> Domes = new List<Dome>();
-        /// <summary>Where ridges and gullies give way: passes and land bridges.</summary>
+        /// <summary>Raised squares with steep sides (the mound of a fort); passes cut ramps into them.</summary>
+        public readonly List<Block> Blocks = new List<Block>();
+        /// <summary>Where ridges, gullies and blocks give way: passes, land bridges, ramps.</summary>
         public readonly List<Pass> Gaps = new List<Pass>();
         public readonly List<Vector2[]> Trails = new List<Vector2[]>();
         /// <summary>Paved ground (the floor of a ruin).</summary>
@@ -84,6 +89,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "pond": s.Pond(); break;
                 case "thorns": s.Thorns(); break;
                 case "tower": s.Tower(); break;
+                case "start-hill": s.StartHill(); break;
+                case "watchhill": s.Watchhill(); break;
+                case "crater": s.Crater(); break;
+                case "fort": s.Fort(); break;
             }
             all[id] = s;
             return s;
@@ -317,11 +326,172 @@ namespace Hakaton.WorldAssembly.EditorTools
             Grass = 10; Ferns = 2;
         }
 
+        // ---------- landmarks (several chunks; parts are cut along every 16 m) ----------
+
+        /// <summary>Within <paramref name="margin"/> of a cut between parts: big things with colliders stay off it.</summary>
+        static bool NearSeam(Vector2 p, float margin)
+        {
+            float x = Mathf.Repeat(p.x, 16), y = Mathf.Repeat(p.y, 16);
+            return x < margin || x > 16 - margin || y < margin || y > 16 - margin;
+        }
+
+        void TreeRing(Vector2 centre, float radius, int count, float phase, float clear = 2.2f)
+        {
+            string[] trees = { "FA_TR01_ThickCrooked", "FA_TR12_Split", "FA_TR02_TallNarrow", "FA_TR06_Hollow", "FA_TR03_DoubleFork", "FA_TR05_Zigzag", "FA_TR14_KnottyGiant" };
+            for (int k = 0; k < count; k++)
+            {
+                float a = phase + k * Mathf.PI * 2 / count;
+                var p = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius + (k % 3 - 1) * .8f);
+                if (NearSeam(p, 2.2f) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear)) continue;
+                Put("Trees/" + trees[k % trees.Length], p.x, p.y, k * 67, .85f + (k % 4) * .08f);
+            }
+        }
+
+        static Vector2[] Circle(Vector2 centre, float radius, int points)
+        {
+            var line = new Vector2[points + 1];
+            for (int k = 0; k <= points; k++)
+            {
+                float a = k * Mathf.PI * 2 / points;
+                line[k] = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+            }
+            return line;
+        }
+
+        static Vector2 OnCircle(Vector2 centre, float radius, float degrees) =>
+            centre + new Vector2(Mathf.Cos(degrees * Mathf.Deg2Rad), Mathf.Sin(degrees * Mathf.Deg2Rad)) * radius;
+
+        /// <summary>
+        /// The start: a hill 9 m high over 3 × 3 chunks with the beacon on top and a view all round. Trails run down to
+        /// the middle of every side; crags and a rock lip on the slopes, old trees round the foot.
+        /// </summary>
+        void StartHill()
+        {
+            Size = 48;
+            var c = V(24, 24);
+            Domes.Add(new Dome { Centre = c, Radius = 21, Height = 9 });
+            Bumps.Add(new Bump { Centre = V(12.6f, 28.4f), Radius = 1.6f, Height = 2.2f, Run = .45f });
+            Bumps.Add(new Bump { Centre = V(33.5f, 15.5f), Radius = 1.4f, Height = 2, Run = .45f });
+            Bumps.Add(new Bump { Centre = V(31, 34), Radius = 1.2f, Height = 1.8f, Run = .4f });
+            Bumps.Add(new Bump { Centre = V(17.5f, 13.5f), Radius = 1.3f, Height = 1.9f, Run = .45f });
+            Ridges.Add(new Ridge { Line = new[] { V(10.5f, 19), V(9.5f, 24.5f), V(11.5f, 30.5f) }, Height = 1.8f, Half = .7f, Run = .45f });
+            Gaps.Add(new Pass { Centre = V(9.6f, 24.2f), Radius = 1.2f, Run = .6f });
+            RidgeRocks.Add((0, 1.5f));
+            Trails.Add(new[] { c, V(23.4f, 33), V(24.6f, 40), V(24, 47) });
+            Trails.Add(new[] { c, V(33, 24.6f), V(40, 23.4f), V(47, 24) });
+            Trails.Add(new[] { c, V(24.6f, 15), V(23.4f, 8), V(24, 1) });
+            Trails.Add(new[] { c, V(15, 24.4f), V(9.6f, 24.2f), V(1, 24) });
+            // The top: beacon behind the start, a ring of stones, a bench to look out from.
+            PutScaled("Structures/FA_ST04_Post", 24, 20.4f, 0, new Vector3(1.4f, 9, 1.4f));
+            Put("Props/FA_PR01_LanternHanging", 24, 20.4f, 0, 2.2f, 13);
+            Deco("Markers/FA_MK16_StoneCircle", 24, 24, 0, 1.4f);
+            Put("Structures/FA_ST12_Bench", 27.2f, 26.2f, 225);
+            Put("Markers/FA_MK06_StoneMarkGroup", 20.6f, 27, 30);
+            Put("Markers/FA_MK09_ClothPennants", 21, 21, 45);
+            Put("Markers/FA_MK01_SignArrow", 26.4f, 21.2f, 135);
+            foreach (var crag in Bumps) Put("Rocks/FA_RK08_RocksTallGroup", crag.Centre.x, crag.Centre.y, crag.Centre.x * 31, crag.Radius * .85f, -.4f);
+            TreeRing(c, 19, 14, .2f);
+            Grass = 30; Ferns = 6; Bushes = 8;
+        }
+
+        /// <summary>A tall hill with a rock band on one side and a lookout on top; the reward waits under its roof.</summary>
+        void Watchhill()
+        {
+            Size = 32;
+            var c = V(16, 16);
+            Domes.Add(new Dome { Centre = c, Radius = 13.5f, Height = 7 });
+            Ridges.Add(new Ridge { Line = new[] { V(14.5f, 25), V(20.5f, 23.4f), V(24.6f, 18.5f), V(25.4f, 13) }, Height = 2.4f, Half = .85f, Run = .45f });
+            RidgeRocks.Add((0, 1.6f));
+            Bumps.Add(new Bump { Centre = V(8, 22), Radius = 1.2f, Height = 1.6f, Run = .4f });
+            Bumps.Add(new Bump { Centre = V(23.5f, 7.5f), Radius = 1.1f, Height = 1.5f, Run = .4f });
+            foreach (var b in Bumps) Put("Rocks/FA_RK06_BoulderSplit", b.Centre.x, b.Centre.y, b.Centre.y * 41, b.Radius * .9f, -.3f);
+            Trails.Add(new[] { V(1, 4), V(6, 5.4f), V(11, 8.6f), V(15, 12.6f), V(19.4f, 18.4f) });
+            Trails.Add(new[] { V(29, 1), V(25.4f, 6), V(22.4f, 11), V(20.4f, 16.6f) });
+            Put("Structures/FA_ST13_Shelter", 20.4f, 19.8f, 200);
+            Put("Props/FA_PR13_CrateClosed", 18.8f, 21.4f, 20);
+            Put("Props/FA_PR02_LanternGround", 22.2f, 18.6f, 0);
+            Put("Markers/FA_MK08_ClothLong", 22.6f, 21.4f, 0, 1.3f, 2.6f);
+            PutScaled("Structures/FA_ST04_Post", 22.6f, 21.4f, 0, new Vector3(1, 3.4f, 1));
+            Put("Structures/FA_ST12_Bench", 19, 18, 160);
+            TreeRing(c, 14.2f, 12, .5f);
+            Finds = new[] { V(20.6f, 20.6f), V(5.2f, 26.6f) };
+            Creatures = new[] { V(21.6f, 17.8f), V(8.4f, 9.4f) };
+            Grass = 22; Ferns = 4; Bushes = 8;
+        }
+
+        /// <summary>A crater ringed by a rock rim with three passes; standing stones and the reward at the bottom.</summary>
+        void Crater()
+        {
+            Size = 32;
+            var c = V(16, 16);
+            Domes.Add(new Dome { Centre = c, Radius = 12.4f, Height = -5.5f });
+            Ridges.Add(new Ridge { Line = Circle(c, 12.6f, 28), Height = 1.7f, Half = .9f, Run = .45f });
+            RidgeRocks.Add((0, 1.7f));
+            foreach (float a in new[] { 35f, 165f, 265f })
+            {
+                var pass = OnCircle(c, 12.6f, a);
+                Gaps.Add(new Pass { Centre = pass, Radius = 1.5f, Run = .7f });
+                Trails.Add(new[] { OnCircle(c, 15.5f, a), pass, OnCircle(c, 7, a), OnCircle(c, 2.6f, a + 20) });
+            }
+            Deco("Markers/FA_MK16_StoneCircle", 16.4f, 16.4f, 0, 2.4f);
+            foreach (float a in new[] { 45f, 135f, 225f, 315f })
+            {
+                var p = OnCircle(c, 4.2f, a);
+                Put("Markers/FA_MK05_StoneMarkTall", p.x, p.y, a, 1.3f);
+            }
+            Put("Special/FA_SP07_GravestoneLarge", 21.4f, 12.6f, 300);
+            Put("Special/FA_SP05_GravestoneSmall", 10.8f, 20.6f, 120);
+            Deco("Special/FA_SP03_WebDrape", 18.8f, 18.8f, 45);
+            Put("Props/FA_PR05_CandlesDish", 18.2f, 17.2f, 0);
+            Put("Trees/FA_TR10_DeadBare", 23, 22.4f, 30);
+            TreeRing(c, 15, 10, .9f);
+            Finds = new[] { V(18.4f, 17.8f), V(4, 4) };
+            Creatures = new[] { V(19.6f, 16.8f), V(12, 12.4f) };
+            Grass = 18; Ferns = 6; Bushes = 6;
+        }
+
+        /// <summary>A walled fort on a steep mound: in by the gate ramp or the breach; the reward in the yard.</summary>
+        void Fort()
+        {
+            Size = 32;
+            Blocks.Add(new Block { Area = Rect.MinMaxRect(6, 6, 26, 26), Height = 3, Run = .6f });
+            Gaps.Add(new Pass { Centre = V(19.6f, 6), Radius = 1.2f, Run = 4 });
+            Gaps.Add(new Pass { Centre = V(26, 11.4f), Radius = .9f, Run = 3.6f });
+            var wall = new Vector3(1, 1.6f, 1.2f);
+            // Walls along the top of the mound, clear of the gate, the breach and the cuts between parts.
+            for (float x = 8.4f; x < 25; x += 2.5f)
+            {
+                if (Mathf.Abs(x - 19.6f) > 2.2f && !NearSeam(V(x, 7.4f), 1.4f)) PutScaled("Structures/FA_ST14_StoneWallRuin", x, 7.4f, 0, wall);
+                if (!NearSeam(V(x, 24.6f), 1.4f)) PutScaled("Structures/FA_ST14_StoneWallRuin", x, 24.6f, 180, wall);
+            }
+            for (float y = 8.4f; y < 25; y += 2.5f)
+            {
+                if (!NearSeam(V(7.4f, y), 1.4f)) PutScaled("Structures/FA_ST14_StoneWallRuin", 7.4f, y, 90, wall);
+                if (Mathf.Abs(y - 11.4f) > 2 && !NearSeam(V(24.6f, y), 1.4f)) PutScaled("Structures/FA_ST14_StoneWallRuin", 24.6f, y, 270, wall);
+            }
+            Floors.Add(Rect.MinMaxRect(8.2f, 8.2f, 23.8f, 23.8f));
+            Put("Structures/FA_ST13_Shelter", 11.2f, 20.6f, 90);
+            Put("Special/FA_SP11_BrokenWagon", 12, 11.2f, 60);
+            Put("Props/FA_PR13_CrateClosed", 21.2f, 12.6f, 10);
+            Put("Props/FA_PR14_CrateOpen", 22.4f, 10.4f, 80);
+            Put("Props/FA_PR12_SackLarge", 18.4f, 9.6f, 0);
+            Put("Props/FA_PR02_LanternGround", 20.2f, 14.2f, 0);
+            PutScaled("Structures/FA_ST04_Post", 21.6f, 20.4f, 0, new Vector3(1, 3.6f, 1));
+            Put("Markers/FA_MK08_ClothLong", 21.6f, 20.4f, 0, 1.4f, 2.8f);
+            Deco("Markers/FA_MK16_StoneCircle", 20.4f, 20.4f, 0, .7f);
+            Trails.Add(new[] { V(19.6f, 1), V(19.6f, 6), V(19.6f, 12), V(14, 18), V(10, 24.6f) });
+            Trails.Add(new[] { V(31, 11.4f), V(26, 11.4f), V(21, 12) });
+            TreeRing(V(16, 16), 14.4f, 12, .3f);
+            Finds = new[] { V(21.8f, 11.4f), V(3.4f, 28.4f) };
+            Creatures = new[] { V(19.4f, 12.6f), V(11.6f, 17) };
+            Grass = 20; Ferns = 4; Bushes = 8;
+        }
+
         // ---------- relief ----------
 
         public float Relief(TileTerrain t, Vector2 p)
         {
-            if (Ridges.Count == 0 && Bumps.Count == 0 && Domes.Count == 0) return 0;
+            if (Ridges.Count == 0 && Bumps.Count == 0 && Domes.Count == 0 && Blocks.Count == 0) return 0;
             float wobble = t.Noise(p, 1.6f, 31) * .3f, grain = 1 + t.Noise(p, 2.2f, 32) * .12f;
             float gap = 1;
             foreach (var g in Gaps) gap = Mathf.Min(gap, Mathf.Clamp01((Vector2.Distance(p, g.Centre) + wobble * .5f - g.Radius) / g.Run));
@@ -345,7 +515,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                 float f = Mathf.Clamp01((b.Radius - Vector2.Distance(p, b.Centre) - wobble) / b.Run);
                 up = Mathf.Max(up, b.Height * f);
             }
-            return (dome + up + down) * TileTerrain.EdgeFade(p, 1.6f);
+            foreach (var b in Blocks)
+            {
+                var a = b.Area;
+                float inside = Mathf.Min(Mathf.Min(p.x - a.xMin, a.xMax - p.x), Mathf.Min(p.y - a.yMin, a.yMax - p.y)) - wobble;
+                up = Mathf.Max(up, b.Height * Mathf.Clamp01(inside / b.Run) * gap);
+            }
+            return (dome + up + down) * TileTerrain.EdgeFade(p, 1.6f, Size);
         }
 
         public bool OnTrail(TileTerrain t, Vector2 p)

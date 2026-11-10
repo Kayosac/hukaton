@@ -96,7 +96,13 @@ namespace Hakaton.WorldAssembly
             var relative = new int[4];
             for (int i = 0; i < 4; i++) relative[i] = plan.Corners[i] - min;
 
-            if (c.X == 0 && c.Y == 0) Set(plan, TileShapes.Get("start"), 0);
+            if (WorldRules.IsStartArea(c))
+            {
+                var (i, j) = Landmarks.StartHill.PartAt(0, c.X + 1, c.Y + 1);
+                Set(plan, TileShapes.Get(Landmarks.StartHill.PartId(i, j)), 0);
+            }
+            else if (feature != null && feature.Feature == Feature.Landmark)
+                Set(plan, TileShapes.Get(feature.Landmark.PartId(feature.PartI, feature.PartJ)), feature.LandmarkRotation);
             else if (max > min) MatchCliff(plan, relative);
             else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
             else MatchFeature(plan);
@@ -233,6 +239,15 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.River: creature = ring == 0 ? "peaceful" : "small-hostile"; chance *= .6; break;
                 case ShapeKind.Canyon: creature = "hostile"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
                 case ShapeKind.PlateauTop: creature = plan.BaseLevel >= 2 ? "brute" : "territorial"; chance *= 1.2; break;
+                case ShapeKind.Landmark:
+                {
+                    // The landmark's reward is guarded; its other parts are as busy as plain ground.
+                    var (kind, i, j) = Landmarks.Parse(plan.Shape.Id);
+                    bool focus = kind.HasFocus && i == kind.FocusI && j == kind.FocusJ;
+                    creature = ring == 0 ? "peaceful" : focus ? (ring == 2 ? "brute" : "territorial") : "hostile";
+                    if (focus) { chance = 1; count = ring == 2 ? 2 : 1; }
+                    break;
+                }
             }
             if (creature != null && creatureRoll < chance) { plan.Creature = creature; plan.CreatureCount = count; }
 
@@ -245,6 +260,13 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.Cliff:
                     if (plan.Variant.Id == "ledge" && findRoll < .5) plan.Loot.Add("find-hard");
                     break;
+                case ShapeKind.Landmark:
+                {
+                    var (kind, i, j) = Landmarks.Parse(plan.Shape.Id);
+                    if (kind.HasFocus && i == kind.FocusI && j == kind.FocusJ) plan.Loot.Add(ring == 2 ? "crystal" : "find-hard");
+                    else if (findRoll < Rules.SceneFindChance[ring] * .6) plan.Loot.Add("find");
+                    break;
+                }
                 case ShapeKind.Plain:
                     // Every scene has a place for a find; most of them hold one.
                     if (findRoll < Rules.SceneFindChance[ring]) plan.Loot.Add("find");
