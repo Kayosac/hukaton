@@ -15,10 +15,14 @@ using Hakaton.Trading.Unity;
 using Hakaton.Tutorial;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Hakaton.Game
 {
     public enum GamePhase { Shop, Expedition }
+
+    /// <summary>Where a new game begins: the cave prologue, or right where the tutorial ends (for testing).</summary>
+    public enum NewGameStart { Cave, AfterTutorial }
 
     /// <summary>Coordinates authored subsystems. Owns transitions and a single save, never constructs the scene.</summary>
     public sealed class GameLoop : MonoBehaviour
@@ -51,6 +55,8 @@ namespace Hakaton.Game
         [Min(1)] public int revenueGoal = 1000;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
+        [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
+        [Min(0)] public int tutorialEarnings = 173;
         [Header("Locomotion tuning")]
         public float shopWalkSpeed = 2.1f, shopSprintSpeed = 3.5f, shopJumpHeight = .45f;
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
@@ -59,7 +65,9 @@ namespace Hakaton.Game
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
         public string LastNotice { get; private set; }
         public bool Ready { get; private set; }
-        bool restoring, dirty, goalCelebrated, preserveInvalidSave;
+        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver;
+        // Survives the scene reload of StartOver; read once by the next new game.
+        static NewGameStart? pendingStart;
         GoblinCardShop cardShop => services.cardShop;
         long activeOuting;
         bool shopWasOpen;
@@ -93,12 +101,17 @@ namespace Hakaton.Game
             }
             SetPhase(GamePhase.Shop);
             // A new game (no save): the cave prologue, then the goblin partner on the counter.
+            bool afterTutorial = false;
             if (!loaded && warning == null)
             {
-                if (cave) EnterCave();
+                afterTutorial = pendingStart == NewGameStart.AfterTutorial;
+                if (afterTutorial) wallet.Wallet.Credit(tutorialEarnings);
+                else if (cave) EnterCave();
                 else tutorial.Begin();
             }
+            pendingStart = null;
             restoring = false; Ready = true;
+            if (afterTutorial) dirty = true;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
             else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
@@ -264,6 +277,22 @@ namespace Hakaton.Game
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
         }
 
+        /// <summary>
+        /// Cheats: erases the save (a copy stays next to it as «.before-restart») and loads the scene again as a new
+        /// game — from the cave, or from where the tutorial ends: shop closed, goblin gone, backroom open.
+        /// </summary>
+        public void StartOver(NewGameStart from)
+        {
+            startingOver = true;
+            if (File.Exists(SavePath))
+            {
+                File.Copy(SavePath, SavePath + ".before-restart", true);
+                File.Delete(SavePath);
+            }
+            pendingStart = from;
+            SceneManager.LoadScene(gameObject.scene.path);
+        }
+
         /// <summary>Skips whatever part of the tutorial is running (cheats, tests).</summary>
         public void SkipTutorial()
         {
@@ -310,7 +339,7 @@ namespace Hakaton.Game
         }
         public bool SaveNow()
         {
-            if (!Ready || !persistProgress || restoring || preserveInvalidSave || Phase != GamePhase.Shop || expedition.Returning) return false;
+            if (!Ready || !persistProgress || restoring || preserveInvalidSave || startingOver || Phase != GamePhase.Shop || expedition.Returning) return false;
             var snapshot = Capture();
             if (!ValidateSave(snapshot)) { Notify("Сохранение отложено: состояние игры не прошло проверку."); return false; }
             bool success = GameSaveStore.Save(SavePath, snapshot, out var error);

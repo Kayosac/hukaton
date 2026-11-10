@@ -29,6 +29,7 @@ namespace Hakaton.Game
 
         public bool IsOpen { get; private set; }
         string status = string.Empty;
+        NewGameStart? armedRestart;
         int grantLevel = 1;
         Vector2 scroll;
         GUIStyle title, body, button, box;
@@ -82,6 +83,7 @@ namespace Hakaton.Game
             var control = game && game.player ? game.player.control : null;
             if (control) control.SetBlocked(this, open);
             if (open) status = string.Empty;
+            armedRestart = null;
         }
 
         // ---------- Actions (public so tests and other tools can call them) ----------
@@ -112,6 +114,17 @@ namespace Hakaton.Game
             return card;
         }
 
+        /// <summary>A second press confirms: the first only arms the button, so a stray click never wipes the progress.</summary>
+        void RestartButton(NewGameStart from, string label)
+        {
+            bool armed = armedRestart == from;
+            if (!GUILayout.Button(armed ? label + " — точно?" : label, button)) return;
+            if (!armed) { armedRestart = from; return; }
+            armedRestart = null;
+            SetOpen(false);
+            game.StartOver(from);
+        }
+
         // ---------- Presentation ----------
 
         void BuildStyles()
@@ -137,6 +150,12 @@ namespace Hakaton.Game
             GUILayout.BeginArea(new Rect(rect.x + 12, rect.y + 8, rect.width - 24, rect.height - 16));
             GUILayout.Label("Читы", title);
             GUILayout.Label("F1 или Esc — закрыть", body);
+            GUILayout.Space(8);
+
+            GUILayout.Label("Новая игра", title);
+            RestartButton(NewGameStart.Cave, "С начала (пещера)");
+            RestartButton(NewGameStart.AfterTutorial, "Сразу после обучения");
+            if (armedRestart.HasValue) GUILayout.Label("Нажмите ещё раз: прогресс сотрётся (копия — .before-restart).", body);
             GUILayout.Space(8);
 
             if (game.tutorial.Active || game.cave && game.cave.Active)
