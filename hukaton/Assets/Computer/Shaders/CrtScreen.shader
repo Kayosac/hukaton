@@ -8,6 +8,7 @@ Shader "Hakaton/Computer/CRT Screen"
         _QuadAspect ("Glass aspect (width / height)", Float) = 1.333
         _ContentAspect ("Content aspect", Float) = 1.333
         _Fill ("Content height on the glass", Range(.5, 1.2)) = .97
+        [HideInInspector] _ArtScale ("Texture pixels per canvas pixel (set by CrtScreen)", Float) = 1
         _Curve ("Bulge", Range(0, .4)) = .08
         _Corner ("Corner rounding", Range(0, .2)) = .05
         _Scan ("Scanlines", Range(0, 1)) = .5
@@ -45,7 +46,7 @@ Shader "Hakaton/Computer/CRT Screen"
 
             sampler2D _MainTex;
             float4 _MainTex_TexelSize;
-            float _QuadAspect, _ContentAspect, _Fill, _Curve, _Corner, _Scan, _Sharpness, _Mask, _Vignette, _Glow, _Aberration, _Brightness;
+            float _QuadAspect, _ContentAspect, _Fill, _ArtScale, _Curve, _Corner, _Scan, _Sharpness, _Mask, _Vignette, _Glow, _Aberration, _Brightness;
             float4 _GlassColor;
             float _Reflection, _OpenX, _OpenY, _Dot, _Wobble, _Noise, _Flash;
 
@@ -116,15 +117,18 @@ Shader "Hakaton/Computer/CRT Screen"
 
                 // Branch-free: derivatives stay defined everywhere.
                 float2 scale = max(1, 1 / max(fwidth(suv * _MainTex_TexelSize.zw), 1e-4));
-                float rowPos = suv.y * _MainTex_TexelSize.w;
+                // Scanlines, fringing, glow and static follow the canvas' own pixels, not the supersampled texture's.
+                float artScale = max(_ArtScale, 1);
+                float2 artSize = _MainTex_TexelSize.zw / artScale;
+                float rowPos = suv.y * artSize.y;
                 float pixelsPerRow = 1 / max(fwidth(rowPos), 1e-4);
 
-                float2 off = (suv - .5) * _Aberration * _MainTex_TexelSize.xy * 2;
+                float2 off = (suv - .5) * _Aberration * 2 / artSize;
                 float3 col;
                 col.r = Sample(suv + off, scale).r;
                 col.g = Sample(suv, scale).g;
                 col.b = Sample(suv - off, scale).b;
-                float3 glow = tex2Dlod(_MainTex, float4(suv, 0, 3)).rgb;
+                float3 glow = tex2Dlod(_MainTex, float4(suv, 0, 3 + log2(artScale))).rgb;
                 col += glow * glow * _Glow;
 
                 // Scanlines: each texel row is a bright beam with a dark gap below it.
@@ -135,7 +139,7 @@ Shader "Hakaton/Computer/CRT Screen"
                 float3 mask = column < .333 ? float3(1, .82, .82) : column < .666 ? float3(.82, 1, .82) : float3(.82, .82, 1);
                 col *= lerp(1, mask * 1.12, _Mask);
 
-                float n = Hash(floor(suv * _MainTex_TexelSize.zw) + frac(t * 17.13) * 91.7);
+                float n = Hash(floor(suv * artSize) + frac(t * 17.13) * 91.7);
                 col = lerp(col, n.xxx * .9, _Noise);
                 // The same light squeezed into less height burns brighter and whiter.
                 float squeeze = 1 - saturate(_OpenY);
