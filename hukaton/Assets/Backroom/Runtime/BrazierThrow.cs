@@ -92,7 +92,7 @@ namespace Hakaton.Backroom
         /// world is drawn at its own resolution (Hukaton.Rendering.WorldResolution lives outside this assembly, so it
         /// is asked by name).
         /// </summary>
-        static Rect OutputRect(Camera camera)
+        internal static Rect OutputRect(Camera camera)
         {
             var screen = new Rect(0, 0, Screen.width, Screen.height);
             foreach (var behaviour in camera.GetComponents<MonoBehaviour>())

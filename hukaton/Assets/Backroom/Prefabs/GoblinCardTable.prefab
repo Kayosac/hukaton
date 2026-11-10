@@ -1877,6 +1877,14 @@ MonoBehaviour:
   bubble: {fileID: 8723656325936534849}
   bubbleGroup: {fileID: 7160620480005027204}
   continueHint: {fileID: 2200596502093729940}
+  inspectCardPrefab: {fileID: 2045032106285406985, guid: ad97bc0fc8bbe4bff85d679b8ea1de3f, type: 3}
+  stepAside:
+  - {fileID: 5340770577385893945}
+  - {fileID: 1760505634140920072}
+  - {fileID: 8622555928721400645}
+  - {fileID: 6003085560415804646}
+  stowSpinSound: {fileID: 8300000, guid: fff835e08cfb94b3ea5f250d87113bbb, type: 3}
+  stowSound: {fileID: 8300000, guid: e4fc1646156c34d468b45e14578c8f38, type: 3}
   fanStep: 50
   fanArc: 14
   fanTiltPerCard: 2
@@ -3111,18 +3119,18 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6358232790635444268}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.15643, w: 0.98769}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1087926670186324059}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -16, y: -12}
-  m_SizeDelta: {x: 260, y: 22}
-  m_Pivot: {x: 1, y: 1}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 18}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 274, y: -79}
+  m_SizeDelta: {x: 120, y: 34}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9159420164363491915
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3153,8 +3161,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b5e4cc12b6959455a8ad1f2e313eb17d, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 2ad91c8cc03f54d87bd7c0298a9493ff, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: e7f5948f8d6a34251b5ccb6ae059db1e, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 48152dcbca0e34f25a1c570b3db1bf3a, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3178,15 +3186,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
-  m_fontSizeBase: 18
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 16
   m_fontSizeMax: 64
   m_fontStyle: 0
-  m_HorizontalAlignment: 4
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
