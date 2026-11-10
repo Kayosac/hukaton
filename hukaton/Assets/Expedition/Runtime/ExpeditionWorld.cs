@@ -41,10 +41,15 @@ namespace Hakaton.Expeditions
         public CardDebris debrisPrefab;
         public string locationName = "Тихая лощина";
         [Header("World content")]
-        public WorldLoot[] finds;
-        public WorldObstacle[] obstacles;
-        public WorldCreature[] creatures;
-        public PhysicsProp[] props;
+        [Tooltip("Optional: builds a new world for every outing (IOutingWorld) and fills the content lists below as it loads. " +
+                 "Without it the authored content below is reset each outing.")]
+        public MonoBehaviour outingWorld;
+        public List<WorldLoot> finds = new List<WorldLoot>();
+        public List<WorldObstacle> obstacles = new List<WorldObstacle>();
+        public List<WorldCreature> creatures = new List<WorldCreature>();
+        public List<PhysicsProp> props = new List<PhysicsProp>();
+
+        public IOutingWorld OutingWorld => outingWorld as IOutingWorld;
 
         readonly List<LootSave> loot = new List<LootSave>();
         public IReadOnlyList<LootSave> Loot => loot.AsReadOnly();
@@ -79,13 +84,19 @@ namespace Hakaton.Expeditions
             loot.Clear();
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
-            var random = new System.Random(workshop.Model.Journeys * 1637);
-            foreach (var obstacle in obstacles) obstacle.ResetForOuting();
-            foreach (var find in finds) find.ResetForOuting(random);
-            foreach (var prop in props) prop.ResetForOuting();
-            foreach (var creature in creatures) creature.ResetForOuting(random);
+            Pose start;
+            if (OutingWorld != null) start = OutingWorld.BeginOuting(this);
+            else
+            {
+                start = new Pose(departurePose.position, departurePose.rotation);
+                var random = new System.Random(workshop.Model.Journeys * 1637);
+                foreach (var obstacle in obstacles) obstacle.ResetForOuting();
+                foreach (var find in finds) find.ResetForOuting(random);
+                foreach (var prop in props) prop.ResetForOuting();
+                foreach (var creature in creatures) creature.ResetForOuting(random);
+            }
             vitals.Restore();
-            motor.Teleport(departurePose.position, departurePose.rotation);
+            motor.Teleport(start.position, start.rotation);
             thrower.ResetSelection();
             control.CaptureCursor();
             hud.canvas.enabled = true;
@@ -187,7 +198,7 @@ namespace Hakaton.Expeditions
 
         public WorldObstacle ObstacleNear(Vector3 point, float radius, ObstacleKind kind)
         {
-            foreach (var obstacle in InPrologue ? prologueObstacles : obstacles)
+            foreach (var obstacle in InPrologue ? (IEnumerable<WorldObstacle>)prologueObstacles : obstacles)
                 if (obstacle.kind == kind && obstacle.DistanceTo(point) <= radius) return obstacle;
             return null;
         }
@@ -357,6 +368,7 @@ namespace Hakaton.Expeditions
             // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
             ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
+            OutingWorld?.EndOuting();
             vitals.Restore();
             control.SetBlocked(this, false);
             hud.canvas.enabled = false;

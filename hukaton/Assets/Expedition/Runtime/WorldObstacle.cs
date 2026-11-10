@@ -88,6 +88,17 @@ namespace Hakaton.Expeditions
             if (waterSurface) waterSurface.enabled = true;
         }
 
+        /// <summary>Already frozen / burnt when its part of the world loads again in the same outing: no animation.</summary>
+        public void ResolveAtOnce()
+        {
+            ResetForOuting();
+            Resolved = true;
+            barrier.enabled = false;
+            if (waterSurface) waterSurface.enabled = false;
+            changed.SetActive(true);
+            intact.SetActive(false);
+        }
+
         public float DistanceTo(Vector3 point)
         {
             var reference = waterSurface ? waterSurface : barrier;

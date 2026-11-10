@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a26ebe03d07c45918c1929bdc112a45, type: 3}
+  m_Name: World content
+  m_EditorClassIdentifier: Hakaton.WorldAssembly::Hakaton.WorldAssembly.Unity.WorldContent
+  loot:
+  - id: find
+    prefab: {fileID: 5202564959957086988, guid: e63587611541a43df91765f109770ab8, type: 3}
+  - id: find-hard
+    prefab: {fileID: 867972099183848119, guid: 3ce5eb435103343309e6c134c49adce5, type: 3}
+  - id: crystal
+    prefab: {fileID: 867972099183848119, guid: 3ce5eb435103343309e6c134c49adce5, type: 3}
+  creatures:
+  - role: peaceful
+    prefabs:
+    - {fileID: 8211502770020729366, guid: f341b2cc1f8e5480e87019c604393d58, type: 3}
+    - {fileID: 8211502770020729366, guid: 87043e7a81ca54b26ba82b36964a8485, type: 3}
+    - {fileID: 8211502770020729366, guid: e42a533e3469a434e9acccebdf3faa5f, type: 3}
+    - {fileID: 8211502770020729366, guid: 722efee2b87c246ab841367dfd54627f, type: 3}
+    - {fileID: 8211502770020729366, guid: 2ea3e974f41ac435bbadd813a534644c, type: 3}
+    - {fileID: 8211502770020729366, guid: 5dac29de7958f41efafa6d564fc8fdfa, type: 3}
+  - role: small-hostile
+    prefabs:
+    - {fileID: 383250103703854854, guid: 81eb084334f304881bdb0828e339de7f, type: 3}
+    - {fileID: 383250103703854854, guid: 0e5098942f3b34240b0d49f98365853b, type: 3}
+  - role: hostile
+    prefabs:
+    - {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
+    - {fileID: 383250103703854854, guid: 094bafccd7a164e3d9df8a1722140b45, type: 3}
+  - role: thicket
+    prefabs:
+    - {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+  - role: territorial
+    prefabs:
+    - {fileID: 383250103703854854, guid: 4977c92553f6542cb9944f718c0f5f17, type: 3}
+  - role: brute
+    prefabs:
+    - {fileID: 383250103703854854, guid: 3d75be77db5424b70abdc3399f0b5e06, type: 3}
+    - {fileID: 383250103703854854, guid: 3168ae5d4a1df4e449c6f222e28570b5, type: 3}

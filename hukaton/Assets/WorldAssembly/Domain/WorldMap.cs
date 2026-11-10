@@ -19,7 +19,7 @@ namespace Hakaton.WorldAssembly
         /// <summary>World edge middles by side.</summary>
         public Mid[] Mids = new Mid[4];
         public bool MazeHeart;
-        /// <summary>Creature id ("mushroom", "goblin-dog", "troll", "bush") or null; Count for packs.</summary>
+        /// <summary>Creature role ("peaceful", "small-hostile", "hostile", "thicket", "territorial", "brute") or null; Count for packs.</summary>
         public string Creature;
         public int CreatureCount;
         /// <summary>Loot to place: item ids ("find", "find-hard", "crystal").</summary>
@@ -140,7 +140,7 @@ namespace Hakaton.WorldAssembly
             switch (shape.Id)
             {
                 case "plain":
-                    id = roll < .4 ? "meadow" : roll < .75 ? "woods" : roll < .92 ? "rocks" : "pond";
+                    id = roll < .4 ? "meadow" : roll < .77 ? "woods" : roll < .96 ? "rocks" : "pond";
                     break;
                 case "plateau-top":
                     id = roll < .6 ? "bare" : "rocks";
@@ -193,13 +193,13 @@ namespace Hakaton.WorldAssembly
             switch (plan.Shape.Kind)
             {
                 case ShapeKind.Plain:
-                    if (plan.Variant.Id == "meadow" || plan.Variant.Id == "pond") creature = ring == 0 || pick < .5 ? "mushroom" : "goblin-dog";
-                    else creature = ring == 0 ? "mushroom" : "goblin-dog";
+                    bool open = plan.Variant.Id == "meadow" || plan.Variant.Id == "pond";
+                    creature = ring == 0 ? "peaceful" : ring == 1 ? (open && pick < .5 ? "peaceful" : open ? "small-hostile" : "hostile") : "hostile";
                     break;
-                case ShapeKind.Maze: creature = "bush"; chance *= 1.5; break;
-                case ShapeKind.River: creature = ring == 0 ? null : "bush"; chance *= .6; break;
-                case ShapeKind.Canyon: creature = "goblin-dog"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
-                case ShapeKind.PlateauTop: creature = "troll"; chance *= 1.2; break;
+                case ShapeKind.Maze: creature = "thicket"; chance *= 1.5; break;
+                case ShapeKind.River: creature = ring == 0 ? "peaceful" : "small-hostile"; chance *= .6; break;
+                case ShapeKind.Canyon: creature = "hostile"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
+                case ShapeKind.PlateauTop: creature = plan.BaseLevel >= 2 ? "brute" : "territorial"; chance *= 1.2; break;
             }
             if (creature != null && creatureRoll < chance) { plan.Creature = creature; plan.CreatureCount = count; }
 
