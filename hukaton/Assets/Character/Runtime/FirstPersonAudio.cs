@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace Hakaton.Character
 {
-    /// <summary>Distance-driven footsteps; audio is optional and authored on the player prefab.</summary>
+    /// <summary>Distance-driven footsteps; audio is optional and authored on the player prefab. A FootstepSurface on the
+    /// ground (the creaky shop floor) overrides the clips.</summary>
     public sealed class FirstPersonAudio : MonoBehaviour
     {
         public FirstPersonMotor motor;
@@ -35,10 +36,14 @@ namespace Hakaton.Character
             float stride = motor.IsSprinting ? sprintStepDistance : walkStepDistance;
             if (distance < stride) return;
             distance %= stride;
+            float volume = footstepVolume * (motor.IsSprinting ? 1.15f : 1);
+            var surface = motor.GroundCollider ? motor.GroundCollider.GetComponentInParent<FootstepSurface>() : null;
+            var surfaceClip = surface ? surface.NextClip() : null;
+            if (surfaceClip) { Play(surfaceClip, volume * surface.volume); return; }
             var clips = OnWood() && woodClips != null && woodClips.Length > 0 ? woodClips : footstepClips;
             if (clips == null || clips.Length == 0) return;
             var clip = clips[nextFootstep++ % clips.Length];
-            Play(clip, footstepVolume * (motor.IsSprinting ? 1.15f : 1));
+            Play(clip, volume);
         }
 
         bool OnWood()
