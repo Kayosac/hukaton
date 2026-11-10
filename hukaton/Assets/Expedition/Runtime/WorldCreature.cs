@@ -8,7 +8,11 @@ using UnityEngine.AI;
 
 namespace Hakaton.Expeditions
 {
-    public enum Temperament { Timid, Territorial, Aggressive }
+    /// <summary>
+    /// Timid flees, Territorial guards its home, Aggressive attacks on sight, Peaceful minds its own business
+    /// and only fights back when hurt, calming down once nobody has hit it for a while.
+    /// </summary>
+    public enum Temperament { Timid, Territorial, Aggressive, Peaceful }
     public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying, Investigate }
 
     /// <summary>
@@ -236,6 +240,7 @@ namespace Hakaton.Expeditions
             {
                 case Temperament.Timid: ThinkTimid(); break;
                 case Temperament.Territorial: ThinkTerritorial(); break;
+                case Temperament.Peaceful: ThinkPeaceful(); break;
                 default: ThinkAggressive(); break;
             }
             UpdateOverhead();
@@ -411,6 +416,18 @@ namespace Hakaton.Expeditions
             ThinkHostile();
         }
 
+        /// <summary>Ignores the player until hurt (or frozen, knocked down), then hunts like an aggressive one.</summary>
+        void ThinkPeaceful()
+        {
+            if (IsCalm)
+            {
+                if (Provoked) { Aggro(); return; }
+                ThinkIdle(false);
+                return;
+            }
+            ThinkHostile();
+        }
+
         void Aggro()
         {
             world.Play(threatCue, body.position);
@@ -427,6 +444,8 @@ namespace Hakaton.Expeditions
             {
                 case CreatureState.Chase:
                     if (fromHome > leash && !Provoked) { Enter(CreatureState.Return); break; }
+                    // Peaceful: the grudge lasts as long as the provocation; then it goes home.
+                    if (temperament == Temperament.Peaceful && !Provoked) { Enter(CreatureState.Return); break; }
                     if (!sees) { Enter(CreatureState.Search); break; }
                     Go(TargetPosition, speed);
                     if (distance <= attackRange) Enter(CreatureState.Windup);
