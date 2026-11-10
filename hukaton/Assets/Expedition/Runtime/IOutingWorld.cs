@@ -6,6 +6,9 @@ namespace Hakaton.Expeditions
     /// A world built anew for every outing (the endless world of chunks). It fills <see cref="ExpeditionWorld"/>'s
     /// content lists as parts load and empties them as they unload.
     /// </summary>
+    /// <summary>Where an outing goes: the ready-made location or a new endless world.</summary>
+    public enum OutingPlace { Ready, Endless }
+
     public interface IOutingWorld
     {
         /// <summary>Builds a new world for this outing and returns where the player starts.</summary>

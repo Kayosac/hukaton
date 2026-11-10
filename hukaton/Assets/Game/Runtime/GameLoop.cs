@@ -37,6 +37,8 @@ namespace Hakaton.Game
         public ShopTutorial tutorial;
         [Tooltip("A new game opens in the cave prologue; the shop tutorial follows it. Empty: straight to the shop.")]
         public CaveTutorial cave;
+        [Tooltip("The question at the door: the ready-made location or a new endless world. Empty: straight to the endless world.")]
+        public OutingChoice outingChoice;
         public FirstPersonMotor player;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
@@ -186,6 +188,18 @@ namespace Hakaton.Game
         {
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
+            if (outingChoice && expedition.HasPlaceChoice)
+            {
+                outingChoice.Open(expedition.readyWorld.placeName, place =>
+                {
+                    if (departing) return;
+                    if (!CanDepartNow(out var refusal)) { if (refusal != null) Notify(refusal); return; }
+                    expedition.NextPlace = place;
+                    StartCoroutine(DepartWithTransition());
+                });
+                return;
+            }
+            expedition.NextPlace = OutingPlace.Endless;
             StartCoroutine(DepartWithTransition());
         }
 
@@ -212,7 +226,7 @@ namespace Hakaton.Game
             if (departed)
             {
                 if (sfx) sfx.Play(titleCue);
-                fade.StartCoroutine(fade.ShowTitle(expedition.locationName, "Колоды собраны · добыча ждёт", 1.4f));
+                fade.StartCoroutine(fade.ShowTitle(expedition.NextLocationName, "Колоды собраны · добыча ждёт", 1.4f));
             }
             yield return fade.FadeTo(0, .6f);
         }

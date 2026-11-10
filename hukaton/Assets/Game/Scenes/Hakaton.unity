@@ -1281,6 +1281,77 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &131935634
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 131935635}
+  - component: {fileID: 131935637}
+  - component: {fileID: 131935636}
+  m_Layer: 0
+  m_Name: Box Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &131935635
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131935634}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 935679575}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &131935636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131935634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 0
+  priority: 0
+  blendDistance: 1
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 3f85198cfad884f35bd02beebad7482a, type: 2}
+--- !u!65 &131935637
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131935634}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 201.77972, y: 118.99666, z: 148.70963}
+  m_Center: {x: 75.92563, y: 32.16446, z: 60.828033}
 --- !u!1 &140355759
 GameObject:
   m_ObjectHideFlags: 0
@@ -2291,10 +2362,12 @@ MonoBehaviour:
   spawnedObjects: {fileID: 1263977266}
   projectilePrefab: {fileID: 3837108158686769321, guid: 377a6ecd743e9454aa766d011cb10647, type: 3}
   debrisPrefab: {fileID: 7656167651544192248, guid: ad97bc0fc8bbe4bff85d679b8ea1de3f, type: 3}
-  locationName: "\u0421\u0442\u0430\u0440\u0430\u044F \u043F\u0430\u0441\u0435\u043A\u0430"
+  locationName: "\u041D\u0435\u0438\u0437\u0432\u0435\u0434\u0430\u043D\u043D\u044B\u0435
+    \u0437\u0435\u043C\u043B\u0438"
   lootCatalog: {fileID: 11400000, guid: 04ed8d4262e74fa48ae32f3bd615784c, type: 2}
   lootDrop: {fileID: 4145034870551553835, guid: d7d205a2c34a54e10bfde23672cc4a92, type: 3}
   outingWorld: {fileID: 308764315}
+  readyWorld: {fileID: 935679796}
   finds: []
   obstacles: []
   creatures: []
@@ -2920,10 +2993,8 @@ MonoBehaviour:
   unloadRadius: 104
   loadsPerFrame: 2
   fixedSeed: 0
-  fog: 1
-  fogColour: {r: 0.46, g: 0.44, b: 0.38, a: 1}
-  fogStart: 30
-  fogEnd: 60
+  roadWidth: 1.7
+  ambientVoices: 2
 --- !u!4 &308764316
 Transform:
   m_ObjectHideFlags: 0
@@ -4162,33 +4233,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5f9808db806b94f17b9762391f60bb36, type: 3}
---- !u!114 &416848464 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8057956036330679773, guid: 5f9808db806b94f17b9762391f60bb36, type: 3}
-  m_PrefabInstance: {fileID: 416848463}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!225 &416848465 stripped
 CanvasGroup:
   m_CorrespondingSourceObject: {fileID: 9185012114285299847, guid: 5f9808db806b94f17b9762391f60bb36, type: 3}
   m_PrefabInstance: {fileID: 416848463}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &416848466 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 262715234838734459, guid: 5f9808db806b94f17b9762391f60bb36, type: 3}
-  m_PrefabInstance: {fileID: 416848463}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!114 &416848467 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1716725760934147083, guid: 5f9808db806b94f17b9762391f60bb36, type: 3}
@@ -4230,10 +4279,6 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
-      propertyPath: drops.entries.Array.data[0].item
-      value: 
-      objectReference: {fileID: 11400000, guid: d63eaa2905554812904afa64febab46c, type: 2}
-    - target: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
       propertyPath: spawnPoints.Array.size
       value: 2
       objectReference: {fileID: 0}
@@ -4245,6 +4290,10 @@ PrefabInstance:
       propertyPath: 'spawnPoints.Array.data[1]'
       value: 
       objectReference: {fileID: 15637416}
+    - target: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
+      propertyPath: drops.entries.Array.data[0].item
+      value: 
+      objectReference: {fileID: 11400000, guid: d63eaa2905554812904afa64febab46c, type: 2}
     - target: {fileID: 1337578447610349232, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
       propertyPath: m_LocalPosition.x
       value: -17
@@ -5116,6 +5165,18 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 1252116567467368651, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1252116567467368651, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1252116567467368651, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1320256248331865642, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4287340172
@@ -5131,6 +5192,18 @@ PrefabInstance:
     - target: {fileID: 1564296929833751852, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 1673305670745648632, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1673305670745648632, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1673305670745648632, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1895771748874092142, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -5179,6 +5252,18 @@ PrefabInstance:
     - target: {fileID: 2179881411637532398, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578038737530339078, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578038737530339078, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578038737530339078, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2660562987513941876, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -5436,6 +5521,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: ShopDeckWorkshop
       objectReference: {fileID: 0}
+    - target: {fileID: 7188408139181132185, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7188408139181132185, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7188408139181132185, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7188695838494827544, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4291815144
@@ -5499,6 +5596,18 @@ PrefabInstance:
     - target: {fileID: 7845599018871884637, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 7900056350958329495, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7900056350958329495, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7900056350958329495, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7918962134662504330, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -5616,6 +5725,18 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 8353238591699779231, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8353238591699779231, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8353238591699779231, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8411307183411601058, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4290630092
@@ -5655,6 +5776,18 @@ PrefabInstance:
     - target: {fileID: 8850427979575250590, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8935417038737657776, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8935417038737657776, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8935417038737657776, guid: c3168deee285543e6b647414ed29b6df, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9179833611600501200, guid: c3168deee285543e6b647414ed29b6df, type: 3}
       propertyPath: m_fontColor32.rgba
@@ -8866,6 +8999,2986 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &935679573
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 484824918686172395, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 545841161247817731, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 798807655659560859, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1037401639481920155, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1083176000914348963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1465440233971977686, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1480072461416099112, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1504062176229600096, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1616371833805932858, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1688178869597271305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1777157033653831305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1783233761753315546, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1815874052111920816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1931392994135251717, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2046216239807748459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2152263676548436963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2424486773360102197, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2628264900297354650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 2683978649151760235, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3037577930026424457, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3077517074381369656, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3096934562137975376, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3148660835612185904, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3202613988482700469, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3471911559659509747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3603174233228851509, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3823540305911302650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3842801825400532988, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 3862277231804562026, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4082019286308872442, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4086892808080372128, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4144219048740071310, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4170492767080751702, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4353522832543620816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4433491523383037298, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4442154970776762643, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4445031291070389459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4614617243464250873, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4744576828482737029, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4859729547691355480, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4932995363061431248, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 4949953092890463257, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 5149994172103515786, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 5421899235829829804, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6046323569111969277, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6176005088667400258, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6205926054404829965, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6468609926977201487, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6496754583777567063, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6652701020717222772, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 6973428300907750874, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7127682405036674580, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7674233989592007787, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7681497714254176926, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7880753819056147868, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7928602612784479597, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 7974667419685962968, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8598141918406321583, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8692940864662242263, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8695879056374835523, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8703493808513046229, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8928791598588885251, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8997181835086602910, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 9160732953638214343, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_Name
+      value: Old Apiary
+      objectReference: {fileID: 0}
+    - target: {fileID: 9160732953638214343, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 131935635}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9160732953638214343, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 935679796}
+  m_SourcePrefab: {fileID: 100100000, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+--- !u!114 &935679574 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6739711658567993603, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!4 &935679575 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3432372055078329386, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &935679576 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3097084308347956988, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679577 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2557586277314155589, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679578 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3817950032975508990, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679579 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2990005128281601179, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679580 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9043862855796168291, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679581 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8951462368246827223, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679582 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3057429628315645551, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679583 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6154945531661065616, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679584 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3164665562220099974, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679585 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8882989457798207974, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679586 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2922099910699132560, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679587 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1451303922408990961, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679588 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7590085579974951654, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679589 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1965961887907954110, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679590 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5576087529048024905, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679591 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 578860876453648461, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679592 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7312634127526692864, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679593 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7639293369003571964, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679594 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5415403714421568981, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679595 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5759976233311177224, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679596 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6105997732455109555, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679597 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4058024790083265666, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679598 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4490184406043811676, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679599 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5445383524463746387, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679600 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7369516686752360085, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679601 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2566027333988430713, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679602 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8542741155675985354, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679603 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5567959411856160951, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679604 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 945987906267234267, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679605 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8304785458668677948, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679606 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7414551515880186031, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679607 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1987835720413848757, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679608 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7278367562520051835, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679609 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2325384121652728079, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679610 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3582465020179087020, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679611 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3082597013661460868, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679612 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6458342902100129177, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679613 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1723146228884282331, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679614 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 827868490341486094, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679615 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5310573346019584514, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679616 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1199383005633260995, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679617 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4457043975323058177, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679618 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3516966158503885981, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679619 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7008524373681124694, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679620 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8104363872401757566, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679621 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1953999612128889820, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679622 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 478108693107265709, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679623 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5263448995651337064, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679624 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2922910295804842693, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679625 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4037220572140511350, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679626 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6186981962607531193, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679627 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1775348412402695947, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679628 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5357155692080836180, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679629 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1532446776663975714, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679630 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1159417314312075679, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679631 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5731940597792001674, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679632 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 324080697673317257, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679633 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4100531976492331794, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679634 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 173753371244104090, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679635 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8208791593758533795, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679636 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1341992870938415277, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679637 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7669989814126234471, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679638 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5707609363070345633, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679639 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 100496967764234582, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679640 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2920407549284914292, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679641 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1752419672799967709, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679642 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1792407216385638288, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679643 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3262639431154014181, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679644 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4407430516797039647, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679645 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2544660895485951326, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679646 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3158960151828219688, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679647 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9050796551428212137, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679648 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5317295565775874321, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679649 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8555543854594518402, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679650 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7157191720866555292, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679651 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1051655642212706005, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679652 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6162370577674711023, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679653 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4405481109964296321, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679654 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9057180991209260737, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679655 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 854857998945514956, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679656 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3065748833337509972, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679657 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6371528572872154117, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679658 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7560941041514689346, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679659 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1609358470044783428, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679660 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4765396592633734504, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679661 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6484686205518706607, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679662 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6543271894345177847, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679663 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6322990660207359763, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679664 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5232129669629016008, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679665 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1211915815525878166, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679666 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8639949519679848929, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679667 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7699263860729138168, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679668 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5280830072554615195, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679669 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8571973594117159869, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679670 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 63224084944360747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679671 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6759753084325553144, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679672 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 921407293835017021, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679673 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6753793288238074692, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679674 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4388216529956931736, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679675 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8943195042818792624, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679676 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4298559345836824012, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679677 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5470082590595377047, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679678 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3512982554268490782, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679679 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1896690663775944429, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679680 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 322396118883609455, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679681 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2189467563585397615, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679682 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1348815364780726227, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679683 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8772959973583605760, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679684 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1241894256696528971, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679685 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1587100513793961370, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679686 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3690290869360622548, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679687 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2482729055052292033, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679688 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1622762177211884228, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679689 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8757375120020613513, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679690 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3165576383406664048, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679691 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5462637548227205183, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679692 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7581906095265777530, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679693 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1254276302827098671, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679694 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7107106388887754272, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679695 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2608166421887315886, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679696 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7280364777781549836, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679697 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6838085745707395037, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679698 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6255572646343266826, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679699 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5635688194661715064, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679700 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6059254533275135929, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679701 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7709265387718628666, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679702 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8642930091398672619, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679703 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 439055470663113520, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679704 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4591118084065785867, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679705 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8979364468313127872, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679706 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5778756709994015454, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679707 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2334237393681517493, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679708 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5988724684478132085, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679709 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7843626433004871670, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679710 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6237355152952262443, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679711 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7403924555192171266, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679712 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3212229035059259251, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679713 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7017003948349802400, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679714 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6482278766996317579, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679715 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2508598720023647402, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679716 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 70290224832647131, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679717 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7316865480516204476, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679718 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7066256461023618250, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679719 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2136107120856974930, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679720 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 807750464844681506, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679721 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7203142880757519601, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679722 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5130955252761862368, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679723 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6087569823674873045, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679724 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2119319876176249175, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679725 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5408850897395375650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679726 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4577647041304560893, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679727 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8069617942761972682, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679728 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1327371842641541193, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679729 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4759758335903052136, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679730 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6363223734854563536, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679731 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7934191532914578832, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+--- !u!114 &935679732 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4082019286308872442, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &935679733 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1777157033653831305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &935679734 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1783233761753315546, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &935679735 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8997181835086602910, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+--- !u!114 &935679736 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3202613988482700469, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679737 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4433491523383037298, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679738 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3842801825400532988, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679739 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1480072461416099112, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679740 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4932995363061431248, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679741 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4144219048740071310, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679742 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3148660835612185904, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679743 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8695879056374835523, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679744 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6652701020717222772, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679745 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5149994172103515786, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679746 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8703493808513046229, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679747 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2152263676548436963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679748 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1037401639481920155, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679749 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1688178869597271305, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679750 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4353522832543620816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679751 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3603174233228851509, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679752 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6176005088667400258, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679753 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 798807655659560859, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679754 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8928791598588885251, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679755 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4859729547691355480, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679756 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1815874052111920816, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679757 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2683978649151760235, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679758 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1616371833805932858, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679759 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4442154970776762643, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679760 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4949953092890463257, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679761 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 484824918686172395, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679762 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1083176000914348963, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679763 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3037577930026424457, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679764 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7974667419685962968, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679765 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6973428300907750874, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679766 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3823540305911302650, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679767 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8692940864662242263, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679768 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8598141918406321583, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679769 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6496754583777567063, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679770 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3862277231804562026, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679771 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1465440233971977686, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679772 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2046216239807748459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679773 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1931392994135251717, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679774 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1504062176229600096, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fa5dae85e3348459ff3c20aefbab2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldObstacle
+--- !u!114 &935679775 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5421899235829829804, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679776 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4170492767080751702, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679777 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4744576828482737029, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679778 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6468609926977201487, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679779 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4445031291070389459, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679780 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2424486773360102197, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679781 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 545841161247817731, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679782 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7880753819056147868, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679783 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7127682405036674580, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679784 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4614617243464250873, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679785 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3096934562137975376, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679786 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7928602612784479597, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679787 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7674233989592007787, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679788 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6205926054404829965, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679789 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3077517074381369656, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679790 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3471911559659509747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679791 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6046323569111969277, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679792 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7681497714254176926, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!114 &935679793 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4086892808080372128, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2266147413874daa9d0432d7c684390, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldLoot
+--- !u!4 &935679794 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3727456996271446948, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &935679795 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9160732953638214343, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
+  m_PrefabInstance: {fileID: 935679573}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &935679796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 935679795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 609088939ea0545fc925f94d189b3823, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.AuthoredOutingWorld
+  placeName: "\u0421\u0442\u0430\u0440\u0430\u044F \u043F\u0430\u0441\u0435\u043A\u0430"
+  departure: {fileID: 935679794}
+  finds:
+  - {fileID: 935679793}
+  - {fileID: 935679792}
+  - {fileID: 935679791}
+  - {fileID: 935679790}
+  - {fileID: 935679789}
+  - {fileID: 935679788}
+  - {fileID: 935679787}
+  - {fileID: 935679786}
+  - {fileID: 935679785}
+  - {fileID: 935679784}
+  - {fileID: 935679783}
+  - {fileID: 935679782}
+  - {fileID: 935679781}
+  - {fileID: 935679780}
+  - {fileID: 935679779}
+  - {fileID: 935679778}
+  - {fileID: 935679777}
+  - {fileID: 935679776}
+  - {fileID: 935679775}
+  obstacles:
+  - {fileID: 935679774}
+  - {fileID: 935679773}
+  - {fileID: 935679772}
+  - {fileID: 935679771}
+  - {fileID: 935679770}
+  - {fileID: 935679769}
+  - {fileID: 935679768}
+  - {fileID: 935679767}
+  - {fileID: 935679766}
+  - {fileID: 935679765}
+  - {fileID: 935679764}
+  - {fileID: 935679763}
+  - {fileID: 935679762}
+  - {fileID: 935679761}
+  - {fileID: 935679760}
+  - {fileID: 935679759}
+  - {fileID: 935679758}
+  - {fileID: 935679757}
+  - {fileID: 935679756}
+  - {fileID: 935679755}
+  - {fileID: 935679754}
+  - {fileID: 935679753}
+  - {fileID: 935679752}
+  - {fileID: 935679751}
+  - {fileID: 935679750}
+  - {fileID: 935679749}
+  - {fileID: 935679748}
+  - {fileID: 935679747}
+  - {fileID: 935679746}
+  - {fileID: 935679745}
+  - {fileID: 935679744}
+  - {fileID: 935679743}
+  - {fileID: 935679742}
+  - {fileID: 935679741}
+  - {fileID: 935679740}
+  - {fileID: 935679739}
+  - {fileID: 935679738}
+  - {fileID: 935679737}
+  - {fileID: 935679736}
+  creatures:
+  - {fileID: 935679735}
+  - {fileID: 935679734}
+  - {fileID: 935679733}
+  - {fileID: 935679732}
+  props:
+  - {fileID: 935679731}
+  - {fileID: 935679730}
+  - {fileID: 935679729}
+  - {fileID: 935679728}
+  - {fileID: 935679727}
+  - {fileID: 935679726}
+  - {fileID: 935679725}
+  - {fileID: 935679724}
+  - {fileID: 935679723}
+  - {fileID: 935679722}
+  - {fileID: 935679721}
+  - {fileID: 935679720}
+  - {fileID: 935679719}
+  - {fileID: 935679718}
+  - {fileID: 935679717}
+  - {fileID: 935679716}
+  - {fileID: 935679715}
+  - {fileID: 935679714}
+  - {fileID: 935679713}
+  - {fileID: 935679712}
+  - {fileID: 935679711}
+  - {fileID: 935679710}
+  - {fileID: 935679709}
+  - {fileID: 935679708}
+  - {fileID: 935679707}
+  - {fileID: 935679706}
+  - {fileID: 935679705}
+  - {fileID: 935679704}
+  - {fileID: 935679703}
+  - {fileID: 935679702}
+  - {fileID: 935679701}
+  - {fileID: 935679700}
+  - {fileID: 935679699}
+  - {fileID: 935679698}
+  - {fileID: 935679697}
+  - {fileID: 935679696}
+  - {fileID: 935679695}
+  - {fileID: 935679694}
+  - {fileID: 935679693}
+  - {fileID: 935679692}
+  - {fileID: 935679691}
+  - {fileID: 935679690}
+  - {fileID: 935679689}
+  - {fileID: 935679688}
+  - {fileID: 935679687}
+  - {fileID: 935679686}
+  - {fileID: 935679685}
+  - {fileID: 935679684}
+  - {fileID: 935679683}
+  - {fileID: 935679682}
+  - {fileID: 935679681}
+  - {fileID: 935679680}
+  - {fileID: 935679679}
+  - {fileID: 935679678}
+  - {fileID: 935679677}
+  - {fileID: 935679676}
+  - {fileID: 935679675}
+  - {fileID: 935679674}
+  - {fileID: 935679673}
+  - {fileID: 935679672}
+  - {fileID: 935679671}
+  - {fileID: 935679670}
+  - {fileID: 935679669}
+  - {fileID: 935679668}
+  - {fileID: 935679667}
+  - {fileID: 935679666}
+  - {fileID: 935679665}
+  - {fileID: 935679664}
+  - {fileID: 935679663}
+  - {fileID: 935679662}
+  - {fileID: 935679661}
+  - {fileID: 935679660}
+  - {fileID: 935679659}
+  - {fileID: 935679658}
+  - {fileID: 935679657}
+  - {fileID: 935679656}
+  - {fileID: 935679655}
+  - {fileID: 935679654}
+  - {fileID: 935679653}
+  - {fileID: 935679652}
+  - {fileID: 935679651}
+  - {fileID: 935679650}
+  - {fileID: 935679649}
+  - {fileID: 935679648}
+  - {fileID: 935679647}
+  - {fileID: 935679646}
+  - {fileID: 935679645}
+  - {fileID: 935679644}
+  - {fileID: 935679643}
+  - {fileID: 935679642}
+  - {fileID: 935679641}
+  - {fileID: 935679640}
+  - {fileID: 935679639}
+  - {fileID: 935679638}
+  - {fileID: 935679637}
+  - {fileID: 935679636}
+  - {fileID: 935679635}
+  - {fileID: 935679634}
+  - {fileID: 935679633}
+  - {fileID: 935679632}
+  - {fileID: 935679631}
+  - {fileID: 935679630}
+  - {fileID: 935679629}
+  - {fileID: 935679628}
+  - {fileID: 935679627}
+  - {fileID: 935679626}
+  - {fileID: 935679625}
+  - {fileID: 935679624}
+  - {fileID: 935679623}
+  - {fileID: 935679622}
+  - {fileID: 935679621}
+  - {fileID: 935679620}
+  - {fileID: 935679619}
+  - {fileID: 935679618}
+  - {fileID: 935679617}
+  - {fileID: 935679616}
+  - {fileID: 935679615}
+  - {fileID: 935679614}
+  - {fileID: 935679613}
+  - {fileID: 935679612}
+  - {fileID: 935679611}
+  - {fileID: 935679610}
+  - {fileID: 935679609}
+  - {fileID: 935679608}
+  - {fileID: 935679607}
+  - {fileID: 935679606}
+  - {fileID: 935679605}
+  - {fileID: 935679604}
+  - {fileID: 935679603}
+  - {fileID: 935679602}
+  - {fileID: 935679601}
+  - {fileID: 935679600}
+  - {fileID: 935679599}
+  - {fileID: 935679598}
+  - {fileID: 935679597}
+  - {fileID: 935679596}
+  - {fileID: 935679595}
+  - {fileID: 935679594}
+  - {fileID: 935679593}
+  - {fileID: 935679592}
+  - {fileID: 935679591}
+  - {fileID: 935679590}
+  - {fileID: 935679589}
+  - {fileID: 935679588}
+  - {fileID: 935679587}
+  - {fileID: 935679586}
+  - {fileID: 935679585}
+  - {fileID: 935679584}
+  - {fileID: 935679583}
+  - {fileID: 935679582}
+  - {fileID: 935679581}
+  - {fileID: 935679580}
+  - {fileID: 935679579}
+  - {fileID: 935679578}
+  - {fileID: 935679577}
+  - {fileID: 935679576}
+  - {fileID: 935679574}
 --- !u!1 &937114678
 GameObject:
   m_ObjectHideFlags: 0
@@ -8995,6 +12108,118 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1001 &938325922
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2071631187750425830, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: control
+      value: 
+      objectReference: {fileID: 1042966974}
+    - target: {fileID: 3107979644859440524, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_Name
+      value: Outing choice
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7957872101480868231, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+--- !u!114 &938325923 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2071631187750425830, guid: 59866ae603c39446e93e586f2036f2aa, type: 3}
+  m_PrefabInstance: {fileID: 938325922}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c6421da4c707485da933628ca031df1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.OutingChoice
 --- !u!1 &945959515 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8682347988968366992, guid: 8b486368463f14190b9cfd2ce066fe39, type: 3}
@@ -9406,8 +12631,6 @@ MonoBehaviour:
   modal: {fileID: 1042966984}
   counterCamera: {fileID: 1429910119}
   displayCamera: {fileID: 20201244}
-  browseButton: {fileID: 416848466}
-  backButton: {fileID: 416848464}
   counterFov: 75
   displayFov: 80
   categoryReadSeconds: 0.75
@@ -9575,6 +12798,7 @@ MonoBehaviour:
   services: {fileID: 997696179}
   tutorial: {fileID: 143704713}
   cave: {fileID: 1501764653}
+  outingChoice: {fileID: 938325923}
   player: {fileID: 1042966981}
   shopGeometry: {fileID: 215353183}
   expeditionGeometry: {fileID: 1150446504}
@@ -20307,6 +23531,10 @@ PrefabInstance:
       propertyPath: m_SizeDelta.x
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5591700599798692227, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5745954295609416739, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
@@ -20436,6 +23664,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
+--- !u!4 &470631682194479585 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2360470443600496185, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
+  m_PrefabInstance: {fileID: 470631682194479584}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &470631682194479586 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1814186138347695241, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
@@ -20447,11 +23680,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1928562657d94359be9b5fe72e3cf6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Computer::Hakaton.Computer.PcComputer
---- !u!4 &470631682194479585 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2360470443600496185, guid: 82882801328ed488a8ea9729172ee07f, type: 3}
-  m_PrefabInstance: {fileID: 470631682194479584}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &986586286090226295
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22270,3 +25498,5 @@ SceneRoots:
   - {fileID: 143704714}
   - {fileID: 1501764654}
   - {fileID: 308764316}
+  - {fileID: 935679573}
+  - {fileID: 938325922}

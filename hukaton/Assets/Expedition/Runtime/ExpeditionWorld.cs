@@ -50,12 +50,22 @@ namespace Hakaton.Expeditions
         [Tooltip("Optional: builds a new world for every outing (IOutingWorld) and fills the content lists below as it loads. " +
                  "Without it the authored content below is reset each outing.")]
         public MonoBehaviour outingWorld;
+        [Tooltip("Optional: the ready-made location offered at the door beside the endless world (AuthoredOutingWorld).")]
+        public AuthoredOutingWorld readyWorld;
         public List<WorldLoot> finds = new List<WorldLoot>();
         public List<WorldObstacle> obstacles = new List<WorldObstacle>();
         public List<WorldCreature> creatures = new List<WorldCreature>();
         public List<PhysicsProp> props = new List<PhysicsProp>();
 
-        public IOutingWorld OutingWorld => outingWorld as IOutingWorld;
+        /// <summary>The world the current (or next) outing goes to: the endless one unless the ready place was chosen.</summary>
+        public IOutingWorld OutingWorld => activeWorld ?? ChosenWorld;
+        IOutingWorld ChosenWorld => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld : outingWorld as IOutingWorld;
+        IOutingWorld activeWorld;
+        /// <summary>Chosen at the door before departing; read when the outing begins.</summary>
+        public OutingPlace NextPlace { get; set; } = OutingPlace.Endless;
+        public bool HasPlaceChoice => readyWorld && outingWorld is IOutingWorld;
+        /// <summary>The title of the place the next outing goes to.</summary>
+        public string NextLocationName => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld.placeName : locationName;
 
         readonly List<LootSave> loot = new List<LootSave>();
         readonly List<LootSave> pickups = new List<LootSave>();
@@ -95,7 +105,9 @@ namespace Hakaton.Expeditions
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             Pose start;
-            if (OutingWorld != null) start = OutingWorld.BeginOuting(this);
+            if (activeWorld != null) activeWorld.EndOuting();
+            activeWorld = ChosenWorld;
+            if (activeWorld != null) start = activeWorld.BeginOuting(this);
             else
             {
                 start = new Pose(departurePose.position, departurePose.rotation);
@@ -402,7 +414,8 @@ namespace Hakaton.Expeditions
             // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
             ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
-            OutingWorld?.EndOuting();
+            activeWorld?.EndOuting();
+            activeWorld = null;
             vitals.Restore();
             control.SetBlocked(this, false);
             hud.canvas.enabled = false;
