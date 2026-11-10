@@ -211,7 +211,9 @@ namespace Hakaton.WorldAssembly.Unity
                 for (int i = 0; i < plan.Loot.Count; i++)
                 {
                     if (mem != null && mem.takenLoot.Contains(i)) continue;
-                    var socket = sockets[(Pick(plan.Coord, i) + (uint)i) % (uint)sockets.Length];
+                    // A valuable reward goes to the place the scene made for it (its first find spot); ordinary finds anywhere.
+                    bool valuable = plan.Loot[i] != "find";
+                    var socket = valuable ? sockets[0] : sockets[(Pick(plan.Coord, i) + (uint)i) % (uint)sockets.Length];
                     var loot = PlaceLoot(plan.Loot[i], socket);
                     if (loot) entry.loot.Add((i, loot));
                 }
@@ -231,6 +233,9 @@ namespace Hakaton.WorldAssembly.Unity
             loot.guaranteed = true;
             loot.spawnPoints = null;
             world.finds.Add(loot);
+            // Rewards worth a detour sparkle, so they are seen from where the way to them starts; the glow goes with them.
+            var glow = content.Glow(id);
+            if (glow) Instantiate(glow, loot.transform.position + Vector3.up * .5f, Quaternion.identity, loot.transform);
             return loot;
         }
 

@@ -27,6 +27,12 @@ namespace Hakaton.WorldAssembly.Unity
 
         public List<LootEntry> loot = new List<LootEntry>();
         public List<CreatureEntry> creatures = new List<CreatureEntry>();
+        [Tooltip("Looping sparkle over a hard-won find (landmark rewards, card places).")]
+        public GameObject hardGlow;
+        [Tooltip("Looping sparkle over a crystal.")]
+        public GameObject crystalGlow;
+
+        public GameObject Glow(string lootId) => lootId == "crystal" ? crystalGlow : lootId == "find-hard" ? hardGlow : null;
 
         public WorldLoot Loot(string id)
         {

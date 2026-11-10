@@ -96,6 +96,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "crater": s.Crater(); break;
                 case "fort": s.Fort(); break;
                 case "apiary": s.Apiary(); break;
+                case "pillar": s.Pillar(); break;
+                case "yard": s.Yard(); break;
                 case "beeyard": s.Beeyard(); break;
                 case "village": s.Village(); break;
                 case "stone-forest": s.StoneForest(); break;
@@ -506,6 +508,48 @@ namespace Hakaton.WorldAssembly.EditorTools
             Finds = new[] { V(21.8f, 11.4f), V(3.4f, 28.4f) };
             Creatures = new[] { V(19.4f, 12.6f), V(11.6f, 17) };
             Grass = 20; Ferns = 4; Bushes = 8;
+        }
+
+        // ---------- card places: a reward several cards reach, none on foot ----------
+
+        /// <summary>A 6 m stone pillar with the reward on top: an updraft lifts you, a rope hung on its side, a teleport.</summary>
+        void Pillar()
+        {
+            Bumps.Add(new Bump { Centre = V(8, 8.4f), Radius = 1.9f, Height = 6.2f, Run = .35f });
+            Bumps.Add(new Bump { Centre = V(4, 12), Radius = 1, Height = 1.4f, Run = .4f });
+            Bumps.Add(new Bump { Centre = V(12.4f, 4.4f), Radius = .9f, Height = 1.2f, Run = .4f });
+            Pocket = V(8, 8.4f);
+            PutScaled("Structures/FA_ST04_Post", 8.7f, 9, 0, new Vector3(.9f, 1.8f, .9f));
+            Put("Markers/FA_MK08_ClothLong", 8.7f, 9, 0, 1.2f, 1.2f);
+            Deco("Structures/FA_ST09_BridgeDamaged", 10.6f, 9.6f, 70, .8f);
+            Put("Rocks/FA_RK07_RocksLowGroup", 10.2f, 6.4f, 30);
+            Put("Trees/FA_TR10_DeadBare", 4.6f, 4.8f, 40, 1.1f);
+            Deco("Plants/FA_VG14_IvyLong", 6.4f, 8.4f, 90, 1.6f);
+            Trails.Add(new[] { V(1, 6), V(5, 7.2f), V(8, 5.4f), V(11, 7.6f), V(15, 10) });
+            Finds = new[] { V(13.4f, 13) };
+            Creatures = new[] { V(11.2f, 11.6f), V(3.6f, 8.4f) };
+            Grass = 12; Bushes = 5; Trees = 2;
+        }
+
+        /// <summary>
+        /// An old stone pen with no gate: walls 2.2 m high all round, the reward and a sleeping lair inside. A stone cube
+        /// is a step over, an updraft or a teleport take you in; once in, you drop back out over the wall.
+        /// </summary>
+        void Yard()
+        {
+            Ridges.Add(new Ridge { Line = new[] { V(5, 5), V(11, 5), V(11, 11), V(5, 11), V(5, 5) }, Height = 2, Half = .55f, Run = .25f });
+            RidgeRocks.Add((0, 1.9f));
+            Pocket = V(8, 8);
+            Floors.Add(Rect.MinMaxRect(5.7f, 5.7f, 10.3f, 10.3f));
+            Put("Props/FA_PR14_CrateOpen", 9.4f, 9.2f, 30);
+            Put("Deadwood/FA_DW10_SticksLarge", 6.8f, 9.4f, 0);
+            Put("Special/FA_SP05_GravestoneSmall", 13.4f, 8, 270);
+            Put("Markers/FA_MK05_StoneMarkTall", 3, 3.4f, 20);
+            Put("Structures/FA_ST12_Bench", 13.4f, 12.6f, 220);
+            Trails.Add(new[] { V(1, 3), V(4, 3.4f), V(12.6f, 3.6f), V(13.4f, 8), V(12.6f, 15) });
+            Finds = new[] { V(2.8f, 13.4f) };
+            Creatures = new[] { V(7, 7), V(13, 3) };
+            Grass = 12; Bushes = 5; Trees = 2;
         }
 
         /// <summary>A beekeeper's corner: hives in a fenced yard, the keeper's shed, honey pots, bees in the air.</summary>

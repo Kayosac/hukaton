@@ -155,8 +155,13 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 case ShapeKind.Cliff:
                 {
-                    float field = Field(p) + (Noise(p, 3f, 7) * .07f + (IsSaddle ? -.04f : 0)) * fade;
-                    return Plateau * Mathf.Clamp01((field - .5f) * 8f + .5f);
+                    // A crooked edge: big bays and points, small teeth; the face steeper in some places than others.
+                    // A saddle stays tamer: its low band across the middle must stay open.
+                    float field = IsSaddle
+                        ? Field(p) + (Noise(p, 3f, 7) * .06f - .07f) * fade
+                        : Field(p) + (Noise(p, 4.2f, 7) * .15f + Noise(p, 1.7f, 17) * .05f) * fade;
+                    float steep = IsSaddle ? 8f : 8f + 3f * Noise(p, 3f, 19) * fade;
+                    return Plateau * Mathf.Clamp01((field - .5f) * steep + .5f);
                 }
                 case ShapeKind.River:
                 {

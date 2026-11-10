@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace Hakaton.WorldAssembly
 {
-    /// <summary>What it takes to move from one walkable region to another.</summary>
-    public enum Need { Walk = 0, Drop = 1, Ice = 2, Impulse = 3, Fire = 4 }
+    /// <summary>What it takes to move from one walkable region to another: walking, a one-way drop, or a card (Card: any of several — a rope, an updraft, a teleport, a branch bridge, a stone cube…).</summary>
+    public enum Need { Walk = 0, Drop = 1, Ice = 2, Impulse = 3, Fire = 4, Card = 5 }
 
     public enum ShapeKind { Plain, PlateauTop, Cliff, River, Canyon, Maze, Landmark }
 
@@ -128,11 +128,11 @@ namespace Hakaton.WorldAssembly
         /// connected on foot. "thorns" (a thicket to burn, Fire) and "tower" (a rock pillar to jump onto, Impulse) also
         /// hold a pocket with a reward.
         /// </summary>
-        public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower", "apiary" };
-        public static readonly string[] TopScenes = { "gap", "boulders", "knoll", "ruins", "hollow", "thorns", "tower" };
+        public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower", "apiary", "pillar", "yard" };
+        public static readonly string[] TopScenes = { "gap", "boulders", "knoll", "ruins", "hollow", "thorns", "tower", "pillar", "yard" };
 
         /// <summary>Scenes with a pocket only a card reaches.</summary>
-        public static bool IsPocketScene(string id) => id == "thorns" || id == "tower";
+        public static bool IsPocketScene(string id) => id == "thorns" || id == "tower" || id == "pillar" || id == "yard";
 
         static Variant[] Scenes(string[] ids)
         {
@@ -142,6 +142,10 @@ namespace Hakaton.WorldAssembly
                 string id = ids[i];
                 if (id == "thorns") result[i] = new Variant(id, new[] { new Link(0, 1, Need.Fire) }, new[] { new Region("thicket", 0, pocket: true) });
                 else if (id == "tower") result[i] = new Variant(id, new[] { new Link(0, 1, Need.Impulse), new Link(1, 0, Need.Drop) }, new[] { new Region("pillar", 0, pocket: true) });
+                // Card places: a 6 m pillar (updraft, rope, teleport), a walled yard 2 m high (stone cube, updraft,
+                // teleport).
+                else if (id == "pillar" || id == "yard")
+                    result[i] = new Variant(id, new[] { new Link(0, 1, Need.Card), new Link(1, 0, Need.Drop) }, new[] { new Region(id, 0, pocket: true) });
                 else result[i] = new Variant(id);
             }
             return result;

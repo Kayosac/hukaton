@@ -60,7 +60,8 @@ namespace Hakaton.WorldAssembly
         {
             switch (scene)
             {
-                case "gap": case "boulders": case "gully": case "tower": case "thorns": return "rocks";
+                case "gap": case "boulders": case "gully": case "tower": case "thorns": case "pillar": return "rocks";
+                case "yard": return "ruins";
                 default: return themes.ContainsKey(scene) ? scene : "rocks";
             }
         }

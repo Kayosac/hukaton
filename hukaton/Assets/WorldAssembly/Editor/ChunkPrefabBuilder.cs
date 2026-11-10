@@ -601,10 +601,12 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case ShapeKind.Cliff:
                     Scatter("Plants", Grass, 10, 1, 1.2f, .7f, 1.2f);
                     Scatter("Plants", Bushes, 4, 1.2f, 1.8f, .9f, 1.5f);
-                    Scatter("Rocks", Boulders, 3, 2.4f, 3, .7f, 1.4f, Low);
+                    // A saddle's low band is narrow: nothing solid on it.
+                    if (!t.IsSaddle) Scatter("Rocks", Boulders, 3, 2.4f, 3, .7f, 1.4f, Low);
                     Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, High);
-                    Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, Low);
+                    if (!t.IsSaddle) Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, Low);
                     if (t.Variant == "ledge") Ledge(dressing, t);
+                    CliffFace(dressing, t, rng);
                     break;
                 case ShapeKind.River:
                     Scatter("Plants", Ferns, 8, 1, 1.2f, .8f, 1.3f);
@@ -640,6 +642,45 @@ namespace Hakaton.WorldAssembly.EditorTools
             group.SetLODs(new[] { new LOD(.2f, renderers) });
             group.localReferencePoint = new Vector3(0, 2, 0);
             group.size = 16;
+        }
+
+        static readonly string[] FaceRocks = { "FA_RK09_CliffWall", "FA_RK10_CliffCornerInner", "FA_RK11_CliffCornerOuter", "FA_RK12_CliffLedge", "FA_RK08_RocksTallGroup" };
+
+        /// <summary>
+        /// Rock slabs set into a cliff face, turned to face out of it, and scree at its foot: the face stops reading as
+        /// one smooth wall. The slabs have no colliders, so they give no hold the face itself does not.
+        /// </summary>
+        static void CliffFace(Transform parent, TileTerrain t, System.Random rng)
+        {
+            var spots = new List<(Vector2 p, Vector2 outward)>();
+            for (float x = 1.5f; x < 15; x += .75f)
+                for (float z = 1.5f; z < 15; z += .75f)
+                {
+                    var p = new Vector2(x, z);
+                    float h = t.Height(p);
+                    if (h < Plateau * .3f || h > Plateau * .7f || t.OnRamp(p)) continue;
+                    var gradient = new Vector2(t.Height(p + Vector2.right * .3f) - t.Height(p - Vector2.right * .3f), t.Height(p + Vector2.up * .3f) - t.Height(p - Vector2.up * .3f)) / .6f;
+                    if (gradient.magnitude < 1.5f) continue;
+                    spots.Add((p, -gradient.normalized));
+                }
+            var chosen = new List<Vector2>();
+            foreach (var (p, outward) in spots.OrderBy(_ => rng.NextDouble()))
+            {
+                if (chosen.Count >= 7 || chosen.Any(q => Vector2.Distance(p, q) < 2.6f)) continue;
+                chosen.Add(p);
+                float yaw = Mathf.Atan2(outward.x, outward.y) * Mathf.Rad2Deg + (float)rng.NextDouble() * 30 - 15;
+                float s = 1.1f + (float)rng.NextDouble() * .7f;
+                var rock = Place(parent, "Rocks/" + FaceRocks[rng.Next(FaceRocks.Length)], null, Vector2.zero, yaw, new Vector3(s, s * (1 + (float)rng.NextDouble() * .5f), s));
+                if (!rock) continue;
+                // Set into the face: a little behind the surface, at the height of the spot.
+                var at = p - outward * .5f;
+                rock.transform.localPosition = new Vector3(at.x - 8, t.Height(p) - 1.2f * s, at.y - 8);
+                foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                // Scree below it.
+                var foot = p + outward * 1.6f;
+                if (!t.IsSaddle && t.Height(foot) < Plateau * .25f && !t.OnRamp(foot) && !NearLink(foot, 1.6f) && rng.NextDouble() < .6)
+                    Place(parent, "Rocks/" + (rng.NextDouble() < .5 ? "FA_RK07_RocksLowGroup" : "FA_RK01_BoulderSmall"), t, foot, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .5f));
+            }
         }
 
         /// <summary>A rock shelf halfway up a straight cliff: Impulse I twice.</summary>
@@ -935,6 +976,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             content.loot.Add(new WorldContent.LootEntry { id = "find", prefab = Loot("Trophy common_find") });
             content.loot.Add(new WorldContent.LootEntry { id = "find-hard", prefab = Loot("Trophy special_find") });
             content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot("Trophy special_find") });
+            const string sparkle = "Assets/Plugins/Retro Arsenal/Prefabs/Environment/Sparkle/Mini/";
+            content.hardGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniYellowLoop.prefab");
+            content.crystalGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniPurpleLoop.prefab");
             content.creatures.Clear();
             foreach (var id in CreatureThemes.AllCreatures())
             {
