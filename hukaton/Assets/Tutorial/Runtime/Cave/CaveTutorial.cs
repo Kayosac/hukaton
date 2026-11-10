@@ -21,7 +21,8 @@ namespace Hakaton.Tutorial
     /// hands over the card it needs: Fire at the roots, Ice at the flooded stretch, Strike at the bush. Spells come
     /// back after every throw. Only a Strike on the bush brings out the goblin: ~5 s of panic around the bush, then
     /// seven lines on E with the view held on him. Then he hands over «Пора домой» («На! Используй эту»): the hand holds
-    /// only that card, the player uses it themselves, and the tutorial goes on in the shop.
+    /// only that card; once the player closes that line with E they get the hero back, use the card themselves, and
+    /// the tutorial goes on in the shop.
     /// Nothing is saved in here: quitting the cave starts it again from the awakening.
     /// The place itself (<see cref="CaveLevel"/>) lives in its own scene with its own lighting: it is loaded next to the
     /// game scene when the prologue begins and unloaded on the way to the shop.
@@ -91,8 +92,6 @@ namespace Hakaton.Tutorial
         [Min(0)] public float thinkSeconds = 1.6f;
         [Tooltip("His last words: he hands over the Return card and the player uses it.")]
         [TextArea] public string handOverLine = "На! Используй эту";
-        [Tooltip("How long his last words stay on screen once the card is in the hand.")]
-        [Min(0)] public float handOverSeconds = 4;
         [TextArea] public string returnHint = "ЛКМ — вернуться в лавку";
         [Min(.05f)] public float darkSeconds = .7f;
 
@@ -117,7 +116,7 @@ namespace Hakaton.Tutorial
         WorldObstacle waterObstacle => Level ? Level.waterObstacle : null;
 
         int instructionsThrown;
-        bool continueRequested, wheelHintPending;
+        bool continueRequested, wheelHintPending, handOverOpen;
         float bushShake;
         Vector3 goblinShove, goblinOffset;
         float goblinFrozenUntil, goblinTintUntil, goblinTintSeconds = .35f;
@@ -240,7 +239,7 @@ namespace Hakaton.Tutorial
             if (Stage == CaveStage.Ambush || Stage == CaveStage.Talk) TintGoblin();
             if (wheelHintPending) world.Announce(wheelHint, .5f);
             // the thrower's own «card is ready» notice goes first, then the short reminder stays up
-            if (Stage == CaveStage.GoHome && !world.Returning && Time.time >= world.NoticeUntil - .05f) world.Announce(returnHint, .5f);
+            if (Stage == CaveStage.GoHome && !handOverOpen && !world.Returning && Time.time >= world.NoticeUntil - .05f) world.Announce(returnHint, .5f);
             Vector3 player = world.motor.transform.position;
             switch (Stage)
             {
@@ -257,6 +256,7 @@ namespace Hakaton.Tutorial
                     Grant(strikeId);
                     break;
                 case CaveStage.Talk:
+                case CaveStage.GoHome when handOverOpen:
                     var keyboard = Keyboard.current;
                     if (keyboard != null && keyboard.eKey.wasPressedThisFrame) continueRequested = true;
                     break;
@@ -528,24 +528,29 @@ namespace Hakaton.Tutorial
         }
 
         /// <summary>
-        /// «На! Используй эту»: the spells are gone, the hand holds the Return card, the player is free again and uses it
-        /// themselves (the same fling and dark as at the end of any outing), and the shop tutorial takes over.
+        /// «На! Используй эту»: the spells are gone and the hand holds the Return card. The line waits for E like the
+        /// others; only once it is closed does the player get the hero back and use the card themselves (the same fling
+        /// and dark as at the end of any outing), after which the shop tutorial takes over.
         /// </summary>
         IEnumerator HandOver()
         {
             Stage = CaveStage.GoHome;
-            bubble.Say(handOverLine, false);
-            goblin.Speak(true);
-            goblin.face.Please();
             var card = Trip.GrantReturn();
             if (card == null) { bubble.Hide(); yield return Leave(); yield break; }
-            world.PrologueReturned += OnReturnUsed;
             world.thrower.SelectCopy(card.Id);
+            bubble.Say(handOverLine, true);
+            goblin.Speak(true);
+            goblin.face.Please();
+            handOverOpen = true;
+            continueRequested = false;
+            yield return null;
+            while (!continueRequested) yield return null;
+            continueRequested = false;
+            handOverOpen = false;
+            bubble.Hide();
+            world.PrologueReturned += OnReturnUsed;
             if (view) view.Guide(null);
             control.SetBlocked(this, false);
-            float until = Time.time + handOverSeconds;
-            while (Stage == CaveStage.GoHome && !world.Returning && Time.time < until) yield return null;
-            bubble.Hide();
         }
 
         /// <summary>The Return card was used and the screen is dark: out of the cave into the shop.</summary>
@@ -566,6 +571,7 @@ namespace Hakaton.Tutorial
             if (!Active) return;
             StopAllCoroutines();
             bubble.Hide();
+            handOverOpen = false;
             Close();
             Stage = CaveStage.Done;
             Finished?.Invoke();
@@ -574,7 +580,7 @@ namespace Hakaton.Tutorial
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {
-            if (Stage == CaveStage.Talk) continueRequested = true;
+            if (Stage == CaveStage.Talk || Stage == CaveStage.GoHome && handOverOpen) continueRequested = true;
         }
 
         IEnumerator Leave()
