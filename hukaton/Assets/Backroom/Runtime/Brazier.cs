@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Hakaton.Character;
 using Hakaton.Decks;
@@ -13,8 +14,8 @@ namespace Hakaton.Backroom
 {
     /// <summary>
     /// The gas brazier in the backroom (board, «Гоблин-торговец», 11 and 13): it frees collection places by burning
-    /// copies. Interacting lights it and lays every owned copy over the game view (level, «в колоде», burn price on
-    /// hover). Choosing one asks to confirm the card and the sum; agreeing throws the card into the fire and it flares
+    /// copies. Interacting lights it and lays every owned copy over the game view in a scrolling grid of four
+    /// (level, «в колоде», burn price on hover). Choosing one asks to confirm the card and the sum; agreeing throws the card into the fire and it flares
     /// up. The list stays open for the next one. The three starting copies cannot burn. 75% of what was paid, rounded
     /// up — the rule lives in <see cref="DeckWorkshop.Burn"/>.
     /// </summary>
@@ -32,15 +33,19 @@ namespace Hakaton.Backroom
         public VfxBurst pilotFlame, fullFlame, burnFlare;
         public Color fireTint = new Color(1, .62f, .25f);
         public AudioSource audioSource;
-        public AudioClip igniteSound, burnSound, refuseSound, pageSound;
+        public AudioClip igniteSound, burnSound, refuseSound;
 
         [Header("Overlay")]
         public CanvasGroup visibility;
-        [Tooltip("The card tiles of one page, left to right, top to bottom.")]
-        public OfferCardView[] tiles;
-        public RectTransform tileSpace;
-        public Button previousPage, nextPage, closeButton;
-        public TMP_Text pageLabel, title;
+        [Tooltip("One card of the list; as many are made as the collection needs, and kept for the next opening.")]
+        public OfferCardView tilePrefab;
+        [Tooltip("The grid inside the scroll view (four to a row).")]
+        public RectTransform content;
+        public ScrollRect scroll;
+        [Tooltip("Above the scroll view's mask: a burned card flies to the fire from here, never clipped.")]
+        public RectTransform flightLayer;
+        public Button closeButton;
+        public TMP_Text title;
         [Tooltip("The confirmation: the card and the sum.")]
         public CanvasGroup confirmGroup;
         public DialogueBubbleLayout confirmBubble;
@@ -48,19 +53,15 @@ namespace Hakaton.Backroom
 
         public bool IsOpen { get; private set; }
         DeckWorkshop Model => workshop.Model;
-        int page, pending;
+        int pending;
         VfxBurst pilot, fire;
+        readonly List<OfferCardView> tiles = new List<OfferCardView>();
+
+        /// <summary>The cards currently in the list (tests, tools).</summary>
+        public IReadOnlyList<OfferCardView> Tiles => tiles;
 
         void Awake()
         {
-            for (int i = 0; i < tiles.Length; i++)
-            {
-                tiles[i].Slot = i;
-                tiles[i].Clicked += OnTileClicked;
-                tiles[i].Hovered += OnTileHovered;
-            }
-            previousPage.onClick.AddListener(() => Turn(-1));
-            nextPage.onClick.AddListener(() => Turn(1));
             closeButton.onClick.AddListener(Close);
             confirmButton.onClick.AddListener(Confirm);
             cancelButton.onClick.AddListener(CancelConfirm);
@@ -86,7 +87,6 @@ namespace Hakaton.Backroom
             if (IsOpen || !isActiveAndEnabled || !workshop || Model.IsAway) return false;
             IsOpen = true;
             pending = 0;
-            page = 0;
             if (control) control.SetBlocked(this, true);
             SetVisible(visibility, true);
             SetVisible(confirmGroup, false);
@@ -95,6 +95,7 @@ namespace Hakaton.Backroom
             if (fire) fire.HoldFor(float.MaxValue / 4);
             Play(igniteSound);
             Lay(true);
+            if (scroll) scroll.verticalNormalizedPosition = 1;
             return true;
         }
 
@@ -123,40 +124,32 @@ namespace Hakaton.Backroom
 
         // ---------- the list ----------
 
-        int Pages => Mathf.Max(1, Mathf.CeilToInt(Model.Owned.Count / (float)tiles.Length));
-
         void Lay(bool deal)
         {
             var owned = Model.Owned;
-            page = Mathf.Clamp(page, 0, Pages - 1);
-            for (int i = 0; i < tiles.Length; i++)
+            while (tiles.Count < owned.Count)
             {
-                int index = page * tiles.Length + i;
+                var tile = Instantiate(tilePrefab, content);
+                tile.name = "Card " + (tiles.Count + 1);
+                tile.Clicked += OnTileClicked;
+                tile.Hovered += OnTileHovered;
+                tiles.Add(tile);
+            }
+            for (int i = 0; i < tiles.Count; i++)
+            {
                 var tile = tiles[i];
-                if (index >= owned.Count) { tile.Hide(); continue; }
-                var copy = owned[index];
+                // A card that flew into the fire comes back into the grid, in order.
+                if (tile.transform.parent != content) tile.transform.SetParent(content, false);
+                tile.transform.SetSiblingIndex(i);
+                if (i >= owned.Count) { tile.Hide(); continue; }
+                var copy = owned[i];
                 tile.Slot = copy.Id;
-                tile.Deal(workshop.config.Find(copy.Spec.Id)?.artwork, true, deal ? i * .02f : 0);
+                tile.Deal(workshop.config.Find(copy.Spec.Id)?.artwork, true, deal ? Mathf.Min(i, 12) * .02f : 0);
                 // The level; green while the copy is in the deck (legend under the table).
                 tile.SetBadge(Model.IsSelected(copy.Id) ? "<color=#9BE07A>" + copy.LevelNumeral + "</color>" : copy.LevelNumeral);
                 tile.group.alpha = copy.Protected ? .45f : 1;
             }
             title.text = $"Жаровня  ·  коллекция {owned.Count} / {Model.CollectionLimit}";
-            pageLabel.text = $"{page + 1} / {Pages}";
-            previousPage.interactable = page > 0;
-            nextPage.interactable = page + 1 < Pages;
-            // Paging only when the collection outgrows one table.
-            previousPage.gameObject.SetActive(Pages > 1);
-            nextPage.gameObject.SetActive(Pages > 1);
-            pageLabel.gameObject.SetActive(Pages > 1);
-        }
-
-        void Turn(int delta)
-        {
-            if (pending != 0) return;
-            page = Mathf.Clamp(page + delta, 0, Pages - 1);
-            Play(pageSound);
-            Lay(true);
         }
 
         void OnTileHovered(OfferCardView tile)
@@ -194,6 +187,8 @@ namespace Hakaton.Backroom
             int id = pending;
             CancelConfirm();
             var tile = tiles.FirstOrDefault(t => t.gameObject.activeSelf && t.Slot == id);
+            // Out of the scroll view's mask first: the throw to the fire must be seen whole.
+            if (tile && flightLayer) tile.transform.SetParent(flightLayer, true);
             if (Model.Burn(id) != null)
             {
                 if (tile) tile.Refuse();

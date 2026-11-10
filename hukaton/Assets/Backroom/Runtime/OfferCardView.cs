@@ -21,6 +21,11 @@ namespace Hakaton.Backroom
         [Tooltip("Optional line under the card: level, «в колоде» (the brazier's list).")]
         public TMP_Text badge;
         public CanvasGroup group;
+        [Tooltip("How far the card rises under the pointer.")]
+        public float hoverLift = 26;
+        [Tooltip("Overlapping cards (the goblin's fan): the one under the pointer comes to the front, like a card " +
+                 "pulled from a hand, and goes back to its place in the row after.")]
+        public bool raiseOnHover;
 
         public event Action<OfferCardView> Clicked, Hovered;
         public int Slot { get; set; }
@@ -32,11 +37,14 @@ namespace Hakaton.Backroom
         Vector2 home, target;
         Sprite pendingFace;
 
+        int restingIndex = -1;
+
         void Awake() => home = body.anchoredPosition;
 
         /// <summary>Puts the card back on the table: face down or up, with a staggered deal from below.</summary>
         public void Deal(Sprite art, bool up, float delay)
         {
+            Lower();
             gameObject.SetActive(true);
             face.sprite = art;
             faceUp = up;
@@ -57,6 +65,7 @@ namespace Hakaton.Backroom
 
         public void Hide()
         {
+            Lower();
             Hovering = false;
             gameObject.SetActive(false);
         }
@@ -103,18 +112,34 @@ namespace Hakaton.Backroom
         public void OnPointerEnter(PointerEventData e)
         {
             Hovering = true;
+            if (raiseOnHover && restingIndex < 0)
+            {
+                restingIndex = transform.GetSiblingIndex();
+                transform.SetAsLastSibling();
+            }
             scale.Kick(2.5f);
             Hovered?.Invoke(this);
         }
 
-        public void OnPointerExit(PointerEventData e) => Hovering = false;
+        public void OnPointerExit(PointerEventData e)
+        {
+            Hovering = false;
+            Lower();
+        }
+
+        void Lower()
+        {
+            if (restingIndex < 0) return;
+            transform.SetSiblingIndex(restingIndex);
+            restingIndex = -1;
+        }
         public void OnPointerClick(PointerEventData e) { if (!flying) Clicked?.Invoke(this); }
 
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
             if (dealDelay > 0) { dealDelay -= dt; Present(); return; }
-            lift.Step(flying ? 34 : Hovering ? 26 : 0, 9, .55f, dt);
+            lift.Step(flying ? 34 : Hovering ? hoverLift : 0, 9, .55f, dt);
             scale.Step(Hovering ? 1.08f : 1, 11, .45f, dt);
             shake.Step(0, 18, .25f, dt);
             flip.Step(flipTarget, 14, .7f, dt);
