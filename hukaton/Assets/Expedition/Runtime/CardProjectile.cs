@@ -32,6 +32,13 @@ namespace Hakaton.Expeditions
         bool resolved;
         Pose? handPose;
 
+        static readonly System.Collections.Generic.List<CardProjectile> active = new System.Collections.Generic.List<CardProjectile>();
+        /// <summary>Cards in flight (creatures' projectiles check them: a card knocks a projectile out of the air).</summary>
+        public static System.Collections.Generic.IReadOnlyList<CardProjectile> Active => active;
+
+        void OnEnable() { if (!active.Contains(this)) active.Add(this); }
+        void OnDisable() => active.Remove(this);
+
         public bool Resolved => resolved;
         public CardCopy Card => card;
         public Vector3 Velocity => velocity;
@@ -139,6 +146,7 @@ namespace Hakaton.Expeditions
 
         void OnDestroy()
         {
+            active.Remove(this);
             if (!world) return;
             if (world.sfx) world.sfx.StopLoop(this);
             // The attempt is over (hit, miss or gone): a card with uses left (Teleport II / III) returns to the hand.

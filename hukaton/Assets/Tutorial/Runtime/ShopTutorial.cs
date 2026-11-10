@@ -11,8 +11,8 @@ namespace Hakaton.Tutorial
 {
     /// <summary>
     /// The shop part of the tutorial (board, «Туториал · согласовано», 05–11). The goblin on the counter hands over two
-    /// old wares (cap R = 60, fang R = 120); the player puts both on display and opens the shop. Two staged visitors
-    /// answer exactly (<see cref="ScriptedHaggle"/>), the clock stands still, the way out and the backroom stay closed.
+    /// old wares (cap and fang); the player puts both on display and opens the shop. Two staged visitors answer exactly
+    /// (<see cref="ScriptedHaggle"/>, numbers scaled to each ware's price R), the clock stands still, the way out and the backroom stay closed.
     /// Any two sales finish it: the shop closes, the goblin hints at the backroom and leaves in a poof.
     /// Explanations block movement and wait for E; lines during trading only comment.
     /// </summary>
@@ -122,13 +122,28 @@ namespace Hakaton.Tutorial
         {
             if (!Active) return null;
             int cap = soldCap ? -1 : SlotOf(CapId), fang = soldFang ? -1 : SlotOf(FangId);
+            // Tuned at cap R = 60 (accepts up to 69, last offer 66, leaves at 90) and fang R = 120 (opens at 90, pays up
+            // to 104, last offer 108, leaves at 135); kept in proportion to the wares' current prices.
             if (cap >= 0)
-                return new CustomerTerms { RequestedSlot = cap, AsksPrice = true, MaxPrice = 69, Script = new ScriptedHaggle(69, 66, 90) };
+            {
+                int r = Price(this.cap);
+                return new CustomerTerms { RequestedSlot = cap, AsksPrice = true, MaxPrice = Scale(r, 1.15f),
+                    Script = new ScriptedHaggle(Scale(r, 1.15f), Scale(r, 1.1f), Scale(r, 1.5f)) };
+            }
             if (fang >= 0)
-                return new CustomerTerms { RequestedSlot = fang, AsksPrice = false, OpeningRatio = .75f, MaxPrice = 104,
-                    Script = new ScriptedHaggle(104, 108, 135) };
+            {
+                int r = Price(this.fang);
+                return new CustomerTerms { RequestedSlot = fang, AsksPrice = false, OpeningRatio = FangOpening, MaxPrice = Scale(r, 104f / 120),
+                    Script = new ScriptedHaggle(Scale(r, 104f / 120), Scale(r, .9f), Scale(r, 1.125f)) };
+            }
             return null;
         }
+
+        const float FangOpening = .75f;
+        static int Price(LootItem ware) => ware ? ware.price : 1;
+        static int Scale(int price, float ratio) => Mathf.Max(1, Mathf.FloorToInt(price * ratio + .5f));
+        /// <summary>Selling the fang at the visitor's opening offer earns the goblin's grumble.</summary>
+        int FangOpeningPrice => Scale(Price(fang), FangOpening);
 
         void Update()
         {
@@ -221,7 +236,7 @@ namespace Hakaton.Tutorial
                 string sold = Session.LastSoldItem?.Definition.Id;
                 if (sold == CapId) soldCap = true;
                 if (sold == FangId) soldFang = true;
-                if (sold == FangId && Session.LastSalePrice == 90) bubble.Say(cheapLine, false);
+                if (sold == FangId && Session.LastSalePrice == FangOpeningPrice) bubble.Say(cheapLine, false);
                 else bubble.Hide();
                 Changed?.Invoke();
                 if (soldCap && soldFang)

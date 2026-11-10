@@ -13,7 +13,7 @@ namespace Hakaton.Expeditions
     /// and only fights back when hurt, calming down once nobody has hit it for a while.
     /// </summary>
     public enum Temperament { Timid, Territorial, Aggressive, Peaceful }
-    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying, Investigate }
+    public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying, Investigate, Aim, Shoot }
 
     /// <summary>
     /// A creature of the valley. Decisions run in Update (per temperament), locomotion in FixedUpdate on the
@@ -190,6 +190,7 @@ namespace Hakaton.Expeditions
             moveSpeedScale.Clear();
             attackTarget = null;
             investigateUntil = 0;
+            ResetRanged();
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -293,6 +294,16 @@ namespace Hakaton.Expeditions
                 case CreatureState.Windup:
                     world.Play(windupCue, body.position);
                     squash.Kick(-4);
+                    break;
+                case CreatureState.Aim:
+                    world.Play(windupCue, body.position);
+                    squash.Kick(-3);
+                    break;
+                case CreatureState.Shoot:
+                    shotsFired = 0;
+                    break;
+                case CreatureState.Recover:
+                    shoving = false;
                     break;
                 case CreatureState.Strike:
                     Vector3 to = ToTarget;
@@ -440,6 +451,7 @@ namespace Hakaton.Expeditions
         {
             float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
+            if (HasRangedAttack && ThinkRanged()) return;
             switch (State)
             {
                 case CreatureState.Chase:
@@ -447,6 +459,7 @@ namespace Hakaton.Expeditions
                     // Peaceful: the grudge lasts as long as the provocation; then it goes home.
                     if (temperament == Temperament.Peaceful && !Provoked) { Enter(CreatureState.Return); break; }
                     if (!sees) { Enter(CreatureState.Search); break; }
+                    if (HasRangedAttack) { ChaseWithRanged(distance); break; }
                     Go(TargetPosition, speed);
                     if (distance <= attackRange) Enter(CreatureState.Windup);
                     break;
@@ -505,7 +518,7 @@ namespace Hakaton.Expeditions
         {
             if (!overhead) return;
             // Noticing is drawn into the fear and aggression poses; the mark above only warns of the attack itself.
-            overhead.SetAlert(State == CreatureState.Windup || State == CreatureState.Strike ? 2 : 0);
+            overhead.SetAlert(State == CreatureState.Windup || State == CreatureState.Strike || State == CreatureState.Aim || State == CreatureState.Shoot ? 2 : 0);
         }
 
         // ---------------- movement ----------------
@@ -612,7 +625,7 @@ namespace Hakaton.Expeditions
             if (to.magnitude > contactRange || Vector3.Dot(strikeDirection, Flat(to).normalized) < .1f) return;
             hitThisStrike = true;
             Vector3 knockback = (strikeDirection * (dash ? 7 : 4) + Vector3.up * 2.5f);
-            victim.TakeDamage(new DamageInfo(attackHalfHearts, knockback, aim, body.position, DamageKind.Hit, this));
+            victim.TakeDamage(new DamageInfo(StrikeDamage, knockback, aim, body.position, DamageKind.Hit, this));
         }
 
         // ---------------- reactions ----------------
@@ -810,7 +823,10 @@ namespace Hakaton.Expeditions
                 case CreatureState.Threat:
                 case CreatureState.Chase:
                 case CreatureState.Windup:
+                case CreatureState.Aim:
                     return CreaturePose.Alarm;
+                case CreatureState.Shoot:
+                    return stateTime < ShotPoseSeconds ? CreaturePose.Attack : CreaturePose.Alarm;
                 case CreatureState.Flee:
                     // Runs off in its ordinary drawing (seen from behind), startles again on every stop.
                     return stateTime % (dashSeconds + pauseSeconds) < dashSeconds ? CreaturePose.Default : CreaturePose.Alarm;
@@ -842,7 +858,7 @@ namespace Hakaton.Expeditions
                 }
             }
             float sq = squash.Step(1, 7, .35f, dt);
-            float targetCrouch = State == CreatureState.Windup ? 1 : State == CreatureState.Threat ? .45f : 0;
+            float targetCrouch = State == CreatureState.Windup ? 1 : State == CreatureState.Aim ? .6f : State == CreatureState.Threat ? .45f : 0;
             crouch = Mathf.MoveTowards(crouch, targetCrouch, dt * (State == CreatureState.Windup ? 3 : 5));
             // Frozen: the drawing and its squash stay exactly as the ice caught them.
             if (!frozen)
@@ -884,6 +900,8 @@ namespace Hakaton.Expeditions
         void DropLoot()
         {
             dropped.Clear();
+            // the cave prologue gives no loot (its mushrooms are scenery and practice)
+            if (world.InPrologue) return;
             drops.Roll(dropped);
             if (dropped.Count == 0) return;
             Vector3 from = transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);

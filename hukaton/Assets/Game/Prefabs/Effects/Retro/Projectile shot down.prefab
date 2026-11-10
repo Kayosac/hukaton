@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &9133231178101082724
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2711851705607895968, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_Name
+      value: Projectile shot down
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895970, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851705607895971, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851706767075873, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711851706908652919, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827910650035861907, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: looping
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6827910650035861907, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2711851705607895968, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7295025123158861995}
+  m_SourcePrefab: {fileID: 100100000, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+--- !u!1 &6565596932607537604 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2711851705607895968, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+  m_PrefabInstance: {fileID: 9133231178101082724}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7295025123158861995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6565596932607537604}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955e669a313304cb2b509732256dce50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Feel::Hakaton.Feel.VfxBurst
+  systems:
+  - {fileID: 6565596932607537606}
+  tinted: []
+  flash: {fileID: 0}
+  flashIntensity: 3
+  flashSeconds: 0.25
+  lifetime: 1.8
+--- !u!198 &6565596932607537606 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 2711851705607895970, guid: bfb4e1da093db6f438d8c9ffb9e04158, type: 3}
+  m_PrefabInstance: {fileID: 9133231178101082724}
+  m_PrefabAsset: {fileID: 0}

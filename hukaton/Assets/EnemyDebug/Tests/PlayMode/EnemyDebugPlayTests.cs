@@ -259,6 +259,84 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(Vector3.Distance(start,mushroom.Position), Is.GreaterThan(1));
             LogAssert.NoUnexpectedReceived();
         }
+        IEnumerator StandInFront(EnemyDebugPreview preview, float distance)
+        {
+            sandbox.motor.view.Guide(null);
+            Vector3 ahead = preview.transform.forward; ahead.y = 0;
+            ahead = ahead.sqrMagnitude > .01f ? ahead.normalized : Vector3.back;
+            sandbox.motor.Teleport(preview.transform.position + ahead * distance + Vector3.up * .05f, Quaternion.LookRotation(-ahead));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ShootersFireFromAfarHitThePlayerAndOtherCreaturesAndShotsCanBeKnockedDown()
+        {
+            // Bee swarm: aims, then lobs a fan of honey; the splash hurts and slows.
+            var beePreview = sandbox.Previews.First(p => p.source.name == "Bee swarm");
+            yield return StandInFront(beePreview, 8);
+            var bee = sandbox.Spawn(beePreview);
+            bool aimed = false, slowed = false;
+            int volley = 0;
+            float until = Time.time + 9;
+            while (Time.time < until)
+            {
+                aimed |= bee.State == CreatureState.Aim;
+                volley = Mathf.Max(volley, EnemyProjectile.Active.Count(p => p && p.Shooter == bee));
+                slowed |= sandbox.motor.MoveSpeedScale < 1;
+                if (sandbox.ReceivedDamage > 0 && slowed) break;
+                yield return null;
+            }
+            Assert.That(aimed, Is.True, "The shot is telegraphed by aiming.");
+            Assert.That(volley, Is.EqualTo(bee.ranged.projectiles), "One shot is a fan of globs.");
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThan(0), "Honey hits the player.");
+            Assert.That(slowed, Is.True, "Honey slows the player down.");
+            sandbox.ClearLive(); yield return null;
+            Assert.That(EnemyProjectile.Active, Is.Empty, "R clears shots in flight too.");
+
+            // Rooster: peaceful until hurt, then throws baseballs from afar.
+            var roosterPreview = sandbox.Previews.First(p => p.source.name == "Rooster baseball");
+            yield return StandInFront(roosterPreview, 9);
+            var rooster = sandbox.Spawn(roosterPreview);
+            yield return Wait(1.2f);
+            Assert.That(EnemyProjectile.Active, Is.Empty, "Peaceful: it does not shoot unprovoked.");
+            rooster.Damage(0, Vector3.zero, rooster.Centre, 0);
+            bool threw = false;
+            until = Time.time + 9;
+            while (Time.time < until && !(threw && sandbox.ReceivedDamage > 0))
+            {
+                threw |= EnemyProjectile.Active.Any(p => p && p.Shooter == rooster);
+                yield return null;
+            }
+            Assert.That(threw, Is.True, "Provoked, it throws.");
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThan(0), "The baseball hits the player.");
+            var profile = rooster.ranged.projectile;
+            sandbox.ClearLive(); yield return null;
+
+            // A shot hits another creature on its way.
+            var dogPreview = sandbox.Previews.First(p => p.source.name == "Goblin dog");
+            var dog = sandbox.Spawn(dogPreview);
+            dog.Freeze(30);
+            yield return null;
+            Vector3 target = dog.GetComponent<Collider>().bounds.center;
+            Vector3 from = target - dog.transform.forward * 6;
+            EnemyProjectileFlight.Launch(from, target, profile.speed, profile.FlightArc, out var velocity, out float gravity);
+            var shot = sandbox.world.SpawnForOuting(profile.prefab, from, Quaternion.LookRotation(velocity));
+            shot.Launch(sandbox.world, profile, null, dog, velocity, gravity);
+            int health = dog.Health;
+            until = Time.time + 2;
+            while (Time.time < until && dog.Health == health) yield return null;
+            Assert.That(dog.Health, Is.EqualTo(health - profile.damage), "Creatures are hit by stray shots.");
+
+            // Knocked out of the air: the shot ends with its effect.
+            var second = sandbox.world.SpawnForOuting(profile.prefab, from + Vector3.up * 6, Quaternion.identity);
+            second.Launch(sandbox.world, profile, null, dog, Vector3.forward * profile.speed, 0);
+            yield return null;
+            second.ShootDown();
+            Assert.That(second.Ended, Is.True);
+            yield return null;
+            Assert.That(EnemyProjectile.Active.Contains(second), Is.False);
+            LogAssert.NoUnexpectedReceived();
+        }
     }
 }
 

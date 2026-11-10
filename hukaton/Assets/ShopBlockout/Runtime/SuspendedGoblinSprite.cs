@@ -20,13 +20,9 @@ namespace Hakaton.ShopBlockout
         [Min(0)] public float startleAfterArrival = .7f;
         [Tooltip("How long the pleased drawing stays after a purchase.")]
         [Min(0)] public float pleasedSeconds = 2.5f;
-        [Header("Presentation")]
-        [Tooltip("Shader pixel cell in source texels.")]
-        [Range(1, 32)] public float pixelSize = 8;
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
-        static readonly int PixelSize = Shader.PropertyToID("_PixelSize");
         static readonly int Seed = Shader.PropertyToID("_Seed");
         MaterialPropertyBlock properties;
         Sprite shown;
@@ -75,7 +71,6 @@ namespace Hakaton.ShopBlockout
             properties.SetVector(SpriteUvRect, new Vector4(rect.x / texture.width, rect.y / texture.height,
                 rect.width / texture.width, rect.height / texture.height));
             properties.SetFloat(Anchor, sprite.pivot.y / Mathf.Max(1, sprite.rect.height));
-            properties.SetFloat(PixelSize, pixelSize);
             properties.SetFloat(Seed, 0);
             spriteRenderer.SetPropertyBlock(properties);
         }

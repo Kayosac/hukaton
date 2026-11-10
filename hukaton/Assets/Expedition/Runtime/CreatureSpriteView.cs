@@ -29,8 +29,6 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float height = 1.5f;
         [Tooltip("The front art looks toward screen right; it is mirrored while the creature heads left.")]
         public bool facesRight = true;
-        [Tooltip("Shader pixel cell in source texels: keeps on-screen pixels close to the visitors' whatever the atlas PPU.")]
-        [Range(1, 32)] public float pixelSize = 8;
 
         /// <summary>Size multiplier from the creature (<see cref="WorldCreature.size"/>): scales the drawing and its offsets.</summary>
         public float Size { get; set; } = 1;
@@ -40,7 +38,6 @@ namespace Hakaton.Expeditions
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
-        static readonly int PixelSize = Shader.PropertyToID("_PixelSize");
         static readonly int Seed = Shader.PropertyToID("_Seed");
         MaterialPropertyBlock properties;
         Sprite shown;
@@ -119,7 +116,6 @@ namespace Hakaton.Expeditions
             properties.SetVector(SpriteUvRect, new Vector4(rect.x / texture.width, rect.y / texture.height,
                 rect.width / texture.width, rect.height / texture.height));
             properties.SetFloat(Anchor, sprite.pivot.y / Mathf.Max(1, sprite.rect.height));
-            properties.SetFloat(PixelSize, pixelSize);
             properties.SetFloat(Seed, seed);
             spriteRenderer.SetPropertyBlock(properties);
         }

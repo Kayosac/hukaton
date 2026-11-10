@@ -687,6 +687,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  flying: 0
+  cruiseHeight: 1.8
+  windupClimb: 0.7
+  diveHeight: 0.9
+  climbSpeed: 4
+  climbAcceleration: 14
+  bobHeight: 0.12
+  bobFrequency: 0.9
+  jitter: 0
+  shadowSize: 0.4
+  shadowOpacity: 0.35
+  ranged:
+    projectile: {fileID: 11400000, guid: 00ebaf2147f0848efafe3ddc01d28742, type: 2}
+    range: 13
+    minRange: 3.2
+    aimSeconds: 0.65
+    cooldown: 2.2
+    recovery: 0.5
+    projectiles: 1
+    spreadAngle: 0
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.65
+    keepDistance: 8
+    retreatDistance: 4.5
+    retreatSpeed: 0.8
+    circleSpeed: 0
+    closeCombat: 0
+    shoveDamage: 1
   world: {fileID: 0}
   temperament: 3
   displayName: "\u041F\u0435\u0442\u0443\u0445-\u0431\u0435\u0439\u0441\u0431\u043E\u043B\u0438\u0441\u0442"
@@ -695,13 +725,22 @@ MonoBehaviour:
   view: {fileID: 6448454109056461587}
   overhead: {fileID: 848991441110991114}
   size: 1
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.136
   stunStarsScale: 1.8
   drops:
     atLeastOne: 1
     entries:
-    - item: {fileID: 11400000, guid: d8a0f617626843a2b806b24b01e684df, type: 2}
+    - item: {fileID: 11400000, guid: 9f454db5f9b146ec949714b310d0049f, type: 2}
       chance: 1
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: 9ba559bd2fc64db0aa5795c011bf2da8, type: 2}
+      chance: 0.5
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: a0b5ca3b14944963ab47f2ff61efbb36, type: 2}
+      chance: 0.1
       min: 1
       max: 1
   spawnPoints: []
@@ -936,7 +975,6 @@ MonoBehaviour:
   deathBack: {fileID: 456378453, guid: 71323ab1ae4e34af4811e48d78302076, type: 3}
   height: 1.7
   facesRight: 1
-  pixelSize: 8
 --- !u!1 &6815933986526004144
 GameObject:
   m_ObjectHideFlags: 0
