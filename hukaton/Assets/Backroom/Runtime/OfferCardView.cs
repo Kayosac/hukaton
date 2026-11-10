@@ -30,7 +30,7 @@ namespace Hakaton.Backroom
         [Tooltip("The brazier: under the pointer the card shivers, as if afraid of the fire.")]
         public bool trembleOnHover;
 
-        public event Action<OfferCardView> Clicked, Hovered;
+        public event Action<OfferCardView> Clicked, Hovered, Unhovered;
         public int Slot { get; set; }
         public bool Hovering { get; private set; }
 
@@ -40,7 +40,9 @@ namespace Hakaton.Backroom
         bool faceUp, showPrice, flying, toTarget;
         Vector2 home, target;
         Sprite pendingFace;
-        Image shade;
+        System.Collections.Generic.Dictionary<Graphic, Color> shadeBase;
+        bool dimmed;
+        RectTransform guard;
 
         int restingIndex = -1;
 
@@ -54,6 +56,7 @@ namespace Hakaton.Backroom
             face.sprite = art;
             Hakaton.Decks.Unity.CardLevelPresentation.SetMark(levelMark, level);
             SetDimmed(false);
+            SetGuarded(false);
             faceUp = up;
             flipTarget = 1;
             flip.Snap(1);
@@ -77,29 +80,101 @@ namespace Hakaton.Backroom
             gameObject.SetActive(false);
         }
 
-        /// <summary>Shades the whole face, upgrade mark included (the brazier: a copy that is not in the deck).
+        /// <summary>Shades the whole face, upgrade mark included (the brazier: a copy that is not in the deck, or one
+        /// that cannot burn). The face's own colours are multiplied down, so nothing can sit on top and fail to draw.
         /// Every deal starts unshaded.</summary>
         public void SetDimmed(bool dimmed)
         {
-            if (!dimmed && !shade) return;
-            if (!shade)
+            this.dimmed = dimmed;
+            if (shadeBase == null)
             {
-                var go = new GameObject("Shade", typeof(RectTransform), typeof(Image));
-                var rect = (RectTransform)go.transform;
-                rect.SetParent(face.transform, false);
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = rect.offsetMax = Vector2.zero;
-                shade = go.GetComponent<Image>();
-                shade.raycastTarget = false;
-                shade.color = new Color(0, 0, 0, .62f);
+                if (!dimmed) return;
+                shadeBase = new System.Collections.Generic.Dictionary<Graphic, Color>();
+                foreach (var graphic in face.GetComponentsInChildren<Graphic>(true))
+                    if (!guard || !graphic.transform.IsChildOf(guard)) shadeBase[graphic] = graphic.color;
             }
-            // Same sprite as the face, so the shade keeps the card's rounded corners.
-            shade.sprite = face.sprite;
-            shade.type = face.type;
-            shade.preserveAspect = face.preserveAspect;
-            shade.transform.SetAsLastSibling();
-            shade.gameObject.SetActive(dimmed);
+            foreach (var pair in shadeBase)
+                if (pair.Key) pair.Key.color = dimmed ? Shaded(pair.Value) : pair.Value;
+        }
+
+        /// <summary>The multiplier <see cref="SetDimmed"/> puts on the face (white when not shaded).</summary>
+        public Color ShadeTint => dimmed ? Shaded(Color.white) : Color.white;
+
+        static Color Shaded(Color c) => new Color(c.r * .36f, c.g * .36f, c.b * .4f, c.a);
+
+        /// <summary>
+        /// A card that cannot be touched (the brazier's starting cards): a sign over the face with a line under it,
+        /// and the card no longer answers the pointer at all. Every deal clears it.
+        /// </summary>
+        public void SetGuarded(bool guarded, Texture icon = null, string text = null, TMP_FontAsset font = null)
+        {
+            if (guarded && !guard)
+            {
+                guard = new GameObject("Guard", typeof(RectTransform)).GetComponent<RectTransform>();
+                guard.SetParent(face.transform, false);
+                guard.anchorMin = Vector2.zero;
+                guard.anchorMax = Vector2.one;
+                guard.offsetMin = guard.offsetMax = Vector2.zero;
+
+                var band = new GameObject("Band", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                band.SetParent(guard, false);
+                band.anchorMin = new Vector2(0, .08f);
+                band.anchorMax = new Vector2(1, .4f);
+                band.offsetMin = band.offsetMax = Vector2.zero;
+                var bandImage = band.GetComponent<Image>();
+                bandImage.color = new Color(.05f, .06f, .1f, .78f);
+                bandImage.raycastTarget = false;
+
+                var sign = new GameObject("Sign", typeof(RectTransform), typeof(RawImage)).GetComponent<RectTransform>();
+                sign.SetParent(guard, false);
+                sign.anchorMin = sign.anchorMax = new Vector2(.5f, .66f);
+                // Twice the icon's 32 px: whole pixels, no smearing.
+                sign.sizeDelta = new Vector2(64, 64) * .75f;
+                var signImage = sign.GetComponent<RawImage>();
+                signImage.texture = icon;
+                signImage.raycastTarget = false;
+
+                var label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                label.rectTransform.SetParent(band, false);
+                label.rectTransform.anchorMin = Vector2.zero;
+                label.rectTransform.anchorMax = Vector2.one;
+                label.rectTransform.offsetMin = new Vector2(-4, 1);
+                label.rectTransform.offsetMax = new Vector2(4, -1);
+                label.font = font ? font : price ? price.font : label.font;
+                // The plain small pixel font at its own grid size.
+                label.enableAutoSizing = false;
+                label.fontSize = 9;
+                label.lineSpacing = -10;
+                label.textWrappingMode = TextWrappingModes.Normal;
+                label.overflowMode = TextOverflowModes.Overflow;
+                label.alignment = TextAlignmentOptions.Center;
+                label.color = new Color(.9f, .95f, 1f);
+                label.raycastTarget = false;
+            }
+            if (guard)
+            {
+                guard.gameObject.SetActive(guarded);
+                guard.SetAsLastSibling();
+                if (guarded) guard.GetComponentInChildren<TextMeshProUGUI>(true).text = text ?? "";
+            }
+            if (guarded)
+            {
+                Hovering = false;
+                group.blocksRaycasts = false;
+            }
+        }
+
+        /// <summary>
+        /// Reads the pointer from the card's still slot instead of the moving card: a card that lifts, grows and
+        /// shivers under the pointer would otherwise slide out from under it at the edge and flicker in and out.
+        /// </summary>
+        public void UseStillHitArea()
+        {
+            if (GetComponent<Graphic>()) return;
+            foreach (var graphic in body.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
+            var hit = gameObject.AddComponent<Image>();
+            hit.color = new Color(0, 0, 0, 0);
+            hit.raycastTarget = true;
         }
 
         public void SetBadge(string text)
@@ -155,8 +230,10 @@ namespace Hakaton.Backroom
 
         public void OnPointerExit(PointerEventData e)
         {
+            bool was = Hovering;
             Hovering = false;
             Lower();
+            if (was) Unhovered?.Invoke(this);
         }
 
         void Lower()
@@ -181,7 +258,6 @@ namespace Hakaton.Backroom
                 // Edge-on: show the other side and open back up with a little overshoot.
                 faceUp = true;
                 if (pendingFace) face.sprite = pendingFace;
-                if (shade) shade.sprite = face.sprite;
                 flipTarget = 1;
                 flip.Snap(0);
                 flip.Kick(9);
