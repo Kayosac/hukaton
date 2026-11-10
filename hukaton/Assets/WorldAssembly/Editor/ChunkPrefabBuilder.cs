@@ -447,7 +447,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["FA_VG01_FernLow"] = (BurnStyle.Ash, 1.4f), ["FA_VG02_FernTall"] = (BurnStyle.Ash, 1.6f), ["FA_VG03_FernDrooping"] = (BurnStyle.Ash, 1.4f),
             ["FA_VG04_GrassLow"] = (BurnStyle.Ash, 1.1f), ["FA_VG05_GrassTall"] = (BurnStyle.Ash, 1.4f), ["FA_VG06_GrassSparse"] = (BurnStyle.Ash, 1.1f),
             ["FA_VG07_GrassDrooping"] = (BurnStyle.Ash, 1.3f), ["FA_VG08_BushRound"] = (BurnStyle.Ash, 2.2f), ["FA_VG09_BushTallThorny"] = (BurnStyle.Ash, 2.4f),
-            ["FA_VG10_ThornThicket"] = (BurnStyle.Char, 3f), ["FA_VG11_BroadLeavesLow"] = (BurnStyle.Ash, 1.2f), ["FA_VG12_BroadLeavesTall"] = (BurnStyle.Ash, 1.5f),
+            ["FA_VG10_ThornThicket"] = (BurnStyle.Ash, 3f), ["FA_VG11_BroadLeavesLow"] = (BurnStyle.Ash, 1.2f), ["FA_VG12_BroadLeavesTall"] = (BurnStyle.Ash, 1.5f),
             ["FA_TR07_YoungStraight"] = (BurnStyle.Ash, 4.5f), ["FA_TR08_YoungBow"] = (BurnStyle.Ash, 4.5f), ["FA_TR09_YoungFork"] = (BurnStyle.Ash, 4.5f),
             ["FA_DW01_LogWhole"] = (BurnStyle.Char, 6f), ["FA_DW02_LogSplit"] = (BurnStyle.Char, 5f), ["FA_DW03_LogHollow"] = (BurnStyle.Char, 6f),
             ["FA_DW04_LogRotten"] = (BurnStyle.Char, 5f), ["FA_DW09_SticksSmall"] = (BurnStyle.Ash, 2f), ["FA_DW10_SticksLarge"] = (BurnStyle.Ash, 2.6f),
@@ -495,8 +495,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (BurnRules.TryGetValue(id, out var burn))
                 {
                     var b = go.AddComponent<Burnable>();
-                    // What dresses a maze or forest wall only chars: burnt away it would bare the barrier behind.
-                    b.style = InWall(go.transform) ? BurnStyle.Char : burn.style;
+                    b.style = burn.style;
                     b.seconds = burn.seconds;
                     burnables.Add(b);
                 }
@@ -523,12 +522,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             view.props = props.ToArray();
         }
 
-        static bool InWall(Transform t)
-        {
-            for (var p = t.parent; p; p = p.parent)
-                if (p.name == "Forest" || p.name == "Stone walls") return true;
-            return false;
-        }
 
         // ---------- the giant tangled forest ----------
 
@@ -556,17 +549,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             var f = t.Forest;
             var root = new GameObject("Forest").transform;
             root.SetParent(parent, false);
-            var barriers = new GameObject("Barriers").transform;
-            barriers.SetParent(root, false);
-            foreach (var r in f.WallRects())
-            {
-                var go = new GameObject("Wall");
-                go.transform.SetParent(barriers, false);
-                go.transform.localPosition = new Vector3(r.center.x - 8, 0, r.center.y - 8);
-                var box = go.AddComponent<BoxCollider>();
-                box.center = new Vector3(0, 1.5f, 0);
-                box.size = new Vector3(r.width, 6, r.height);
-            }
+            // What stands in the wall owns the wall where it stands (see ForestBarriers): wake a tree or burn the brambles
+            // and the way is open there.
+            var owners = new List<(GameObject go, Vector2 at, float reach, int gate)>();
             float Rnd(float a, float b) => Mathf.Lerp(a, b, (float)rng.NextDouble());
             float EdgeRoom(Vector2 p) => Mathf.Min(Mathf.Min(p.x, 16 - p.x), Mathf.Min(p.y, 16 - p.y));
             void Bare(GameObject go) { if (go) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c); }
@@ -591,9 +576,27 @@ namespace Hakaton.WorldAssembly.EditorTools
                 great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
                 trunks.Add((f.Hub, ForestLayout.TrunkRadius));
             }
+            // A gate tree at the middle of every walled side: the wall between this cell and the next is its, so waking
+            // it opens the way through (the cell beyond has its own gate tree facing it).
+            for (int side = 0; side < 4; side++)
+            {
+                if (f.Open[side]) continue;
+                foreach (var (asset, trunk, min, max) in GiantTrees)
+                {
+                    float scale = Rnd(min, max), radius = trunk * scale;
+                    if (radius < 1.2f) continue;
+                    var p = ForestLayout.Middle[side] + ForestLayout.Inward[side] * (radius + .5f);
+                    if (f.WallDepth(p) < radius + .2f || trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + radius + .8f)) continue;
+                    var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
+                    if (!tree) continue;
+                    trunks.Add((p, radius));
+                    owners.Add((tree, p, radius, side));
+                    break;
+                }
+            }
             foreach (var p in points)
             {
-                if (trunks.Count >= (f.Heart ? 5 : 7)) break;
+                if (trunks.Count >= (f.Heart ? 7 : 9)) break;
                 float depth = f.WallDepth(p);
                 if (depth < .9f || f.InTrunk(p, 1.5f)) continue;
                 foreach (var (asset, trunk, min, max) in GiantTrees)
@@ -604,6 +607,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
                     if (!tree) continue;
                     trunks.Add((p, radius));
+                    owners.Add((tree, p, radius, -1));
                     // Moss and fungus on the big ones.
                     if (radius > 1.4f && rng.NextDouble() < .7)
                     {
@@ -673,10 +677,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                 float depth = f.WallDepth(p);
                 if (depth < .05f || depth > 1f || f.InTrunk(p, .3f)) continue;
                 if (green.Any(q => Vector2.Distance(q, p) < 1.05f)) continue;
-                var plant = Place(growth, "Plants/" + Undergrowth[rng.Next(Undergrowth.Length)], t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.7f));
+                float yaw = Rnd(0, 360);
+                var plant = Place(growth, "Plants/" + Undergrowth[rng.Next(Undergrowth.Length)], t, p, yaw, Vector3.one * Rnd(1.8f, 2.7f));
                 Bare(plant);
                 NoShadow(plant);
                 green.Add(p);
+                // Upright, so the piece of wall it carries stays square with the world.
+                if (plant) { plant.transform.localRotation = Quaternion.Euler(0, yaw, 0); owners.Add((plant, p, 0, -1)); }
             }
             var tangle = new List<Vector2>();
             foreach (var p in points)
@@ -688,22 +695,26 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (tangle.Any(q => Vector2.Distance(q, p) < 1.35f) || green.Any(q => Vector2.Distance(q, p) < .8f)) continue;
                 double kind = rng.NextDouble();
                 GameObject piece;
+                float yaw = Rnd(0, 360);
+                bool plant = true;
                 if (kind < .5)
                 {
                     float w = Rnd(1f, 1.5f);
-                    piece = Place(growth, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(w, w * Rnd(1.8f, 2.6f), w));
+                    piece = Place(growth, "Plants/FA_VG10_ThornThicket", t, p, yaw, new Vector3(w, w * Rnd(1.8f, 2.6f), w));
                 }
-                else if (kind < .7) piece = Place(growth, "Plants/FA_VG09_BushTallThorny", t, p, Rnd(0, 360), Vector3.one * Rnd(1.6f, 2.3f));
-                else if (kind < .85) piece = Place(growth, "Plants/FA_VG12_BroadLeavesTall", t, p, Rnd(0, 360), Vector3.one * Rnd(1.6f, 2.4f));
+                else if (kind < .7) piece = Place(growth, "Plants/FA_VG09_BushTallThorny", t, p, yaw, Vector3.one * Rnd(1.6f, 2.3f));
+                else if (kind < .85) piece = Place(growth, "Plants/FA_VG12_BroadLeavesTall", t, p, yaw, Vector3.one * Rnd(1.6f, 2.4f));
                 else
                 {
                     // A broken trunk propped across the tangle.
-                    piece = Place(growth, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, Rnd(0, 360), new Vector3(Rnd(1f, 1.3f), Rnd(1f, 1.3f), Rnd(.8f, 1.2f)));
+                    plant = false;
+                    piece = Place(growth, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, yaw, new Vector3(Rnd(1f, 1.3f), Rnd(1f, 1.3f), Rnd(.8f, 1.2f)));
                     if (piece) piece.transform.rotation *= Quaternion.Euler(Rnd(-18, 18), 0, Rnd(-10, 10));
                 }
                 Bare(piece);
                 NoShadow(piece);
                 tangle.Add(p);
+                if (piece && plant) { piece.transform.localRotation = Quaternion.Euler(0, yaw, 0); owners.Add((piece, p, 0, -1)); }
             }
             // Roots over the lanes' sides, leaves on the lanes, now and then a web between the trunks.
             var floor = new GameObject("Floor").transform;
@@ -771,6 +782,82 @@ namespace Hakaton.WorldAssembly.EditorTools
                 // Motes drifting in the light over the glade.
                 var motes = Place(root, "VFX/Dust/DustFloaty", null, Vector2.zero, 0, Vector3.one * 1.4f);
                 if (motes) motes.transform.localPosition = new Vector3(f.Hub.x - 8, GroundY(t, f.Hub) + 1.6f, f.Hub.y - 8);
+            }
+            ForestBarriers(root, f, owners);
+        }
+
+        /// <summary>
+        /// The forest's wall, exactly where the ground plan has it, split among what stands there: a gate tree owns the
+        /// strip from the middle of the cell to its walled side, every other giant tree the ground round its trunk, and
+        /// every bramble, bush and fern the rest nearest to it. Each owner carries its piece as a child barrier, so a tree
+        /// that wakes and walks off (hidden for the outing) or a bramble that burns to ash leaves the way open there.
+        /// </summary>
+        static void ForestBarriers(Transform root, ForestLayout f, List<(GameObject go, Vector2 at, float reach, int gate)> owners)
+        {
+            const float cell = .5f;
+            var wall = f.WallCells(cell);
+            int n = wall.GetLength(0);
+            var masks = new bool[owners.Count][,];
+            var orphans = new bool[n, n];
+            bool anyOrphan = false;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    if (!wall[i, j]) continue;
+                    var p = new Vector2((i + .5f) * cell, (j + .5f) * cell);
+                    int best = -1;
+                    float score = float.MaxValue;
+                    for (int k = 0; k < owners.Count; k++)
+                    {
+                        var o = owners[k];
+                        if (!o.go) continue;
+                        float s;
+                        if (o.gate >= 0)
+                        {
+                            // The gate's strip: along the line from the hub to the side's middle, a lane wide.
+                            var a = f.Hub;
+                            var b = ForestLayout.Middle[o.gate];
+                            var ab = b - a;
+                            float tt = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                            s = Vector2.Distance(p, a + ab * tt) < ForestLayout.EdgeHalf + .4f ? -10 : Vector2.Distance(p, o.at) - o.reach - .8f;
+                        }
+                        else s = Vector2.Distance(p, o.at) - (o.reach > 0 ? o.reach + .8f : .5f);
+                        if (s < score) { score = s; best = k; }
+                    }
+                    if (best < 0) { orphans[i, j] = true; anyOrphan = true; continue; }
+                    (masks[best] ??= new bool[n, n])[i, j] = true;
+                }
+            for (int k = 0; k < owners.Count; k++)
+                if (masks[k] != null) Barrier(owners[k].go.transform, ForestLayout.Rects(masks[k], cell));
+            if (anyOrphan)
+            {
+                var rest = new GameObject("Wall");
+                rest.transform.SetParent(root, false);
+                Barrier(rest.transform, ForestLayout.Rects(orphans, cell));
+            }
+        }
+
+        /// <summary>
+        /// Boxes over canonical rectangles (6 m tall, from 1.5 m under the base), square with the world, on a child of
+        /// <paramref name="owner"/>; the owner turns only about the vertical and is scaled alike across, so the boxes
+        /// keep their shape under it.
+        /// </summary>
+        static void Barrier(Transform owner, List<Rect> rects)
+        {
+            var piece = new GameObject("Barrier").transform;
+            piece.SetParent(owner, false);
+            var chunk = owner;
+            while (chunk.parent) chunk = chunk.parent;
+            piece.position = owner.position;
+            piece.rotation = chunk.rotation;
+            var lossy = owner.lossyScale;
+            piece.localScale = new Vector3(1 / lossy.x, 1 / lossy.y, 1 / lossy.z);
+            foreach (var r in rects)
+            {
+                var box = piece.gameObject.AddComponent<BoxCollider>();
+                var centre = chunk.TransformPoint(new Vector3(r.center.x - 8, 1.5f, r.center.y - 8));
+                box.center = Quaternion.Inverse(chunk.rotation) * (centre - piece.position);
+                box.size = new Vector3(r.width, 6, r.height);
             }
         }
 

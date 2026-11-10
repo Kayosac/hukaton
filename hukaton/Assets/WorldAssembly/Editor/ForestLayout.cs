@@ -25,8 +25,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly Vector2 PocketSpot, GuardSpot;
         readonly int seed;
 
-        static readonly Vector2[] Middle = { new Vector2(8, 16), new Vector2(16, 8), new Vector2(8, 0), new Vector2(0, 8) };
-        static readonly Vector2[] Inward = { new Vector2(0, -1), new Vector2(-1, 0), new Vector2(0, 1), new Vector2(1, 0) };
+        /// <summary>Middle of each canonical side (N, E, S, W) and the way into the chunk from it.</summary>
+        public static readonly Vector2[] Middle = { new Vector2(8, 16), new Vector2(16, 8), new Vector2(8, 0), new Vector2(0, 8) };
+        public static readonly Vector2[] Inward = { new Vector2(0, -1), new Vector2(-1, 0), new Vector2(0, 1), new Vector2(1, 0) };
 
         public ForestLayout(Mid[] canonicalMids, string variant, int seed)
         {
@@ -199,30 +200,36 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>
-        /// The wall as rectangles on a half-metre grid (runs along rows merged with equal runs above), for the
-        /// barriers: what blocks is exactly what the ground plan calls wall. The great tree's trunk is left out: its own
-        /// collider blocks there, and once it wakes and walks off the place is open.
+        /// The wall on a half-metre grid ([i, j] covers i·cell…(i+1)·cell east, j·cell… north): what the barriers cover.
+        /// The great tree's trunk is left out: its own collider blocks there, and once it wakes the place is open.
         /// </summary>
-        public List<Rect> WallRects(float cell = .5f)
+        public bool[,] WallCells(float cell = .5f)
         {
             int n = Mathf.RoundToInt(TileTerrain.Size / cell);
             var wall = new bool[n, n];
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
                     wall[i, j] = WallDepth(new Vector2((i + .5f) * cell, (j + .5f) * cell)) > 0;
+            return wall;
+        }
+
+        /// <summary>Cells of a mask as rectangles: runs along rows merged with equal runs above.</summary>
+        public static List<Rect> Rects(bool[,] mask, float cell = .5f)
+        {
+            int n = mask.GetLength(0), m = mask.GetLength(1);
             var rects = new List<Rect>();
-            var done = new bool[n, n];
-            for (int j = 0; j < n; j++)
+            var done = new bool[n, m];
+            for (int j = 0; j < m; j++)
                 for (int i = 0; i < n; i++)
                 {
-                    if (!wall[i, j] || done[i, j]) continue;
+                    if (!mask[i, j] || done[i, j]) continue;
                     int i1 = i;
-                    while (i1 + 1 < n && wall[i1 + 1, j] && !done[i1 + 1, j]) i1++;
+                    while (i1 + 1 < n && mask[i1 + 1, j] && !done[i1 + 1, j]) i1++;
                     int j1 = j;
-                    while (j1 + 1 < n)
+                    while (j1 + 1 < m)
                     {
                         bool row = true;
-                        for (int k = i; k <= i1 && row; k++) if (!wall[k, j1 + 1] || done[k, j1 + 1]) row = false;
+                        for (int k = i; k <= i1 && row; k++) if (!mask[k, j1 + 1] || done[k, j1 + 1]) row = false;
                         if (!row) break;
                         j1++;
                     }

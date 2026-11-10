@@ -501,6 +501,57 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator WakingAGateTreeOrBurningTheBramblesOpensTheForestWall()
+        {
+            // The nearest cell of a giant forest with a walled side.
+            var map = streamer.Map;
+            ChunkPlan cell = null;
+            for (int x = -30; x <= 30; x++)
+                for (int y = -30; y <= 30; y++)
+                {
+                    var p = map.Chunk(x, y);
+                    if (!p.Forest || p.MazeHeart || !p.Mids.Contains(Mid.MazeWall)) continue;
+                    if (cell == null || x * x + y * y < cell.Coord.X * cell.Coord.X + cell.Coord.Y * cell.Coord.Y) cell = p;
+                }
+            Assert.That(cell, Is.Not.Null, "a giant forest within 480 m");
+            float size = map.Rules.ChunkSize;
+            var centre = streamer.root.position + new Vector3(cell.Coord.X * size, cell.BaseLevel * map.Rules.PlateauHeight, cell.Coord.Y * size);
+            world.motor.Teleport(centre + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(cell.Coord), 10);
+            for (int f = 0; f < 30; f++) yield return null;
+            var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(cell.Coord));
+
+            // From the middle of the cell towards its walled side: the wall stops a body, high over the root mounds.
+            int side = System.Array.IndexOf(cell.Mids, Mid.MazeWall);
+            var outward = side == (int)Side.North ? Vector3.forward : side == (int)Side.East ? Vector3.right : side == (int)Side.South ? Vector3.back : Vector3.left;
+            var from = centre + Vector3.up * 2.6f + outward * 1.5f;
+            bool Blocked() => Physics.SphereCastAll(from, .35f, outward, 6.2f, ~(1 << 4), QueryTriggerInteraction.Ignore)
+                .Any(h => h.collider.transform.IsChildOf(view.transform) && h.collider.gameObject.name == "Barrier");
+            Assert.That(Blocked(), Is.True, $"the wall of {view.name} towards {(Side)side}");
+            var edge = centre + outward * size / 2;
+            var gate = view.trees.Where(t => t && t.Standing).OrderBy(t => Vector3.Distance(Flat(t.transform.position), Flat(edge))).First();
+            Assert.That(Vector3.Distance(Flat(gate.transform.position), Flat(edge)), Is.LessThan(4.5f), "a gate tree stands at the walled side");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var eye = centre + Vector3.up * 1.7f - outward * 1.5f;
+            yield return Shot(dir, "play-gate-before", eye, edge + Vector3.up * 2.5f, centre + Vector3.up * 1.7f);
+            world.HideForOuting(gate.gameObject);
+            yield return null;
+            Assert.That(Blocked(), Is.False, "the woken gate tree took its wall with it");
+            yield return Shot(dir, "play-gate-after", eye, edge + Vector3.up * 2.5f, centre + Vector3.up * 1.7f);
+
+            // A bramble that burns to ash takes its piece of wall too.
+            var bramble = view.burnables.First(b => b && b.style == BurnStyle.Ash && b.transform.Find("Barrier"));
+            var piece = bramble.transform.Find("Barrier").GetComponent<Collider>();
+            Assert.That(piece.enabled, Is.True);
+            Assert.That(world.Ignite(null, bramble.Bounds.center, .5f, IgnitionSource.Fire), Is.GreaterThan(0), "fire takes the tangle");
+            yield return WaitFor(() => !piece.enabled, bramble.seconds + 3);
+            Assert.That(piece.enabled, Is.False, "the burnt bramble's wall is gone");
+        }
+
+        static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0, v.z);
+
+        [UnityTest]
         public IEnumerator TheAirThickensUnderTheGiantTreesAndClearsAfterTheOuting()
         {
             var air = streamer.GetComponent<WorldAtmosphere>();
