@@ -345,5 +345,111 @@
     "verification_scope": "Editor texture import, 6 full-cell sprite rectangles, common pivots/PPU/bounds and original source resolution. No gameplay scene or behaviour added."
   },
   "pixel_verification": "/Users/kayosac/.codex/visualizations/2026/11/09/01a1c008-16f9-7a71-aaf6-2e130818078d/zombie-beekeeper/verification.json",
-  "unity_verification": "unity-verification.json"
+  "unity_verification": "unity-verification.json",
+  "density_resample_2026_11_11": {
+    "ZombieBeekeeperAtlas.png": {
+      "texels_per_world_metre": 128,
+      "world_scale_basis": 1.25,
+      "source_size": [
+        4032,
+        2816
+      ],
+      "source_ppu": 728.2353,
+      "atlas_size": [
+        512,
+        1024
+      ],
+      "pixels_per_unit": 160.0,
+      "packing": "grid",
+      "cell": [
+        248,
+        275
+      ],
+      "columns": 2,
+      "rows": 3,
+      "sprites": [
+        {
+          "name": "ZombieBeekeeper_DefaultFront",
+          "rect_unity": [
+            0,
+            749,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        },
+        {
+          "name": "ZombieBeekeeper_DefaultBack",
+          "rect_unity": [
+            248,
+            749,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        },
+        {
+          "name": "ZombieBeekeeper_StartleFront",
+          "rect_unity": [
+            0,
+            474,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        },
+        {
+          "name": "ZombieBeekeeper_HurtFront",
+          "rect_unity": [
+            248,
+            474,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        },
+        {
+          "name": "ZombieBeekeeper_DeathFront",
+          "rect_unity": [
+            0,
+            199,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        },
+        {
+          "name": "ZombieBeekeeper_DeathBack",
+          "rect_unity": [
+            248,
+            199,
+            248,
+            275
+          ],
+          "pivot": [
+            0.5,
+            0.0072727
+          ]
+        }
+      ],
+      "originals": "output/sprite-density/originals/Enemies/ZombieBeekeeper/ZombieBeekeeperAtlas.png",
+      "tool": "output/sprite-density/tool/resample.py",
+      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+    }
+  }
 }

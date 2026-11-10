@@ -75,7 +75,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(view.deathBack, Is.SameAs(enemy.deathBack));
             Assert.That(AssetDatabase.GetAssetPath(view.idle), Does.EndWith("SinisterLivingTree/SinisterLivingTreeAtlas.png"));
             Assert.That(view.spriteRenderer.sharedMaterial, Is.SameAs(enemy.spriteRenderer.sharedMaterial), "The hand-drawn sprite shader.");
-            Assert.That(view.idle.pixelsPerUnit, Is.EqualTo(413).Within(.01f), "Manifest PPU.");
+            Assert.That(view.idle.pixelsPerUnit, Is.EqualTo(128).Within(.01f), "128 texels per world metre at size 1.");
             Assert.That(view.height, Is.EqualTo(3).Within(1e-4f), "Manifest: 3 m.");
             Assert.That(look.Height, Is.EqualTo(3).Within(1e-4f));
         }
