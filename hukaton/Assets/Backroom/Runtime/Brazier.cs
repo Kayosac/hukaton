@@ -14,9 +14,10 @@ namespace Hakaton.Backroom
 {
     /// <summary>
     /// The gas brazier in the backroom (board, «Гоблин-торговец», 11 and 13): it frees collection places by burning
-    /// copies. A small flame always burns in its bowl. Interacting lays every owned copy over the game view in a
-    /// scrolling grid of four: copies in the deck as they are, the rest shaded; the burn price on hover. Choosing one
-    /// asks to confirm the card and the sum; agreeing throws the card into the bowl and the flame jumps for a moment.
+    /// copies. The burner is off until someone comes to it: interacting clicks it alight (a campfire grows in the bowl)
+    /// and lays every owned copy over the game view in a scrolling grid of four: copies in the deck as they are, the
+    /// rest shaded; the burn price on hover. Choosing one asks to confirm the card and the sum; agreeing throws the card
+    /// into the bowl, where it flares up and burns. Leaving turns the burner down until the fire goes out.
     /// The list stays open for the next one. The three starting copies cannot burn. 75% of what was paid, rounded
     /// up — the rule lives in <see cref="DeckWorkshop.Burn"/>.
     /// </summary>
@@ -30,14 +31,15 @@ namespace Hakaton.Backroom
         [Header("World")]
         [Tooltip("The bowl: where the flame burns and cards land.")]
         public Transform firePoint;
-        [Tooltip("The small flame in the bowl (Retro Arsenal torch fire); burns all the time.")]
-        public GameObject flamePrefab;
-        [Tooltip("Flame size against the prefab's own.")]
+        [Tooltip("The campfire in the bowl; burns all the time.")]
+        public Campfire campfirePrefab;
+        [Tooltip("Campfire size against the prefab's own.")]
         [Min(.1f)] public float flameSize = 1;
-        [Tooltip("How much the flame jumps when a card lands in it.")]
-        [Min(1)] public float burnJump = 1.7f;
+        [Tooltip("How much the fire grows when a card lands in it.")]
+        [Min(1)] public float burnJump = 1.9f;
         public AudioSource audioSource;
-        [Tooltip("igniteSound: the burner's click and whoomp on opening; burnLoop: the fire roaring while the list is open.")]
+        [Tooltip("igniteSound: the burner's click and whoomp on opening; burnSound: a card catching in the fire; " +
+                 "burnLoop: the fire roaring while the list is open.")]
         public AudioClip igniteSound, burnSound, refuseSound;
         public AudioClip burnLoop;
         [Range(0, 1)] public float burnLoopVolume = .45f;
@@ -64,10 +66,10 @@ namespace Hakaton.Backroom
         public bool IsOpen { get; private set; }
         DeckWorkshop Model => workshop.Model;
         int pending;
-        Transform flame;
+        Campfire flame;
         AudioSource loop, fearVoice;
-        Vector3 flameScale;
         SpringFloat jump;
+        float fireTarget;
         readonly List<OfferCardView> tiles = new List<OfferCardView>();
 
         /// <summary>The cards currently in the list (tests, tools).</summary>
@@ -82,15 +84,22 @@ namespace Hakaton.Backroom
             SetVisible(confirmGroup, false);
         }
 
-        void OnEnable()
+        /// <summary>The burner catches: the fire grows from nothing with a little overshoot.</summary>
+        void Ignite()
         {
-            if (flame || !flamePrefab || !firePoint) return;
-            flame = Instantiate(flamePrefab, firePoint, false).transform;
-            flame.localPosition = Vector3.zero;
-            flame.localRotation = Quaternion.identity;
-            flameScale = flame.localScale * flameSize;
-            flame.localScale = flameScale;
-            jump.Snap(1);
+            if (!campfirePrefab || !firePoint) return;
+            if (!flame)
+            {
+                flame = Instantiate(campfirePrefab, firePoint, false);
+                flame.transform.localPosition = Vector3.zero;
+                flame.transform.localRotation = Quaternion.identity;
+                flame.transform.localScale = Vector3.one * flameSize;
+            }
+            flame.gameObject.SetActive(true);
+            fireTarget = 1;
+            jump.Snap(.15f);
+            jump.Kick(14);
+            flame.Strength = jump.Value;
         }
 
         void OnDisable()
@@ -110,7 +119,7 @@ namespace Hakaton.Backroom
             SetVisible(confirmGroup, false);
             // The burner clicks, catches with a whoomp and roars while the list is open.
             Play(igniteSound);
-            if (flame) jump.Snap(1.4f);
+            Ignite();
             if (burnLoop && audioSource)
             {
                 if (!loop) loop = MakeVoice(true);
@@ -131,15 +140,18 @@ namespace Hakaton.Backroom
             SetVisible(visibility, false);
             SetVisible(confirmGroup, false);
             if (fearVoice) fearVoice.Stop();
+            fireTarget = 0;
             if (control) control.SetBlocked(this, false);
         }
 
         void Update()
         {
-            if (flame)
+            if (flame && flame.gameObject.activeSelf)
             {
-                jump.Step(1, 9, .45f, Time.deltaTime);
-                flame.localScale = flameScale * Mathf.Max(.2f, jump.Value);
+                // Open: the fire holds; closed: the burner is turned down and the fire shrinks away.
+                jump.Step(fireTarget, fireTarget > 0 ? 9 : 3, fireTarget > 0 ? .45f : 1, Time.deltaTime);
+                flame.Strength = Mathf.Max(0, jump.Value);
+                if (fireTarget <= 0 && jump.Value < .03f) flame.gameObject.SetActive(false);
             }
             if (loop)
             {
@@ -239,16 +251,18 @@ namespace Hakaton.Backroom
                 Play(refuseSound);
                 return;
             }
-            Play(burnSound);
             if (tile) tile.FlyTo(FireOnScreen(tile), .05f);
-            // The flame jumps when the card reaches the bowl.
+            // The card catches when it reaches the bowl: a flare and the sound of it burning.
             Invoke(nameof(Flare), .55f);
             title.text = $"Жаровня  ·  коллекция {Model.Owned.Count} / {Model.CollectionLimit}";
         }
 
         void Flare()
         {
-            if (flame) jump.Snap(burnJump);
+            Play(burnSound);
+            if (!flame || !IsOpen) return;
+            jump.Snap(Mathf.Max(jump.Value, burnJump));
+            jump.Kick(4);
         }
 
         /// <summary>The fire's place in the tile's parent space, clamped to the screen so the throw always reads.</summary>
