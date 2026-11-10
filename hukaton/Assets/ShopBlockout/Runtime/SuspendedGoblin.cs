@@ -1,3 +1,4 @@
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.ShopBlockout
@@ -7,7 +8,9 @@ namespace Hakaton.ShopBlockout
         Stowed,
         OpeningHatch,
         Lowering,
-        Deployed
+        Deployed,
+        Raising,
+        ClosingHatch
     }
 
     /// <summary>Animates an authored ceiling rig. The body, hatch, cables and poses are all saved assets.</summary>
@@ -28,6 +31,8 @@ namespace Hakaton.ShopBlockout
         public Vector3 closedHatchEuler = Vector3.zero;
         public Vector3 openHatchEuler = new Vector3(95, 0, 0);
         public bool startDeployed;
+        [Tooltip("His card table: the overlay the player buys from once he is down.")]
+        public Hakaton.Backroom.GoblinCardShop table;
 
         [Header("Timing and weight")]
         [Min(.01f)]
@@ -60,7 +65,8 @@ namespace Hakaton.ShopBlockout
 
         public GoblinLiftState State { get; private set; }
         public bool IsDeployed => State == GoblinLiftState.Deployed;
-        public bool IsMoving => State == GoblinLiftState.OpeningHatch || State == GoblinLiftState.Lowering;
+        public bool IsMoving => State != GoblinLiftState.Stowed && State != GoblinLiftState.Deployed;
+        public bool IsStowed => State == GoblinLiftState.Stowed;
 
         bool initialized;
         float phaseTime;
@@ -104,6 +110,17 @@ namespace Hakaton.ShopBlockout
             return true;
         }
 
+        /// <summary>Back up through the hatch once the player is done with him.</summary>
+        public bool Raise()
+        {
+            if (!Initialize() || State != GoblinLiftState.Deployed) return false;
+            State = GoblinLiftState.Raising;
+            phaseTime = 0;
+            if (sound && pullSound) sound.PlayOneShot(pullSound, .3f);
+            Present();
+            return true;
+        }
+
         void Update() { Advance(Time.deltaTime); }
 
         void LateUpdate()
@@ -125,19 +142,25 @@ namespace Hakaton.ShopBlockout
             float remaining = deltaTime;
             while (IsMoving && remaining > 0)
             {
-                float duration =
-                    State == GoblinLiftState.OpeningHatch ? Mathf.Max(.01f, hatchSeconds) : Mathf.Max(.01f, lowerSeconds);
+                bool hatchPhase = State == GoblinLiftState.OpeningHatch || State == GoblinLiftState.ClosingHatch;
+                float duration = hatchPhase ? Mathf.Max(.01f, hatchSeconds) : Mathf.Max(.01f, lowerSeconds);
                 float spent = Mathf.Min(remaining, Mathf.Max(0, duration - phaseTime));
                 phaseTime += spent;
                 remaining -= spent;
                 if (phaseTime < duration) break;
                 phaseTime = 0;
-                if (State == GoblinLiftState.OpeningHatch)
-                    State = GoblinLiftState.Lowering;
-                else
+                switch (State)
                 {
-                    State = GoblinLiftState.Deployed;
-                    if (sound && arriveSound) sound.PlayOneShot(arriveSound, .25f);
+                    case GoblinLiftState.OpeningHatch: State = GoblinLiftState.Lowering; break;
+                    case GoblinLiftState.Lowering:
+                        State = GoblinLiftState.Deployed;
+                        if (sound && arriveSound) sound.PlayOneShot(arriveSound, .25f);
+                        break;
+                    case GoblinLiftState.Raising: State = GoblinLiftState.ClosingHatch; break;
+                    default:
+                        State = GoblinLiftState.Stowed;
+                        if (sound && arriveSound) sound.PlayOneShot(arriveSound, .18f);
+                        break;
                 }
             }
             Present();
@@ -148,17 +171,21 @@ namespace Hakaton.ShopBlockout
             float hatchTime = Mathf.Clamp01(phaseTime / Mathf.Max(.01f, hatchSeconds));
             float hatch = State == GoblinLiftState.Stowed ? 0
                 : State == GoblinLiftState.OpeningHatch   ? hatchMotion.Evaluate(hatchTime)
+                : State == GoblinLiftState.ClosingHatch   ? 1 - Ease.OutBack(hatchTime)
                                                           : 1;
             hatchHinge.localRotation =
                 Quaternion.SlerpUnclamped(Quaternion.Euler(closedHatchEuler), Quaternion.Euler(openHatchEuler), hatch);
             float stretch = State == GoblinLiftState.OpeningHatch ? hatchStretch.Evaluate(hatchTime) : 0;
             hatchHinge.localScale = Vector3.Scale(hatchRestScale, new Vector3(1 - stretch * .65f, 1, 1 + stretch));
+            float lowerTime = Mathf.Clamp01(phaseTime / Mathf.Max(.01f, lowerSeconds));
             float lower = State == GoblinLiftState.Deployed ? 1
-                : State == GoblinLiftState.Lowering         ? Mathf.Clamp01(phaseTime / Mathf.Max(.01f, lowerSeconds))
+                : State == GoblinLiftState.Lowering         ? lowerTime
+                : State == GoblinLiftState.Raising          ? 1 - lowerTime
                                                             : 0;
-            float eased = 1 - Mathf.Pow(1 - lower, 3);
+            // Down with a bounce; up he is yanked: slow start, quick finish.
+            float eased = State == GoblinLiftState.Raising ? 1 - Ease.InCubic(lowerTime) : 1 - Mathf.Pow(1 - lower, 3);
             Vector3 position = Vector3.Lerp(stowedPose.position, deployedPose.position, eased);
-            position += Vector3.down * (Mathf.Sin(lower * Mathf.PI) * lower * lower * landingOvershoot);
+            if (State != GoblinLiftState.Raising) position += Vector3.down * (Mathf.Sin(lower * Mathf.PI) * lower * lower * landingOvershoot);
             goblinRoot.position = position;
             float pull = State == GoblinLiftState.OpeningHatch
                 ? Mathf.Sin(Mathf.Clamp01(phaseTime / Mathf.Max(.01f, hatchSeconds)) * Mathf.PI)

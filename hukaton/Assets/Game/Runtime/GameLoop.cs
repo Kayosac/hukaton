@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hakaton.Backroom;
 using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
@@ -54,13 +55,16 @@ namespace Hakaton.Game
         public string LastNotice { get; private set; }
         public bool Ready { get; private set; }
         bool restoring, dirty, goalCelebrated, preserveInvalidSave;
+        GoblinCardShop cardShop => services.cardShop;
         long activeOuting;
+        bool shopWasOpen;
+        int salesAtOpen;
         float noticeUntil, nextTimedSave;
 
         void Start()
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
-                || !services || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
+                || !services || !services.cardShop || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
                 || !objectiveLabel || !resultLabel
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
@@ -68,6 +72,7 @@ namespace Hakaton.Game
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
             workshop.Model.Changed += MarkDirty;
+            cardShop.Visits.Changed += MarkDirty;
             restoring = true;
             string warning = null;
             if (persistProgress)
@@ -94,6 +99,7 @@ namespace Hakaton.Game
             if (workshop) workshop.OutingCompleted -= CompleteOuting;
             if (trade?.Session != null) trade.Session.Changed -= MarkDirty;
             if (workshop?.Model != null) workshop.Model.Changed -= MarkDirty;
+            if (services && cardShop) cardShop.Visits.Changed -= MarkDirty;
         }
         void OnApplicationQuit() { SaveNow(); }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
@@ -102,9 +108,10 @@ namespace Hakaton.Game
         void LateUpdate()
         {
             if (!Ready) return;
+            TrackShift();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
-                if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !workshop.EmbeddedOpen)
+                if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen)
                 {
                     goalCelebrated = true; dirty = true;
                     if (sfx) sfx.Play(goalCue);
@@ -116,6 +123,14 @@ namespace Hakaton.Game
                 if (dirty || Time.unscaledTime >= nextTimedSave) SaveNow();
             }
             RefreshProgress();
+        }
+        /// <summary>A worked shift (a sale, then the shop closed) lets the goblin card dealer come again.</summary>
+        void TrackShift()
+        {
+            bool open = trade.Session.IsOpen;
+            if (open && !shopWasOpen) salesAtOpen = trade.Session.SalesCount;
+            if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
+            shopWasOpen = open;
         }
         bool progressHudLost;
         void RefreshProgress()
@@ -132,7 +147,7 @@ namespace Hakaton.Game
                 }
                 return;
             }
-            progressCanvas.enabled = Phase == GamePhase.Shop && !workshop.EmbeddedOpen && !trade.Session.IsOpen;
+            progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
             objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
@@ -206,6 +221,7 @@ namespace Hakaton.Game
             activeOuting = 0;
             SetPhase(GamePhase.Shop);
             restoring = false;
+            cardShop.Visits.OutingReturned();
             int kept = delivery.Sum(x => x.count);
             Notify(defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
@@ -229,7 +245,7 @@ namespace Hakaton.Game
         }
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated,
-            cards = workshop.Model.Save(), shop = trade.Session.Save()
+            cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save()
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
@@ -242,6 +258,7 @@ namespace Hakaton.Game
             if (!trade.Session.TryRestore(save.shop) || !workshop.Model.TryRestoreProgress(save.cards))
             { restoring = wasRestoring; return false; }
             wallet.Wallet.TryRestoreBalance(save.coins);
+            if (save.goblin != null) cardShop.Visits.TryRestore(save.goblin, id => workshop.Model.Spec(id) != null);
             goalCelebrated = save.goalCelebrated;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;

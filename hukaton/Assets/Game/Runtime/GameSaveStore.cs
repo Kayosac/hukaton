@@ -14,6 +14,8 @@ namespace Hakaton.Game
         public bool goalCelebrated;
         public WorkshopSave cards;
         public TradingSave shop;
+        /// <summary>The goblin card dealer: his current ten, its reveal, purchases and when he may come again. Null in old saves.</summary>
+        public GoblinSave goblin;
     }
 
     /// <summary>One safe-shop snapshot for the entire economy; physical outings are not resumed halfway.</summary>
