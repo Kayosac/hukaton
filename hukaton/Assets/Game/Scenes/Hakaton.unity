@@ -2990,6 +2990,7 @@ MonoBehaviour:
   content: {fileID: 11400000, guid: 3217ab986009940129f1060a0ac29e46, type: 2}
   root: {fileID: 2082276105}
   player: {fileID: 1042966977}
+  fire: {fileID: 509087953}
   loadRadius: 72
   unloadRadius: 104
   loadsPerFrame: 2
@@ -3010,6 +3011,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2082276105}
+  - {fileID: 509087954}
+  - {fileID: 1721530189}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &308764317
@@ -3127,6 +3130,7 @@ MonoBehaviour:
   settle: 2.5
   rainCell: 170
   rainCover: {x: 0.18, y: 0.38}
+  postProcess: {fileID: 1721530190}
   groundMaterial: {fileID: 2100000, guid: ac7819c3928ea4115806c20fbf19795d, type: 2}
   plantTint: 0.75
 --- !u!1 &315693557
@@ -5942,6 +5946,65 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1150446505}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &509087952
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 509087954}
+  - component: {fileID: 509087953}
+  m_Layer: 0
+  m_Name: Fire
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &509087953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 509087952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69f4db47fd79241fbb818d01e44913d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.OldApiary::Hakaton.OldApiary.BurnableField
+  world: {fileID: 218823678}
+  burnables: []
+  catchReach: 0.5
+  spreadReach: 0.9
+  spreadAt: 0.5
+  thornReach: 1.2
+  maxBurning: 40
+  ashHeight: 0.2
+  flare: {fileID: 6180002298220389876, guid: 1c053b046a88e4e7b8c543f06e64b7e2, type: 3}
+  flames: {fileID: 3012070673887216586, guid: 40b80550388374f72a36150a39fb3d81, type: 3}
+  igniteSound: {fileID: 11400000, guid: a7ef1d25e7e664753b75a51a4803f109, type: 2}
+  burnLoop: {fileID: 11400000, guid: 3070caddd61f843dd8ba16ca7c10784a, type: 2}
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  hot: {r: 1, g: 0.55, b: 0.2, a: 1}
+  charred: {r: 0.12, g: 0.1, b: 0.09, a: 1}
+--- !u!4 &509087954
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 509087952}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 308764316}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &514326487
 GameObject:
@@ -18931,6 +18994,55 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1337578447610349232, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
   m_PrefabInstance: {fileID: 1712732457}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1721530188
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1721530189}
+  - component: {fileID: 1721530190}
+  m_Layer: 0
+  m_Name: World post-process
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1721530189
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721530188}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 308764316}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1721530190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721530188}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 1
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 3f85198cfad884f35bd02beebad7482a, type: 2}
 --- !u!1 &1727567408
 GameObject:
   m_ObjectHideFlags: 0

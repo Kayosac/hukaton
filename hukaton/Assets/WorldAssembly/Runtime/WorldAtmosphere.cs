@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Hakaton.WorldAssembly.Unity
 {
@@ -62,6 +63,10 @@ namespace Hakaton.WorldAssembly.Unity
         [Min(16)] public float rainCell = 170;
         public Vector2 rainCover = new Vector2(.18f, .38f);
 
+        [Header("Post-processing")]
+        [Tooltip("The static location's look (WorldPP): a global volume switched on only while the endless world is out there.")]
+        public Volume postProcess;
+
         [Header("Plants")]
         [Tooltip("The world's ground material: its biome patches (lush, dry, damp) colour the plants too.")]
         public Material groundMaterial;
@@ -88,6 +93,7 @@ namespace Hakaton.WorldAssembly.Unity
         {
             streamer = GetComponent<WorldStreamer>();
             silhouettes = GetComponent<FarSilhouettes>();
+            if (postProcess) postProcess.enabled = false;
         }
 
         void LateUpdate()
@@ -114,6 +120,7 @@ namespace Hakaton.WorldAssembly.Unity
         void Begin()
         {
             active = true;
+            if (postProcess) postProcess.enabled = true;
             baseFog = RenderSettings.fogDensity;
             baseColour = RenderSettings.fogColor;
             baseAmbient = RenderSettings.ambientIntensity;
@@ -135,6 +142,7 @@ namespace Hakaton.WorldAssembly.Unity
         void End()
         {
             active = false;
+            if (postProcess) postProcess.enabled = false;
             RenderSettings.fogDensity = baseFog;
             RenderSettings.fogColor = baseColour;
             RenderSettings.ambientIntensity = baseAmbient;

@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Game;
+using Hakaton.OldApiary;
 using Hakaton.WorldAssembly.Unity;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -365,13 +367,15 @@ namespace Hakaton.WorldAssembly.Tests
             // The air of each place: settles at once for the photos.
             var air = streamer.GetComponent<WorldAtmosphere>();
             if (air) air.settle = .05f;
-            var moods = new List<string> { WorldAtmosphere.Rain, WorldAtmosphere.Storm, WorldAtmosphere.Swamp, WorldAtmosphere.High, WorldAtmosphere.Water };
+            // Not over water: the player standing there would drown and end the outing.
+            var moods = new List<string> { WorldAtmosphere.Rain, WorldAtmosphere.Storm, WorldAtmosphere.Swamp, WorldAtmosphere.High };
             var home = world.motor.transform.position;
             for (int step = 0; step < 20 && wanted.Count > 0; step++)
             {
                 var spot = home + new Vector3(step * 40, 0, step * 25);
                 world.motor.Teleport(spot, Quaternion.identity);
                 for (int f = 0; f < 50; f++) yield return null;
+                if (!streamer.Active) { Debug.Log($"[World] photo walk: the outing ended at step {step}"); break; }
                 foreach (var key in wanted.Keys.ToList())
                 {
                     var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).FirstOrDefault(wanted[key]);
@@ -435,6 +439,65 @@ namespace Hakaton.WorldAssembly.Tests
             var backEye = (under.Count > 0 ? under[0].point : world.motor.transform.position) + Vector3.up * 1.7f;
             yield return Shot(dir, "play-far-back", backEye, home + Vector3.up * 6);
             Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys.Concat(moods.Select(m => "air " + m))));
+        }
+
+        [UnityTest]
+        public IEnumerator ChunksBurnAwakenAndRollLikeTheOldApiary()
+        {
+            Assert.That(streamer.fire, Is.Not.Null, "the endless world runs fire");
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            Assert.That(air.postProcess, Is.Not.Null, "the static location's post-processing");
+            Assert.That(air.postProcess.enabled && air.postProcess.isGlobal && air.postProcess.sharedProfile, Is.True, "post-processing on during the outing");
+            var views = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None);
+            int burnables = views.Sum(v => v.burnables.Length), trees = views.Sum(v => v.trees.Length), props = views.Sum(v => v.props.Length);
+            Debug.Log($"[World] loaded chunks: {burnables} burnables, {trees} trees to awaken, {props} loose props");
+            Assert.That(burnables, Is.GreaterThan(300), "grass, bushes and wood burn");
+            Assert.That(trees, Is.GreaterThan(20), "trees can be awakened");
+            Assert.That(props, Is.GreaterThan(5), "loose things can be pushed");
+            Assert.That(views.SelectMany(v => v.trees).All(t => t && t.GetComponentInChildren<Collider>()), Is.True, "a card can hit every awakenable tree");
+            yield return null;
+
+            // Fire takes the grass of a chunk by the start and spreads.
+            var start = world.motor.transform.position;
+            var view = views.Where(v => v.burnables.Count(b => b && b.style == BurnStyle.Ash && b.isActiveAndEnabled) > 6)
+                .OrderBy(v => Vector3.Distance(v.transform.position, start)).First();
+            var coord = streamer.CoordAt(view.transform.position);
+            int grassIndex = System.Array.FindIndex(view.burnables, b => b && b.style == BurnStyle.Ash && b.isActiveAndEnabled);
+            var grass = view.burnables[grassIndex];
+            Assert.That(world.Ignite(null, grass.Bounds.center, .5f, IgnitionSource.Fire), Is.GreaterThan(0), $"Fire lights the grass of {view.name}");
+            yield return WaitFor(() => streamer.fire.Lit > 1, 6);
+            Assert.That(streamer.fire.Lit, Is.GreaterThan(1), "flames spread to the neighbours");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var flame = grass.Bounds.center;
+            yield return Shot(dir, "play-fire", flame + new Vector3(-4.5f, 2.2f, -4.5f), flame, start + Vector3.up * 1.6f);
+
+            // A tree comes alive (as the card hides it), a loose prop is kicked away.
+            int treeIndex = System.Array.FindIndex(view.trees, t => t && t.Standing);
+            var treeView = treeIndex >= 0 ? view : views.First(v => v.trees.Any(t => t && t.Standing));
+            if (treeIndex < 0) treeIndex = System.Array.FindIndex(treeView.trees, t => t && t.Standing);
+            var treeCoord = streamer.CoordAt(treeView.transform.position);
+            world.HideForOuting(treeView.trees[treeIndex].gameObject);
+            var prop = views.SelectMany(v => v.props).First(p => p && p.body && !p.body.isKinematic);
+            var before = prop.body.position;
+            prop.body.AddForce(Vector3.up * 4 + Vector3.right * 3, ForceMode.VelocityChange);
+            for (int f = 0; f < 20; f++) yield return null;
+            Assert.That(Vector3.Distance(prop.body.position, before), Is.GreaterThan(.3f), "a loose prop flies when pushed");
+
+            // Far away and back: the chunks come back burnt and with the empty place of the tree.
+            for (int f = 0; f < 240 && streamer.fire.Burning > 0; f++) yield return null;
+            var away = start + new Vector3(260, 0, 260);
+            world.motor.Teleport(away + Vector3.up * 30, Quaternion.identity);
+            yield return WaitFor(() => !streamer.IsLoaded(coord) && !streamer.IsLoaded(treeCoord), 10);
+            Assert.That(streamer.IsLoaded(coord), Is.False, "the burnt chunk unloads");
+            world.motor.Teleport(start, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(coord) && streamer.IsLoaded(treeCoord), 10);
+            for (int f = 0; f < 5; f++) yield return null;
+            ChunkView At(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(c));
+            var again = At(coord).burnables[grassIndex];
+            Assert.That(streamer.fire.Touched(again), Is.True, "the grass is still burnt");
+            Assert.That(again.GetComponentsInChildren<Renderer>().All(r => !r.enabled), Is.True, "burnt to ash");
+            Assert.That(At(treeCoord).trees[treeIndex].gameObject.activeSelf, Is.False, "the awakened tree's place stays empty");
         }
 
         [UnityTest]

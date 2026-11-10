@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Feel;
+using Hakaton.OldApiary;
 using Hakaton.WorldAssembly.Unity;
 using UnityEditor;
 using UnityEngine;
@@ -80,6 +82,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             string meshPath = $"{folder}/{name} data.asset";
             AssetDatabase.DeleteAsset(meshPath);
 
+            placed.Clear();
             var go = new GameObject(name);
             var view = go.AddComponent<ChunkView>();
             view.shapeId = shape.Id;
@@ -109,6 +112,7 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             Crossings(go.transform, terrain, rng);
             Dress(go.transform, terrain, rng);
+            Interactive(view);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
             Sockets(view, terrain, rng);
@@ -430,6 +434,100 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (tree) foreach (var c in tree.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
                 }
             }
+        }
+
+        // ---------- alive as the Old Apiary ----------
+
+        /// <summary>Every ForestArt piece placed on the chunk being built, with its asset path ("Plants/FA_VG04_GrassLow").</summary>
+        static readonly List<(GameObject go, string asset)> placed = new List<(GameObject, string)>();
+
+        /// <summary>What burns and how, by prefab, as the Old Apiary has it: Ash burns away, Char stays black.</summary>
+        static readonly Dictionary<string, (BurnStyle style, float seconds)> BurnRules = new Dictionary<string, (BurnStyle, float)>
+        {
+            ["FA_VG01_FernLow"] = (BurnStyle.Ash, 1.4f), ["FA_VG02_FernTall"] = (BurnStyle.Ash, 1.6f), ["FA_VG03_FernDrooping"] = (BurnStyle.Ash, 1.4f),
+            ["FA_VG04_GrassLow"] = (BurnStyle.Ash, 1.1f), ["FA_VG05_GrassTall"] = (BurnStyle.Ash, 1.4f), ["FA_VG06_GrassSparse"] = (BurnStyle.Ash, 1.1f),
+            ["FA_VG07_GrassDrooping"] = (BurnStyle.Ash, 1.3f), ["FA_VG08_BushRound"] = (BurnStyle.Ash, 2.2f), ["FA_VG09_BushTallThorny"] = (BurnStyle.Ash, 2.4f),
+            ["FA_VG10_ThornThicket"] = (BurnStyle.Char, 3f), ["FA_VG11_BroadLeavesLow"] = (BurnStyle.Ash, 1.2f), ["FA_VG12_BroadLeavesTall"] = (BurnStyle.Ash, 1.5f),
+            ["FA_TR07_YoungStraight"] = (BurnStyle.Ash, 4.5f), ["FA_TR08_YoungBow"] = (BurnStyle.Ash, 4.5f), ["FA_TR09_YoungFork"] = (BurnStyle.Ash, 4.5f),
+            ["FA_DW01_LogWhole"] = (BurnStyle.Char, 6f), ["FA_DW02_LogSplit"] = (BurnStyle.Char, 5f), ["FA_DW03_LogHollow"] = (BurnStyle.Char, 6f),
+            ["FA_DW04_LogRotten"] = (BurnStyle.Char, 5f), ["FA_DW09_SticksSmall"] = (BurnStyle.Ash, 2f), ["FA_DW10_SticksLarge"] = (BurnStyle.Ash, 2.6f),
+            ["FA_DW11_BranchForked"] = (BurnStyle.Ash, 2f), ["FA_DW12_BarkSlab"] = (BurnStyle.Ash, 1.6f),
+            ["FA_ST01_FenceSection"] = (BurnStyle.Char, 4f), ["FA_ST02_FenceBroken"] = (BurnStyle.Char, 4f), ["FA_ST03_FenceCorner"] = (BurnStyle.Char, 4f),
+            ["FA_ST04_Post"] = (BurnStyle.Char, 4f), ["FA_ST05_PostCrooked"] = (BurnStyle.Char, 4f), ["FA_ST06_GateCrooked"] = (BurnStyle.Char, 4f),
+            ["FA_ST07_GateRuined"] = (BurnStyle.Char, 4f), ["FA_ST12_Bench"] = (BurnStyle.Char, 5f),
+            ["FA_MK01_SignArrow"] = (BurnStyle.Char, 3f), ["FA_MK02_SignFork"] = (BurnStyle.Char, 3f), ["FA_MK03_SignBroken"] = (BurnStyle.Char, 3f),
+            ["FA_MK07_ClothShort"] = (BurnStyle.Ash, 1.2f), ["FA_MK08_ClothLong"] = (BurnStyle.Ash, 1.2f), ["FA_MK09_ClothPennants"] = (BurnStyle.Ash, 1.2f),
+            ["FA_MK10_CharmTwigDiamond"] = (BurnStyle.Ash, 1f), ["FA_MK11_CharmHerbs"] = (BurnStyle.Ash, 1f), ["FA_MK17_MobileTwigs"] = (BurnStyle.Ash, 1f),
+            ["FA_MK13_CageSmall"] = (BurnStyle.Ash, 2f), ["FA_MK14_CageCrooked"] = (BurnStyle.Ash, 2f),
+            ["FA_PR11_SackSmall"] = (BurnStyle.Ash, 2.2f), ["FA_PR12_SackLarge"] = (BurnStyle.Ash, 2.8f), ["FA_PR13_CrateClosed"] = (BurnStyle.Ash, 3.4f),
+            ["FA_PR14_CrateOpen"] = (BurnStyle.Ash, 3.4f), ["FA_PR15_HerbBundle"] = (BurnStyle.Ash, 1f),
+            ["FA_SP04_Beehive"] = (BurnStyle.Ash, 3.6f), ["FA_SP09_Scarecrow"] = (BurnStyle.Ash, 4f),
+        };
+
+        /// <summary>Loose things the player and cards push about, with their mass at scale 1 (the Old Apiary's bodies).</summary>
+        static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
+        {
+            ["FA_DW01_LogWhole"] = 5, ["FA_DW02_LogSplit"] = 3, ["FA_DW04_LogRotten"] = 3, ["FA_DW09_SticksSmall"] = .4f, ["FA_DW10_SticksLarge"] = 1.5f,
+            ["FA_DW11_BranchForked"] = .5f, ["FA_DW12_BarkSlab"] = .3f,
+            ["FA_PR02_LanternGround"] = .5f, ["FA_PR04_CandleThick"] = .15f, ["FA_PR05_CandlesDish"] = .3f, ["FA_PR06_BottleSquat"] = .2f,
+            ["FA_PR07_BottleTall"] = .2f, ["FA_PR09_PotLow"] = .3f, ["FA_PR10_Pitcher"] = .35f, ["FA_PR11_SackSmall"] = .6f, ["FA_PR12_SackLarge"] = 1.2f,
+            ["FA_PR13_CrateClosed"] = 1.6f, ["FA_PR14_CrateOpen"] = 1.3f, ["FA_SP04_Beehive"] = 1.8f, ["FA_MK13_CageSmall"] = .5f, ["FA_MK14_CageCrooked"] = .8f,
+        };
+
+        /// <summary>
+        /// Makes the chunk's things as alive as the Old Apiary's (its authoring rules): grass, bushes, young trees, wood,
+        /// sacks and hives burn (<see cref="Burnable"/>, run by the streamer's fire field); every tree that stands with
+        /// its own collider can be awakened (<see cref="AwakenableTree"/>); light loose things get a body and are pushed
+        /// about (<see cref="PhysicsProp"/>). Pieces of card obstacles (thorn walls) keep to their obstacle; dressing
+        /// that lost its colliders (inside maze and forest walls) only burns; big pieces (a log bridge) stay put.
+        /// </summary>
+        static void Interactive(ChunkView view)
+        {
+            var burnables = new List<Burnable>();
+            var trees = new List<AwakenableTree>();
+            var props = new List<PhysicsProp>();
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || asset.StartsWith("VFX/") || go.GetComponentInParent<WorldObstacle>()) continue;
+                string id = asset.Substring(asset.LastIndexOf('/') + 1);
+                var colliders = go.GetComponentsInChildren<Collider>();
+                var scale = go.transform.lossyScale;
+                if (BurnRules.TryGetValue(id, out var burn))
+                {
+                    var b = go.AddComponent<Burnable>();
+                    // What dresses a maze or forest wall only chars: burnt away it would bare the barrier behind.
+                    b.style = InWall(go.transform) ? BurnStyle.Char : burn.style;
+                    b.seconds = burn.seconds;
+                    burnables.Add(b);
+                }
+                if (asset.StartsWith("Trees/") && colliders.Length > 0) trees.Add(go.AddComponent<AwakenableTree>());
+                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0
+                    && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
+                    && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
+                if (loose)
+                {
+                    // Set a hair above the ground, so it settles instead of springing out of it.
+                    go.transform.position += Vector3.up * .05f;
+                    var body = go.AddComponent<Rigidbody>();
+                    body.mass = mass * Mathf.Abs(scale.x * scale.y * scale.z);
+                    body.angularDamping = .05f;
+                    body.interpolation = RigidbodyInterpolation.Interpolate;
+                    body.collisionDetectionMode = body.mass < 1 ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
+                    var prop = go.AddComponent<PhysicsProp>();
+                    prop.body = body;
+                    props.Add(prop);
+                }
+            }
+            view.burnables = burnables.ToArray();
+            view.trees = trees.ToArray();
+            view.props = props.ToArray();
+        }
+
+        static bool InWall(Transform t)
+        {
+            for (var p = t.parent; p; p = p.parent)
+                if (p.name == "Forest" || p.name == "Stone walls") return true;
+            return false;
         }
 
         // ---------- the giant tangled forest ----------
@@ -1155,6 +1253,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             lastFall = 0;
             if (!prefab) return null;
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            placed.Add((go, asset));
             go.transform.localPosition = new Vector3(p.x - 8, 0, p.y - 8);
             go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = scale;

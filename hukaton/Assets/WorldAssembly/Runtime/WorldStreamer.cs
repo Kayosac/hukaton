@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Hakaton.Expeditions;
 using Hakaton.Feel;
+using Hakaton.OldApiary;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,7 +11,9 @@ namespace Hakaton.WorldAssembly.Unity
     /// The endless world of the outing (Kayospace «Открытый мир v2»): a new <see cref="WorldMap"/> each outing, chunk
     /// prefabs loaded around the player and unloaded behind, each with its own baked navigation joined to its
     /// neighbours by links. What happened in a chunk is remembered when it unloads (loot taken, creatures hurt or
-    /// dead, ice and burnt thickets, moved props, things lying around) and restored when it loads again.
+    /// dead, ice and burnt thickets, moved props, burnt grass and wood, trees that came alive, things lying around) and
+    /// restored when it loads again. Chunks are as alive as the Old Apiary: what burns there burns here (through
+    /// <see cref="fire"/>), its trees can be awakened, its loose props pushed about.
     /// </summary>
     public sealed class WorldStreamer : MonoBehaviour, IOutingWorld
     {
@@ -21,6 +24,8 @@ namespace Hakaton.WorldAssembly.Unity
         public Transform root;
         [Tooltip("Whose position decides what is loaded (the player).")]
         public Transform player;
+        [Tooltip("Runs fire across the loaded chunks' burnables, as the Old Apiary's own field does there.")]
+        public BurnableField fire;
 
         [Header("Streaming")]
         [Min(16)] public float loadRadius = 72;
@@ -55,6 +60,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly Dictionary<int, (bool alive, int health, Vector3 position)> creatures = new Dictionary<int, (bool, int, Vector3)>();
             public readonly HashSet<int> resolved = new HashSet<int>();
             public readonly Dictionary<int, (Vector3 position, Quaternion rotation)> props = new Dictionary<int, (Vector3, Quaternion)>();
+            public readonly HashSet<int> burnt = new HashSet<int>();
+            public readonly HashSet<int> awakened = new HashSet<int>();
             public readonly List<GameObject> loose = new List<GameObject>();
         }
 
@@ -446,14 +453,31 @@ namespace Hakaton.WorldAssembly.Unity
                 o.world = world;
                 if (mem != null && mem.resolved.Contains(i)) o.ResolveAtOnce(); else o.ResetForOuting();
                 world.obstacles.Add(o);
+                if (fire) fire.JoinThorns(o);
             }
             for (int i = 0; i < view.props.Length; i++)
             {
                 var p = view.props[i];
                 if (!p) continue;
-                if (mem != null && mem.props.TryGetValue(i, out var pose)) { p.body.position = pose.position; p.body.rotation = pose.rotation; p.transform.SetPositionAndRotation(pose.position, pose.rotation); }
+                // A prop that fell out of the world comes back where it was made.
+                if (mem != null && mem.props.TryGetValue(i, out var pose) && pose.position.y > position.y - 20)
+                {
+                    p.body.position = pose.position;
+                    p.body.rotation = pose.rotation;
+                    p.transform.SetPositionAndRotation(pose.position, pose.rotation);
+                }
                 world.props.Add(p);
             }
+            for (int i = 0; i < view.trees.Length; i++)
+                if (view.trees[i] && mem != null && mem.awakened.Contains(i)) view.trees[i].gameObject.SetActive(false);
+            if (fire)
+                for (int i = 0; i < view.burnables.Length; i++)
+                {
+                    var b = view.burnables[i];
+                    if (!b) continue;
+                    fire.Join(b);
+                    if (mem != null && mem.burnt.Contains(i)) fire.Burnt(b);
+                }
 
             SpawnLoot(entry, mem);
             SpawnCreatures(entry, mem);
@@ -567,7 +591,17 @@ namespace Hakaton.WorldAssembly.Unity
                     if (entry.view.obstacles[i] && entry.view.obstacles[i].Resolved) mem.resolved.Add(i);
                 for (int i = 0; i < entry.view.props.Length; i++)
                     if (entry.view.props[i]) mem.props[i] = (entry.view.props[i].transform.position, entry.view.props[i].transform.rotation);
+                for (int i = 0; i < entry.view.burnables.Length; i++)
+                    if (fire && fire.Touched(entry.view.burnables[i])) mem.burnt.Add(i);
+                // A tree that came alive walks on as an ally; its chunk keeps the empty place.
+                for (int i = 0; i < entry.view.trees.Length; i++)
+                    if (entry.view.trees[i] && !entry.view.trees[i].gameObject.activeSelf) mem.awakened.Add(i);
                 HideLoose(coord, mem);
+            }
+            if (fire)
+            {
+                foreach (var b in entry.view.burnables) fire.Leave(b);
+                foreach (var o in entry.view.obstacles) fire.LeaveThorns(o);
             }
             if (world)
             {
