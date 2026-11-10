@@ -26,7 +26,7 @@ namespace Hakaton.ShopBlockout
         void Awake()
         {
             // The rig is a prefab without scene references: hand it the shared collection and the player's controls.
-            if (cardShop) cardShop.Bind(workshop, workshop ? workshop.control : null);
+            if (cardShop) cardShop.Bind(workshop, workshop ? workshop.control : null, brazier ? brazier.viewCamera : null);
         }
 
         public bool IsOpen => workshop && workshop.EmbeddedOpen || computer && computer.IsOpen || cardShop && cardShop.IsOpen || brazier && brazier.IsOpen;
