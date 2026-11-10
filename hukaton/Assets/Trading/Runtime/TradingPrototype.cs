@@ -318,8 +318,10 @@ namespace Hakaton.Trading.Unity
                 bool overItem = displayed[i] && hit.collider.transform.IsChildOf(displayed[i].transform);
                 if (!overItem && hit.collider != World.SlotColliders[i]) continue;
                 hoveredSlot = i;
+                // The paper card names the goods and their base price, as when stocking.
+                FocusedItem = item;
                 ContextPrompt = "ЛКМ  Предложить";
-                ContextDetail = $"{item.Definition.Name} · {item.Definition.RecommendedPrice} монет";
+                ContextDetail = string.Empty;
                 if (mouse.leftButton.wasPressedThisFrame) SelectCustomerItem(i, Session.CurrentCustomer.Id);
                 break;
             }

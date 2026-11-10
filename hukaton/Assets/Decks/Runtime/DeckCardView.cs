@@ -10,7 +10,7 @@ namespace Hakaton.Decks.Unity
     {
         public Button button;
         public Image art, outline, selectionMark;
-        public TMP_Text caption, status;
+        public TMP_Text caption, status, levelMark;
         public CanvasGroup group;
         public Color normalColor = new Color(.27f, .31f, .27f), selectedColor = new Color(.83f, .68f, .40f);
         public int CopyId { get; private set; }
@@ -31,13 +31,14 @@ namespace Hakaton.Decks.Unity
             button.interactable = !value;
         }
         public void Bind(
-            Sprite sprite, string captionText, string statusText, int copyId, string definitionId, bool isSelected, bool equipped)
+            Sprite sprite, string captionText, string statusText, int copyId, string definitionId, bool isSelected, bool equipped, int level = 1)
         {
             gameObject.SetActive(true);
             CopyId = copyId;
             DefinitionId = definitionId;
             selected = isSelected;
             art.sprite = sprite;
+            CardLevelPresentation.SetMark(levelMark, level);
             caption.text = captionText;
             status.text = statusText;
             outline.color = isSelected ? selectedColor : normalColor;

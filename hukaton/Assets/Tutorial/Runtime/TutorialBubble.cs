@@ -9,7 +9,8 @@ namespace Hakaton.Tutorial
     {
         public CanvasGroup group;
         public DialogueBubbleLayout bubble;
-        public TMP_Text continueHint;
+        [Tooltip("«E — дальше» in the bottom-right corner while a line waits.")]
+        public ContinueHint continueHint;
 
         public bool Visible => group && group.alpha > 0;
 
@@ -17,7 +18,7 @@ namespace Hakaton.Tutorial
         {
             bubble.SetText(line);
             group.alpha = 1;
-            if (continueHint) continueHint.gameObject.SetActive(waitForPlayer);
+            if (continueHint) continueHint.Show(waitForPlayer);
         }
 
         public void Hide()

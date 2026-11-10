@@ -45,6 +45,7 @@ namespace Hakaton.Decks.Unity
         public DeckCardView[] collectionViews;
         public DeckRowView[] deckRows;
         public Image detailArt, detailAccent;
+        public TMP_Text detailLevelMark;
         public TMP_Text detailTitle, detailIdentity, detailPower, detailDescription;
 
         public event Action Departed;
@@ -238,7 +239,7 @@ namespace Hakaton.Decks.Unity
             }
             MergeSource = copy.Id;
             Sound(config.cardSound);
-            SetFeedback($"Выберите вторую копию «{copy.Spec.Name}» уровня {copy.LevelNumeral}.");
+            SetFeedback($"Выберите вторую копию «{copy.Spec.Name}» уровня {copy.Level}.");
             RefreshWorkshop();
         }
 
@@ -246,8 +247,8 @@ namespace Hakaton.Decks.Unity
         {
             if (copy == null) return "Выберите копию.";
             if (!copy.Spec.Mergeable) return "Эту карту нельзя объединить.";
-            if (copy.Level >= Model.Rules.MaxCardLevel) return "Уровень III — максимум.";
-            return $"Нужна вторая «{copy.Spec.Name}» уровня {copy.LevelNumeral}.";
+            if (copy.Level >= Model.Rules.MaxCardLevel) return "Уровень 3 — максимум.";
+            return $"Нужна вторая «{copy.Spec.Name}» уровня {copy.Level}.";
         }
 
         bool TryMergeWith(int partner)
@@ -262,7 +263,7 @@ namespace Hakaton.Decks.Unity
             }
             SelectedCopyId = result.Id;
             page = Model.Owned.ToList().FindIndex(c => c.Id == result.Id) / collectionViews.Length;
-            Result(null, $"«{result.Spec.Name}» теперь уровня {result.LevelNumeral}.", mergeSound ? mergeSound : config.coinSound);
+            Result(null, $"«{result.Spec.Name}» теперь уровня {result.Level}.", mergeSound ? mergeSound : config.coinSound);
             var tile = collectionViews.FirstOrDefault(v => v.gameObject.activeSelf && v.CopyId == result.Id);
             if (tile) tile.Celebrate();
             Merged?.Invoke(result);
@@ -385,8 +386,8 @@ namespace Hakaton.Decks.Unity
                 }
                 var copy = copies[index];
                 bool inDeck = Model.IsSelected(copy.Id);
-                view.Bind(Definition(copy).artwork, $"{copy.Spec.Name}  {copy.LevelNumeral}", inDeck ? "В колоде" : "В коллекции",
-                    copy.Id, copy.Spec.Id, SelectedCopyId == copy.Id, inDeck);
+                view.Bind(Definition(copy).artwork, copy.Spec.Name, inDeck ? "В колоде" : "В коллекции",
+                    copy.Id, copy.Spec.Id, SelectedCopyId == copy.Id, inDeck, copy.Level);
                 // While merging, only the copies that fit light up.
                 view.SetDimmed(source != null && copy.Id != source.Id && Model.CanMerge(source, copy) != null);
             }
@@ -399,6 +400,7 @@ namespace Hakaton.Decks.Unity
             if (definition == null)
             {
                 detailArt.enabled = false;
+                CardLevelPresentation.SetMark(detailLevelMark, 1);
                 detailTitle.text = "Коллекция пуста";
                 detailIdentity.text = "Карты продаёт гоблин-карточник.";
                 detailPower.text = detailDescription.text = "";
@@ -409,9 +411,10 @@ namespace Hakaton.Decks.Unity
             }
             detailArt.enabled = true;
             detailArt.sprite = definition.artwork;
+            CardLevelPresentation.SetMark(detailLevelMark, copy.Level);
             detailAccent.color = definition.accent;
             detailTitle.text = definition.displayName;
-            detailIdentity.text = $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.LevelNumeral}" + (copy.Protected ? "  ·  ОСНОВА" : "");
+            detailIdentity.text = $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.Level}" + (copy.Protected ? "  ·  ОСНОВА" : "");
             detailDescription.text = definition.description;
             detailPower.text = PowerLine(definition, copy.Level);
 
@@ -421,8 +424,8 @@ namespace Hakaton.Decks.Unity
             bool canMerge = Model.MergePartners(copy).Any();
             mergeText.text = MergeSource != 0 ? "Отменить"
                 : !definition.upgradable     ? "Не объединяется"
-                : copy.Level >= Model.Rules.MaxCardLevel ? "Уровень III"
-                : canMerge                   ? $"Объединить  ·  {copy.LevelNumeral} + {copy.LevelNumeral} → {CardCopy.Numeral(copy.Level + 1)}"
+                : copy.Level >= Model.Rules.MaxCardLevel ? "Уровень 3"
+                : canMerge                   ? $"Объединить  ·  {copy.Level} + {copy.Level} → {copy.Level + 1}"
                                              : "Нужна пара";
             mergeButton.interactable = MergeSource != 0 || canMerge;
         }

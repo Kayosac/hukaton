@@ -36,8 +36,10 @@ namespace Hakaton.Trading.Tests
 
         // Shop HUD handoff (2026-11-10): the approved mockups set Ithaca 24 (goals title) and 18 (item card)
         // inside the 736 × 368 reference layout, which is magnified to the window as a whole.
+        // Trading handoff (same day): request buttons 32 → 24 (75%), small actions 32 → 17 (52.5%), hotkeys 12 → 6.3.
         static bool ApprovedMockupSize(TMP_Text label) => label.GetComponentInParent<Hakaton.Feel.ReferenceUiScale>(true)
-            && label.font.faceInfo.pointSize == 16 && (label.fontSize == 24 || label.fontSize == 18);
+            && ((label.font.faceInfo.pointSize == 16 && (label.fontSize == 24 || label.fontSize == 18 || label.fontSize == 17))
+                || (label.font.faceInfo.pointSize == 9 && Mathf.Approximately(label.fontSize, 6.3f)));
 
         [Test]
         public void ShopHudUsesHandoffSprites()
@@ -53,6 +55,26 @@ namespace Hakaton.Trading.Tests
             var coin = hud.shopLayout.GetComponentInChildren<Hakaton.Feel.UiSpriteFlipbook>(true);
             Assert.That(coin.frames.Select(f => f.name), Is.EqualTo(new[] { "Coin_Y_000", "Coin_Y_060", "Coin_Y_120", "Coin_Y_180", "Coin_Y_240", "Coin_Y_300" }));
             Assert.That(Hakaton.Trading.Unity.TradingHud.FormatMoney(1250), Is.EqualTo("1 250"));
+        }
+
+        [Test]
+        public void TradingConversationFollowsHandoff()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Trading/Prefabs/TradingHUD.prefab").GetComponent<Hakaton.Trading.Unity.TradingHud>();
+            Assert.That(hud.clockFill.type, Is.EqualTo(Image.Type.Filled));
+            Assert.That(hud.clockFill.fillMethod, Is.EqualTo(Image.FillMethod.Radial360));
+            Assert.That(hud.clockFill.fillClockwise, Is.False, "The remaining-time edge moves clockwise");
+            Assert.That(hud.clockRestingFace.transform.IsChildOf(hud.clockBody.transform), Is.False, "The face is never faded with the clock");
+            Assert.That(hud.clockClose.transform.IsChildOf(hud.clockBody.transform), Is.True);
+            Assert.That(hud.endedClockAlpha, Is.EqualTo(.38f).Within(.001f));
+            Assert.That(Hakaton.Trading.Unity.TradingHud.ClockFill(30, 120), Is.EqualTo(.25f).Within(.0001f));
+            Assert.That(Hakaton.Trading.Unity.TradingHud.ClockFill(-5, 120), Is.Zero);
+            Assert.That(hud.speech.fontSize, Is.EqualTo(24));
+            Assert.That(hud.priceButtons.Length, Is.EqualTo(5));
+            foreach (var button in hud.priceButtons.Append(hud.accept).Append(hud.refuseDeal)
+                         .Append(hud.browseDisplay).Append(hud.backToCounter).Append(hud.refuseRequest))
+                Assert.That(button.transform.localScale, Is.EqualTo(Vector3.one), button.name + ": sized by density, never scaled");
+            Assert.That(hud.conversation.GetComponentsInChildren<TMP_Text>(true).Any(t => t.text.Contains("Ориентир")), Is.False);
         }
 
         [Test]

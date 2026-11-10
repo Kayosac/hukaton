@@ -12,7 +12,8 @@ CBUFFER_START(UnityPerMaterial)
     half4 _EmissionColor, _FoilColor, _ShineColor;
     float4 _MotionRect;
     float _MotionEnabled, _AnimationFPS, _Boil, _BoilScale, _Seed, _MotionFeather, _MotionOnBack;
-    float _InkProtection, _FinishOnBack, _ReliefStrength, _ReliefRadius;
+    float _InkProtection, _ReliefStrength, _ReliefRadius;
+    float _FrontIsBack, _BackEmissionStrength, _BackHologramStrength;
     float _EmissionEnabled, _EmissionStrength, _EmissionPulse, _EmissionSpeed, _EmissionRadius;
     float _HologramEnabled, _HologramStrength, _HologramScale, _HologramSpeed, _HologramHueShift;
     float _FoilEnabled, _FoilStrength, _FoilSpeed;
@@ -68,29 +69,37 @@ half3 CardGlowPigment(half3 rgb)
     return rgb / max(high, 0.0001) * ((high - low) / max(high, 0.0001)) * smoothstep(0.04, 0.18, high);
 }
 
-half3 CardGlowPalette(float2 texelSize, bool front)
+half3 CardGlowPalette(float2 texelSize, bool front, float4 rect)
 {
-    half3 pigment = CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.18, 0.2), texelSize, front))
-                  + CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.82, 0.2), texelSize, front))
-                  + CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.12, 0.5), texelSize, front))
-                  + CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.18, 0.8), texelSize, front))
-                  + CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.82, 0.8), texelSize, front))
-                  + CardGlowPigment(CardSampleSource(_MotionRect.xy + _MotionRect.zw * float2(0.88, 0.5), texelSize, front));
+    half3 pigment = CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.18, 0.2), texelSize, front))
+                  + CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.82, 0.2), texelSize, front))
+                  + CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.12, 0.5), texelSize, front))
+                  + CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.18, 0.8), texelSize, front))
+                  + CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.82, 0.8), texelSize, front))
+                  + CardGlowPigment(CardSampleSource(rect.xy + rect.zw * float2(0.88, 0.5), texelSize, front));
     half peak = max(pigment.r, max(pigment.g, pigment.b));
     return peak > 0.00001 ? pow(saturate(pigment / peak), 1.25) : half3(1, 1, 1);
 }
 
-half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2 view, bool front, float sideEnabled)
+half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2 view, bool front, bool backStyle)
 {
+    // Back coatings are always enabled, regardless of the card front's switches.
+    float emission = backStyle ? 1.0 : _EmissionEnabled;
+    float hologram = backStyle ? 1.0 : _HologramEnabled;
+    float foil = backStyle ? 0.0 : _FoilEnabled;
+    float shine = backStyle ? 0.0 : _ShineEnabled;
+    float glowStrength = backStyle ? _BackEmissionStrength : _EmissionStrength;
+    float hologramStrength = backStyle ? _BackHologramStrength : _HologramStrength;
+    float4 effectRect = backStyle ? float4(0,0,1,1) : _MotionRect;
     UNITY_BRANCH
-    if (sideEnabled < 0.5 || max(max(_EmissionEnabled, _HologramEnabled), max(_FoilEnabled, _ShineEnabled)) < 0.5)
+    if (max(max(emission, hologram), max(foil, shine)) < 0.5)
         return source;
 
     half height = CardHeight(source);
     half luma = dot(source, half3(0.2126, 0.7152, 0.0722));
     // Protect actual black ink, not all the dark saturated colours of the illustration.
     half ink = lerp(1.0, smoothstep(0.008, 0.09, luma), _InkProtection);
-    float2 inside = min(uv - _MotionRect.xy, _MotionRect.xy + _MotionRect.zw - uv);
+    float2 inside = min(uv - effectRect.xy, effectRect.xy + effectRect.zw - uv);
     half illustration = smoothstep(0.0, max(_MotionFeather, 0.001), min(inside.x, inside.y));
 
     // Relief is derived from neighbouring source texels and follows the held drawing.
@@ -109,7 +118,7 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
     half3 colour = source;
 
     UNITY_BRANCH
-    if (_FoilEnabled > 0.5)
+    if (foil > 0.5)
     {
         // A moving studio reflection bends around embossed shapes already present in the print.
         float3 reflected = reflect(-eye, normal);
@@ -124,7 +133,7 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
     }
 
     UNITY_BRANCH
-    if (_HologramEnabled > 0.5 && _HologramStrength > 0.0)
+    if (hologram > 0.5 && hologramStrength > 0.0)
     {
         // A coloured diffraction layer, not an achromatic moving light.
         // Printed values bend the bands slightly; fine paper normals do not randomise their hue.
@@ -140,7 +149,7 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
         // Dark saturated backgrounds are coloured pigment, not black contour ink.
         half colouredPigment = smoothstep(0.35, 0.65, hsv.y) * smoothstep(0.18, 0.50, hsv.z);
         half hologramInk = max(ink, lerp(1.0, colouredPigment, _InkProtection));
-        half coating = saturate(_HologramStrength) * diffraction * illustration * hologramInk;
+        half coating = saturate(hologramStrength) * diffraction * illustration * hologramInk;
         // Only the bright coloured focal pigment is protected. The surrounding print can
         // show a full spectrum, so preserving the accent does not erase the hologram.
         half3 localPigment = LinearToSRGB(max(source, max(max(left, right), max(up, down))));
@@ -153,11 +162,11 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
         filmHSV.z = lerp(hsv.z, max(hsv.z, 0.72), coating * 0.75);
         // Mix hue in HSV: complementary pigments must not average into grey/brown mud.
         half3 film = SRGBToLinear(HsvToRgb(filmHSV));
-        colour = _FoilEnabled > 0.5 ? lerp(colour, film, coating * 0.55) : film;
+        colour = foil > 0.5 ? lerp(colour, film, coating * 0.55) : film;
     }
 
     UNITY_BRANCH
-    if (_ShineEnabled > 0.5)
+    if (shine > 0.5)
     {
         float angle = radians(_ShineAngle);
         float2 direction = float2(cos(angle), sin(angle));
@@ -176,7 +185,7 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
     }
 
     UNITY_BRANCH
-    if (_EmissionEnabled > 0.5 && _EmissionStrength > 0.0)
+    if (emission > 0.5 && glowStrength > 0.0)
     {
         // Rounded physical card edge; distance is measured in card-width units.
         float aspect = clamp(texelSize.x / max(texelSize.y, 0.000001), 0.5, 3.0);
@@ -196,14 +205,14 @@ half3 CardFinish(half3 source, float2 uv, float2 artUV, float2 texelSize, float2
         half falloff = exp2(-depth / max(_EmissionRadius, 0.01) * 1.5);
         half energy = rim * (1.0 + _EmissionPulse * hotSpot * 0.6)
                     + falloff * (0.10 + _EmissionPulse * wave * 0.9);
-        half3 palette = CardGlowPalette(texelSize, front);
+        half3 palette = CardGlowPalette(texelSize, front, effectRect);
         half3 radiance = palette * energy + pow(rim, 4.0) * 0.16;
         // The outer frame emits too, while the interiors of the title/caption panels stay readable.
         half frame = 1.0 - smoothstep(0.06, 0.10, depth);
         half area = max(illustration, frame);
         half sourcePeak = max(source.r, max(source.g, source.b));
         half glowInk = lerp(1.0, smoothstep(0.04, 0.16, sourcePeak) * smoothstep(0.012, 0.045, luma), _InkProtection);
-        colour += _EmissionColor.rgb * _EmissionStrength * radiance * area * glowInk;
+        colour += _EmissionColor.rgb * glowStrength * radiance * area * glowInk;
     }
     return colour;
 }

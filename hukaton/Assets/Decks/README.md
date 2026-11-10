@@ -42,7 +42,7 @@
 | `Domain/ThrowPreparation.cs` | Правила одного броска: заряд; пока зажат модификатор, заряд стоит, а движение мыши ведёт подкрутку как маленький стик в любую сторону (сила до 1). |
 | `Runtime/CardDefinition.cs`, `CardLevels.cs` | Ассет карты: действие (`CardAction`), ранг, цена, значения по уровням I / II / III, арт, акцент, ассет эффекта. |
 | `Runtime/DeckPrototypeConfig.cs` | Набор карт, сюжетные карты пещеры, правила, ступени лимита, стартовые копии (`Assets/Game/Data/Cards.asset`). |
-| `Runtime/DeckPrototype.cs` | Мастерская как сервис лавки: компьютер в подсобке (состав колоды, слияние, рука, лимит). Модель общая для гоблина и жаровни. Игровой цикл начинает и завершает вылазку через `TryDepart` / `CompleteOuting`. |
+| `Runtime/DeckPrototype.cs` | Мастерская как сервис лавки: общая модель коллекции для компьютера в подсобке (`Assets/Computer`), гоблина и жаровни. Игровой цикл начинает и завершает вылазку через `TryDepart` / `CompleteOuting`. Его прежняя встроенная панель больше не открывается: её заменил ПК. |
 | `Runtime/DeckCardView.cs`, `DeckRowView.cs`, `DeckViewport.cs` | Плитки коллекции, строки колоды, проверка размера окна. |
 
 Префабы: `Prefabs/DeckWorkshop.prefab` (база), игровой вариант — `Assets/ShopBlockout/Prefabs/ShopDeckWorkshop.prefab`. Арт карт — `Art/`, рубашка — `Art/Backs/card_back_exploration.png` (`card_back_combat.png` больше не используется). Тесты — `Tests/EditMode/` (колода, слияние, коллекция, каталог, гоблин, пролог).

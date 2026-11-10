@@ -170,7 +170,7 @@ namespace Hakaton.Decks
             if (a.Spec.Id != b.Spec.Id) return "Объединяются только одинаковые карты.";
             if (!a.Spec.Mergeable) return "Эту карту нельзя объединить.";
             if (a.Level != b.Level) return "Нужны копии одного уровня.";
-            if (a.Level >= Rules.MaxCardLevel) return "Уровень III — максимум.";
+            if (a.Level >= Rules.MaxCardLevel) return "Уровень 3 — максимум.";
             return null;
         }
 
@@ -195,6 +195,30 @@ namespace Hakaton.Decks
         }
 
         // ---------- capacities ----------
+
+        /// <summary>
+        /// Debug unlock: grant each missing catalogue type and all hand/deck capacity upgrades for free.
+        /// Existing copies and the equipped deck stay intact; repeated calls do not add duplicates.
+        /// </summary>
+        public string UnlockAllCards(out int added)
+        {
+            added = 0;
+            if (IsAway) return "Сначала вернитесь в лавку.";
+            var present = new HashSet<string>(owned.Select(c => c.Spec.Id));
+            var missing = catalog.Values.Where(s => !present.Contains(s.Id)).ToList();
+            int maxStep = Rules.DeckSteps - 1;
+            int capacity = DeckRules.CollectionFactor * Rules.DeckLimitAt(maxStep);
+            if (missing.Count > capacity - owned.Count || missing.Count > int.MaxValue - nextId)
+                return "Для всех карт не хватает места даже после прокачки. Освободите коллекцию.";
+
+            bool changed = handSize != Rules.MaxHand || deckStep != maxStep || missing.Count > 0;
+            handSize = Rules.MaxHand;
+            deckStep = maxStep;
+            foreach (var spec in missing) owned.Add(new CardCopy(nextId++, spec));
+            added = missing.Count;
+            if (changed) Changed?.Invoke();
+            return null;
+        }
 
         public string ImproveHand()
         {

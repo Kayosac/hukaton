@@ -1,8 +1,19 @@
 using System;
 using UnityEngine;
+using TMPro;
 
 namespace Hakaton.Decks.Unity
 {
+    public static class CardLevelPresentation
+    {
+        public static void SetMark(TMP_Text label, int level)
+        {
+            if (!label) return;
+            label.text = CardCopy.UpgradeMark(level);
+            label.transform.parent.gameObject.SetActive(label.text.Length > 0);
+        }
+    }
+
     /// <summary>A card number at levels I / II / III (board, «Карты — мердж I / II / III»).</summary>
     [Serializable]
     public struct LevelFloat

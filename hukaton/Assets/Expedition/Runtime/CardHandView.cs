@@ -190,7 +190,7 @@ namespace Hakaton.Expeditions
                 var slot = FreeSlot();
                 if (slot == null) break;
                 slot.copyId = card.Id;
-                slot.view.Show(world.Artwork(card), back);
+                slot.view.Show(world.Artwork(card), back, card.Level);
                 slot.view.SetGlow(0, returnGlow);
                 // New cards rise from below the screen, staggered like a quick deal.
                 Vector3 target = Target(IndexOf(hand, card.Id), hand.Count, false, 0, card.IsReturn);

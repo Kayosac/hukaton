@@ -296,6 +296,17 @@ namespace Hakaton.Game
             tutorial.Skip();
         }
 
+        /// <summary>Debug credit to the shared balance, without recording a sale or advancing the revenue goal.</summary>
+        public bool AddThousandCoins()
+        {
+            if (!Ready || wallet.Wallet.Balance > int.MaxValue - 1000) return false;
+            wallet.Wallet.Credit(1000);
+            MarkDirty();
+            if (workshop.EmbeddedOpen) workshop.RefreshWorkshop();
+            SaveNow(); // Away from the shop, the dirty state is saved on return.
+            return true;
+        }
+
         void SetPhase(GamePhase phase)
         {
             Phase = phase;

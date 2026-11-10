@@ -36,8 +36,14 @@ namespace Hakaton.Backroom
         [Tooltip("The goblin's speech bubble over the table.")]
         public DialogueBubbleLayout bubble;
         public CanvasGroup bubbleGroup;
-        [Tooltip("Shown under the bubble while a line waits to be closed.")]
-        public TMP_Text continueHint;
+        [Tooltip("«E — дальше» in the bottom-right corner while a line waits to be closed.")]
+        public ContinueHint continueHint;
+
+        [Header("Fan")]
+        [Tooltip("The cards overlap like a hand: centre-to-centre step, how far the arc drops at the ends of a full " +
+                 "ten, the tilt of each next card. A bought card leaves and the rest close up.")]
+        public float fanStep = 50;
+        public float fanArc = 14, fanTiltPerCard = 2;
 
         [Header("Lines")]
         [TextArea] public string[] introduction =
@@ -110,6 +116,7 @@ namespace Hakaton.Backroom
                 if (offer.IsSold(i)) { cards[i].Hide(); continue; }
                 cards[i].Deal(Art(i), offer.Revealed, i * .045f);
             }
+            Fan(0);
             Play(dealSound);
             if (Talking) Say(introduction[Visits.IntroductionRead], true);
             else if (!offer.AnyLeft) Say(emptyLine);
@@ -141,6 +148,33 @@ namespace Hakaton.Backroom
             }
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame) Close();
             if (lineUntil > 0 && Time.unscaledTime > lineUntil) HideBubble();
+        }
+
+        void LateUpdate()
+        {
+            if (IsOpen) Fan(Time.unscaledDeltaTime);
+        }
+
+        /// <summary>Lays the unsold cards out as a fan around the table's centre; <paramref name="dt"/> 0 snaps.</summary>
+        void Fan(float dt)
+        {
+            var offer = Visits.Offer;
+            if (offer == null) return;
+            int count = 0;
+            for (int i = 0; i < cards.Length; i++) if (!offer.IsSold(i)) count++;
+            float middle = (count - 1) / 2f, ends = (cards.Length - 1) / 2f;
+            float follow = dt <= 0 ? 1 : 1 - Mathf.Exp(-14 * dt);
+            int place = 0;
+            for (int i = 0; i < cards.Length; i++)
+            {
+                if (offer.IsSold(i)) continue;
+                float offset = place++ - middle;
+                var rect = (RectTransform)cards[i].transform;
+                var position = new Vector2(Mathf.Round(offset * fanStep), Mathf.Round(-offset * offset / (ends * ends) * fanArc));
+                var tilt = Quaternion.Euler(0, 0, -offset * fanTiltPerCard);
+                rect.anchoredPosition = Vector2.Lerp(rect.anchoredPosition, position, follow);
+                rect.localRotation = Quaternion.Slerp(rect.localRotation, tilt, follow);
+            }
         }
 
         void NextLine()
@@ -244,7 +278,7 @@ namespace Hakaton.Backroom
             if (!bubble) return;
             bubble.SetText(line);
             bubbleGroup.alpha = 1;
-            if (continueHint) continueHint.gameObject.SetActive(waitForPlayer);
+            if (continueHint) continueHint.Show(waitForPlayer);
             lineUntil = waitForPlayer ? 0 : Time.unscaledTime + 2.6f;
             if (voiced && waitForPlayer && voice != null && voice.Length > 0) Play(voice[(lineSeed++ * 3 + Visits.IntroductionRead) % voice.Length]);
         }
@@ -253,6 +287,7 @@ namespace Hakaton.Backroom
         {
             lineUntil = 0;
             if (bubbleGroup) bubbleGroup.alpha = 0;
+            if (continueHint) continueHint.Show(false);
         }
 
         string Pick(string[] lines) => lines.Length == 0 ? "" : lines[(lineSeed++ * 7 + DateTime.Now.Millisecond) % lines.Length];

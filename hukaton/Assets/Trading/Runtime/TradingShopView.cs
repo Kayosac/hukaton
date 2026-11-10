@@ -4,12 +4,11 @@ using UnityEngine.UI;
 
 namespace Hakaton.Trading.Unity
 {
-    /// <summary>Two authored first-person viewpoints for the counter and physical display.</summary>
+    /// <summary>Two authored first-person viewpoints for the counter and physical display. The HUD's buttons drive the switch.</summary>
     public sealed class TradingShopView : MonoBehaviour
     {
         public FirstPersonModalView modal;
         public Transform counterCamera, displayCamera;
-        public Button browseButton, backButton;
         [Range(40, 100)] public float counterFov = 75, displayFov = 80;
         [Min(0)] public float categoryReadSeconds = .75f;
 
@@ -26,8 +25,6 @@ namespace Hakaton.Trading.Unity
         {
             if(controller)return;
             controller=value;
-            if(browseButton)browseButton.onClick.AddListener(BeginSelection);
-            if(backButton)backButton.onClick.AddListener(ReturnToCounter);
         }
 
         public void Sync()

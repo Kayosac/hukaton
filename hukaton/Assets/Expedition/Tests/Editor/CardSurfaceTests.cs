@@ -72,7 +72,7 @@ namespace Hakaton.Expeditions.Tests
         Color32[] Render(float time, bool reverse=false, Vector3? camera=null) =>
             RenderColours(time,reverse,camera).Select(c=>(Color32)c).ToArray();
 
-        Color[] RenderColours(float time, bool reverse=false, Vector3? camera=null, bool precise=false)
+        Color[] RenderColours(float time, bool reverse=false, Vector3? camera=null, bool precise=false, MaterialPropertyBlock block=null)
         {
             var target = RenderTexture.GetTemporary(Size,Size,0,precise ? RenderTextureFormat.ARGBFloat : RenderTextureFormat.ARGB32,RenderTextureReadWrite.Linear);
             var old = RenderTexture.active;
@@ -83,7 +83,7 @@ namespace Hakaton.Expeditions.Tests
                 command.SetViewProjectionMatrices(Matrix4x4.identity,Matrix4x4.identity);
                 command.SetGlobalVector("_Time",new Vector4(time/20,time,time*2,time*3));
                 command.SetGlobalVector("_WorldSpaceCameraPos", camera ?? new Vector3(0,0,-10));
-                command.DrawMesh(quad, reverse ? Matrix4x4.Scale(new Vector3(-1,1,1)) : Matrix4x4.identity, material,0,0);
+                command.DrawMesh(quad, reverse ? Matrix4x4.Scale(new Vector3(-1,1,1)) : Matrix4x4.identity, material,0,0,block);
                 Graphics.ExecuteCommandBuffer(command);
             }
             var read = new Texture2D(Size,Size,precise ? TextureFormat.RGBAFloat : TextureFormat.RGBA32,false,true);
@@ -142,16 +142,22 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
-        public void BackOptInAndGameplayFeedbackAreIndependent()
+        public void BackAlwaysHasBothCoatingsIndependentOfFrontSwitches()
         {
             material.SetFloat("_MotionEnabled",0);
+            material.SetTexture("_BackTex",AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Decks/Art/Backs/PenusCardBack.png"));
             var baseline=Render(1.4f); var back=Render(1.4f,true);
-            Assert.That(Changed(baseline,back),Is.GreaterThan(1000),"Back texture must actually render.");
             foreach(var toggle in Toggles) material.SetFloat(toggle,1);
-            Assert.That(Changed(back,Render(1.4f,true)),Is.Zero,"Coatings are front-only by default.");
-            material.SetFloat("_FinishOnBack",1);
-            Assert.That(Changed(back,Render(1.4f,true)),Is.GreaterThan(100));
+            Assert.That(Changed(back,Render(1.4f,true)),Is.Zero,"Front finish switches must not change the back.");
             foreach(var toggle in Toggles) material.SetFloat(toggle,0);
+            material.SetFloat("_BackEmissionStrength",0);
+            var withoutGlow=Render(1.4f,true);
+            Assert.That(Changed(back,withoutGlow),Is.GreaterThan(100),"The back has its own glow.");
+            material.SetFloat("_BackHologramStrength",0);
+            var plain=Render(1.4f,true);
+            Assert.That(Changed(withoutGlow,plain),Is.GreaterThan(100),"The back also has a holographic coating.");
+            SameAlpha(back,plain);
+            Assert.That(Changed(baseline,Render(1.4f)),Is.Zero,"Back tuning must not affect the front.");
             material.SetFloat("_Glow",.6f);
             Assert.That(Changed(baseline,Render(1.4f)),Is.GreaterThan(100),"Selection glow survives decorative switches.");
             material.SetFloat("_Flash",1);
@@ -333,6 +339,67 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(Changed(Render(.1f),Render(1.3f)),Is.Zero,"Zero wave energy leaves a steady edge glow.");
             material.SetFloat("_EmissionStrength",0);
             Assert.That(Changed(baseline,Render(.2f)),Is.Zero);
+        }
+
+        [Test]
+        public void UpgradeMarkExtendsBeyondTheCardOnTheFrontAndResetsForBaseCopies()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Cards/Thrown card.prefab");
+            var instance = Own(Object.Instantiate(prefab));
+            var view = instance.GetComponentInChildren<CardView>(true);
+            view.meshRenderer.sharedMaterial = material;
+            material.SetFloat("_MotionEnabled", 0);
+            material.SetFloat("_BackEmissionStrength", 0);
+            material.SetFloat("_BackHologramStrength", 0);
+            // Match the authored unit quad, leaving space around all four edges in the target.
+            quad.vertices = quad.vertices.Select(v => v * .5f).ToArray();
+            quad.RecalculateBounds();
+            var block = new MaterialPropertyBlock();
+            Color[] Draw(int level, bool back = false)
+            {
+                view.Show(Texture2D.whiteTexture, Texture2D.grayTexture, level);
+                view.meshRenderer.GetPropertyBlock(block);
+                return RenderColours(.1f, reverse: back, block: block);
+            }
+            var plain = Draw(1);
+            var rear = Draw(1, true);
+            var marked = Draw(3);
+            Assert.That(marked.Where((p, i) => i / Size >= Size * 3 / 4 && p.a > .5f).Count(),
+                Is.GreaterThan(4), "The enlarged mark must remain visible above the physical card.");
+            Assert.That(view.meshRenderer.localBounds.max.y, Is.GreaterThan(.5f), "Culling must include the mark.");
+            Assert.That(Draw(3, true), Is.EqualTo(rear), "No mark or expanded silhouette on the back.");
+            Assert.That(Draw(1), Is.EqualTo(plain), "Pooled base copies must lose the mark completely.");
+            Assert.That(view.meshRenderer.localBounds.max.y, Is.EqualTo(.5f));
+        }
+
+        [Test]
+        public void BackOnlyCardsAndUiKeepBothCoatingsAndPooledFacesReset()
+        {
+            var back=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Decks/Art/Backs/PenusCardBack.png");
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Cards/Thrown card.prefab");
+            var instance=Own(Object.Instantiate(prefab));
+            var view=instance.GetComponentInChildren<CardView>(true);
+            var block=new MaterialPropertyBlock();
+            view.Show(back,back);view.meshRenderer.GetPropertyBlock(block);
+            Assert.That(block.GetFloat("_FrontIsBack"),Is.EqualTo(1),"Both faces of stack/debris cards are backs.");
+            view.Show(Texture2D.whiteTexture,back);view.meshRenderer.GetPropertyBlock(block);
+            Assert.That(block.GetFloat("_FrontIsBack"),Is.Zero,"A reused front must regain its own finish settings.");
+
+            material.shader=Shader.Find("Hakaton/Card UI");
+            Shader.SetGlobalFloat("unity_GUIZTestMode",(float)CompareFunction.Always);
+            material.SetTexture("_MainTex",back);material.SetFloat("_MotionEnabled",0);
+            material.SetFloat("_FrontIsBack",1);
+            var combined=Render(1.4f);
+            Assert.That(Changed(combined,Render(3.1f)),Is.GreaterThan(100),"UI back coatings animate.");
+            material.SetFloat("_BackEmissionStrength",0);
+            var holo=Render(1.4f);
+            material.SetFloat("_BackHologramStrength",0);
+            var plain=Render(1.4f);
+            Assert.That(Changed(combined,holo),Is.GreaterThan(100));
+            Assert.That(Changed(holo,plain),Is.GreaterThan(100));
+            SameAlpha(combined,plain);
+            var ui=AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Cards/Materials/UI/Card Back.mat");
+            Assert.That(ui.GetFloat("_FrontIsBack"),Is.EqualTo(1));
         }
 
         [Test]
