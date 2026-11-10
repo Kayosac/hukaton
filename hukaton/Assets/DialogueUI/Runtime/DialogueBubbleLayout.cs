@@ -49,6 +49,16 @@ namespace Hakaton.DialogueUI
                 RefreshLayout();
         }
 
+        /// <summary>Scales the frame metrics (a skin rebuilt at another pixel density).</summary>
+        public void Rescale(float ratio)
+        {
+            minimumWidth *= ratio;
+            maximumWidth *= ratio;
+            minimumHeight *= ratio;
+            padding *= ratio;
+            dirty = true;
+        }
+
         /// <summary>Can also be called after changing text style or localization.</summary>
         public void RefreshLayout()
         {
