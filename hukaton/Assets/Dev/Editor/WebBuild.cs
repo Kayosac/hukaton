@@ -174,6 +174,8 @@ namespace Hakaton.Dev
                     .Replace("canvas.style.width = \"960px\";\n        canvas.style.height = \"600px\";",
                         "// Hakaton: the game fills the browser window.\n        document.querySelector(\"#unity-container\").className = \"unity-mobile\";\n        canvas.className = \"unity-mobile\";")
                     .Replace("// config.autoSyncPersistentDataPath = true;", "config.autoSyncPersistentDataPath = true;")
+                    .Replace("var canvas = document.querySelector(\"#unity-canvas\");",
+                        "var canvas = document.querySelector(\"#unity-canvas\");\n" + RawMouseScript)
                     .Replace("</canvas>", "</canvas>\n      <button id=\"hakaton-fullscreen\" type=\"button\">На весь экран</button>")
                     .Replace("document.querySelector(\"#unity-loading-bar\").style.display = \"none\";",
                         "document.querySelector(\"#unity-loading-bar\").style.display = \"none\";\n" + FullscreenScript);
@@ -181,6 +183,21 @@ namespace Hakaton.Dev
             }
             if (File.Exists(style)) File.AppendAllText(style, "\nbody { background: #231F20; overflow: hidden }\n" + FullscreenStyle);
         }
+
+        /// <summary>
+        /// Chrome on Windows now and then reports a huge mouse jump while the cursor is captured, and the view jerks
+        /// every few seconds. Raw mouse input (unadjustedMovement) has no such jumps; where it is not supported the
+        /// ordinary capture is requested instead.
+        /// </summary>
+        const string RawMouseScript = @"      (() => {
+        const lock = HTMLCanvasElement.prototype.requestPointerLock;
+        HTMLCanvasElement.prototype.requestPointerLock = function (options) {
+          let request;
+          try { request = lock.call(this, Object.assign({ unadjustedMovement: true }, options)); }
+          catch (e) { return lock.call(this, options); }
+          return request && request.catch ? request.catch(() => lock.call(this, options)) : request;
+        };
+      })();";
 
         /// <summary>
         /// The fullscreen button over the game: fullscreen keeps the cursor inside the game, and in Chrome the keyboard
