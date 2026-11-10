@@ -16,7 +16,11 @@ namespace Hakaton.Tutorial
         public Material dropMaterial;
         public GameObject splashEffect, smokeEffect;
         public SfxCue drip, hiss;
-        [Min(0)] public float pause = .9f;
+        [Min(0)] public float pause = .25f;
+        [Tooltip("How long a drop swells before it falls, s.")]
+        [Min(0)] public float swell = .12f;
+        [Tooltip("A drop falls at most this far, m: higher up the dark hides where it formed, and the scene stays quick.")]
+        [Min(.3f)] public float maxFall = 1.8f;
 
         protected override IEnumerator Play()
         {
@@ -38,6 +42,7 @@ namespace Hakaton.Tutorial
 
         IEnumerator Drop(Vector3 from, Vector3 to)
         {
+            from.y = Mathf.Min(from.y, to.y + maxFall);
             var drop = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             Destroy(drop.GetComponent<Collider>());
             drop.name = "Drip";
@@ -47,10 +52,11 @@ namespace Hakaton.Tutorial
             if (dropMaterial) renderer.sharedMaterial = dropMaterial;
             CaveOnly(drop);
             // swells on the ceiling, then falls
-            for (float t = 0; t < .5f; t += Time.deltaTime)
+            for (float t = 0; t < swell; t += Time.deltaTime)
             {
-                drop.transform.position = from + Vector3.down * t * .04f;
-                drop.transform.localScale = new Vector3(.03f, .03f + .025f * t / .5f, .03f) * (.6f + .4f * t / .5f);
+                float k = t / Mathf.Max(.01f, swell);
+                drop.transform.position = from + Vector3.down * k * .02f;
+                drop.transform.localScale = new Vector3(.03f, .03f + .025f * k, .03f) * (.6f + .4f * k);
                 yield return null;
             }
             float height = Mathf.Max(.1f, from.y - to.y), fall = Mathf.Sqrt(2 * height / 9.81f);

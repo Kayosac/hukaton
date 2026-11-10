@@ -17,6 +17,9 @@ namespace Hakaton.Tutorial
         [Tooltip("Fires when the player comes within the radius of this point (on the ground plane). Empty: no zone.")]
         public Transform trigger;
         [Min(0)] public float radius = 2.5f;
+        [Tooltip("Optional: also wait until this is in the player's view (within the angle, nothing in between), so the scene plays where they look.")]
+        public Transform inView;
+        [Range(5, 90)] public float viewAngle = 35;
 
         public bool Fired { get; private set; }
         protected CaveLevel Level { get; private set; }
@@ -49,10 +52,24 @@ namespace Hakaton.Tutorial
             }
         }
 
+        bool Seen
+        {
+            get
+            {
+                if (!inView) return true;
+                var eye = World.viewCamera.transform;
+                Vector3 to = inView.position - eye.position;
+                if (Vector3.Angle(eye.forward, to) > viewAngle) return false;
+                // a clear line to it (anything within half a metre of the target counts as the target itself)
+                return !Physics.Raycast(eye.position, to.normalized, out var hit, to.magnitude, ~0, QueryTriggerInteraction.Ignore)
+                       || hit.distance > to.magnitude - .5f;
+            }
+        }
+
         void Update()
         {
             if (Fired || World == null || !World.InPrologue) return;
-            if (Ready && InZone) Fire();
+            if (Ready && InZone && Seen) Fire();
         }
 
         /// <summary>Plays the moment now (the trigger calls it; tests may call it directly).</summary>
@@ -86,6 +103,55 @@ namespace Hakaton.Tutorial
             CaveOnly(effect);
             Destroy(effect, lifetime);
             return effect;
+        }
+
+        /// <summary>
+        /// An effect that lingers for a while, then stops making new particles and fades the ones it has: no cut-off.
+        /// </summary>
+        protected GameObject FadingEffect(GameObject prefab, Vector3 position, Quaternion rotation, float scale, float hold, float fade)
+        {
+            if (!prefab) return null;
+            var effect = Instantiate(prefab, position, rotation, transform);
+            effect.transform.localScale *= scale;
+            CaveOnly(effect);
+            StartCoroutine(FadeOut(effect, hold, fade));
+            return effect;
+        }
+
+        static IEnumerator FadeOut(GameObject effect, float hold, float fade)
+        {
+            yield return new WaitForSeconds(hold);
+            if (!effect) yield break;
+            var systems = effect.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (var ps in systems) ps.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+            var buffer = new ParticleSystem.Particle[0];
+            var start = new System.Collections.Generic.Dictionary<ParticleSystem, Color32[]>();
+            for (float t = 0; t < fade && effect; t += Time.deltaTime)
+            {
+                float k = 1 - Mathf.SmoothStep(0, 1, t / fade);
+                foreach (var ps in systems)
+                {
+                    if (!ps) continue;
+                    int n = ps.particleCount;
+                    if (buffer.Length < n) buffer = new ParticleSystem.Particle[n];
+                    n = ps.GetParticles(buffer, n);
+                    if (!start.TryGetValue(ps, out var colours) || colours.Length < n)
+                    {
+                        colours = new Color32[n];
+                        for (int i = 0; i < n; i++) colours[i] = buffer[i].startColor;
+                        start[ps] = colours;
+                    }
+                    for (int i = 0; i < n; i++)
+                    {
+                        var c = colours[i];
+                        c.a = (byte)(c.a * k);
+                        buffer[i].startColor = c;
+                    }
+                    ps.SetParticles(buffer, n);
+                }
+                yield return null;
+            }
+            if (effect) Destroy(effect);
         }
 
         /// <summary>Puts spawned things on the cave's rendering layer, so only the cave's own lights reach them.</summary>

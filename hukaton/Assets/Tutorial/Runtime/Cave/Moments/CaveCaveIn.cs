@@ -21,6 +21,8 @@ namespace Hakaton.Tutorial
         public GameObject gritEffect, dustEffect;
         public SfxCue rumble, crash;
         [Range(0, 1)] public float shake = .55f;
+        [Tooltip("How long the dust hangs before it starts to settle, and how long it takes to fade away, s.")]
+        [Min(0)] public float dustHold = 1.6f, dustFade = 1.6f;
 
         protected override bool Ready => water && water.Resolved;
 
@@ -41,9 +43,11 @@ namespace Hakaton.Tutorial
                 float size = Mathf.Lerp(rockSize.x, rockSize.y, (float)random.NextDouble());
                 var rock = Rock(rockPrefabs[i % rockPrefabs.Length], drops[i].position + Vector3.down * size * .6f, size, transform);
                 rock.angularVelocity = Random.insideUnitSphere * 2;
-                // rubble piles up rather than rolling off over the water
+                // rubble piles up rather than rolling off over the water; a rock that starts touching the wall
+                // is eased out of it instead of being shot through
                 rock.angularDamping = 3;
                 rock.linearDamping = .4f;
+                rock.maxDepenetrationVelocity = 1;
                 bodies[i] = rock;
                 yield return new WaitForSeconds(stagger);
             }
@@ -55,10 +59,13 @@ namespace Hakaton.Tutorial
             Sound(crash, pile);
             Sound(rumble, pile, .8f, .55f);
             Shake(shake, pile);
-            Effect(dustEffect, pile + Vector3.up * .3f, Quaternion.identity, 1.6f, 7);
+            // the dust rolls out, hangs a moment and settles away gently
+            FadingEffect(dustEffect, pile + Vector3.up * .3f, Quaternion.identity, 1.6f, dustHold, dustFade);
             yield return new WaitForSeconds(.5f);
             Sound(crash, pile, .5f, .8f);
             yield return Settle(bodies, 3.5f);
+            // anything that still slipped out of the cave is gone, not lying somewhere under the world
+            foreach (var body in bodies) if (body && body.position.y < floor - 2) Destroy(body.gameObject);
         }
     }
 }
