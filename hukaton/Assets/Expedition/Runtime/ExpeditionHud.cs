@@ -312,7 +312,7 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Pickup rows top right, fading out after a few seconds. Holding I shows every carried find in the same rows
-        /// instead (one row per copy), as if all were just picked up: a view of the bag, not new pickups.
+        /// instead (one row per copy, newest first), as if all were just picked up: a view of the bag, not new pickups.
         /// </summary>
         void UpdatePickups()
         {
@@ -325,12 +325,14 @@ namespace Hakaton.Expeditions
             bool review = Keyboard.current != null && Keyboard.current.iKey.isPressed;
             if (review)
             {
-                foreach (var find in world.Loot)
-                    for (int c = 0; c < find.count; c++) Row(find.name, find.value, 255, value);
+                // Newest first: the last pickup on top.
+                var carried = world.Pickups;
+                for (int i = carried.Count - 1; i >= 0; i--) Row(carried[i].name, carried[i].value, 255, value);
             }
             else
-                foreach (var line in toastLines)
+                for (int i = toastLines.Count - 1; i >= 0; i--)
                 {
+                    var line = toastLines[i];
                     float age = Time.time - line.time;
                     int alpha = Mathf.RoundToInt(255 * Mathf.Clamp01((pickupSeconds - age) / Mathf.Max(.01f, pickupFadeSeconds)));
                     Row(line.name, line.value, alpha, value);

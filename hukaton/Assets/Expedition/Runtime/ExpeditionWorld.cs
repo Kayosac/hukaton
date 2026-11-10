@@ -47,7 +47,10 @@ namespace Hakaton.Expeditions
         public PhysicsProp[] props;
 
         readonly List<LootSave> loot = new List<LootSave>();
+        readonly List<LootSave> pickups = new List<LootSave>();
         public IReadOnlyList<LootSave> Loot => loot.AsReadOnly();
+        /// <summary>Every find picked up on this outing, one entry per copy, in the order it was picked up.</summary>
+        public IReadOnlyList<LootSave> Pickups => pickups.AsReadOnly();
         public int LootValue { get; private set; }
         public bool Returning { get; private set; }
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
@@ -77,6 +80,7 @@ namespace Hakaton.Expeditions
             Impacts = 0;
             LootValue = 0;
             loot.Clear();
+            pickups.Clear();
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             var random = new System.Random(workshop.Model.Journeys * 1637);
@@ -135,6 +139,7 @@ namespace Hakaton.Expeditions
             var entry = loot.Find(x => !string.IsNullOrEmpty(itemId) ? x.id == itemId : string.IsNullOrEmpty(x.id) && x.name == displayName && x.value == value);
             if (entry == null) loot.Add(new LootSave { id = itemId, name = displayName, value = value, count = 1 });
             else entry.count++;
+            pickups.Add(new LootSave { id = itemId, name = displayName, value = value, count = 1 });
             LootValue += value;
             Play(cues ? cues.pickup : null);
             Collected?.Invoke(displayName, value);
@@ -260,6 +265,7 @@ namespace Hakaton.Expeditions
             Impacts = 0;
             LootValue = 0;
             loot.Clear();
+            pickups.Clear();
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             foreach (var obstacle in prologueObstacles) obstacle.ResetForOuting();
