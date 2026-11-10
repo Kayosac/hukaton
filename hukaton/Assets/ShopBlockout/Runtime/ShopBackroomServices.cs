@@ -1,24 +1,24 @@
 using System;
 using Hakaton.Backroom;
+using Hakaton.Computer;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
-using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.ShopBlockout
 {
     /// <summary>
-    /// Connects the authored backroom to its services: the magical computer (deck, merging) and the goblin card dealer
-    /// on his ceiling rig (pull the rope, he comes down, talk to him; leaving sends him back up).
+    /// Connects the authored backroom to its services: the PC (sit down at it: cards, merging, improvements), the
+    /// brazier and the goblin card dealer on his ceiling rig (pull the rope, he comes down, talk to him; leaving sends
+    /// him back up).
     /// </summary>
     public sealed class ShopBackroomServices : MonoBehaviour
     {
         public SuspendedGoblin goblin;
         public DeckPrototype workshop;
+        [Tooltip("The backroom PC: the camera flies to its monitor and it starts up.")]
+        public PcComputer computer;
         public Brazier brazier;
-        public SfxPlayer sfx;
-        [Tooltip("An old computer powering on, played when the player sits down at it.")]
-        public SfxCue computerBoot;
 
         /// <summary>The dealer's table comes with his rig prefab.</summary>
         public GoblinCardShop cardShop => goblin ? goblin.table : null;
@@ -29,7 +29,7 @@ namespace Hakaton.ShopBlockout
             if (cardShop) cardShop.Bind(workshop, workshop ? workshop.control : null);
         }
 
-        public bool IsOpen => workshop && workshop.EmbeddedOpen || cardShop && cardShop.IsOpen || brazier && brazier.IsOpen;
+        public bool IsOpen => workshop && workshop.EmbeddedOpen || computer && computer.IsOpen || cardShop && cardShop.IsOpen || brazier && brazier.IsOpen;
 
         /// <summary>Call only for a focused, reachable target while the shop is closed.</summary>
         public bool TryInteract(ShopServiceKind kind)
@@ -38,9 +38,7 @@ namespace Hakaton.ShopBlockout
             switch (kind)
             {
                 case ShopServiceKind.Computer:
-                    if (!workshop.OpenEmbedded()) return false;
-                    if (sfx) sfx.Play(computerBoot);
-                    return true;
+                    return computer ? computer.Open() : workshop.OpenEmbedded();
                 case ShopServiceKind.Brazier:
                     return brazier && brazier.Open();
                 case ShopServiceKind.GoblinRope:
@@ -61,7 +59,7 @@ namespace Hakaton.ShopBlockout
             switch (kind)
             {
                 case ShopServiceKind.Computer:
-                    return "E  Колода и мердж";
+                    return "E  Компьютер";
                 case ShopServiceKind.Brazier:
                     return brazier ? "E  Жаровня" : string.Empty;
                 case ShopServiceKind.GoblinRope:
@@ -76,6 +74,7 @@ namespace Hakaton.ShopBlockout
 
         public void Close()
         {
+            if (computer) computer.CloseImmediately();
             if (workshop) workshop.CloseEmbedded();
             if (cardShop) cardShop.Close();
             if (brazier) brazier.Close();
