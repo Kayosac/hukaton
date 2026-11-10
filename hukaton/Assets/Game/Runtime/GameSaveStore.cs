@@ -64,6 +64,24 @@ namespace Hakaton.Game
             { return false; }
         }
 
+        /// <summary>
+        /// A new game from nothing: the save, its backup and any half-written file leave, so nothing loads back.
+        /// The latest of them is kept aside as «.before-restart-&lt;time&gt;». Returns that copy's path (null if none).
+        /// </summary>
+        public static string Discard(string path)
+        {
+            string latest = File.Exists(path) ? path : File.Exists(path + ".bak") ? path + ".bak" : null;
+            string kept = null;
+            if (latest != null)
+            {
+                kept = path + ".before-restart-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                File.Copy(latest, kept, true);
+            }
+            foreach (string file in new[] { path, path + ".bak", path + ".tmp" })
+                if (File.Exists(file)) File.Delete(file);
+            return kept;
+        }
+
         public static bool PreserveInvalidFiles(string path, out string error)
         {
             error = null;

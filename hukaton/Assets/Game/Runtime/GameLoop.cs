@@ -278,17 +278,13 @@ namespace Hakaton.Game
         }
 
         /// <summary>
-        /// Cheats: erases the save (a copy stays next to it as «.before-restart») and loads the scene again as a new
+        /// Cheats: erases the save and its backup (a copy stays next to it as «.before-restart-&lt;time&gt;») and loads the scene again as a new
         /// game — from the cave, or from where the tutorial ends: shop closed, goblin gone, backroom open.
         /// </summary>
         public void StartOver(NewGameStart from)
         {
             startingOver = true;
-            if (File.Exists(SavePath))
-            {
-                File.Copy(SavePath, SavePath + ".before-restart", true);
-                File.Delete(SavePath);
-            }
+            GameSaveStore.Discard(SavePath);
             pendingStart = from;
             SceneManager.LoadScene(gameObject.scene.path);
         }

@@ -155,7 +155,7 @@ namespace Hakaton.Game
             GUILayout.Label("Новая игра", title);
             RestartButton(NewGameStart.Cave, "С начала (пещера)");
             RestartButton(NewGameStart.AfterTutorial, "Сразу после обучения");
-            if (armedRestart.HasValue) GUILayout.Label("Нажмите ещё раз: прогресс сотрётся (копия — .before-restart).", body);
+            if (armedRestart.HasValue) GUILayout.Label("Нажмите ещё раз: прогресс сотрётся (копия останется рядом, .before-restart).", body);
             GUILayout.Space(8);
 
             if (game.tutorial.Active || game.cave && game.cave.Active)
