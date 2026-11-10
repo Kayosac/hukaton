@@ -89,6 +89,15 @@ namespace Hakaton.WorldAssembly.Unity
 
         void OnDisable() => Reach(null, 0);
 
+        /// <summary>The scene's fog changed (the air of the place, see <see cref="WorldAtmosphere"/>): fade by the same fog.</summary>
+        public void FogChanged()
+        {
+            float density = RenderSettings.fog ? RenderSettings.fogDensity : 0;
+            if (fieldMaterial) fieldMaterial.SetFloat("_FogDensity", density);
+            if (beaconMaterial) beaconMaterial.SetFloat("_FogDensity", density);
+            if (markerMaterial) markerMaterial.SetFloat("_FogDensity", density);
+        }
+
         void Ensure()
         {
             if (field) return;

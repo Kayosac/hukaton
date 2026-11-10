@@ -23,6 +23,9 @@ Shader "Hukaton/Forest Wind Lit"
         _FlutterStrength("Flutter multiplier", Range(0, 3)) = 1
         _FlutterSpeed("Flutter speed", Range(0, 30)) = 9
 
+        [Header(Endless world)]
+        _BiomeTake("Biome tint (how much the world's patches colour this)", Range(0, 1)) = 0
+
         // URP Lit bookkeeping (kept so the material matches Lit exactly)
         [HideInInspector] _Surface("__surface", Float) = 0.0
         [HideInInspector] _Blend("__blend", Float) = 0.0

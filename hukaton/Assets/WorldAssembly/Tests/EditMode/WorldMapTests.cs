@@ -187,6 +187,45 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void GiantForestsGrowAwayFromTheStartWithAHeartAndAGlade()
+        {
+            int worlds = 0, forests = 0, biggest = 0;
+            for (int seed = 1; seed <= 40; seed++)
+            {
+                var map = new WorldMap(seed);
+                var seen = new HashSet<ChunkCoord>();
+                bool any = false;
+                foreach (var c in Square(Area))
+                {
+                    var p = map.Chunk(c);
+                    if (!p.Forest) continue;
+                    Assert.Greater(p.Ring, 0, $"seed {seed}: a giant forest at the start {p}");
+                    if (seen.Contains(c)) continue;
+                    var forest = Flood(map, c, q => q.Shape.Kind == ShapeKind.Maze);
+                    foreach (var m in forest) seen.Add(m);
+                    if (forest.Any(m => Math.Abs(m.X) >= Area || Math.Abs(m.Y) >= Area)) continue;
+                    var cells = forest.Select(map.Chunk).ToList();
+                    Assert.IsTrue(cells.All(q => q.Forest), $"seed {seed}: a forest grown into a stone maze at {c}");
+                    Assert.GreaterOrEqual(cells.Count, 6, $"seed {seed}: forest at {c}");
+                    Assert.LessOrEqual(cells.Count, 16, $"seed {seed}: forest at {c}");
+                    Assert.AreEqual(1, cells.Count(q => q.Variant.Id == TileShapes.ForestHeart), $"seed {seed}: hearts of the forest at {c}");
+                    Assert.GreaterOrEqual(cells.Count(q => q.Variant.Id == TileShapes.ForestGlade), 1, $"seed {seed}: glades of the forest at {c}");
+                    foreach (var glade in cells.Where(q => q.Variant.Id == TileShapes.ForestGlade))
+                        Assert.IsNotEmpty(glade.Loot, $"seed {seed}: an empty glade {glade}");
+                    var heart = cells.First(q => q.MazeHeart);
+                    Assert.IsTrue(heart.Spawns.Count > 0, $"seed {seed}: an unguarded heart {heart}");
+                    biggest = Math.Max(biggest, cells.Count);
+                    forests++;
+                    any = true;
+                }
+                worlds += any ? 1 : 0;
+            }
+            UnityEngine.Debug.Log($"[World] giant forests: {forests} in {worlds} of 40 worlds, the biggest {biggest} chunks");
+            Assert.Greater(worlds, 30);
+            Assert.GreaterOrEqual(biggest, 12);
+        }
+
+        [Test]
         public void RoadsRunOverFlatGroundFromLandmarkToLandmark()
         {
             int roads = 0;

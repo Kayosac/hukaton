@@ -151,8 +151,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             int m = P / 2, w = 2;
             if (p.Shape.Kind == ShapeKind.Maze)
             {
-                Fill(0, 0, P, P, hedge);
+                // A giant forest darker than a stone maze; its glades lighter.
+                Fill(0, 0, P, P, p.Forest ? new Color32(18, 48, 22, 255) : hedge);
                 Fill(m - w, m - w, m + w, m + w, corridor);
+                if (p.Variant.Id == TileShapes.ForestGlade) Fill(m - w - 1, m - w - 1, m + w + 1, m + w + 1, new Color32(170, 200, 90, 255));
                 for (int s = 0; s < 4; s++)
                 {
                     if (p.Mids[s] != Mid.MazeOpen) continue;

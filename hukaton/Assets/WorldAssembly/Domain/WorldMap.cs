@@ -34,6 +34,9 @@ namespace Hakaton.WorldAssembly
         public int Port(Side worldSide, int segment) => Shape.Ports[((int)worldSide - Rotation) & 3, segment];
         public Need Gate(Side worldSide, int segment) => Shape.Gates[((int)worldSide - Rotation) & 3, segment];
 
+        /// <summary>A cell of a giant tangled forest.</summary>
+        public bool Forest => Shape.Kind == ShapeKind.Maze && TileShapes.IsForest(Variant.Id);
+
         public override string ToString() => $"{Coord} {Shape.Id}/{Variant.Id} r{Rotation} b{BaseLevel}";
     }
 
@@ -229,6 +232,8 @@ namespace Hakaton.WorldAssembly
                     break;
                 }
             }
+            if (shape.Kind == ShapeKind.Maze && feature != null && feature.Forest)
+                id = plan.MazeHeart ? TileShapes.ForestHeart : feature.Glade ? TileShapes.ForestGlade : TileShapes.Forest;
             plan.Variant = shape.FindVariant(id);
         }
 
@@ -283,7 +288,12 @@ namespace Hakaton.WorldAssembly
                     if (theme == "camp" || theme == "apiary" || theme == "farm") chance = Math.Max(chance, .75);
                     else if (theme == "ruins" || theme == "hollow") chance *= 1.5;
                     break;
-                case ShapeKind.Maze: theme = "maze"; chance *= 1.5; break;
+                case ShapeKind.Maze:
+                    theme = plan.Forest ? "forest" : "maze";
+                    chance *= 1.5;
+                    // The forest's heart is always guarded.
+                    if (plan.Forest && plan.MazeHeart) chance = 1;
+                    break;
                 case ShapeKind.River: theme = "river"; chance *= .6; break;
                 case ShapeKind.Canyon: theme = "canyon"; chance *= 1.4; break;
                 case ShapeKind.PlateauTop: theme = plan.BaseLevel >= 2 ? "summit" : "plateau"; chance *= 1.2; break;
@@ -320,6 +330,10 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.Plain:
                     // Every scene has a place for a find; most of them hold one.
                     if (findRoll < Rules.SceneFindChance[ring]) plan.Loot.Add("find");
+                    break;
+                case ShapeKind.Maze when plan.Variant.Id == TileShapes.ForestGlade:
+                    // A glade always holds something; far out, something good.
+                    plan.Loot.Add(ring == 2 && findRoll < .5 ? "find-hard" : "find");
                     break;
                 default:
                     if (findRoll < Rules.FindChance[ring]) plan.Loot.Add("find");

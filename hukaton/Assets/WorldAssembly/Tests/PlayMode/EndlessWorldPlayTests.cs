@@ -358,7 +358,14 @@ namespace Hakaton.WorldAssembly.Tests
                 ["sinkhole"] = v => v.shapeId == "sinkhole-10",
                 ["swamp"] = v => v.shapeId == "swamp-11",
                 ["lake"] = v => v.shapeId == "lake-11",
+                ["forest"] = v => v.variantId == TileShapes.Forest,
+                ["forest-glade"] = v => v.variantId == TileShapes.ForestGlade,
+                ["forest-heart"] = v => v.variantId == TileShapes.ForestHeart,
             };
+            // The air of each place: settles at once for the photos.
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            if (air) air.settle = .05f;
+            var moods = new List<string> { WorldAtmosphere.Rain, WorldAtmosphere.Storm, WorldAtmosphere.Swamp, WorldAtmosphere.High, WorldAtmosphere.Water };
             var home = world.motor.transform.position;
             for (int step = 0; step < 20 && wanted.Count > 0; step++)
             {
@@ -370,10 +377,39 @@ namespace Hakaton.WorldAssembly.Tests
                     var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).FirstOrDefault(wanted[key]);
                     if (!view) continue;
                     var centre = view.transform.position;
+                    if (key.StartsWith("forest"))
+                    {
+                        // Over the crowns, then down on a lane looking along it to where the creatures wait (taken
+                        // first: the view may be reused for another chunk while the camera is up there).
+                        var from = view.findSockets.FirstOrDefault(x => x);
+                        var to = view.creatureSockets.FirstOrDefault(x => x);
+                        var inEye = from ? from.position + Vector3.up * 1.6f : centre;
+                        var inTarget = to ? to.position + Vector3.up * (key == "forest-heart" ? 3 : 1) : centre;
+                        // The player waits on the lane meanwhile: a fall from up there would end the outing.
+                        yield return Shot(dir, "play-" + key, centre + new Vector3(-16, 24, -16), centre, inEye);
+                        if (from && to) yield return Shot(dir, "play-" + key + "-in", inEye, inTarget);
+                        wanted.Remove(key);
+                        continue;
+                    }
                     var eye = centre + new Vector3(-11, 7, -11);
                     yield return Shot(dir, "play-" + key, eye, centre + Vector3.up);
                     wanted.Remove(key);
                 }
+                if (air)
+                    foreach (var mood in moods.ToList())
+                    {
+                        if (air.Strength(mood) < .6f) continue;
+                        var at = world.motor.transform.position + Vector3.up * 1.7f;
+                        yield return Shot(dir, "play-air-" + mood, at, at + new Vector3(1, -.08f, .6f) * 10);
+                        var weather = streamer.transform.Find("Weather");
+                        int alive = 0;
+                        if (weather)
+                            foreach (Transform effect in weather)
+                                if (effect.name.StartsWith(mood + " "))
+                                    foreach (var ps in effect.GetComponentsInChildren<ParticleSystem>()) alive += ps.particleCount;
+                        Debug.Log($"[World] air {mood}: strength {air.Strength(mood):0.00}, fog {RenderSettings.fogDensity:0.0000}, particles {alive}");
+                        moods.Remove(mood);
+                    }
             }
             // From the player's own eyes, out in the first and second rings.
             int walk = 0;
@@ -398,16 +434,53 @@ namespace Hakaton.WorldAssembly.Tests
             // Where the player came down, if nothing was found under the spot (the ground may still be streaming in).
             var backEye = (under.Count > 0 ? under[0].point : world.motor.transform.position) + Vector3.up * 1.7f;
             yield return Shot(dir, "play-far-back", backEye, home + Vector3.up * 6);
-            Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys));
+            Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys.Concat(moods.Select(m => "air " + m))));
         }
 
-        IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target)
+        [UnityTest]
+        public IEnumerator TheAirThickensUnderTheGiantTreesAndClearsAfterTheOuting()
         {
-            // Stand where the camera will be, so streaming and far silhouettes follow it as in play.
-            world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            Assert.That(air, Is.Not.Null, "the streamer carries the world's atmosphere");
+            air.settle = .05f;
+            for (int f = 0; f < 10; f++) yield return null;
+            float startFog = RenderSettings.fogDensity;
+            Assert.That(Shader.GetGlobalFloat("_WorldBiomeStrength"), Is.GreaterThan(0), "plants take the colour of the ground's patches");
+            // The nearest cell of a giant forest that is not its heart.
+            var map = streamer.Map;
+            ChunkPlan cell = null;
+            for (int x = -30; x <= 30; x++)
+                for (int y = -30; y <= 30; y++)
+                {
+                    var p = map.Chunk(x, y);
+                    if (!p.Forest || p.MazeHeart) continue;
+                    if (cell == null || x * x + y * y < cell.Coord.X * cell.Coord.X + cell.Coord.Y * cell.Coord.Y) cell = p;
+                }
+            Assert.That(cell, Is.Not.Null, "a giant forest within 480 m");
+            var centre = streamer.root.position + new Vector3(cell.Coord.X * map.Rules.ChunkSize, cell.BaseLevel * map.Rules.PlateauHeight + 3, cell.Coord.Y * map.Rules.ChunkSize);
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 45; f++) yield return null;
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 60; f++) yield return null;
+            Assert.That(air.Strength(WorldAtmosphere.Forest), Is.GreaterThan(.8f), $"forest air at {cell}");
+            float forestFog = RenderSettings.fogDensity;
+            Assert.That(forestFog, Is.GreaterThan(startFog * 1.2f), "thicker fog under the giant trees than at the start");
+            // The outing ends (as on the way home): the scene's own air and colours come back.
+            streamer.EndOuting();
+            yield return null;
+            yield return null;
+            Assert.That(Shader.GetGlobalFloat("_WorldBiomeStrength"), Is.EqualTo(0f), "plants back to their own colour at home");
+            Assert.That(RenderSettings.fogDensity, Is.LessThan(forestFog / 1.2f), "the scene's own fog back at home");
+        }
+
+        IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target, Vector3? stand = null)
+        {
+            // Stand where the camera will be (or under it), so streaming and far silhouettes follow it as in play.
+            var feet = (stand ?? eye) - Vector3.up * 1.6f;
+            world.motor.Teleport(feet, Quaternion.identity);
             // Let the chunks round the new spot stream in, as they would ahead of a walking player.
             for (int f = 0; f < 45; f++) yield return null;
-            world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
+            world.motor.Teleport(feet, Quaternion.identity);
             yield return null;
             var cam = world.viewCamera;
             var saved = (cam.transform.position, cam.transform.rotation);

@@ -13,6 +13,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>Along a river: a bridge or ford goes here. Along a canyon: a log or a descent.</summary>
         public bool Crossing;
         public bool MazeHeart;
+        /// <summary>A cell of a giant tangled forest (a maze of giant trees, roots and deadfall), and its sunny glades.</summary>
+        public bool Forest, Glade;
         /// <summary>Landmark part: which landmark, its canonical part and the landmark's quarter turns.</summary>
         public LandmarkKind Landmark;
         public int PartI, PartJ, LandmarkRotation;
@@ -120,7 +122,9 @@ namespace Hakaton.WorldAssembly
             // Landmarks first: they need a whole square of even ground; mazes grow over whatever is left.
             if (Hash.Unit(seed, Salt.Landmark, dx, dy) < rules.Landmark[ring]) PlanLandmark(origin, dx, dy, used, At, 0);
             if (Hash.Unit(seed, Salt.Landmark + 1, dx, dy) < rules.SecondLandmark[ring]) PlanLandmark(origin, dx, dy, used, At, 1);
-            if (Hash.Unit(seed, Salt.Maze, dx, dy) < rules.Maze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 0);
+            // Away from the start a giant tangled forest may take the first maze's place; it grows bigger.
+            bool forest = Hash.Unit(seed, Salt.Forest, dx, dy) < rules.Forest[ring] && PlanMaze(origin, dx, dy, plan, used, At, 2, true);
+            if (!forest && Hash.Unit(seed, Salt.Maze, dx, dy) < rules.Maze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 0);
             if (Hash.Unit(seed, Salt.Maze + 9, dx, dy) < rules.SecondMaze[ring]) PlanMaze(origin, dx, dy, plan, used, At, 1);
             return plan;
         }
@@ -328,8 +332,13 @@ namespace Hakaton.WorldAssembly
 
         // ---------- mazes ----------
 
-        void PlanMaze(ChunkCoord origin, int dx, int dy, Dictionary<ChunkCoord, ChunkFeature> plan, HashSet<ChunkCoord> used,
-            Func<ChunkCoord, ChunkFeature> at, int which)
+        /// <summary>
+        /// A maze over free flat low ground: a stone maze of 4…9 chunks, or a giant tangled forest of 8…16 (at least 6)
+        /// with more loops, a third way in and one or two glades. Every cell is reached on foot from an entrance; the
+        /// heart is the cell furthest from them.
+        /// </summary>
+        bool PlanMaze(ChunkCoord origin, int dx, int dy, Dictionary<ChunkCoord, ChunkFeature> plan, HashSet<ChunkCoord> used,
+            Func<ChunkCoord, ChunkFeature> at, int which, bool forest = false)
         {
             bool Free(ChunkCoord c)
             {
@@ -340,25 +349,26 @@ namespace Hakaton.WorldAssembly
                     if (plan.TryGetValue(c.Step(side), out var near) && near.Feature == Feature.Maze) return false;
                 return true;
             }
-            for (int attempt = 0; attempt < 12; attempt++)
+            for (int attempt = 0; attempt < (forest ? 16 : 12); attempt++)
             {
-                // A patch grown over whatever flat ground is free, so it fits between rivers and plateaus: 4…9 chunks.
+                // A patch grown over whatever flat ground is free, so it fits between rivers and plateaus.
                 int key = attempt + 31 * which;
                 var first = new ChunkCoord(origin.X + 1 + Hash.Range(seed, size - 2, Salt.Maze + 3, dx, dy, key),
                     origin.Y + 1 + Hash.Range(seed, size - 2, Salt.Maze + 4, dx, dy, key));
                 if (!Free(first)) continue;
-                int target = 4 + Hash.Range(seed, 6, Salt.Maze + 1, dx, dy, key);
+                int target = forest ? 8 + Hash.Range(seed, 9, Salt.Forest + 1, dx, dy, key) : 4 + Hash.Range(seed, 6, Salt.Maze + 1, dx, dy, key);
                 var cells = new List<ChunkCoord> { first };
                 var taken = new HashSet<ChunkCoord> { first };
-                for (int grow = 0; grow < 64 && cells.Count < target; grow++)
+                int tries = forest ? 192 : 64;
+                for (int grow = 0; grow < tries && cells.Count < target; grow++)
                 {
-                    var from = cells[Hash.Range(seed, cells.Count, Salt.Maze + 2, dx, dy, key * 64 + grow)];
-                    var next = from.Step((Side)Hash.Range(seed, 4, Salt.Maze + 5, dx, dy, key * 64 + grow));
+                    var from = cells[Hash.Range(seed, cells.Count, Salt.Maze + 2, dx, dy, key * tries + grow)];
+                    var next = from.Step((Side)Hash.Range(seed, 4, Salt.Maze + 5, dx, dy, key * tries + grow));
                     if (taken.Contains(next) || !Free(next)) continue;
                     taken.Add(next);
                     cells.Add(next);
                 }
-                if (cells.Count < 4) continue;
+                if (cells.Count < (forest ? 6 : 4)) continue;
                 var set = new HashSet<ChunkCoord>(cells);
 
                 // Entrances: patch edges facing a free flat chunk.
@@ -371,7 +381,7 @@ namespace Hakaton.WorldAssembly
                         entrances.Add((c, side));
                     }
                 if (entrances.Count < 2) continue;
-                var chosen = ChooseEntrances(entrances, dx, dy);
+                var chosen = ChooseEntrances(entrances, dx, dy, forest && cells.Count >= 10);
 
                 // Spanning tree by randomized depth-first search, then a few loops.
                 var passages = new HashSet<(ChunkCoord, ChunkCoord)>();
@@ -395,13 +405,14 @@ namespace Hakaton.WorldAssembly
                     foreach (var side in new[] { Side.East, Side.North })
                     {
                         var n = c.Step(side);
-                        if (set.Contains(n) && Hash.Unit(seed, Salt.MazeLoop, n.X, n.Y, (int)side) < .15) passages.Add(Key(c, n));
+                        if (set.Contains(n) && Hash.Unit(seed, Salt.MazeLoop, n.X, n.Y, (int)side) < (forest ? .24 : .15)) passages.Add(Key(c, n));
                     }
 
                 foreach (var c in cells)
                 {
                     var f = at(c);
                     f.Feature = Feature.Maze;
+                    f.Forest = forest;
                     used.Add(c);
                     foreach (var side in Sides.All)
                     {
@@ -428,11 +439,27 @@ namespace Hakaton.WorldAssembly
                 ChunkCoord heart = cells[0];
                 foreach (var c in cells) if (distance.TryGetValue(c, out int d) && d > distance[heart]) heart = c;
                 at(heart).MazeHeart = true;
-                return;
+                if (forest)
+                {
+                    // Glades: one, two in a big forest; never the heart, never next to another glade.
+                    int glades = cells.Count >= 11 ? 2 : 1;
+                    var order = new List<ChunkCoord>(cells);
+                    order.Sort((a, b) => Hash.Unit(seed, Salt.Forest + 2, a.X, a.Y).CompareTo(Hash.Unit(seed, Salt.Forest + 2, b.X, b.Y)));
+                    var glade = new List<ChunkCoord>();
+                    foreach (var c in order)
+                    {
+                        if (glade.Count >= glades) break;
+                        if (c.Equals(heart) || glade.Exists(g => Distance(g, c) < 2)) continue;
+                        glade.Add(c);
+                        at(c).Glade = true;
+                    }
+                }
+                return true;
             }
+            return false;
         }
 
-        HashSet<(ChunkCoord, Side)> ChooseEntrances(List<(ChunkCoord cell, Side side)> options, int dx, int dy)
+        HashSet<(ChunkCoord, Side)> ChooseEntrances(List<(ChunkCoord cell, Side side)> options, int dx, int dy, bool three = false)
         {
             var result = new HashSet<(ChunkCoord, Side)>();
             int first = Hash.Range(seed, options.Count, Salt.MazeEntrance, dx, dy);
@@ -448,7 +475,7 @@ namespace Hakaton.WorldAssembly
                 if (score > bestScore) { bestScore = score; best = o; }
             }
             result.Add(best);
-            if (options.Count > 2 && Hash.Unit(seed, Salt.MazeEntrance + 1, dx, dy) < .5)
+            if (options.Count > 2 && (three || Hash.Unit(seed, Salt.MazeEntrance + 1, dx, dy) < .5))
             {
                 var third = options[Hash.Range(seed, options.Count, Salt.MazeEntrance + 2, dx, dy)];
                 result.Add(third);

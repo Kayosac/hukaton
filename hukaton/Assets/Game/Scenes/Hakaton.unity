@@ -2966,6 +2966,7 @@ GameObject:
   - component: {fileID: 308764316}
   - component: {fileID: 308764315}
   - component: {fileID: 308764317}
+  - component: {fileID: 308764318}
   m_Layer: 0
   m_Name: Endless world
   m_TagString: Untagged
@@ -3030,6 +3031,104 @@ MonoBehaviour:
   strength: 0.5
   beaconFrom: 60
   beaconHeight: 34
+--- !u!114 &308764318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308764314}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7eee97d0eaa014864a9f4cb1b74c8e5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.WorldAssembly::Hakaton.WorldAssembly.Unity.WorldAtmosphere
+  moods:
+  - name: water
+    fog: 1.3
+    tint: {r: 0.56, g: 0.69, b: 0.76, a: 1}
+    tintAmount: 0.25
+    sun: 0.95
+    ambient: 1
+    effect: {fileID: 0}
+    effectOffset: {x: 0, y: 8, z: 0}
+    effectRadius: 0
+    effectRate: 0
+  - name: swamp
+    fog: 1.9
+    tint: {r: 0.45, g: 0.57, b: 0.46, a: 1}
+    tintAmount: 0.5
+    sun: 0.7
+    ambient: 0.85
+    effect: {fileID: 5928109644484940230, guid: edeece28028d6ce4cb32500067e07ec1, type: 3}
+    effectOffset: {x: 0, y: 1.2, z: 0}
+    effectRadius: 10
+    effectRate: 0
+  - name: forest
+    fog: 1.5
+    tint: {r: 0.4, g: 0.52, b: 0.44, a: 1}
+    tintAmount: 0.35
+    sun: 0.7
+    ambient: 0.78
+    effect: {fileID: 2739067272883090565, guid: 1520817665bb4ca40ae633ee8b6e1c60, type: 3}
+    effectOffset: {x: 0, y: 7, z: 0}
+    effectRadius: 12
+    effectRate: 14
+  - name: high
+    fog: 0.65
+    tint: {r: 0.68, g: 0.82, b: 0.86, a: 1}
+    tintAmount: 0.2
+    sun: 1.1
+    ambient: 1.05
+    effect: {fileID: 4018788294519408218, guid: 41cd769eaf6745545a3dc268bc3193c5, type: 3}
+    effectOffset: {x: 0, y: 1.5, z: 0}
+    effectRadius: 0
+    effectRate: 0
+  - name: deep
+    fog: 1.3
+    tint: {r: 0.5, g: 0.54, b: 0.53, a: 1}
+    tintAmount: 0.3
+    sun: 0.8
+    ambient: 0.8
+    effect: {fileID: 4038003983209825891, guid: d851663c7b1a3a44fadd0bbc0bae0477, type: 3}
+    effectOffset: {x: 0, y: 1, z: 0}
+    effectRadius: 8
+    effectRate: 0
+  - name: rain
+    fog: 1.35
+    tint: {r: 0.55, g: 0.6, b: 0.62, a: 1}
+    tintAmount: 0.4
+    sun: 0.6
+    ambient: 0.85
+    effect: {fileID: 8284440395619531554, guid: d8e314e5e0ae2854c8e6dacfac8d3dfc, type: 3}
+    effectOffset: {x: 0, y: 10, z: 0}
+    effectRadius: 0
+    effectRate: 110
+  - name: storm
+    fog: 1.7
+    tint: {r: 0.47, g: 0.51, b: 0.54, a: 1}
+    tintAmount: 0.55
+    sun: 0.45
+    ambient: 0.75
+    effect: {fileID: 338077754692043356, guid: 22767a430a11f9c449d2b2a8c477fcac, type: 3}
+    effectOffset: {x: 0, y: 10, z: 0}
+    effectRadius: 0
+    effectRate: 0
+  - name: snow
+    fog: 1.4
+    tint: {r: 0.8, g: 0.85, b: 0.88, a: 1}
+    tintAmount: 0.4
+    sun: 0.8
+    ambient: 1
+    effect: {fileID: 1112678455523302295, guid: f410bfe64cc42bb41a80b33920704591, type: 3}
+    effectOffset: {x: 0, y: 10, z: 0}
+    effectRadius: 0
+    effectRate: 40
+  settle: 2.5
+  rainCell: 170
+  rainCover: {x: 0.18, y: 0.38}
+  groundMaterial: {fileID: 2100000, guid: ac7819c3928ea4115806c20fbf19795d, type: 2}
+  plantTint: 0.75
 --- !u!1 &315693557
 GameObject:
   m_ObjectHideFlags: 0
