@@ -97,6 +97,42 @@ namespace Hakaton.WorldAssembly.Tests
             yield return null;
         }
 
+        /// <summary>
+        /// Walks the player in a straight line at a sprint across the world and reports what streaming costs: chunk
+        /// loads and unloads, frame times, draw calls. Not a pass/fail on speed (the editor is slower than a build), but
+        /// a record to compare against: Logs/world-plans/streaming.txt.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator MeasureStreamingWhileWalking()
+        {
+            yield return new WaitForSeconds(1);
+            streamer.LoadTimes = streamer.UnloadTimes = default;
+            var start = world.motor.transform.position;
+            var frames = new List<float>();
+            long batches = 0, tris = 0, samples = 0;
+            const float speed = 6.5f;
+            float travelled = 0;
+            while (travelled < 400)
+            {
+                float dt = Mathf.Min(Time.unscaledDeltaTime, .05f);
+                travelled += speed * dt;
+                var spot = start + new Vector3(travelled * .8f, 0, travelled * .6f);
+                world.motor.Teleport(spot + Vector3.up * 30, Quaternion.identity);
+                yield return null;
+                frames.Add(Time.unscaledDeltaTime * 1000);
+                batches += UnityEditor.UnityStats.batches;
+                tris += UnityEditor.UnityStats.triangles;
+                samples++;
+            }
+            frames.Sort();
+            string report = $"loads {streamer.LoadTimes}\nunloads {streamer.UnloadTimes}\n" +
+                $"frames {frames.Count}: median {frames[frames.Count / 2]:0.0} ms, 95% {frames[(int)(frames.Count * .95f)]:0.0} ms, worst {frames[frames.Count - 1]:0.0} ms\n" +
+                $"batches avg {batches / Mathf.Max(1, samples)}, triangles avg {tris / Mathf.Max(1, samples)}\nloaded now {streamer.LoadedCount}";
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans"));
+            File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "streaming.txt"), report);
+            Assert.That(streamer.LoadTimes.Count, Is.GreaterThan(10));
+        }
+
         [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {

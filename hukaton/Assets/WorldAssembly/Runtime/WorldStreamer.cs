@@ -115,7 +115,9 @@ namespace Hakaton.WorldAssembly.Unity
         void Update()
         {
             if (!Active || !player) return;
-            Stream(player.position, loadsPerFrame);
+            // WebGL runs on one thread: one chunk a frame keeps the walk smooth (a chunk costs about 1–3 ms in the
+            // editor, several times that in a browser).
+            Stream(player.position, Application.platform == RuntimePlatform.WebGLPlayer ? 1 : loadsPerFrame);
         }
 
         // ---------- streaming ----------
@@ -136,11 +138,40 @@ namespace Hakaton.WorldAssembly.Unity
                     wanted.Add(c);
                 }
             wanted.Sort((a, b) => Distance(a, centre).CompareTo(Distance(b, centre)));
-            for (int i = 0; i < wanted.Count && i < budget; i++) Load(wanted[i]);
+            for (int i = 0; i < wanted.Count && i < budget; i++)
+            {
+                clock.Restart();
+                Load(wanted[i]);
+                Note(ref LoadTimes, (float)clock.Elapsed.TotalMilliseconds);
+            }
 
             leaving.Clear();
             foreach (var c in loaded.Keys) if (Distance(c, centre) > unloadRadius) leaving.Add(c);
-            foreach (var c in leaving) Unload(c, remember: true);
+            foreach (var c in leaving)
+            {
+                clock.Restart();
+                Unload(c, remember: true);
+                Note(ref UnloadTimes, (float)clock.Elapsed.TotalMilliseconds);
+            }
+        }
+
+        /// <summary>Running cost of streaming, for measuring (count, total and worst in ms).</summary>
+        public struct Timing
+        {
+            public int Count;
+            public float Total, Worst;
+            public float Average => Count > 0 ? Total / Count : 0;
+            public override string ToString() => $"{Count} × avg {Average:0.0} ms, worst {Worst:0.0} ms";
+        }
+
+        public Timing LoadTimes, UnloadTimes;
+        readonly System.Diagnostics.Stopwatch clock = new System.Diagnostics.Stopwatch();
+
+        static void Note(ref Timing timing, float ms)
+        {
+            timing.Count++;
+            timing.Total += ms;
+            timing.Worst = Mathf.Max(timing.Worst, ms);
         }
 
         float Distance(ChunkCoord c, Vector3 p)

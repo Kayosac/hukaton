@@ -177,12 +177,12 @@ namespace Hakaton.WorldAssembly.EditorTools
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             var mats = new Material[subs.Length];
-            mats[(int)Surface.Main] = Mat(MainGround(t));
-            mats[(int)Surface.Rock] = Mat("OA_Ground_Rock");
-            mats[(int)Surface.Bank] = Mat("OA_Ground_Path");
-            mats[(int)Surface.Humus] = Mat("OA_Ground_Humus");
-            mats[(int)Surface.Bed] = Mat("OA_Ground_Bed");
-            mats[(int)Surface.Path] = Mat("OA_Ground_Path");
+            mats[(int)Surface.Main] = GroundMat(MainGround(t));
+            mats[(int)Surface.Rock] = GroundMat("OA_Ground_Rock");
+            mats[(int)Surface.Bank] = GroundMat("OA_Ground_Path");
+            mats[(int)Surface.Humus] = GroundMat("OA_Ground_Humus");
+            mats[(int)Surface.Bed] = GroundMat("OA_Ground_Bed");
+            mats[(int)Surface.Path] = GroundMat("OA_Ground_Path");
             return (mesh, mats);
         }
 
@@ -202,6 +202,30 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         /// <summary>One ground everywhere, so chunks never show their borders; variety comes from rock, paths and dressing.</summary>
         static string MainGround(TileTerrain t) => "OA_Ground_Moss";
+
+        const string GroundMaterials = "Assets/WorldAssembly/Materials/Ground";
+
+        /// <summary>
+        /// The world's own copy of an Old Apiary ground material on Hakaton/World Ground Lit: same textures, tinted by
+        /// biome. Made once; edit it freely afterwards (rebuilding keeps it).
+        /// </summary>
+        static Material GroundMat(string name)
+        {
+            string path = $"{GroundMaterials}/{name}.mat";
+            if (materials.TryGetValue(path, out var cached)) return cached;
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m)
+            {
+                var original = Mat(name);
+                var shader = Shader.Find("Hakaton/World Ground Lit");
+                if (!original || !shader) return original;
+                Directory.CreateDirectory(GroundMaterials);
+                m = new Material(original) { name = name, shader = shader };
+                AssetDatabase.CreateAsset(m, path);
+            }
+            materials[path] = m;
+            return m;
+        }
 
         static Material Mat(string name)
         {
