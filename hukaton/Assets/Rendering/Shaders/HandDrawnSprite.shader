@@ -6,7 +6,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         [PerRendererData] _SpriteUVRect ("Sprite UV Rect", Vector) = (0,0,1,1)
         _Color ("Tint", Color) = (1,1,1,1)
         [Header(Crisp Pixels)]
-        _PixelsPerUnit ("Pixels Per World Unit", Float) = 184.875
+        _PixelsPerUnit ("Pixels Per World Unit", Float) = 500
         _AlphaCutoff ("Hard Alpha Cutoff", Range(0.01,1)) = 0.5
         [Header(Hand Drawn Motion)]
         _Motion ("Motion Amount", Range(0,2)) = 1
