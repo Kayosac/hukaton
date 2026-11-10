@@ -84,6 +84,8 @@ namespace Hakaton.Expeditions
         public event Action<Vector3> PlayerLaunched;
         /// <summary>Every card landing: the copy and what it hit (the tutorial watches its bush).</summary>
         public event Action<CardCopy, Collider, Vector3> Impacted;
+        /// <summary>The Return card was used in the cave prologue and the screen is dark: the tutorial takes the player on.</summary>
+        public event Action PrologueReturned;
         /// <summary>The cave prologue runs instead of an outing to the valley.</summary>
         public bool InPrologue { get; private set; }
         /// <summary>Where a fall into the prologue's water puts the player back when no shores are listed below.</summary>
@@ -363,19 +365,47 @@ namespace Hakaton.Expeditions
             motor.Teleport(shopPose.position, shopPose.rotation);
             vitals.Restore();
             if (sfx) sfx.StopLoop(this);
+            control.SetBlocked(this, false);
+            Returning = false;
             InPrologue = false;
         }
 
         void ReturnToShop(bool defeated, bool drowned)
         {
             if (!Running) return;
+            // The prologue has no defeat; its Return card (from the goblin) ends the cave instead of an outing.
+            if (InPrologue && defeated) return;
             if (!defeated && !workshop.Model.Current.ReturnHome()) return;
             if (defeated) workshop.Model.Current.Defeat();
             Returning = true;
             thrower.Cancel();
             // Drowning keeps the mouse: the player can still look around while sinking; the body is held by Sink.
             if (!drowned) control.SetBlocked(this, true);
-            StartCoroutine(ReturnTransition(defeated, drowned));
+            StartCoroutine(InPrologue ? PrologueReturn() : ReturnTransition(defeated, drowned));
+        }
+
+        /// <summary>The cave's Return card: the same fling and dark as at the end of an outing, then the tutorial moves on.</summary>
+        IEnumerator PrologueReturn()
+        {
+            yield return FlingReturnCard();
+            hand.Hide();
+            if (fade) yield return fade.FadeTo(1, settings.returnFadeSeconds);
+            if (time) time.ResetTime();
+            if (!InPrologue) yield break;
+            Returning = false;
+            PrologueReturned?.Invoke();
+        }
+
+        /// <summary>The Return card is flung skyward and bursts.</summary>
+        IEnumerator FlingReturnCard()
+        {
+            var eye = viewCamera.transform;
+            if (hand.Take(-1, out var pose, out var view))
+                SpawnDebris(view, pose.position, pose.rotation, eye.forward * 4 + Vector3.up * 9, new Vector3(0, 0, 900), .7f);
+            Play(cues ? cues.returnCard : null);
+            if (feel) { feel.Kick(new Vector3(-35, 0, 0)); feel.PunchFov(30); }
+            yield return new WaitForSecondsRealtime(.3f);
+            Spawn(vfx ? vfx.returnPoof : null, eye.position + eye.forward * 2.5f + Vector3.up * 1.5f, Quaternion.identity, new Color(1f, .82f, .35f));
         }
 
         /// <summary>The body sinks under water and the screen goes black at once; the mouse still looks around.</summary>
@@ -401,7 +431,6 @@ namespace Hakaton.Expeditions
 
         IEnumerator ReturnTransition(bool defeated, bool drowned)
         {
-            var eye = viewCamera.transform;
             if (drowned) { yield return Sink(); control.SetBlocked(this, true); }
             else if (defeated)
             {
@@ -409,16 +438,8 @@ namespace Hakaton.Expeditions
                 if (feel) { feel.AddTrauma(.6f); feel.Kick(new Vector3(40, 0, 25)); }
                 yield return new WaitForSecondsRealtime(.75f);
             }
-            else
-            {
-                // The Return card is flung skyward and bursts — then the screen goes dark.
-                if (hand.Take(-1, out var pose, out var view))
-                    SpawnDebris(view, pose.position, pose.rotation, eye.forward * 4 + Vector3.up * 9, new Vector3(0, 0, 900), .7f);
-                Play(cues ? cues.returnCard : null);
-                if (feel) { feel.Kick(new Vector3(-35, 0, 0)); feel.PunchFov(30); }
-                yield return new WaitForSecondsRealtime(.3f);
-                Spawn(vfx ? vfx.returnPoof : null, eye.position + eye.forward * 2.5f + Vector3.up * 1.5f, Quaternion.identity, new Color(1f, .82f, .35f));
-            }
+            // The Return card is flung skyward and bursts — then the screen goes dark.
+            else yield return FlingReturnCard();
             hand.Hide();
             if (fade && !drowned) yield return fade.FadeTo(1, settings.returnFadeSeconds);
             else if (fade) fade.Set(1, settings.drownColour);

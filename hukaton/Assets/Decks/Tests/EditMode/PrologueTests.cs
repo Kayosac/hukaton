@@ -30,6 +30,19 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
+        public void GoblinHandsOverOnlyTheReturnCard()
+        {
+            var cave = Cave(out var workshop);
+            cave.GrantToHand(Fire);
+            cave.GrantToHand(Fire);
+            var card = cave.GrantReturn();
+            Assert.That(card.IsReturn, Is.True);
+            Assert.That(cave.Deck.Hand, Is.EqualTo(new[] { card }), "the spells are gone, «Пора домой» is all that is left");
+            Assert.That(cave.ReturnHome(), Is.True);
+            Assert.That(workshop.IsAway, Is.False);
+        }
+
+        [Test]
         public void SpellComesBackAfterEveryThrow()
         {
             var cave = Cave(out _);
