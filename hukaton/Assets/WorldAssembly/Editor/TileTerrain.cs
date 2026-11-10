@@ -202,14 +202,49 @@ namespace Hakaton.WorldAssembly.EditorTools
         public float Height(Vector2 p)
         {
             float h = Base(p);
+            float onRamp = 0;
             foreach (var ramp in Ramps)
             {
                 float w = RampWeight(ramp, p, out float t);
                 if (w > 0) h = Mathf.Lerp(h, Mathf.Lerp(ramp.HeightA, ramp.HeightB, t), w);
+                onRamp = Mathf.Max(onRamp, w);
             }
             bool wet = Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond");
             float amplitude = wet && h < WaterLevel + .4f ? .05f : .18f;
-            return h + Noise(p, 2f, 3) * amplitude * EdgeFade(p);
+            // Rolling ground everywhere, but water keeps its banks and ramps their run.
+            float calm = Mathf.Clamp01((WaterDistance(p) - .4f) / 2.4f) * (1 - onRamp);
+            // A canyon's floor and walls stay as cut: the floor is the only way along it.
+            if (Shape.Kind == ShapeKind.Canyon) calm *= Mathf.Clamp01((DistanceToCentre(p) - RimHalf - .4f) / 2f);
+            return h + Noise(p, 2f, 3) * amplitude * EdgeFade(p) + Undulation(p) * calm;
+        }
+
+        /// <summary>Height of the waves every chunk edge carries, m: the same on all edges of all chunks.</summary>
+        public const float EdgeWave = .35f;
+        /// <summary>Rolling of the ground inside a chunk, m either way.</summary>
+        public const float Roll = .85f;
+
+        /// <summary>
+        /// The ground's rolls, added to every shape. Along every edge it is the same wave, sin²(π s / 8): zero at the
+        /// corners and the middle, a low swell between, symmetric end to end — so any two chunks meet whatever their
+        /// turn. Inside, noise rolls take over.
+        /// </summary>
+        public float Undulation(Vector2 p)
+        {
+            float fx = Mathf.Clamp01(Mathf.Min(p.x, Size - p.x) / 3), fy = Mathf.Clamp01(Mathf.Min(p.y, Size - p.y) / 3);
+            float Wave(float s) { float w = Mathf.Sin(Mathf.PI * s / 8); return w * w; }
+            float edge = EdgeWave * (Wave(p.x) * (1 - fy) + Wave(p.y) * (1 - fx));
+            float inner = Roll * (Noise(p, 6.5f, 41) * .7f + Noise(p, 3.2f, 42) * .3f) * Mathf.Min(fx, fy);
+            return edge + inner;
+        }
+
+        /// <summary>How far a point is outside the water's banks, m (large where there is no water).</summary>
+        public float WaterDistance(Vector2 p)
+        {
+            if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) - PondBank;
+            if (Shape.Kind != ShapeKind.River) return 99;
+            float d = DistanceToCentre(p) - BankHalf;
+            if (Shape.Id == "river-end") d = Mathf.Min(d, Vector2.Distance(p, new Vector2(8, 8)) - (Variant == "spring" ? SpringBank : LakeBank));
+            return d;
         }
 
         public float RampWeight(Ramp ramp, Vector2 p, out float t)

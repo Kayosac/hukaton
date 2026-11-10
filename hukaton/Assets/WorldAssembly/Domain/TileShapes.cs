@@ -128,7 +128,7 @@ namespace Hakaton.WorldAssembly
         /// connected on foot. "thorns" (a thicket to burn, Fire) and "tower" (a rock pillar to jump onto, Impulse) also
         /// hold a pocket with a reward.
         /// </summary>
-        public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower" };
+        public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower", "apiary" };
         public static readonly string[] TopScenes = { "gap", "boulders", "knoll", "ruins", "hollow", "thorns", "tower" };
 
         /// <summary>Scenes with a pocket only a card reaches.</summary>
@@ -275,7 +275,7 @@ namespace Hakaton.WorldAssembly
                 new[] { new Variant("plain"), new Variant("descent", new[] { new Link(0, 2, Need.Walk) }) });
         }
 
-        /// <summary>A cell of a thicket maze: corridor region 0; open sides lead on, walled sides burn through with Fire.</summary>
+        /// <summary>A cell of a stone maze: corridor region 0; open sides lead on, walled sides are not crossed.</summary>
         static TileShape Maze(string id, bool n, bool e, bool s, bool w)
         {
             var open = new[] { n, e, s, w };
@@ -286,12 +286,12 @@ namespace Hakaton.WorldAssembly
             {
                 ports[side, 0] = -1;
                 ports[side, 2] = -1;
-                ports[side, 1] = 0;
-                gates[side, 1] = open[side] ? Need.Walk : Need.Fire;
+                // A walled side is stone: nothing crosses it.
+                ports[side, 1] = open[side] ? 0 : -1;
                 mids[side] = open[side] ? Mid.MazeOpen : Mid.MazeWall;
             }
             return new TileShape(id, ShapeKind.Maze, new[] { 0, 0, 0, 0 }, mids, new[] { new Region("corridor", 0) }, ports,
-                Array.Empty<Link>(), new[] { new Variant("thicket") }, gates);
+                Array.Empty<Link>(), new[] { new Variant("stone") }, gates);
         }
     }
 }

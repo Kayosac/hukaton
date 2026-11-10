@@ -20,7 +20,7 @@ namespace Hakaton.WorldAssembly.Unity
         [Serializable]
         public struct CreatureEntry
         {
-            [Tooltip("peaceful, small-hostile, hostile, thicket, territorial, brute")]
+            [Tooltip("Creature id the world plan names: bee-swarm, goblin-dog, … (see CreatureThemes)")]
             public string role;
             public WorldCreature[] prefabs;
         }

@@ -92,15 +92,19 @@ namespace Hakaton.WorldAssembly.Tests
                     var p = map.Chunk(c);
                     if (p.Ring == 0)
                     {
-                        Assert.AreEqual(0, p.Corners.Max(), $"seed {seed} {p}: ring 0 is flat");
+                        if (!WorldRules.IsStartArea(c) && Math.Max(Math.Abs(c.X), Math.Abs(c.Y)) > 2)
+                            Assert.AreEqual(0, p.Corners.Max(), $"seed {seed} {p}: ring 0 is low but for the start");
+                        foreach (var spawn in p.Spawns) Assert.IsTrue(CreatureThemes.IsCalm(spawn.Creature), $"seed {seed} {p}: {spawn} in ring 0");
                         Assert.AreNotEqual(ShapeKind.Canyon, p.Shape.Kind, $"seed {seed} {p}");
                         Assert.AreNotEqual("island", p.Variant.Id, $"seed {seed} {p}");
                     }
-                    if (p.Corners.Max() == 2)
-                        Assert.GreaterOrEqual(Math.Sqrt(c.X * c.X + c.Y * c.Y) * 16, map.Rules.MiddleRadius - 16, $"seed {seed} {p}: summits only far out");
+                    if (p.Corners.Max() == 3)
+                        Assert.GreaterOrEqual(Math.Sqrt(c.X * c.X + c.Y * c.Y) * 16, map.Rules.MiddleRadius - 16, $"seed {seed} {p}: the third level only far out");
+                    Assert.LessOrEqual(p.Corners.Max() - p.Corners.Min(), 1, $"seed {seed} {p}: one level at a time");
                     if (p.Shape.Kind == ShapeKind.Canyon) Assert.GreaterOrEqual(p.Ring, 1, $"seed {seed} {p}");
                 }
                 Assert.AreEqual(Landmarks.StartHill.PartId(1, 1), map.Chunk(0, 0).Shape.Id);
+                Assert.AreEqual(map.Rules.StartLevel, map.Chunk(0, 0).BaseLevel, "the start stands above ring 0");
                 foreach (var c in Square(1)) Assert.AreEqual(ShapeKind.Landmark, map.Chunk(c).Shape.Kind, $"seed {seed} {c}: the start hill");
             }
         }
@@ -224,7 +228,7 @@ namespace Hakaton.WorldAssembly.Tests
                 {
                     var p = map.Chunk(c);
                     if (p.Variant.Id == "island") Assert.IsNotNull(p.PocketReward, $"seed {seed} {p}");
-                    if (WorldRules.IsStartArea(c)) { Assert.IsNull(p.Creature); Assert.IsEmpty(p.Loot); }
+                    if (WorldRules.IsStartArea(c)) { Assert.IsEmpty(p.Spawns); Assert.IsEmpty(p.Loot); }
                 }
             }
         }

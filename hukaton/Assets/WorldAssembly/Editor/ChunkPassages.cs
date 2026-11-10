@@ -51,7 +51,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                             var p = Vector2.Lerp(a, b, (seg + .5f) / 3);
                             p += (new Vector2(8, 8) - p).normalized * 1.1f;
                             float level = shape.Regions[region].Level;
-                            float y = shape.Kind == ShapeKind.Landmark ? entry.prefab.edgeHeights[side * 3 + seg] : level >= 0 ? level * 6 : -5;
+                            float y = entry.prefab.edgeHeights[side * 3 + seg];
                             ports.Add((region, origin + new Vector3(p.x - 8, y, p.y - 8), $"side {side} segment {seg}"));
                         }
                     var sampled = new List<(int region, Vector3 at, string name)>();

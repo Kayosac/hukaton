@@ -42,13 +42,15 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly List<Prop> Props = new List<Prop>();
         /// <summary>Rock dressing along ridges: (ridge index, spacing).</summary>
         public readonly List<(int ridge, float spacing)> RidgeRocks = new List<(int, float)>();
+        /// <summary>Logs to walk on: a whole trunk across a gully with a flat walkway on top (centre, yaw, length).</summary>
+        public readonly List<(Vector2 at, float yaw, float length)> Walkways = new List<(Vector2, float, float)>();
         public Vector2[] Finds = Array.Empty<Vector2>();
         public Vector2[] Creatures = Array.Empty<Vector2>();
         /// <summary>Card-only pocket: the reward's spot and the thicket around it or the pillar under it.</summary>
         public Vector2? Pocket;
         public Rect? Thicket;
         /// <summary>Plants scattered over the rest: grass, ferns, trees.</summary>
-        public int Grass = 10, Ferns, Trees, Bushes = 6;
+        public int Grass = 10, Ferns, Trees = 3, Bushes = 6;
 
         ChunkScene(string id) { Id = id; }
 
@@ -64,8 +66,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         void PutScaled(string asset, float x, float y, float yaw, Vector3 scale) =>
             Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = scale });
 
-        void Deco(string asset, float x, float y, float yaw = 0, float scale = 1) =>
-            Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = Vector3.one * scale, NoCollider = true });
+        void Deco(string asset, float x, float y, float yaw = 0, float scale = 1, float lift = 0) =>
+            Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = Vector3.one * scale, NoCollider = true, Lift = lift });
 
         // ---------- the scenes ----------
 
@@ -93,6 +95,11 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "watchhill": s.Watchhill(); break;
                 case "crater": s.Crater(); break;
                 case "fort": s.Fort(); break;
+                case "apiary": s.Apiary(); break;
+                case "beeyard": s.Beeyard(); break;
+                case "village": s.Village(); break;
+                case "stone-forest": s.StoneForest(); break;
+                case "giant-log": s.GiantLog(); break;
             }
             all[id] = s;
             return s;
@@ -273,7 +280,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Trails.Add(new[] { V(8, 8), V(4.2f, 10.2f), V(1, 12) });
             Finds = new[] { V(7.6f, 8.4f), V(13.4f, 2.8f) };
             Creatures = new[] { V(8.4f, 7.2f), V(2.6f, 3) };
-            Grass = 8; Ferns = 10; Trees = 3;
+            Grass = 8; Ferns = 10; Trees = 2;
         }
 
         /// <summary>A pond with a pier, reeds and a bench.</summary>
@@ -288,7 +295,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Trails.Add(new[] { V(1, 10), V(5.6f, 9.6f), V(9, 10), V(15, 12.4f) });
             Finds = new[] { V(6.4f, 6.4f), V(3.6f, 13.4f) };
             Creatures = new[] { V(9.6f, 11.6f), V(14, 13.6f) };
-            Grass = 12; Trees = 1;
+            Grass = 12; Trees = 3;
         }
 
         /// <summary>A knot of thorns round something worth burning them for; a flag on a pole marks it from afar.</summary>
@@ -335,6 +342,18 @@ namespace Hakaton.WorldAssembly.EditorTools
             return x < margin || x > 16 - margin || y < margin || y > 16 - margin;
         }
 
+        /// <summary>Near the middle of an edge segment of any part: where links to the neighbours land.</summary>
+        static bool NearLink(Vector2 p)
+        {
+            float x = Mathf.Repeat(p.x, 16), y = Mathf.Repeat(p.y, 16);
+            foreach (float s in new[] { 16 / 6f, 8, 16 * 5 / 6f })
+            {
+                if (Mathf.Abs(x - s) < 3 && (y < 3.2f || y > 12.8f)) return true;
+                if (Mathf.Abs(y - s) < 3 && (x < 3.2f || x > 12.8f)) return true;
+            }
+            return false;
+        }
+
         void TreeRing(Vector2 centre, float radius, int count, float phase, float clear = 2.2f)
         {
             string[] trees = { "FA_TR01_ThickCrooked", "FA_TR12_Split", "FA_TR02_TallNarrow", "FA_TR06_Hollow", "FA_TR03_DoubleFork", "FA_TR05_Zigzag", "FA_TR14_KnottyGiant" };
@@ -342,8 +361,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 float a = phase + k * Mathf.PI * 2 / count;
                 var p = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius + (k % 3 - 1) * .8f);
-                if (NearSeam(p, 2.2f) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear)) continue;
-                Put("Trees/" + trees[k % trees.Length], p.x, p.y, k * 67, .85f + (k % 4) * .08f);
+                if (NearSeam(p, 2.2f) || NearLink(p) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear)) continue;
+                // Scale wanders a lot: saplings next to giants.
+                Put("Trees/" + trees[(k * 5 + (int)(radius * 3)) % trees.Length], p.x, p.y, k * 67, .65f + ((k * 37 + (int)(phase * 10)) % 9) * .1f);
             }
         }
 
@@ -391,7 +411,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Markers/FA_MK01_SignArrow", 26.4f, 21.2f, 135);
             foreach (var crag in Bumps) Put("Rocks/FA_RK08_RocksTallGroup", crag.Centre.x, crag.Centre.y, crag.Centre.x * 31, crag.Radius * .85f, -.4f);
             TreeRing(c, 19, 14, .2f);
-            Grass = 30; Ferns = 6; Bushes = 8;
+            // Nothing tall on the top: the view all round is the point.
+            Grass = 30; Ferns = 6; Bushes = 8; Trees = 0;
         }
 
         /// <summary>A tall hill with a rock band on one side and a lookout on top; the reward waits under its roof.</summary>
@@ -485,6 +506,140 @@ namespace Hakaton.WorldAssembly.EditorTools
             Finds = new[] { V(21.8f, 11.4f), V(3.4f, 28.4f) };
             Creatures = new[] { V(19.4f, 12.6f), V(11.6f, 17) };
             Grass = 20; Ferns = 4; Bushes = 8;
+        }
+
+        /// <summary>A beekeeper's corner: hives in a fenced yard, the keeper's shed, honey pots, bees in the air.</summary>
+        void Apiary()
+        {
+            foreach (float x in new[] { 4.4f, 6.6f, 8.8f })
+                foreach (float y in new[] { 10.2f, 12.8f })
+                    Put("Special/FA_SP04_Beehive", x, y, x * 13 + y * 7, .95f + (x + y) % 3 * .06f);
+            Put("Structures/FA_ST01_FenceSection", 10.8f, 10.2f, 90);
+            Put("Structures/FA_ST01_FenceSection", 10.8f, 13.4f, 90);
+            Put("Structures/FA_ST01_FenceSection", 3.8f, 8.4f, 0);
+            Put("Structures/FA_ST02_FenceBroken", 8.6f, 8.4f, 0);
+            Put("Special/FA_SP10_BoardedShed", 12.2f, 4.2f, 0);
+            Put("Props/FA_PR13_CrateClosed", 9.8f, 5.8f, 10);
+            Put("Props/FA_PR09_PotLow", 13.8f, 7.2f, 0);
+            Put("Props/FA_PR10_Pitcher", 14.4f, 7.6f, 30);
+            Put("Props/FA_PR02_LanternGround", 11, 7.6f, 0);
+            Put("Structures/FA_ST12_Bench", 8.4f, 3.6f, 80);
+            Deco("VFX/Insects/Flies", 6.6f, 11.5f, 0, 1.2f, 1);
+            Deco("VFX/Insects/Flies", 4.4f, 13.4f, 0, 1, 1);
+            Trails.Add(new[] { V(8, 1), V(7.6f, 6), V(6.4f, 8.4f), V(6.6f, 11.5f) });
+            Trails.Add(new[] { V(15, 8.4f), V(11.4f, 7.2f), V(7.6f, 6) });
+            Finds = new[] { V(12.2f, 9.6f), V(2.6f, 3) };
+            Creatures = new[] { V(6.6f, 11.5f), V(11.6f, 9) };
+            Grass = 16; Bushes = 5;
+        }
+
+        /// <summary>A big apiary on a meadow mound: rows of hives behind fences, the keeper's house and honey store.</summary>
+        void Beeyard()
+        {
+            Size = 32;
+            Domes.Add(new Dome { Centre = V(17, 17), Radius = 13, Height = 2.6f });
+            for (float x = 19.4f; x < 28.5f; x += 2.6f)
+                for (float y = 19.6f; y < 28.5f; y += 2.8f)
+                    if (Mathf.Abs(y - 24.2f) > 1) Put("Special/FA_SP04_Beehive", x, y, x * 11 + y * 5, .9f + (x * 7 + y) % 3 * .07f);
+            foreach (float y in new[] { 19.4f, 26.6f }) Put("Structures/FA_ST01_FenceSection", 17.8f, y, 90);
+            foreach (float x in new[] { 20.4f, 27.4f }) Put("Structures/FA_ST01_FenceSection", x, 17.8f, 0);
+            Put("Special/FA_SP10_BoardedShed", 8, 24.6f, 90);
+            Put("Structures/FA_ST13_Shelter", 23.4f, 8.6f, 0);
+            foreach (var at in new[] { V(21.6f, 7.4f), V(22.4f, 6.6f), V(25, 7), V(25.6f, 9.6f) }) Put("Props/FA_PR09_PotLow", at.x, at.y, at.x * 20);
+            Put("Props/FA_PR13_CrateClosed", 21.4f, 10.4f, 15);
+            Put("Props/FA_PR12_SackLarge", 25.6f, 10.8f, 0);
+            Put("Special/FA_SP11_BrokenWagon", 6, 8.4f, 40);
+            Put("Special/FA_SP09_Scarecrow", 11.6f, 12.6f, 200);
+            PutScaled("Structures/FA_ST04_Post", 27.6f, 28.2f, 0, new Vector3(1, 4.2f, 1));
+            Put("Markers/FA_MK08_ClothLong", 27.6f, 28.2f, 0, 1.5f, 3.6f);
+            foreach (var at in new[] { V(21.6f, 21), V(25.4f, 25.6f), V(23, 28) }) Deco("VFX/Insects/Flies", at.x, at.y, 0, 1.4f, 1);
+            Deco("VFX/Smoke/White/SmokeSmallWhite", 23.4f, 9.4f, 0, 1, 2.6f);
+            Trails.Add(new[] { V(10, 1), V(10.6f, 9), V(16.4f, 14.8f), V(24.2f, 17.8f), V(23.6f, 22.4f) });
+            Trails.Add(new[] { V(1, 24.4f), V(8, 24.6f), V(14, 21) });
+            Trails.Add(new[] { V(31, 9), V(23.4f, 8.6f), V(16.4f, 14.8f) });
+            TreeRing(V(16, 16), 14.6f, 12, .4f);
+            Finds = new[] { V(24.6f, 25.2f), V(8, 27.2f) };
+            Creatures = new[] { V(21.4f, 25.2f), V(10, 12) };
+            Grass = 26; Ferns = 4; Bushes = 8; Trees = 3;
+        }
+
+        /// <summary>An abandoned hamlet: sheds round a crossroads, yards behind fences, smoke from one chimney.</summary>
+        void Village()
+        {
+            Size = 32;
+            Domes.Add(new Dome { Centre = V(16, 16), Radius = 12, Height = 1.2f });
+            Put("Special/FA_SP10_BoardedShed", 8.4f, 23, 90);
+            Put("Special/FA_SP10_BoardedShed", 23.4f, 24.4f, 180);
+            Put("Special/FA_SP10_BoardedShed", 23.6f, 8.4f, 0);
+            Put("Structures/FA_ST13_Shelter", 8.6f, 8.6f, 45);
+            foreach (float y in new[] { 19.4f, 26.6f }) Put("Structures/FA_ST01_FenceSection", 12.6f, y, 90);
+            foreach (float x in new[] { 4.6f, 8.6f }) Put("Structures/FA_ST01_FenceSection", x, 18.6f, 0);
+            foreach (float x in new[] { 20.4f, 26.8f }) Put("Structures/FA_ST02_FenceBroken", x, 19.6f, 0);
+            Put("Special/FA_SP11_BrokenWagon", 20.2f, 12.6f, 70);
+            Put("Special/FA_SP09_Scarecrow", 27.4f, 14, 250);
+            Deco("Markers/FA_MK16_StoneCircle", 19.6f, 19.6f, 0, .8f);
+            Put("Props/FA_PR09_PotLow", 19.6f, 19.6f, 0, 1.2f);
+            Put("Markers/FA_MK02_SignFork", 17.8f, 13.8f, 45);
+            Put("Structures/FA_ST12_Bench", 13.4f, 12.6f, 30);
+            Put("Props/FA_PR13_CrateClosed", 10.4f, 26.4f, 10);
+            Put("Props/FA_PR12_SackLarge", 11, 25, 0);
+            Put("Props/FA_PR02_LanternGround", 25.6f, 21.6f, 0);
+            Deco("VFX/Smoke/Grey/SmokeMediumGrey", 23.4f, 24.4f, 0, 1, 3.6f);
+            Trails.Add(new[] { V(1, 15.4f), V(16, 16.6f), V(31, 15.6f) });
+            Trails.Add(new[] { V(16.4f, 1), V(15.6f, 16), V(16.4f, 31) });
+            TreeRing(V(16, 16), 14.8f, 10, .7f);
+            Finds = new[] { V(9.8f, 24.6f), V(26, 26.6f) };
+            Creatures = new[] { V(11.4f, 21.4f), V(21, 10.4f) };
+            Grass = 22; Bushes = 7; Trees = 3;
+        }
+
+        /// <summary>A forest of stone: tall pillars with winding lanes between them and a clearing with the reward.</summary>
+        void StoneForest()
+        {
+            Size = 32;
+            var pillars = new[]
+            {
+                V(5, 5), V(9, 4), V(12.5f, 7.5f), V(5, 11), V(9.5f, 12), V(3.6f, 20), V(7.6f, 19), V(12, 22.6f), V(5, 27), V(10, 28),
+                V(19.6f, 4.6f), V(26, 5.6f), V(28.4f, 11), V(20, 13), V(25.4f, 13), V(19, 20.6f), V(24, 19.2f), V(28, 23.4f), V(20.6f, 27.6f), V(26, 28),
+            };
+            for (int k = 0; k < pillars.Length; k++)
+            {
+                float r = 1 + k % 3 * .22f, h = 2.8f + (k * 7 % 5) * .45f;
+                Bumps.Add(new Bump { Centre = pillars[k], Radius = r, Height = h, Run = .3f });
+                PutScaled("Rocks/FA_RK05_StoneTall", pillars[k].x, pillars[k].y, k * 53, new Vector3(r * .9f, h * .5f, r * .9f));
+            }
+            Ridges.Add(new Ridge { Line = new[] { V(5, 11), V(9.5f, 12) }, Height = 2, Half = .7f, Run = .4f });
+            Ridges.Add(new Ridge { Line = new[] { V(24, 19.2f), V(28, 23.4f) }, Height = 2, Half = .7f, Run = .4f });
+            Put("Trees/FA_TR10_DeadBare", 15, 10, 30, 1.2f);
+            Put("Trees/FA_TR11_Snapped", 22.6f, 23.4f, 80, 1.1f);
+            Put("Markers/FA_MK06_StoneMarkGroup", 22.6f, 9.2f, 0, 1.1f);
+            PutScaled("Structures/FA_ST04_Post", 23.8f, 10.2f, 0, new Vector3(1, 4, 1));
+            Put("Markers/FA_MK08_ClothLong", 23.8f, 10.2f, 0, 1.4f, 3.4f);
+            Trails.Add(new[] { V(1, 8), V(7, 7.6f), V(11, 9.8f), V(15, 9), V(22.4f, 8.6f) });
+            Trails.Add(new[] { V(16, 31), V(15.4f, 24), V(16.4f, 17), V(22.4f, 8.6f) });
+            Finds = new[] { V(22.4f, 8.6f), V(8, 24) };
+            Creatures = new[] { V(21.4f, 10), V(14.6f, 25.4f) };
+            Grass = 16; Ferns = 6; Bushes = 5; Trees = 2;
+        }
+
+        /// <summary>A giant's forest: a ravine crossed by a fallen trunk, the hollow stump of another giant with the reward inside.</summary>
+        void GiantLog()
+        {
+            Size = 32;
+            Ridges.Add(new Ridge { Line = new[] { V(2, 22.6f), V(9, 22.4f), V(16, 21.2f), V(24, 21.6f), V(30, 23.2f) }, Height = -3.4f, Half = 2.6f, Run = .9f, Taper = 4.5f });
+            Walkways.Add((V(8.4f, 22.4f), 0, 11));
+            PutScaled("Deadwood/FA_DW07_StumpHollow", 8.4f, 9.4f, 30, new Vector3(3, 2.6f, 3));
+            Put("Deadwood/FA_DW08_StumpUprooted", 24, 9, 120, 2);
+            Put("Deadwood/FA_DW03_LogHollow", 25.6f, 27.4f, 70, 1.4f);
+            Put("Plants/FA_VG16_ShelfFungusGroup", 9.6f, 10.4f, 0, 1.6f);
+            Deco("Decals/FA_D11_LeavesPile", 8.4f, 12.6f, 0, 1.6f);
+            Trails.Add(new[] { V(1, 12), V(8.4f, 12.6f), V(8.4f, 17), V(8.4f, 28), V(9, 31) });
+            Trails.Add(new[] { V(31, 14), V(20, 15.4f), V(8.4f, 12.6f) });
+            TreeRing(V(16, 16), 13.6f, 14, .1f);
+            TreeRing(V(16, 16), 9.5f, 6, .9f);
+            Finds = new[] { V(8.4f, 13.4f), V(24.4f, 25) };
+            Creatures = new[] { V(11.2f, 14), V(20, 26) };
+            Grass = 18; Ferns = 10; Bushes = 9; Trees = 4;
         }
 
         // ---------- relief ----------

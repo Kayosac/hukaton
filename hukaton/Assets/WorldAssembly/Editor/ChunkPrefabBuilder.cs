@@ -102,7 +102,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var obstacles = new List<WorldObstacle>();
             if (shape.Kind == ShapeKind.River || (shape.Kind == ShapeKind.Plain && variant == "pond"))
                 obstacles.Add(Water(go.transform, terrain, meshPath, name));
-            if (shape.Kind == ShapeKind.Maze) obstacles.AddRange(Thickets(go.transform, terrain, rng));
+            if (shape.Kind == ShapeKind.Maze) StoneWalls(go.transform, terrain, rng);
             if (terrain.Scene != null) ScenePieces(go.transform, terrain, rng, obstacles);
             view.obstacles = obstacles.ToArray();
 
@@ -344,7 +344,14 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         // ---------- thickets ----------
 
-        static IEnumerable<WorldObstacle> Thickets(Transform parent, TileTerrain t, System.Random rng)
+        static readonly string[] WallRocks = { "FA_RK08_RocksTallGroup", "FA_RK09_CliffWall", "FA_RK03_BoulderLarge", "FA_RK06_BoulderSplit", "FA_RK05_StoneTall" };
+
+        /// <summary>
+        /// Walls of a stone maze: the blocks between corridors (and the walled sides) are old overgrown rock that
+        /// nothing burns or crosses — one solid barrier each, dressed with tall rocks, ivy, bushes and a tree here and
+        /// there; the corridors stay open.
+        /// </summary>
+        static void StoneWalls(Transform parent, TileTerrain t, System.Random rng)
         {
             float c0 = 8 - TileTerrain.Corridor, c1 = 8 + TileTerrain.Corridor;
             var pieces = new List<Rect>
@@ -355,7 +362,37 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Mids[1] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(c1, c0, 16, c1));
             if (t.Shape.Mids[2] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(c0, 0, c1, c0));
             if (t.Shape.Mids[3] != Mid.MazeOpen) pieces.Add(Rect.MinMaxRect(0, c0, c0, c1));
-            foreach (var r in pieces) yield return ThornPiece(parent, r, rng);
+            var walls = new GameObject("Stone walls").transform;
+            walls.SetParent(parent, false);
+            foreach (var r in pieces)
+            {
+                var block = new GameObject("Wall").transform;
+                block.SetParent(walls, false);
+                block.localPosition = new Vector3(r.center.x - 8, 0, r.center.y - 8);
+                var barrier = block.gameObject.AddComponent<BoxCollider>();
+                barrier.center = new Vector3(0, 1.6f, 0);
+                barrier.size = new Vector3(r.width, 3.2f, r.height);
+                // Rocks on a loose grid inside the block, tall enough to hide what is behind.
+                for (float x = r.xMin + 1f; x < r.xMax - .6f; x += 2.1f)
+                    for (float z = r.yMin + 1f; z < r.yMax - .6f; z += 2.1f)
+                    {
+                        var p = new Vector2(x + (float)rng.NextDouble() * .6f - .3f, z + (float)rng.NextDouble() * .6f - .3f);
+                        float s = 1.25f + (float)rng.NextDouble() * .6f;
+                        var rock = Place(block, "Rocks/" + WallRocks[rng.Next(WallRocks.Length)], t, p, (float)rng.NextDouble() * 360, new Vector3(s, s * (1.3f + (float)rng.NextDouble() * .4f), s));
+                        if (rock) foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                    }
+                for (int k = 0; k < 3; k++)
+                {
+                    var p = new Vector2(Mathf.Lerp(r.xMin + .8f, r.xMax - .8f, (float)rng.NextDouble()), Mathf.Lerp(r.yMin + .8f, r.yMax - .8f, (float)rng.NextDouble()));
+                    var green = Place(block, "Plants/" + (k == 0 ? "FA_VG14_IvyLong" : Bushes[rng.Next(Bushes.Length)]), t, p, (float)rng.NextDouble() * 360, Vector3.one * (1.2f + (float)rng.NextDouble() * .5f));
+                    if (green) green.transform.position += Vector3.up * 2.4f;
+                }
+                if (r.width > 5 && r.height > 5 && rng.NextDouble() < .6)
+                {
+                    var tree = Place(block, "Trees/" + Trees[rng.Next(Trees.Length)], t, r.center, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .6f));
+                    if (tree) foreach (var c in tree.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                }
+            }
         }
 
         /// <summary>A block of thorns over a rectangle (canonical metres): a wall until Fire burns it.</summary>
@@ -440,6 +477,23 @@ namespace Hakaton.WorldAssembly.EditorTools
                     }
                 }
             }
+            foreach (var (at, yaw, length) in scene.Walkways)
+            {
+                if (!t.InPart(at)) continue;
+                // A whole trunk across a gully: resting a little sunk at both rims, with a flat walkway on top.
+                var along = Quaternion.Euler(0, yaw, 0) * Vector3.forward;
+                var dir = new Vector2(along.x, along.z);
+                var local = t.Local(at);
+                float rest = Mathf.Min(GroundY(t, local + dir * length * .45f), GroundY(t, local - dir * length * .45f)) - .85f;
+                var log = Place(group, "Deadwood/FA_DW01_LogWhole", null, Vector2.zero, yaw, new Vector3(2.4f, 2.2f, length / 3.9f));
+                if (log) log.transform.localPosition = new Vector3(local.x - 8, rest, local.y - 8);
+                var walk = new GameObject("Log walkway");
+                walk.transform.SetParent(group, false);
+                walk.transform.localPosition = new Vector3(local.x - 8, rest + 1.15f, local.y - 8);
+                walk.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+                var box = walk.AddComponent<BoxCollider>();
+                box.size = new Vector3(1.4f, .2f, length);
+            }
             if (scene.Thicket.HasValue && t.InPart(scene.Thicket.Value.center))
             {
                 var r = scene.Thicket.Value;
@@ -508,6 +562,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 {
                     var p = new Vector2(edge + (float)rng.NextDouble() * (16 - 2 * edge), edge + (float)rng.NextDouble() * (16 - 2 * edge));
                     if (!Free(t, p) || (where != null && !where(p)) || placed.Any(q => Vector2.Distance(p, q) < minSpacing)) continue;
+                    if (folder != "Plants" && NearLink(p, 2.2f)) continue;
                     float s = Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble());
                     var placedGo = Place(dressing, folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
                     // Nothing on ground that falls away under it: trees and stones would hang over the slope.
@@ -540,25 +595,32 @@ namespace Hakaton.WorldAssembly.EditorTools
                     Scatter("Deadwood", Litter, 2, 2.6f, 2.4f, .8f, 1.1f, open);
                     Scatter("Rocks", Pebbles, 2, 2.6f, 2.4f, .7f, 1f, open);
                     // Trees only near the edges' corners, clear of the scene's lanes.
-                    if (scene.Trees > 0) Scatter("Trees", Trees, scene.Trees, 1.6f, 4, .8f, 1f, p => open(p) && Mathf.Min(Mathf.Min(p.x, 16 - p.x), Mathf.Min(p.y, 16 - p.y)) < 3);
+                    if (scene.Trees > 0) Scatter("Trees", Trees, scene.Trees, 1.8f, 3.4f, .65f, 1.45f, open);
                     break;
                 }
                 case ShapeKind.Cliff:
-                    Scatter("Plants", Grass, 6, 1, 1.4f, .7f, 1.1f);
-                    Scatter("Rocks", Boulders, 2, 2.4f, 3, .7f, 1.2f, Low);
-                    Scatter("Trees", Trees, 1, 3, 4, .8f, 1f, High);
+                    Scatter("Plants", Grass, 10, 1, 1.2f, .7f, 1.2f);
+                    Scatter("Plants", Bushes, 4, 1.2f, 1.8f, .9f, 1.5f);
+                    Scatter("Rocks", Boulders, 3, 2.4f, 3, .7f, 1.4f, Low);
+                    Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, High);
+                    Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, Low);
                     if (t.Variant == "ledge") Ledge(dressing, t);
                     break;
                 case ShapeKind.River:
-                    Scatter("Plants", Ferns, 7, 1, 1.2f, .8f, 1.2f);
-                    Scatter("Plants", Grass, 6, 1, 1, .9f, 1.3f);
+                    Scatter("Plants", Ferns, 8, 1, 1.2f, .8f, 1.3f);
+                    Scatter("Plants", Grass, 8, 1, 1, .9f, 1.3f);
+                    Scatter("Plants", Bushes, 3, 1.2f, 1.8f, .9f, 1.5f, p => t.WaterDistance(p) > 1);
+                    Scatter("Trees", Trees, 2, 2, 3.6f, .65f, 1.4f, p => t.WaterDistance(p) > 1.6f);
                     break;
                 case ShapeKind.Canyon:
-                    Scatter("Plants", Grass, 6, 1, 1.4f, .7f, 1.1f, p => t.Height(p) > -.2f);
-                    Scatter("Rocks", Boulders, 2, 1.5f, 2.5f, .6f, 1f, p => t.Height(p) < -t.CanyonDepth + .3f);
+                    Scatter("Plants", Grass, 8, 1, 1.3f, .7f, 1.2f, p => t.Height(p) > -.2f);
+                    // On the floor only along the walls: the floor is the way through.
+                    if (t.Ramps.Count == 0) Scatter("Rocks", Boulders, 2, 1.5f, 2.5f, .6f, .9f, p => t.Height(p) < -t.CanyonDepth + .3f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .7f);
+                    Scatter("Trees", Trees, 2, 2, 3.6f, .65f, 1.35f, p => t.Height(p) > -.2f && t.DistanceToCentre(p) > TileTerrain.RimHalf + 1.4f);
                     break;
                 case ShapeKind.Maze:
                     Scatter("Deadwood", Deadwood, 1, 6.5f, 2, .7f, .9f);
+                    Scatter("Plants", Grass, 6, 1, 1.1f, .7f, 1.1f);
                     break;
             }
         }
@@ -629,7 +691,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// </summary>
         static GameObject Place(Transform parent, string asset, TileTerrain t, Vector2 p, float yaw, Vector3 scale)
         {
-            string path = $"Assets/ForestArt/Prefabs/{asset}.prefab";
+            string path = asset.StartsWith("VFX/") ? $"Assets/Plugins/Retro Arsenal/Prefabs/Environment/{asset.Substring(4)}.prefab" : $"Assets/ForestArt/Prefabs/{asset}.prefab";
             if (!prefabs.TryGetValue(path, out var prefab))
             {
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -659,8 +721,34 @@ namespace Hakaton.WorldAssembly.EditorTools
                 high = Mathf.Max(high, h);
             }
             lastFall = high - low;
-            go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, low - .04f, p.y - 8));
+            if (Lies(asset))
+            {
+                // Things that lie on the ground follow its slope: set flush on the ground's mean normal under them.
+                var normal = GroundNormal(t, p, Mathf.Max(radius, .3f));
+                go.transform.rotation = chunk.rotation * Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.Euler(0, yaw, 0);
+                go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, GroundY(t, p) - .06f, p.y - 8));
+            }
+            else go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, low - .04f, p.y - 8));
             return go;
+        }
+
+        /// <summary>Lying things follow the ground; standing ones (trees, posts, walls, houses, signs) stay upright.</summary>
+        static bool Lies(string asset) =>
+            asset.StartsWith("Rocks/") || asset.StartsWith("Deadwood/") || asset.StartsWith("Props/") || asset.StartsWith("Decals/") ||
+            asset.StartsWith("Plants/") || asset == "Special/FA_SP11_BrokenWagon" || asset == "Markers/FA_MK16_StoneCircle";
+
+        /// <summary>Mean normal of the built ground round a point.</summary>
+        static Vector3 GroundNormal(TileTerrain t, Vector2 p, float radius)
+        {
+            var sum = Vector3.zero;
+            for (int k = 0; k < 5; k++)
+            {
+                var q = k == 0 ? p : p + new Vector2(Mathf.Cos(k * Mathf.PI / 2), Mathf.Sin(k * Mathf.PI / 2)) * radius;
+                if (!groundCollider) break;
+                var from = groundCollider.transform.TransformPoint(new Vector3(q.x - 8, 80, q.y - 8));
+                if (groundCollider.Raycast(new Ray(from, Vector3.down), out var hit, 200)) sum += groundCollider.transform.InverseTransformDirection(hit.normal);
+            }
+            return sum.sqrMagnitude > 1e-6f ? sum.normalized : Vector3.up;
         }
 
         /// <summary>Radius of what stands on the ground: the colliders' footprint, else a little of the renderers'.</summary>
@@ -675,6 +763,15 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         static readonly Vector2[] CornerAt = { new Vector2(0, 16), new Vector2(16, 16), new Vector2(16, 0), new Vector2(0, 0) };
+
+        /// <summary>Near the middle of an edge segment, where the links to neighbouring chunks land.</summary>
+        static bool NearLink(Vector2 p, float distance)
+        {
+            for (int side = 0; side < 4; side++)
+                for (int seg = 0; seg < 3; seg++)
+                    if (Vector2.Distance(p, Vector2.Lerp(CornerAt[side], CornerAt[(side + 1) & 3], (seg + .5f) / 3)) < distance + .9f) return true;
+            return false;
+        }
 
         /// <summary>
         /// Ground height next to the middle of each edge segment (canonical side × 3 + segment, 0.9 m inside): where
@@ -826,23 +923,28 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         // ---------- content ----------
 
+        /// <summary>The content asset: loot by id and every creature the themes name, by id ("bee-swarm" → Bee swarm.prefab).</summary>
         static void EnsureContent()
         {
             var content = AssetDatabase.LoadAssetAtPath<WorldContent>(ContentPath);
-            if (content) return;
-            content = ScriptableObject.CreateInstance<WorldContent>();
+            bool created = !content;
+            if (created) content = ScriptableObject.CreateInstance<WorldContent>();
             WorldLoot Loot(string file) => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{file}.prefab")?.GetComponent<WorldLoot>();
             WorldCreature[] Creatures(params string[] files) => files.Select(f => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{f}.prefab")?.GetComponent<WorldCreature>()).Where(c => c).ToArray();
+            content.loot.Clear();
             content.loot.Add(new WorldContent.LootEntry { id = "find", prefab = Loot("Trophy common_find") });
             content.loot.Add(new WorldContent.LootEntry { id = "find-hard", prefab = Loot("Trophy special_find") });
             content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot("Trophy special_find") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "peaceful", prefabs = Creatures("Purple mushroom", "Kind little worm", "Rooster baseball", "Snail frog mount", "Teen leshy skater", "Zombie beekeeper") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "small-hostile", prefabs = Creatures("Bee swarm", "Rat pumpkin") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "hostile", prefabs = Creatures("Goblin dog", "Enraged bee mutant") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "thicket", prefabs = Creatures("Hostile bush") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "territorial", prefabs = Creatures("Budding troll") });
-            content.creatures.Add(new WorldContent.CreatureEntry { role = "brute", prefabs = Creatures("Sinister living tree", "Drunken dwarf robot") });
-            AssetDatabase.CreateAsset(content, ContentPath);
+            content.creatures.Clear();
+            foreach (var id in CreatureThemes.AllCreatures())
+            {
+                string file = char.ToUpperInvariant(id[0]) + id.Substring(1).Replace('-', ' ');
+                var prefabs = Creatures(file);
+                if (prefabs.Length == 0) Debug.LogWarning("[World] no creature prefab " + file);
+                content.creatures.Add(new WorldContent.CreatureEntry { role = id, prefabs = prefabs });
+            }
+            if (created) AssetDatabase.CreateAsset(content, ContentPath);
+            else EditorUtility.SetDirty(content);
         }
     }
 

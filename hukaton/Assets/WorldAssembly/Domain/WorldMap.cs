@@ -19,9 +19,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>World edge middles by side.</summary>
         public Mid[] Mids = new Mid[4];
         public bool MazeHeart;
-        /// <summary>Creature role ("peaceful", "small-hostile", "hostile", "thicket", "territorial", "brute") or null; Count for packs.</summary>
-        public string Creature;
-        public int CreatureCount;
+        /// <summary>Creature groups living here (see <see cref="CreatureThemes"/>); empty for none.</summary>
+        public readonly List<Spawn> Spawns = new List<Spawn>();
         /// <summary>Loot to place: item ids ("find", "find-hard", "crystal").</summary>
         public readonly List<string> Loot = new List<string>();
         /// <summary>Guaranteed reward on the island / maze heart.</summary>
@@ -168,7 +167,8 @@ namespace Hakaton.WorldAssembly
                 case "cliff-corner":
                 case "cliff-inner":
                 {
-                    double ramp = plan.BaseLevel >= 1 ? Rules.SummitRampChance : Rules.RampChance[plan.Ring];
+                    // Higher up, fewer ramps: the second level mostly, the third almost only by card.
+                    double ramp = plan.BaseLevel == 0 ? Rules.RampChance[plan.Ring] : plan.BaseLevel == 1 ? Rules.RampChance[plan.Ring] * Rules.UpperRampFactor : Rules.SummitRampChance;
                     if (shape.Id != "cliff-edge") ramp *= .5;
                     double ledgeRoll = Hash.Unit(Seed, Salt.Ramp, c.X, c.Y);
                     id = roll < ramp ? "ramp" : shape.Id == "cliff-edge" && ledgeRoll < Rules.LedgeChance ? "ledge" : "cliff";
@@ -212,44 +212,37 @@ namespace Hakaton.WorldAssembly
         void Populate(ChunkPlan plan)
         {
             var c = plan.Coord;
-            plan.Creature = null;
-            plan.CreatureCount = 0;
+            plan.Spawns.Clear();
             plan.Loot.Clear();
             plan.PocketReward = null;
             if (WorldRules.IsStartArea(c)) return;
             int ring = plan.Ring;
             double creatureRoll = Hash.Unit(Seed, Salt.Creature, c.X, c.Y);
             double pick = Hash.Unit(Seed, Salt.Creature + 1, c.X, c.Y);
-            string creature = null;
-            int count = 1;
+            string theme = null;
             double chance = Rules.CreatureChance[ring];
             switch (plan.Shape.Kind)
             {
                 case ShapeKind.Plain:
-                {
-                    string scene = plan.Variant.Id;
-                    bool open = scene == "pond" || scene == "farm" || scene == "knoll" || scene == "grove";
-                    creature = ring == 0 ? "peaceful" : ring == 1 ? (open && pick < .5 ? "peaceful" : open ? "small-hostile" : "hostile") : "hostile";
-                    // Someone lives at a camp; ruins and hollows are lairs.
-                    if (scene == "camp") chance = Math.Max(chance, .7);
-                    else if (scene == "ruins" || scene == "hollow") chance *= 1.5;
+                    theme = CreatureThemes.ForScene(plan.Variant.Id);
+                    // Someone always lives at a camp, an apiary or a farm; ruins and hollows are lairs.
+                    if (theme == "camp" || theme == "apiary" || theme == "farm") chance = Math.Max(chance, .75);
+                    else if (theme == "ruins" || theme == "hollow") chance *= 1.5;
                     break;
-                }
-                case ShapeKind.Maze: creature = "thicket"; chance *= 1.5; break;
-                case ShapeKind.River: creature = ring == 0 ? "peaceful" : "small-hostile"; chance *= .6; break;
-                case ShapeKind.Canyon: creature = "hostile"; chance *= 1.4; count = ring == 2 ? 2 : 1; break;
-                case ShapeKind.PlateauTop: creature = plan.BaseLevel >= 2 ? "brute" : "territorial"; chance *= 1.2; break;
+                case ShapeKind.Maze: theme = "maze"; chance *= 1.5; break;
+                case ShapeKind.River: theme = "river"; chance *= .6; break;
+                case ShapeKind.Canyon: theme = "canyon"; chance *= 1.4; break;
+                case ShapeKind.PlateauTop: theme = plan.BaseLevel >= 2 ? "summit" : "plateau"; chance *= 1.2; break;
                 case ShapeKind.Landmark:
                 {
-                    // The landmark's reward is guarded; its other parts are as busy as plain ground.
+                    // The landmark's reward is always guarded; its other parts are as busy as plain ground.
                     var (kind, i, j) = Landmarks.Parse(plan.Shape.Id);
-                    bool focus = kind.HasFocus && i == kind.FocusI && j == kind.FocusJ;
-                    creature = ring == 0 ? "peaceful" : focus ? (ring == 2 ? "brute" : "territorial") : "hostile";
-                    if (focus) { chance = 1; count = ring == 2 ? 2 : 1; }
+                    theme = kind.Id;
+                    if (kind.HasFocus && i == kind.FocusI && j == kind.FocusJ) chance = 1;
                     break;
                 }
             }
-            if (creature != null && creatureRoll < chance) { plan.Creature = creature; plan.CreatureCount = count; }
+            if (theme != null && creatureRoll < chance) plan.Spawns.AddRange(CreatureThemes.Pick(theme, ring, pick));
 
             double findRoll = Hash.Unit(Seed, Salt.Loot, c.X, c.Y);
             switch (plan.Shape.Kind)

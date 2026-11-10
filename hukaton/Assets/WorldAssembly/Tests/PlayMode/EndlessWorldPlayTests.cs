@@ -72,7 +72,9 @@ namespace Hakaton.WorldAssembly.Tests
             foreach (var view in Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None))
             {
                 var coord = streamer.CoordAt(view.transform.position);
-                if (streamer.Map.Chunk(coord).Ring != 0 || view.shapeId == Landmarks.StartHill.PartId(1, 1)) continue;
+                // Ring 0 as far as the chunks loaded round the overlook reach: further out, the way may run through
+                // chunks that load only as the player comes closer.
+                if (coord.X * coord.X + coord.Y * coord.Y > 3 * 3 || view.shapeId == Landmarks.StartHill.PartId(1, 1)) continue;
                 var targets = view.findSockets.Concat(view.creatureSockets).Where(s => s).ToList();
                 if (targets.Count == 0) continue;
                 checkedChunks++;
@@ -170,9 +172,14 @@ namespace Hakaton.WorldAssembly.Tests
                 ["watchhill"] = v => v.shapeId == "watchhill-11",
                 ["crater"] = v => v.shapeId == "crater-11",
                 ["fort"] = v => v.shapeId == "fort-10",
+                ["beeyard"] = v => v.shapeId == "beeyard-11",
+                ["village"] = v => v.shapeId == "village-01",
+                ["stone-forest"] = v => v.shapeId == "stone-forest-10",
+                ["giant-log"] = v => v.shapeId == "giant-log-01",
+                ["apiary"] = v => v.variantId == "apiary",
             };
             var home = world.motor.transform.position;
-            for (int step = 0; step < 12 && wanted.Count > 0; step++)
+            for (int step = 0; step < 20 && wanted.Count > 0; step++)
             {
                 var spot = home + new Vector3(step * 40, 0, step * 25);
                 world.motor.Teleport(spot, Quaternion.identity);

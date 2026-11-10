@@ -24,11 +24,11 @@ namespace Hakaton.WorldAssembly.Unity
         public float beaconHeight = 34;
 
         WorldStreamer streamer;
-        Mesh mesh, beaconMesh;
+        Mesh mesh, beaconMesh, markerMesh;
         Material fieldMaterial, beaconMaterial;
         Camera stretched;
         float savedFar;
-        GameObject field, beacon;
+        GameObject field, beacon, markers;
         ChunkCoord last = new ChunkCoord(int.MinValue, int.MinValue);
         int lastLoaded = -1;
 
@@ -38,6 +38,7 @@ namespace Hakaton.WorldAssembly.Unity
         {
             bool on = streamer.Active && streamer.player && material;
             if (field) field.SetActive(on);
+            if (markers) markers.SetActive(on);
             if (beacon) beacon.SetActive(false);
             Reach(on ? streamer.World?.viewCamera : null);
             if (!on) { last = new ChunkCoord(int.MinValue, int.MinValue); lastLoaded = -1; return; }
@@ -82,7 +83,8 @@ namespace Hakaton.WorldAssembly.Unity
             mesh = new Mesh { name = "Far silhouettes", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             field.AddComponent<MeshFilter>().sharedMesh = mesh;
             fieldMaterial = new Material(material) { name = "Far silhouettes" };
-            fieldMaterial.SetFloat("_Near", nearRadius);
+            // Never before the loaded chunks end: they stay loaded up to the streamer's unload radius.
+            fieldMaterial.SetFloat("_Near", Mathf.Max(nearRadius, streamer.unloadRadius + 6));
             fieldMaterial.SetFloat("_FadeIn", fadeIn);
             fieldMaterial.SetFloat("_Far", farRadius);
             fieldMaterial.SetFloat("_FogDensity", RenderSettings.fog ? RenderSettings.fogDensity : 0);
@@ -90,6 +92,11 @@ namespace Hakaton.WorldAssembly.Unity
             r.sharedMaterial = fieldMaterial;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
+
+            markers = new GameObject("Landmark markers");
+            markers.transform.SetParent(transform, false);
+            markerMesh = new Mesh { name = "Landmark markers" };
+            markers.AddComponent<MeshFilter>().sharedMesh = markerMesh;
 
             beacon = new GameObject("Beacon silhouette");
             beacon.transform.SetParent(transform, false);
@@ -103,6 +110,9 @@ namespace Hakaton.WorldAssembly.Unity
             beaconMaterial.SetFloat("_FogDensity", RenderSettings.fog ? RenderSettings.fogDensity : 0);
             var br = beacon.AddComponent<MeshRenderer>();
             br.sharedMaterial = beaconMaterial;
+            var mr = markers.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = beaconMaterial;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             br.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
@@ -176,6 +186,7 @@ namespace Hakaton.WorldAssembly.Unity
                     int a = i * (n + 1) + j, b = (i + 1) * (n + 1) + j, c = (i + 1) * (n + 1) + j + 1, e = i * (n + 1) + j + 1;
                     triangles.AddRange(new[] { a, e, c, a, c, b });
                 }
+            Markers(here, origin);
             mesh.Clear();
             mesh.vertices = vertices;
             mesh.colors = colours;
@@ -183,8 +194,60 @@ namespace Hakaton.WorldAssembly.Unity
             mesh.RecalculateBounds();
         }
 
+        static readonly System.Collections.Generic.Dictionary<string, Color> markerTips = new System.Collections.Generic.Dictionary<string, Color>
+        {
+            ["watchhill"] = new Color(1f, .55f, .2f), ["crater"] = new Color(.75f, .4f, 1f), ["fort"] = new Color(1f, .3f, .25f),
+            ["beeyard"] = new Color(1f, .85f, .2f), ["village"] = new Color(.95f, .95f, .9f), ["stone-forest"] = new Color(.55f, .75f, 1f),
+            ["giant-log"] = new Color(.45f, 1f, .45f),
+        };
+
+        /// <summary>
+        /// A tall pole with a coloured tip over every landmark's reward beyond the fog, so there is something to head
+        /// for from the start hill and from every high place. Near ones are left to the landmark itself.
+        /// </summary>
+        void Markers(ChunkCoord here, Vector3 origin)
+        {
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            int reach = Mathf.CeilToInt(farRadius / size);
+            var vertices = new System.Collections.Generic.List<Vector3>();
+            var colours = new System.Collections.Generic.List<Color>();
+            var triangles = new System.Collections.Generic.List<int>();
+            var dark = Colour(2.5f);
+            for (int ci = here.X - reach; ci <= here.X + reach; ci++)
+                for (int cj = here.Y - reach; cj <= here.Y + reach; cj++)
+                {
+                    float dx = (ci - here.X) * size, dz = (cj - here.Y) * size;
+                    float d2 = dx * dx + dz * dz;
+                    if (d2 > farRadius * farRadius || d2 < beaconFrom * beaconFrom) continue;
+                    var plan = map.Chunk(ci, cj);
+                    if (plan.Shape.Kind != ShapeKind.Landmark) continue;
+                    var (kind, i, j) = Landmarks.Parse(plan.Shape.Id);
+                    if (!kind.HasFocus || i != kind.FocusI || j != kind.FocusJ) continue;
+                    var tip = markerTips.TryGetValue(kind.Id, out var t) ? t.linear : Color.white.linear;
+                    var at = origin + new Vector3(ci * size, plan.BaseLevel * map.Rules.PlateauHeight, cj * size);
+                    float w = .35f, h = 17;
+                    int b = vertices.Count;
+                    vertices.AddRange(new[]
+                    {
+                        at + new Vector3(-w, 0, 0), at + new Vector3(w, 0, 0), at + new Vector3(w, h, 0), at + new Vector3(-w, h, 0),
+                        at + new Vector3(0, 0, -w), at + new Vector3(0, 0, w), at + new Vector3(0, h, w), at + new Vector3(0, h, -w),
+                        at + new Vector3(-1.3f, h, 0), at + new Vector3(1.3f, h, 0), at + new Vector3(0, h + 2.2f, 0), at + new Vector3(0, h - 1.4f, 0),
+                    });
+                    for (int k = 0; k < 8; k++) colours.Add(dark);
+                    for (int k = 0; k < 4; k++) colours.Add(tip);
+                    triangles.AddRange(new[] { b, b + 2, b + 1, b, b + 3, b + 2, b + 4, b + 6, b + 5, b + 4, b + 7, b + 6, b + 8, b + 10, b + 9, b + 8, b + 9, b + 11 });
+                }
+            markerMesh.Clear();
+            markerMesh.SetVertices(vertices);
+            markerMesh.SetColors(colours);
+            markerMesh.SetTriangles(triangles, 0);
+            markerMesh.RecalculateBounds();
+        }
+
         void OnDestroy()
         {
+            if (markerMesh) Destroy(markerMesh);
             if (mesh) Destroy(mesh);
             if (beaconMesh) Destroy(beaconMesh);
             if (fieldMaterial) Destroy(fieldMaterial);

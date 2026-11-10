@@ -234,30 +234,47 @@ namespace Hakaton.WorldAssembly.Unity
             return loot;
         }
 
+        /// <summary>
+        /// The chunk's creature groups: each group round one of the chunk's creature sockets, the leader on it and the
+        /// rest in a loose ring on the navigation. Remembered creatures come back as left; dead ones stay dead.
+        /// </summary>
         void SpawnCreatures(Loaded entry, Memory mem)
         {
             var plan = entry.plan;
             var sockets = entry.view.creatureSockets;
-            if (plan.Creature == null || sockets.Length == 0 || !content) return;
-            for (int k = 0; k < plan.CreatureCount; k++)
+            if (plan.Spawns.Count == 0 || sockets.Length == 0 || !content) return;
+            int k = 0;
+            for (int g = 0; g < plan.Spawns.Count; g++)
             {
-                bool remembered = false;
-                (bool alive, int health, Vector3 position) state = default;
-                if (mem != null && mem.creatures.TryGetValue(k, out state))
+                var spawn = plan.Spawns[g];
+                var prefab = content.Creature(spawn.Creature, Pick(plan.Coord, 50 + g));
+                var socket = sockets[(Pick(plan.Coord, 60) + (uint)g) % (uint)sockets.Length];
+                float turn = Pick(plan.Coord, 70 + g) % 628 / 100f;
+                for (int m = 0; m < spawn.Count; m++, k++)
                 {
-                    remembered = true;
-                    if (!state.alive) continue;
+                    bool remembered = false;
+                    (bool alive, int health, Vector3 position) state = default;
+                    if (mem != null && mem.creatures.TryGetValue(k, out state))
+                    {
+                        remembered = true;
+                        if (!state.alive) continue;
+                    }
+                    if (!prefab) continue;
+                    var at = socket.position;
+                    if (m > 0)
+                    {
+                        float a = turn + m * 2.4f;
+                        var around = at + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (1.4f + .45f * m);
+                        if (NavMesh.SamplePosition(around, out var hit, 1.6f, NavMesh.AllAreas)) at = hit.position + Vector3.up * .15f;
+                    }
+                    var creature = Instantiate(prefab, at, socket.rotation, entry.view.transform);
+                    creature.world = world;
+                    creature.spawnPoints = null;
+                    if (remembered) creature.Resume(state.health, state.position);
+                    else creature.ResetForOuting(null);
+                    entry.creatures.Add((k, creature));
+                    world.creatures.Add(creature);
                 }
-                var prefab = content.Creature(plan.Creature, Pick(plan.Coord, 50 + k));
-                if (!prefab) continue;
-                var socket = sockets[(Pick(plan.Coord, 60) + (uint)k) % (uint)sockets.Length];
-                var creature = Instantiate(prefab, socket.position, socket.rotation, entry.view.transform);
-                creature.world = world;
-                creature.spawnPoints = null;
-                if (remembered) creature.Resume(state.health, state.position);
-                else creature.ResetForOuting(null);
-                entry.creatures.Add((k, creature));
-                world.creatures.Add(creature);
             }
         }
 
@@ -354,14 +371,15 @@ namespace Hakaton.WorldAssembly.Unity
         float Height(int level) => level >= 0 ? level * Map.Rules.PlateauHeight : -Map.Rules.CanyonDepth;
 
         /// <summary>
-        /// Where a link lands on one side of an edge: the region's level, except on a landmark part, whose ground
-        /// meets its neighbours wherever its hill or crater has it (the heights its prefab measured).
+        /// Where a link lands on one side of an edge: on the ground the chunk's prefab measured there (landmarks meet
+        /// their neighbours wherever their hill or crater has it; every edge rolls a little); the region's level for
+        /// prefabs built before edge heights.
         /// </summary>
         float LinkHeight(Loaded chunk, Side side, int segment, int level)
         {
             var plan = chunk.plan;
             var heights = chunk.view ? chunk.view.edgeHeights : null;
-            if (plan.Shape.Kind != ShapeKind.Landmark || heights == null || heights.Length != 12) return Height(level);
+            if (heights == null || heights.Length != 12) return Height(level);
             int canonical = ((int)side - plan.Rotation) & 3;
             return plan.BaseLevel * Map.Rules.PlateauHeight + heights[canonical * 3 + segment];
         }

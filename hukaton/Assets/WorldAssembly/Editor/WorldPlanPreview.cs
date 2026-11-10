@@ -44,6 +44,23 @@ namespace Hakaton.WorldAssembly.EditorTools
             return sb.ToString();
         }
 
+        /// <summary>Plans of a rectangle as text: "seed x0 y0 x1 y1".</summary>
+        public static string Describe(string args)
+        {
+            var a = args.Split(' ');
+            var map = new WorldMap(int.Parse(a[0]));
+            var sb = new System.Text.StringBuilder();
+            for (int y = int.Parse(a[4]); y >= int.Parse(a[2]); y--)
+                for (int x = int.Parse(a[1]); x <= int.Parse(a[3]); x++)
+                {
+                    var p = map.Chunk(x, y);
+                    sb.Append($"{p} mids {string.Join(",", p.Mids)} ports ");
+                    foreach (var side in Sides.All) sb.Append($"{side}:{p.Port(side, 0)}{p.Port(side, 1)}{p.Port(side, 2)} ");
+                    sb.Append('\n');
+                }
+            return sb.ToString();
+        }
+
         public static string Draw(string seeds)
         {
             var dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
@@ -127,7 +144,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var (kind, _, _) = Landmarks.Parse(p.Shape.Id);
                 Fill(1, 1, P - 1, P - 1, kind == Landmarks.StartHill ? red : new Color32(200, 120, 220, 255));
             }
-            if (p.Creature != null) px[(oy + 1) * n + ox + 1] = red;
+            if (p.Spawns.Count > 0) px[(oy + 1) * n + ox + 1] = red;
         }
     }
 }
