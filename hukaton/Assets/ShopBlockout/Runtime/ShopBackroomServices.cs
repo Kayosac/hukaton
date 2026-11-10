@@ -2,6 +2,7 @@ using System;
 using Hakaton.Backroom;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.ShopBlockout
@@ -15,6 +16,9 @@ namespace Hakaton.ShopBlockout
         public SuspendedGoblin goblin;
         public DeckPrototype workshop;
         public Brazier brazier;
+        public SfxPlayer sfx;
+        [Tooltip("An old computer powering on, played when the player sits down at it.")]
+        public SfxCue computerBoot;
 
         /// <summary>The dealer's table comes with his rig prefab.</summary>
         public GoblinCardShop cardShop => goblin ? goblin.table : null;
@@ -34,7 +38,9 @@ namespace Hakaton.ShopBlockout
             switch (kind)
             {
                 case ShopServiceKind.Computer:
-                    return workshop.OpenEmbedded();
+                    if (!workshop.OpenEmbedded()) return false;
+                    if (sfx) sfx.Play(computerBoot);
+                    return true;
                 case ShopServiceKind.Brazier:
                     return brazier && brazier.Open();
                 case ShopServiceKind.GoblinRope:
