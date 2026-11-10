@@ -28,5 +28,16 @@ namespace Hakaton.Tutorial
         [Header("Creatures")]
         [Tooltip("Mushrooms of the cave: spawned like the valley's, each at one of its spawn points, but they drop no trophy.")]
         public WorldCreature[] mushrooms = new WorldCreature[0];
+
+        [Header("Scripted moments")]
+        [Tooltip("One-off events along the route (a rock from the ceiling, a candle put out...). Collected from the children on Begin.")]
+        public CaveMoment[] moments = new CaveMoment[0];
+
+        /// <summary>Arms the scripted moments once the prologue is running (creatures spawned, player at the start).</summary>
+        public void BeginMoments(ExpeditionWorld world, CaveTutorial tutorial)
+        {
+            moments = GetComponentsInChildren<CaveMoment>(true);
+            foreach (var moment in moments) moment.Begin(this, world, tutorial);
+        }
     }
 }

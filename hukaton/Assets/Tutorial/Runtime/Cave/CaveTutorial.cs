@@ -154,6 +154,7 @@ namespace Hakaton.Tutorial
             world.thrower.SelectionChanged += OnSelectionChanged;
             world.Impacted += OnImpacted;
             world.BeginPrologue(start);
+            Level.BeginMoments(world, this);
             foreach (var card in new[] { throwInstruction, moveInstruction, discardInstruction })
                 instructions.Add(Trip.GrantToHand(card.ToSpec()).Id);
             world.thrower.SelectCopy(instructions[0]);
@@ -267,6 +268,9 @@ namespace Hakaton.Tutorial
             bushShake = 1;
             if (Stage == CaveStage.Bush && card.Spec.Id == strikeId) StartCoroutine(Ambush());
         }
+
+        /// <summary>Rustles the goblin's bush (a card landing on it, or a scripted moment).</summary>
+        public void ShakeBush() => bushShake = 1;
 
         void Shake()
         {
