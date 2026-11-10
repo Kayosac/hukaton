@@ -18,6 +18,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         Keyboard keyboard, previousKeyboard;
         Mouse mouse, previousMouse;
         KeyboardState held;
+        MouseState mouseState;
         InputSettings.EditorInputBehaviorInPlayMode previousEditorBehavior;
         InputSettings.BackgroundBehavior previousBackground;
         InputSettings.UpdateMode previousUpdate;
@@ -31,6 +32,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             InputSystem.settings.updateMode = InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
+            held = new KeyboardState(); mouseState = new MouseState();
             keyboard = InputSystem.AddDevice<Keyboard>(); mouse = InputSystem.AddDevice<Mouse>();
             InputSystem.onBeforeUpdate += Feed; InputSystem.onAfterUpdate += SelectDevices;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/EnemyDebug/Scenes/EnemyDebug.unity", new LoadSceneParameters(LoadSceneMode.Single));
@@ -55,7 +57,12 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             InputSystem.settings.updateMode = previousUpdate;
             yield return null;
         }
-        void Feed() { if (InputState.currentUpdateType == InputUpdateType.Dynamic) InputSystem.QueueStateEvent(keyboard,held); }
+        void Feed()
+        {
+            if (InputState.currentUpdateType != InputUpdateType.Dynamic) return;
+            InputSystem.QueueStateEvent(keyboard, held);
+            InputSystem.QueueStateEvent(mouse, mouseState);
+        }
         void SelectDevices() { if (InputState.currentUpdateType == InputUpdateType.Dynamic) { keyboard.MakeCurrent(); mouse.MakeCurrent(); } }
         static IEnumerator Wait(float seconds) { float until = Time.time + seconds; while (Time.time < until) yield return null; }
         IEnumerator Press(Key key)
@@ -128,6 +135,96 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             var to = sandbox.viewCamera.transform.position - item.transform.position; to.y=0;
             item.view.Present(CreaturePose.Default,-to,Vector3.zero,Vector2.one,0);
             Assert.That(item.view.ShowingBack, Is.True);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        IEnumerator ThrowStrike()
+        {
+            Assert.That(sandbox.world.thrower.Selected, Is.Not.Null);
+            mouseState = new MouseState { buttons = 1 };
+            yield return Wait(.75f);
+            Assert.That(sandbox.world.thrower.Preparation.Active, Is.True);
+            mouseState = new MouseState();
+            yield return null; yield return null;
+            Assert.That(sandbox.world.thrower.HasThrown, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator InfiniteStrikeKillsLiveCreatureAndReturnsTheSameCardAfterEveryHit()
+        {
+            var infinite = sandbox.viewCamera.GetComponentInChildren<EnemyDebugStrikeCard>();
+            Assert.That(infinite, Is.Not.Null);
+            var trip = sandbox.world.workshop.Model.Current;
+            var card = infinite.Card;
+            Assert.That(card.Spec.Id, Is.EqualTo("strike"));
+            Assert.That(card.UsesLeft, Is.EqualTo(int.MaxValue));
+            Assert.That(trip.Deck.Hand.Count, Is.EqualTo(1));
+            var preview = sandbox.Previews.First(p => p.source.name == "Goblin dog");
+            sandbox.motor.Teleport(preview.transform.position + new Vector3(0,.05f,-3), Quaternion.identity);
+            var creature = sandbox.Spawn(preview);
+            creature.Freeze(30); // Stationary target; actual input, projectile sweep, impact and death remain unchanged.
+            int damage = infinite.definition.power.At(card.Level);
+            int throws = Mathf.CeilToInt(creature.maximumHealth / (float)damage);
+            for (int i = 0; i < throws; i++)
+            {
+                sandbox.motor.view.Guide(creature.GetComponent<Collider>().bounds.center + Vector3.up * .15f);
+                yield return Wait(.5f);
+                int health = creature.Health;
+                yield return ThrowStrike();
+                float deadline = Time.time + 3;
+                while (creature.Health == health && Time.time < deadline) yield return null;
+                Assert.That(creature.Health, Is.EqualTo(Mathf.Max(0, health - damage)), "The real Strike impact must use normal card damage.");
+                yield return null; yield return null;
+                Assert.That(trip.Deck.Hand.Single().Id, Is.EqualTo(card.Id));
+                Assert.That(card.UsesLeft, Is.EqualTo(int.MaxValue));
+                Assert.That(trip.Deck.Held, Is.Empty);
+                Assert.That(trip.Deck.Discard, Is.Empty);
+            }
+            Assert.That(creature.Alive, Is.False);
+            Assert.That(creature.State, Is.EqualTo(CreatureState.Dying));
+            Assert.That(creature.view.Pose, Is.EqualTo(CreaturePose.Death));
+            yield return Wait(creature.corpseSeconds + .9f);
+            Assert.That(creature.gameObject.activeSelf, Is.False);
+            Assert.That(preview.isActiveAndEnabled, Is.True);
+            Assert.That(preview.SelectedPose, Is.EqualTo(CreaturePose.Default));
+            Assert.That(sandbox.world.thrower.Selected.Id, Is.EqualTo(card.Id));
+            Assert.That(sandbox.world.Running, Is.True);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator StrikeSurvivesMissCancelAndResetWhileFlying()
+        {
+            var thrower = sandbox.world.thrower;
+            var trip = sandbox.world.workshop.Model.Current;
+            int id = thrower.Selected.Id;
+            sandbox.motor.view.Guide(sandbox.motor.transform.position + new Vector3(0,-2,4));
+            yield return Wait(.5f);
+            yield return ThrowStrike();
+            float deadline = Time.time + 4;
+            while (trip.Deck.Hand.Count == 0 && Time.time < deadline) yield return null;
+            Assert.That(trip.Deck.Hand.Single().Id, Is.EqualTo(id), "A miss at the ground must return the card.");
+            Assert.That(sandbox.world.Impacts, Is.GreaterThan(0));
+
+            mouseState = new MouseState { buttons = 1 }; yield return Wait(.15f);
+            Assert.That(thrower.Preparation.Active, Is.True);
+            mouseState = new MouseState { buttons = 3 }; yield return null; yield return null;
+            Assert.That(thrower.Preparation.Active, Is.False, "RMB cancels charge.");
+            mouseState = new MouseState(); yield return null; yield return null;
+            Assert.That(trip.Deck.Hand.Single().Id, Is.EqualTo(id));
+
+            sandbox.motor.view.Guide(sandbox.motor.transform.position + new Vector3(0,15,5));
+            yield return Wait(.6f);
+            yield return ThrowStrike();
+            Assert.That(trip.Deck.Held.Count, Is.EqualTo(1));
+            yield return Press(Key.R);
+            yield return null;
+            Assert.That(trip.Deck.Hand.Single().Id, Is.EqualTo(id), "R must settle the destroyed projectile instead of losing the only card.");
+            Assert.That(trip.Deck.Held, Is.Empty);
+            Assert.That(trip.Deck.Discard, Is.Empty);
+            Assert.That(trip.Deck.HasReturn, Is.False);
+            Assert.That(thrower.Preparation.Active, Is.False);
+            Assert.That(sandbox.liveRoot.GetComponentsInChildren<CardProjectile>(), Is.Empty);
             LogAssert.NoUnexpectedReceived();
         }
 
