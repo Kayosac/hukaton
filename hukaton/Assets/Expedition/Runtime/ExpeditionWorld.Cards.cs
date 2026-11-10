@@ -169,7 +169,7 @@ namespace Hakaton.Expeditions
         public void Combatants(List<ICombatant> results)
         {
             if (vitals) results.Add(vitals);
-            foreach (var creature in creatures)
+            foreach (var creature in ActiveCreatures)
                 if (creature && creature.isActiveAndEnabled && creature.Alive) results.Add(creature);
             foreach (var ally in Allies.All)
                 if (ally.Alive) results.Add(ally);

@@ -24,5 +24,9 @@ namespace Hakaton.Tutorial
         public Transform bush;
         [Tooltip("The plain goblin hidden in the bush.")]
         public CounterGoblin goblin;
+
+        [Header("Creatures")]
+        [Tooltip("Mushrooms of the cave: spawned like the valley's, each at one of its spawn points, but they drop no trophy.")]
+        public WorldCreature[] mushrooms = new WorldCreature[0];
     }
 }

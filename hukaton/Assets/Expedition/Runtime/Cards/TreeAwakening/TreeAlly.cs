@@ -308,7 +308,7 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Notices which creatures lost health: the player or the squad is fighting them.</summary>
         void TrackCreatures(float now)
         {
-            var creatures = world.creatures;
+            var creatures = world.ActiveCreatures;
             if (creatures == null) return;
             foreach (var creature in creatures)
             {
@@ -323,7 +323,7 @@ namespace Hakaton.Expeditions.Cards
         {
             candidates.Clear();
             candidateCreatures.Clear();
-            var creatures = world.creatures;
+            var creatures = world.ActiveCreatures;
             if (creatures == null) { foe = null; return; }
             Vector3 player = PlayerPosition, self = Position;
             float now = Time.time;

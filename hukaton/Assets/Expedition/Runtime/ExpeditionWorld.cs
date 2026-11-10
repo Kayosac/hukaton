@@ -68,6 +68,10 @@ namespace Hakaton.Expeditions
         public Transform[] prologueShores = new Transform[0];
         /// <summary>The cave's roots and water: searched instead of the valley's while the prologue runs.</summary>
         public WorldObstacle[] prologueObstacles = new WorldObstacle[0];
+        /// <summary>The cave's creatures (mushrooms without trophies): spawned instead of the valley's while the prologue runs.</summary>
+        public WorldCreature[] prologueCreatures = new WorldCreature[0];
+        /// <summary>The creatures of the place the player is in: the cave's during the prologue, the valley's otherwise.</summary>
+        public WorldCreature[] ActiveCreatures => InPrologue ? prologueCreatures : creatures;
 
         void Awake() { workshop.Departed += BeginOuting; }
         void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
@@ -277,6 +281,9 @@ namespace Hakaton.Expeditions
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             foreach (var obstacle in prologueObstacles) obstacle.ResetForOuting();
+            // spawned like the valley's: each one at a random spot of its own
+            var random = new System.Random(Environment.TickCount);
+            foreach (var creature in prologueCreatures) if (creature) creature.ResetForOuting(random);
             vitals.Restore();
             motor.Teleport(start.position, start.rotation);
             thrower.ResetSelection();

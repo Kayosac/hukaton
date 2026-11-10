@@ -132,6 +132,8 @@ namespace Hakaton.Tutorial
             world.prologueObstacles = new[] { rootsObstacle, waterObstacle };
             foreach (var obstacle in world.prologueObstacles) if (obstacle) obstacle.world = world;
             world.prologueShores = Level.shores;
+            world.prologueCreatures = Level.mushrooms;
+            foreach (var creature in Level.mushrooms) if (creature) creature.world = world;
             loading = false;
             StartInCave();
             if (fade) yield return fade.FadeTo(0, .5f);
@@ -414,6 +416,7 @@ namespace Hakaton.Tutorial
             loading = false;
             world.prologueObstacles = new WorldObstacle[0];
             world.prologueShores = new Transform[0];
+            world.prologueCreatures = new WorldCreature[0];
             Level = null;
             if (SceneManager.GetActiveScene() != gameObject.scene) SceneManager.SetActiveScene(gameObject.scene);
             if (levelLoad != null)

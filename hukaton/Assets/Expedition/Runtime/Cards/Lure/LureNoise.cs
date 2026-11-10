@@ -78,9 +78,9 @@ namespace Hakaton.Expeditions.Cards
         {
             called = 0;
             float remaining = until - Time.time;
-            if (remaining <= 0 || World.creatures == null) return;
+            if (remaining <= 0 || World.ActiveCreatures == null) return;
             Vector3 here = transform.position;
-            foreach (var creature in World.creatures)
+            foreach (var creature in World.ActiveCreatures)
             {
                 if (!creature || !creature.isActiveAndEnabled || !creature.Alive) continue;
                 if (Vector3.Distance(creature.Position, here) > hearing) continue;

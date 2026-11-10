@@ -672,8 +672,8 @@ namespace Hakaton.Expeditions
                 trophy.world = world;
                 trophy.Pop(Vector3.up * 5.5f + Random.insideUnitSphere * 1.5f);
                 world.Play(world.cues ? world.cues.trophyDrop : null, trophy.transform.position);
+                world.Announce(displayName + ": трофей ждёт", 2.2f);
             }
-            world.Announce(displayName + ": трофей ждёт", 2.2f);
             // The body lies in its death drawing for a moment, then fades away.
             time = 0;
             while (time < corpseSeconds + .45f)
