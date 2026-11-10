@@ -125,6 +125,7 @@ namespace Hakaton.EnemyDebug
 
         public void ClearLive()
         {
+            if (world.thrower) world.thrower.Cancel();
             foreach (Transform child in liveRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             live.Clear();
             world.creatures = Array.Empty<WorldCreature>();
@@ -138,7 +139,7 @@ namespace Hakaton.EnemyDebug
             if (title) title.text = "ВРАГИ / ОТЛАДКА";
             int active = 0;
             foreach (var creature in live) if (creature && creature.gameObject.activeSelf) active++;
-            if (summary) summary.text = $"Виды: {previews.Count}   Копии: {active}   Получено урона: {ReceivedDamage}\nR — убрать копии и сбросить позы";
+            if (summary) summary.text = $"Виды: {previews.Count}   Копии: {active}   Получено урона: {ReceivedDamage}\nR — убрать копии и сбросить позы\nУдар: без лимита / ЛКМ — зарядить и бросить";
             if (!focusText) return;
             focusText.gameObject.SetActive(Focused);
             if (Focused)
