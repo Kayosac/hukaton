@@ -16,8 +16,13 @@ namespace Hakaton.WorldAssembly
         /// <summary>The part with the landmark's reward and its guard (canonical part indices), or none.</summary>
         public readonly int FocusI, FocusJ;
         public bool HasFocus => FocusI >= 0;
+        /// <summary>The part holding a reward only cards reach (the island of the lake), or none.</summary>
+        public readonly int PocketI, PocketJ;
 
-        public LandmarkKind(string id, int size, int focusI = -1, int focusJ = -1) { Id = id; Size = size; FocusI = focusI; FocusJ = focusJ; }
+        public LandmarkKind(string id, int size, int focusI = -1, int focusJ = -1, int pocketI = -1, int pocketJ = -1)
+        {
+            Id = id; Size = size; FocusI = focusI; FocusJ = focusJ; PocketI = pocketI; PocketJ = pocketJ;
+        }
 
         public string PartId(int i, int j) => $"{Id}-{i}{j}";
 
@@ -53,6 +58,7 @@ namespace Hakaton.WorldAssembly
             new LandmarkKind("mesa", 2, 0, 1),
             new LandmarkKind("sinkhole", 2, 1, 0),
             new LandmarkKind("swamp", 2, 1, 1),
+            new LandmarkKind("lake", 2, 1, 1, 1, 1),
         };
 
         public static IEnumerable<LandmarkKind> All

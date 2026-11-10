@@ -199,7 +199,11 @@ namespace Hakaton.WorldAssembly
                     double ramp = plan.BaseLevel == 0 ? Rules.RampChance[plan.Ring] : plan.BaseLevel == 1 ? Rules.RampChance[plan.Ring] * Rules.UpperRampFactor : Rules.SummitRampChance;
                     if (shape.Id != "cliff-edge") ramp *= .5;
                     double ledgeRoll = Hash.Unit(Seed, Salt.Ramp, c.X, c.Y);
-                    id = roll < ramp ? "ramp" : shape.Id == "cliff-edge" && ledgeRoll < Rules.LedgeChance ? "ledge" : "cliff";
+                    double fallsRoll = Hash.Unit(Seed, Salt.Ramp + 1, c.X, c.Y);
+                    id = roll < ramp ? "ramp"
+                        : shape.Id == "cliff-edge" && ledgeRoll < Rules.LedgeChance ? "ledge"
+                        : shape.Id == "cliff-edge" && fallsRoll < Rules.FallsChance ? "falls"
+                        : "cliff";
                     break;
                 }
             }
@@ -284,7 +288,10 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.Landmark:
                 {
                     var (kind, i, j) = Landmarks.Parse(plan.Shape.Id);
-                    if (kind.HasFocus && i == kind.FocusI && j == kind.FocusJ) plan.Loot.Add(ring == 2 ? "crystal" : "find-hard");
+                    // A landmark with a card-only pocket keeps its best reward there; the focus then holds a plain find.
+                    bool pocket = i == kind.PocketI && j == kind.PocketJ;
+                    if (pocket) plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
+                    if (kind.HasFocus && i == kind.FocusI && j == kind.FocusJ) plan.Loot.Add(pocket ? "find" : ring == 2 ? "crystal" : "find-hard");
                     else if (findRoll < Rules.SceneFindChance[ring] * .6) plan.Loot.Add("find");
                     break;
                 }

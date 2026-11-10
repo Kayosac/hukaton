@@ -215,7 +215,7 @@ namespace Hakaton.WorldAssembly.Unity
             ["watchhill"] = new Color(1f, .55f, .2f), ["crater"] = new Color(.75f, .4f, 1f), ["fort"] = new Color(1f, .3f, .25f),
             ["beeyard"] = new Color(1f, .85f, .2f), ["village"] = new Color(.95f, .95f, .9f), ["stone-forest"] = new Color(.55f, .75f, 1f),
             ["giant-log"] = new Color(.45f, 1f, .45f), ["mesa"] = new Color(.95f, .7f, .4f), ["sinkhole"] = new Color(.35f, .95f, .9f),
-            ["swamp"] = new Color(.65f, .9f, .3f),
+            ["swamp"] = new Color(.65f, .9f, .3f), ["lake"] = new Color(.35f, .65f, 1f),
         };
 
         /// <summary>

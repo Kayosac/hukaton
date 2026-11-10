@@ -57,6 +57,8 @@ namespace Hakaton.WorldAssembly
         public double SummitRampChance = .02;
         /// <summary>Chance that a straight cliff without a ramp has a ledge (Impulse I twice).</summary>
         public double LedgeChance = .35;
+        /// <summary>A straight cliff without ramp or ledge has water falling over it into a pool at its foot.</summary>
+        public double FallsChance = .3;
 
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
         public double[] CreatureChance = { .12, .2, .33 };

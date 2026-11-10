@@ -361,7 +361,13 @@ namespace Hakaton.WorldAssembly.EditorTools
             mat.SetFloat("_UseMeshFlow", 1);
             // A thin lip of foam: the banks are gentle, so the default shore foam reads as snow.
             mat.SetFloat("_FoamDepth", .1f);
-            mat.SetFloat("_ShoreFoam", .18f);
+            mat.SetFloat("_ShoreFoam", .12f);
+            // Finer pixels and a fainter caustic web: in shallow pools the default web reads as cracked ice, and near
+            // the camera the coarse pixels of the foam flicker.
+            mat.SetFloat("_PixelsPerMeter", 24);
+            mat.SetFloat("_CausticStrength", 1.1f);
+            mat.SetFloat("_CausticWidth", .09f);
+            mat.SetFloat("_FlowFoam", .22f);
             EditorUtility.SetDirty(mat);
         }
 
@@ -729,6 +735,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, High);
                     if (!t.IsSaddle) Scatter("Trees", Trees, 2, 2, 3.4f, .65f, 1.4f, Low);
                     if (t.Variant == "ledge") Ledge(dressing, t);
+                    if (t.HasFalls) Falls(dressing, t);
                     CliffFace(dressing, t, rng);
                     break;
                 case ShapeKind.River:
@@ -784,6 +791,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (h < Plateau * .3f || h > Plateau * .7f || t.OnRamp(p)) continue;
                     var gradient = new Vector2(t.Height(p + Vector2.right * .3f) - t.Height(p - Vector2.right * .3f), t.Height(p + Vector2.up * .3f) - t.Height(p - Vector2.up * .3f)) / .6f;
                     if (gradient.magnitude < 1.5f) continue;
+                    // The waterfall's strip of the face stays bare.
+                    if (t.HasFalls && Mathf.Abs(Vector2.Dot(p - t.FallsTop, new Vector2(-t.FallsDown.y, t.FallsDown.x))) < 2.2f) continue;
                     spots.Add((p, -gradient.normalized));
                 }
             var chosen = new List<Vector2>();
@@ -801,8 +810,36 @@ namespace Hakaton.WorldAssembly.EditorTools
                 foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
                 // Scree below it.
                 var foot = p + outward * 1.6f;
-                if (!t.IsSaddle && t.Height(foot) < Plateau * .25f && !t.OnRamp(foot) && !NearLink(foot, 1.6f) && rng.NextDouble() < .6)
+                if (!t.IsSaddle && t.Height(foot) < Plateau * .25f && !t.OnRamp(foot) && !NearLink(foot, 1.6f) && t.WaterDistance(foot) > .5f && rng.NextDouble() < .6)
                     Place(parent, "Rocks/" + (rng.NextDouble() < .5 ? "FA_RK07_RocksLowGroup" : "FA_RK01_BoulderSmall"), t, foot, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .5f));
+            }
+        }
+
+        /// <summary>Water over the edge of a straight cliff into the pool at its foot: the fall, spray and reeds.</summary>
+        static void Falls(Transform parent, TileTerrain t)
+        {
+            // The effect pours out along its local back (its edge emitter is turned that way).
+            float yaw = Mathf.Atan2(t.FallsDown.x, t.FallsDown.y) * Mathf.Rad2Deg + 180;
+            var top = Place(parent, "VFX/Liquids/Water/WaterFallBig", null, Vector2.zero, yaw, Vector3.one);
+            if (top) top.transform.localPosition = new Vector3(t.FallsTop.x - 8, GroundY(t, t.FallsTop) + .1f, t.FallsTop.y - 8);
+            var foot = t.FallsTop + t.FallsDown * 2.2f;
+            var splash = Place(parent, "VFX/Liquids/Water/RippleSplash", null, Vector2.zero, 0, Vector3.one * 1.2f);
+            if (splash) splash.transform.localPosition = new Vector3(foot.x - 8, TileTerrain.WaterLevel + .05f, foot.y - 8);
+            var mist = Place(parent, "VFX/Smoke/White/SmokeFlatWhite", null, Vector2.zero, 0, Vector3.one);
+            if (mist) mist.transform.localPosition = new Vector3(foot.x - 8, TileTerrain.WaterLevel + .2f, foot.y - 8);
+            var side = new Vector2(-t.FallsDown.y, t.FallsDown.x);
+            foreach (float s in new[] { -1f, 1f })
+            {
+                var at = t.FallsPool + side * s * (TileTerrain.FallsBank - .2f);
+                var reeds = Place(parent, "Plants/FA_VG05_GrassTall", t, at, s * 50, Vector3.one * 1.3f);
+                if (reeds) foreach (var c in reeds.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            }
+            // A mossy rock to each side of the fall on top.
+            foreach (float s in new[] { -1.3f, 1.3f })
+            {
+                var at = t.FallsTop + side * s - t.FallsDown * .3f;
+                var rock = Place(parent, "Rocks/FA_RK06_BoulderSplit", t, at, s * 70, Vector3.one * .7f);
+                if (rock) rock.transform.position += Vector3.down * .2f;
             }
         }
 

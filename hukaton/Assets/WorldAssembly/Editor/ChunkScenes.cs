@@ -28,7 +28,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// <summary>A sloped strip from A at HeightA to B at HeightB that fills the ground up to it (never cuts it).</summary>
         public struct Ramp { public Vector2 A, B; public float HeightA, HeightB, Half, Run; }
         /// <summary>Open water: a bed sunk below the water level, Deep at the middle, its banks at Bank.</summary>
-        public struct Pool { public Vector2 Centre; public float Radius, Bank, Deep; }
+        public struct Pool { public Vector2 Centre; public float Radius, Bank, Deep, Island; }
 
         /// <summary>Raised (Height &gt; 0) or sunk (Height &lt; 0) lines with steep sides.</summary>
         public readonly List<Ridge> Ridges = new List<Ridge>();
@@ -131,6 +131,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "mesa": s.Mesa(); break;
                 case "sinkhole": s.Sinkhole(); break;
                 case "swamp": s.Swamp(); break;
+                case "lake": s.Lake(); break;
             }
             all[id] = s;
             return s;
@@ -399,6 +400,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 float a = phase + k * Mathf.PI * 2 / count;
                 var p = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius + (k % 3 - 1) * .8f);
                 if (NearSeam(p, 2.2f) || NearLink(p) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear) || OnRamp(p, 1.5f)) continue;
+                // Clear of the set pieces and of fires.
+                if (Props.Any(pr => !pr.NoCollider && !pr.Asset.StartsWith("Trees/") && Vector2.Distance(p, pr.At) < 2.4f * pr.Scale.x) || Sounds.Any(s => Vector2.Distance(p, s.at) < 1.8f)) continue;
                 // Scale wanders a lot: saplings next to giants.
                 Put("Trees/" + trees[(k * 5 + (int)(radius * 3)) % trees.Length], p.x, p.y, k * 67, .65f + ((k * 37 + (int)(phase * 10)) % 9) * .1f);
             }
@@ -858,6 +861,42 @@ namespace Hakaton.WorldAssembly.EditorTools
             Grass = 16; Ferns = 6; Bushes = 6; Trees = 2;
         }
 
+        /// <summary>
+        /// A lake 20 m across with an island in the middle: the reward lies on the island, out of reach on foot — freeze
+        /// a way over, or jump from the end of the pier. A path runs round the shore past a fisher's shelter.
+        /// </summary>
+        void Lake()
+        {
+            Size = 32;
+            var c = V(16, 16);
+            Pools.Add(new Pool { Centre = c, Radius = 9, Bank = 10.5f, Deep = 2.4f, Island = 6 });
+            Pocket = V(17.2f, 17);
+            Boardwalks.Add((new[] { OnCircle(c, 11.8f, 45), OnCircle(c, 7.4f, 45) }, .3f));
+            Put("Trees/FA_TR10_DeadBare", 14.4f, 17.6f, 40, 1.1f);
+            Put("Markers/FA_MK05_StoneMarkTall", 17.6f, 14.8f, 0, .9f);
+            Deco("Markers/FA_MK16_StoneCircle", 16.4f, 16.4f, 0, .9f);
+            Deco("VFX/Smoke/White/SmokeFlatWhite", 10.6f, 11, 0, 1.8f, .1f);
+            Deco("VFX/Smoke/White/SmokeFlatWhite", 22, 11.4f, 0, 1.6f, .1f);
+            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 11.2f, 21, 0, .8f, 0);
+            Sounds.Add((V(11.2f, 21), "bubbles", 0));
+            // The fisher's corner on the north-east shore.
+            Put("Structures/FA_ST13_Shelter", 26.8f, 27.4f, 225);
+            Put("Props/FA_PR13_CrateClosed", 24.4f, 28.4f, 20);
+            Put("Props/FA_PR12_SackLarge", 28.4f, 24.6f, 0);
+            Put("Props/FA_PR02_LanternGround", 23, 25.8f, 0);
+            Fire(28.2f, 22.2f, .8f);
+            foreach (float a in new[] { 10f, 70f, 120f, 160f, 200f, 250f, 290f, 330f })
+            {
+                var p = OnCircle(c, 10.6f, a);
+                Deco("Plants/FA_VG05_GrassTall", p.x, p.y, a, 1.4f);
+            }
+            Trails.Add(Circle(c, 12.8f, 32));
+            TreeRing(c, 14.6f, 12, .5f);
+            Finds = new[] { V(23, 27.8f), V(4.6f, 6) };
+            Creatures = new[] { V(22.4f, 26.6f), V(6, 25.4f) };
+            Grass = 18; Ferns = 4; Bushes = 7; Trees = 3;
+        }
+
         // ---------- relief ----------
 
         public float Relief(TileTerrain t, Vector2 p)
@@ -907,12 +946,19 @@ namespace Hakaton.WorldAssembly.EditorTools
             return height * TileTerrain.EdgeFade(p, 1.6f, Size);
         }
 
-        /// <summary>Bed of the pools here (0 away from them); same shape as a pond's.</summary>
+        /// <summary>Bed of the pools here (float.MaxValue away from them: the ground stays as it is); same shape as a pond's.</summary>
         public float PoolBed(TileTerrain t, Vector2 p, System.Func<float, float, float, float, float> bed)
         {
-            float h = 0;
+            float h = float.MaxValue;
             foreach (var pool in Pools)
-                h = Mathf.Min(h, bed(Vector2.Distance(p, pool.Centre) + t.Noise(p, 2f, 11) * .3f, pool.Radius, pool.Bank, pool.Deep));
+            {
+                float d = Vector2.Distance(p, pool.Centre) + t.Noise(p, 2f, 11) * .3f;
+                if (d >= pool.Bank) continue;
+                float v = bed(d, pool.Radius, pool.Bank, pool.Deep);
+                // An island in the middle: dry ground at the level of the banks.
+                if (pool.Island > 0) v = Mathf.Max(v, Mathf.Lerp(-pool.Deep, .7f, Mathf.SmoothStep(0, 1, Mathf.Clamp01(1 - d / pool.Island) * 1.6f)));
+                h = Mathf.Min(h, v);
+            }
             return h;
         }
 

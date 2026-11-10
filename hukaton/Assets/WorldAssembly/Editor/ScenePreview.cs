@@ -58,6 +58,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab.gameObject, scene);
                         go.transform.SetParent(root.transform, false);
                         go.transform.position = at + new Vector3(i * 16 + 8, 0, j * 16 + 8);
+                        Simulate(go);
                     }
                 float size = kind.Size * 16;
                 var centre = at + new Vector3(size / 2, 0, size / 2);
@@ -89,6 +90,12 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (previous.IsValid()) SceneManager.SetActiveScene(previous);
             RenderSettings.fog = fog;
             return $"sheet of {kinds.Count} landmarks";
+        }
+
+        /// <summary>Effects (waterfalls, smoke, flies) only show once their particles have run for a while.</summary>
+        static void Simulate(GameObject go)
+        {
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>()) ps.Simulate(3, true, true);
         }
 
         /// <summary>Heights of a landmark's ground along a line: "mesa x0 y0 x1 y1 [steps]" (scene coordinates).</summary>
@@ -162,6 +169,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var at = new Vector3(v * 60, 0, 0);
                 var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab.gameObject, scene);
                 go.transform.position = at;
+                Simulate(go);
                 cam.transform.position = at + new Vector3(-2, 8.5f, -14.5f);
                 cam.transform.LookAt(at + new Vector3(0, 0, 1.5f));
                 cam.targetTexture = rt;

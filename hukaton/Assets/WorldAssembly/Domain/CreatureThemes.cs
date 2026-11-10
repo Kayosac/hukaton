@@ -54,6 +54,7 @@ namespace Hakaton.WorldAssembly
             ["stone-forest"] = new Theme("teen-leshy-skater", "hostile-bush*2", "sinister-living-tree*2"),
             ["mesa"] = new Theme("kind-little-worm*2", "goblin-dog*2+budding-troll|goblin-dog*3", "budding-troll+goblin-dog*2"),
             ["sinkhole"] = new Theme("purple-mushroom*3", "hostile-bush*2+purple-mushroom", "budding-troll+purple-mushroom*2"),
+            ["lake"] = new Theme("snail-frog-mount", "snail-frog-mount*2|rat-pumpkin*2", "goblin-dog*2+snail-frog-mount"),
             ["swamp"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2", "budding-troll+snail-frog-mount"),
             ["giant-log"] = new Theme("teen-leshy-skater*2", "hostile-bush*2|teen-leshy-skater*2", "sinister-living-tree"),
         };

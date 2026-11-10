@@ -199,6 +199,8 @@ namespace Hakaton.WorldAssembly
             var variants = new List<Variant> { new Variant("cliff") };
             if (ramp) variants.Add(new Variant("ramp", new[] { new Link(0, 1, Need.Walk) }));
             if (ledge) variants.Add(new Variant("ledge"));
+            // Water over the edge into a pool at the foot: same ways as a bare cliff.
+            if (ledge) variants.Add(new Variant("falls"));
             return new TileShape(id, ShapeKind.Cliff, corners, NoMids, regions.ToArray(), ports, links.ToArray(), variants.ToArray());
         }
 

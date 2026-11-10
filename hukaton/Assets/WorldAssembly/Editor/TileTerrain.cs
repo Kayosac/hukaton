@@ -44,6 +44,11 @@ namespace Hakaton.WorldAssembly.EditorTools
             public Ramp(Vector2 a, float ha, Vector2 b, float hb, float width) { A = a; HeightA = ha; B = b; HeightB = hb; Width = width; }
         }
 
+        /// <summary>Waterfall of a straight cliff ("falls"): where the water comes over the edge, which way it falls, and the pool at the foot.</summary>
+        public readonly Vector2 FallsTop, FallsDown, FallsPool;
+        public bool HasFalls => Shape.Kind == ShapeKind.Cliff && Variant == "falls";
+        public const float FallsRadius = 1.4f, FallsBank = 2.2f, FallsDeep = .95f;
+
         public TileTerrain(TileShape shape, string variant, float plateau, float canyonDepth)
         {
             Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
@@ -62,6 +67,23 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (shape.Id.EndsWith("straight")) Centreline.Add(Line(new Vector2(8, 0), new Vector2(8, 16)));
                 else if (shape.Id.EndsWith("bend")) Centreline.Add(Arc(new Vector2(16, 16), 8, 180, 270));
                 else Centreline.Add(Line(new Vector2(8, 16), new Vector2(8, 8)));
+            }
+            if (HasFalls)
+            {
+                // Across the face, 3 m to one side of the middle: find where the crooked edge really is there.
+                var c = shape.Corners;
+                var up = new Vector2((c[1] - c[0]) + (c[2] - c[3]), (c[0] - c[3]) + (c[1] - c[2])).normalized;
+                FallsDown = -up;
+                var along = new Vector2(-up.y, up.x);
+                var start = new Vector2(8, 8) + along * 3;
+                var mid = start;
+                for (float s = -6; s <= 6; s += .1f)
+                {
+                    var q = start + FallsDown * s;
+                    if (CliffBase(q) < plateau * .5f) { mid = q; break; }
+                }
+                FallsTop = mid - FallsDown * 1.1f;
+                FallsPool = mid + FallsDown * 2.4f;
             }
             float p = plateau, d = -canyonDepth;
             switch (shape.Id + "/" + variant)
@@ -155,13 +177,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 case ShapeKind.Cliff:
                 {
-                    // A crooked edge: big bays and points, small teeth; the face steeper in some places than others.
-                    // A saddle stays tamer: its low band across the middle must stay open.
-                    float field = IsSaddle
-                        ? Field(p) + (Noise(p, 3f, 7) * .06f - .07f) * fade
-                        : Field(p) + (Noise(p, 4.2f, 7) * .15f + Noise(p, 1.7f, 17) * .05f) * fade;
-                    float steep = IsSaddle ? 8f : 8f + 3f * Noise(p, 3f, 19) * fade;
-                    return Plateau * Mathf.Clamp01((field - .5f) * steep + .5f);
+                    float h = CliffBase(p);
+                    if (!HasFalls) return h;
+                    float d = Vector2.Distance(p, FallsPool) + Noise(p, 2f, 11) * .25f;
+                    return d < FallsBank ? Mathf.Min(h, Bed(d, FallsRadius, FallsBank, FallsDeep)) : h;
                 }
                 case ShapeKind.River:
                 {
@@ -195,6 +214,20 @@ namespace Hakaton.WorldAssembly.EditorTools
                     float relief = Scene.Relief(this, p + Offset);
                     return Scene.Pools.Count > 0 ? Mathf.Min(relief, Scene.PoolBed(this, p + Offset, Bed)) : relief;
             }
+        }
+
+        /// <summary>
+        /// A crooked edge: big bays and points, small teeth; the face steeper in some places than others. A saddle
+        /// stays tamer: its low band across the middle must stay open.
+        /// </summary>
+        float CliffBase(Vector2 p)
+        {
+            float fade = EdgeFade(p, 2.5f);
+            float field = IsSaddle
+                ? Field(p) + (Noise(p, 3f, 7) * .06f - .07f) * fade
+                : Field(p) + (Noise(p, 4.2f, 7) * .15f + Noise(p, 1.7f, 17) * .05f) * fade;
+            float steep = IsSaddle ? 8f : 8f + 3f * Noise(p, 3f, 19) * fade;
+            return Plateau * Mathf.Clamp01((field - .5f) * steep + .5f);
         }
 
         static float Bed(float d, float channel, float bank, float deep)
@@ -248,6 +281,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) - PondBank;
             if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset);
+            if (HasFalls) return Vector2.Distance(p, FallsPool) - FallsBank;
             if (Shape.Kind != ShapeKind.River) return 99;
             float d = DistanceToCentre(p) - BankHalf;
             if (Shape.Id == "river-end") d = Mathf.Min(d, Vector2.Distance(p, new Vector2(8, 8)) - (Variant == "spring" ? SpringBank : LakeBank));
@@ -283,7 +317,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             get
             {
-                if (Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond")) return true;
+                if (Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond") || HasFalls) return true;
                 if (Scene == null) return false;
                 foreach (var pool in Scene.Pools)
                 {
@@ -302,6 +336,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) < PondBank + margin;
             if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset) < margin;
+            if (HasFalls) return Vector2.Distance(p, FallsPool) < FallsBank + margin;
             if (Shape.Kind != ShapeKind.River) return false;
             if (DistanceToCentre(p) < BankHalf + margin) return true;
             if (Shape.Id != "river-end") return false;
