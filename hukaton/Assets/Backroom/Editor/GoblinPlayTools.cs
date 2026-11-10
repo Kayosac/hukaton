@@ -11,6 +11,9 @@ namespace Hakaton.Backroom.Editor
     {
         static void KeepSaveUntouched()
         {
+            // Only the running copy of the scene: outside Play mode this would switch saving off in the open scene
+            // without marking it dirty, and every later Play would start a new game in the cave.
+            if (!Application.isPlaying) return;
             foreach (var behaviour in Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
             {
                 var field = behaviour.GetType().GetField("persistProgress");
