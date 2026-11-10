@@ -27,12 +27,15 @@ namespace Hakaton.Backroom
         [Tooltip("Overlapping cards (the goblin's fan): the one under the pointer comes to the front, like a card " +
                  "pulled from a hand, and goes back to its place in the row after.")]
         public bool raiseOnHover;
+        [Tooltip("The brazier: under the pointer the card shivers, as if afraid of the fire.")]
+        public bool trembleOnHover;
 
         public event Action<OfferCardView> Clicked, Hovered;
         public int Slot { get; set; }
         public bool Hovering { get; private set; }
 
         SpringFloat lift, scale, flip, shake;
+        float fear, fearSeed;
         float dealDelay, flyTime = -1, flipTarget = 1;
         bool faceUp, showPrice, flying, toTarget;
         Vector2 home, target;
@@ -171,6 +174,7 @@ namespace Hakaton.Backroom
             lift.Step(flying ? 34 : Hovering ? hoverLift : 0, 9, .55f, dt);
             scale.Step(Hovering ? 1.08f : 1, 11, .45f, dt);
             shake.Step(0, 18, .25f, dt);
+            fear = Mathf.MoveTowards(fear, trembleOnHover && Hovering && !flying ? 1 : 0, dt * 6);
             flip.Step(flipTarget, 14, .7f, dt);
             if (flipTarget < 0 && flip.Value <= 0)
             {
@@ -209,10 +213,20 @@ namespace Hakaton.Backroom
 
         void Present()
         {
-            body.anchoredPosition = home + new Vector2(shake.Value * .35f, lift.Value);
+            // Fear: a fast, uneven shiver (position and a little tilt), like chattering teeth.
+            Vector2 shiver = Vector2.zero;
+            float tilt = 0;
+            if (fear > 0)
+            {
+                if (fearSeed == 0) fearSeed = UnityEngine.Random.Range(1f, 100f);
+                float time = Time.unscaledTime * 34 + fearSeed;
+                shiver = new Vector2(Mathf.PerlinNoise(time, 0) - .5f, Mathf.PerlinNoise(0, time) - .5f) * (9 * fear);
+                tilt = (Mathf.PerlinNoise(time * .8f, time) - .5f) * 6 * fear;
+            }
+            body.anchoredPosition = home + new Vector2(shake.Value * .35f, lift.Value) + shiver;
             float sx = Mathf.Abs(flip.Value);
             body.localScale = new Vector3(Mathf.Max(.02f, sx) * scale.Value, scale.Value, 1);
-            body.localRotation = Quaternion.Euler(0, 0, -shake.Value * .08f + (flying && flyTime > 0 ? flyTime * 40 : 0));
+            body.localRotation = Quaternion.Euler(0, 0, -shake.Value * .08f + tilt + (flying && flyTime > 0 ? flyTime * 40 : 0));
             face.enabled = faceUp;
             if (levelMark) levelMark.transform.parent.gameObject.SetActive(faceUp && levelMark.text.Length > 0);
             back.enabled = !faceUp;

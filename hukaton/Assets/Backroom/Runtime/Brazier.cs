@@ -33,11 +33,17 @@ namespace Hakaton.Backroom
         [Tooltip("The small flame in the bowl (Retro Arsenal torch fire); burns all the time.")]
         public GameObject flamePrefab;
         [Tooltip("Flame size against the prefab's own.")]
-        [Min(.1f)] public float flameSize = 3;
+        [Min(.1f)] public float flameSize = 1;
         [Tooltip("How much the flame jumps when a card lands in it.")]
         [Min(1)] public float burnJump = 1.7f;
         public AudioSource audioSource;
+        [Tooltip("igniteSound: the burner's click and whoomp on opening; burnLoop: the fire roaring while the list is open.")]
         public AudioClip igniteSound, burnSound, refuseSound;
+        public AudioClip burnLoop;
+        [Range(0, 1)] public float burnLoopVolume = .45f;
+        [Tooltip("A card under the pointer: its teeth chatter with fear.")]
+        public AudioClip fearSound;
+        [Range(0, 1)] public float fearVolume = .6f;
 
         [Header("Overlay")]
         public CanvasGroup visibility;
@@ -59,6 +65,7 @@ namespace Hakaton.Backroom
         DeckWorkshop Model => workshop.Model;
         int pending;
         Transform flame;
+        AudioSource loop, fearVoice;
         Vector3 flameScale;
         SpringFloat jump;
         readonly List<OfferCardView> tiles = new List<OfferCardView>();
@@ -101,6 +108,16 @@ namespace Hakaton.Backroom
             if (control) control.SetBlocked(this, true);
             SetVisible(visibility, true);
             SetVisible(confirmGroup, false);
+            // The burner clicks, catches with a whoomp and roars while the list is open.
+            Play(igniteSound);
+            if (flame) jump.Snap(1.4f);
+            if (burnLoop && audioSource)
+            {
+                if (!loop) loop = MakeVoice(true);
+                loop.clip = burnLoop;
+                loop.volume = 0;
+                loop.PlayDelayed(.2f);
+            }
             Lay(true);
             if (scroll) scroll.verticalNormalizedPosition = 1;
             return true;
@@ -113,6 +130,7 @@ namespace Hakaton.Backroom
             pending = 0;
             SetVisible(visibility, false);
             SetVisible(confirmGroup, false);
+            if (fearVoice) fearVoice.Stop();
             if (control) control.SetBlocked(this, false);
         }
 
@@ -122,6 +140,11 @@ namespace Hakaton.Backroom
             {
                 jump.Step(1, 9, .45f, Time.deltaTime);
                 flame.localScale = flameScale * Mathf.Max(.2f, jump.Value);
+            }
+            if (loop)
+            {
+                loop.volume = Mathf.MoveTowards(loop.volume, IsOpen ? burnLoopVolume : 0, Time.unscaledDeltaTime * (IsOpen ? .9f : 1.5f));
+                if (!IsOpen && loop.volume <= 0 && loop.isPlaying) loop.Stop();
             }
             if (!IsOpen) return;
             var keyboard = Keyboard.current;
@@ -143,6 +166,7 @@ namespace Hakaton.Backroom
                 tile.name = "Card " + (tiles.Count + 1);
                 tile.Clicked += OnTileClicked;
                 tile.Hovered += OnTileHovered;
+                tile.trembleOnHover = true;
                 tiles.Add(tile);
             }
             for (int i = 0; i < tiles.Count; i++)
@@ -165,7 +189,17 @@ namespace Hakaton.Backroom
         void OnTileHovered(OfferCardView tile)
         {
             var copy = Model.Find(tile.Slot);
-            tile.SetPrice(copy == null ? null : copy.Protected ? "основа" : Model.BurnPrice(copy).ToString());
+            // Over the card: what burning it pays; a starting card says it will not burn.
+            tile.SetPrice(copy == null ? null : copy.Protected ? "не горит" : Model.BurnPrice(copy).ToString());
+            if (fearSound && audioSource)
+            {
+                if (!fearVoice) fearVoice = MakeVoice(false);
+                fearVoice.Stop();
+                fearVoice.pitch = Random.Range(.92f, 1.1f);
+                fearVoice.clip = fearSound;
+                fearVoice.volume = fearVolume;
+                fearVoice.Play();
+            }
         }
 
         void OnTileClicked(OfferCardView tile)
@@ -227,6 +261,20 @@ namespace Hakaton.Backroom
             screen.y = Mathf.Clamp(screen.y, 0, Screen.height);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, null, out var local);
             return local;
+        }
+
+        /// <summary>Another source next to the main one, with its settings (loop, fear).</summary>
+        AudioSource MakeVoice(bool looping)
+        {
+            var voice = audioSource.gameObject.AddComponent<AudioSource>();
+            voice.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
+            voice.spatialBlend = audioSource.spatialBlend;
+            voice.rolloffMode = audioSource.rolloffMode;
+            voice.minDistance = audioSource.minDistance;
+            voice.maxDistance = audioSource.maxDistance;
+            voice.playOnAwake = false;
+            voice.loop = looping;
+            return voice;
         }
 
         void Play(AudioClip clip)
