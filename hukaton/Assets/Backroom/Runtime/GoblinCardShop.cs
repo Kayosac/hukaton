@@ -36,8 +36,8 @@ namespace Hakaton.Backroom
         [Tooltip("The goblin's speech bubble over the table.")]
         public DialogueBubbleLayout bubble;
         public CanvasGroup bubbleGroup;
-        [Tooltip("Shown under the bubble while a line waits to be closed.")]
-        public TMP_Text continueHint;
+        [Tooltip("«E — дальше» in the bottom-right corner while a line waits to be closed.")]
+        public ContinueHint continueHint;
 
         [Header("Fan")]
         [Tooltip("The cards overlap like a hand: centre-to-centre step, how far the arc drops at the ends of a full " +
@@ -278,7 +278,7 @@ namespace Hakaton.Backroom
             if (!bubble) return;
             bubble.SetText(line);
             bubbleGroup.alpha = 1;
-            if (continueHint) continueHint.gameObject.SetActive(waitForPlayer);
+            if (continueHint) continueHint.Show(waitForPlayer);
             lineUntil = waitForPlayer ? 0 : Time.unscaledTime + 2.6f;
             if (voiced && waitForPlayer && voice != null && voice.Length > 0) Play(voice[(lineSeed++ * 3 + Visits.IntroductionRead) % voice.Length]);
         }
@@ -287,6 +287,7 @@ namespace Hakaton.Backroom
         {
             lineUntil = 0;
             if (bubbleGroup) bubbleGroup.alpha = 0;
+            if (continueHint) continueHint.Show(false);
         }
 
         string Pick(string[] lines) => lines.Length == 0 ? "" : lines[(lineSeed++ * 7 + DateTime.Now.Millisecond) % lines.Length];
