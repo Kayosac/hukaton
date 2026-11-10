@@ -15,8 +15,6 @@ namespace Hakaton.Expeditions
     {
         [Tooltip("Hand-drawn front view of the projectile; turned to the camera every frame.")]
         public SpriteRenderer picture;
-        [Tooltip("Shader pixel cell in source texels, as on the creatures.")]
-        [Range(1, 32)] public float pixelSize = 8;
         [Tooltip("Spin of the picture in the screen plane, degrees per second.")]
         public float spin;
         [Tooltip("Trails and glows: left behind to fade out when the projectile ends.")]
@@ -42,7 +40,6 @@ namespace Hakaton.Expeditions
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
-        static readonly int PixelSize = Shader.PropertyToID("_PixelSize");
         static readonly int Seed = Shader.PropertyToID("_Seed");
 
         void OnEnable() { if (!active.Contains(this)) active.Add(this); }
@@ -82,7 +79,6 @@ namespace Hakaton.Expeditions
             picture.GetPropertyBlock(block);
             block.SetVector(SpriteUvRect, new Vector4(rect.x / texture.width, rect.y / texture.height, rect.width / texture.width, rect.height / texture.height));
             block.SetFloat(Anchor, sprite.pivot.y / Mathf.Max(1, sprite.rect.height));
-            block.SetFloat(PixelSize, pixelSize);
             block.SetFloat(Seed, Random.Range(0f, 100f));
             picture.SetPropertyBlock(block);
         }

@@ -29,7 +29,6 @@ namespace Hakaton.EnemyDebug
             view.height = original.height;
             view.Size = source.size;
             view.facesRight = original.facesRight;
-            view.pixelSize = original.pixelSize;
             view.spriteRenderer.sharedMaterial = original.spriteRenderer.sharedMaterial;
             view.spriteRenderer.gameObject.layer = original.spriteRenderer.gameObject.layer;
             // Keep the real prefab scale, atlas PPU and shared foot pivot.

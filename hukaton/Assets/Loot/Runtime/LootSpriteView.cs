@@ -12,12 +12,9 @@ namespace Hakaton.Loot
         public SpriteRenderer spriteRenderer;
         [Tooltip("Turn to the camera every frame (around the vertical only).")]
         public bool faceCamera = true;
-        [Tooltip("Shader pixel cell in source texels, as on the creatures.")]
-        [Range(1, 32)] public float pixelSize = 8;
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
-        static readonly int PixelSize = Shader.PropertyToID("_PixelSize");
         static readonly int Seed = Shader.PropertyToID("_Seed");
         MaterialPropertyBlock properties;
         Camera viewer;
@@ -39,7 +36,6 @@ namespace Hakaton.Loot
             properties.SetVector(SpriteUvRect, new Vector4(rect.x / texture.width, rect.y / texture.height,
                 rect.width / texture.width, rect.height / texture.height));
             properties.SetFloat(Anchor, sprite.pivot.y / Mathf.Max(1, sprite.rect.height));
-            properties.SetFloat(PixelSize, pixelSize);
             properties.SetFloat(Seed, Application.isPlaying ? Random.Range(0f, 100f) : 0);
             spriteRenderer.SetPropertyBlock(properties);
             Face();

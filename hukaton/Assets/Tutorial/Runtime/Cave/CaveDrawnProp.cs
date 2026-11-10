@@ -13,13 +13,10 @@ namespace Hakaton.Tutorial
         public SpriteRenderer spriteRenderer;
         [Tooltip("Height of the drawing in metres (its transparent margins are not counted).")]
         [Min(.05f)] public float height = 1.6f;
-        [Tooltip("Shader pixel cell in source texels, as on the creatures.")]
-        [Range(1, 32)] public float pixelSize = 8;
         public bool faceCamera = true;
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
-        static readonly int PixelSize = Shader.PropertyToID("_PixelSize");
         static readonly int Seed = Shader.PropertyToID("_Seed");
         MaterialPropertyBlock properties;
         Camera viewer;
@@ -43,7 +40,6 @@ namespace Hakaton.Tutorial
             properties.SetVector(SpriteUvRect, new Vector4(rect.x / texture.width, rect.y / texture.height,
                 rect.width / texture.width, rect.height / texture.height));
             properties.SetFloat(Anchor, sprite.pivot.y / Mathf.Max(1, sprite.rect.height));
-            properties.SetFloat(PixelSize, pixelSize);
             properties.SetFloat(Seed, 3.7f);
             spriteRenderer.SetPropertyBlock(properties);
         }
