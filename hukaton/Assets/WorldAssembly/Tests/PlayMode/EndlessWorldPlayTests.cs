@@ -192,6 +192,87 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator GroupsSpawnTogetherNoticeThePlayerAndComeBack()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            // The nearest chunk with a group of three or more, out of the calm first ring.
+            ChunkCoord den = default;
+            int expected = 0;
+            for (int r = 4; r < 14 && expected == 0; r++)
+                for (int x = -r; x <= r && expected == 0; x++)
+                    for (int y = -r; y <= r && expected == 0; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                        var plan = streamer.Map.Chunk(x, y);
+                        int count = plan.Spawns.Sum(g => g.Count);
+                        if (count >= 3 && plan.Spawns.Any(g => g.Count >= 2)) { den = new ChunkCoord(x, y); expected = count; }
+                    }
+            Assert.That(expected, Is.GreaterThan(0), "a group within 14 chunks");
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = streamer.Map.Rules.ChunkSize;
+            var centre = origin + new Vector3(den.X * size, streamer.Map.Chunk(den).BaseLevel * streamer.Map.Rules.PlateauHeight, den.Y * size);
+            // Stand two chunks off, out of their sight, while they load.
+            world.motor.Teleport(centre + new Vector3(2 * size, 6, 0), Quaternion.identity);
+            System.Func<List<WorldCreature>> members = () => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None)
+                .Where(v => streamer.CoordAt(v.transform.position).Equals(den))
+                .SelectMany(v => v.GetComponentsInChildren<WorldCreature>()).Where(c => c.Alive).ToList();
+            yield return WaitFor(() => members().Count > 0, 10);
+            yield return new WaitForSeconds(.5f);
+            var group = members();
+            Debug.Log($"[World] group at {den}: {string.Join(", ", streamer.Map.Chunk(den).Spawns)} → {group.Count} creatures");
+            Assert.That(group.Count, Is.EqualTo(expected), "the whole group came");
+            foreach (var c in group)
+            {
+                bool found = NavMesh.SamplePosition(c.transform.position, out var nearest, 6, NavMesh.AllAreas);
+                Debug.Log($"[World] {c.name} at {c.transform.position} (chunk local {c.transform.position - centre}), navigation {(found ? (nearest.position - c.transform.position).ToString() : "none")}, state {c.State}");
+            }
+            foreach (var c in group)
+                // Bodies push each other a little as a group lands: within reach of the navigation, not off in a wall.
+                Assert.That(NavMesh.SamplePosition(c.transform.position, out _, 1.5f, NavMesh.AllAreas), Is.True, $"{c.name} at {c.transform.position - centre} stands on the navigation");
+            float spread = group.SelectMany(a => group.Where(b => b != a).Select(b => Vector3.Distance(a.transform.position, b.transform.position))).Min();
+            Assert.That(spread, Is.GreaterThan(.5f), "not on one spot");
+
+            // From the next chunk over (flat ground at the same height), they can come for the player across the cut.
+            var denPlan = streamer.Map.Chunk(den);
+            var side = Sides.All.First(sd =>
+            {
+                var n = streamer.Map.Chunk(den.Step(sd));
+                bool flat = n.Shape.Kind == ShapeKind.Plain || n.Shape.Kind == ShapeKind.PlateauTop || n.Shape.Kind == ShapeKind.Landmark;
+                return flat && n.BaseLevel == denPlan.BaseLevel;
+            });
+            var next = den.Step(side);
+            // Three metres past the cut, by the middle of the edge where the chunks are joined (not on whatever stands in
+            // the middle of that chunk).
+            var near = centre + new Vector3((next.X - den.X) * (size * .5f + 3), 0, (next.Y - den.Y) * (size * .5f + 3));
+            Assert.That(NavMesh.SamplePosition(near + Vector3.up, out var ground, 3, NavMesh.AllAreas), Is.True);
+            var path = new NavMeshPath();
+            bool across = false;
+            foreach (var c in group)
+            {
+                if (!NavMesh.SamplePosition(c.transform.position, out var from, 1.5f, NavMesh.AllAreas)) continue;
+                NavMesh.CalculatePath(from.position, ground.position, NavMesh.AllAreas, path);
+                Debug.Log($"[World] {c.name} → next chunk: {path.status}, corners {path.corners.Length}, end {(path.corners.Length > 0 ? path.corners[path.corners.Length - 1] - centre : Vector3.zero)}");
+                across |= path.status == NavMeshPathStatus.PathComplete;
+            }
+            Debug.Log($"[World] group in {denPlan.Shape.Id}/{denPlan.Variant.Id} r{denPlan.Rotation} can reach {streamer.Map.Chunk(next)} ({side}, target {ground.position - centre}): {across}");
+            world.motor.Teleport(group[0].transform.position + new Vector3(3.5f, 1.5f, 0), Quaternion.identity);
+            yield return new WaitForSeconds(4);
+            var calm = new[] { CreatureState.Idle, CreatureState.Wander, CreatureState.Graze };
+            Assert.That(group.Any(c => c && !calm.Contains(c.State)), Is.True, "someone noticed the player: " + string.Join(", ", group.Where(c => c).Select(c => c.State)));
+
+            // Far away and back: the group is still there (whoever was not killed).
+            int alive = members().Count;
+            world.motor.Teleport(centre + new Vector3(320, 10, 0), Quaternion.identity);
+            yield return WaitFor(() => members().Count == 0, 10);
+            Assert.That(members().Count, Is.EqualTo(0), "unloaded with its chunk");
+            world.motor.Teleport(centre + new Vector3(2 * size, 6, 0), Quaternion.identity);
+            yield return WaitFor(() => members().Count > 0, 10);
+            yield return null;
+            Assert.That(members().Count, Is.EqualTo(alive), "the same group comes back");
+            Assert.That(across, Is.True, "the group reaches into the next chunk");
+        }
+
+        [UnityTest]
         public IEnumerator ChunksComeBackAsTheyWereLeft()
         {
             // Take one find near the start.
