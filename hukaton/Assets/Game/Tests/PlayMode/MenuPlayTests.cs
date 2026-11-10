@@ -83,6 +83,26 @@ namespace Hakaton.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheMenuMusicPlaysOnceAndFadesOutWhenPlayBegins()
+        {
+            var music = main.music;
+            Assert.That(music && music.clip, Is.True, "The menu prefab wires its track.");
+            Assert.That(music.isPlaying, Is.True, "The track starts with the menu.");
+            Assert.That(music.loop, Is.False, "The menu track plays once.");
+            Assert.That(music.outputAudioMixerGroup && music.outputAudioMixerGroup.name == "Music", Is.True,
+                "The settings' music slider controls it.");
+            float volume = music.volume;
+            main.newGameButton.onClick.Invoke();
+            if (main.dialog.IsOpen) main.dialog.confirmButton.onClick.Invoke();
+            yield return null;
+            Assert.That(main.IsOpen, Is.False);
+            yield return new WaitForSecondsRealtime(main.musicFadeOutSeconds * .5f);
+            Assert.That(music.isPlaying && music.volume < volume, Is.True, "It fades rather than cutting off.");
+            yield return new WaitForSecondsRealtime(main.musicFadeOutSeconds * .5f + .3f);
+            Assert.That(music.isPlaying, Is.False, "Gone once play begins.");
+        }
+
+        [UnityTest]
         public IEnumerator PauseFreezesTheWorldAndLeavingTheCaveAsksFirst()
         {
             main.newGameButton.onClick.Invoke();

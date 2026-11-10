@@ -33,6 +33,12 @@ namespace Hakaton.Game
         [Header("Feel")]
         [Min(0)] public float fadeOutSeconds = .25f, hudFadeInSeconds = .35f;
 
+        [Header("Music")]
+        [Tooltip("The menu track (routed to the Music mixer group). Plays once from the top when the menu opens, no loop; " +
+                 "fades out when play begins.")]
+        public AudioSource music;
+        [Min(0)] public float musicFadeOutSeconds = 1.2f;
+
         /// <summary>Set before a reload that should start playing straight away (a confirmed new game, tests).</summary>
         public static bool SkipNextLaunch;
 
@@ -70,6 +76,11 @@ namespace Hakaton.Game
             GamePause.Suspend(this, true);
             SetHudAlpha(0);
             if (hand) hand.SetLowered(true);
+            if (music && music.clip)
+            {
+                music.loop = false;
+                music.Play();
+            }
         }
 
         void Update()
@@ -151,6 +162,20 @@ namespace Hakaton.Game
             }
             if (hand) hand.SetLowered(false);
             StartCoroutine(FadeAway());
+            if (music && music.isPlaying) StartCoroutine(FadeMusicOut());
+        }
+
+        IEnumerator FadeMusicOut()
+        {
+            float start = music.volume, time = 0;
+            while (time < musicFadeOutSeconds && music.isPlaying)
+            {
+                time += Time.unscaledDeltaTime;
+                music.volume = Mathf.Lerp(start, 0, time / musicFadeOutSeconds);
+                yield return null;
+            }
+            music.Stop();
+            music.volume = start;
         }
 
         IEnumerator FadeAway()
