@@ -229,7 +229,7 @@ namespace Hakaton.Tutorial
 
         void Update()
         {
-            if (!Active) return;
+            if (!Active || GamePause.Suspended) return;
             if (bush) Shake();
             if (Stage == CaveStage.Ambush || Stage == CaveStage.Talk) TintGoblin();
             if (wheelHintPending) world.Announce(wheelHint, .5f);
@@ -496,6 +496,7 @@ namespace Hakaton.Tutorial
         {
             Stage = CaveStage.Talk;
             world.thrower.Cancel();
+            control.AllowPause(this, true);
             control.SetBlocked(this, true);
             // A little above his face: he sits low in the frame, the bubble keeps the top.
             if (view) view.Guide(goblin.face.transform.position + Vector3.up * .35f);

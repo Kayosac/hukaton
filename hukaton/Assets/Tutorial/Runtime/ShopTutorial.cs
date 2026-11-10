@@ -147,7 +147,7 @@ namespace Hakaton.Tutorial
 
         void Update()
         {
-            if (!Active || !trade || Session == null) return;
+            if (!Active || !trade || Session == null || GamePause.Suspended) return;
             Apply();
             switch (Stage)
             {
@@ -271,7 +271,7 @@ namespace Hakaton.Tutorial
         void SetBlocking(bool value)
         {
             blocking = value;
-            if (control) control.SetBlocked(this, value);
+            if (control) { control.AllowPause(this, true); control.SetBlocked(this, value); }
         }
 
         void OnDisable()

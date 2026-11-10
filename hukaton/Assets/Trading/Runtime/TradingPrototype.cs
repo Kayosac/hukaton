@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Hakaton.Character;
 using Hakaton.Economy.Unity;
 using Hakaton.Loot;
 using Hakaton.ShopBlockout;
@@ -141,6 +142,8 @@ namespace Hakaton.Trading.Unity
 
         void Update()
         {
+            // A menu is in front: the shift clock, the visitor and the hotkeys all wait.
+            if (GamePause.Suspended) return;
             World.Customers.HoldExpression = !ReactionRevealed;
             World.Customers.Sync(Session);
             Session.Tick(Time.unscaledDeltaTime);
@@ -158,8 +161,9 @@ namespace Hakaton.Trading.Unity
                 if (SelectingFromDisplay && !ViewTransitioning) UpdateDisplaySelection();
                 if (keyboard != null)
                 {
-                    if (keyboard.escapeKey.wasPressedThisFrame && SelectingFromDisplay) World.ShopView.ReturnToCounter();
-                    else if (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame)
+                    // Escape at the counter opens the pause menu; E closes the shop.
+                    if (keyboard.escapeKey.wasPressedThisFrame && !GamePause.EscapeConsumed && SelectingFromDisplay) World.ShopView.ReturnToCounter();
+                    else if (keyboard.eKey.wasPressedThisFrame)
                     {
                         // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
                         if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
@@ -204,6 +208,7 @@ namespace Hakaton.Trading.Unity
 
         void SyncControl()
         {
+            World.Control.AllowPause(this, true);
             World.Control.SetBlocked(this, Session.IsOpen);
             if (Session.IsOpen == previousOpen) return;
             ResetPlacement();

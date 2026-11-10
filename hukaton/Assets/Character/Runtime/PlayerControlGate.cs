@@ -10,6 +10,7 @@ namespace Hakaton.Character
     {
         public bool captureOnStart = true;
         readonly HashSet<Object> blockers = new HashSet<Object>();
+        readonly HashSet<Object> pausable = new HashSet<Object>();
         bool focused, captured, restoreAfterModal;
         int captureFrame = -1;
 
@@ -17,6 +18,18 @@ namespace Hakaton.Character
             && Cursor.lockState == CursorLockMode.Locked;
         public bool CapturedThisFrame => captureFrame == Time.frameCount;
         public bool HasModalOwner => blockers.Count > 0;
+        /// <summary>
+        /// The pause menu may open over the current claims: none, or only owners that allow it (a conversation at the
+        /// counter, tutorial lines). Windows with an Escape of their own (the PC, the workshop, the card dealer) do not.
+        /// </summary>
+        public bool PauseAllowed
+        {
+            get
+            {
+                foreach (var owner in blockers) if (owner && !pausable.Contains(owner)) return false;
+                return true;
+            }
+        }
 
         void Start()
         {
@@ -29,7 +42,7 @@ namespace Hakaton.Character
             // Destroyed scene owners must not permanently strand the player in a modal state.
             if (blockers.RemoveWhere(owner => !owner) > 0 && blockers.Count == 0) RestoreAfterModal();
             if (!focused || blockers.Count > 0) return;
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame && !GamePause.EscapeConsumed)
             { ReleaseCursor(); return; }
             if (captured && Cursor.lockState != CursorLockMode.Locked) captured = false;
             if (!captured && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
@@ -46,6 +59,13 @@ namespace Hakaton.Character
                 if (blockers.Add(owner)) SetCapture(false);
             }
             else if (blockers.Remove(owner) && blockers.Count == 0) RestoreAfterModal();
+        }
+
+        /// <summary>Marks an owner whose claim the pause menu may cover (dialogue, trading). Set once, kept for its lifetime.</summary>
+        public void AllowPause(Object owner, bool allowed)
+        {
+            if (!owner) return;
+            if (allowed) pausable.Add(owner); else pausable.Remove(owner);
         }
 
         public void CaptureCursor()

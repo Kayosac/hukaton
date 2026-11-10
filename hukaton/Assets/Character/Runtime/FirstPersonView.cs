@@ -16,6 +16,8 @@ namespace Hakaton.Character
         public CameraFeel feel;
         [Header("Look")]
         [Min(.01f)] public float mouseSensitivity = .12f;
+        /// <summary>The player's setting (Settings → mouse sensitivity) on top of the authored value.</summary>
+        [System.NonSerialized] public float sensitivityScale = 1;
         [Min(0)] public float lookSmoothTime = .025f;
         [Range(30, 89)] public float pitchLimit = 82;
         [Header("Camera motion — set intensity to zero to disable")]
@@ -75,8 +77,9 @@ namespace Hakaton.Character
             if (input.LookBlocked) return;
             if (control.GameplayActive && !control.CapturedThisFrame)
             {
-                yawTarget += input.Look.x * mouseSensitivity;
-                pitchTarget = Mathf.Clamp(pitchTarget - input.Look.y * mouseSensitivity, -pitchLimit, pitchLimit);
+                float sensitivity = mouseSensitivity * sensitivityScale;
+                yawTarget += input.Look.x * sensitivity;
+                pitchTarget = Mathf.Clamp(pitchTarget - input.Look.y * sensitivity, -pitchLimit, pitchLimit);
             }
             float dt = Time.deltaTime;
             if (dt <= 0) return;
