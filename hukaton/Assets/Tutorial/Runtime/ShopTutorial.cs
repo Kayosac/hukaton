@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Hakaton.Character;
+using Hakaton.Loot;
 using Hakaton.Trading;
 using Hakaton.Trading.Unity;
 using UnityEngine;
@@ -10,8 +11,8 @@ namespace Hakaton.Tutorial
 {
     /// <summary>
     /// The shop part of the tutorial (board, «Туториал · согласовано», 05–11). The goblin on the counter hands over two
-    /// old wares (cap R = 60, fang R = 120); the player puts both on display and opens the shop. Two staged visitors
-    /// answer exactly (<see cref="ScriptedHaggle"/>), the clock stands still, the way out and the backroom stay closed.
+    /// old wares (cap and fang); the player puts both on display and opens the shop. Two staged visitors answer exactly
+    /// (<see cref="ScriptedHaggle"/>, numbers scaled to each ware's price R), the clock stands still, the way out and the backroom stay closed.
     /// Any two sales finish it: the shop closes, the goblin hints at the backroom and leaves in a poof.
     /// Explanations block movement and wait for E; lines during trading only comment.
     /// </summary>
@@ -24,8 +25,12 @@ namespace Hakaton.Tutorial
         public TutorialBubble bubble;
 
         [Header("The two wares")]
-        public string capId = "hare_foot";
-        public string fangId = "boar_tusk";
+        [Tooltip("Sold first, to the visitor who asks the price.")]
+        public LootItem cap;
+        [Tooltip("Sold second, to the visitor who names his price.")]
+        public LootItem fang;
+        string CapId => cap ? cap.id : string.Empty;
+        string FangId => fang ? fang.id : string.Empty;
 
         [Header("Lines")]
         [TextArea] public string[] arrival =
@@ -78,8 +83,8 @@ namespace Hakaton.Tutorial
             Stage = (ShopTutorialStage)save.stage;
             linesRead = Mathf.Max(0, save.linesRead);
             stockGiven = save.stockGiven;
-            soldCap = stockGiven && !Has(capId);
-            soldFang = stockGiven && !Has(fangId);
+            soldCap = stockGiven && !Has(CapId);
+            soldFang = stockGiven && !Has(FangId);
             Enter();
             return true;
         }
@@ -116,14 +121,29 @@ namespace Hakaton.Tutorial
         CustomerTerms NextVisitor()
         {
             if (!Active) return null;
-            int cap = soldCap ? -1 : SlotOf(capId), fang = soldFang ? -1 : SlotOf(fangId);
+            int cap = soldCap ? -1 : SlotOf(CapId), fang = soldFang ? -1 : SlotOf(FangId);
+            // Tuned at cap R = 60 (accepts up to 69, last offer 66, leaves at 90) and fang R = 120 (opens at 90, pays up
+            // to 104, last offer 108, leaves at 135); kept in proportion to the wares' current prices.
             if (cap >= 0)
-                return new CustomerTerms { RequestedSlot = cap, AsksPrice = true, MaxPrice = 69, Script = new ScriptedHaggle(69, 66, 90) };
+            {
+                int r = Price(this.cap);
+                return new CustomerTerms { RequestedSlot = cap, AsksPrice = true, MaxPrice = Scale(r, 1.15f),
+                    Script = new ScriptedHaggle(Scale(r, 1.15f), Scale(r, 1.1f), Scale(r, 1.5f)) };
+            }
             if (fang >= 0)
-                return new CustomerTerms { RequestedSlot = fang, AsksPrice = false, OpeningRatio = .75f, MaxPrice = 104,
-                    Script = new ScriptedHaggle(104, 108, 135) };
+            {
+                int r = Price(this.fang);
+                return new CustomerTerms { RequestedSlot = fang, AsksPrice = false, OpeningRatio = FangOpening, MaxPrice = Scale(r, 104f / 120),
+                    Script = new ScriptedHaggle(Scale(r, 104f / 120), Scale(r, .9f), Scale(r, 1.125f)) };
+            }
             return null;
         }
+
+        const float FangOpening = .75f;
+        static int Price(LootItem ware) => ware ? ware.price : 1;
+        static int Scale(int price, float ratio) => Mathf.Max(1, Mathf.FloorToInt(price * ratio + .5f));
+        /// <summary>Selling the fang at the visitor's opening offer earns the goblin's grumble.</summary>
+        int FangOpeningPrice => Scale(Price(fang), FangOpening);
 
         void Update()
         {
@@ -134,7 +154,7 @@ namespace Hakaton.Tutorial
                 case ShopTutorialStage.Arrival: Explain(arrival, ShopTutorialStage.Stocking); break;
                 case ShopTutorialStage.Stocking:
                     if (blocking) Explain(new[] { stockedLine }, ShopTutorialStage.Trading);
-                    else if (stockGiven && SlotOf(capId) >= 0 && SlotOf(fangId) >= 0 && !Session.IsOpen) { linesRead = 0; Explain(new[] { stockedLine }, ShopTutorialStage.Trading); }
+                    else if (stockGiven && SlotOf(CapId) >= 0 && SlotOf(FangId) >= 0 && !Session.IsOpen) { linesRead = 0; Explain(new[] { stockedLine }, ShopTutorialStage.Trading); }
                     break;
                 case ShopTutorialStage.Trading: ObserveTrade(); break;
                 case ShopTutorialStage.Finale: Explain(finale, ShopTutorialStage.Done); break;
@@ -197,12 +217,12 @@ namespace Hakaton.Tutorial
         {
             if (stockGiven) return;
             stockGiven = true;
-            foreach (var id in new[] { capId, fangId })
+            foreach (var id in new[] { CapId, FangId })
             {
                 var definition = Session.FindDefinition(id);
                 if (definition != null) Session.SeedInventory(definition, 1);
             }
-            trade.SelectStock(capId);
+            trade.SelectStock(CapId);
             trade.RefreshPresentation();
             Changed?.Invoke();
         }
@@ -214,9 +234,9 @@ namespace Hakaton.Tutorial
                 seenSettlement = Session.SettlementSequence;
                 seenDeparture = Session.DepartureSequence;
                 string sold = Session.LastSoldItem?.Definition.Id;
-                if (sold == capId) soldCap = true;
-                if (sold == fangId) soldFang = true;
-                if (sold == fangId && Session.LastSalePrice == 90) bubble.Say(cheapLine, false);
+                if (sold == CapId) soldCap = true;
+                if (sold == FangId) soldFang = true;
+                if (sold == FangId && Session.LastSalePrice == FangOpeningPrice) bubble.Say(cheapLine, false);
                 else bubble.Hide();
                 Changed?.Invoke();
                 if (soldCap && soldFang)
@@ -241,7 +261,7 @@ namespace Hakaton.Tutorial
             if (customer != null && customer.Id != seenCustomer)
             {
                 seenCustomer = customer.Id;
-                bool cap = Session.CurrentDeal?.Item.Definition.Id == capId;
+                bool cap = Session.CurrentDeal?.Item.Definition.Id == CapId;
                 bubble.Say(cap ? capLesson : fangLesson, false);
                 goblin.Speak(false);
             }

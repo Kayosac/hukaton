@@ -210,7 +210,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1337578447610349232}
@@ -354,9 +354,16 @@ MonoBehaviour:
   navigator: {fileID: 5597657854787239124}
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
+  size: 2
   stunStarsHeight: 0.12
   stunStarsScale: 0.9
-  trophyPrefab: {fileID: 5202564959957086988, guid: e63587611541a43df91765f109770ab8, type: 3}
+  drops:
+    atLeastOne: 1
+    entries:
+    - item: {fileID: 11400000, guid: 59b1d9a557864990926bb7d8ef139749, type: 2}
+      chance: 1
+      min: 1
+      max: 1
   spawnPoints: []
   maximumHealth: 3
   attackHalfHearts: 1
@@ -403,6 +410,17 @@ MonoBehaviour:
   hurtCue: {fileID: 11400000, guid: ef04ee52d152a4dd3934f14a138a5b6d, type: 2}
   deathCue: {fileID: 11400000, guid: d2541dfba8ddf4187b296f0b01a3f33e, type: 2}
   stepCue: {fileID: 11400000, guid: b45324b93f90e4141828746111ad16d3, type: 2}
+  flying: 1
+  cruiseHeight: 2
+  windupClimb: 0.9
+  diveHeight: 0.9
+  climbSpeed: 3.5
+  climbAcceleration: 12
+  bobHeight: 0.18
+  bobFrequency: 0.45
+  jitter: 0.01
+  shadowSize: 0.35
+  shadowOpacity: 0.3
 --- !u!54 &4728948868572293746
 Rigidbody:
   m_ObjectHideFlags: 0

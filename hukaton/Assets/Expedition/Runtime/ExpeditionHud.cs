@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Hakaton.Decks;
 using Hakaton.Feel;
 using TMPro;
+using Hakaton.Loot;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -11,62 +13,95 @@ using UnityEngine.UI;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// Sparse expedition HUD: hearts, a reticle that shows charge and spin, loot toasts, a compact deck strip
-    /// and full-screen vignettes. Contextual hints appear only until the player has done the thing once.
+    /// Sparse expedition HUD (2026-11-10 UI handoff, 736 × 368 reference layout): spinning glossy hearts and the
+    /// wallet top left with the effect badges under them, the paper X at the aim point with the charge ring and the
+    /// three-part spin arrow, the tilted "stock/total" counter beside the hand, pickup rows top right (hold I for every
+    /// carried find in the same rows) and one contextual hint bottom left. Nothing about an item is shown on hover.
     /// </summary>
     public sealed class ExpeditionHud : MonoBehaviour
     {
         public ExpeditionWorld world;
         public Canvas canvas;
+        [Tooltip("Magnification of the expedition HUD layout (736 × 368 mockup units).")]
+        public ReferenceUiScale layout;
+
         [Header("Hearts")]
         public RectTransform hearts;
+        [Tooltip("Red glossy heart of each slot, filled from the left (a half heart is half of the frame).")]
         public Image[] heartFills;
+
+        [Header("Wallet")]
+        public TMP_Text wallet;
+
+        [Header("Effect badges")]
+        [Tooltip("Row under the wallet; timed effect badges line up here.")]
+        public RectTransform statusRow;
+
         [Header("Reticle")]
         public Image reticle;
         public Image chargeRing;
+        public Color reticleColour = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+
         [Header("Spin arrow")]
-        [Tooltip("Rotates to the spin's direction around the reticle centre.")]
+        [Tooltip("Rotates to the spin's direction around the aim point.")]
         public RectTransform spinPointer;
-        public Image spinShaft, spinHead;
+        [Tooltip("Fixed tail and head; only the shaft between them stretches.")]
+        public Image spinTail, spinShaft, spinHead;
         [Tooltip("Faint circle at full spin strength, shown while Shift steers the spin.")]
         public Image spinLimit;
-        [Tooltip("Arrow length at full spin, canvas pixels.")]
-        [Min(8)] public float spinArrowLength = 72;
-        [Tooltip("The arrow starts outside the charge ring.")]
-        [Min(0)] public float spinArrowGap = 40;
+        [Tooltip("Arrow height (layout units); tail and head keep their drawn proportions.")]
+        [Min(1)] public float spinArrowHeight = 8;
+        [Tooltip("Shaft width at the weakest and the strongest spin (layout units).")]
+        public Vector2 spinShaftRange = new Vector2(1.5f, 25.6f);
+        [Tooltip("The arrow starts outside the charge ring (layout units).")]
+        [Min(0)] public float spinArrowGap = 15.333f;
+        public Color spinColour = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+
+        [Header("Card counter")]
+        [Tooltip("'Stock/Total' beside the hand: cards still to draw / copies taken on this outing.")]
+        public TMP_Text cardCounter;
+
+        [Header("Pickups")]
+        [Tooltip("Rows top right: '+ name  value', the name in its rarity colour (common items keep the text colour). Hold I to list every carried find in the same rows.")]
+        public TMP_Text pickups;
+        [Tooltip("Shadow copy of the rows (no colours).")]
+        public TMP_Text pickupsShadow;
+        public Color pickupValueColour = new Color32(0xF5, 0xE4, 0xB7, 0xFF);
+        [Min(.5f)] public float pickupSeconds = 2.8f;
+        [Min(0)] public float pickupFadeSeconds = .5f;
+        [Min(1)] public int pickupRows = 4;
+
         [Header("Text")]
-        public TMP_Text prompt;
-        public TMP_Text notice, toasts, deck, cardLabel, loot, hint;
+        [Tooltip("The one contextual hint, bottom left: 'E — подобрать', 'Shift + мышь — подкрутка'…")]
+        public TMP_Text context;
+        public TMP_Text notice, cardLabel;
+
         [Header("Stamina")]
         public GameObject staminaPanel;
         public Image staminaFill;
+
         [Header("Overlays")]
         public Image vignette;
-        public GameObject inventoryPanel;
-        public TMP_Text inventory;
+
         [Header("Colours")]
         public Color hurtColour = new Color(.75f, .08f, .05f);
         public Color healColour = new Color(.3f, .85f, .45f);
-        public Color activeDeckColour = new Color(1f, .86f, .5f);
 
-        readonly List<(string text, float time)> toastLines = new List<(string, float)>();
+        readonly List<(string name, int value, float time, string colour)> toastLines = new List<(string, int, float, string)>();
         SpringFloat[] heartScales;
         SpringFloat heartsShake, ringScale;
-        TextPunch lootPunch;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
         Color vignetteColour;
-        bool subscribed, hintedThrow, hintedDiscard, hintedPickup;
+        bool subscribed, hintedDiscard;
         float discardHintUntil;
-        Color[] heartBaseColours;
         Vector2 heartsBase;
+        readonly StringBuilder rows = new StringBuilder(), shadowRows = new StringBuilder();
 
         void Awake()
         {
             heartScales = new SpringFloat[heartFills.Length];
             for (int i = 0; i < heartScales.Length; i++) heartScales[i].Snap(1);
-            heartBaseColours = heartFills.Select(f => f ? f.color : Color.white).ToArray();
             ringScale.Snap(1);
-            lootPunch = new TextPunch(loot.rectTransform);
             if (hearts) heartsBase = hearts.anchoredPosition;
         }
 
@@ -98,15 +133,12 @@ namespace Hakaton.Expeditions
             toastLines.Clear();
             vignetteAmount = 0;
             cardLabelUntil = Time.time + 2;
-            if (inventoryPanel) inventoryPanel.SetActive(false);
         }
 
-        void OnCollected(string itemName, int value)
+        void OnCollected(LootItem item)
         {
-            toastLines.Add(($"+ {itemName}  <color=#F4D27A>{value}</color>", Time.time));
-            if (toastLines.Count > 4) toastLines.RemoveAt(0);
-            lootPunch?.Hop(6);
-            hintedPickup = true;
+            toastLines.Add((item.displayName, item.price, Time.time, NameColour(item)));
+            if (toastLines.Count > pickupRows) toastLines.RemoveAt(0);
         }
 
         void OnHealthChanged(int delta)
@@ -122,7 +154,7 @@ namespace Hakaton.Expeditions
         }
 
         void OnSelectionChanged() { cardLabelUntil = Time.time + 1.3f; }
-        void OnThrown(Hakaton.Decks.CardCopy card) { hintedThrow = true; ringScale.Kick(-6); }
+        void OnThrown(CardCopy card) { ringScale.Kick(-6); }
 
         void LateUpdate()
         {
@@ -138,20 +170,21 @@ namespace Hakaton.Expeditions
                 staminaPanel.SetActive(stamina < .99f);
                 if (staminaFill) staminaFill.fillAmount = stamina;
             }
-            bool bag = Keyboard.current != null && Keyboard.current.iKey.isPressed;
-            if (inventoryPanel)
-            {
-                inventoryPanel.SetActive(bag);
-                if (bag) inventory.text = world.Loot.Count == 0 ? "Сумка пуста" : string.Join("\n", world.Loot.Select(x => $"{x.name}  ×{x.count}  <color=#F4D27A>{x.value * x.count}</color>"));
-            }
         }
+
+        static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
+        /// <summary>The wallet as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
+        public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);
+
+        /// <summary>"Stock/Total": copies still in the draw pile over the copies taken on this outing (hand, held and spent excluded).</summary>
+        public static string CardCount(ExpeditionDeck deck) => deck == null ? "" : $"{deck.StockCount}/{deck.Total}";
 
         void UpdateHearts(float dt)
         {
             var vitals = world.vitals;
             heartsShake.Step(0, 9, .25f, dt);
             // Shake by whole pixels: rotation would break the pixel-perfect HUD grid.
-            if (hearts) hearts.anchoredPosition = heartsBase + new Vector2(Mathf.Round(heartsShake.Value * .12f), 0);
+            if (hearts) hearts.anchoredPosition = heartsBase + new Vector2(Mathf.Round(heartsShake.Value * .05f), 0);
             for (int i = 0; i < heartFills.Length; i++)
             {
                 var fill = heartFills[i];
@@ -160,8 +193,9 @@ namespace Hakaton.Expeditions
                 float scale = heartScales[i].Step(1, 6, .3f, dt);
                 if (vitals.Critical && vitals.HalfHearts > i * 2) scale *= 1 + Mathf.Max(0, Mathf.Sin(Time.time * 7)) * .12f;
                 fill.transform.parent.localScale = Vector3.one * scale;
+                // The drawn red stays untinted; a hit or a heal flashes it for a moment.
                 float flash = Mathf.Clamp01(1 - (Time.time - vitals.LastChangeTime) / .35f);
-                fill.color = Color.Lerp(heartBaseColours[i], vitals.LastChangeWasDamage ? Color.white : healColour, flash * .8f);
+                fill.color = Color.Lerp(Color.white, vitals.LastChangeWasDamage ? new Color(1, .55f, .5f) : healColour, flash * .7f);
             }
         }
 
@@ -184,29 +218,36 @@ namespace Hakaton.Expeditions
                 lastThrowCharge = preparation.Active ? preparation.Charge : 0;
                 chargeRing.rectTransform.localScale = Vector3.one * scale;
             }
-            UpdateSpinArrow(preparation, accent);
-            if (reticle) reticle.color = world.FocusedLoot || world.CardTargetFocused ? new Color(1f, .86f, .45f) : Color.white;
+            UpdateSpinArrow(preparation);
+            if (reticle) reticle.color = reticleColour;
         }
 
-        /// <summary>The spin as an arrow from the reticle: direction and length follow the mouse while Shift is held.</summary>
-        void UpdateSpinArrow(ThrowPreparation preparation, Color accent)
+        float TailWidth => 44f / 128f * spinArrowHeight;
+        float HeadWidth => 115f / 128f * spinArrowHeight;
+        float Overlap => .25f * spinArrowHeight / 8f;
+
+        /// <summary>
+        /// The spin as an arrow from the aim point: one root turns to the spin's direction, the drawn tail and head keep
+        /// their size and only the shaft between them stretches with the spin's strength.
+        /// </summary>
+        void UpdateSpinArrow(ThrowPreparation preparation)
         {
             if (!spinPointer) return;
             var spin = preparation.Active ? new Vector2(preparation.SpinX, preparation.SpinY) : Vector2.zero;
             float amount = Mathf.Clamp01(spin.magnitude);
             bool show = amount > .02f;
             if (spinPointer.gameObject.activeSelf != show) spinPointer.gameObject.SetActive(show);
+            float h = spinArrowHeight, tail = TailWidth, head = HeadWidth, o = Overlap;
             if (show)
             {
                 spinPointer.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(spin.y, spin.x) * Mathf.Rad2Deg);
-                // Whole canvas pixels so the pixel-art shaft stays crisp.
-                float length = Mathf.Max(2, Mathf.Round(amount * spinArrowLength));
-                spinShaft.rectTransform.anchoredPosition = new Vector2(spinArrowGap, 0);
-                spinShaft.rectTransform.sizeDelta = new Vector2(length, spinShaft.rectTransform.sizeDelta.y);
-                spinHead.rectTransform.anchoredPosition = new Vector2(spinArrowGap + length, 0);
-                Color colour = Color.Lerp(Color.white, accent, amount);
+                float shaft = Mathf.Lerp(spinShaftRange.x, spinShaftRange.y, amount);
+                Place(spinTail, spinArrowGap, tail, h);
+                Place(spinShaft, spinArrowGap + tail - o, shaft, h);
+                Place(spinHead, spinArrowGap + tail + shaft - 2 * o, head, h);
+                Color colour = spinColour;
                 colour.a = preparation.Steering ? 1 : .55f + .45f * amount;
-                spinShaft.color = spinHead.color = colour;
+                spinTail.color = spinShaft.color = spinHead.color = colour;
             }
             if (spinLimit)
             {
@@ -214,49 +255,52 @@ namespace Hakaton.Expeditions
                 spinLimit.enabled = steering;
                 if (steering)
                 {
-                    float diameter = 2 * (spinArrowGap + spinArrowLength);
+                    // Reaches the tip of the head at full strength.
+                    float diameter = 2 * (spinArrowGap + tail + spinShaftRange.y + head - 2 * o);
                     spinLimit.rectTransform.sizeDelta = new Vector2(diameter, diameter);
                     spinLimit.color = new Color(1, 1, 1, .18f);
                 }
             }
         }
 
+        static void Place(Image part, float x, float width, float height)
+        {
+            var r = part.rectTransform;
+            r.anchoredPosition = new Vector2(x, 0);
+            r.sizeDelta = new Vector2(width, height);
+        }
+
         void UpdateTexts(float dt)
         {
             var trip = world.workshop.Model.Current;
             var card = world.thrower.Selected;
+            var preparation = world.thrower.Preparation;
 
-            // Contextual prompt: pick-up first, then the Return card.
-            if (world.FocusedLoot) prompt.text = $"<b>E</b>  {world.FocusedLoot.displayName}  <color=#F4D27A>{world.FocusedLoot.value}</color>";
-            else if (world.CardPrompt != null) prompt.text = world.CardPrompt;
-            else if (card != null && card.IsReturn) prompt.text = world.thrower.ReturnReady ? "<b>ЛКМ</b>  Домой" : "";
-            else prompt.text = "";
+            if (wallet) wallet.text = FormatMoney(world.workshop.Model.Coins);
+
+            // One contextual hint: an action, never data about the item in focus.
+            string hint = "";
+            if (world.FocusedLoot) hint = "E — подобрать";
+            else if (preparation.Active) hint = "Shift + мышь — подкрутка";
+            else if (world.CardPrompt != null) hint = world.CardPrompt;
+            else if (card != null && card.IsReturn) hint = world.thrower.ReturnReady ? "ЛКМ — домой" : "";
+            else if (!hintedDiscard && trip != null && trip.PlayedCount >= 2 && trip.Deck.StockCount > 0)
+            {
+                // One shared hand: discarding it is how you dig for a card (and, at the end, for the Return card).
+                if (discardHintUntil == 0) discardHintUntil = Time.time + 6;
+                if (Time.time > discardHintUntil || trip.DiscardedCount > 0) hintedDiscard = true;
+                else hint = "R — сбросить руку";
+            }
+            if (world.InPrologue && !world.FocusedLoot) hint = "";
+            if (context) context.text = hint;
 
             notice.text = Time.time < world.NoticeUntil ? world.Notice : "";
+            UpdatePickups();
 
-            var builder = new StringBuilder();
-            for (int i = toastLines.Count - 1; i >= 0; i--)
-            {
-                float age = Time.time - toastLines[i].time;
-                if (age > 2.8f) { toastLines.RemoveAt(i); continue; }
-            }
-            foreach (var line in toastLines)
-            {
-                float age = Time.time - line.time;
-                int alpha = Mathf.RoundToInt(255 * Mathf.Clamp01((2.8f - age) / .5f));
-                builder.Append($"<alpha=#{alpha:X2}>").AppendLine(line.text);
-            }
-            toasts.text = builder.ToString();
+            // The cave prologue has no deck to count.
+            if (cardCounter) cardCounter.text = world.InPrologue || trip == null ? "" : CardCount(trip.Deck);
 
-            // The cave prologue has no deck to count and teaches with pictures only.
-            if (world.InPrologue) deck.text = "";
-            else if (trip != null)
-            {
-                // What is left for this outing: the draw pile (the hand is on screen).
-                deck.text = $"<color=#{ColorUtility.ToHtmlStringRGB(activeDeckColour)}><b>КОЛОДА</b>  {trip.Deck.StockCount}</color>";
-            }
-
-            bool showLabel = card != null && (Time.time < cardLabelUntil || world.thrower.Preparation.Active);
+            bool showLabel = card != null && (Time.time < cardLabelUntil || preparation.Active);
             if (showLabel)
             {
                 string name = card.IsReturn ? "Пора домой" : world.workshop.config.Find(card.Spec.Id)?.displayName ?? card.Spec.Name;
@@ -265,27 +309,55 @@ namespace Hakaton.Expeditions
                 cardLabel.text = card.IsReturn ? name : $"{name}<alpha=#88>{uses}";
             }
             cardLabel.alpha = Mathf.MoveTowards(cardLabel.alpha, showLabel ? 1 : 0, dt * 5);
+        }
 
-            loot.text = world.Loot.Count == 0 ? "" : $"Сумка  {world.Loot.Sum(x => x.count)}  <color=#F4D27A>{world.LootValue}</color>";
-            lootPunch?.Update(dt);
-
-            if (hint)
+        /// <summary>
+        /// Pickup rows top right, fading out after a few seconds. Holding I shows every carried find in the same rows
+        /// instead (one row per copy, newest first), as if all were just picked up: a view of the bag, not new pickups.
+        /// </summary>
+        void UpdatePickups()
+        {
+            if (!pickups) return;
+            for (int i = toastLines.Count - 1; i >= 0; i--)
+                if (Time.time - toastLines[i].time > pickupSeconds) toastLines.RemoveAt(i);
+            rows.Clear();
+            shadowRows.Clear();
+            string value = ColorUtility.ToHtmlStringRGB(pickupValueColour);
+            bool review = Keyboard.current != null && Keyboard.current.iKey.isPressed;
+            if (review)
             {
-                string text = "";
-                if (!hintedThrow) text = "Зажмите <b>ЛКМ</b> — бросок. Во время заряда <b>Shift</b> + мышь — подкрутка в любую сторону";
-                else if (!hintedDiscard && trip != null && trip.PlayedCount >= 2 && trip.Deck.StockCount > 0)
-                {
-                    // One shared hand: discarding it is how you dig for a card (and, at the end, for the Return card).
-                    if (discardHintUntil == 0) discardHintUntil = Time.time + 6;
-                    if (Time.time > discardHintUntil || trip.DiscardedCount > 0) hintedDiscard = true;
-                    else text = "<b>R</b> — сбросить руку и взять новую";
-                }
-                else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
-                // The location title owns the top of the screen while it is shown.
-                if (world.fade && world.fade.titleGroup && world.fade.titleGroup.alpha > .05f) text = "";
-                if (world.InPrologue) text = "";
-                hint.text = text;
+                // Newest first: the last pickup on top.
+                var carried = world.Pickups;
+                for (int i = carried.Count - 1; i >= 0; i--)
+                    Row(carried[i].name, carried[i].value, 255, value, NameColour(world.lootCatalog ? world.lootCatalog.Find(carried[i].id) : null));
             }
+            else
+                for (int i = toastLines.Count - 1; i >= 0; i--)
+                {
+                    var line = toastLines[i];
+                    float age = Time.time - line.time;
+                    int alpha = Mathf.RoundToInt(255 * Mathf.Clamp01((pickupSeconds - age) / Mathf.Max(.01f, pickupFadeSeconds)));
+                    Row(line.name, line.value, alpha, value, line.colour);
+                }
+            pickups.text = rows.ToString();
+            if (pickupsShadow) pickupsShadow.text = shadowRows.ToString();
+        }
+
+        /// <summary>Hex colour of the item's rarity for its name, or null for common items (plain text colour).</summary>
+        string NameColour(LootItem item)
+        {
+            if (!item || item.rarity == LootRarity.Common || !world.lootCatalog) return null;
+            return ColorUtility.ToHtmlStringRGB(world.lootCatalog.Colour(item.rarity));
+        }
+
+        void Row(string name, int value, int alpha, string valueColour, string nameColour)
+        {
+            string a = $"<alpha=#{alpha:X2}>";
+            rows.Append(a).Append("+ ");
+            if (nameColour != null) rows.Append("<color=#").Append(nameColour).Append('>').Append(name).Append("</color>").Append(a);
+            else rows.Append(name);
+            rows.Append("<space=6><color=#").Append(valueColour).Append('>').Append(value).Append("</color>\n");
+            shadowRows.Append(a).Append("+ ").Append(name).Append("<space=6>").Append(value).Append('\n');
         }
 
         void UpdateVignette(float dt)

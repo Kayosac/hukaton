@@ -688,18 +688,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
   world: {fileID: 0}
-  temperament: 0
+  temperament: 3
   displayName: "\u041B\u0435\u0448\u0438\u0439-\u0441\u043A\u0435\u0439\u0442\u0435\u0440"
   body: {fileID: 1361130970836477841}
   navigator: {fileID: 6216464156025959744}
   view: {fileID: 6448454109056461587}
   overhead: {fileID: 848991441110991114}
+  size: 1.2
   stunStarsHeight: 0.128
   stunStarsScale: 1.8
-  trophyPrefab: {fileID: 5202564959957086988, guid: e63587611541a43df91765f109770ab8, type: 3}
+  drops:
+    atLeastOne: 1
+    entries:
+    - item: {fileID: 11400000, guid: d1f5475246b145308adfbec4b64ed44e, type: 2}
+      chance: 1
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: e6ab749e0d6e4bb8b9e84a4eece72e56, type: 2}
+      chance: 0.5
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: f9ed6b8e313a4c1abed40e9e7ce9ca88, type: 2}
+      chance: 0.1
+      min: 1
+      max: 1
   spawnPoints: []
   maximumHealth: 4
-  attackHalfHearts: 0
+  attackHalfHearts: 2
   windup: 0.65
   strikeSeconds: 0.25
   recovery: 1
@@ -737,9 +752,9 @@ MonoBehaviour:
   stepDustCount: 2
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
   alertCue: {fileID: 11400000, guid: e39f6985d0e7a4a519c4787c186cb859, type: 2}
-  threatCue: {fileID: 0}
-  windupCue: {fileID: 0}
-  strikeCue: {fileID: 0}
+  threatCue: {fileID: 11400000, guid: 553042ab6d08b4e94a574165d36c5868, type: 2}
+  windupCue: {fileID: 11400000, guid: 553042ab6d08b4e94a574165d36c5868, type: 2}
+  strikeCue: {fileID: 11400000, guid: 34080d4b23809408aaa1d4d71e05ccb7, type: 2}
   hurtCue: {fileID: 11400000, guid: 785dce747fb6c4f67b07ba18615ec179, type: 2}
   deathCue: {fileID: 11400000, guid: d2541dfba8ddf4187b296f0b01a3f33e, type: 2}
   stepCue: {fileID: 11400000, guid: 8977c68bf73de4692bb87442833e74a8, type: 2}
@@ -843,7 +858,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.2, y: 1.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6233387474604262816}
@@ -929,7 +944,7 @@ MonoBehaviour:
   deathBack: {fileID: 155323095, guid: a2297a18ee9ea4962b1e9f2b015d61b7, type: 3}
   height: 1.6
   facesRight: 1
-  pixelSize: 16
+  pixelSize: 7
 --- !u!1 &6815933986526004144
 GameObject:
   m_ObjectHideFlags: 0

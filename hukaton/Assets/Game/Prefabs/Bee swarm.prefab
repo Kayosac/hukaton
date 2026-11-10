@@ -210,7 +210,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1337578447610349232}
@@ -347,6 +347,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  flying: 1
+  cruiseHeight: 1.6
+  windupClimb: 0.6
+  diveHeight: 0.9
+  climbSpeed: 4.5
+  climbAcceleration: 16
+  bobHeight: 0.08
+  bobFrequency: 1.4
+  jitter: 0.06
+  shadowSize: 0.35
+  shadowOpacity: 0.35
+  ranged:
+    projectile: {fileID: 11400000, guid: c012da027011a403aa22ba47ec275d23, type: 2}
+    range: 11
+    minRange: 4
+    aimSeconds: 0.7
+    cooldown: 2.6
+    recovery: 0.4
+    projectiles: 3
+    spreadAngle: 28
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.5
+    keepDistance: 7
+    retreatDistance: 0
+    retreatSpeed: 0.8
+    circleSpeed: 1.5
+    closeCombat: 0
+    shoveDamage: 1
   world: {fileID: 0}
   temperament: 2
   displayName: "\u041F\u0447\u0435\u043B\u0438\u043D\u044B\u0439 \u0440\u043E\u0439"
@@ -354,9 +384,17 @@ MonoBehaviour:
   navigator: {fileID: 5597657854787239124}
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
+  size: 2
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.12
   stunStarsScale: 0.9
-  trophyPrefab: {fileID: 5202564959957086988, guid: e63587611541a43df91765f109770ab8, type: 3}
+  drops:
+    atLeastOne: 1
+    entries:
+    - item: {fileID: 11400000, guid: 712999cf92644e97bfe4962d89527998, type: 2}
+      chance: 1
+      min: 1
+      max: 3
   spawnPoints: []
   maximumHealth: 2
   attackHalfHearts: 1

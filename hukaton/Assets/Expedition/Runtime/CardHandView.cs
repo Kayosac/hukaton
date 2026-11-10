@@ -10,8 +10,7 @@ namespace Hakaton.Expeditions
     /// First-person viewmodel of the hand: a wide, close fan of large cards centred under the crosshair
     /// (bottoms cut by the screen edge, like Shroom &amp; Gloom), spring-driven; it sways with the
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
-    /// The draw pile sits as a small stack of backs bottom-right and thins out as it runs low. Polls the model, so selection
-    /// changes never re-deal the hand.
+    /// The draw pile is not drawn: the HUD counts it beside the hand. Polls the model, so selection changes never re-deal the hand.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class CardHandView : MonoBehaviour
@@ -20,7 +19,6 @@ namespace Hakaton.Expeditions
         [Tooltip("Five authored card slots (children).")]
         public CardView[] slots;
         [Tooltip("Up to three authored backs showing what is left in the draw pile.")]
-        public CardView[] stack;
         [FormerlySerializedAs("explorationBack")]
         public Texture cardBack;
 
@@ -33,9 +31,6 @@ namespace Hakaton.Expeditions
         public float restDrop = .04f;
         public float selectedLift = .08f, selectedToward = .04f;
         [Min(1)] public float selectedScale = 1.15f;
-        [Header("Draw pile stack")]
-        public Vector3 stackPosition = new Vector3(.6f, -.36f, .55f);
-        public float stackRoll = -16;
         [Header("Charge wind-up")]
         public Vector3 chargePull = new Vector3(.06f, -.025f, -.09f);
         public float chargeTilt = 22, chargeTremble = .0035f;
@@ -63,7 +58,6 @@ namespace Hakaton.Expeditions
 
         readonly List<Slot> active = new List<Slot>();
         readonly List<int> lastIds = new List<int>();
-        int lastStackCount = -1;
         SpringVector3 sway;
         Quaternion lastCamera;
         float bobPhase;
@@ -79,9 +73,7 @@ namespace Hakaton.Expeditions
         {
             hidden = true;
             foreach (var slot in active) { slot.view.Hide(); slot.copyId = int.MinValue; }
-            foreach (var card in stack) card.Hide();
             lastIds.Clear();
-            lastStackCount = -1;
         }
 
         /// <summary>Starts a fresh outing: everything is dealt from below.</summary>
@@ -154,7 +146,6 @@ namespace Hakaton.Expeditions
                 Fling(slot.view);
                 slot.copyId = int.MinValue;
             }
-            foreach (var card in stack) if (card && card.Visible) Fling(card);
         }
 
         void LateUpdate()
@@ -171,8 +162,6 @@ namespace Hakaton.Expeditions
             var hand = trip.Deck.Hand;
             bool changed = fresh || hand.Count != lastIds.Count;
             if (!changed) for (int i = 0; i < hand.Count; i++) if (hand[i].Id != lastIds[i]) { changed = true; break; }
-            int stackCount = Mathf.Min(stack.Length, trip.Deck.StockCount);
-            if (stackCount != lastStackCount || fresh) UpdateStack(stackCount);
             if (!changed) return;
 
             lastIds.Clear();
@@ -201,19 +190,6 @@ namespace Hakaton.Expeditions
                 slot.view.transform.localScale = Vector3.zero;
                 if (!fresh) world.Play(world.cues ? world.cues.cardDraw : null, null, .7f);
                 dealt++;
-            }
-        }
-
-        void UpdateStack(int count)
-        {
-            lastStackCount = count;
-            Texture back = cardBack;
-            for (int i = 0; i < stack.Length; i++)
-            {
-                if (i >= count) { stack[i].Hide(); continue; }
-                // Show the back towards the camera: the quad is turned around, so the shader draws its reverse face.
-                stack[i].Show(back, back);
-                stack[i].SetOrder(i);
             }
         }
 
@@ -273,14 +249,6 @@ namespace Hakaton.Expeditions
                 slot.view.SetGlow(glow, card.IsReturn ? returnGlow : world.Accent(card));
             }
 
-            for (int i = 0; i < stack.Length; i++)
-            {
-                if (!stack[i].Visible) continue;
-                var t = stack[i].transform;
-                t.localPosition = stackPosition + new Vector3(i * .006f, i * .004f, -i * .002f) + common * .6f;
-                t.localRotation = Quaternion.Euler(0, 180, stackRoll - i * 3);
-                t.localScale = new Vector3(cardWidth * .8f, cardWidth * 1.2f, 1);
-            }
         }
 
         float Angle(int index, int count) => (index - (count - 1) * .5f) * degreesPerCard;

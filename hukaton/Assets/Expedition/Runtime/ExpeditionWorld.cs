@@ -5,6 +5,7 @@ using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
 using Hakaton.Feel;
+using Hakaton.Loot;
 using UnityEngine;
 
 namespace Hakaton.Expeditions
@@ -40,14 +41,37 @@ namespace Hakaton.Expeditions
         public CardProjectile projectilePrefab;
         public CardDebris debrisPrefab;
         public string locationName = "Тихая лощина";
+        [Header("Loot")]
+        [Tooltip("Every item the game knows: what finds and trophies are, how they look, rarity colours.")]
+        public LootCatalog lootCatalog;
+        [Tooltip("The pickup creatures' drops are spawned from (Assets/Loot/Prefabs/Loot drop.prefab).")]
+        public WorldLoot lootDrop;
         [Header("World content")]
-        public WorldLoot[] finds;
-        public WorldObstacle[] obstacles;
-        public WorldCreature[] creatures;
-        public PhysicsProp[] props;
+        [Tooltip("Optional: builds a new world for every outing (IOutingWorld) and fills the content lists below as it loads. " +
+                 "Without it the authored content below is reset each outing.")]
+        public MonoBehaviour outingWorld;
+        [Tooltip("Optional: the ready-made location offered at the door beside the endless world (AuthoredOutingWorld).")]
+        public AuthoredOutingWorld readyWorld;
+        public List<WorldLoot> finds = new List<WorldLoot>();
+        public List<WorldObstacle> obstacles = new List<WorldObstacle>();
+        public List<WorldCreature> creatures = new List<WorldCreature>();
+        public List<PhysicsProp> props = new List<PhysicsProp>();
+
+        /// <summary>The world the current (or next) outing goes to: the endless one unless the ready place was chosen.</summary>
+        public IOutingWorld OutingWorld => activeWorld ?? ChosenWorld;
+        IOutingWorld ChosenWorld => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld : outingWorld as IOutingWorld;
+        IOutingWorld activeWorld;
+        /// <summary>Chosen at the door before departing; read when the outing begins.</summary>
+        public OutingPlace NextPlace { get; set; } = OutingPlace.Endless;
+        public bool HasPlaceChoice => readyWorld && outingWorld is IOutingWorld;
+        /// <summary>The title of the place the next outing goes to.</summary>
+        public string NextLocationName => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld.placeName : locationName;
 
         readonly List<LootSave> loot = new List<LootSave>();
+        readonly List<LootSave> pickups = new List<LootSave>();
         public IReadOnlyList<LootSave> Loot => loot.AsReadOnly();
+        /// <summary>Every find picked up on this outing, one entry per copy, in the order it was picked up.</summary>
+        public IReadOnlyList<LootSave> Pickups => pickups.AsReadOnly();
         public int LootValue { get; private set; }
         public bool Returning { get; private set; }
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
@@ -55,8 +79,8 @@ namespace Hakaton.Expeditions
         public WorldLoot FocusedLoot { get; private set; }
         public string Notice { get; private set; }
         public float NoticeUntil { get; private set; }
-        /// <summary>Raised for each item picked up: display name, value.</summary>
-        public event Action<string, int> Collected;
+        /// <summary>Raised for each item picked up.</summary>
+        public event Action<LootItem> Collected;
         public event Action<Vector3> PlayerLaunched;
         /// <summary>Every card landing: the copy and what it hit (the tutorial watches its bush).</summary>
         public event Action<CardCopy, Collider, Vector3> Impacted;
@@ -71,7 +95,7 @@ namespace Hakaton.Expeditions
         /// <summary>The cave's creatures (mushrooms without trophies): spawned instead of the valley's while the prologue runs.</summary>
         public WorldCreature[] prologueCreatures = new WorldCreature[0];
         /// <summary>The creatures of the place the player is in: the cave's during the prologue, the valley's otherwise.</summary>
-        public WorldCreature[] ActiveCreatures => InPrologue ? prologueCreatures : creatures;
+        public IReadOnlyList<WorldCreature> ActiveCreatures => InPrologue ? (IReadOnlyList<WorldCreature>)prologueCreatures : creatures;
 
         void Awake() { workshop.Departed += BeginOuting; }
         void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
@@ -83,15 +107,24 @@ namespace Hakaton.Expeditions
             Impacts = 0;
             LootValue = 0;
             loot.Clear();
+            pickups.Clear();
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
-            var random = new System.Random(workshop.Model.Journeys * 1637);
-            foreach (var obstacle in obstacles) obstacle.ResetForOuting();
-            foreach (var find in finds) find.ResetForOuting(random);
-            foreach (var prop in props) prop.ResetForOuting();
-            foreach (var creature in creatures) creature.ResetForOuting(random);
+            Pose start;
+            if (activeWorld != null) activeWorld.EndOuting();
+            activeWorld = ChosenWorld;
+            if (activeWorld != null) start = activeWorld.BeginOuting(this);
+            else
+            {
+                start = new Pose(departurePose.position, departurePose.rotation);
+                var random = new System.Random(workshop.Model.Journeys * 1637);
+                foreach (var obstacle in obstacles) obstacle.ResetForOuting();
+                foreach (var find in finds) find.ResetForOuting(random);
+                foreach (var prop in props) prop.ResetForOuting();
+                foreach (var creature in creatures) creature.ResetForOuting(random);
+            }
             vitals.Restore();
-            motor.Teleport(departurePose.position, departurePose.rotation);
+            motor.Teleport(start.position, start.rotation);
             thrower.ResetSelection();
             control.CaptureCursor();
             hud.canvas.enabled = true;
@@ -123,6 +156,10 @@ namespace Hakaton.Expeditions
                 var item = hit.collider.GetComponentInParent<WorldLoot>();
                 if (!item || !item.Available) continue;
                 Vector3 toItem = item.transform.position - eye.position;
+                // Only a find in plain sight: nothing solid between the eye and the middle of it.
+                Vector3 toMiddle = hit.collider.bounds.center - eye.position;
+                if (Physics.Raycast(eye.position, toMiddle.normalized, out var blocker, Mathf.Max(0, toMiddle.magnitude - .05f), ~(1 << 2), QueryTriggerInteraction.Ignore)
+                    && !blocker.collider.transform.IsChildOf(item.transform)) continue;
                 float score = Vector3.Cross(eye.forward, toItem).magnitude + toItem.magnitude * .05f;
                 if (score < bestScore) { bestScore = score; best = item; }
             }
@@ -131,15 +168,34 @@ namespace Hakaton.Expeditions
 
         public bool TryPickUpFocused() => FocusedLoot && FocusedLoot.PickUp(viewCamera.transform);
 
-        public void Collect(string itemId, string displayName, int value)
+        /// <summary>Credits one copy of the item to this outing's bag.</summary>
+        public void Collect(LootItem item)
         {
-            if (!Running) return;
-            var entry = loot.Find(x => !string.IsNullOrEmpty(itemId) ? x.id == itemId : string.IsNullOrEmpty(x.id) && x.name == displayName && x.value == value);
-            if (entry == null) loot.Add(new LootSave { id = itemId, name = displayName, value = value, count = 1 });
+            if (!Running || !item) return;
+            if (lootCatalog && !lootCatalog.Contains(item))
+                Debug.LogError($"Picked up '{item.name}', which is not in the loot catalogue: the shop will refuse this outing's delivery.", item);
+            var entry = loot.Find(x => x.id == item.id);
+            if (entry == null) loot.Add(new LootSave { id = item.id, name = item.displayName, value = item.price, count = 1 });
             else entry.count++;
-            LootValue += value;
+            pickups.Add(new LootSave { id = item.id, name = item.displayName, value = item.price, count = 1 });
+            LootValue += item.price;
             Play(cues ? cues.pickup : null);
-            Collected?.Invoke(displayName, value);
+            Collected?.Invoke(item);
+        }
+
+        /// <summary>A drop of <paramref name="item"/> at <paramref name="position"/>, alive until the outing ends.</summary>
+        public WorldLoot SpawnLoot(LootItem item, Vector3 position)
+        {
+            if (!item) return null;
+            if (!lootDrop)
+            {
+                Debug.LogError("ExpeditionWorld: assign the loot drop prefab.", this);
+                return null;
+            }
+            var drop = Instantiate(lootDrop, position, Quaternion.identity, spawnedObjects);
+            drop.world = this;
+            drop.Setup(item);
+            return drop;
         }
 
         public void Announce(string text, float seconds = 3) { Notice = text; NoticeUntil = Time.time + seconds; }
@@ -193,7 +249,7 @@ namespace Hakaton.Expeditions
 
         public WorldObstacle ObstacleNear(Vector3 point, float radius, ObstacleKind kind)
         {
-            foreach (var obstacle in InPrologue ? prologueObstacles : obstacles)
+            foreach (var obstacle in InPrologue ? (IEnumerable<WorldObstacle>)prologueObstacles : obstacles)
                 if (obstacle.kind == kind && obstacle.DistanceTo(point) <= radius) return obstacle;
             return null;
         }
@@ -278,6 +334,7 @@ namespace Hakaton.Expeditions
             Impacts = 0;
             LootValue = 0;
             loot.Clear();
+            pickups.Clear();
             ClearCardEffects();
             foreach (Transform child in spawnedObjects) Destroy(child.gameObject);
             foreach (var obstacle in prologueObstacles) obstacle.ResetForOuting();
@@ -382,6 +439,8 @@ namespace Hakaton.Expeditions
             // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
             ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
+            activeWorld?.EndOuting();
+            activeWorld = null;
             vitals.Restore();
             control.SetBlocked(this, false);
             hud.canvas.enabled = false;

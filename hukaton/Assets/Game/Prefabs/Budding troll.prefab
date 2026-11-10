@@ -210,7 +210,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1337578447610349232}
@@ -296,7 +296,7 @@ MonoBehaviour:
   deathBack: {fileID: 173503045808863135, guid: 174bfb652ebf046fa81127db9f227bf1, type: 3}
   height: 2.5
   facesRight: 1
-  pixelSize: 8
+  pixelSize: 6
 --- !u!1 &4141966203500242417
 GameObject:
   m_ObjectHideFlags: 0
@@ -327,7 +327,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7841442349918799127}
@@ -355,9 +355,24 @@ MonoBehaviour:
   navigator: {fileID: 5597657854787239124}
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
+  size: 2
   stunStarsHeight: 0.35
   stunStarsScale: 2.8
-  trophyPrefab: {fileID: 867972099183848119, guid: 3ce5eb435103343309e6c134c49adce5, type: 3}
+  drops:
+    atLeastOne: 1
+    entries:
+    - item: {fileID: 11400000, guid: 7c670fb58d364495964eabdbe3d5456d, type: 2}
+      chance: 1
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: cae505f25843401db94a5921d847bfdf, type: 2}
+      chance: 0.6
+      min: 1
+      max: 1
+    - item: {fileID: 11400000, guid: 958a0a7fcd6640609bee2c79ce05b785, type: 2}
+      chance: 0.15
+      min: 1
+      max: 1
   spawnPoints: []
   maximumHealth: 24
   attackHalfHearts: 4
