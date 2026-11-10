@@ -119,7 +119,8 @@ namespace Hakaton.EnemyDebug
             creature.world = world;
             creature.ResetForOuting(null);
             live.Add(creature);
-            world.creatures = live.ToArray();
+            world.creatures.Clear();
+            world.creatures.AddRange(live);
             return creature;
         }
 
@@ -128,7 +129,7 @@ namespace Hakaton.EnemyDebug
             if (world.thrower) world.thrower.Cancel();
             foreach (Transform child in liveRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             live.Clear();
-            world.creatures = Array.Empty<WorldCreature>();
+            world.creatures.Clear();
             foreach (var preview in previews) preview.PlayPose(CreaturePose.Default);
             ReceivedDamage = 0;
             world.vitals.Restore();

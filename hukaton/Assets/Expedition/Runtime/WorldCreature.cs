@@ -205,6 +205,19 @@ namespace Hakaton.Expeditions
             Tint(Color.white, 0);
         }
 
+        /// <summary>
+        /// Back after its part of the world was unloaded and loaded again in the same outing: same health, where it
+        /// was left; its home stays where it first appeared.
+        /// </summary>
+        public void Resume(int health, Vector3 position)
+        {
+            ResetForOuting(null);
+            Health = Mathf.Clamp(health, 1, maximumHealth);
+            body.position = position;
+            transform.position = position;
+            if (navigator.isOnNavMesh) navigator.Warp(position);
+        }
+
         // ---------------- decisions ----------------
 
         void Update()

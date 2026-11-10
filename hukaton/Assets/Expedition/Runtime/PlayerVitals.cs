@@ -19,7 +19,9 @@ namespace Hakaton.Expeditions
         public int PreviousHalfHearts { get; private set; }
         public float LastChangeTime { get; private set; } = float.NegativeInfinity;
         public bool LastChangeWasDamage { get; private set; }
-        public bool Invulnerable => Time.time < invulnerableUntil;
+        public bool Invulnerable => Immortal || Time.time < invulnerableUntil;
+        /// <summary>Cheat (F1 menu): no hit, fall or drowning takes hearts.</summary>
+        public bool Immortal { get; set; }
         public bool Critical => HalfHearts > 0 && HalfHearts <= 2;
         /// <summary>Signed change in half-hearts; negative is damage.</summary>
         public event Action<int> Changed;
@@ -97,7 +99,7 @@ namespace Hakaton.Expeditions
         /// <summary>Instant death (deep water): hearts empty at once, ignoring protection. The caller runs the defeat.</summary>
         public bool Drain()
         {
-            if (!world.Running || HalfHearts == 0) return false;
+            if (!world.Running || HalfHearts == 0 || Immortal) return false;
             PreviousHalfHearts = HalfHearts;
             HalfHearts = 0;
             LastChangeTime = Time.time;
