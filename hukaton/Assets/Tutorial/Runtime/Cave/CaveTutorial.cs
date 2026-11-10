@@ -54,6 +54,9 @@ namespace Hakaton.Tutorial
         [Tooltip("How far out of the bush's centre he stands to talk.")]
         [Min(0)] public float bushClearance = 1.5f;
         public AudioClip[] yelps;
+        [Tooltip("His endless panicked wail while he runs about (looped on a source of its own).")]
+        public AudioClip panicScream;
+        [Range(0, 1)] public float panicScreamVolume = .7f;
         [Header("Hitting the goblin")]
         [Tooltip("Spawned where a card hits him during the ambush (a Retro Arsenal hit).")]
         public GameObject goblinHitEffect;
@@ -113,6 +116,7 @@ namespace Hakaton.Tutorial
         Vector3 goblinShove, goblinOffset;
         float goblinFrozenUntil, goblinTintUntil, goblinTintSeconds = .35f;
         Color goblinTint = Color.white;
+        AudioSource screamSource;
         Vector3 bushRest;
         readonly List<int> instructions = new List<int>();
 
@@ -307,6 +311,7 @@ namespace Hakaton.Tutorial
             goblin.Show(true);
             body.position = from;
             Yelp();
+            Scream(true);
             // Out of the bush in one hop, then panicked laps around it.
             float time = 0;
             Vector3 lap = centre + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * panicRadius;
@@ -337,6 +342,8 @@ namespace Hakaton.Tutorial
                     centre.z + Mathf.Sin(angle) * panicRadius) + goblinOffset;
                 yield return null;
             }
+            // the laps are over: he stops screaming and heads over to talk
+            Scream(false);
             // He runs up to the player the way he runs round the bush (no sliding), stops in front of them,
             // between them and the bush, and starts talking. The player may still move: he keeps after them.
             var path = new NavMeshPath();
@@ -423,8 +430,49 @@ namespace Hakaton.Tutorial
             else goblinShove += Flat(goblin.transform.position - world.viewCamera.transform.position) * goblinKnock * (strike ? 2 : 1);
         }
 
+        /// <summary>Starts his looping wail, or fades it out.</summary>
+        void Scream(bool on)
+        {
+            if (!on) { if (screamSource && screamSource.isPlaying) StartCoroutine(FadeScream(.25f)); return; }
+            if (!panicScream || !goblin) return;
+            if (!screamSource)
+            {
+                screamSource = goblin.gameObject.AddComponent<AudioSource>();
+                var voice = goblin.audioSource;
+                if (voice)
+                {
+                    screamSource.spatialBlend = voice.spatialBlend;
+                    screamSource.rolloffMode = voice.rolloffMode;
+                    screamSource.minDistance = voice.minDistance;
+                    screamSource.maxDistance = voice.maxDistance;
+                    screamSource.outputAudioMixerGroup = voice.outputAudioMixerGroup;
+                }
+                screamSource.playOnAwake = false;
+            }
+            screamSource.clip = panicScream;
+            screamSource.loop = true;
+            screamSource.volume = panicScreamVolume;
+            screamSource.pitch = 1;
+            screamSource.time = UnityEngine.Random.Range(0, panicScream.length * .9f);
+            screamSource.Play();
+        }
+
+        IEnumerator FadeScream(float seconds)
+        {
+            float from = screamSource.volume;
+            for (float t = 0; t < seconds && screamSource; t += Time.deltaTime)
+            {
+                screamSource.volume = from * (1 - t / seconds);
+                yield return null;
+            }
+            if (screamSource) screamSource.Stop();
+        }
+
         void TintGoblin()
         {
+            // frozen by Ice, the wail slows to a groan
+            if (screamSource && screamSource.isPlaying && Stage == CaveStage.Ambush)
+                screamSource.pitch = Mathf.MoveTowards(screamSource.pitch, Time.time < goblinFrozenUntil ? .55f : 1, Time.deltaTime * 4);
             if (!goblin || !goblin.face || !goblin.face.spriteRenderer) return;
             float k = goblinTintUntil > Time.time ? (goblinTintUntil - Time.time) / Mathf.Max(.01f, goblinTintSeconds) : 0;
             goblin.face.spriteRenderer.color = Color.Lerp(Color.white, goblinTint, Mathf.Clamp01(k * 1.5f));
@@ -506,6 +554,7 @@ namespace Hakaton.Tutorial
             world.Impacted -= OnImpacted;
             if (view) view.Guide(null);
             control.SetBlocked(this, false);
+            if (screamSource) screamSource.Stop();
             if (goblin) goblin.Show(false);
             if (bush) bush.localPosition = bushRest;
             UnloadLevel();
