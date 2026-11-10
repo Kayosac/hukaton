@@ -12,6 +12,7 @@ namespace Hakaton.Decks
     {
         readonly Queue<CardCopy> stock;
         readonly List<CardCopy> hand = new List<CardCopy>(), discard = new List<CardCopy>(), held = new List<CardCopy>();
+        readonly Dictionary<int, int> heldSlots = new Dictionary<int, int>();
         public int Capacity { get; }
         public int Total { get; }
         public int StockCount => stock.Count;
@@ -52,10 +53,11 @@ namespace Hakaton.Decks
         {
             var card = hand.Find(c => c.Id == id && !c.IsReturn);
             if (card == null) return null;
+            int slot = hand.IndexOf(card);
             hand.Remove(card);
             // In the prologue a spell is never used up: it comes back once its throw is over.
             if (!(Prologue && card.Spec.Mergeable)) card.UsesLeft = Math.Max(0, card.UsesLeft - 1);
-            if (card.UsesLeft > 0) held.Add(card);
+            if (card.UsesLeft > 0) { held.Add(card); heldSlots[card.Id] = slot; }
             else discard.Add(card);
             Fill();
             return card;
@@ -68,7 +70,10 @@ namespace Hakaton.Decks
             if (card == null) return false;
             held.Remove(card);
             hand.RemoveAll(c => c.IsReturn);
-            hand.Add(card);
+            // Back to the place it left from, so the fan does not reshuffle under the player's fingers.
+            int slot = heldSlots.TryGetValue(id, out var at) ? at : hand.Count;
+            heldSlots.Remove(id);
+            hand.Insert(Math.Min(slot, hand.Count), card);
             return true;
         }
 

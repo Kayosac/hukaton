@@ -44,6 +44,18 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
+        public void SpellReturnsToItsOwnPlace()
+        {
+            var cave = Cave(out _);
+            var a = cave.GrantToHand(Fire);
+            var b = cave.GrantToHand(Fire);
+            var c = cave.GrantToHand(Fire);
+            cave.Release(a.Id);
+            cave.Settle(a.Id);
+            Assert.That(cave.Deck.Hand.Select(x => x.Id), Is.EqualTo(new[] { a.Id, b.Id, c.Id }));
+        }
+
+        [Test]
         public void InstructionIsUsedOnce()
         {
             var cave = Cave(out _);

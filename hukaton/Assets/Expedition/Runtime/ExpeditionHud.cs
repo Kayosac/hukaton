@@ -248,7 +248,9 @@ namespace Hakaton.Expeditions
             }
             toasts.text = builder.ToString();
 
-            if (trip != null)
+            // The cave prologue has no deck to count and teaches with pictures only.
+            if (world.InPrologue) deck.text = "";
+            else if (trip != null)
             {
                 // What is left for this outing: the draw pile (the hand is on screen).
                 deck.text = $"<color=#{ColorUtility.ToHtmlStringRGB(activeDeckColour)}><b>КОЛОДА</b>  {trip.Deck.StockCount}</color>";
@@ -281,6 +283,7 @@ namespace Hakaton.Expeditions
                 else if (!hintedPickup && world.FocusedLoot) text = "<b>E</b> — подобрать";
                 // The location title owns the top of the screen while it is shown.
                 if (world.fade && world.fade.titleGroup && world.fade.titleGroup.alpha > .05f) text = "";
+                if (world.InPrologue) text = "";
                 hint.text = text;
             }
         }

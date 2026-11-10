@@ -243,11 +243,10 @@ namespace Hakaton.Game
                 : "Вы вернулись без добычи. Остаток смены сохранён.", 8);
             dirty = true;
         }
-        /// <summary>The prologue runs in the expedition phase (nothing is saved there) with the valley switched off.</summary>
+        /// <summary>The prologue runs in the expedition phase: nothing is saved there, quitting starts the cave again.</summary>
         void EnterCave()
         {
             SetPhase(GamePhase.Expedition);
-            expeditionGeometry.SetActive(false);
             cave.Finished += LeaveCave;
             cave.Begin();
         }
@@ -258,6 +257,9 @@ namespace Hakaton.Game
             cave.Finished -= LeaveCave;
             SetPhase(GamePhase.Shop);
             tutorial.Begin();
+            // Out of the dark straight at the partner on the counter.
+            if (tutorial.goblin && player.view)
+                player.view.ResetPose(Quaternion.LookRotation(tutorial.goblin.transform.position - player.view.pitchPivot.position));
             dirty = true;
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
         }

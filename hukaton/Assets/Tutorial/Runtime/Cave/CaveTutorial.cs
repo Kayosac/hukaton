@@ -43,9 +43,11 @@ namespace Hakaton.Tutorial
         [Header("Bush")]
         [Tooltip("The bush: any card landing on it shakes it; only Strike brings the goblin out.")]
         public Transform bush;
-        [Tooltip("Where the goblin stops to talk, facing the player.")]
-        public Transform goblinStop;
         [Min(.1f)] public float panicSeconds = 5, panicRadius = 1.7f, panicSpeed = 3.2f;
+        [Tooltip("He stops this far in front of the player, on the way to the bush, to talk.")]
+        [Min(1)] public float talkDistance = 2.8f;
+        [Tooltip("How far out of the bush's centre he stands to talk.")]
+        [Min(0)] public float bushClearance = 1.5f;
         public AudioClip[] yelps;
 
         [Header("Cards")]
@@ -255,8 +257,15 @@ namespace Hakaton.Tutorial
                     centre.z + Mathf.Sin(angle) * panicRadius);
                 yield return null;
             }
-            // He stops where the player can see him and starts talking.
-            Vector3 stopFrom = body.position, stop = goblinStop ? goblinStop.position : body.position;
+            // He stops in front of the player, between them and the bush, and starts talking.
+            Vector3 player = world.motor.transform.position;
+            Vector3 toBush = centre - player;
+            toBush.y = 0;
+            Vector3 along = toBush.sqrMagnitude > .25f ? toBush.normalized : Flat(world.viewCamera.transform.forward);
+            // Out in front of the leaves, never on top of the player.
+            float gap = Mathf.Clamp(toBush.magnitude - bushClearance, 1.3f, talkDistance);
+            Vector3 stopFrom = body.position, stop = player + along * gap;
+            stop.y = from.y;
             time = 0;
             while (time < .3f)
             {
@@ -265,6 +274,12 @@ namespace Hakaton.Tutorial
                 yield return null;
             }
             yield return Talk();
+        }
+
+        static Vector3 Flat(Vector3 direction)
+        {
+            direction.y = 0;
+            return direction.sqrMagnitude > .0001f ? direction.normalized : Vector3.forward;
         }
 
         void Yelp()
@@ -280,7 +295,8 @@ namespace Hakaton.Tutorial
             Stage = CaveStage.Talk;
             world.thrower.Cancel();
             control.SetBlocked(this, true);
-            if (view) view.Guide(goblin.face.transform.position);
+            // A little above his face: he sits low in the frame, the bubble keeps the top.
+            if (view) view.Guide(goblin.face.transform.position + Vector3.up * .35f);
             for (int i = 0; i < lines.Length; i++)
             {
                 if (i == thinkBefore)
@@ -332,7 +348,9 @@ namespace Hakaton.Tutorial
 
         void OnDisable()
         {
-            if (Active) { StopAllCoroutines(); Close(); Stage = CaveStage.Off; }
+            // Leaving Play or unloading the scene mid-cave: release the player, nothing else to keep.
+            if (control) control.SetBlocked(this, false);
+            if (view) view.Guide(null);
         }
     }
 }
