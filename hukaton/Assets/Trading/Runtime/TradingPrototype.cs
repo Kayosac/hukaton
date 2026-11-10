@@ -40,6 +40,10 @@ namespace Hakaton.Trading.Unity
         public ShopBackroomServices services;
         /// <summary>Raised when the player uses the shop door; the game loop runs the expedition.</summary>
         public event System.Action ExpeditionRequested;
+        /// <summary>The way out and the backroom are closed (the tutorial, until its goblin leaves).</summary>
+        public bool ExitsLocked { get; set; }
+        /// <summary>When set, the shop does not open and this is said instead (the tutorial wants both wares out first).</summary>
+        public string OpenRefusal { get; set; }
         public event System.Action<int> ItemPlaced, ItemTaken, SlotHovered;
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
@@ -246,7 +250,7 @@ namespace Hakaton.Trading.Unity
                 if (service && hit.distance <= service.reach)
                 {
                     focusedService = service;
-                    ContextPrompt = services.PromptFor(service.kind);
+                    ContextPrompt = ExitsLocked ? string.Empty : services.PromptFor(service.kind);
                     return;
                 }
             }
@@ -293,7 +297,7 @@ namespace Hakaton.Trading.Unity
             }
             else if (target.kind == TradingTargetKind.Door)
             {
-                ContextPrompt = "E  Выйти из лавки";
+                ContextPrompt = ExitsLocked ? string.Empty : "E  Выйти из лавки";
                 ContextDetail = string.Empty;
             }
         }
@@ -377,6 +381,11 @@ namespace Hakaton.Trading.Unity
 
         void Interact()
         {
+            if (ExitsLocked && (focusedService || focusedTarget && focusedTarget.kind == TradingTargetKind.Door))
+            {
+                Notify("Сначала дела в лавке.");
+                return;
+            }
             if (focusedService && GameplayActive && Session.ExpeditionId == 0)
             {
                 services.TryInteract(focusedService.kind);
@@ -399,12 +408,26 @@ namespace Hakaton.Trading.Unity
             if (!GameplayActive || focusedTarget == null || Session.ExpeditionId != 0) return;
             if (focusedTarget.kind != TradingTargetKind.Counter && focusedTarget.kind != TradingTargetKind.DisplaySlot) return;
             if (focusedTarget.kind == TradingTargetKind.DisplaySlot && !World.openFromDisplaySlots) return;
+            if (!string.IsNullOrEmpty(OpenRefusal)) { Notify(OpenRefusal); return; }
             if (!Session.Open()) Notify(Session.LastMessage);
             actionReadyAt = Time.unscaledTime + .25f;
             World.Customers.Sync(Session);
             SyncControl();
         }
         void CloseShop() { Session.Close(); World.Customers.Sync(Session); SyncControl(); }
+
+        /// <summary>Closes the shop from outside (the tutorial ends its last lesson).</summary>
+        public void CloseShopNow()
+        {
+            if (Session.IsOpen) CloseShop();
+        }
+
+        /// <summary>Puts this stock item in the player's hands (the next one to place).</summary>
+        public void SelectStock(string definitionId)
+        {
+            for (int i = 0; i < Session.Inventory.Count; i++)
+                if (Session.Inventory[i].Definition.Id == definitionId) { selectedInventory = i; return; }
+        }
         void Notify(string text) { notice = text; noticeUntil = Time.unscaledTime + 2.6f; }
         void OnEnable()
         {

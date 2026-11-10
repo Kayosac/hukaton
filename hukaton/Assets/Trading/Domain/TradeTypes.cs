@@ -133,6 +133,27 @@ namespace Hakaton.Trading
         public float OpeningRatio { get; set; } = .8f;
         public int MaxPrice { get; set; } = 130;
         public int Patience { get; set; } = 4;
+        /// <summary>Exact, staged answers instead of patience and chance (the tutorial's two lessons).</summary>
+        public ScriptedHaggle Script { get; set; }
+    }
+
+    /// <summary>
+    /// A staged visitor (board, «Туториал», 06): prices up to <see cref="AcceptUpTo"/> sell at once; from
+    /// <see cref="LeaveFrom"/> the visitor walks out; anything between gets <see cref="LastOffer"/> as the last word —
+    /// accepting it sells, a new price after it ends the visit.
+    /// </summary>
+    public sealed class ScriptedHaggle
+    {
+        public int AcceptUpTo { get; }
+        public int LastOffer { get; }
+        public int LeaveFrom { get; }
+        public ScriptedHaggle(int acceptUpTo, int lastOffer, int leaveFrom)
+        {
+            if (acceptUpTo < 1 || lastOffer < 1 || leaveFrom <= acceptUpTo) throw new ArgumentOutOfRangeException(nameof(acceptUpTo));
+            AcceptUpTo = acceptUpTo;
+            LastOffer = lastOffer;
+            LeaveFrom = leaveFrom;
+        }
     }
 
     public sealed class Customer
@@ -144,6 +165,7 @@ namespace Hakaton.Trading
         public bool AsksPrice { get; }
         public int MaxPrice { get; }
         public int InitialPatience { get; }
+        public ScriptedHaggle Script { get; }
         internal float OpeningRatio { get; }
 
         internal Customer(long id, CustomerTerms terms)
@@ -151,6 +173,7 @@ namespace Hakaton.Trading
             Id = id; Name = terms.Name; RequestedCategory = terms.RequestedCategory;
             RequestedSlot = terms.RequestedSlot; AsksPrice = terms.AsksPrice;
             MaxPrice = terms.MaxPrice; InitialPatience = terms.Patience; OpeningRatio = terms.OpeningRatio;
+            Script = terms.Script;
         }
     }
 

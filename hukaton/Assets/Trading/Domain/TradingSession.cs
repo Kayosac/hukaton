@@ -26,6 +26,10 @@ namespace Hakaton.Trading
         public string LastMessage { get; private set; } = "Лавка закрыта. Разложите товары на витрине.";
         public int Revision { get; private set; }
         public event Action Changed;
+        /// <summary>Supplies the next visitor's terms (staged visitors); null terms fall back to a random visitor.</summary>
+        public Func<CustomerTerms> CustomerScript { get; set; }
+        /// <summary>The shift clock stands still (the tutorial's lessons take as long as they take).</summary>
+        public bool ClockPaused { get; set; }
         public int SalesCount { get; private set; }
         public long GrossRevenue { get; private set; }
         public int LastSalePrice { get; private set; }
@@ -122,7 +126,7 @@ namespace Hakaton.Trading
         {
             if (elapsedSeconds < 0 || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds))
                 throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
-            if (!IsOpen) return;
+            if (!IsOpen || ClockPaused) return;
             RemainingSeconds = Math.Max(0, RemainingSeconds - elapsedSeconds);
             // Selecting an item for a category visitor is already part of the active conversation.
             if (RemainingSeconds <= 0 && CurrentCustomer == null) FinishShift("Время смены закончилось.");
@@ -136,7 +140,7 @@ namespace Hakaton.Trading
                 FinishShift(RemainingSeconds <= 0 ? "Время смены закончилось." : "Витрина пуста. Лавка закрыта для выкладки.");
                 return false;
             }
-            var nextTerms = terms ?? GenerateCustomer();
+            var nextTerms = terms ?? CustomerScript?.Invoke() ?? GenerateCustomer();
             ValidateCustomerTerms(nextTerms);
             CurrentCustomer = new Customer(++nextCustomerId, nextTerms);
             LastMessage = CurrentCustomer.RequestedSlot >= 0
@@ -182,6 +186,11 @@ namespace Hakaton.Trading
                 EndWithoutSale(Pick(LeaveLines), CustomerOutcome.WalkedAway);
                 return true;
             }
+            if (CurrentCustomer.Script != null)
+            {
+                Staged(deal, price, CurrentCustomer.Script);
+                return true;
+            }
             // The first answer at R is guaranteed only for a visitor who asks the price.
             if (CurrentCustomer.AsksPrice && deal.Round == 1 && optionIndex == 0)
             {
@@ -224,6 +233,23 @@ namespace Hakaton.Trading
             LastMessage = deal.Reaction;
             Touch();
             return true;
+        }
+
+        void Staged(TradeDeal deal, int price, ScriptedHaggle script)
+        {
+            if (price <= script.AcceptUpTo) { Settle(price); return; }
+            if (price >= script.LeaveFrom)
+            {
+                deal.Mood = CustomerMood.Angry;
+                EndWithoutSale(Pick(InsultedLines), CustomerOutcome.WalkedAway);
+                return;
+            }
+            deal.N = Math.Min(price - 1, script.LastOffer);
+            deal.IsLastOffer = true;
+            deal.Mood = CustomerMood.Angry;
+            deal.Reaction = string.Format(Pick(LastOfferLines), deal.N);
+            LastMessage = deal.Reaction;
+            Touch();
         }
 
         bool WillAccept(TradeDeal deal, int price)

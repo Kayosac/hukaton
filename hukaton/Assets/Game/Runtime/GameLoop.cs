@@ -12,6 +12,7 @@ using Hakaton.Feel;
 using Hakaton.ShopBlockout;
 using Hakaton.Trading;
 using Hakaton.Trading.Unity;
+using Hakaton.Tutorial;
 using TMPro;
 using UnityEngine;
 
@@ -28,6 +29,8 @@ namespace Hakaton.Game
         public ExpeditionWorld expedition;
         public CoinWalletHost wallet;
         public ShopBackroomServices services;
+        [Tooltip("A new game starts with the goblin on the counter.")]
+        public ShopTutorial tutorial;
         public FirstPersonMotor player;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
@@ -64,7 +67,7 @@ namespace Hakaton.Game
         void Start()
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
-                || !services || !services.cardShop || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
+                || !services || !services.cardShop || !tutorial || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
                 || !objectiveLabel || !resultLabel
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
@@ -73,11 +76,13 @@ namespace Hakaton.Game
             trade.Session.Changed += MarkDirty;
             workshop.Model.Changed += MarkDirty;
             cardShop.Visits.Changed += MarkDirty;
+            tutorial.Changed += MarkDirty;
             restoring = true;
             string warning = null;
+            bool loaded = false;
             if (persistProgress)
             {
-                if (GameSaveStore.Load(SavePath, ValidateSave, out var save, out warning)) Restore(save);
+                if (GameSaveStore.Load(SavePath, ValidateSave, out var save, out warning)) loaded = Restore(save);
                 else if (warning != null)
                 {
                     preserveInvalidSave = !GameSaveStore.PreserveInvalidFiles(SavePath, out var preservationError);
@@ -85,8 +90,11 @@ namespace Hakaton.Game
                 }
             }
             SetPhase(GamePhase.Shop);
+            // A new game (no save): the goblin partner greets the player on the counter.
+            if (!loaded && warning == null) tutorial.Begin();
             restoring = false; Ready = true;
-            Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
+            if (tutorial.Active) Notify(string.Empty, 0);
+            else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
                 : "С возвращением. Запас, колоды и выручка сохранены."), 9);
             RefreshProgress();
@@ -100,6 +108,7 @@ namespace Hakaton.Game
             if (trade?.Session != null) trade.Session.Changed -= MarkDirty;
             if (workshop?.Model != null) workshop.Model.Changed -= MarkDirty;
             if (services && cardShop) cardShop.Visits.Changed -= MarkDirty;
+            if (tutorial) tutorial.Changed -= MarkDirty;
         }
         void OnApplicationQuit() { SaveNow(); }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
@@ -164,7 +173,7 @@ namespace Hakaton.Game
         bool CanDepartNow(out string error)
         {
             error = null;
-            if (!Ready || Phase != GamePhase.Shop || expedition.Returning || trade.Session.IsOpen || services.IsOpen
+            if (!Ready || Phase != GamePhase.Shop || expedition.Returning || trade.Session.IsOpen || services.IsOpen || trade.ExitsLocked
                 || trade.ViewTransitioning || player.control.HasModalOwner) return false;
             error = workshop.Model.CanDepart();
             return error == null;
@@ -245,7 +254,7 @@ namespace Hakaton.Game
         }
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated,
-            cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save()
+            cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save()
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
@@ -259,6 +268,7 @@ namespace Hakaton.Game
             { restoring = wasRestoring; return false; }
             wallet.Wallet.TryRestoreBalance(save.coins);
             if (save.goblin != null) cardShop.Visits.TryRestore(save.goblin, id => workshop.Model.Spec(id) != null);
+            if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
             goalCelebrated = save.goalCelebrated;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
