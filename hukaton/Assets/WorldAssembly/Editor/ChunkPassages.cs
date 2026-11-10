@@ -170,6 +170,87 @@ namespace Hakaton.WorldAssembly.EditorTools
             }
         }
 
+        /// <summary>
+        /// Debug map of a landmark's navigation, 1 m a character, north up: '.' reached on foot from the first outer
+        /// edge, 'x' walkable but cut off, ' ' nothing walkable (relief height from the scene).
+        /// </summary>
+        public static string Map(string id)
+        {
+            var kind = Landmarks.Get(id);
+            var catalogue = AssetDatabase.LoadAssetAtPath<ChunkCatalog>("Assets/WorldAssembly/Chunk catalogue.asset");
+            int n = kind.Size;
+            var origin = new Vector3(30000, 0, 30000);
+            var views = new ChunkView[n, n];
+            var instances = new List<NavMeshDataInstance>();
+            var links = new List<NavMeshLinkInstance>();
+            var text = new StringBuilder();
+            try
+            {
+                for (int i = 0; i < n; i++)
+                    for (int j = 0; j < n; j++)
+                    {
+                        views[i, j] = catalogue.Find(kind.PartId(i, j), "part");
+                        instances.Add(NavMesh.AddNavMeshData(views[i, j].navMesh, PartCentre(origin, i, j), Quaternion.identity));
+                    }
+                for (int i = 0; i < n; i++)
+                    for (int j = 0; j < n; j++)
+                        for (int seg = 0; seg < 3; seg++)
+                        {
+                            if (i + 1 < n) links.Add(Link(origin, views, i, j, 1, i + 1, j, 3, seg));
+                            if (j + 1 < n) links.Add(Link(origin, views, i, j, 0, i, j + 1, 2, seg));
+                        }
+                var p0 = SegmentPoint(2, 0, 1.1f);
+                NavMesh.SamplePosition(PartCentre(origin, 0, 0) + new Vector3(p0.x - 8, views[0, 0].edgeHeights[6], p0.y - 8), out var start, 2.2f, NavMesh.AllAreas);
+                var terrains = new TileTerrain[n, n];
+                for (int i = 0; i < n; i++)
+                    for (int j = 0; j < n; j++)
+                        terrains[i, j] = new TileTerrain(TileShapes.Get(kind.PartId(i, j)), "part", 6, 5);
+                for (int z = n * 16 - 1; z >= 0; z--)
+                {
+                    for (int x = 0; x < n * 16; x++)
+                    {
+                        int i = x / 16, j = z / 16;
+                        var local = new Vector2(x % 16 + .5f, z % 16 + .5f);
+                        float h = terrains[i, j].Height(local);
+                        var at = PartCentre(origin, i, j) + new Vector3(local.x - 8, h, local.y - 8);
+                        char c = ' ';
+                        if (NavMesh.SamplePosition(at, out var hit, .45f, NavMesh.AllAreas))
+                            c = Walk(start.position, hit.position) ? '.' : 'x';
+                        text.Append(c);
+                    }
+                    text.Append('\n');
+                }
+            }
+            finally
+            {
+                foreach (var l in links) NavMesh.RemoveLink(l);
+                foreach (var d in instances) NavMesh.RemoveNavMeshData(d);
+            }
+            return "\n" + text;
+        }
+
+        /// <summary>Debug: nearest navigation to a scene point of a landmark part, "mesa 16.5 14 7" (x z y).</summary>
+        public static string Near(string arg)
+        {
+            var a = arg.Split(' ');
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var kind = Landmarks.Get(a[0]);
+            float x = float.Parse(a[1], inv), z = float.Parse(a[2], inv), y = float.Parse(a[3], inv);
+            int i = Mathf.Clamp((int)(x / 16), 0, kind.Size - 1), j = Mathf.Clamp((int)(z / 16), 0, kind.Size - 1);
+            var view = AssetDatabase.LoadAssetAtPath<ChunkCatalog>("Assets/WorldAssembly/Chunk catalogue.asset").Find(kind.PartId(i, j), "part");
+            var origin = new Vector3(40000, 0, 40000);
+            var instance = NavMesh.AddNavMeshData(view.navMesh, origin, Quaternion.identity);
+            try
+            {
+                var at = origin + new Vector3(x - i * 16 - 8, y, z - j * 16 - 8);
+                var text = new StringBuilder();
+                foreach (float r in new[] { .5f, 1, 2, 4 })
+                    text.Append(NavMesh.SamplePosition(at, out var hit, r, NavMesh.AllAreas) ? $" r{r}: {hit.position - origin + new Vector3(i * 16 + 8, 0, j * 16 + 8)}" : $" r{r}: none");
+                return text.ToString();
+            }
+            finally { NavMesh.RemoveNavMeshData(instance); }
+        }
+
         static Vector3 PartCentre(Vector3 origin, int i, int j) => origin + new Vector3(i * 16, 0, j * 16);
 
         static Vector2 SegmentPoint(int side, int seg, float inset)

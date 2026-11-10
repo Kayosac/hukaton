@@ -118,6 +118,85 @@ namespace Hakaton.WorldAssembly.Unity
             // WebGL runs on one thread: one chunk a frame keeps the walk smooth (a chunk costs about 1–3 ms in the
             // editor, several times that in a browser).
             Stream(player.position, Application.platform == RuntimePlatform.WebGLPlayer ? 1 : loadsPerFrame);
+            Ambience();
+            LookOut();
+        }
+
+        // ---------- places that sound, lookouts ----------
+
+        [Tooltip("At most this many places sound at once (each takes one of the sound player's sources).")]
+        [Min(0)] public int ambientVoices = 2;
+        readonly List<AmbientSpot> sounding = new List<AmbientSpot>();
+        readonly List<(float distance, AmbientSpot spot)> heard = new List<(float, AmbientSpot)>();
+        FarSilhouettes silhouettes;
+
+        /// <summary>The nearest few places in earshot loop through the expedition's sound player; the rest are quiet.</summary>
+        void Ambience()
+        {
+            var sfx = world ? world.sfx : null;
+            if (!sfx) return;
+            heard.Clear();
+            var at = player.position;
+            foreach (var entry in loaded.Values)
+                foreach (var spot in entry.view.ambient)
+                {
+                    if (!spot || !spot.cue) continue;
+                    float d = Vector3.Distance(at, spot.transform.position);
+                    if (d < spot.cue.maxDistance) heard.Add((d, spot));
+                }
+            heard.Sort((a, b) => a.distance.CompareTo(b.distance));
+            for (int i = sounding.Count - 1; i >= 0; i--)
+            {
+                var spot = sounding[i];
+                int rank = heard.FindIndex(h => h.spot == spot);
+                if (spot && rank >= 0 && rank < ambientVoices) continue;
+                if (spot) sfx.StopLoop(spot);
+                sounding.RemoveAt(i);
+            }
+            for (int i = 0; i < heard.Count && i < ambientVoices; i++)
+            {
+                var spot = heard[i].spot;
+                // Fades in over the last few metres of its reach instead of starting at full volume.
+                float edge = Mathf.Clamp01((spot.cue.maxDistance - heard[i].distance) / 4);
+                sfx.Loop(spot, spot.cue, spot.transform.position, spot.volume * edge);
+                if (!sounding.Contains(spot)) sounding.Add(spot);
+            }
+        }
+
+        void Quiet(ChunkView view)
+        {
+            var sfx = world ? world.sfx : null;
+            foreach (var spot in view.ambient)
+            {
+                if (!spot) continue;
+                if (sfx) sfx.StopLoop(spot);
+                sounding.Remove(spot);
+            }
+        }
+
+        /// <summary>Standing by a lookout shows the far landmarks for a while (and chimes once when it starts).</summary>
+        void LookOut()
+        {
+            if (!silhouettes) silhouettes = GetComponent<FarSilhouettes>();
+            if (!silhouettes) return;
+            var at = player.position;
+            foreach (var entry in loaded.Values)
+                foreach (var lookout in entry.view.lookouts)
+                {
+                    if (!lookout) continue;
+                    var d = at - lookout.transform.position;
+                    if (Mathf.Abs(d.y) > 3) continue;
+                    d.y = 0;
+                    if (d.sqrMagnitude > lookout.reach * lookout.reach) continue;
+                    bool fresh = !silhouettes.Revealed;
+                    silhouettes.Reveal(lookout.revealRadius, lookout.seconds);
+                    if (fresh && world)
+                    {
+                        if (world.sfx && content && content.lookoutCue) world.sfx.Play(content.lookoutCue);
+                        world.Announce("С высоты видны дальние ориентиры", 3);
+                    }
+                    return;
+                }
         }
 
         // ---------- streaming ----------
@@ -341,6 +420,7 @@ namespace Hakaton.WorldAssembly.Unity
                 foreach (var p in entry.view.props) world.props.Remove(p);
             }
             foreach (var side in Sides.All) Unjoin(coord, side);
+            Quiet(entry.view);
             entry.nav.Remove();
             foreach (var mesh in entry.meshes) Destroy(mesh);
             Destroy(entry.view.gameObject);

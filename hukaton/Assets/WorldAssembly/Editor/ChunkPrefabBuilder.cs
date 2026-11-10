@@ -100,10 +100,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             view.worldUv = new[] { ground.GetComponent<MeshFilter>() };
 
             var obstacles = new List<WorldObstacle>();
-            if (shape.Kind == ShapeKind.River || (shape.Kind == ShapeKind.Plain && variant == "pond"))
-                obstacles.Add(Water(go.transform, terrain, meshPath, name));
+            if (terrain.Wet) obstacles.Add(Water(go.transform, terrain, meshPath, name));
             if (shape.Kind == ShapeKind.Maze) StoneWalls(go.transform, terrain, rng);
             if (terrain.Scene != null) ScenePieces(go.transform, terrain, rng, obstacles);
+            if (terrain.Scene != null) Places(view, terrain);
             view.obstacles = obstacles.ToArray();
 
             Crossings(go.transform, terrain, rng);
@@ -189,9 +189,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         static Surface Classify(TileTerrain t, Vector2 p, float h, Vector3 normal)
         {
             if (normal.y < .72f) return Surface.Rock;
-            bool wet = t.Shape.Kind == ShapeKind.River || (t.Shape.Kind == ShapeKind.Plain && t.Variant == "pond");
-            if (wet && h < TileTerrain.WaterLevel + .05f) return Surface.Bed;
-            if (wet && h < .08f && t.NearWater(p, .8f)) return Surface.Bank;
+            if (t.Wet && h < TileTerrain.WaterLevel + .05f) return Surface.Bed;
+            if (t.Wet && h < .08f && t.NearWater(p, .8f)) return Surface.Bank;
             if (t.Shape.Kind == ShapeKind.Canyon && h < -t.CanyonDepth + .4f) return Surface.Bed;
             if (t.OnRamp(p)) return Surface.Path;
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
@@ -474,6 +473,12 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (!t.InPart(prop.At)) continue;
                 var go = Place(group, prop.Asset, t, t.Local(prop.At), prop.Yaw, prop.Scale);
                 if (!go) continue;
+                // Effects over water (mist, a spring's bubbles) sit on its surface, not on the bed.
+                if (prop.Asset.StartsWith("VFX/") && t.IsWater(t.Local(prop.At)))
+                {
+                    var at = go.transform.localPosition;
+                    go.transform.localPosition = new Vector3(at.x, TileTerrain.WaterLevel, at.z);
+                }
                 if (prop.Lift != 0) go.transform.position += Vector3.up * prop.Lift;
                 if (prop.NoCollider) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
             }
@@ -518,11 +523,105 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var box = walk.AddComponent<BoxCollider>();
                 box.size = new Vector3(1.4f, .2f, length);
             }
+            foreach (var (line, deck) in scene.Boardwalks)
+                for (int i = 0; i + 1 < line.Length; i++)
+                {
+                    // Plank sections 2 m long on posts, level at the deck height, end to end along the line; each part
+                    // keeps the sections that start in it.
+                    var a = line[i];
+                    var ab = line[i + 1] - a;
+                    int n = Mathf.Max(1, Mathf.CeilToInt(ab.magnitude / 2));
+                    float yaw = Mathf.Atan2(ab.x, ab.y) * Mathf.Rad2Deg;
+                    for (int k = 0; k < n; k++)
+                    {
+                        var from = a + ab * k / n;
+                        if (!t.InPart(from + ab / n * .5f)) continue;
+                        var local = t.Local(from);
+                        var board = Place(group, "Structures/FA_ST10_Boardwalk", null, Vector2.zero, yaw, new Vector3(1, 1, ab.magnitude / n / 2));
+                        if (board) board.transform.localPosition = new Vector3(local.x - 8, deck - .25f, local.y - 8);
+                    }
+                }
             if (scene.Thicket.HasValue && t.InPart(scene.Thicket.Value.center))
             {
                 var r = scene.Thicket.Value;
                 obstacles.Add(ThornPiece(group, new Rect(r.position - t.Offset, r.size), rng));
             }
+        }
+
+        static readonly Dictionary<string, (string clip, float volume, float min, float max)> SoundCues = new Dictionary<string, (string, float, float, float)>
+        {
+            ["campfire"] = ("Assets/Audio/Sfx/impacts/fire_crackle_loop.wav", .5f, 1.5f, 14),
+            ["fire-small"] = ("Assets/Plugins/Retro Arsenal/Sound/Fire/retro_fire_tiny_loop.wav", .3f, 1.5f, 11),
+            ["bubbles"] = ("Assets/Plugins/Retro Arsenal/Sound/Misc/retro_bubble_loop.wav", .22f, 1.5f, 10),
+            ["hum"] = ("Assets/Audio/Sfx/backroom/magic_hum_loop.wav", .3f, 2, 13),
+        };
+
+        const string CueFolder = "Assets/WorldAssembly/Audio";
+
+        /// <summary>The world's own looping cue for a place that sounds, made once (edit it freely afterwards).</summary>
+        static SfxCue Cue(string id)
+        {
+            string path = $"{CueFolder}/world_{id}.asset";
+            var cue = AssetDatabase.LoadAssetAtPath<SfxCue>(path);
+            if (cue) return cue;
+            if (!SoundCues.TryGetValue(id, out var spec)) return null;
+            Directory.CreateDirectory(CueFolder);
+            cue = ScriptableObject.CreateInstance<SfxCue>();
+            cue.clips = new[] { AssetDatabase.LoadAssetAtPath<AudioClip>(spec.clip) };
+            cue.volume = spec.volume;
+            cue.pitch = new Vector2(.97f, 1.03f);
+            cue.spatialBlend = 1;
+            cue.minDistance = spec.min;
+            cue.maxDistance = spec.max;
+            cue.cooldown = 0;
+            AssetDatabase.CreateAsset(cue, path);
+            return cue;
+        }
+
+        /// <summary>The scene's places that sound and its lookouts, in this part.</summary>
+        static void Places(ChunkView view, TileTerrain t)
+        {
+            var scene = t.Scene;
+            var group = new GameObject("Places").transform;
+            group.SetParent(view.transform, false);
+            var ambient = new List<AmbientSpot>();
+            foreach (var (at, cue, lift) in scene.Sounds)
+            {
+                if (!t.InPart(at)) continue;
+                var local = t.Local(at);
+                var go = new GameObject("Sound " + cue);
+                go.transform.SetParent(group, false);
+                float y = t.IsWater(local) ? TileTerrain.WaterLevel : GroundY(t, local);
+                go.transform.localPosition = new Vector3(local.x - 8, y + lift, local.y - 8);
+                var spot = go.AddComponent<AmbientSpot>();
+                spot.cue = Cue(cue);
+                ambient.Add(spot);
+            }
+            view.ambient = ambient.ToArray();
+            var lookouts = new List<Lookout>();
+            foreach (var (at, radius) in scene.Lookouts)
+            {
+                if (!t.InPart(at)) continue;
+                var local = t.Local(at);
+                var go = new GameObject("Lookout");
+                go.transform.SetParent(group, false);
+                go.transform.localPosition = new Vector3(local.x - 8, GroundY(t, local), local.y - 8);
+                var lookout = go.AddComponent<Lookout>();
+                lookout.revealRadius = radius;
+                lookouts.Add(lookout);
+            }
+            view.lookouts = lookouts.ToArray();
+        }
+
+        /// <summary>Height of whatever stands under a canonical point in the chunk being built (a deck over water), or the ground.</summary>
+        static float SurfaceY(Transform chunk, TileTerrain t, Vector2 p)
+        {
+            Physics.SyncTransforms();
+            var from = chunk.TransformPoint(new Vector3(p.x - 8, 40, p.y - 8));
+            float best = float.NegativeInfinity;
+            foreach (var hit in Physics.RaycastAll(from, Vector3.down, 80, ~(1 << 4), QueryTriggerInteraction.Ignore))
+                if (hit.collider.transform.IsChildOf(chunk)) best = Mathf.Max(best, chunk.InverseTransformPoint(hit.point).y);
+            return float.IsNegativeInfinity(best) ? GroundY(t, p) : best;
         }
 
         // ---------- bridges, logs, fords ----------
@@ -723,6 +822,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         static bool Free(TileTerrain t, Vector2 p)
         {
             if (t.IsWater(p) || t.OnRamp(p) || t.InMazeWall(p)) return false;
+            if (t.Wet && t.WaterDistance(p) < .3f) return false;
             if (t.SceneThicket(p)) return false;
             if (t.Shape.Kind == ShapeKind.River && t.DistanceToCentre(p) < TileTerrain.BankHalf + .6f) return false;
             if (t.Shape.Kind == ShapeKind.Canyon && t.DistanceToCentre(p) < TileTerrain.RimHalf + .4f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .3f) return false;
@@ -894,7 +994,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (own.Count > 0 || t.Shape.Kind != ShapeKind.Landmark) finds = own;
             }
             if (t.Variant == "ledge") finds.Insert(0, new Vector2(4.5f, 7.2f));
-            view.findSockets = finds.Select((p, i) => Socket(group, "Find " + i, t, p, t.Variant == "ledge" && i == 0 ? Plateau * .5f + .05f : (float?)null)).ToArray();
+            float? FindHeight(Vector2 p, int i)
+            {
+                if (t.Variant == "ledge" && i == 0) return Plateau * .5f + .05f;
+                if (t.Scene != null && t.Scene.OnBoardwalk(p + t.Offset, 1.2f)) return SurfaceY(view.transform, t, p);
+                return null;
+            }
+            view.findSockets = finds.Select((p, i) => Socket(group, "Find " + i, t, p, FindHeight(p, i))).ToArray();
 
             if (t.Variant == "island") view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
             if (t.Shape.Kind == ShapeKind.Maze) view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
@@ -957,7 +1063,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var c in triggers) c.enabled = true;
             // Water is not walkable for creatures: one box per run of deep cells along each row, so dry ground inside
             // a river's bend stays walkable.
-            if (t.Shape.Kind == ShapeKind.River || (t.Shape.Kind == ShapeKind.Plain && t.Variant == "pond"))
+            if (t.Wet)
             {
                 int n = Mathf.RoundToInt(TileTerrain.Size / Step);
                 for (int j = 0; j < n; j++)
@@ -972,8 +1078,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                         sources.Add(new NavMeshBuildSource
                         {
                             shape = NavMeshBuildSourceShape.ModifierBox,
-                            transform = Matrix4x4.Translate(new Vector3((x0 + x1) / 2 - 8, -1f, z - 8)),
-                            size = new Vector3(x1 - x0 + .1f, 3.4f, Step + .1f),
+                            // Up to just over the water: decks over it stay walkable.
+                            transform = Matrix4x4.Translate(new Vector3((x0 + x1) / 2 - 8, -1.75f, z - 8)),
+                            size = new Vector3(x1 - x0 + .1f, 3.6f, Step + .1f),
                             area = 1,
                         });
                         run = -1;
@@ -987,6 +1094,23 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         // ---------- content ----------
+
+        /// <summary>The chime a lookout plays when it shows the far landmarks (made once).</summary>
+        static SfxCue LookoutCue()
+        {
+            string path = $"{CueFolder}/world_lookout.asset";
+            var cue = AssetDatabase.LoadAssetAtPath<SfxCue>(path);
+            if (cue) return cue;
+            Directory.CreateDirectory(CueFolder);
+            cue = ScriptableObject.CreateInstance<SfxCue>();
+            cue.clips = new[] { AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Plugins/Retro Arsenal/Sound/Misc/retro_bling.wav") };
+            cue.volume = .55f;
+            cue.pitch = new Vector2(1, 1);
+            cue.spatialBlend = 0;
+            cue.cooldown = 1;
+            AssetDatabase.CreateAsset(cue, path);
+            return cue;
+        }
 
         /// <summary>The content asset: loot by id and every creature the themes name, by id ("bee-swarm" → Bee swarm.prefab).</summary>
         static void EnsureContent()
@@ -1003,6 +1127,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             const string sparkle = "Assets/Plugins/Retro Arsenal/Prefabs/Environment/Sparkle/Mini/";
             content.hardGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniYellowLoop.prefab");
             content.crystalGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniPurpleLoop.prefab");
+            content.lookoutCue = LookoutCue();
             content.creatures.Clear();
             foreach (var id in CreatureThemes.AllCreatures())
             {

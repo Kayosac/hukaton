@@ -79,6 +79,34 @@ namespace Hakaton.WorldAssembly
             return plan.TryGetValue(c, out var f) ? f : null;
         }
 
+        /// <summary>
+        /// The reward chunk of every landmark within <paramref name="radius"/> m of <paramref name="here"/>, with its
+        /// ground level: read from the district plans alone, so far ones cost no chunk plans (markers, lookouts).
+        /// </summary>
+        public List<(ChunkCoord focus, LandmarkKind kind, int level)> LandmarkFoci(ChunkCoord here, float radius)
+        {
+            var found = new List<(ChunkCoord, LandmarkKind, int)>();
+            int reach = (int)Math.Ceiling(radius / Rules.ChunkSize);
+            var from = DistrictPlanner.DistrictOf(new ChunkCoord(here.X - reach, here.Y - reach), Rules.District);
+            var to = DistrictPlanner.DistrictOf(new ChunkCoord(here.X + reach, here.Y + reach), Rules.District);
+            double r2 = (double)radius * radius;
+            for (int dx = from.dx; dx <= to.dx; dx++)
+                for (int dy = from.dy; dy <= to.dy; dy++)
+                {
+                    if (!districtCache.TryGetValue((dx, dy), out var plan)) districtCache[(dx, dy)] = plan = districts.Plan(dx, dy);
+                    foreach (var pair in plan)
+                    {
+                        var f = pair.Value;
+                        if (f.Feature != Feature.Landmark || f.Landmark == null || !f.Landmark.HasFocus) continue;
+                        if (f.PartI != f.Landmark.FocusI || f.PartJ != f.Landmark.FocusJ) continue;
+                        double ex = (pair.Key.X - here.X) * (double)Rules.ChunkSize, ey = (pair.Key.Y - here.Y) * (double)Rules.ChunkSize;
+                        if (ex * ex + ey * ey > r2) continue;
+                        found.Add((pair.Key, f.Landmark, Corners.Level(pair.Key.X, pair.Key.Y)));
+                    }
+                }
+            return found;
+        }
+
         // ---------- building one chunk ----------
 
         ChunkPlan Build(ChunkCoord c)

@@ -25,6 +25,10 @@ namespace Hakaton.WorldAssembly.EditorTools
         public struct Dome { public Vector2 Centre; public float Radius, Height; }
         public struct Pass { public Vector2 Centre; public float Radius, Run; }
         public struct Prop { public string Asset; public Vector2 At; public float Yaw; public Vector3 Scale; public float Lift; public bool NoCollider; }
+        /// <summary>A sloped strip from A at HeightA to B at HeightB that fills the ground up to it (never cuts it).</summary>
+        public struct Ramp { public Vector2 A, B; public float HeightA, HeightB, Half, Run; }
+        /// <summary>Open water: a bed sunk below the water level, Deep at the middle, its banks at Bank.</summary>
+        public struct Pool { public Vector2 Centre; public float Radius, Bank, Deep; }
 
         /// <summary>Raised (Height &gt; 0) or sunk (Height &lt; 0) lines with steep sides.</summary>
         public readonly List<Ridge> Ridges = new List<Ridge>();
@@ -44,6 +48,16 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly List<(int ridge, float spacing)> RidgeRocks = new List<(int, float)>();
         /// <summary>Logs to walk on: a whole trunk across a gully with a flat walkway on top (centre, yaw, length).</summary>
         public readonly List<(Vector2 at, float yaw, float length)> Walkways = new List<(Vector2, float, float)>();
+        /// <summary>Ramps winding up steps of rock (a table mountain) or down into a pit.</summary>
+        public readonly List<Ramp> Ramps = new List<Ramp>();
+        /// <summary>Pools of water; each stays inside one part of a landmark.</summary>
+        public readonly List<Pool> Pools = new List<Pool>();
+        /// <summary>Plank decks on posts over water and mud: (line, deck height over the base).</summary>
+        public readonly List<(Vector2[] line, float deck)> Boardwalks = new List<(Vector2[], float)>();
+        /// <summary>Places that sound: spot, cue ("campfire", "fire-small", "bubbles", "hum"), height over the ground.</summary>
+        public readonly List<(Vector2 at, string cue, float lift)> Sounds = new List<(Vector2, string, float)>();
+        /// <summary>Lookouts: standing here shows far landmarks out to this many metres.</summary>
+        public readonly List<(Vector2 at, float radius)> Lookouts = new List<(Vector2, float)>();
         public Vector2[] Finds = Array.Empty<Vector2>();
         public Vector2[] Creatures = Array.Empty<Vector2>();
         /// <summary>Card-only pocket: the reward's spot and the thicket around it or the pillar under it.</summary>
@@ -68,6 +82,18 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         void Deco(string asset, float x, float y, float yaw = 0, float scale = 1, float lift = 0) =>
             Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = Vector3.one * scale, NoCollider = true, Lift = lift });
+
+        /// <summary>A ramp 2 m wide (full height over the middle 2 m, gone 2.5 m out): set its middle 0.6 m off the face it climbs.</summary>
+        void Slope(Vector2 a, float heightA, Vector2 b, float heightB, float half = 1.5f) =>
+            Ramps.Add(new Ramp { A = a, B = b, HeightA = heightA, HeightB = heightB, Half = half, Run = .5f });
+
+        /// <summary>A campfire: flame, a wisp of smoke and its crackle.</summary>
+        void Fire(float x, float y, float scale = 1)
+        {
+            Deco("VFX/Fire/Torch/FireTorch", x, y, 0, .7f * scale, .05f);
+            Deco("VFX/Smoke/Grey/SmokeTinyGrey", x, y, 0, scale, 1.1f);
+            Sounds.Add((V(x, y), "campfire", .4f));
+        }
 
         // ---------- the scenes ----------
 
@@ -102,6 +128,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "village": s.Village(); break;
                 case "stone-forest": s.StoneForest(); break;
                 case "giant-log": s.GiantLog(); break;
+                case "mesa": s.Mesa(); break;
+                case "sinkhole": s.Sinkhole(); break;
+                case "swamp": s.Swamp(); break;
             }
             all[id] = s;
             return s;
@@ -150,6 +179,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Trees/FA_TR14_KnottyGiant", 9.8f, 6.8f, 120);
             Put("Structures/FA_ST12_Bench", 7.6f, 9, 200);
             Put("Markers/FA_MK06_StoneMarkGroup", 6.4f, 6.2f, 40);
+            Lookouts.Add((V(8.4f, 8), 400));
             Trails.Add(new[] { V(15, 3), V(11.6f, 4.6f), V(8.4f, 8), V(4, 6.4f), V(1, 5.6f) });
             Finds = new[] { V(8.2f, 7.2f), V(13, 12.4f) };
             Creatures = new[] { V(12.6f, 3.6f), V(3.2f, 3.4f) };
@@ -209,6 +239,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Structures/FA_ST13_Shelter", 8.6f, 10.4f, 180);
             Put("Markers/FA_MK16_StoneCircle", 8, 7, 0, .6f);
             Deco("Deadwood/FA_DW10_SticksLarge", 8, 7, 30, .8f);
+            Fire(8, 7);
             PutScaled("Deadwood/FA_DW01_LogWhole", 5.9f, 7, 0, new Vector3(.8f, .8f, .7f));
             PutScaled("Deadwood/FA_DW01_LogWhole", 10.1f, 6.8f, 10, new Vector3(.8f, .8f, .7f));
             Put("Props/FA_PR13_CrateClosed", 11.4f, 10.8f, 20);
@@ -294,6 +325,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             Deco("Plants/FA_VG05_GrassTall", 7.6f, 4, 0, 1.3f);
             Deco("Plants/FA_VG05_GrassTall", 12.6f, 3.2f, 90, 1.2f);
             Deco("Plants/FA_VG05_GrassTall", 12.4f, 7.6f, 30, 1.4f);
+            // A spring stirs the middle of the pond (see TileTerrain.PondCentre).
+            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 10.4f, 5.2f, 0, .8f, 0);
+            Sounds.Add((V(10.4f, 5.2f), "bubbles", 0));
             Trails.Add(new[] { V(1, 10), V(5.6f, 9.6f), V(9, 10), V(15, 12.4f) });
             Finds = new[] { V(6.4f, 6.4f), V(3.6f, 13.4f) };
             Creatures = new[] { V(9.6f, 11.6f), V(14, 13.6f) };
@@ -324,6 +358,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Bumps.Add(new Bump { Centre = V(4.2f, 11.6f), Radius = .9f, Height = 1.3f, Run = .4f });
             Bumps.Add(new Bump { Centre = V(12, 4.4f), Radius = .8f, Height = 1.1f, Run = .4f });
             Pocket = V(8, 8);
+            Lookouts.Add((V(8, 8), 500));
             Put("Markers/FA_MK09_ClothPennants", 8.6f, 7.4f, 30, 1, 0);
             Put("Trees/FA_TR10_DeadBare", 11.6f, 11.8f, 200);
             Put("Rocks/FA_RK06_BoulderSplit", 4.2f, 11.6f, 10, .8f, -.3f);
@@ -363,7 +398,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 float a = phase + k * Mathf.PI * 2 / count;
                 var p = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (radius + (k % 3 - 1) * .8f);
-                if (NearSeam(p, 2.2f) || NearLink(p) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear)) continue;
+                if (NearSeam(p, 2.2f) || NearLink(p) || Trails.Any(line => PolyDistance(p, line, out _, out _) < clear) || OnRamp(p, 1.5f)) continue;
                 // Scale wanders a lot: saplings next to giants.
                 Put("Trees/" + trees[(k * 5 + (int)(radius * 3)) % trees.Length], p.x, p.y, k * 67, .65f + ((k * 37 + (int)(phase * 10)) % 9) * .1f);
             }
@@ -409,6 +444,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             Deco("Markers/FA_MK16_StoneCircle", 24, 24, 0, 1.4f);
             Put("Structures/FA_ST12_Bench", 27.2f, 26.2f, 225);
             Put("Markers/FA_MK06_StoneMarkGroup", 20.6f, 27, 30);
+            // The view from the top: every landmark for a long way round shows its marker.
+            Lookouts.Add((V(24, 24.4f), 600));
             Put("Markers/FA_MK09_ClothPennants", 21, 21, 45);
             Put("Markers/FA_MK01_SignArrow", 26.4f, 21.2f, 135);
             foreach (var crag in Bumps) Put("Rocks/FA_RK08_RocksTallGroup", crag.Centre.x, crag.Centre.y, crag.Centre.x * 31, crag.Radius * .85f, -.4f);
@@ -436,6 +473,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Markers/FA_MK08_ClothLong", 22.6f, 21.4f, 0, 1.3f, 2.6f);
             PutScaled("Structures/FA_ST04_Post", 22.6f, 21.4f, 0, new Vector3(1, 3.4f, 1));
             Put("Structures/FA_ST12_Bench", 19, 18, 160);
+            Lookouts.Add((V(19.6f, 17.4f), 600));
             TreeRing(c, 14.2f, 12, .5f);
             Finds = new[] { V(20.6f, 20.6f), V(5.2f, 26.6f) };
             Creatures = new[] { V(21.6f, 17.8f), V(8.4f, 9.4f) };
@@ -457,6 +495,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Trails.Add(new[] { OnCircle(c, 15.5f, a), pass, OnCircle(c, 7, a), OnCircle(c, 2.6f, a + 20) });
             }
             Deco("Markers/FA_MK16_StoneCircle", 16.4f, 16.4f, 0, 2.4f);
+            Sounds.Add((V(16.4f, 16.4f), "hum", 1));
             foreach (float a in new[] { 45f, 135f, 225f, 315f })
             {
                 var p = OnCircle(c, 4.2f, a);
@@ -502,6 +541,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             PutScaled("Structures/FA_ST04_Post", 21.6f, 20.4f, 0, new Vector3(1, 3.6f, 1));
             Put("Markers/FA_MK08_ClothLong", 21.6f, 20.4f, 0, 1.4f, 2.8f);
             Deco("Markers/FA_MK16_StoneCircle", 20.4f, 20.4f, 0, .7f);
+            Fire(20.4f, 20.4f, .9f);
             Trails.Add(new[] { V(19.6f, 1), V(19.6f, 6), V(19.6f, 12), V(14, 18), V(10, 24.6f) });
             Trails.Add(new[] { V(31, 11.4f), V(26, 11.4f), V(21, 12) });
             TreeRing(V(16, 16), 14.4f, 12, .3f);
@@ -519,6 +559,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Bumps.Add(new Bump { Centre = V(4, 12), Radius = 1, Height = 1.4f, Run = .4f });
             Bumps.Add(new Bump { Centre = V(12.4f, 4.4f), Radius = .9f, Height = 1.2f, Run = .4f });
             Pocket = V(8, 8.4f);
+            Lookouts.Add((V(8, 8.4f), 550));
             PutScaled("Structures/FA_ST04_Post", 8.7f, 9, 0, new Vector3(.9f, 1.8f, .9f));
             Put("Markers/FA_MK08_ClothLong", 8.7f, 9, 0, 1.2f, 1.2f);
             Deco("Structures/FA_ST09_BridgeDamaged", 10.6f, 9.6f, 70, .8f);
@@ -598,6 +639,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Markers/FA_MK08_ClothLong", 27.6f, 28.2f, 0, 1.5f, 3.6f);
             foreach (var at in new[] { V(21.6f, 21), V(25.4f, 25.6f), V(23, 28) }) Deco("VFX/Insects/Flies", at.x, at.y, 0, 1.4f, 1);
             Deco("VFX/Smoke/White/SmokeSmallWhite", 23.4f, 9.4f, 0, 1, 2.6f);
+            Sounds.Add((V(23.4f, 9.4f), "fire-small", 1));
             Trails.Add(new[] { V(10, 1), V(10.6f, 9), V(16.4f, 14.8f), V(24.2f, 17.8f), V(23.6f, 22.4f) });
             Trails.Add(new[] { V(1, 24.4f), V(8, 24.6f), V(14, 21) });
             Trails.Add(new[] { V(31, 9), V(23.4f, 8.6f), V(16.4f, 14.8f) });
@@ -629,6 +671,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Props/FA_PR12_SackLarge", 11, 25, 0);
             Put("Props/FA_PR02_LanternGround", 25.6f, 21.6f, 0);
             Deco("VFX/Smoke/Grey/SmokeMediumGrey", 23.4f, 24.4f, 0, 1, 3.6f);
+            Sounds.Add((V(23.4f, 24.4f), "fire-small", 1.2f));
             Trails.Add(new[] { V(1, 15.4f), V(16, 16.6f), V(31, 15.6f) });
             Trails.Add(new[] { V(16.4f, 1), V(15.6f, 16), V(16.4f, 31) });
             TreeRing(V(16, 16), 14.8f, 10, .7f);
@@ -657,6 +700,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Trees/FA_TR10_DeadBare", 15, 10, 30, 1.2f);
             Put("Trees/FA_TR11_Snapped", 22.6f, 23.4f, 80, 1.1f);
             Put("Markers/FA_MK06_StoneMarkGroup", 22.6f, 9.2f, 0, 1.1f);
+            Sounds.Add((V(22.4f, 8.6f), "hum", 1));
             PutScaled("Structures/FA_ST04_Post", 23.8f, 10.2f, 0, new Vector3(1, 4, 1));
             Put("Markers/FA_MK08_ClothLong", 23.8f, 10.2f, 0, 1.4f, 3.4f);
             Trails.Add(new[] { V(1, 8), V(7, 7.6f), V(11, 9.8f), V(15, 9), V(22.4f, 8.6f) });
@@ -686,11 +730,139 @@ namespace Hakaton.WorldAssembly.EditorTools
             Grass = 18; Ferns = 10; Bushes = 9; Trees = 4;
         }
 
+        /// <summary>
+        /// A table mountain: three tiers of rock 2.3 m each with one ramp up every tier, winding round it, and a ruined
+        /// watch post on top with a lookout and the reward. Ramps cross the cuts between parts only where the parts are
+        /// linked (the middles and thirds of their edges).
+        /// </summary>
+        void Mesa()
+        {
+            Size = 32;
+            const float step = 2.3f;
+            Blocks.Add(new Block { Area = Rect.MinMaxRect(5, 5, 27, 27), Height = step, Run = .6f });
+            Blocks.Add(new Block { Area = Rect.MinMaxRect(9, 9, 23, 23), Height = step * 2, Run = .6f });
+            // The top reaches well past the links at 13.33 on the cuts, so its four pieces join.
+            Blocks.Add(new Block { Area = Rect.MinMaxRect(11.8f, 11.8f, 18.07f, 19.5f), Height = step * 3, Run = .6f });
+            // Up the south face onto the first tier, north along the second tier's east face (over the cut at x 24),
+            // then south along the top's east face (over the cut by the link at x 18.67).
+            Slope(V(17.5f, 4.4f), 0, V(26.2f, 4.4f), step, 1.8f);
+            Slope(V(23.6f, 7), step, V(23.6f, 21), step * 2, 1.8f);
+            Slope(V(18.7f, 21.6f), step * 2, V(18.7f, 13), step * 3, 1.8f);
+            Trails.Add(new[] { V(16, 1), V(17.5f, 3.4f) });
+            Trails.Add(new[] { V(31, 2.6f), V(28, 3.4f), V(26.2f, 4.4f) });
+            // The watch post on top: low walls on two sides, a flag, a lantern, the reward under the wall.
+            // The top is crossed by the cuts and their links: things with colliders keep to its western corners.
+            PutScaled("Structures/FA_ST04_Post", 13.5f, 18.6f, 0, new Vector3(1, 4, 1));
+            Put("Markers/FA_MK08_ClothLong", 13.5f, 18.6f, 0, 1.4f, 3.4f);
+            Put("Markers/FA_MK05_StoneMarkTall", 13.5f, 13.6f, 40);
+            Put("Props/FA_PR02_LanternGround", 14.4f, 18.4f, 0);
+            Deco("Structures/FA_ST14_StoneWallRuin", 15.6f, 19, 180, .9f, -.4f);
+            Deco("Structures/FA_ST14_StoneWallRuin", 17.6f, 15.8f, 270, .9f, -.4f);
+            Lookouts.Add((V(15, 14.6f), 650));
+            // Rocks and old trees on the tiers.
+            // The first tier's ring is the way round: rocks and trees stand on the second tier's corners instead.
+            Put("Rocks/FA_RK08_RocksTallGroup", 10.4f, 21.6f, 40, .6f, -.3f);
+            Put("Rocks/FA_RK03_BoulderLarge", 2.8f, 12, 120, .9f, -.3f);
+            Put("Trees/FA_TR07_YoungStraight", 10.4f, 10.4f, 30);
+            Put("Trees/FA_TR10_DeadBare", 10.4f, 15, 80);
+            Deco("Plants/FA_VG14_IvyLong", 12.4f, 16, 90, 1.4f);
+            TreeRing(V(16, 16), 14.6f, 12, .6f);
+            Finds = new[] { V(14.4f, 17.4f), V(6.8f, 13.6f) };
+            Creatures = new[] { V(15.6f, 16.4f), V(25.8f, 12) };
+            Grass = 20; Ferns = 4; Bushes = 7; Trees = 3;
+        }
+
+        /// <summary>
+        /// A sinkhole 19 m across and 6.5 m deep: a ledge winds down its wall three quarters of the way round to a mossy
+        /// floor with the reward, standing stones and something humming. The ledge crosses the cuts between parts at
+        /// their linked middles.
+        /// </summary>
+        void Sinkhole()
+        {
+            Size = 32;
+            var c = V(16, 16);
+            const float depth = 6.5f, wallRadius = 9.6f;
+            Bumps.Add(new Bump { Centre = c, Radius = wallRadius, Height = -depth, Run = .8f });
+            // Down counter-clockwise from 315° to 255° (300° in all), hugging the wall: it crosses the cuts by the links
+            // at their middles (8 m from the centre). Short segments, so the ledge keeps to the wall's curve.
+            const float from = -45, to = 255;
+            int segments = 20;
+            for (int k = 0; k < segments; k++)
+            {
+                float a0 = from + (to - from) * k / segments, a1 = from + (to - from) * (k + 1) / segments;
+                Slope(OnCircle(c, 8.3f, a0), -depth * k / segments, OnCircle(c, 8.3f, a1), -depth * (k + 1) / segments, 1.8f);
+            }
+            Ridges.Add(new Ridge { Line = Circle(c, 12, 32), Height = .9f, Half = .5f, Run = .4f });
+            Gaps.Add(new Pass { Centre = OnCircle(c, 12, from), Radius = 2.2f, Run = .6f });
+            Gaps.Add(new Pass { Centre = OnCircle(c, 12, 140), Radius = 1.4f, Run = .5f });
+            RidgeRocks.Add((0, 1.8f));
+            Trails.Add(new[] { V(31, 3), V(25.6f, 8), OnCircle(c, 9.6f, from) });
+            Trails.Add(new[] { V(1, 29), V(7, 24.6f), OnCircle(c, 12, 140) });
+            // The floor.
+            Deco("Markers/FA_MK16_StoneCircle", 17.6f, 15, 0, 1.2f);
+            foreach (float a in new[] { 20f, 140f, 260f })
+            {
+                var p = OnCircle(V(17.6f, 15), 2.8f, a);
+                Put("Markers/FA_MK05_StoneMarkTall", p.x, p.y, a, 1.1f);
+            }
+            Put("Deadwood/FA_DW03_LogHollow", 12.6f, 18.6f, 70);
+            Put("Plants/FA_VG16_ShelfFungusGroup", 13.4f, 19.2f, 0, 1.4f);
+            Put("Props/FA_PR05_CandlesDish", 18.8f, 14, 0);
+            Deco("Special/FA_SP03_WebDrape", 14.4f, 13.2f, 210, 1.2f);
+            Sounds.Add((V(17.6f, 15), "hum", 1));
+            Deco("VFX/Insects/Flies", 17.6f, 15, 0, 1, 1.4f);
+            // Roots and ivy over the wall.
+            foreach (float a in new[] { 100f, 200f, 300f })
+            {
+                var p = OnCircle(c, 10, a);
+                Deco("Plants/FA_VG14_IvyLong", p.x, p.y, a + 90, 1.8f, -1.2f);
+            }
+            TreeRing(c, 14, 12, .3f);
+            Finds = new[] { V(18.8f, 13.4f), V(26.6f, 27) };
+            Creatures = new[] { V(15.4f, 15.2f), V(5.4f, 26) };
+            Grass = 18; Ferns = 8; Bushes = 7; Trees = 3;
+        }
+
+        /// <summary>
+        /// A bog: two deep pools crossed by boardwalks, two shallow ones to wade, dead trees, reeds and mist. The reward
+        /// lies on the boardwalk over the far pool; ice freezes a way across too.
+        /// </summary>
+        void Swamp()
+        {
+            Size = 32;
+            Pools.Add(new Pool { Centre = V(8.4f, 8.2f), Radius = 3.4f, Bank = 4.4f, Deep = 2.2f });
+            Pools.Add(new Pool { Centre = V(24, 8.6f), Radius = 3.8f, Bank = 4.8f, Deep = .75f });
+            Pools.Add(new Pool { Centre = V(8, 24), Radius = 3.2f, Bank = 4.2f, Deep = .7f });
+            Pools.Add(new Pool { Centre = V(23.6f, 23.6f), Radius = 3.6f, Bank = 4.6f, Deep = 2.2f });
+            Boardwalks.Add((new[] { V(3, 5.6f), V(8.4f, 8.2f), V(13.8f, 10.8f) }, .3f));
+            Boardwalks.Add((new[] { V(18, 22.2f), V(23.6f, 23.6f) }, .3f));
+            Boardwalks.Add((new[] { V(23.6f, 23.6f), V(23.6f, 29.4f) }, .3f));
+            PutScaled("Structures/FA_ST04_Post", 17.4f, 21, 0, new Vector3(1, 1.6f, 1));
+            Put("Props/FA_PR01_LanternHanging", 17.4f, 21, 0, 1, 2);
+            Put("Special/FA_SP10_BoardedShed", 12.6f, 3.4f, 180, .9f);
+            foreach (var at in new[] { V(4.2f, 12.6f), V(3.2f, 2.6f), V(20.4f, 13.8f), V(28.6f, 18.4f), V(13, 27.6f), V(27.6f, 28.6f) })
+                Put("Trees/FA_TR10_DeadBare", at.x, at.y, at.x * 37, .8f + at.y % 3 * .15f);
+            Put("Trees/FA_TR11_Snapped", 3.6f, 20, 40);
+            Put("Trees/FA_TR04_Leaning", 28.4f, 13, 250, .9f);
+            foreach (var at in new[] { V(5, 4.4f), V(11.6f, 11.8f), V(20.6f, 6), V(27.6f, 11.4f), V(5.2f, 27.2f), V(10.6f, 21.4f), V(20.2f, 26.4f), V(27, 20.2f) })
+                Deco("Plants/FA_VG05_GrassTall", at.x, at.y, at.x * 20, 1.4f);
+            Deco("VFX/Smoke/White/SmokeFlatWhite", 8.4f, 8.2f, 0, 1.6f, .1f);
+            Deco("VFX/Smoke/White/SmokeFlatWhite", 23.6f, 23.6f, 0, 1.6f, .1f);
+            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 24.4f, 9.2f, 0, .8f, 0);
+            Sounds.Add((V(24.4f, 9.2f), "bubbles", 0));
+            Deco("VFX/Insects/Flies", 8, 24, 0, 1.2f, 1);
+            Trails.Add(new[] { V(1, 16), V(9, 15.6f), V(16, 16.6f), V(23, 16), V(31, 16.4f) });
+            Trails.Add(new[] { V(16, 1), V(15.4f, 9), V(16, 16.6f), V(16.6f, 31) });
+            Finds = new[] { V(23.6f, 25.4f), V(13.6f, 9.6f) };
+            Creatures = new[] { V(19.4f, 20), V(5.6f, 15) };
+            Grass = 16; Ferns = 6; Bushes = 6; Trees = 2;
+        }
+
         // ---------- relief ----------
 
         public float Relief(TileTerrain t, Vector2 p)
         {
-            if (Ridges.Count == 0 && Bumps.Count == 0 && Domes.Count == 0 && Blocks.Count == 0) return 0;
+            if (Ridges.Count == 0 && Bumps.Count == 0 && Domes.Count == 0 && Blocks.Count == 0 && Ramps.Count == 0) return 0;
             float wobble = t.Noise(p, 1.6f, 31) * .3f, grain = 1 + t.Noise(p, 2.2f, 32) * .12f;
             float gap = 1;
             foreach (var g in Gaps) gap = Mathf.Min(gap, Mathf.Clamp01((Vector2.Distance(p, g.Centre) + wobble * .5f - g.Radius) / g.Run));
@@ -712,16 +884,55 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var b in Bumps)
             {
                 float f = Mathf.Clamp01((b.Radius - Vector2.Distance(p, b.Centre) - wobble) / b.Run);
-                up = Mathf.Max(up, b.Height * f);
+                if (b.Height > 0) up = Mathf.Max(up, b.Height * f);
+                else down = Mathf.Min(down, b.Height * f);
             }
             foreach (var b in Blocks)
             {
                 var a = b.Area;
                 float inside = Mathf.Min(Mathf.Min(p.x - a.xMin, a.xMax - p.x), Mathf.Min(p.y - a.yMin, a.yMax - p.y)) - wobble;
-                up = Mathf.Max(up, b.Height * Mathf.Clamp01(inside / b.Run) * gap);
+                float f = Mathf.Clamp01(inside / b.Run) * gap;
+                if (b.Height > 0) up = Mathf.Max(up, b.Height * f);
+                else down = Mathf.Min(down, b.Height * f);
             }
-            return (dome + up + down) * TileTerrain.EdgeFade(p, 1.6f, Size);
+            float height = dome + up + down;
+            // Ramps fill the ground up to their slope where it lies lower: up a step of rock, down into a pit.
+            foreach (var r in Ramps)
+            {
+                var ab = r.B - r.A;
+                float tt = Mathf.Clamp01(Vector2.Dot(p - r.A, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+                float f = Mathf.Clamp01((r.Half - Vector2.Distance(p, r.A + ab * tt) - wobble * .3f) / r.Run);
+                if (f > 0) height += f * Mathf.Max(0, Mathf.Lerp(r.HeightA, r.HeightB, tt) - height);
+            }
+            return height * TileTerrain.EdgeFade(p, 1.6f, Size);
         }
+
+        /// <summary>Bed of the pools here (0 away from them); same shape as a pond's.</summary>
+        public float PoolBed(TileTerrain t, Vector2 p, System.Func<float, float, float, float, float> bed)
+        {
+            float h = 0;
+            foreach (var pool in Pools)
+                h = Mathf.Min(h, bed(Vector2.Distance(p, pool.Centre) + t.Noise(p, 2f, 11) * .3f, pool.Radius, pool.Bank, pool.Deep));
+            return h;
+        }
+
+        /// <summary>How far outside the nearest pool's banks, m (large without pools).</summary>
+        public float PoolDistance(Vector2 p)
+        {
+            float d = 99;
+            foreach (var pool in Pools) d = Mathf.Min(d, Vector2.Distance(p, pool.Centre) - pool.Bank);
+            return d;
+        }
+
+        /// <summary>Within <paramref name="margin"/> of a ramp's sides: kept clear, it is the only way up or down.</summary>
+        public bool OnRamp(Vector2 p, float margin) => Ramps.Any(r =>
+        {
+            var ab = r.B - r.A;
+            float tt = Mathf.Clamp01(Vector2.Dot(p - r.A, ab) / Mathf.Max(1e-6f, ab.sqrMagnitude));
+            return Vector2.Distance(p, r.A + ab * tt) < r.Half + margin;
+        });
+
+        public bool OnBoardwalk(Vector2 p, float margin) => Boardwalks.Any(b => PolyDistance(p, b.line, out _, out _) < margin);
 
         public bool OnTrail(TileTerrain t, Vector2 p)
         {
@@ -740,6 +951,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (InThicket(p) || OnFloor(p)) return true;
             foreach (var prop in Props) if (!prop.NoCollider && Vector2.Distance(p, prop.At) < 1.4f * prop.Scale.x) return true;
             foreach (var spot in Finds) if (Vector2.Distance(p, spot) < .9f) return true;
+            if (OnBoardwalk(p, 1.4f) || OnRamp(p, 1)) return true;
+            foreach (var l in Lookouts) if (Vector2.Distance(p, l.at) < 1.2f) return true;
             return false;
         }
 

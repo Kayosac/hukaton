@@ -32,6 +32,9 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Looping sparkle over a crystal.")]
         public GameObject crystalGlow;
 
+        [Tooltip("Played once when a lookout shows the far landmarks.")]
+        public Hakaton.Feel.SfxCue lookoutCue;
+
         public GameObject Glow(string lootId) => lootId == "crystal" ? crystalGlow : lootId == "find-hard" ? hardGlow : null;
 
         public WorldLoot Loot(string id)

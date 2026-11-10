@@ -158,6 +158,39 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheStartIsALookoutAndCampfiresCrackle()
+        {
+            var silhouettes = streamer.GetComponent<FarSilhouettes>();
+            yield return WaitFor(() => silhouettes.Revealed, 2);
+            Assert.That(silhouettes.Revealed, Is.True, "the top of the start hill shows far landmarks");
+            Assert.That(silhouettes.MarkerRange, Is.GreaterThan(silhouettes.farRadius));
+            yield return null;
+            Assert.That(world.viewCamera.farClipPlane, Is.GreaterThanOrEqualTo(silhouettes.MarkerRange), "the camera sees as far as the markers");
+
+            // The nearest camp: its fire loops once the player stands by it.
+            ChunkCoord camp = default;
+            bool found = false;
+            for (int r = 1; r < 12 && !found; r++)
+                for (int x = -r; x <= r && !found; x++)
+                    for (int y = -r; y <= r && !found; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                        var plan = streamer.Map.Chunk(x, y);
+                        if (plan.Variant.Id == "camp") { camp = new ChunkCoord(x, y); found = true; }
+                    }
+            Assert.That(found, Is.True, "a camp within 12 chunks");
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = streamer.Map.Rules.ChunkSize;
+            world.motor.Teleport(origin + new Vector3(camp.X * size, streamer.Map.Chunk(camp).BaseLevel * streamer.Map.Rules.PlateauHeight + 2, camp.Y * size), Quaternion.identity);
+            AmbientSpot fire = null;
+            yield return WaitFor(() => (fire = Object.FindObjectsByType<AmbientSpot>(FindObjectsSortMode.None).FirstOrDefault(a => a.cue && streamer.CoordAt(a.transform.position).Equals(camp))) != null, 10);
+            Assert.That(fire, Is.Not.Null, "the camp has a place that sounds");
+            world.motor.Teleport(fire.transform.position + new Vector3(1.5f, 1, 0), Quaternion.identity);
+            yield return new WaitForSeconds(.3f);
+            Assert.That(world.sfx.pool.Any(a => a && a.isPlaying && a.loop && fire.cue.clips.Contains(a.clip)), Is.True, "the fire crackles");
+        }
+
+        [UnityTest]
         public IEnumerator ChunksComeBackAsTheyWereLeft()
         {
             // Take one find near the start.

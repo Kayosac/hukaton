@@ -50,6 +50,9 @@ namespace Hakaton.WorldAssembly
             new LandmarkKind("village", 2, 0, 1),
             new LandmarkKind("stone-forest", 2, 1, 0),
             new LandmarkKind("giant-log", 2, 0, 0),
+            new LandmarkKind("mesa", 2, 0, 1),
+            new LandmarkKind("sinkhole", 2, 1, 0),
+            new LandmarkKind("swamp", 2, 1, 1),
         };
 
         public static IEnumerable<LandmarkKind> All

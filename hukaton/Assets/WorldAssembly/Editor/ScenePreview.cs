@@ -16,11 +16,16 @@ namespace Hakaton.WorldAssembly.EditorTools
         const int W = 560, H = 380, Columns = 4;
 
         /// <summary>Every landmark laid out whole, each from two corners: Logs/world-plans/landmarks.png.</summary>
-        public static string Landmarks(string _)
+        public static string Landmarks(string only)
         {
             var catalogue = AssetDatabase.LoadAssetAtPath<ChunkCatalog>("Assets/WorldAssembly/Chunk catalogue.asset");
-            var kinds = new System.Collections.Generic.List<LandmarkKind>(WorldAssembly.Landmarks.All);
-            var sheet = new Texture2D(W * 2, H * kinds.Count, TextureFormat.RGB24, false);
+            var wanted = string.IsNullOrWhiteSpace(only) ? null : only.Split(',');
+            var kinds = new System.Collections.Generic.List<LandmarkKind>();
+            foreach (var k in WorldAssembly.Landmarks.All) if (wanted == null || System.Array.IndexOf(wanted, k.Id) >= 0) kinds.Add(k);
+            const int views = 4;
+            bool fog = RenderSettings.fog;
+            RenderSettings.fog = false;
+            var sheet = new Texture2D(W * views, H * kinds.Count, TextureFormat.RGB24, false);
             var previous = SceneManager.GetActiveScene();
             var scene = EditorSceneManager.NewPreviewScene();
             var sun = new GameObject("Sun").AddComponent<Light>();
@@ -56,10 +61,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                     }
                 float size = kind.Size * 16;
                 var centre = at + new Vector3(size / 2, 0, size / 2);
-                var views = new[] { centre + new Vector3(-size * .75f, size * .55f, -size * .75f), centre + new Vector3(size * .8f, size * .3f, -size * .2f) };
-                for (int v = 0; v < 2; v++)
+                var eyes = new[] { centre + new Vector3(-size * .75f, size * .55f, -size * .75f), centre + new Vector3(size * .8f, size * .3f, -size * .2f), centre + new Vector3(0, size * 1.25f, -size * .12f), centre + new Vector3(size * .1f, size * .22f, -size * .95f) };
+                for (int v = 0; v < views; v++)
                 {
-                    cam.transform.position = views[v];
+                    cam.transform.position = eyes[v];
                     cam.transform.LookAt(centre + Vector3.up * 2);
                     cam.targetTexture = rt;
                     cam.aspect = W / (float)H;
@@ -76,13 +81,51 @@ namespace Hakaton.WorldAssembly.EditorTools
             sheet.Apply();
             string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
             Directory.CreateDirectory(dir);
-            File.WriteAllBytes(Path.Combine(dir, "landmarks.png"), sheet.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(dir, wanted == null ? "landmarks.png" : "landmarks-" + only.Replace(',', '-') + ".png"), sheet.EncodeToPNG());
             Object.DestroyImmediate(sheet);
             Object.DestroyImmediate(tex);
             Object.DestroyImmediate(rt);
             EditorSceneManager.ClosePreviewScene(scene);
             if (previous.IsValid()) SceneManager.SetActiveScene(previous);
+            RenderSettings.fog = fog;
             return $"sheet of {kinds.Count} landmarks";
+        }
+
+        /// <summary>Heights of a landmark's ground along a line: "mesa x0 y0 x1 y1 [steps]" (scene coordinates).</summary>
+        public static string Probe(string arg)
+        {
+            var a = arg.Split(' ');
+            var kind = WorldAssembly.Landmarks.Get(a[0]);
+            if (a[1] == "circle")
+            {
+                var inv = System.Globalization.CultureInfo.InvariantCulture;
+                float cx = float.Parse(a[2], inv), cy = float.Parse(a[3], inv), r = float.Parse(a[4], inv), from = float.Parse(a[5], inv), to = float.Parse(a[6], inv);
+                var text = new System.Text.StringBuilder();
+                for (float deg = from; deg <= to + .01f; deg += 15)
+                {
+                    var q = new Vector2(cx + r * Mathf.Cos(deg * Mathf.Deg2Rad), cy + r * Mathf.Sin(deg * Mathf.Deg2Rad));
+                    int ci = Mathf.Clamp((int)(q.x / 16), 0, kind.Size - 1), cj = Mathf.Clamp((int)(q.y / 16), 0, kind.Size - 1);
+                    var tt = new TileTerrain(TileShapes.Get(kind.PartId(ci, cj)), "part", 6, 5);
+                    text.Append($"\n{deg:0}° ({q.x:0.0},{q.y:0.0}) height {tt.Height(q - tt.Offset):0.00}");
+                }
+                return text.ToString();
+            }
+            float x0 = float.Parse(a[1], System.Globalization.CultureInfo.InvariantCulture), y0 = float.Parse(a[2], System.Globalization.CultureInfo.InvariantCulture);
+            float x1 = float.Parse(a[3], System.Globalization.CultureInfo.InvariantCulture), y1 = float.Parse(a[4], System.Globalization.CultureInfo.InvariantCulture);
+            int steps = a.Length > 5 ? int.Parse(a[5]) : 12;
+            var sb = new System.Text.StringBuilder();
+            for (int k = 0; k <= steps; k++)
+            {
+                // "circle cx cy r a0 a1": x0 = cx, y0 = cy, x1 = r, y1 = a0, steps = a1 (degrees, 15° apart).
+                var p = a[1] == "circle"
+                    ? Vector2.zero
+                    : Vector2.Lerp(new Vector2(x0, y0), new Vector2(x1, y1), k / (float)steps);
+                int i = Mathf.Clamp((int)(p.x / 16), 0, kind.Size - 1), j = Mathf.Clamp((int)(p.y / 16), 0, kind.Size - 1);
+                var t = new TileTerrain(TileShapes.Get(kind.PartId(i, j)), "part", 6, 5);
+                var local = p - t.Offset;
+                sb.Append($"\n({p.x:0.0},{p.y:0.0}) relief {t.Scene.Relief(t, p):0.00} height {t.Height(local):0.00}");
+            }
+            return sb.ToString();
         }
 
         public static string Sheet(string shapeId)

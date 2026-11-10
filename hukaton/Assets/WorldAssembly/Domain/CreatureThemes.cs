@@ -52,6 +52,9 @@ namespace Hakaton.WorldAssembly
             ["beeyard"] = new Theme("zombie-beekeeper*2", "bee-swarm*3+zombie-beekeeper", "enraged-bee-mutant+bee-swarm*3"),
             ["village"] = new Theme("rooster-baseball*2", "rat-pumpkin*3+rooster-baseball", "goblin-dog*3+rat-pumpkin"),
             ["stone-forest"] = new Theme("teen-leshy-skater", "hostile-bush*2", "sinister-living-tree*2"),
+            ["mesa"] = new Theme("kind-little-worm*2", "goblin-dog*2+budding-troll|goblin-dog*3", "budding-troll+goblin-dog*2"),
+            ["sinkhole"] = new Theme("purple-mushroom*3", "hostile-bush*2+purple-mushroom", "budding-troll+purple-mushroom*2"),
+            ["swamp"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2", "budding-troll+snail-frog-mount"),
             ["giant-log"] = new Theme("teen-leshy-skater*2", "hostile-bush*2|teen-leshy-skater*2", "sinister-living-tree"),
         };
 

@@ -28,5 +28,9 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Ground height next to the middle of each edge segment (canonical side × 3 + segment): where links to neighbours land.")]
         public float[] edgeHeights = new float[12];
         public PhysicsProp[] props = new PhysicsProp[0];
+        [Tooltip("Places that sound (a campfire, a chimney): the streamer keeps the nearest few looping.")]
+        public AmbientSpot[] ambient = new AmbientSpot[0];
+        [Tooltip("High places that show far landmarks for a while.")]
+        public Lookout[] lookouts = new Lookout[0];
     }
 }

@@ -191,7 +191,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case ShapeKind.Plain when Variant == "pond":
                     return Bed(Vector2.Distance(p, PondCentre) + Noise(p, 2f, 11) * .3f * fade, PondRadius, PondBank, PondDeep);
                 default:
-                    return Scene != null ? Scene.Relief(this, p + Offset) : 0;
+                    if (Scene == null) return 0;
+                    float relief = Scene.Relief(this, p + Offset);
+                    return Scene.Pools.Count > 0 ? Mathf.Min(relief, Scene.PoolBed(this, p + Offset, Bed)) : relief;
             }
         }
 
@@ -214,8 +216,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (w > 0) h = Mathf.Lerp(h, Mathf.Lerp(ramp.HeightA, ramp.HeightB, t), w);
                 onRamp = Mathf.Max(onRamp, w);
             }
-            bool wet = Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond");
-            float amplitude = wet && h < WaterLevel + .4f ? .05f : .18f;
+            float amplitude = Wet && h < WaterLevel + .4f ? .05f : .18f;
             // Rolling ground everywhere, but water keeps its banks and ramps their run.
             float calm = Mathf.Clamp01((WaterDistance(p) - .4f) / 2.4f) * (1 - onRamp);
             // A canyon's floor and walls stay as cut: the floor is the only way along it.
@@ -246,6 +247,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         public float WaterDistance(Vector2 p)
         {
             if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) - PondBank;
+            if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset);
             if (Shape.Kind != ShapeKind.River) return 99;
             float d = DistanceToCentre(p) - BankHalf;
             if (Shape.Id == "river-end") d = Mathf.Min(d, Vector2.Distance(p, new Vector2(8, 8)) - (Variant == "spring" ? SpringBank : LakeBank));
@@ -271,23 +273,35 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>Under water (river, lake, spring or pond) here.</summary>
-        public bool IsWater(Vector2 p)
+        public bool IsWater(Vector2 p) => Wet && Base(p) < WaterLevel + .02f;
+
+        /// <summary>
+        /// The chunk holds water: a river, the pond, or pools of a scene that reach into this part. Water gets its
+        /// surface, ice and navigation blocks.
+        /// </summary>
+        public bool Wet
         {
-            bool wet = Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond");
-            return wet && Base(p) < WaterLevel + .02f;
+            get
+            {
+                if (Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond")) return true;
+                if (Scene == null) return false;
+                foreach (var pool in Scene.Pools)
+                {
+                    var c = pool.Centre - Offset;
+                    if (c.x > -pool.Radius && c.x < Size + pool.Radius && c.y > -pool.Radius && c.y < Size + pool.Radius) return true;
+                }
+                return false;
+            }
         }
 
         /// <summary>Water at least a hand deep here.</summary>
-        public bool IsDeep(Vector2 p)
-        {
-            bool wet = Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond");
-            return wet && Base(p) < WaterLevel - .1f;
-        }
+        public bool IsDeep(Vector2 p) => Wet && Base(p) < WaterLevel - .1f;
 
         /// <summary>Within <paramref name="margin"/> of the water's own banks.</summary>
         public bool NearWater(Vector2 p, float margin)
         {
-            if (Shape.Kind == ShapeKind.Plain) return Vector2.Distance(p, PondCentre) < PondBank + margin;
+            if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) < PondBank + margin;
+            if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset) < margin;
             if (Shape.Kind != ShapeKind.River) return false;
             if (DistanceToCentre(p) < BankHalf + margin) return true;
             if (Shape.Id != "river-end") return false;
