@@ -37,6 +37,7 @@ namespace Hukaton.Rendering
         public Camera OutputCamera => state?.Output;
         public int NativeArtworkLayerMask => state == null || !Settings ? 0
             : state.OriginalCullingMask & Settings.NativeResolutionLayers.value & ~NativeWorldUI.Mask;
+        public int SceneTransparencyLayerMask => state == null ? 0 : state.OriginalCullingMask & ~NativeWorldUI.Mask;
         public int WorldLayerMask => state == null ? 0 : state.OriginalCullingMask & ~(NativeWorldUI.Mask | NativeArtworkLayerMask);
         public bool IsActive => isActiveAndEnabled && Settings && Settings.Enabled && Image;
 
@@ -76,7 +77,8 @@ namespace Hukaton.Rendering
                 state.Output.useOcclusionCulling = false;
                 var data = state.Output.GetUniversalAdditionalCameraData();
                 data.renderPostProcessing = false; data.renderShadows = false;
-                data.requiresDepthOption = CameraOverrideOption.Off; data.requiresColorOption = CameraOverrideOption.Off;
+                // The shared transparent pass includes water and effects that sample scene colour/depth.
+                data.requiresDepthOption = CameraOverrideOption.On; data.requiresColorOption = CameraOverrideOption.On;
                 data.antialiasing = AntialiasingMode.None; data.volumeLayerMask = 0;
                 output.AddComponent<WorldResolutionOutput>().Owner = this;
                 RenderPipelineManager.beginCameraRendering += BeginCamera;

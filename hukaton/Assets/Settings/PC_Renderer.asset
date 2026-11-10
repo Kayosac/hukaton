@@ -1,5 +1,21 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-2278434628847295754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df736f7e9ba8746329b0a6d03579b38f, type: 3}
+  m_Name: World transparency routing
+  m_EditorClassIdentifier: Assembly-CSharp::Hukaton.Rendering.WorldTransparencyRendererFeature
+  m_Active: 1
+  Layers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27,7 +43,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 1352202924218563964}
   - {fileID: 7833122117494664109}
-  m_RendererFeatureMap: 7cbd4a3265fdc312ad6b866f10d7b46c
+  - {fileID: -2278434628847295754}
+  m_RendererFeatureMap: 7cbd4a3265fdc312ad6b866f10d7b46cf6a29bd7c65f61e0
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -40,7 +57,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 0
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 1

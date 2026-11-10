@@ -11,13 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
   m_Name: Mobile_Renderer
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   debugShaders:
-    debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7,
-      type: 3}
+    debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
-    probeVolumeSamplingDebugComputeShader: {fileID: 7200000, guid: 53626a513ea68ce47b59dc1299fe3959,
-      type: 3}
+    probeVolumeSamplingDebugComputeShader: {fileID: 7200000, guid: 53626a513ea68ce47b59dc1299fe3959, type: 3}
   probeVolumeResources:
     probeVolumeDebugShader: {fileID: 0}
     probeVolumeFragmentationDebugShader: {fileID: 0}
@@ -28,16 +26,21 @@ MonoBehaviour:
     probeVolumeBlendStatesCS: {fileID: 0}
   m_RendererFeatures:
   - {fileID: 1352202924218563964}
-  m_RendererFeatureMap: 7cbd4a3265fdc312
+  - {fileID: 7733401665167429030}
+  m_RendererFeatureMap: 7cbd4a3265fdc312a60db855d78f526b
   m_UseNativeRenderPass: 1
+  xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
-  m_AssetVersion: 2
+  m_AssetVersion: 3
+  m_PrepassLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   m_OpaqueLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 0
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 0
@@ -49,6 +52,8 @@ MonoBehaviour:
   m_RenderingMode: 0
   m_DepthPrimingMode: 0
   m_CopyDepthMode: 0
+  m_DepthAttachmentFormat: 0
+  m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
 --- !u!114 &1352202924218563964
@@ -73,3 +78,19 @@ MonoBehaviour:
   m_Version: 1
   Settings: {fileID: 11400000, guid: e6bf6d44fed1f4ee2ae6cab9f4e488ff, type: 2}
   ditheringShader: {fileID: 4800000, guid: 7d38adbdf12e146b09347821dcbe0552, type: 3}
+--- !u!114 &7733401665167429030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df736f7e9ba8746329b0a6d03579b38f, type: 3}
+  m_Name: World transparency routing
+  m_EditorClassIdentifier: Assembly-CSharp::Hukaton.Rendering.WorldTransparencyRendererFeature
+  m_Active: 1
+  Layers:
+    serializedVersion: 2
+    m_Bits: 4294967295

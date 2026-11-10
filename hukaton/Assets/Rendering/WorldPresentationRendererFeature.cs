@@ -10,7 +10,7 @@ namespace Hukaton.Rendering
         [SerializeField, HideInInspector] Shader presentationShader;
         [System.NonSerialized] Material runtimeMaterial;
         [System.NonSerialized] bool initialized;
-        [System.NonSerialized] NativeWorldUIPass depthPass, opaqueArtwork, transparentArtwork, opaqueUI, transparentUI;
+        [System.NonSerialized] NativeWorldUIPass depthPass, opaqueArtwork, sceneTransparency, opaqueUI, transparentUI;
 
         public void Configure(Shader shader) { presentationShader = shader; Create(); }
 
@@ -19,14 +19,16 @@ namespace Hukaton.Rendering
             Dispose(true);
             if (presentationShader) runtimeMaterial = CoreUtils.CreateEngineMaterial(presentationShader);
             passMaterial = runtimeMaterial; fetchColorBuffer = false; requirements = ScriptableRenderPassInput.None;
-            injectionPoint = InjectionPoint.AfterRenderingPostProcessing;
+            // Present the opaque world before URP copies its colour/depth for transparent shaders.
+            injectionPoint = (InjectionPoint)RenderPassEvent.BeforeRenderingOpaques;
             bindDepthStencilAttachment = false; passIndex = 0;
             base.Create(); initialized = true;
-            depthPass = new NativeWorldUIPass("Native world occlusion (depth only)", 1, true, false);
-            opaqueArtwork = new NativeWorldUIPass("Native artwork (opaque cards)", 2, false, false, true);
-            transparentArtwork = new NativeWorldUIPass("Native artwork (sprites and hand)", 3, false, true, true);
-            opaqueUI = new NativeWorldUIPass("Native world UI (opaque)", 4, false, false);
-            transparentUI = new NativeWorldUIPass("Native world UI (text and canvas)", 5, false, true);
+            depthPass = new NativeWorldUIPass("Native world occlusion (depth only)", (RenderPassEvent)251, true, false);
+            opaqueArtwork = new NativeWorldUIPass("Native artwork (opaque cards)", (RenderPassEvent)252, false, false, true);
+            sceneTransparency = new NativeWorldUIPass("Sorted scene transparency (sprites, effects and hand)",
+                RenderPassEvent.BeforeRenderingTransparents, false, true, true);
+            opaqueUI = new NativeWorldUIPass("Native world UI (opaque)", (RenderPassEvent)601, false, false);
+            transparentUI = new NativeWorldUIPass("Native world UI (text and canvas)", (RenderPassEvent)602, false, true);
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -41,9 +43,9 @@ namespace Hukaton.Rendering
             runtimeMaterial.SetVector("_OutputRect", new Vector4(rect.x / descriptor.width, rect.y / descriptor.height, rect.width / descriptor.width, rect.height / descriptor.height));
             runtimeMaterial.SetColor("_BorderColor", QualitySettings.activeColorSpace == ColorSpace.Linear ? owner.Settings.BorderColor.linear : owner.Settings.BorderColor);
             base.AddRenderPasses(renderer, ref renderingData);
-            depthPass.Setup(owner); opaqueArtwork.Setup(owner); transparentArtwork.Setup(owner);
+            depthPass.Setup(owner); opaqueArtwork.Setup(owner); sceneTransparency.Setup(owner);
             opaqueUI.Setup(owner); transparentUI.Setup(owner);
-            renderer.EnqueuePass(depthPass); renderer.EnqueuePass(opaqueArtwork); renderer.EnqueuePass(transparentArtwork);
+            renderer.EnqueuePass(depthPass); renderer.EnqueuePass(opaqueArtwork); renderer.EnqueuePass(sceneTransparency);
             renderer.EnqueuePass(opaqueUI); renderer.EnqueuePass(transparentUI);
         }
 
