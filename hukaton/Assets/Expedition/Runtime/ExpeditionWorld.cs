@@ -117,6 +117,10 @@ namespace Hakaton.Expeditions
                 var item = hit.collider.GetComponentInParent<WorldLoot>();
                 if (!item || !item.Available) continue;
                 Vector3 toItem = item.transform.position - eye.position;
+                // Only a find in plain sight: nothing solid between the eye and the middle of it.
+                Vector3 toMiddle = hit.collider.bounds.center - eye.position;
+                if (Physics.Raycast(eye.position, toMiddle.normalized, out var blocker, Mathf.Max(0, toMiddle.magnitude - .05f), ~(1 << 2), QueryTriggerInteraction.Ignore)
+                    && !blocker.collider.transform.IsChildOf(item.transform)) continue;
                 float score = Vector3.Cross(eye.forward, toItem).magnitude + toItem.magnitude * .05f;
                 if (score < bestScore) { bestScore = score; best = item; }
             }

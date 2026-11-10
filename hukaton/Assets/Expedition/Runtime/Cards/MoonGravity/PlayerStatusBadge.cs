@@ -7,9 +7,10 @@ using UnityEngine.UI;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// A small HUD badge under the hearts while a timed card modifier is on the player (Moon gravity, Lightness) or the
-    /// player is wet (<see cref="WetStatus"/>, rain): an icon inside a ring that drains with the remaining time and
-    /// blinks for the last seconds; it pops when refreshed and disappears with a soft sound when the state ends.
+    /// A small HUD badge under the wallet while a timed card modifier is on the player (Moon gravity, Lightness) or the
+    /// player is wet (<see cref="WetStatus"/>, rain): a glossy symbol inside a golden ring, both turning about Y in
+    /// opposite directions (drawn flipbooks); the two halves of the ring drain together with the remaining time, the
+    /// badge blinks for the last seconds, pops when refreshed and disappears with a soft sound when the state ends.
     /// Optionally keeps an aura effect around the camera for as long. Instantiated from its prefab under the expedition
     /// HUD canvas and destroyed with the outing.
     /// </summary>
@@ -24,11 +25,11 @@ namespace Hakaton.Expeditions.Cards
         public MotorModifier modifier;
         public RectTransform rect;
         public Image icon;
-        [Tooltip("Filled image: drains with the remaining time.")]
-        public Image ring;
-        [Header("Layout (top-left, under the hearts)")]
-        public Vector2 firstPosition = new Vector2(40, -100);
-        [Min(0)] public float spacing = 60;
+        [Tooltip("Filled images drained together with the remaining time: the far and the near half of the ring.")]
+        public Image[] rings = new Image[0];
+        [Header("Layout (in the HUD's status row, under the wallet)")]
+        public Vector2 firstPosition = Vector2.zero;
+        [Min(0)] public float spacing = 28;
         [Header("Timing")]
         [Tooltip("Blinks during the last seconds.")]
         [Min(0)] public float warnSeconds = 3;
@@ -50,7 +51,8 @@ namespace Hakaton.Expeditions.Cards
         bool ending;
         SpringFloat pop;
         VfxBurst auraInstance;
-        Color iconColour = Color.white, ringColour = Color.white;
+        Color iconColour = Color.white;
+        Color[] ringColours = new Color[0];
 
         /// <summary>Shows the badge for <paramref name="prefab"/>'s modifier, or refreshes the one already shown.</summary>
         public static PlayerStatusBadge Show(ExpeditionWorld world, PlayerStatusBadge prefab)
@@ -59,9 +61,9 @@ namespace Hakaton.Expeditions.Cards
             Shown.RemoveAll(b => !b);
             foreach (var shown in Shown)
                 if (shown.world == world && shown.Follows(prefab) && !shown.ending) { shown.Refresh(); return shown; }
-            var canvas = world.hud ? world.hud.canvas : null;
-            if (!canvas) return null;
-            var badge = Instantiate(prefab, canvas.transform, false);
+            var row = world.hud ? (world.hud.statusRow ? (Transform)world.hud.statusRow : world.hud.canvas ? world.hud.canvas.transform : null) : null;
+            if (!row) return null;
+            var badge = Instantiate(prefab, row, false);
             world.TrackForOuting(badge.gameObject);
             badge.Begin(world);
             return badge;
@@ -71,7 +73,8 @@ namespace Hakaton.Expeditions.Cards
         {
             world = owner;
             if (icon) iconColour = icon.color;
-            if (ring) ringColour = ring.color;
+            ringColours = new Color[rings.Length];
+            for (int i = 0; i < rings.Length; i++) ringColours[i] = rings[i] ? rings[i].color : Color.white;
             Shown.Add(this);
             world.Play(startSound);
             Refresh();
@@ -109,7 +112,8 @@ namespace Hakaton.Expeditions.Cards
             float remaining = Remaining();
             if (remaining <= 0 || !world.Running) { End(); return; }
             if (remaining > total) total = remaining;
-            if (ring) ring.fillAmount = remaining / total;
+            // The remaining time, not the turning phase: both halves always show the same share.
+            foreach (var ring in rings) if (ring) ring.fillAmount = remaining / total;
             float alpha = 1;
             if (remaining < warnSeconds)
             {
@@ -119,7 +123,8 @@ namespace Hakaton.Expeditions.Cards
                 alpha = Mathf.Lerp(blinkMinimumAlpha, 1, wave);
             }
             if (icon) icon.color = new Color(iconColour.r, iconColour.g, iconColour.b, iconColour.a * alpha);
-            if (ring) ring.color = new Color(ringColour.r, ringColour.g, ringColour.b, ringColour.a * alpha);
+            for (int i = 0; i < rings.Length; i++)
+                if (rings[i]) rings[i].color = new Color(ringColours[i].r, ringColours[i].g, ringColours[i].b, ringColours[i].a * alpha);
             float scale = 1 + pop.Step(0, popFrequency, popDamping, Time.unscaledDeltaTime) * .04f;
             transform.localScale = Vector3.one * Mathf.Max(.2f, scale);
             Layout();
