@@ -45,9 +45,9 @@ namespace Hakaton.Expeditions.Tests
             var effect = ice.effectAsset as FreezeEffect;
             Assert.That(effect, Is.Not.Null);
             Assert.That(effect.wetMultiplier, Is.EqualTo(2));
-            float basePower = ice.basePower, upgradedPower = ice.basePower + ice.powerPerLevel;
-            Assert.That(FreezeEffect.FreezeSeconds(basePower, true, effect.wetMultiplier), Is.EqualTo(4));
-            Assert.That(FreezeEffect.FreezeSeconds(upgradedPower, true, effect.wetMultiplier), Is.EqualTo(6));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.i, true, effect.wetMultiplier), Is.EqualTo(4));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.ii, true, effect.wetMultiplier), Is.EqualTo(8));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.iii, true, effect.wetMultiplier), Is.EqualTo(14));
         }
 
         [Test]
@@ -140,12 +140,11 @@ namespace Hakaton.Expeditions.Tests
                 string script = AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject((ScriptableObject)definition.effectAsset));
                 string name = definition.effectAsset.GetType().Name.Replace("Effect", "");
                 Assert.That(script, Is.EqualTo($"Assets/Expedition/Runtime/Cards/{name}/{name}Effect.cs"), "One folder per card.");
-                bool stat = definition.effectAsset is ICardStatLine line && line.TryGetStat(out _, out _, out _, out _);
-                Assert.That(stat, Is.EqualTo(definition.upgradable), definition.id + ": the workshop shows its main number.");
+                bool stat = definition.effectAsset is ICardStatLine line && line.TryGetStat(out _, out _, out _);
+                Assert.That(stat, Is.EqualTo(definition.action != CardAction.Teleport), definition.id + ": the PC shows its main number (Teleport: its uses).");
             }
             var moon = config.Find("moon_gravity").effectAsset as MoonGravityEffect;
-            Assert.That(moon.durationBase, Is.EqualTo(12));
-            Assert.That(moon.durationUpgraded, Is.EqualTo(45));
+            Assert.That((moon.duration.i, moon.duration.ii, moon.duration.iii), Is.EqualTo((12f, 25f, 45f)));
             Assert.That(moon.gravityMultiplier, Is.EqualTo(.25f));
         }
     }

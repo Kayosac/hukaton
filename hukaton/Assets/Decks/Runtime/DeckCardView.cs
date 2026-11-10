@@ -15,9 +15,21 @@ namespace Hakaton.Decks.Unity
         public Color normalColor = new Color(.27f, .31f, .27f), selectedColor = new Color(.83f, .68f, .40f);
         public int CopyId { get; private set; }
         public string DefinitionId { get; private set; }
-        bool hovered, selected;
+        bool hovered, selected, dimmed;
         Vector2 artHome;
+        float celebrate;
         void Awake() { artHome = art.rectTransform.anchoredPosition; }
+
+        /// <summary>A short pop of the whole tile (a fresh merge).</summary>
+        public void Celebrate() { celebrate = 1; }
+
+        /// <summary>Fades the tile while it cannot be chosen (merging looks for a partner).</summary>
+        public void SetDimmed(bool value)
+        {
+            dimmed = value;
+            if (group) group.alpha = value ? .35f : 1;
+            button.interactable = !value;
+        }
         public void Bind(
             Sprite sprite, string captionText, string statusText, int copyId, string definitionId, bool isSelected, bool equipped)
         {
@@ -30,7 +42,7 @@ namespace Hakaton.Decks.Unity
             status.text = statusText;
             outline.color = isSelected ? selectedColor : normalColor;
             selectionMark.gameObject.SetActive(equipped);
-            button.interactable = true;
+            SetDimmed(false);
         }
 
         public void OnPointerEnter(PointerEventData e) { hovered = true; }
@@ -39,12 +51,18 @@ namespace Hakaton.Decks.Unity
         {
             var p = artHome + Vector2.up * (hovered ? 6 : 0);
             art.rectTransform.anchoredPosition = Vector2.Lerp(art.rectTransform.anchoredPosition, p, Time.unscaledDeltaTime * 18);
-            outline.color = selected ? selectedColor : hovered ? Color.Lerp(normalColor, selectedColor, .55f) : normalColor;
+            outline.color = selected ? selectedColor : hovered && !dimmed ? Color.Lerp(normalColor, selectedColor, .55f) : normalColor;
+            // Overshooting pop: 1 → 1.18 → settle, in about a third of a second.
+            celebrate = Mathf.MoveTowards(celebrate, 0, Time.unscaledDeltaTime * 3f);
+            float pop = 1 + .18f * Mathf.Sin(celebrate * Mathf.PI) * celebrate;
+            transform.localScale = new Vector3(pop, pop, 1);
         }
 
         void OnDisable()
         {
             hovered = false;
+            celebrate = 0;
+            transform.localScale = Vector3.one;
             if (art) art.rectTransform.anchoredPosition = artHome;
         }
     }

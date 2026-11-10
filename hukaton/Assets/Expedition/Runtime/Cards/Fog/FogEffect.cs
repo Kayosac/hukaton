@@ -11,9 +11,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class FogEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Fog duration, s (board: 8 → 12).")]
-        [Min(0)] public float durationBase = 8, durationUpgraded = 12;
+        public LevelFloat duration = new LevelFloat(8, 14, 24);
         [Tooltip("Fog radius, m (same on both levels).")]
         [Min(0)] public float radius = 3;
 
@@ -33,15 +33,14 @@ namespace Hakaton.Expeditions.Cards
             }
             if (!CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var ground, out _)) ground = c.Point;
             var fog = c.World.SpawnForOuting(fogPrefab, ground, Quaternion.identity);
-            if (fog) fog.Setup(c.Pick(durationBase, durationUpgraded), radius);
+            if (fog) fog.Setup(c.At(duration), radius);
             Feedback(c, fog);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Длительность";
-            baseValue = durationBase;
-            upgradedValue = durationUpgraded;
+            values = duration;
             unit = " с";
             return true;
         }

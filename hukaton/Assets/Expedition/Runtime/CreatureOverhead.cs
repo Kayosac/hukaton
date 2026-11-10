@@ -32,10 +32,13 @@ namespace Hakaton.Expeditions
         {
             healthUntil = Time.time + healthSeconds;
             pipsScale.Kick(8);
+            // One pip per point while they fit; a sturdier body (a level III tree, 32 HP) shares points between pips.
+            int perPip = Mathf.Max(1, Mathf.CeilToInt(maximum / (float)Mathf.Max(1, pips.Length)));
+            int shown = Mathf.CeilToInt(maximum / (float)perPip), full = Mathf.CeilToInt(current / (float)perPip);
             for (int i = 0; i < pips.Length; i++)
             {
-                pips[i].gameObject.SetActive(i < maximum);
-                pips[i].sprite = i < current ? pipFull : pipEmpty;
+                pips[i].gameObject.SetActive(i < shown);
+                pips[i].sprite = i < full ? pipFull : pipEmpty;
             }
         }
 

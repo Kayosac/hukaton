@@ -8,7 +8,7 @@ namespace Hakaton.Expeditions
 {
     public sealed class FreezeEffect : CardEffect
     {
-        [Tooltip("Board: a wet creature freezes this many times longer (2 → 4 s, upgraded 3 → 6 s). Not over ×2 from several clouds.")]
+        [Tooltip("Board: a wet creature freezes this many times longer (I / II / III: 2 / 4 / 7 s → 4 / 8 / 14 s). Not over ×2 from several clouds.")]
         [Min(1)] public float wetMultiplier = 2;
 
         /// <summary>Freeze duration: the card's power in seconds, multiplied for a wet target (checked at the moment of the hit).</summary>

@@ -105,15 +105,15 @@ namespace Hakaton.Expeditions.Tests
         {
             var motor = BareMotor();
             var moon = Make(ScriptableObject.CreateInstance<MoonGravityEffect>());
-            moon.ApplyTo(motor, false);
+            moon.ApplyTo(motor, 1);
             Assert.That(motor.GravityScale, Is.EqualTo(.25f));
             Assert.That(motor.ModifierRemaining(MotorModifier.Gravity), Is.EqualTo(12).Within(.01f));
-            moon.ApplyTo(motor, false);
+            moon.ApplyTo(motor, 1);
             Assert.That(motor.GravityScale, Is.EqualTo(.25f), "Never multiplied: not 1/16.");
             Assert.That(motor.ModifierRemaining(MotorModifier.Gravity), Is.EqualTo(12).Within(.01f), "Never added up.");
-            moon.ApplyTo(motor, true);
-            Assert.That(motor.ModifierRemaining(MotorModifier.Gravity), Is.EqualTo(45).Within(.01f), "Upgraded copy: 45 s.");
-            moon.ApplyTo(motor, false);
+            moon.ApplyTo(motor, 3);
+            Assert.That(motor.ModifierRemaining(MotorModifier.Gravity), Is.EqualTo(45).Within(.01f), "Level III: 45 s.");
+            moon.ApplyTo(motor, 1);
             Assert.That(motor.ModifierRemaining(MotorModifier.Gravity), Is.EqualTo(45).Within(.01f), "A shorter copy does not cut it.");
             Assert.That(motor.ImpulseScale, Is.EqualTo(1), "The Moon changes only gravity.");
             Assert.That(float.IsPositiveInfinity(motor.FallSpeedLimit), Is.True);
@@ -126,14 +126,14 @@ namespace Hakaton.Expeditions.Tests
             var motor = BareMotor();
             var moon = Make(ScriptableObject.CreateInstance<MoonGravityEffect>());
             var light = Make(ScriptableObject.CreateInstance<LightnessEffect>());
-            light.ApplyTo(motor, false);
-            moon.ApplyTo(motor, false);
+            light.ApplyTo(motor, 1);
+            moon.ApplyTo(motor, 1);
             Assert.That(motor.GravityScale, Is.EqualTo(.25f));
             Assert.That(motor.ImpulseScale, Is.EqualTo(1.5f));
             Assert.That(motor.FallSpeedLimit, Is.EqualTo(8 * motor.ReferenceScale).Within(.001f), "8 design m/s, in real units.");
             Assert.That(motor.ModifierRemaining(MotorModifier.ReceivedImpulse), Is.EqualTo(6).Within(.01f));
-            light.ApplyTo(motor, true);
-            Assert.That(motor.ModifierRemaining(MotorModifier.FallSpeedLimit), Is.EqualTo(9).Within(.01f), "Upgraded: 9 s.");
+            light.ApplyTo(motor, 2);
+            Assert.That(motor.ModifierRemaining(MotorModifier.FallSpeedLimit), Is.EqualTo(12).Within(.01f), "Level II: 12 s.");
             Assert.That(motor.ImpulseScale, Is.EqualTo(1.5f), "Not 2.25.");
         }
 
@@ -222,20 +222,20 @@ namespace Hakaton.Expeditions.Tests
             body.mass = 1;
             Physics.SyncTransforms();
             Vector3 near = Far + new Vector3(8, 0, 0), far = Far + new Vector3(15, 0, 0);
-            Assert.That(swap.Check(body, near, false), Is.EqualTo(SwapEffect.Refusal.None));
-            Assert.That(swap.Check(body, far, false), Is.EqualTo(SwapEffect.Refusal.TooFar), "12 m base.");
-            Assert.That(swap.Check(body, far, true), Is.EqualTo(SwapEffect.Refusal.None), "18 m upgraded.");
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.None));
+            Assert.That(swap.Check(body, far, 1), Is.EqualTo(SwapEffect.Refusal.TooFar), "12 m base.");
+            Assert.That(swap.Check(body, far, 2), Is.EqualTo(SwapEffect.Refusal.None), "20 m at level II.");
             body.mass = 2;
-            Assert.That(swap.Check(body, near, false), Is.EqualTo(SwapEffect.Refusal.None), "μ = 2 is still fine.");
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.None), "μ = 2 is still fine.");
             body.mass = 2.5f;
-            Assert.That(swap.Check(body, near, false), Is.EqualTo(SwapEffect.Refusal.TooHeavy));
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.TooHeavy));
             body.mass = 1;
             body.isKinematic = true;
-            Assert.That(swap.Check(body, near, false), Is.EqualTo(SwapEffect.Refusal.Fixed));
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.Fixed));
             body.isKinematic = false;
             crate.AddComponent<WorldCreature>();
-            Assert.That(swap.Check(body, near, false), Is.EqualTo(SwapEffect.Refusal.Living));
-            Assert.That(swap.Check(null, near, false), Is.EqualTo(SwapEffect.Refusal.NoObject));
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.Living));
+            Assert.That(swap.Check(null, near, 1), Is.EqualTo(SwapEffect.Refusal.NoObject));
         }
 
         // ---------- the authored assets ----------
@@ -245,8 +245,7 @@ namespace Hakaton.Expeditions.Tests
         {
             const string folder = "Assets/Game/Data/Effects/";
             var moon = AssetDatabase.LoadAssetAtPath<MoonGravityEffect>(folder + "Moon gravity.asset");
-            Assert.That(moon.durationBase, Is.EqualTo(12));
-            Assert.That(moon.durationUpgraded, Is.EqualTo(45));
+            Assert.That((moon.duration.i, moon.duration.ii, moon.duration.iii), Is.EqualTo((12f, 25f, 45f)));
             Assert.That(moon.gravityMultiplier, Is.EqualTo(.25f));
             Assert.That(moon.badge, Is.Not.Null);
             Assert.That(moon.badge.modifier, Is.EqualTo(MotorModifier.Gravity));
@@ -259,15 +258,14 @@ namespace Hakaton.Expeditions.Tests
 
             var mushroom = AssetDatabase.LoadAssetAtPath<MushroomTrampolineEffect>(folder + "Mushroom trampoline.asset");
             Assert.That(mushroom.lifetimeSeconds, Is.EqualTo(15));
-            Assert.That(mushroom.heightReturnBase, Is.EqualTo(.8f));
-            Assert.That(mushroom.heightReturnUpgraded, Is.EqualTo(1));
+            Assert.That((mushroom.heightReturn.i, mushroom.heightReturn.ii, mushroom.heightReturn.iii), Is.EqualTo((.8f, .9f, 1f)));
+            Assert.That((mushroom.minBounceHeight.i, mushroom.minBounceHeight.ii, mushroom.minBounceHeight.iii), Is.EqualTo((1.5f, 2.5f, 4f)));
             Assert.That(mushroom.capDiameter, Is.EqualTo(1.6f));
             Assert.That(mushroom.mushroomPrefab, Is.Not.Null);
             Assert.That(mushroom.mushroomPrefab.capCollider, Is.Not.Null);
 
             var updraft = AssetDatabase.LoadAssetAtPath<UpdraftEffect>(folder + "Updraft.asset");
-            Assert.That(updraft.heightBase, Is.EqualTo(6));
-            Assert.That(updraft.heightUpgraded, Is.EqualTo(8));
+            Assert.That((updraft.height.i, updraft.height.ii, updraft.height.iii), Is.EqualTo((6f, 10f, 15f)));
             Assert.That(updraft.radius, Is.EqualTo(1.5f));
             Assert.That(updraft.durationSeconds, Is.EqualTo(12));
             Assert.That(updraft.riseSpeed, Is.EqualTo(4));
@@ -276,11 +274,10 @@ namespace Hakaton.Expeditions.Tests
 
             var teleport = AssetDatabase.LoadAssetAtPath<TeleportEffect>(folder + "Teleport.asset");
             Assert.That(teleport.arriveVfx, Is.Not.Null);
-            Assert.That((ScriptableObject)teleport is Hakaton.Decks.Unity.ICardStatLine, Is.False, "No upgrade: the workshop writes «Без улучшения».");
+            Assert.That((ScriptableObject)teleport is Hakaton.Decks.Unity.ICardStatLine, Is.False, "Its levels add uses: the PC shows «Использований 1 · 2 · 3».");
 
             var swap = AssetDatabase.LoadAssetAtPath<SwapEffect>(folder + "Swap.asset");
-            Assert.That(swap.rangeBase, Is.EqualTo(12));
-            Assert.That(swap.rangeUpgraded, Is.EqualTo(18));
+            Assert.That((swap.range.i, swap.range.ii, swap.range.iii), Is.EqualTo((12f, 20f, 30f)));
             Assert.That(swap.maxMass, Is.EqualTo(2));
             Assert.That(swap.swapVfx, Is.Not.Null);
         }

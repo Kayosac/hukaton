@@ -137,6 +137,12 @@ namespace Hakaton.Expeditions
             Destroy(gameObject);
         }
 
-        void OnDestroy() { if (world && world.sfx) world.sfx.StopLoop(this); }
+        void OnDestroy()
+        {
+            if (!world) return;
+            if (world.sfx) world.sfx.StopLoop(this);
+            // The attempt is over (hit, miss or gone): a card with uses left (Teleport II / III) returns to the hand.
+            if (card != null && world.workshop && world.workshop.Model != null) world.workshop.Model.Current?.Settle(card.Id);
+        }
     }
 }

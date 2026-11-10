@@ -140,9 +140,8 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(definition, Is.Not.Null);
             var effect = definition.effectAsset as TreeAwakeningEffect;
             Assert.That(effect, Is.Not.Null);
-            Assert.That(effect.healthBase, Is.EqualTo(12));
-            Assert.That(effect.healthUpgraded, Is.EqualTo(18));
-            Assert.That(effect.damage, Is.EqualTo(2));
+            Assert.That((effect.health.i, effect.health.ii, effect.health.iii), Is.EqualTo((12, 20, 32)));
+            Assert.That((effect.damage.i, effect.damage.ii, effect.damage.iii), Is.EqualTo((2, 3, 4)));
             Assert.That(effect.reach, Is.EqualTo(2.5f));
             Assert.That(effect.attackCycle, Is.EqualTo(2.5f));
             Assert.That(effect.windup, Is.EqualTo(.8f));
@@ -164,7 +163,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(PrefabUtility.IsAnyPrefabInstanceRoot(ally.look.gameObject), Is.True,
                 "The look (the Sinister living tree) is its own nested prefab, swappable for other art.");
             Assert.That(ally.GetComponentsInChildren<Collider>(true).Length, Is.GreaterThan(0));
-            Assert.That(ally.overhead.pips.Length, Is.GreaterThanOrEqualTo(effect.healthUpgraded), "One pip per health point.");
+            Assert.That(ally.overhead.pips.Length, Is.GreaterThanOrEqualTo(effect.health.i), "One pip per health point at level I; more health shares pips.");
         }
 
         [Test]
@@ -206,8 +205,8 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(typeof(IHealable).IsAssignableFrom(typeof(TreeAlly)), Is.True, "The awakened tree can be healed.");
             var heal = AssetDatabase.LoadAssetAtPath<CardDefinition>("Assets/Game/Data/heal.asset");
             Assert.That(heal.effectAsset, Is.InstanceOf<HealEffect>());
-            Assert.That((heal.basePower, heal.basePower + heal.powerPerLevel), Is.EqualTo((2, 3)),
-                "Half hearts for the player = units for the ally: 2, upgraded 3.");
+            Assert.That(heal.power.ToArray(), Is.EqualTo(new[] { 2, 4, 6 }),
+                "Half hearts for the player = units for the ally: 2 / 4 / 6 at I / II / III.");
         }
     }
 }

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
+using Hakaton.Decks;
 using Hakaton.Character;
 using Hakaton.Decks.Unity;
 using NUnit.Framework;
@@ -57,44 +58,56 @@ namespace Hakaton.ShopBlockout.Tests
             Assert.That(workshop.EmbeddedOpen, Is.False);
             Assert.That(workshop.control.HasModalOwner, Is.False);
             Assert.That(workshop.embeddedVisibility.alpha, Is.Zero);
-            int coins = workshop.Model.Coins;
-            int level = workshop.Model.Find(workshop.SelectedCopyId).Level;
-            workshop.UpgradeSelected();
+            workshop.Model.Buy("rope", out var a);
+            workshop.Model.Buy("rope", out _);
+            int coins = workshop.Model.Coins, owned = workshop.Model.Owned.Count;
+            workshop.SelectCopy(a.Id);
+            workshop.MergeSelected();
             workshop.UpgradeHand();
+            workshop.UpgradeDeckLimit();
             workshop.TryDepart();
             Assert.That(workshop.Model.Coins, Is.EqualTo(coins));
-            Assert.That(workshop.Model.Find(workshop.SelectedCopyId).Level, Is.EqualTo(level));
+            Assert.That(workshop.Model.Owned.Count, Is.EqualTo(owned), "Nothing merges while the PC is closed.");
             Assert.That(workshop.Model.IsAway, Is.False);
             yield return null;
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        public IEnumerator ComputerUpgradesAndGoblinPurchasesUseTheSameCollection()
+        public IEnumerator ComputerMergesTheOnlyPairAtOnceAndForFree()
         {
-            Assert.That(workshop.OpenEmbedded(false), Is.True);
-            int copyId = workshop.SelectedCopyId;
-            workshop.upgradeButton.onClick.Invoke();
-            Assert.That(workshop.Model.Find(copyId).Level, Is.EqualTo(2));
+            Assert.That(workshop.OpenEmbedded(), Is.True);
+            workshop.Model.Buy("rope", out var a);
+            workshop.Model.Buy("rope", out var b);
+            int coins = workshop.Model.Coins;
+            workshop.SelectCopy(a.Id);
+            workshop.mergeButton.onClick.Invoke();
+            Assert.That(workshop.Model.Find(a.Id).Level, Is.EqualTo(2));
+            Assert.That(workshop.Model.Find(b.Id), Is.Null);
+            Assert.That(workshop.Model.Coins, Is.EqualTo(coins));
             Assert.That(workshop.control.HasModalOwner, Is.True);
             workshop.embeddedCloseButton.onClick.Invoke();
             Assert.That(workshop.EmbeddedOpen, Is.False);
             Assert.That(workshop.control.HasModalOwner, Is.False);
+            yield return null;
+            LogAssert.NoUnexpectedReceived();
+        }
 
-            Assert.That(workshop.OpenEmbedded(true), Is.True);
-            Assert.That(workshop.Market, Is.True);
-            int owned = workshop.Model.Owned.Count;
-            workshop.equipButton.onClick.Invoke();
-            Assert.That(workshop.Model.Owned.Count, Is.EqualTo(owned + 1));
-            Assert.That(workshop.Market, Is.True, "Buying from the goblin must keep the card offers visible.");
-            Assert.That(workshop.Model.Find(copyId).Level, Is.EqualTo(2));
-            int coins = workshop.Model.Coins;
-            workshop.UpgradeHand();
-            workshop.ChooseMarket(false);
-            workshop.TryDepart();
-            Assert.That(workshop.Model.Coins, Is.EqualTo(coins));
-            Assert.That(workshop.Market, Is.True);
-            Assert.That(workshop.Model.IsAway, Is.False);
+        [UnityTest]
+        public IEnumerator WithSeveralPartnersThePlayerPicksTheSecondCopy()
+        {
+            workshop.OpenEmbedded();
+            var copies = new CardCopy[3];
+            for (int i = 0; i < 3; i++) workshop.Model.Buy("fog", out copies[i]);
+            workshop.SelectCopy(copies[0].Id);
+            workshop.MergeSelected();
+            Assert.That(workshop.MergeSource, Is.EqualTo(copies[0].Id), "Waiting for the second copy.");
+            Assert.That(workshop.Model.Owned.Count(c => c.Spec.Id == "fog"), Is.EqualTo(3));
+            workshop.SelectCopy(copies[2].Id);
+            Assert.That(workshop.MergeSource, Is.Zero);
+            Assert.That(workshop.Model.Find(copies[0].Id).Level, Is.EqualTo(2));
+            Assert.That(workshop.Model.Find(copies[2].Id), Is.Null);
+            Assert.That(workshop.Model.Find(copies[1].Id).Level, Is.EqualTo(1));
             yield return null;
             LogAssert.NoUnexpectedReceived();
         }
@@ -102,13 +115,13 @@ namespace Hakaton.ShopBlockout.Tests
         [UnityTest]
         public IEnumerator ClosingOrDisablingServiceReleasesOnlyItsOwnControlClaim()
         {
-            workshop.OpenEmbedded(false);
+            workshop.OpenEmbedded();
             workshop.control.SetBlocked(fixture, true);
             workshop.CloseEmbedded();
             Assert.That(workshop.control.HasModalOwner, Is.True);
             workshop.control.SetBlocked(fixture, false);
             Assert.That(workshop.control.HasModalOwner, Is.False);
-            workshop.OpenEmbedded(true);
+            workshop.OpenEmbedded();
             workshop.enabled = false;
             Assert.That(workshop.EmbeddedOpen, Is.False);
             Assert.That(workshop.control.HasModalOwner, Is.False);

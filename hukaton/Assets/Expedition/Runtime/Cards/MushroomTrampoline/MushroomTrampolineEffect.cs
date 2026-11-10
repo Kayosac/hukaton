@@ -13,13 +13,14 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class MushroomTrampolineEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Mushroom lifetime, s (same on both levels).")]
         [Min(0)] public float lifetimeSeconds = 15;
         [Tooltip("Share of the equivalent fall height returned (board: 80 % → 100 %).")]
-        [Min(0)] public float heightReturnBase = .8f, heightReturnUpgraded = 1;
+        public LevelFloat heightReturn = new LevelFloat(0.8f, 0.9f, 1);
         [Tooltip("Bounce height limits over the cap, m (design units).")]
-        [Min(0)] public float minBounceHeight = 1.5f, maxBounceHeight = 10;
+        public LevelFloat minBounceHeight = new LevelFloat(1.5f, 2.5f, 4);
+        [Min(0)] public float maxBounceHeight = 10;
         [Tooltip("Cap diameter, m.")]
         [Min(0)] public float capDiameter = 1.6f;
 
@@ -48,7 +49,7 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 lossy = parent.lossyScale;
                 mushroom.transform.localScale = new Vector3(1 / Mathf.Max(.01f, lossy.x), 1 / Mathf.Max(.01f, lossy.y), 1 / Mathf.Max(.01f, lossy.z));
             }
-            mushroom.Configure(lifetimeSeconds, c.Pick(heightReturnBase, heightReturnUpgraded), minBounceHeight, maxBounceHeight, capDiameter);
+            mushroom.Configure(lifetimeSeconds, c.At(heightReturn), c.At(minBounceHeight), maxBounceHeight, capDiameter);
             mushroom.RestOn(c.Target);
             Feedback(c, true);
         }
@@ -99,11 +100,10 @@ namespace Hakaton.Expeditions.Cards
             return true;
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Возврат высоты";
-            baseValue = heightReturnBase * 100;
-            upgradedValue = heightReturnUpgraded * 100;
+            values = new LevelFloat(heightReturn.i * 100, heightReturn.ii * 100, heightReturn.iii * 100);
             unit = " %";
             return true;
         }

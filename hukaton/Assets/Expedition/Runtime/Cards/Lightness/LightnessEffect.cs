@@ -16,9 +16,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class LightnessEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Duration, s (board: 6 → 9).")]
-        [Min(0)] public float durationBase = 6, durationUpgraded = 9;
+        public LevelFloat duration = new LevelFloat(6, 12, 20);
         [Tooltip("Burst radius, m.")]
         [Min(0)] public float radius = 2.5f;
         [Tooltip("Received impulses multiplier (same on both levels).")]
@@ -40,13 +40,13 @@ namespace Hakaton.Expeditions.Cards
         static readonly Dictionary<Rigidbody, VfxBurst> Auras = new Dictionary<Rigidbody, VfxBurst>();
         static readonly List<Rigidbody> DeadAuras = new List<Rigidbody>();
 
-        public float Duration(bool upgraded) => upgraded ? durationUpgraded : durationBase;
+        public float Duration(int level) => duration.At(level);
 
         /// <summary>Lightness on the player's motor (separate so it can be tested on a bare motor).</summary>
-        public void ApplyTo(FirstPersonMotor motor, bool upgraded)
+        public void ApplyTo(FirstPersonMotor motor, int level)
         {
             if (!motor) return;
-            float seconds = Duration(upgraded);
+            float seconds = Duration(level);
             motor.ApplyModifier(MotorModifier.ReceivedImpulse, impulseMultiplier, seconds);
             motor.ApplyFallSpeedLimit(fallSpeedLimit, seconds);
         }
@@ -54,11 +54,11 @@ namespace Hakaton.Expeditions.Cards
         public override void Apply(in ImpactContext c)
         {
             var world = c.World;
-            float seconds = Duration(c.Upgraded);
+            float seconds = Duration(c.Level);
             int affected = 0;
             if (c.PlayerWithin(radius))
             {
-                ApplyTo(c.Motor, c.Upgraded);
+                ApplyTo(c.Motor, c.Level);
                 PlayerStatusBadge.Show(world, badge);
                 affected++;
             }
@@ -98,11 +98,10 @@ namespace Hakaton.Expeditions.Cards
             aura.HoldFor(seconds);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Длительность";
-            baseValue = durationBase;
-            upgradedValue = durationUpgraded;
+            values = duration;
             unit = " с";
             return true;
         }

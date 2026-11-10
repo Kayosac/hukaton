@@ -12,9 +12,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class BranchBridgeEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Branch length, m (board: 5 → 7).")]
-        [Min(0)] public float lengthBase = 5, lengthUpgraded = 7;
+        public LevelFloat length = new LevelFloat(5, 8, 12);
         [Tooltip("Branch width, m (same on both levels).")]
         [Min(0)] public float width = 1.2f;
 
@@ -51,7 +51,7 @@ namespace Hakaton.Expeditions.Cards
             bool fromWall = Mathf.Abs(c.Normal.normalized.y) <= .5f && wall.sqrMagnitude > 1e-4f;
             wall = fromWall ? wall.normalized : Vector3.zero;
             Vector3 topPoint = c.Point + Vector3.up * top;
-            float desired = c.Pick(lengthBase, lengthUpgraded);
+            float desired = c.At(this.length);
             float length = BranchBridgeMath.ClampLength(desired, ObstacleDistance(topPoint + wall * .06f, direction, desired), obstacleMargin, minimumLength);
             if (length <= 0) { Miss(c, noRoomNotice); return; }
             float embed = fromWall ? rootDepth : 0;
@@ -91,11 +91,10 @@ namespace Hakaton.Expeditions.Cards
             if (!string.IsNullOrEmpty(notice)) c.World.Announce(notice, 1.4f);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Длина";
-            baseValue = lengthBase;
-            upgradedValue = lengthUpgraded;
+            values = length;
             unit = " м";
             return true;
         }

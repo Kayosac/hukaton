@@ -5,17 +5,17 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// «Облако дождя» (вода*, ранг 2/5*). A still rain cloud (<see cref="RainCloudZone"/>) over the point of impact:
-    /// radius 3 m, 15 s (upgraded 30 s). Rain washes tar away, puts fire out and makes everyone under it wet (player,
+    /// radius 3 / 4.5 / 6 m (I / II / III), 15 s. Rain washes tar away, puts fire out and makes everyone under it wet (player,
     /// creatures, allies); wet lasts 30 s after the last contact. Rain does no damage and does not heal.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class RainCloudEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
-        [Tooltip("Cloud duration, s (board*: 15 → 30).")]
-        [Min(0)] public float durationBase = 15, durationUpgraded = 30;
-        [Tooltip("Rain radius, m (board*; same on both levels).")]
-        [Min(0)] public float radius = 3;
+        [Header("Board numbers (I / II / III)")]
+        [Tooltip("Cloud duration, s (same on every level).")]
+        [Min(0)] public float durationSeconds = 15;
+        [Tooltip("Rain radius, m: 3 / 4,5 / 6 (the area grows ×1 / ×2,25 / ×4).")]
+        public LevelFloat radius = new LevelFloat(3, 4.5f, 6);
         [Tooltip("Wet after leaving the rain, s (confirmed 30 on both levels).")]
         [Min(0)] public float wetLingerSeconds = WetStatus.DefaultLingerSeconds;
 
@@ -36,16 +36,15 @@ namespace Hakaton.Expeditions.Cards
             // Over the ground under the impact ; in mid-air hits the cloud forms at the point itself.
             if (!CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var ground, out _)) ground = c.Point;
             var cloud = c.World.SpawnForOuting(cloudPrefab, ground, Quaternion.identity);
-            if (cloud) cloud.Setup(c.Pick(durationBase, durationUpgraded), radius, wetLingerSeconds);
+            if (cloud) cloud.Setup(durationSeconds, c.At(radius), wetLingerSeconds);
             Feedback(c, cloud);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
-            label = "Длительность";
-            baseValue = durationBase;
-            upgradedValue = durationUpgraded;
-            unit = " с";
+            label = "Радиус";
+            values = radius;
+            unit = " м";
             return true;
         }
     }

@@ -327,47 +327,47 @@ namespace Hakaton.Expeditions.Tests
         {
             var tar = Effect<TarPuddleEffect>("Tar puddle");
             Assert.That(tar, Is.Not.Null);
-            Assert.That((tar.radiusBase, tar.radiusUpgraded, tar.speedMultiplier, tar.burnSeconds, tar.burnDamagePerSecond), Is.EqualTo((2f, 3f, .5f, 30f, 1f)));
+            Assert.That((tar.radius.i, tar.radius.ii, tar.radius.iii, tar.speedMultiplier, tar.burnSeconds, tar.burnDamagePerSecond), Is.EqualTo((2f, 3f, 4f, .5f, 30f, 1f)));
             Assert.That(tar.puddlePrefab, Is.Not.Null);
 
             var rain = Effect<RainCloudEffect>("Rain cloud");
-            Assert.That((rain.durationBase, rain.durationUpgraded, rain.radius, rain.wetLingerSeconds), Is.EqualTo((15f, 30f, 3f, 30f)));
+            Assert.That((rain.durationSeconds, rain.radius.i, rain.radius.ii, rain.radius.iii, rain.wetLingerSeconds), Is.EqualTo((15f, 3f, 4.5f, 6f, 30f)));
             Assert.That(rain.cloudPrefab, Is.Not.Null);
 
             var lightning = Effect<LightningEffect>("Lightning");
-            Assert.That((lightning.damageBase, lightning.damageUpgraded, lightning.wetDamageMultiplier, lightning.chainTargets, lightning.chainRange),
-                Is.EqualTo((3, 4, 2f, 3, 4f)));
+            Assert.That((lightning.damage.i, lightning.damage.ii, lightning.damage.iii, lightning.wetDamageMultiplier, lightning.chainTargets, lightning.chainRange),
+                Is.EqualTo((3, 5, 8, 2f, 3, 4f)));
             Assert.That(lightning.strikeVfx, Is.Not.Null);
             Assert.That(lightning.arcPrefab, Is.Not.Null);
             var lightningCard = AssetDatabase.LoadAssetAtPath<CardDefinition>("Assets/Game/Data/lightning.asset");
             Assert.That(lightningCard.purchasePrice, Is.EqualTo(150), "Confirmed: a copy costs 150 coins.");
 
             var fog = Effect<FogEffect>("Fog");
-            Assert.That((fog.durationBase, fog.durationUpgraded, fog.radius), Is.EqualTo((8f, 12f, 3f)));
+            Assert.That((fog.duration.i, fog.duration.ii, fog.duration.iii, fog.radius), Is.EqualTo((8f, 14f, 24f, 3f)));
             Assert.That(fog.fogPrefab, Is.Not.Null);
 
             var lure = Effect<LureEffect>("Lure");
-            Assert.That((lure.durationBase, lure.durationUpgraded, lure.radius), Is.EqualTo((6f, 10f, 10f)));
+            Assert.That((lure.duration.i, lure.duration.ii, lure.duration.iii, lure.radius), Is.EqualTo((6f, 12f, 20f, 10f)));
             Assert.That(lure.noisePrefab, Is.Not.Null);
 
             var attraction = Effect<AttractionEffect>("Attraction");
-            Assert.That((attraction.impulseBase, attraction.impulseUpgraded, attraction.radius), Is.EqualTo((6f, 8f, 3f)));
+            Assert.That((attraction.impulse.i, attraction.impulse.ii, attraction.impulse.iii, attraction.radius), Is.EqualTo((6f, 9f, 12f, 3f)));
         }
 
         [Test]
         public void WorkshopShowsEachCardsMainNumber()
         {
-            void Check(ICardStatLine line, string label, float baseValue, float upgraded)
+            void Check(ICardStatLine line, string label, float i, float ii, float iii)
             {
-                Assert.That(line.TryGetStat(out var l, out var b, out var u, out _), Is.True);
-                Assert.That((l, b, u), Is.EqualTo((label, baseValue, upgraded)));
+                Assert.That(line.TryGetStat(out var l, out var v, out _), Is.True);
+                Assert.That((l, v.i, v.ii, v.iii), Is.EqualTo((label, i, ii, iii)));
             }
-            Check(Effect<TarPuddleEffect>("Tar puddle"), "Радиус", 2, 3);
-            Check(Effect<RainCloudEffect>("Rain cloud"), "Длительность", 15, 30);
-            Check(Effect<LightningEffect>("Lightning"), "Урон", 3, 4);
-            Check(Effect<FogEffect>("Fog"), "Длительность", 8, 12);
-            Check(Effect<LureEffect>("Lure"), "Звук", 6, 10);
-            Check(Effect<AttractionEffect>("Attraction"), "Импульс", 6, 8);
+            Check(Effect<TarPuddleEffect>("Tar puddle"), "Радиус", 2, 3, 4);
+            Check(Effect<RainCloudEffect>("Rain cloud"), "Радиус", 3, 4.5f, 6);
+            Check(Effect<LightningEffect>("Lightning"), "Урон", 3, 5, 8);
+            Check(Effect<FogEffect>("Fog"), "Длительность", 8, 14, 24);
+            Check(Effect<LureEffect>("Lure"), "Звук", 6, 12, 20);
+            Check(Effect<AttractionEffect>("Attraction"), "Импульс", 6, 9, 12);
         }
 
         GameObject Make(string name, Vector3 position)

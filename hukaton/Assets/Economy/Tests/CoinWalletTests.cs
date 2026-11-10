@@ -8,8 +8,8 @@ namespace Hakaton.Economy.Tests
     public sealed class CoinWalletTests
     {
         static readonly CardSpec[] Cards = {
-            new CardSpec("wind", "Вихрь", 30, 20, 3, 1),
-            new CardSpec("fire", "Огонь", 40, 20, 8, 2)
+            new CardSpec("wind", "Вихрь", 30),
+            new CardSpec("fire", "Огонь", 40)
         };
 
         [Test]
@@ -36,7 +36,7 @@ namespace Hakaton.Economy.Tests
         }
 
         [Test]
-        public void TradeIncomeBuysAndUpgradesCardsFromTheSameBalance()
+        public void TradeIncomeBuysCardsFromTheSameBalance()
         {
             var wallet = new CoinWallet();
             var trading = new TradingSession(wallet: wallet);
@@ -55,7 +55,7 @@ namespace Hakaton.Economy.Tests
             Assert.That(trading.Offer(deal.Id, revision, 0), Is.True);
             Assert.That(workshop.Coins, Is.EqualTo(100));
             Assert.That(workshop.Buy("wind", out var copy), Is.Null);
-            Assert.That(workshop.Upgrade(copy.Id), Is.Null);
+            Assert.That(workshop.Purchase("wind", 20, out _), Is.Null);
             Assert.That(trading.Gold, Is.EqualTo(50));
             Assert.That(workshop.ImproveHand(), Is.Not.Null);
             Assert.That(workshop.HandSize, Is.EqualTo(3));
@@ -87,7 +87,7 @@ namespace Hakaton.Economy.Tests
             Assert.That(standalone.Coins, Is.EqualTo(240));
             standalone.Buy("wind", out _);
             var save = standalone.Save();
-            standalone.Upgrade(1);
+            standalone.Buy("wind", out _);
             Assert.That(standalone.TryRestore(save), Is.True);
             Assert.That(standalone.Coins, Is.EqualTo(210));
 

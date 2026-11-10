@@ -29,6 +29,7 @@ namespace Hakaton.Decks.Unity
         Swap = 24,
         Teleport = 25
     }
+
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]
     public sealed class CardDefinition : ScriptableObject
     {
@@ -40,14 +41,25 @@ namespace Hakaton.Decks.Unity
         public ScriptableObject effectAsset;
         [TextArea]
         public string description;
-        [Min(0)]
-        public int purchasePrice = 30, upgradePrice = 20, basePower = 1, powerPerLevel = 1;
-        [Tooltip("Off for cards without an upgrade (Teleport): the workshop offers no upgrade for their copies.")]
+
+        [Header("Goblin")]
+        [Tooltip("Full price of one copy. Face down the goblin sells it for half, rounded up.")]
+        [Min(0)] public int purchasePrice = 100;
+        [Tooltip("Rarity rank 1–5: the goblin rolls a rank first, then a card of that rank.")]
+        [Range(1, 5)] public int rank = 1;
+
+        [Header("Levels I / II / III")]
+        [Tooltip("Off keeps every copy at level I (no merging on the PC).")]
         public bool upgradable = true;
-        [Header("Physical effect")]
-        [Min(0)]
-        public float impulse = 8, impulsePerLevel = 1.5f, effectRadius = 2.5f;
-        public float ImpulseAtLevel(int level) => impulse + Mathf.Max(0, level - 1) * impulsePerLevel;
-        public CardSpec ToSpec() => new CardSpec(id, displayName, purchasePrice, upgradePrice, basePower, powerPerLevel, upgradable);
+        [Tooltip("Uses of one copy per outing. 1 for ordinary cards; Teleport 1 / 2 / 3.")]
+        public LevelInt uses = LevelInt.All(1);
+        [Tooltip("Direct number of the simple cards: damage (Fire, Strike, Heavy strike), freeze seconds (Ice), " +
+                 "healing in half hearts (Heal).")]
+        public LevelInt power = LevelInt.All(1);
+        [Tooltip("Push of Impulse and Heavy strike (Δv for mass 1).")]
+        public LevelFloat impulse = LevelFloat.All(8);
+        [Min(0)] public float effectRadius = 2.5f;
+
+        public CardSpec ToSpec() => new CardSpec(id, displayName, purchasePrice, rank, upgradable, uses.ToArray());
     }
 }

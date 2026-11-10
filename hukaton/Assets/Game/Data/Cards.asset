@@ -37,82 +37,40 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7a6d8fea4d742467f93a388b9f0b9812, type: 2}
   returnArtwork: {fileID: 21300000, guid: 9fa048f09875a4d17b5e5944b2a1575c, type: 3}
   deckLimit: 12
+  deckLimitSteps:
+  - limit: 16
+    price: 150
+  - limit: 20
+    price: 250
+  - limit: 25
+    price: 400
+  - limit: 30
+    price: 600
+  - limit: 40
+    price: 900
+  - limit: 50
+    price: 1300
   initialHand: 3
   maximumHand: 5
-  maximumCardLevel: 2
+  maximumCardLevel: 3
   startingCoins: 0
-  initialCopiesPerType: 0
   handUpgradePrice: 200
   dealSeconds: 0.28
   discardSeconds: 0.48
   returnSeconds: 0.8
   initialCopies:
-  - definitionId: impulse
-    count: 3
-    inDeck: 2
-  - definitionId: ice
-    count: 3
-    inDeck: 2
   - definitionId: fire
-    count: 2
-    inDeck: 2
+    count: 1
+    inDeck: 1
+    protectedFromBurning: 1
+  - definitionId: ice
+    count: 1
+    inDeck: 1
+    protectedFromBurning: 1
   - definitionId: strike
-    count: 5
-    inDeck: 4
-  - definitionId: heavy_strike
-    count: 0
-    inDeck: 0
-  - definitionId: heal
-    count: 2
-    inDeck: 2
-  - definitionId: lure
-    count: 0
-    inDeck: 0
-  - definitionId: tar_puddle
-    count: 0
-    inDeck: 0
-  - definitionId: attraction
-    count: 0
-    inDeck: 0
-  - definitionId: fog
-    count: 0
-    inDeck: 0
-  - definitionId: rain_cloud
-    count: 0
-    inDeck: 0
-  - definitionId: lightning
-    count: 0
-    inDeck: 0
-  - definitionId: stone_cube
-    count: 0
-    inDeck: 0
-  - definitionId: branch_bridge
-    count: 0
-    inDeck: 0
-  - definitionId: lightness
-    count: 0
-    inDeck: 0
-  - definitionId: mushroom_trampoline
-    count: 0
-    inDeck: 0
-  - definitionId: moon_gravity
-    count: 0
-    inDeck: 0
-  - definitionId: rope
-    count: 0
-    inDeck: 0
-  - definitionId: updraft
-    count: 0
-    inDeck: 0
-  - definitionId: tree_awakening
-    count: 0
-    inDeck: 0
-  - definitionId: swap
-    count: 0
-    inDeck: 0
-  - definitionId: teleport
-    count: 0
-    inDeck: 0
+    count: 1
+    inDeck: 1
+    protectedFromBurning: 1
   cardSound: {fileID: 8300000, guid: 22f412567b6ed468b89c5dd901fa3261, type: 3}
   coinSound: {fileID: 8300000, guid: ab94e202a79e1420ead61f54495f6d5b, type: 3}
   returnSound: {fileID: 8300000, guid: 4b87a90e186ff4a1c95dd3a0761edbf5, type: 3}

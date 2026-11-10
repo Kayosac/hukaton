@@ -16,9 +16,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class LightningEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Direct damage units (board*: 3 → 4).")]
-        [Min(0)] public int damageBase = 3, damageUpgraded = 4;
+        public LevelInt damage = new LevelInt(3, 5, 8);
         [Tooltip("Damage multiplier for a wet target (confirmed ×2).")]
         [Min(0)] public float wetDamageMultiplier = 2;
         [Tooltip("Targets in the chain including the first (board*).")]
@@ -63,7 +63,7 @@ namespace Hakaton.Expeditions.Cards
                 var chain = LightningChain.Build(first, Fighters, chainTargets, chainRange, IsWet, f => f.Centre, InSight);
                 var wet = new bool[chain.Count];
                 for (int i = 0; i < chain.Count; i++) wet[i] = IsWet(chain[i]);
-                int baseDamage = c.Pick(damageBase, damageUpgraded);
+                int baseDamage = c.At(damage);
                 for (int i = 0; i < chain.Count; i++)
                 {
                     var target = chain[i];
@@ -104,11 +104,10 @@ namespace Hakaton.Expeditions.Cards
             return true;
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Урон";
-            baseValue = damageBase;
-            upgradedValue = damageUpgraded;
+            values = damage;
             unit = "";
             return true;
         }

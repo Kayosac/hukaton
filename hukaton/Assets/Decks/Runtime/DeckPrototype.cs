@@ -5,14 +5,16 @@ using Hakaton.Character;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Hakaton.Decks.Unity
 {
     /// <summary>
-    /// The deck workshop as a shop service: the magical computer (collection, the deck, upgrades) and the goblin
-    /// (card purchases) open the same authored panel. The game loop starts and finishes outings through
-    /// <see cref="TryDepart"/> and <see cref="CompleteOuting"/>; the expedition world owns everything in between.
+    /// The magical computer in the backroom: the collection, the deck, free merging of copies (I + I → II, II + II → III),
+    /// the hand and the deck limit. The game loop starts and finishes outings through <see cref="TryDepart"/> and
+    /// <see cref="CompleteOuting"/>; the expedition world owns everything in between. Cards are bought from the goblin
+    /// (<c>GoblinCardShop</c>) and burnt at the brazier; both work on the same <see cref="Model"/>.
     /// </summary>
     public sealed class DeckPrototype : MonoBehaviour
     {
@@ -23,6 +25,8 @@ namespace Hakaton.Decks.Unity
         public Hakaton.Economy.Unity.CoinWalletHost walletHost;
         public AudioSource audioSource;
         public Canvas presentation;
+        [Tooltip("Played when two copies merge into one.")]
+        public AudioClip mergeSound;
 
         [Header("Service shell")]
         public CanvasGroup embeddedVisibility;
@@ -31,10 +35,13 @@ namespace Hakaton.Decks.Unity
         public TMP_Text pageTitle, eyebrow, wallet, feedback;
 
         [Header("Workshop")]
-        public Button collectionTab, marketTab, previousPage, nextPage;
-        public Button equipButton, upgradeButton, handUpgradeButton;
+        public Button previousPage, nextPage;
+        public Button equipButton;
+        [FormerlySerializedAs("upgradeButton")] public Button mergeButton;
+        public Button handUpgradeButton, deckUpgradeButton;
         public TMP_Text collectionHeading, pageNumber, deckCount, handSize;
-        public TMP_Text handUpgradeText, equipText, upgradeText;
+        public TMP_Text handUpgradeText, deckUpgradeText, equipText;
+        [FormerlySerializedAs("upgradeText")] public TMP_Text mergeText;
         public DeckCardView[] collectionViews;
         public DeckRowView[] deckRows;
         public Image detailArt, detailAccent;
@@ -43,19 +50,19 @@ namespace Hakaton.Decks.Unity
         public event Action Departed;
         public event Action<IReadOnlyList<LootSave>, bool> OutingCompleted;
         public event Action EmbeddedClosed;
-        /// <summary>A copy was bought at the goblin's market.</summary>
-        public event Action Bought;
+        /// <summary>Two copies became one (the result).</summary>
+        public event Action<CardCopy> Merged;
 
-        public DeckWorkshop Model { get; private set; }
+        DeckWorkshop model;
+        /// <summary>The collection: created on first use, so the goblin and the brazier can reach it before the PC wakes.</summary>
+        public DeckWorkshop Model => model ??= config.CreateWorkshop(walletHost ? walletHost.Wallet : null);
         /// <summary>True from departure until the outing is delivered back.</summary>
         public bool Busy { get; private set; }
-        public bool Market { get; private set; }
         public int SelectedCopyId { get; private set; }
-        public string SelectedDefinitionId { get; private set; }
         public bool EmbeddedOpen { get; private set; }
+        /// <summary>The copy waiting for a merge partner, 0 when not merging.</summary>
+        public int MergeSource { get; private set; }
 
-        /// <summary>Opened at the goblin: only the card shop, no deck editing.</summary>
-        bool marketOnly;
         int page;
 
         static readonly Color ErrorColour = new Color(.96f, .56f, .39f);
@@ -63,14 +70,13 @@ namespace Hakaton.Decks.Unity
 
         void Awake()
         {
-            Model = config.CreateWorkshop(walletHost ? walletHost.Wallet : null);
-            collectionTab.onClick.AddListener(() => ChooseMarket(false));
-            marketTab.onClick.AddListener(() => ChooseMarket(true));
+            _ = Model;
             previousPage.onClick.AddListener(() => ChangePage(-1));
             nextPage.onClick.AddListener(() => ChangePage(1));
-            equipButton.onClick.AddListener(EquipOrBuy);
-            upgradeButton.onClick.AddListener(UpgradeSelected);
+            equipButton.onClick.AddListener(ToggleSelected);
+            mergeButton.onClick.AddListener(MergeSelected);
             handUpgradeButton.onClick.AddListener(UpgradeHand);
+            if (deckUpgradeButton) deckUpgradeButton.onClick.AddListener(UpgradeDeckLimit);
             foreach (var view in collectionViews)
             {
                 var tile = view;
@@ -106,25 +112,24 @@ namespace Hakaton.Decks.Unity
 
         void Update()
         {
-            if (EmbeddedOpen && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) CloseEmbedded();
+            if (!EmbeddedOpen || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
+            if (MergeSource != 0) CancelMerge();
+            else CloseEmbedded();
         }
 
         // ---------- opening and closing ----------
 
-        /// <summary>Opens the panel: the collection at the computer, or the card shop at the goblin.</summary>
-        public bool OpenEmbedded(bool market = false)
+        public bool OpenEmbedded()
         {
-            if (!isActiveAndEnabled || Model == null || Model.IsAway || Busy) return false;
-            marketOnly = market;
+            if (!isActiveAndEnabled || Model.IsAway || Busy) return false;
             EmbeddedOpen = true;
-            Market = market;
+            MergeSource = 0;
             page = 0;
             if (control) control.SetBlocked(this, true);
             SetVisible(true);
             if (Model.Find(SelectedCopyId) == null) SelectFirst();
             else RefreshWorkshop();
-            SetFeedback(market ? "Выберите карту: купленная копия останется в коллекции."
-                               : "Соберите колоду и улучшите нужные экземпляры или руку.");
+            SetFeedback("Соберите колоду. Две одинаковые копии одного уровня объединяются бесплатно.");
             return true;
         }
 
@@ -132,6 +137,7 @@ namespace Hakaton.Decks.Unity
         {
             bool wasOpen = EmbeddedOpen;
             EmbeddedOpen = false;
+            MergeSource = 0;
             SetVisible(false);
             if (control) control.SetBlocked(this, false);
             if (wasOpen) EmbeddedClosed?.Invoke();
@@ -150,7 +156,7 @@ namespace Hakaton.Decks.Unity
         /// <summary>Starts an outing with the equipped deck. Returns an error to show, or null on success.</summary>
         public string TryDepart()
         {
-            if (!isActiveAndEnabled || Model == null) return "Мастерская недоступна.";
+            if (!isActiveAndEnabled) return "Мастерская недоступна.";
             if (Busy) return "Сначала завершите текущую вылазку.";
             if (Departed == null || OutingCompleted == null) return "Вылазка не подключена.";
             string error = Model.Depart(unchecked(Environment.TickCount * 397 + Model.Journeys));
@@ -166,7 +172,7 @@ namespace Hakaton.Decks.Unity
         /// <summary>Delivers a finished outing; the game loop moves the loot into the shop.</summary>
         public void CompleteOuting(string notice, IReadOnlyList<LootSave> loot, bool defeated)
         {
-            if (Model == null || Model.IsAway || !Busy) return;
+            if (Model.IsAway || !Busy) return;
             Busy = false;
             var delivered = (loot ?? Array.Empty<LootSave>())
                                 .Select(g => new LootSave { id = g.id, name = g.name, count = g.count, value = g.value })
@@ -185,61 +191,113 @@ namespace Hakaton.Decks.Unity
             if (Model.IsAway || Busy) return;
             page = 0;
             SelectedCopyId = Model.Owned.FirstOrDefault()?.Id ?? 0;
-            SelectedDefinitionId = config.cards.First().id;
-            RefreshWorkshop();
-        }
-
-        public void ChooseMarket(bool market)
-        {
-            // Each service shows only its own page: the computer the collection, the goblin the shop.
-            if (Model.IsAway || Busy || (EmbeddedOpen && market != marketOnly)) return;
-            Market = market;
-            page = 0;
             RefreshWorkshop();
         }
 
         public void SelectCopy(int id)
         {
             var copy = Model.Find(id);
-            if (copy == null || Busy || Model.IsAway || marketOnly) return;
-            Market = false;
+            if (copy == null || Busy || Model.IsAway) return;
+            if (MergeSource != 0 && TryMergeWith(id)) return;
             SelectedCopyId = id;
-            SelectedDefinitionId = copy.Spec.Id;
             page = Model.Owned.ToList().FindIndex(c => c.Id == id) / collectionViews.Length;
             RefreshWorkshop();
         }
 
-        public void EquipOrBuy()
+        public void ToggleSelected()
         {
             if (!EmbeddedOpen || Busy || Model.IsAway) return;
-            if (Market)
-            {
-                string error = Model.Buy(SelectedDefinitionId, out var copy);
-                if (copy != null && !marketOnly) SelectCopy(copy.Id);
-                Result(error, "Новая копия в коллекции. Теперь её можно взять в путь.", config.coinSound);
-                if (copy != null) Bought?.Invoke();
-            }
-            else
-                Result(Model.Toggle(SelectedCopyId), "Состав колоды сохранён.", config.cardSound);
+            CancelMerge(false);
+            Result(Model.Toggle(SelectedCopyId), "Состав колоды сохранён.", config.cardSound);
         }
 
-        public void UpgradeSelected()
+        /// <summary>
+        /// First press: the selected copy waits for a partner and the matching copies light up. A single possible
+        /// partner merges at once; otherwise the player clicks the one to use. Pressing again cancels.
+        /// </summary>
+        public void MergeSelected()
         {
-            if (!EmbeddedOpen || Busy || Market || Model.IsAway) return;
-            Result(Model.Upgrade(SelectedCopyId), "Улучшен только выбранный экземпляр.", config.coinSound);
+            if (!EmbeddedOpen || Busy || Model.IsAway) return;
+            if (MergeSource != 0)
+            {
+                CancelMerge();
+                return;
+            }
+            var copy = Model.Find(SelectedCopyId);
+            var partners = Model.MergePartners(copy).ToList();
+            if (partners.Count == 0)
+            {
+                Result(MergeRefusal(copy), null, null);
+                return;
+            }
+            if (partners.Count == 1)
+            {
+                MergeSource = copy.Id;
+                TryMergeWith(partners[0].Id);
+                return;
+            }
+            MergeSource = copy.Id;
+            Sound(config.cardSound);
+            SetFeedback($"Выберите вторую копию «{copy.Spec.Name}» уровня {copy.LevelNumeral}.");
+            RefreshWorkshop();
+        }
+
+        string MergeRefusal(CardCopy copy)
+        {
+            if (copy == null) return "Выберите копию.";
+            if (!copy.Spec.Mergeable) return "Эту карту нельзя объединить.";
+            if (copy.Level >= Model.Rules.MaxCardLevel) return "Уровень III — максимум.";
+            return $"Нужна вторая «{copy.Spec.Name}» уровня {copy.LevelNumeral}.";
+        }
+
+        bool TryMergeWith(int partner)
+        {
+            if (partner == MergeSource) return false;
+            string error = Model.Merge(MergeSource, partner, out var result);
+            MergeSource = 0;
+            if (error != null)
+            {
+                Result(error, null, null);
+                return true;
+            }
+            SelectedCopyId = result.Id;
+            page = Model.Owned.ToList().FindIndex(c => c.Id == result.Id) / collectionViews.Length;
+            Result(null, $"«{result.Spec.Name}» теперь уровня {result.LevelNumeral}.", mergeSound ? mergeSound : config.coinSound);
+            var tile = collectionViews.FirstOrDefault(v => v.gameObject.activeSelf && v.CopyId == result.Id);
+            if (tile) tile.Celebrate();
+            Merged?.Invoke(result);
+            return true;
+        }
+
+        void CancelMerge(bool refresh = true)
+        {
+            if (MergeSource == 0) return;
+            MergeSource = 0;
+            if (!refresh) return;
+            SetFeedback("Объединение отменено.");
+            RefreshWorkshop();
         }
 
         public void UpgradeHand()
         {
-            if (!EmbeddedOpen || Busy || Model.IsAway || marketOnly) return;
+            if (!EmbeddedOpen || Busy || Model.IsAway) return;
+            CancelMerge(false);
             Result(Model.ImproveHand(), "В руке стало на одно место больше.", config.coinSound);
+        }
+
+        public void UpgradeDeckLimit()
+        {
+            if (!EmbeddedOpen || Busy || Model.IsAway) return;
+            CancelMerge(false);
+            Result(Model.ImproveDeckLimit(), $"Колода вмещает {Model.DeckLimit} карт, коллекция — {Model.CollectionLimit}.",
+                config.coinSound);
         }
 
         void SelectTile(DeckCardView tile)
         {
             if (Busy || Model.IsAway) return;
+            if (MergeSource != 0 && TryMergeWith(tile.CopyId)) return;
             SelectedCopyId = tile.CopyId;
-            SelectedDefinitionId = tile.DefinitionId;
             Sound(config.cardSound);
             RefreshWorkshop();
         }
@@ -252,7 +310,7 @@ namespace Hakaton.Decks.Unity
 
         void Result(string error, string success, AudioClip sound)
         {
-            SetFeedback(error ?? success, error != null);
+            if (error != null || success != null) SetFeedback(error ?? success, error != null);
             if (error == null) Sound(sound);
             RefreshWorkshop();
         }
@@ -271,27 +329,19 @@ namespace Hakaton.Decks.Unity
         // ---------- presentation ----------
 
         CardDefinition Definition(CardCopy copy) => copy == null ? null : config.Find(copy.Spec.Id);
-        Sprite Artwork(CardCopy copy) => copy.IsReturn ? config.returnArtwork : Definition(copy).artwork;
 
         public void RefreshWorkshop()
         {
-            if (Model == null || Model.IsAway) return;
+            if (Model.IsAway || !workshopPanel) return;
             workshopPanel.SetActive(true);
-            pageTitle.text = marketOnly ? "Карточник" : "Колода";
-            eyebrow.text = marketOnly ? "ГОБЛИН / ПОКУПКА КАРТ" : "МАГИЧЕСКИЙ КОМПЬЮТЕР / ПОДГОТОВКА";
+            pageTitle.text = "Колода";
+            eyebrow.text = "МАГИЧЕСКИЙ КОМПЬЮТЕР / ПОДГОТОВКА";
             wallet.text = Model.Coins.ToString();
-            collectionTab.gameObject.SetActive(!marketOnly);
-            marketTab.gameObject.SetActive(marketOnly);
-            handUpgradeButton.gameObject.SetActive(!marketOnly);
-            upgradeButton.gameObject.SetActive(!marketOnly);
-
-            TintTab(collectionTab, !Market);
-            TintTab(marketTab, Market);
 
             RefreshCollection();
 
             var equipped = Model.Selected();
-            deckCount.text = $"{equipped.Count:00} / {config.deckLimit:00}";
+            deckCount.text = $"{equipped.Count:00} / {Model.DeckLimit:00}";
             for (int i = 0; i < deckRows.Length; i++)
             {
                 var copy = i < equipped.Count ? equipped[i] : null;
@@ -300,21 +350,27 @@ namespace Hakaton.Decks.Unity
             }
 
             int hand = Model.HandSize;
-            bool maxHand = hand >= config.maximumHand;
-            handSize.text = $"Рука  {hand} / {config.maximumHand}";
-            handUpgradeText.text = maxHand ? "Рука улучшена" : "+1 место   ·   " + Model.HandPrice;
+            bool maxHand = hand >= Model.Rules.MaxHand;
+            handSize.text = $"Рука  {hand} / {Model.Rules.MaxHand}";
+            handUpgradeText.text = maxHand ? "Рука улучшена" : "Рука +1   ·   " + Model.HandPrice;
             handUpgradeButton.interactable = !maxHand && Model.Coins >= Model.HandPrice;
+            if (deckUpgradeButton)
+            {
+                deckUpgradeText.text = Model.DeckAtMaximum ? "Колода максимальна"
+                    : $"Колода {Model.DeckLimit} → {Model.NextDeckLimit}   ·   {Model.DeckLimitPrice}";
+                deckUpgradeButton.interactable = !Model.DeckAtMaximum && Model.Coins >= Model.DeckLimitPrice;
+            }
             RefreshDetail();
         }
 
         void RefreshCollection()
         {
             var copies = Model.Owned.ToList();
-            var offers = config.cards.ToList();
-            int count = Market ? offers.Count : copies.Count;
+            var source = Model.Find(MergeSource);
+            int count = copies.Count;
             int pages = Mathf.Max(1, Mathf.CeilToInt((float)count / collectionViews.Length));
             page = Mathf.Clamp(page, 0, pages - 1);
-            collectionHeading.text = Market ? "Карточная лавка" : "Моя коллекция";
+            collectionHeading.text = $"Коллекция  {count} / {Model.CollectionLimit}";
             pageNumber.text = $"{page + 1} / {pages}";
             previousPage.interactable = page > 0;
             nextPage.interactable = page + 1 < pages;
@@ -327,103 +383,96 @@ namespace Hakaton.Decks.Unity
                     view.gameObject.SetActive(false);
                     continue;
                 }
-                if (Market)
-                {
-                    var offer = offers[index];
-                    view.Bind(offer.artwork, offer.displayName, offer.purchasePrice + " монет", 0, offer.id,
-                        SelectedDefinitionId == offer.id, false);
-                }
-                else
-                {
-                    var copy = copies[index];
-                    bool inDeck = Model.IsSelected(copy.Id);
-                    view.Bind(Artwork(copy), $"№ {copy.Id:00}  /  ур. {copy.Level}", inDeck ? "В колоде" : "В коллекции", copy.Id,
-                        copy.Spec.Id, SelectedCopyId == copy.Id, inDeck);
-                }
+                var copy = copies[index];
+                bool inDeck = Model.IsSelected(copy.Id);
+                view.Bind(Definition(copy).artwork, $"{copy.Spec.Name}  {copy.LevelNumeral}", inDeck ? "В колоде" : "В коллекции",
+                    copy.Id, copy.Spec.Id, SelectedCopyId == copy.Id, inDeck);
+                // While merging, only the copies that fit light up.
+                view.SetDimmed(source != null && copy.Id != source.Id && Model.CanMerge(source, copy) != null);
             }
         }
 
         void RefreshDetail()
         {
-            var copy = Market ? null : Model.Find(SelectedCopyId);
-            var definition = Market ? config.Find(SelectedDefinitionId) : Definition(copy);
+            var copy = Model.Find(SelectedCopyId);
+            var definition = Definition(copy);
             if (definition == null)
             {
                 detailArt.enabled = false;
                 detailTitle.text = "Коллекция пуста";
-                detailIdentity.text = "Загляните в карточную лавку.";
+                detailIdentity.text = "Карты продаёт гоблин-карточник.";
                 detailPower.text = detailDescription.text = "";
                 equipText.text = "Выберите карту";
-                upgradeText.text = "Улучшить";
-                equipButton.interactable = upgradeButton.interactable = false;
+                mergeText.text = "Объединить";
+                equipButton.interactable = mergeButton.interactable = false;
                 return;
             }
             detailArt.enabled = true;
             detailArt.sprite = definition.artwork;
             detailAccent.color = definition.accent;
             detailTitle.text = definition.displayName;
-            detailIdentity.text =
-                Market ? "Новая копия" : $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.Level}";
+            detailIdentity.text = $"№ {copy.Id:00}  ·  УРОВЕНЬ {copy.LevelNumeral}" + (copy.Protected ? "  ·  ОСНОВА" : "");
             detailDescription.text = definition.description;
-            detailPower.text = PowerLine(definition, copy);
+            detailPower.text = PowerLine(definition, copy.Level);
 
-            if (Market)
-            {
-                equipText.text = "Купить  ·  " + definition.purchasePrice;
-                equipButton.interactable = Model.Coins >= definition.purchasePrice;
-                upgradeText.text = "Сначала купите копию";
-                upgradeButton.interactable = false;
-                return;
-            }
             bool inDeck = Model.IsSelected(copy.Id);
             equipText.text = inDeck ? "Убрать из колоды" : "Взять в колоду";
-            equipButton.interactable = inDeck || Model.Selected().Count < config.deckLimit;
-            bool maxLevel = copy.Level >= config.maximumCardLevel;
-            upgradeText.text = !definition.upgradable ? "Не улучшается"
-                : maxLevel                           ? "Максимальный уровень"
-                                                     : "Улучшить  ·  " + Model.UpgradePrice(copy);
-            upgradeButton.interactable = Model.CanUpgrade(copy) && Model.Coins >= Model.UpgradePrice(copy);
+            equipButton.interactable = inDeck || Model.Selected().Count < Model.DeckLimit;
+            bool canMerge = Model.MergePartners(copy).Any();
+            mergeText.text = MergeSource != 0 ? "Отменить"
+                : !definition.upgradable     ? "Не объединяется"
+                : copy.Level >= Model.Rules.MaxCardLevel ? "Уровень III"
+                : canMerge                   ? $"Объединить  ·  {copy.LevelNumeral} + {copy.LevelNumeral} → {CardCopy.Numeral(copy.Level + 1)}"
+                                             : "Нужна пара";
+            mergeButton.interactable = MergeSource != 0 || canMerge;
         }
 
-        /// <summary>"Импульс 8 → 9,5": the card's main number now and after the next upgrade.</summary>
-        string PowerLine(CardDefinition definition, CardCopy copy)
+        /// <summary>"Урон  3 · 5 · 8": the card's main number at I / II / III, the copy's level in bold.</summary>
+        public static string PowerLine(CardDefinition definition, int level)
         {
-            int level = copy?.Level ?? 1;
-            bool canUpgrade = copy != null && definition.upgradable && copy.Level < config.maximumCardLevel;
-            // New cards name their main number in their effect asset (one source for the number).
-            if (definition.effectAsset is ICardStatLine stats
-                && stats.TryGetStat(out var statLabel, out var statBase, out var statUpgraded, out var statUnit))
-                return statLabel + "  " + Number(level > 1 ? statUpgraded : statBase)
-                    + (canUpgrade ? "  →  " + Number(statUpgraded) : "") + statUnit;
-            if (!definition.upgradable) return "Без улучшения";
-            bool physical = definition.action == CardAction.Impulse || definition.action == CardAction.HeavyStrike;
-            float power =
-                physical ? definition.ImpulseAtLevel(level) : definition.basePower + (level - 1) * definition.powerPerLevel;
-            float next = physical ? definition.ImpulseAtLevel(level + 1) : power + definition.powerPerLevel;
-            string label = physical                      ? "Импульс"
-                : definition.action == CardAction.Freeze ? "Заморозка"
-                : definition.action == CardAction.Heal   ? "Лечение"
-                                                         : "Сила";
-            string unit = definition.action == CardAction.Freeze ? " с" : definition.action == CardAction.Heal ? " сердец" : "";
-            if (definition.action == CardAction.Heal)
+            string label, unit;
+            LevelFloat values;
+            if (definition.effectAsset is ICardStatLine stats && stats.TryGetStat(out label, out values, out unit)) { }
+            else if (definition.uses.iii > 1)
             {
-                // Heal power is in half hearts.
-                power *= .5f;
-                next *= .5f;
+                label = "Использований";
+                values = definition.uses;
+                unit = "";
             }
-            return label + "  " + Number(power) + (canUpgrade ? "  →  " + Number(next) : "") + unit;
+            else
+                switch (definition.action)
+                {
+                    case CardAction.Impulse:
+                    case CardAction.HeavyStrike:
+                        label = definition.action == CardAction.Impulse ? "Толчок" : "Урон " + Levels(definition.power, level, "") + ", толчок";
+                        values = definition.impulse;
+                        unit = "";
+                        break;
+                    case CardAction.Freeze:
+                        label = "Заморозка";
+                        values = definition.power;
+                        unit = " с";
+                        break;
+                    case CardAction.Heal:
+                        label = "Лечение";
+                        values = new LevelFloat(definition.power.i * .5f, definition.power.ii * .5f, definition.power.iii * .5f);
+                        unit = " серд.";
+                        break;
+                    default:
+                        label = "Урон";
+                        values = definition.power;
+                        unit = "";
+                        break;
+                }
+            return label + "  " + Levels(values, level, unit);
         }
 
-        static string Number(
-            float value) => value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',');
+        static string Levels(LevelFloat values, int level, string unit) =>
+            Mark(values.i, level == 1) + " · " + Mark(values.ii, level == 2) + " · " + Mark(values.iii, level >= 3) + unit;
 
-        static void TintTab(Button button, bool active)
-        {
-            var colours = button.colors;
-            colours.normalColor = active ? new Color(.28f, .34f, .28f) : new Color(.13f, .17f, .15f);
-            colours.highlightedColor = new Color(.33f, .38f, .31f);
-            colours.selectedColor = colours.normalColor;
-            button.colors = colours;
-        }
+        static string Mark(float value, bool current) => current ? "<b><color=#F4D27A>" + Number(value) + "</color></b>" : Number(value);
+
+        static string Number(float value) =>
+            value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',');
     }
 }

@@ -18,12 +18,12 @@ namespace Hakaton.ShopBlockout
             switch (kind)
             {
                 case ShopServiceKind.Computer:
-                    return workshop.OpenEmbedded(false);
+                    return workshop.OpenEmbedded();
                 case ShopServiceKind.GoblinRope:
                     if (!goblin) return false;
-                    return goblin.IsDeployed ? workshop.OpenEmbedded(true) : goblin.Summon();
+                    return !goblin.IsDeployed && goblin.Summon();
                 case ShopServiceKind.Goblin:
-                    return goblin && goblin.IsDeployed && workshop.OpenEmbedded(true);
+                    return false;
                 default:
                     return false;
             }
@@ -53,21 +53,6 @@ namespace Hakaton.ShopBlockout
             if (workshop) workshop.CloseEmbedded();
         }
 
-        void OnEnable()
-        {
-            if (workshop) workshop.Bought += OnBought;
-        }
-
-        void OnDisable()
-        {
-            if (workshop) workshop.Bought -= OnBought;
-            Close();
-        }
-
-        // Every purchase is made from the goblin: he looks pleased with the deal.
-        void OnBought()
-        {
-            if (goblin && goblin.drawing) goblin.drawing.Please();
-        }
+        void OnDisable() => Close();
     }
 }

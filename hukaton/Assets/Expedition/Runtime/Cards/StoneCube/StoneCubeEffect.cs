@@ -15,10 +15,10 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class StoneCubeEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Cube side, m. Owner (09.11 evening): the base cube is a step for an ordinary 1.2 m jump — 1.1 m; " +
-                 "the upgraded one keeps the board's growth 1.5 → 2 (×4/3) — 1.47 m, shown as 1,5.")]
-        [Min(0)] public float sizeBase = 1.1f, sizeUpgraded = 1.47f;
+                 "edge 1,1 / 1,5 / 2 m at I / II / III.")]
+        public LevelFloat size = new LevelFloat(1.1f, 1.5f, 2);
         [Tooltip("Rigidbody mass = board μ (same on both levels; the player is μ = 1 too).")]
         [Min(0)] public float mass = 1;
 
@@ -36,7 +36,7 @@ namespace Hakaton.Expeditions.Cards
 
         public override void Apply(in ImpactContext c)
         {
-            float side = c.Pick(sizeBase, sizeUpgraded);
+            float side = c.At(size);
             var rotation = StoneCubePlacement.Orientation(c.Direction, Random.Range(-yawJitter, yawJitter));
             var half = Vector3.one * Mathf.Max(.01f, side * .5f - overlapTolerance);
             // Everything solid counts, the player included (layer 2); cards and triggers do not.
@@ -57,11 +57,10 @@ namespace Hakaton.Expeditions.Cards
             Feedback(c, true);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Сторона";
-            baseValue = sizeBase;
-            upgradedValue = sizeUpgraded;
+            values = size;
             unit = " м";
             return true;
         }

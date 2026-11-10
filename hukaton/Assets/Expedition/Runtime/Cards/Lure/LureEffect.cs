@@ -11,9 +11,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class LureEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Sound duration, s (board: 6 → 10).")]
-        [Min(0)] public float durationBase = 6, durationUpgraded = 10;
+        public LevelFloat duration = new LevelFloat(6, 12, 20);
         [Tooltip("Calm creatures within this radius come to check the noise, m (same on both levels).")]
         [Min(0)] public float radius = 10;
 
@@ -33,15 +33,14 @@ namespace Hakaton.Expeditions.Cards
             }
             if (!CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var ground, out _)) ground = c.Point;
             var noise = c.World.SpawnForOuting(noisePrefab, ground, Quaternion.identity);
-            if (noise) noise.Setup(c.Pick(durationBase, durationUpgraded), radius);
+            if (noise) noise.Setup(c.At(duration), radius);
             Feedback(c, noise);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Звук";
-            baseValue = durationBase;
-            upgradedValue = durationUpgraded;
+            values = duration;
             unit = " с";
             return true;
         }

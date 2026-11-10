@@ -12,9 +12,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class RopeEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Rope length, m (confirmed 5 → 10).")]
-        [Min(0)] public float lengthBase = 5, lengthUpgraded = 10;
+        public LevelFloat length = new LevelFloat(5, 7.5f, 10);
         [Tooltip("Climbing speed, m/s (board*).")]
         [Min(0)] public float climbSpeed = 2;
 
@@ -36,15 +36,14 @@ namespace Hakaton.Expeditions.Cards
             }
             var rope = c.World.SpawnForOuting(ropePrefab, c.Point, Quaternion.identity);
             if (!rope) return;
-            rope.Attach(target, c.Point, c.Normal, c.Pick(lengthBase, lengthUpgraded), climbSpeed);
+            rope.Attach(target, c.Point, c.Normal, c.At(length), climbSpeed);
             Feedback(c, true);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Длина";
-            baseValue = lengthBase;
-            upgradedValue = lengthUpgraded;
+            values = length;
             unit = " м";
             return true;
         }

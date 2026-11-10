@@ -194,31 +194,30 @@ namespace Hakaton.Expeditions.Tests
             var cube = AssetDatabase.LoadAssetAtPath<StoneCubeEffect>("Assets/Game/Data/Effects/Stone cube.asset");
             Assert.That(cube, Is.Not.Null);
             // Owner, 09.11 evening: the base cube is a step for the 1.2 m jump; the upgrade keeps the board's ×4/3 growth (1.5 → 2).
-            Assert.That(cube.sizeBase, Is.EqualTo(1.1f)); Assert.That(cube.sizeUpgraded, Is.EqualTo(1.47f)); Assert.That(cube.mass, Is.EqualTo(1));
-            Assert.That(cube.sizeBase, Is.LessThan(1.2f), "Lower than the player's jump: climbed with an ordinary jump.");
-            Assert.That(cube.sizeUpgraded / cube.sizeBase, Is.EqualTo(2f / 1.5f).Within(.01f), "Grows by the board's ratio when upgraded.");
-            Assert.That(cube.TryGetStat(out var label, out var baseSide, out var upgradedSide, out var unit), Is.True);
-            Assert.That((label, baseSide, upgradedSide, unit), Is.EqualTo(("Сторона", 1.1f, 1.47f, " м")), "The workshop line: «Сторона 1,1 → 1,5 м».");
+            Assert.That((cube.size.i, cube.size.ii, cube.size.iii), Is.EqualTo((1.1f, 1.5f, 2f))); Assert.That(cube.mass, Is.EqualTo(1));
+            Assert.That(cube.size.i, Is.LessThan(1.2f), "Lower than the player's jump: climbed with an ordinary jump.");
+            Assert.That(cube.TryGetStat(out var label, out var sides, out var unit), Is.True);
+            Assert.That((label, sides.ii, unit), Is.EqualTo(("Сторона", 1.5f, " м")), "The PC line: «Сторона 1,1 · 1,5 · 2 м».");
             Assert.That(cube.cubePrefab, Is.Not.Null, "The cube prefab is referenced from the effect asset.");
             Assert.That(cube.cubePrefab.body.isKinematic, Is.False, "A real physical body: Impulse and Attraction move it.");
             Assert.That(cube.cubePrefab.transform.localScale, Is.EqualTo(Vector3.one), "Unscaled root: what rides on the cube keeps its size.");
 
             var branch = AssetDatabase.LoadAssetAtPath<BranchBridgeEffect>("Assets/Game/Data/Effects/Branch bridge.asset");
             Assert.That(branch, Is.Not.Null);
-            Assert.That(branch.lengthBase, Is.EqualTo(5)); Assert.That(branch.lengthUpgraded, Is.EqualTo(7)); Assert.That(branch.width, Is.EqualTo(1.2f));
+            Assert.That((branch.length.i, branch.length.ii, branch.length.iii), Is.EqualTo((5f, 8f, 12f))); Assert.That(branch.width, Is.EqualTo(1.2f));
             Assert.That(branch.branchPrefab, Is.Not.Null);
             Assert.That(branch.branchPrefab.walkway, Is.Not.Null);
 
             var rope = AssetDatabase.LoadAssetAtPath<RopeEffect>("Assets/Game/Data/Effects/Rope.asset");
             Assert.That(rope, Is.Not.Null);
-            Assert.That(rope.lengthBase, Is.EqualTo(5)); Assert.That(rope.lengthUpgraded, Is.EqualTo(10)); Assert.That(rope.climbSpeed, Is.EqualTo(2));
+            Assert.That((rope.length.i, rope.length.ii, rope.length.iii), Is.EqualTo((5f, 7.5f, 10f))); Assert.That(rope.climbSpeed, Is.EqualTo(2));
             Assert.That(rope.ropePrefab, Is.Not.Null);
-            Assert.That(rope.ropePrefab.segments.Length * rope.ropePrefab.segmentLength, Is.GreaterThanOrEqualTo(rope.lengthUpgraded),
-                "Enough authored pieces for the upgraded length.");
+            Assert.That(rope.ropePrefab.segments.Length * rope.ropePrefab.segmentLength, Is.GreaterThanOrEqualTo(rope.length.iii),
+                "Enough authored pieces for the level III length.");
             foreach (var piece in rope.ropePrefab.segments) Assert.That(piece, Is.Not.Null);
 
             foreach (var line in new ICardStatLine[] { cube, branch, rope })
-                Assert.That(line.TryGetStat(out _, out _, out _, out _), Is.True);
+                Assert.That(line.TryGetStat(out _, out _, out _), Is.True);
         }
     }
 }

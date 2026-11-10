@@ -16,9 +16,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class MoonGravityEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Duration, s (confirmed 12 → 45).")]
-        [Min(0)] public float durationBase = 12, durationUpgraded = 45;
+        public LevelFloat duration = new LevelFloat(12, 25, 45);
         [Tooltip("Gravity multiplier (board*: 25 %).")]
         [Min(0)] public float gravityMultiplier = .25f;
 
@@ -30,30 +30,29 @@ namespace Hakaton.Expeditions.Cards
         public Color playerTint = new Color(.78f, .74f, 1f);
         [Min(0)] public float playerVfxScale = 1;
 
-        /// <summary>Duration of a base or an upgraded copy.</summary>
-        public float Duration(bool upgraded) => upgraded ? durationUpgraded : durationBase;
+        /// <summary>Duration of a copy of the given level.</summary>
+        public float Duration(int level) => duration.At(level);
 
         /// <summary>The rule itself (separate so it can be tested on a bare motor).</summary>
-        public void ApplyTo(FirstPersonMotor motor, bool upgraded)
+        public void ApplyTo(FirstPersonMotor motor, int level)
         {
-            if (motor) motor.ApplyModifier(MotorModifier.Gravity, gravityMultiplier, Duration(upgraded));
+            if (motor) motor.ApplyModifier(MotorModifier.Gravity, gravityMultiplier, Duration(level));
         }
 
         public override void Apply(in ImpactContext c)
         {
             var motor = c.Motor;
-            ApplyTo(motor, c.Upgraded);
+            ApplyTo(motor, c.Level);
             PlayerStatusBadge.Show(c.World, badge);
             c.World.Spawn(playerVfx, motor.transform.position + Vector3.up * .05f, Quaternion.identity, playerTint, playerVfxScale);
             if (c.World.feel) c.World.feel.PunchFov(-14);
             Feedback(c, true);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Длительность";
-            baseValue = durationBase;
-            upgradedValue = durationUpgraded;
+            values = duration;
             unit = " с";
             return true;
         }

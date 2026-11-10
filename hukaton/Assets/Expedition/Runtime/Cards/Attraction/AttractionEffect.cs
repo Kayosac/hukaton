@@ -13,9 +13,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class AttractionEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Impulse I toward the centre (board: 6 → 8).")]
-        [Min(0)] public float impulseBase = 6, impulseUpgraded = 8;
+        public LevelFloat impulse = new LevelFloat(6, 9, 12);
         [Tooltip("Radius, m (same on both levels).")]
         [Min(0)] public float radius = 3;
 
@@ -30,7 +30,7 @@ namespace Hakaton.Expeditions.Cards
         public override void Apply(in ImpactContext c)
         {
             var world = c.World;
-            float impulse = c.Pick(impulseBase, impulseUpgraded);
+            float impulse = c.At(this.impulse);
             Vector3 centre = c.Point;
             bool meaningful = false;
             if (c.PlayerWithin(radius) && Toward(c.PlayerCentre, centre, out var playerPull))
@@ -68,11 +68,10 @@ namespace Hakaton.Expeditions.Cards
             return true;
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Импульс";
-            baseValue = impulseBase;
-            upgradedValue = impulseUpgraded;
+            values = impulse;
             unit = "";
             return true;
         }

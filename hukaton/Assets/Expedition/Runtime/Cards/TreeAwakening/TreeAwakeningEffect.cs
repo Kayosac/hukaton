@@ -15,11 +15,11 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class TreeAwakeningEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Ally health (board*: 12 → 18).")]
-        [Min(0)] public int healthBase = 12, healthUpgraded = 18;
+        public LevelInt health = new LevelInt(12, 20, 32);
         [Tooltip("Branch strike damage (board*).")]
-        [Min(0)] public int damage = 2;
+        public LevelInt damage = new LevelInt(2, 3, 4);
         [Tooltip("Strike reach, m.")]
         [Min(0)] public float reach = 2.5f;
         [Tooltip("Attack cycle and its wind-up, s.")]
@@ -60,7 +60,7 @@ namespace Hakaton.Expeditions.Cards
             var rotation = toPlayer.sqrMagnitude > .01f ? Quaternion.LookRotation(toPlayer) : tree.transform.rotation;
             var ally = world.SpawnForOuting(allyPrefab, position, rotation);
             if (!ally) { Feedback(c, false); return; }
-            ally.Configure(c.Pick(healthBase, healthUpgraded), damage, reach, attackCycle, windup, mass);
+            ally.Configure(c.At(health), c.At(damage), reach, attackCycle, windup, mass);
             // Ropes and other things fastened to the tree let go before it disappears.
             AwakenableTree.RaiseAwakened(tree, ally);
             world.HideForOuting(tree.gameObject);
@@ -69,11 +69,10 @@ namespace Hakaton.Expeditions.Cards
             Feedback(c, true);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Здоровье";
-            baseValue = healthBase;
-            upgradedValue = healthUpgraded;
+            values = health;
             unit = "";
             return true;
         }

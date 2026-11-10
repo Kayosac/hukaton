@@ -31,12 +31,12 @@ namespace Hakaton.Expeditions
 
         // ---------- card parameters ----------
 
-        /// <summary>True for an upgraded copy (the board's single step «база → ↑»: any level above 1).</summary>
-        public bool Upgraded => Copy != null && Copy.Upgraded;
-        /// <summary>The base or the upgraded value of a card parameter: <c>c.Pick(durationBase, durationUpgraded)</c>.</summary>
-        public float Pick(float baseValue, float upgradedValue) => Upgraded ? upgradedValue : baseValue;
-        /// <inheritdoc cref="Pick(float, float)"/>
-        public int Pick(int baseValue, int upgradedValue) => Upgraded ? upgradedValue : baseValue;
+        /// <summary>The copy's level: 1, 2 or 3 (I / II / III).</summary>
+        public int Level => Copy != null ? Copy.Level : 1;
+        /// <summary>A card parameter at this copy's level: <c>c.At(duration)</c>.</summary>
+        public float At(LevelFloat value) => value.At(Level);
+        /// <inheritdoc cref="At(LevelFloat)"/>
+        public int At(LevelInt value) => value.At(Level);
 
         // ---------- the player and the world ----------
 
@@ -57,9 +57,10 @@ namespace Hakaton.Expeditions
         /// <summary>Card zones containing the impact point (the puddle the card landed in). Appends; returns the count.</summary>
         public int ZonesAtPoint(List<ICardZone> results, CardZoneKind? kind = null) => World.Zones.Containing(Point, results, kind);
 
-        public int Power => Copy.Power;
+        /// <summary>Damage, freeze seconds or half hearts of healing of the simple cards at this level.</summary>
+        public int Power => Definition.power.At(Level);
         public float Radius => Definition.effectRadius;
-        public float Impulse => Definition.ImpulseAtLevel(Copy.Level);
+        public float Impulse => Definition.impulse.At(Level);
         public Color Accent => Definition.accent;
         public Vector3 Direction => Velocity.sqrMagnitude > .001f ? Velocity.normalized : -Normal;
         public Vector3 PlayerCentre => World.motor.transform.TransformPoint(World.motor.characterController.center);

@@ -12,9 +12,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class TarPuddleEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Puddle radius, m (board*: 2 → 3).")]
-        [Min(0)] public float radiusBase = 2, radiusUpgraded = 3;
+        public LevelFloat radius = new LevelFloat(2, 3, 4);
         [Tooltip("Movement multiplier on unlit tar (board*: −50 %).")]
         [Min(0)] public float speedMultiplier = .5f;
         [Tooltip("Burning time after ignition, s (confirmed; same on both levels).")]
@@ -38,15 +38,14 @@ namespace Hakaton.Expeditions.Cards
             }
             var rotation = Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.Euler(0, Random.Range(0, 360f), 0);
             var puddle = c.World.SpawnForOuting(puddlePrefab, point, rotation);
-            if (puddle) puddle.Setup(c.Pick(radiusBase, radiusUpgraded), speedMultiplier, burnSeconds, burnDamagePerSecond);
+            if (puddle) puddle.Setup(c.At(radius), speedMultiplier, burnSeconds, burnDamagePerSecond);
             Feedback(c, puddle);
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Радиус";
-            baseValue = radiusBase;
-            upgradedValue = radiusUpgraded;
+            values = radius;
             unit = " м";
             return true;
         }

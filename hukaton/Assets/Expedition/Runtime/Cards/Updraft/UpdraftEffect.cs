@@ -12,9 +12,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class UpdraftEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Column height, m (board: 6 → 8).")]
-        [Min(0)] public float heightBase = 6, heightUpgraded = 8;
+        public LevelFloat height = new LevelFloat(6, 10, 15);
         [Tooltip("Column radius, m.")]
         [Min(0)] public float radius = 1.5f;
         [Tooltip("Duration, s.")]
@@ -40,7 +40,7 @@ namespace Hakaton.Expeditions.Cards
             if ((c.Normal.y < floorNormal || onBody) && FindGround(c.Point + c.Normal * .15f, groundSearch, out var ground)) position = ground;
             var column = c.World.SpawnForOuting(columnPrefab, position, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
             if (!column) { Feedback(c, false); return; }
-            column.Configure(c.Pick(heightBase, heightUpgraded), radius, durationSeconds, riseSpeed, maxMass);
+            column.Configure(c.At(height), radius, durationSeconds, riseSpeed, maxMass);
             Feedback(c, true);
         }
 
@@ -57,11 +57,10 @@ namespace Hakaton.Expeditions.Cards
             return best < float.MaxValue;
         }
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Высота";
-            baseValue = heightBase;
-            upgradedValue = heightUpgraded;
+            values = height;
             unit = " м";
             return true;
         }

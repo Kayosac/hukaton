@@ -16,9 +16,9 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class SwapEffect : CardEffect, ICardStatLine
     {
-        [Header("Board numbers (base / upgraded)")]
+        [Header("Board numbers (I / II / III)")]
         [Tooltip("Range, m (board: 12 → 18).")]
-        [Min(0)] public float rangeBase = 12, rangeUpgraded = 18;
+        public LevelFloat range = new LevelFloat(12, 20, 30);
         [Tooltip("Heaviest object it swaps (μ).")]
         [Min(0)] public float maxMass = 2;
 
@@ -37,16 +37,16 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Why a swap cannot happen.</summary>
         public enum Refusal { None, NoObject, Living, Fixed, TooHeavy, TooFar, NoRoom }
 
-        public float Range(bool upgraded) => upgraded ? rangeUpgraded : rangeBase;
+        public float Range(int level) => range.At(level);
 
         /// <summary>The board's conditions on the hit object (room for the player is checked separately).</summary>
-        public Refusal Check(Rigidbody body, Vector3 playerCentre, bool upgraded)
+        public Refusal Check(Rigidbody body, Vector3 playerCentre, int level)
         {
             if (!body) return Refusal.NoObject;
             if (body.GetComponentInParent<WorldCreature>() || body.GetComponentInParent<ICombatant>() != null) return Refusal.Living;
             if (body.isKinematic) return Refusal.Fixed;
             if (body.mass > maxMass + .001f) return Refusal.TooHeavy;
-            if (Vector3.Distance(playerCentre, body.worldCenterOfMass) > Range(upgraded) + .001f) return Refusal.TooFar;
+            if (Vector3.Distance(playerCentre, body.worldCenterOfMass) > Range(level) + .001f) return Refusal.TooFar;
             return Refusal.None;
         }
 
@@ -68,7 +68,7 @@ namespace Hakaton.Expeditions.Cards
         {
             var motor = c.Motor;
             var body = c.Body;
-            var refusal = c.Creature || c.HitCombatant != null ? Refusal.Living : Check(body, c.PlayerCentre, c.Upgraded);
+            var refusal = c.Creature || c.HitCombatant != null ? Refusal.Living : Check(body, c.PlayerCentre, c.Level);
             Vector3 playerFeet = TeleportEffect.Feet(motor);
             Vector3 arrival = default;
             if (refusal == Refusal.None && !TryFindPlayerPlace(motor, body, out arrival)) refusal = Refusal.NoRoom;
@@ -150,11 +150,10 @@ namespace Hakaton.Expeditions.Cards
 
         static Vector3 BottomCentre(Bounds bounds) => new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
 
-        public bool TryGetStat(out string label, out float baseValue, out float upgradedValue, out string unit)
+        public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
             label = "Дальность";
-            baseValue = rangeBase;
-            upgradedValue = rangeUpgraded;
+            values = range;
             unit = " м";
             return true;
         }

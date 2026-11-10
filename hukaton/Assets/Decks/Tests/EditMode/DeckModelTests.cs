@@ -9,9 +9,9 @@ namespace Hakaton.Decks.Tests
     /// <summary>Board, frame «единая колода»: one deck of chosen copies, one shared hand, Return when both run out.</summary>
     public sealed class DeckModelTests
     {
-        static readonly CardSpec[] Specs = { new CardSpec("wind", "Ветер", 30, 20, 2, 1),
-            new CardSpec("water", "Вода", 40, 25, 4, 2),
-            new CardSpec("fire", "Огонь", 50, 30, 8, 2) };
+        static readonly CardSpec[] Specs = { new CardSpec("wind", "Ветер", 30),
+            new CardSpec("water", "Вода", 40),
+            new CardSpec("fire", "Огонь", 50) };
         static DeckWorkshop Workshop(int copies = 3, int limit = 12) => new DeckWorkshop(
             new DeckRules(limit, 3, 5, 3, 60, 1000), Specs, copies);
         static int[] Ids(ExpeditionDeck deck) => deck.Hand.Select(c => c.Id).ToArray();
@@ -170,7 +170,7 @@ namespace Hakaton.Decks.Tests
         {
             var w = Workshop(2);
             var id = w.Owned[0].Id;
-            w.Upgrade(id);
+            w.Merge(id, w.Owned[1].Id, out _);
             var before = w.Owned.Select(c => c.Id).ToArray();
             w.Depart(2);
             w.Current.DiscardHand();
@@ -179,24 +179,20 @@ namespace Hakaton.Decks.Tests
             w.Depart(3);
             Assert.That(w.Owned.Select(c => c.Id), Is.EqualTo(before));
             Assert.That(w.Find(id).Level, Is.EqualTo(2));
-            Assert.That(w.Current.Deck.Total, Is.EqualTo(6));
+            Assert.That(w.Current.Deck.Total, Is.EqualTo(5), "Two copies merged into one.");
             Assert.That(w.Current.Deck.Discard, Is.Empty);
         }
 
         [Test]
-        public void UpgradeTouchesOnlyOneCopyAndChargesOnce()
+        public void MergeTouchesOnlyTheTwoChosenCopies()
         {
             var w = Workshop();
             var copy = w.Owned[0];
-            Assert.That(w.Upgrade(copy.Id), Is.Null);
+            Assert.That(w.Merge(copy.Id, w.Owned[1].Id, out _), Is.Null);
             Assert.That(copy.Level, Is.EqualTo(2));
-            Assert.That(copy.Power, Is.EqualTo(3));
-            Assert.That(w.Coins, Is.EqualTo(980));
-            Assert.That(w.Owned[1].Level, Is.EqualTo(1));
-            w.Upgrade(copy.Id);
-            int coins = w.Coins;
-            Assert.That(w.Upgrade(copy.Id), Is.Not.Null);
-            Assert.That(w.Coins, Is.EqualTo(coins));
+            Assert.That(w.Coins, Is.EqualTo(1000));
+            Assert.That(w.Owned[1].Level, Is.EqualTo(1), "The third wind copy stays as it was.");
+            Assert.That(w.Merge(copy.Id, w.Owned[1].Id, out _), Is.Not.Null, "II and I do not merge.");
         }
 
         [Test]
@@ -244,7 +240,6 @@ namespace Hakaton.Decks.Tests
             int count = w.Owned.Count;
             Assert.That(w.Buy("fire", out var copy), Is.Not.Null);
             Assert.That(copy, Is.Null);
-            Assert.That(w.Upgrade(1), Is.Not.Null);
             Assert.That(w.ImproveHand(), Is.Not.Null);
             Assert.That(w.Coins, Is.Zero);
             Assert.That(w.Owned.Count, Is.EqualTo(count));
@@ -258,7 +253,7 @@ namespace Hakaton.Decks.Tests
             w.Depart(6);
             var save = w.Save();
             Assert.That(w.Toggle(1), Is.Not.Null);
-            Assert.That(w.Upgrade(1), Is.Not.Null);
+            Assert.That(w.Merge(1, 2, out _), Is.Not.Null);
             Assert.That(w.Buy("fire", out _), Is.Not.Null);
             Assert.That(w.ImproveHand(), Is.Not.Null);
             Assert.That(w.TryRestore(save), Is.False);
@@ -304,10 +299,11 @@ namespace Hakaton.Decks.Tests
             a.Buy("wind", out var copy);
             a.Toggle(copy.Id);
             a.Toggle(2);
-            a.Upgrade(copy.Id);
+            a.Buy("wind", out var second);
+            a.Merge(copy.Id, second.Id, out _);
             a.ImproveHand();
             var save = a.Save();
-            Assert.That(save.version, Is.EqualTo(2));
+            Assert.That(save.version, Is.EqualTo(3));
             var b = Workshop();
             Assert.That(b.TryRestore(save), Is.True);
             Assert.That(b.Coins, Is.EqualTo(a.Coins));
@@ -340,7 +336,7 @@ namespace Hakaton.Decks.Tests
             Assert.That(kept.Count(c => c.Spec.Id == "fire"), Is.EqualTo(2), "The rarest type is never dropped.");
             Assert.That(kept.Count(c => c.Spec.Id == "wind"), Is.EqualTo(5));
             Assert.That(kept.Count(c => c.Spec.Id == "water"), Is.EqualTo(5));
-            Assert.That(target.Save().version, Is.EqualTo(2));
+            Assert.That(target.Save().version, Is.EqualTo(3));
         }
 
         [Test]
@@ -351,19 +347,19 @@ namespace Hakaton.Decks.Tests
             bad.selected = w.Owned.Select(c => c.Id).ToList();
             Assert.That(w.CanRestoreProgress(bad), Is.False);
             bad = w.Save();
-            bad.version = 3;
+            bad.version = 4;
             Assert.That(w.CanRestoreProgress(bad), Is.False);
         }
 
         [Test]
         public void StartingCollectionAndStartingDeckAreConfiguredSeparately()
         {
-            var specs = new[] { new CardSpec("impulse", "Импульс", 120, 120, 8, 1),
-                new CardSpec("ice", "Лёд", 120, 100, 2, 1),
-                new CardSpec("fire", "Огонь", 100, 100, 1, 1),
-                new CardSpec("strike", "Удар", 120, 100, 3, 1),
-                new CardSpec("heavy", "Тяжёлый удар", 140, 140, 2, 0),
-                new CardSpec("heal", "Лечение", 140, 120, 2, 1) };
+            var specs = new[] { new CardSpec("impulse", "Импульс", 120),
+                new CardSpec("ice", "Лёд", 120),
+                new CardSpec("fire", "Огонь", 100),
+                new CardSpec("strike", "Удар", 120),
+                new CardSpec("heavy", "Тяжёлый удар", 140),
+                new CardSpec("heal", "Лечение", 140) };
             var counts = new Dictionary<string, int> { { "impulse", 3 }, { "ice", 3 }, { "fire", 2 }, { "strike", 5 },
                 { "heavy", 0 }, { "heal", 2 } };
             var deck = new Dictionary<string, int> { { "impulse", 2 }, { "ice", 2 }, { "fire", 2 }, { "strike", 4 },
@@ -385,7 +381,8 @@ namespace Hakaton.Decks.Tests
             var source = Workshop();
             source.Buy("wind", out var copy);
             source.Toggle(copy.Id);
-            source.Upgrade(copy.Id);
+            source.Buy("wind", out var second);
+            source.Merge(copy.Id, second.Id, out _);
             source.ImproveHand();
             var wallet = new CoinWallet(73);
             var target = new DeckWorkshop(source.Rules, Specs, 1, wallet);
@@ -432,13 +429,14 @@ namespace Hakaton.Decks.Tests
             Assert.That(changes, Is.Zero);
             w.Toggle(1);
             w.Buy("wind", out var copy);
-            w.Upgrade(copy.Id);
+            w.Buy("wind", out var second);
+            w.Merge(copy.Id, second.Id, out _);
             w.ImproveHand();
-            Assert.That(changes, Is.EqualTo(4));
-            w.Depart(1);
             Assert.That(changes, Is.EqualTo(5));
-            Assert.That(w.Upgrade(copy.Id), Is.Not.Null);
-            Assert.That(changes, Is.EqualTo(5), "Rejected mutations during an outing cannot request a save.");
+            w.Depart(1);
+            Assert.That(changes, Is.EqualTo(6));
+            Assert.That(w.Merge(copy.Id, 2, out _), Is.Not.Null);
+            Assert.That(changes, Is.EqualTo(6), "Rejected mutations during an outing cannot request a save.");
         }
 
         [Test]

@@ -15,8 +15,8 @@ namespace Hakaton.Game.Tests
         static readonly ItemDefinition Find = new ItemDefinition("common_find", "Обычная находка", "Находки", 20);
         static readonly ItemDefinition Tusk = new ItemDefinition("boar_tusk", "Кабаний клык", "Трофеи", 120);
         static readonly CardSpec[] Cards = {
-            new CardSpec("wind", "Импульс", 30, 20, 3, 1),
-            new CardSpec("hit", "Удар", 40, 20, 8, 2)
+            new CardSpec("wind", "Импульс", 30),
+            new CardSpec("hit", "Удар", 40)
         };
         string directory, path;
 
@@ -180,7 +180,8 @@ namespace Hakaton.Game.Tests
             SellAtReferencePrice(source.Shop, 0);
             source.Shop.Tick(37.5f); source.Shop.Close();
             Assert.That(source.Workshop.Buy("wind", out var bought), Is.Null);
-            Assert.That(source.Workshop.Upgrade(bought.Id), Is.Null);
+            Assert.That(source.Workshop.Purchase("wind", 20, out var extra), Is.Null);
+            Assert.That(source.Workshop.Merge(bought.Id, extra.Id, out _), Is.Null);
             Assert.That(source.Workshop.ImproveHand(), Is.Null);
             int originalWind = source.Workshop.Owned.First(copy => copy.Spec.Id == "wind" && copy.Id != bought.Id).Id;
             source.Workshop.Toggle(originalWind); source.Workshop.Toggle(bought.Id);
