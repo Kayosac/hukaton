@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Hakaton.Economy.Unity;
+using Hakaton.Loot;
 using Hakaton.ShopBlockout;
 
 namespace Hakaton.Trading.Unity
@@ -67,25 +68,20 @@ namespace Hakaton.Trading.Unity
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
         [System.Serializable]
-        public sealed class StockEntry
+        public sealed class StartingStock
         {
-            public string id, displayName, category;
-            [Min(1)] public int recommendedPrice = 100;
-            [Min(0)] public int count = 4;
-            public StockEntry(string id, string displayName, string category, int price)
-            { this.id = id; this.displayName = displayName; this.category = category; recommendedPrice = price; }
+            public LootItem item;
+            [Min(0)] public int count = 1;
         }
-        [Header("Catalogue — order matches item prefabs and test loot")]
-        public StockEntry[] startingStock = {
-            new StockEntry("fang", "Клык зверя", "Трофеи", 100),
-            new StockEntry("herb", "Лесная трава", "Растения", 40),
-            new StockEntry("relic", "Старая реликвия", "Находки", 160)
-        };
-        ItemDefinition[] catalog;
+        [Header("Catalogue")]
+        [Tooltip("Every item the shop knows: name, category, price and how it looks on the shelf (Assets/Loot/Loot catalog.asset).")]
+        public LootCatalog lootCatalog;
+        [Tooltip("Copies in stock when a new game starts, before any outing.")]
+        public StartingStock[] startingStock = new StartingStock[0];
         GameObject[] displayed;
         long[] displayedIds;
         GameObject heldItem, heldVisual;
-        int heldVisualIndex = -1;
+        string heldVisualId;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
@@ -118,8 +114,7 @@ namespace Hakaton.Trading.Unity
                 enabled = false;
                 return;
             }
-            if (!World.ValidateReferences() || startingStock == null || startingStock.Length == 0
-                || startingStock.Length != World.ItemPrefabs.Length)
+            if (!World.ValidateReferences() || !lootCatalog || lootCatalog.items.Count == 0)
             {
                 Debug.LogError("TradingPrototype: scene references are incomplete.", World);
                 enabled = false;
@@ -135,18 +130,7 @@ namespace Hakaton.Trading.Unity
                 UsePresetPatienceCosts = usePresetPatienceCosts,
                 MinPatience = minPatience, MaxPatience = maxPatience
             }, randomSeed, walletHost ? walletHost.Wallet : null);
-            catalog = new ItemDefinition[startingStock.Length];
-            int maxCount = 0;
-            for (int i = 0; i < startingStock.Length; i++)
-            {
-                var entry = startingStock[i];
-                catalog[i] = new ItemDefinition(entry.id, entry.displayName, entry.category, entry.recommendedPrice);
-                Session.SeedInventory(catalog[i], 0);
-                maxCount = Mathf.Max(maxCount, entry.count);
-            }
-            for (int n = 0; n < maxCount; n++)
-                for (int i = 0; i < catalog.Length; i++)
-                    if (n < startingStock[i].count) Session.SeedInventory(catalog[i], 1);
+            RegisterCatalogue();
             displayed = new GameObject[6];
             displayedIds = new long[6];
             itemMotion = new Coroutine[6];
@@ -471,7 +455,7 @@ namespace Hakaton.Trading.Unity
                 {
                     if (itemMotion[i] != null) { StopCoroutine(itemMotion[i]); itemMotion[i] = null; }
                     if (displayed[i] != null) Destroy(displayed[i]);
-                    displayed[i] = item == null ? null : Instantiate(World.ItemPrefabs[ItemIndex(item.Definition.Id)], World.SlotAnchors[i].position, World.SlotAnchors[i].rotation, World.SoldItemsRoot);
+                    displayed[i] = item == null ? null : CreateShelfItem(item.Definition.Id, World.SlotAnchors[i]);
                     displayedIds[i] = id;
                 }
                 if (i == hoveredSlot)
@@ -484,16 +468,67 @@ namespace Hakaton.Trading.Unity
             }
             PresentDealItem();
             heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
-            if (Session.Inventory.Count > 0) PresentHeldItem(ItemIndex(Session.Inventory[selectedInventory].Definition.Id));
+            if (Session.Inventory.Count > 0) PresentHeldItem(Session.Inventory[selectedInventory].Definition.Id);
         }
 
-        /// <summary>The hand shows a copy of the same stock prefab that goes on the shelf.</summary>
-        void PresentHeldItem(int index)
+        /// <summary>Every catalogue item becomes a shop definition; then the optional starting stock, interleaved.</summary>
+        void RegisterCatalogue()
         {
-            if (heldVisual && heldVisualIndex == index) return;
+            foreach (var item in lootCatalog.items)
+            {
+                if (!item) continue;
+                try { Session.SeedInventory(new ItemDefinition(item.id, item.displayName, item.category, item.price), 0); }
+                catch (System.ArgumentException error)
+                {
+                    Debug.LogError($"Loot item '{item.name}' cannot be sold: {error.Message} Check it in the Inspector.", item);
+                }
+            }
+            int maxCount = 0;
+            foreach (var entry in startingStock)
+                if (entry != null && entry.item) maxCount = Mathf.Max(maxCount, entry.count);
+            for (int n = 0; n < maxCount; n++)
+                foreach (var entry in startingStock)
+                {
+                    if (entry == null || !entry.item || n >= entry.count) continue;
+                    var definition = Session.FindDefinition(entry.item.id);
+                    if (definition != null) Session.SeedInventory(definition, 1);
+                }
+        }
+
+        /// <summary>The item's shelf look standing on the anchor, with a collider so the aim can find it.</summary>
+        GameObject CreateShelfItem(string id, Transform anchor)
+        {
+            var made = lootCatalog.CreateVisual(Item(id), World.SoldItemsRoot, true);
+            if (!made) return null;
+            made.transform.SetPositionAndRotation(anchor.position, anchor.rotation);
+            EnsureCollider(made);
+            return made;
+        }
+
+        /// <summary>Models without a collider and drawings get a box around their renderers.</summary>
+        static void EnsureCollider(GameObject item)
+        {
+            if (item.GetComponentInChildren<Collider>()) return;
+            var renderers = item.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            Bounds bounds = renderers[0].bounds;
+            foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            var box = item.AddComponent<BoxCollider>();
+            var root = item.transform;
+            box.center = root.InverseTransformPoint(bounds.center);
+            Vector3 scale = root.lossyScale;
+            box.size = new Vector3(bounds.size.x / Mathf.Max(.0001f, Mathf.Abs(scale.x)),
+                bounds.size.y / Mathf.Max(.0001f, Mathf.Abs(scale.y)), bounds.size.z / Mathf.Max(.0001f, Mathf.Abs(scale.z)));
+        }
+
+        /// <summary>The hand shows a copy of the same look that goes on the shelf.</summary>
+        void PresentHeldItem(string id)
+        {
+            if (heldVisual && heldVisualId == id) return;
             if (heldVisual) Destroy(heldVisual);
-            heldVisualIndex = index;
-            heldVisual = Instantiate(World.ItemPrefabs[index], heldItem.transform, false);
+            heldVisualId = id;
+            heldVisual = lootCatalog.CreateVisual(Item(id), heldItem.transform, true);
+            if (!heldVisual) return;
             heldVisual.transform.localScale = Vector3.one * heldItemScale;
             foreach (var collider in heldVisual.GetComponentsInChildren<Collider>()) collider.enabled = false;
         }
@@ -530,7 +565,15 @@ namespace Hakaton.Trading.Unity
             if (item) item.SetPositionAndRotation(destination.position, destination.rotation);
         }
 
-        int ItemIndex(string id) { for (int i = 0; i < catalog.Length; i++) if (catalog[i].Id == id) return i; throw new System.InvalidOperationException("Missing stock presentation: " + id); }
+        LootItem Item(string id)
+        {
+            var item = lootCatalog.Find(id);
+            if (!item) throw new System.InvalidOperationException("Missing loot item in the catalogue: " + id);
+            return item;
+        }
+
+        /// <summary>The catalogue item behind a shop definition id, or null.</summary>
+        public LootItem FindItem(string id) => lootCatalog ? lootCatalog.Find(id) : null;
 
         public ItemDefinition FindStock(string id) => Session?.FindDefinition(id);
 

@@ -1404,8 +1404,8 @@ MonoBehaviour:
   control: {fileID: 1042966974}
   goblin: {fileID: 2051388804}
   bubble: {fileID: 1971373931}
-  capId: hare_foot
-  fangId: boar_tusk
+  cap: {fileID: 11400000, guid: 322163dab1bf4bf6be034cc004fe0b91, type: 2}
+  fang: {fileID: 11400000, guid: d63eaa2905554812904afa64febab46c, type: 2}
   arrival:
   - "\u0412\u043E\u0442 \u043C\u043E\u044F \u043B\u0430\u0432\u043A\u0430. \u041F\u043E\u043A\u0430
     \u043D\u0430\u0447\u043D\u0451\u043C \u0441\u043E \u0441\u0442\u0430\u0440\u044B\u0445
@@ -2292,6 +2292,8 @@ MonoBehaviour:
   projectilePrefab: {fileID: 3837108158686769321, guid: 377a6ecd743e9454aa766d011cb10647, type: 3}
   debrisPrefab: {fileID: 7656167651544192248, guid: ad97bc0fc8bbe4bff85d679b8ea1de3f, type: 3}
   locationName: "\u0421\u0442\u0430\u0440\u0430\u044F \u043F\u0430\u0441\u0435\u043A\u0430"
+  lootCatalog: {fileID: 11400000, guid: 04ed8d4262e74fa48ae32f3bd615784c, type: 2}
+  lootDrop: {fileID: 4145034870551553835, guid: d7d205a2c34a54e10bfde23672cc4a92, type: 3}
   outingWorld: {fileID: 308764315}
   finds: []
   obstacles: []
@@ -4228,9 +4230,9 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
-      propertyPath: trophyPrefab
+      propertyPath: drops.entries.Array.data[0].item
       value: 
-      objectReference: {fileID: 867972099183848119, guid: c3ed85368f41942738aa2bb7118d9cb5, type: 3}
+      objectReference: {fileID: 11400000, guid: d63eaa2905554812904afa64febab46c, type: 2}
     - target: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
       propertyPath: spawnPoints.Array.size
       value: 2
@@ -9487,32 +9489,8 @@ MonoBehaviour:
   hud: {fileID: 416848467}
   walletHost: {fileID: 997696181}
   services: {fileID: 997696179}
-  startingStock:
-  - id: common_find
-    displayName: "\u041B\u0435\u0441\u043D\u0430\u044F \u043D\u0430\u0445\u043E\u0434\u043A\u0430"
-    category: "\u041D\u0430\u0445\u043E\u0434\u043A\u0438"
-    recommendedPrice: 20
-    count: 0
-  - id: special_find
-    displayName: "\u0420\u0435\u0434\u043A\u0430\u044F \u043D\u0430\u0445\u043E\u0434\u043A\u0430"
-    category: "\u041D\u0430\u0445\u043E\u0434\u043A\u0438"
-    recommendedPrice: 40
-    count: 0
-  - id: hare_foot
-    displayName: "\u0413\u0440\u0438\u0431\u043D\u0430\u044F \u0448\u043B\u044F\u043F\u043A\u0430"
-    category: "\u0422\u0440\u043E\u0444\u0435\u0438"
-    recommendedPrice: 60
-    count: 0
-  - id: boar_tusk
-    displayName: "\u041A\u043B\u044B\u043A \u0433\u043E\u0431\u043B\u0438\u043D-\u043F\u0441\u0430"
-    category: "\u0422\u0440\u043E\u0444\u0435\u0438"
-    recommendedPrice: 120
-    count: 0
-  - id: wolf_pelt
-    displayName: "\u0428\u043A\u0443\u0440\u0430 \u0433\u043E\u0431\u043B\u0438\u043D-\u043F\u0441\u0430"
-    category: "\u0422\u0440\u043E\u0444\u0435\u0438"
-    recommendedPrice: 180
-    count: 0
+  lootCatalog: {fileID: 11400000, guid: 04ed8d4262e74fa48ae32f3bd615784c, type: 2}
+  startingStock: []
 --- !u!114 &997696183
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9562,12 +9540,6 @@ MonoBehaviour:
   Customers: {fileID: 997696180}
   CustomerItemTarget: {fileID: 1738622699}
   SoldItemsRoot: {fileID: 2099708288}
-  ItemPrefabs:
-  - {fileID: 2948795452206686440, guid: 006dbb8ad1d03472c9f9e846636b4a32, type: 3}
-  - {fileID: 3206544323612768153, guid: 35d7677e9411e43c8a6741444df3c21c, type: 3}
-  - {fileID: 4536625458728804905, guid: 64f83fbfbfad94cc186cc12db9d924e3, type: 3}
-  - {fileID: 2004508948350208396, guid: f557356da8c0c447b8627284c534d3bb, type: 3}
-  - {fileID: 4660981348816512334, guid: bcae557c05bd14567b655e34e89f62aa, type: 3}
 --- !u!4 &997696184
 Transform:
   m_ObjectHideFlags: 0

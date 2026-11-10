@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using Hakaton.Character;
 using Hakaton.Feel;
+using Hakaton.Loot;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -35,7 +37,8 @@ namespace Hakaton.Expeditions
         [Tooltip("Height of the stun stars above the top of the drawing and their size.")]
         public float stunStarsHeight = .35f, stunStarsScale = 1.2f;
         VfxBurst stunStars;
-        public WorldLoot trophyPrefab;
+        [Tooltip("What drops on death. Each row is rolled on its own; the drops pop out of the body.")]
+        public LootTable drops = new LootTable();
         [Tooltip("Optional authored alternatives for this creature's home territory.")]
         public Transform[] spawnPoints;
         [Header("Health and attack (board v0.1)")]
@@ -730,14 +733,7 @@ namespace Hakaton.Expeditions
             KickDust(stepDustCount * 3);
             world.Spawn(world.vfx ? world.vfx.creatureDeath : null, transform.position + Vector3.up * TopHeight * .4f, Quaternion.identity, bodyColour, Mathf.Clamp(TopHeight, .5f, 1.2f));
             if (world.feel) world.feel.AddTrauma(.18f);
-            if (trophyPrefab)
-            {
-                var trophy = Instantiate(trophyPrefab, transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f), Quaternion.identity, world.spawnedObjects);
-                trophy.world = world;
-                trophy.Pop(Vector3.up * 5.5f + Random.insideUnitSphere * 1.5f);
-                world.Play(world.cues ? world.cues.trophyDrop : null, trophy.transform.position);
-            }
-            world.Announce(displayName + ": трофей ждёт", 2.2f);
+            DropLoot();
             // The body lies in its death drawing for a moment, then fades away.
             time = 0;
             while (time < corpseSeconds + .45f)
@@ -851,6 +847,24 @@ namespace Hakaton.Expeditions
         {
             // The hand-drawn shader multiplies by the renderer colour, so tints only darken toward a hue.
             if (view) view.Tint(Color.Lerp(Color.white, new Color(colour.r, colour.g, colour.b, 1), amount));
+        }
+
+        static readonly List<LootItem> dropped = new List<LootItem>();
+
+        /// <summary>Rolls <see cref="drops"/>; every copy pops out of the body on its own arc.</summary>
+        void DropLoot()
+        {
+            dropped.Clear();
+            drops.Roll(dropped);
+            if (dropped.Count == 0) return;
+            Vector3 from = transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
+            foreach (var item in dropped)
+            {
+                var drop = world.SpawnLoot(item, from);
+                if (drop) drop.Pop(Vector3.up * 5.5f + Random.insideUnitSphere * (dropped.Count > 1 ? 2.2f : 1.5f));
+            }
+            world.Play(world.cues ? world.cues.trophyDrop : null, from);
+            world.Announce(displayName + (dropped.Count > 1 ? ": трофеи ждут" : ": трофей ждёт"), 2.2f);
         }
     }
 }

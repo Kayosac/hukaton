@@ -5,6 +5,7 @@ using System.Text;
 using Hakaton.Decks;
 using Hakaton.Feel;
 using TMPro;
+using Hakaton.Loot;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -61,7 +62,7 @@ namespace Hakaton.Expeditions
         public TMP_Text cardCounter;
 
         [Header("Pickups")]
-        [Tooltip("Rows top right: '+ name  value'. Hold I to list every carried find in the same rows.")]
+        [Tooltip("Rows top right: '+ name  value', the name in its rarity colour (common items keep the text colour). Hold I to list every carried find in the same rows.")]
         public TMP_Text pickups;
         [Tooltip("Shadow copy of the rows (no colours).")]
         public TMP_Text pickupsShadow;
@@ -86,7 +87,7 @@ namespace Hakaton.Expeditions
         public Color hurtColour = new Color(.75f, .08f, .05f);
         public Color healColour = new Color(.3f, .85f, .45f);
 
-        readonly List<(string name, int value, float time)> toastLines = new List<(string, int, float)>();
+        readonly List<(string name, int value, float time, string colour)> toastLines = new List<(string, int, float, string)>();
         SpringFloat[] heartScales;
         SpringFloat heartsShake, ringScale;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
@@ -134,9 +135,9 @@ namespace Hakaton.Expeditions
             cardLabelUntil = Time.time + 2;
         }
 
-        void OnCollected(string itemName, int value)
+        void OnCollected(LootItem item)
         {
-            toastLines.Add((itemName, value, Time.time));
+            toastLines.Add((item.displayName, item.price, Time.time, NameColour(item)));
             if (toastLines.Count > pickupRows) toastLines.RemoveAt(0);
         }
 
@@ -327,7 +328,8 @@ namespace Hakaton.Expeditions
             {
                 // Newest first: the last pickup on top.
                 var carried = world.Pickups;
-                for (int i = carried.Count - 1; i >= 0; i--) Row(carried[i].name, carried[i].value, 255, value);
+                for (int i = carried.Count - 1; i >= 0; i--)
+                    Row(carried[i].name, carried[i].value, 255, value, NameColour(world.lootCatalog ? world.lootCatalog.Find(carried[i].id) : null));
             }
             else
                 for (int i = toastLines.Count - 1; i >= 0; i--)
@@ -335,17 +337,26 @@ namespace Hakaton.Expeditions
                     var line = toastLines[i];
                     float age = Time.time - line.time;
                     int alpha = Mathf.RoundToInt(255 * Mathf.Clamp01((pickupSeconds - age) / Mathf.Max(.01f, pickupFadeSeconds)));
-                    Row(line.name, line.value, alpha, value);
+                    Row(line.name, line.value, alpha, value, line.colour);
                 }
             pickups.text = rows.ToString();
             if (pickupsShadow) pickupsShadow.text = shadowRows.ToString();
         }
 
-        void Row(string name, int value, int alpha, string valueColour)
+        /// <summary>Hex colour of the item's rarity for its name, or null for common items (plain text colour).</summary>
+        string NameColour(LootItem item)
+        {
+            if (!item || item.rarity == LootRarity.Common || !world.lootCatalog) return null;
+            return ColorUtility.ToHtmlStringRGB(world.lootCatalog.Colour(item.rarity));
+        }
+
+        void Row(string name, int value, int alpha, string valueColour, string nameColour)
         {
             string a = $"<alpha=#{alpha:X2}>";
-            rows.Append(a).Append("+ ").Append(name).Append("<space=6><color=#").Append(valueColour).Append('>')
-                .Append(value).Append("</color>\n");
+            rows.Append(a).Append("+ ");
+            if (nameColour != null) rows.Append("<color=#").Append(nameColour).Append('>').Append(name).Append("</color>").Append(a);
+            else rows.Append(name);
+            rows.Append("<space=6><color=#").Append(valueColour).Append('>').Append(value).Append("</color>\n");
             shadowRows.Append(a).Append("+ ").Append(name).Append("<space=6>").Append(value).Append('\n');
         }
 

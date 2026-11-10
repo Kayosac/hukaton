@@ -34,9 +34,6 @@ namespace Hakaton.Trading.Unity
         public Transform SoldItemsRoot;
 
 
-        [Header("Item presentation — category order (also shown in the shopkeeper's hand)")]
-        public GameObject[] ItemPrefabs;
-
         public Vector3 CounterPosition => CounterPose.position;
         public Quaternion CounterRotation => CounterPose.rotation;
 
@@ -44,9 +41,7 @@ namespace Hakaton.Trading.Unity
         {
             bool valid = ViewCamera && PlayerRoot && PlayerController && Movement && Control && Stamina && CounterPose && HeldItemAnchor
                 && HeldItem && Customer && Customers && Customers.actor && CustomerItemTarget && SoldItemsRoot
-                && Complete(SlotAnchors, 6) && Complete(SlotRenderers, 6) && Complete(SlotColliders, 6)
-                && ItemPrefabs != null && ItemPrefabs.Length > 0
-                && Complete(ItemPrefabs, ItemPrefabs.Length);
+                && Complete(SlotAnchors, 6) && Complete(SlotRenderers, 6) && Complete(SlotColliders, 6);
             if (ShopView) valid &= ShopView.IsConfigured && DealItemAnchor;
             if (!valid) Debug.LogError("Trading scene references are incomplete. Check TradingSceneBindings in the Inspector.", this);
             return valid;
