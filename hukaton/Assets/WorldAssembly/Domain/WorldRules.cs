@@ -43,6 +43,10 @@ namespace Hakaton.WorldAssembly
         /// <summary>Chance of a river that starts and ends inside a district without crossings.</summary>
         public double[] InnerRiver = { .2, .12, .08 };
         public double[] Maze = { .5, .85, .85 };
+        /// <summary>Chance that a district away from the start grows a giant tangled forest instead of its first maze.</summary>
+        public double[] Forest = { 0, .5, .55 };
+        /// <summary>Share of a forest's ordinary cells with deadfall closing a blind alcove (a reward behind), and with a hollow trunk across the lane.</summary>
+        public double ForestDeadfall = .18, ForestHollow = .2;
 
         /// <summary>A bridge or ford every N river chunks along the river (0 = by chance only), per ring.</summary>
         public int[] RiverCrossingEvery = { 2, 4, 0 };

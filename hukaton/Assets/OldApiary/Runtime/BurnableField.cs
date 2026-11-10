@@ -11,6 +11,8 @@ namespace Hakaton.OldApiary
     /// Runs fire across the level's <see cref="Burnable"/>s. For every outing it registers them as card zones so Fire and
     /// Lightning find them, passes flames on to neighbours and thorn thickets, chars them or burns them away, and when the
     /// outing ends puts every one back as it was. Thickets burnt by a card light the kindling around them too.
+    /// A streamed world (the endless world's chunks) brings its burnables and thickets in and takes them out as chunks
+    /// load and unload: <see cref="Join(Burnable)"/>, <see cref="Leave(Burnable)"/>, <see cref="JoinThorns"/>.
     /// </summary>
     public sealed class BurnableField : MonoBehaviour
     {
@@ -61,6 +63,8 @@ namespace Hakaton.OldApiary
         readonly HashSet<WorldObstacle> thornsLit = new HashSet<WorldObstacle>();
         readonly Dictionary<Vector2Int, List<Burnable>> grid = new Dictionary<Vector2Int, List<Burnable>>();
         readonly List<Burnable> near = new List<Burnable>();
+        readonly List<Burnable> streamed = new List<Burnable>();
+        readonly List<WorldObstacle> streamedThorns = new List<WorldObstacle>();
         MaterialPropertyBlock block;
         bool registered;
         const float Cell = 2f;
@@ -90,21 +94,87 @@ namespace Hakaton.OldApiary
         {
             registered = true;
             grid.Clear();
-            foreach (var b in burnables)
-            {
-                if (!b) continue;
-                b.Forget();
-                world.Zones.Add(b);
-                var c = b.Look.center;
-                var key = new Vector2Int(Mathf.FloorToInt(c.x / Cell), Mathf.FloorToInt(c.z / Cell));
-                if (!grid.TryGetValue(key, out var list)) grid[key] = list = new List<Burnable>();
-                list.Add(b);
-            }
+            if (burnables != null) foreach (var b in burnables) Enter(b);
+            foreach (var b in streamed) Enter(b);
             thorns.Clear(); thornsLit.Clear();
             if (world.obstacles != null)
                 foreach (var o in world.obstacles)
                     if (o && o.kind == ObstacleKind.Thorns && o.barrier && o.transform.IsChildOf(transform.root))
                         thorns[o] = o.barrier.bounds;
+            foreach (var o in streamedThorns) if (o && o.barrier) thorns[o] = o.barrier.bounds;
+        }
+
+        void Enter(Burnable b)
+        {
+            if (!b) return;
+            b.Forget();
+            world.Zones.Add(b);
+            var key = Key(b);
+            if (!grid.TryGetValue(key, out var list)) grid[key] = list = new List<Burnable>();
+            list.Add(b);
+        }
+
+        static Vector2Int Key(Burnable b)
+        {
+            var c = b.Look.center;
+            return new Vector2Int(Mathf.FloorToInt(c.x / Cell), Mathf.FloorToInt(c.z / Cell));
+        }
+
+        // ---------- streamed worlds ----------
+
+        /// <summary>A burnable of a chunk that has just loaded: it can catch fire from now on.</summary>
+        public void Join(Burnable b)
+        {
+            if (!b || streamed.Contains(b)) return;
+            b.field = this;
+            streamed.Add(b);
+            if (registered) Enter(b);
+        }
+
+        /// <summary>A burnable of a chunk about to unload: its fire goes out with it (the chunk remembers what burnt).</summary>
+        public void Leave(Burnable b)
+        {
+            if (!b || !streamed.Remove(b)) return;
+            if (world) world.Zones.Remove(b);
+            if (grid.TryGetValue(Key(b), out var list)) list.Remove(b);
+            int i = fires.FindIndex(f => f.burnable == b);
+            if (i >= 0) { if (fires[i].fx) fires[i].fx.Release(.2f); fires.RemoveAt(i); }
+            touched.Remove(b);
+        }
+
+        /// <summary>A thorn thicket of a loaded chunk: burning things nearby light it, and it lights them.</summary>
+        public void JoinThorns(WorldObstacle thicket)
+        {
+            if (!thicket || thicket.kind != ObstacleKind.Thorns || streamedThorns.Contains(thicket)) return;
+            streamedThorns.Add(thicket);
+            if (registered && thicket.barrier) thorns[thicket] = thicket.barrier.bounds;
+        }
+
+        public void LeaveThorns(WorldObstacle thicket)
+        {
+            if (!thicket) return;
+            streamedThorns.Remove(thicket);
+            thorns.Remove(thicket);
+            thornsLit.Remove(thicket);
+        }
+
+        /// <summary>Burning or burnt this outing.</summary>
+        public bool Touched(Burnable b) => b && touched.ContainsKey(b);
+
+        /// <summary>A burnable that burnt before its chunk unloaded comes back burnt: charred, or gone to ash.</summary>
+        public void Burnt(Burnable b)
+        {
+            if (!b || touched.ContainsKey(b)) return;
+            Remember(b);
+            block ??= new MaterialPropertyBlock();
+            foreach (var r in b.Renderers)
+            {
+                if (!r) continue;
+                r.GetPropertyBlock(block);
+                block.SetColor(BaseColor, charred);
+                r.SetPropertyBlock(block);
+            }
+            Finish(new Fire { burnable = b });
         }
 
         /// <summary>Sets a burnable alight. False when the outing is not running or it already burns or burnt.</summary>
@@ -210,7 +280,10 @@ namespace Hakaton.OldApiary
             foreach (var kv in thorns)
             {
                 if (!kv.Key.Resolved || !thornsLit.Add(kv.Key)) continue;
-                foreach (var b in burnables)
+                if (burnables != null)
+                    foreach (var b in burnables)
+                        if (b && !touched.ContainsKey(b) && Gap(kv.Value, b.Look) <= thornReach) Ignite(b, kv.Value.center);
+                foreach (var b in streamed)
                     if (b && !touched.ContainsKey(b) && Gap(kv.Value, b.Look) <= thornReach) Ignite(b, kv.Value.center);
             }
         }

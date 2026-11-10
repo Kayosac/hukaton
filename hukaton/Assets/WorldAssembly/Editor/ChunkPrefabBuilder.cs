@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Feel;
+using Hakaton.OldApiary;
 using Hakaton.WorldAssembly.Unity;
 using UnityEditor;
 using UnityEngine;
@@ -80,6 +82,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             string meshPath = $"{folder}/{name} data.asset";
             AssetDatabase.DeleteAsset(meshPath);
 
+            placed.Clear();
             var go = new GameObject(name);
             var view = go.AddComponent<ChunkView>();
             view.shapeId = shape.Id;
@@ -101,13 +104,21 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             var obstacles = new List<WorldObstacle>();
             if (terrain.Wet) obstacles.Add(Water(go.transform, terrain, meshPath, name));
-            if (shape.Kind == ShapeKind.Maze) StoneWalls(go.transform, terrain, rng);
+            if (shape.Kind == ShapeKind.Maze && terrain.Forest != null)
+            {
+                ForestWalls(go.transform, terrain, rng);
+                if (terrain.Forest.Deadfall && terrain.Forest.Alcove.HasValue) obstacles.Add(DeadfallPiece(go.transform, terrain, rng));
+                if (terrain.Forest.Hollow) HollowTrunk(go.transform, terrain);
+                view.lookouts = go.GetComponentsInChildren<Lookout>();
+            }
+            else if (shape.Kind == ShapeKind.Maze) StoneWalls(go.transform, terrain, rng);
             if (terrain.Scene != null) ScenePieces(go.transform, terrain, rng, obstacles);
             if (terrain.Scene != null) Places(view, terrain);
             view.obstacles = obstacles.ToArray();
 
             Crossings(go.transform, terrain, rng);
             Dress(go.transform, terrain, rng);
+            Interactive(view);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
             Sockets(view, terrain, rng);
@@ -199,6 +210,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Wet && h < .08f && t.NearWater(p, .8f)) return Surface.Bank;
             if (t.Shape.Kind == ShapeKind.Canyon && h < -t.CanyonDepth + .4f) return Surface.Bed;
             if (t.OnRamp(p)) return Surface.Path;
+            if (t.Forest != null) return t.Forest.IsWall(p) ? Surface.Humus : t.Forest.OnTrail(p) ? Surface.Path : Surface.Main;
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
             if (t.SceneFloor(p) || t.SceneTrail(p)) return Surface.Path;
             if (t.SceneThicket(p)) return Surface.Humus;
@@ -424,10 +436,564 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 if (r.width > 5 && r.height > 5 && rng.NextDouble() < .6)
                 {
-                    var tree = Place(block, "Trees/" + Trees[rng.Next(Trees.Length)], t, r.center, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .6f));
-                    if (tree) foreach (var c in tree.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                    // Keeps its collider: a card can hit it and wake it up.
+                    Place(block, "Trees/" + Trees[rng.Next(Trees.Length)], t, r.center, (float)rng.NextDouble() * 360, Vector3.one * (.8f + (float)rng.NextDouble() * .6f));
                 }
             }
+        }
+
+        // ---------- alive as the Old Apiary ----------
+
+        /// <summary>Every ForestArt piece placed on the chunk being built, with its asset path ("Plants/FA_VG04_GrassLow").</summary>
+        static readonly List<(GameObject go, string asset)> placed = new List<(GameObject, string)>();
+
+        /// <summary>What burns and how, by prefab, as the Old Apiary has it: Ash burns away, Char stays black.</summary>
+        static readonly Dictionary<string, (BurnStyle style, float seconds)> BurnRules = new Dictionary<string, (BurnStyle, float)>
+        {
+            ["FA_VG01_FernLow"] = (BurnStyle.Ash, 1.4f), ["FA_VG02_FernTall"] = (BurnStyle.Ash, 1.6f), ["FA_VG03_FernDrooping"] = (BurnStyle.Ash, 1.4f),
+            ["FA_VG04_GrassLow"] = (BurnStyle.Ash, 1.1f), ["FA_VG05_GrassTall"] = (BurnStyle.Ash, 1.4f), ["FA_VG06_GrassSparse"] = (BurnStyle.Ash, 1.1f),
+            ["FA_VG07_GrassDrooping"] = (BurnStyle.Ash, 1.3f), ["FA_VG08_BushRound"] = (BurnStyle.Ash, 2.2f), ["FA_VG09_BushTallThorny"] = (BurnStyle.Ash, 2.4f),
+            ["FA_VG10_ThornThicket"] = (BurnStyle.Char, 3f), ["FA_VG11_BroadLeavesLow"] = (BurnStyle.Ash, 1.2f), ["FA_VG12_BroadLeavesTall"] = (BurnStyle.Ash, 1.5f),
+            ["FA_TR07_YoungStraight"] = (BurnStyle.Ash, 4.5f), ["FA_TR08_YoungBow"] = (BurnStyle.Ash, 4.5f), ["FA_TR09_YoungFork"] = (BurnStyle.Ash, 4.5f),
+            ["FA_DW01_LogWhole"] = (BurnStyle.Char, 6f), ["FA_DW02_LogSplit"] = (BurnStyle.Char, 5f), ["FA_DW03_LogHollow"] = (BurnStyle.Char, 6f),
+            ["FA_DW04_LogRotten"] = (BurnStyle.Char, 5f), ["FA_DW09_SticksSmall"] = (BurnStyle.Ash, 2f), ["FA_DW10_SticksLarge"] = (BurnStyle.Ash, 2.6f),
+            ["FA_DW11_BranchForked"] = (BurnStyle.Ash, 2f), ["FA_DW12_BarkSlab"] = (BurnStyle.Ash, 1.6f),
+            ["FA_ST01_FenceSection"] = (BurnStyle.Char, 4f), ["FA_ST02_FenceBroken"] = (BurnStyle.Char, 4f), ["FA_ST03_FenceCorner"] = (BurnStyle.Char, 4f),
+            ["FA_ST04_Post"] = (BurnStyle.Char, 4f), ["FA_ST05_PostCrooked"] = (BurnStyle.Char, 4f), ["FA_ST06_GateCrooked"] = (BurnStyle.Char, 4f),
+            ["FA_ST07_GateRuined"] = (BurnStyle.Char, 4f), ["FA_ST12_Bench"] = (BurnStyle.Char, 5f),
+            ["FA_MK01_SignArrow"] = (BurnStyle.Char, 3f), ["FA_MK02_SignFork"] = (BurnStyle.Char, 3f), ["FA_MK03_SignBroken"] = (BurnStyle.Char, 3f),
+            ["FA_MK07_ClothShort"] = (BurnStyle.Ash, 1.2f), ["FA_MK08_ClothLong"] = (BurnStyle.Ash, 1.2f), ["FA_MK09_ClothPennants"] = (BurnStyle.Ash, 1.2f),
+            ["FA_MK10_CharmTwigDiamond"] = (BurnStyle.Ash, 1f), ["FA_MK11_CharmHerbs"] = (BurnStyle.Ash, 1f), ["FA_MK17_MobileTwigs"] = (BurnStyle.Ash, 1f),
+            ["FA_MK13_CageSmall"] = (BurnStyle.Ash, 2f), ["FA_MK14_CageCrooked"] = (BurnStyle.Ash, 2f),
+            ["FA_PR11_SackSmall"] = (BurnStyle.Ash, 2.2f), ["FA_PR12_SackLarge"] = (BurnStyle.Ash, 2.8f), ["FA_PR13_CrateClosed"] = (BurnStyle.Ash, 3.4f),
+            ["FA_PR14_CrateOpen"] = (BurnStyle.Ash, 3.4f), ["FA_PR15_HerbBundle"] = (BurnStyle.Ash, 1f),
+            ["FA_SP04_Beehive"] = (BurnStyle.Ash, 3.6f), ["FA_SP09_Scarecrow"] = (BurnStyle.Ash, 4f),
+        };
+
+        /// <summary>Loose things the player and cards push about, with their mass at scale 1 (the Old Apiary's bodies).</summary>
+        static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
+        {
+            ["FA_DW01_LogWhole"] = 5, ["FA_DW02_LogSplit"] = 3, ["FA_DW04_LogRotten"] = 3, ["FA_DW09_SticksSmall"] = .4f, ["FA_DW10_SticksLarge"] = 1.5f,
+            ["FA_DW11_BranchForked"] = .5f, ["FA_DW12_BarkSlab"] = .3f,
+            ["FA_PR02_LanternGround"] = .5f, ["FA_PR04_CandleThick"] = .15f, ["FA_PR05_CandlesDish"] = .3f, ["FA_PR06_BottleSquat"] = .2f,
+            ["FA_PR07_BottleTall"] = .2f, ["FA_PR09_PotLow"] = .3f, ["FA_PR10_Pitcher"] = .35f, ["FA_PR11_SackSmall"] = .6f, ["FA_PR12_SackLarge"] = 1.2f,
+            ["FA_PR13_CrateClosed"] = 1.6f, ["FA_PR14_CrateOpen"] = 1.3f, ["FA_SP04_Beehive"] = 1.8f, ["FA_MK13_CageSmall"] = .5f, ["FA_MK14_CageCrooked"] = .8f,
+        };
+
+        /// <summary>
+        /// Makes the chunk's things as alive as the Old Apiary's (its authoring rules): grass, bushes, young trees, wood,
+        /// sacks and hives burn (<see cref="Burnable"/>, run by the streamer's fire field); every tree that stands with
+        /// its own collider can be awakened (<see cref="AwakenableTree"/>); light loose things get a body and are pushed
+        /// about (<see cref="PhysicsProp"/>). Pieces of card obstacles (thorn walls) keep to their obstacle; dressing
+        /// that lost its colliders (inside maze and forest walls) only burns; big pieces (a log bridge) stay put.
+        /// </summary>
+        static void Interactive(ChunkView view)
+        {
+            var burnables = new List<Burnable>();
+            var trees = new List<AwakenableTree>();
+            var props = new List<PhysicsProp>();
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || asset.StartsWith("VFX/") || go.GetComponentInParent<WorldObstacle>()) continue;
+                string id = asset.Substring(asset.LastIndexOf('/') + 1);
+                var colliders = go.GetComponentsInChildren<Collider>();
+                var scale = go.transform.lossyScale;
+                if (BurnRules.TryGetValue(id, out var burn))
+                {
+                    var b = go.AddComponent<Burnable>();
+                    // What dresses a maze or forest wall only chars: burnt away it would bare the barrier behind.
+                    b.style = InWall(go.transform) ? BurnStyle.Char : burn.style;
+                    b.seconds = burn.seconds;
+                    burnables.Add(b);
+                }
+                if (asset.StartsWith("Trees/") && colliders.Length > 0) trees.Add(go.AddComponent<AwakenableTree>());
+                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0
+                    && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
+                    && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
+                if (loose)
+                {
+                    // Set a hair above the ground, so it settles instead of springing out of it.
+                    go.transform.position += Vector3.up * .05f;
+                    var body = go.AddComponent<Rigidbody>();
+                    body.mass = mass * Mathf.Abs(scale.x * scale.y * scale.z);
+                    body.angularDamping = .05f;
+                    body.interpolation = RigidbodyInterpolation.Interpolate;
+                    body.collisionDetectionMode = body.mass < 1 ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
+                    var prop = go.AddComponent<PhysicsProp>();
+                    prop.body = body;
+                    props.Add(prop);
+                }
+            }
+            view.burnables = burnables.ToArray();
+            view.trees = trees.ToArray();
+            view.props = props.ToArray();
+        }
+
+        static bool InWall(Transform t)
+        {
+            for (var p = t.parent; p; p = p.parent)
+                if (p.name == "Forest" || p.name == "Stone walls") return true;
+            return false;
+        }
+
+
+        // ---------- the giant tangled forest ----------
+
+        /// <summary>Giant trees for the tangle: prefab, trunk radius at scale 1 (its collider), and the scales it grows to.</summary>
+        static readonly (string asset, float trunk, float min, float max)[] GiantTrees =
+        {
+            ("FA_TR14_KnottyGiant", 1.45f, 1.25f, 1.6f),
+            ("FA_TR01_ThickCrooked", .95f, 1.8f, 2.3f),
+            ("FA_TR06_Hollow", .95f, 1.8f, 2.2f),
+            ("FA_TR03_DoubleFork", .65f, 2.2f, 2.7f),
+            ("FA_TR12_Split", .6f, 2.2f, 2.6f),
+            ("FA_TR02_TallNarrow", .36f, 2.6f, 3.2f),
+        };
+        static readonly string[] Undergrowth = { "FA_VG02_FernTall", "FA_VG03_FernDrooping", "FA_VG12_BroadLeavesTall", "FA_VG08_BushRound", "FA_VG09_BushTallThorny", "FA_VG02_FernTall" };
+        static readonly string[] Fallen = { "FA_DW01_LogWhole", "FA_DW04_LogRotten", "FA_DW02_LogSplit", "FA_DW01_LogWhole" };
+
+        /// <summary>
+        /// A cell of the giant tangled forest (Kayospace «Открытый мир v2»): its wall is one barrier exactly over what
+        /// the ground plan calls wall, hidden in giant trees two and three times the usual size, root plates, fallen
+        /// trunks and dense undergrowth along the lanes; the heart is the greatest tree of all with its shrine, the
+        /// reward at its foot. Crowns close over the lanes: under them the air is the forest's (see WorldAtmosphere).
+        /// </summary>
+        static void ForestWalls(Transform parent, TileTerrain t, System.Random rng)
+        {
+            var f = t.Forest;
+            var root = new GameObject("Forest").transform;
+            root.SetParent(parent, false);
+            // A giant tree carries the wall round its trunk (see ForestBarriers): woken, it leaves its place open.
+            var owners = new List<(GameObject go, Vector2 at, float reach)>();
+            float Rnd(float a, float b) => Mathf.Lerp(a, b, (float)rng.NextDouble());
+            float EdgeRoom(Vector2 p) => Mathf.Min(Mathf.Min(p.x, 16 - p.x), Mathf.Min(p.y, 16 - p.y));
+            void Bare(GameObject go) { if (go) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c); }
+            void NoShadow(GameObject go) { if (go) foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
+
+            // Grid of points in the tangle, shuffled.
+            var points = new List<Vector2>();
+            for (float x = .5f; x < 16; x += .5f)
+                for (float z = .5f; z < 16; z += .5f)
+                    points.Add(new Vector2(x + Rnd(-.2f, .2f), z + Rnd(-.2f, .2f)));
+            for (int i = points.Count - 1; i > 0; i--) { int j = rng.Next(i + 1); (points[i], points[j]) = (points[j], points[i]); }
+
+            // Giant trees: the biggest that fits at each spot, trunks inside the wall and inside the chunk.
+            // They keep their colliders: cards hit them, «Оживление дерева» wakes even the greatest.
+            var trunks = new List<(Vector2 at, float radius)>();
+            var trees = new GameObject("Giant trees").transform;
+            trees.SetParent(root, false);
+            GameObject great = null;
+            if (f.Heart)
+            {
+                // Its own collider is the heart's middle (the barrier leaves the trunk out): woken, it leaves the place open.
+                great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
+                trunks.Add((f.Hub, ForestLayout.TrunkRadius));
+            }
+            foreach (var p in points)
+            {
+                if (trunks.Count >= (f.Heart ? 5 : 7)) break;
+                float depth = f.WallDepth(p);
+                if (depth < .9f || f.InTrunk(p, 1.5f)) continue;
+                foreach (var (asset, trunk, min, max) in GiantTrees)
+                {
+                    float scale = Rnd(min, max), radius = trunk * scale;
+                    if (depth < radius + .3f || EdgeRoom(p) < radius + .4f) continue;
+                    if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + radius + 1.6f)) continue;
+                    if (f.InLog(p, radius + .3f)) continue;
+                    var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
+                    if (!tree) continue;
+                    trunks.Add((p, radius));
+                    owners.Add((tree, p, radius));
+                    // Moss and fungus on the big ones.
+                    if (radius > 1.4f && rng.NextDouble() < .7)
+                    {
+                        float a = Rnd(0, Mathf.PI * 2);
+                        var side = p + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius * .85f;
+                        var fungus = Place(trees, "Plants/FA_VG16_ShelfFungusGroup", null, Vector2.zero, -a * Mathf.Rad2Deg + 90, Vector3.one * Rnd(1.2f, 1.7f));
+                        if (fungus) fungus.transform.localPosition = new Vector3(side.x - 8, GroundY(t, side) + Rnd(.9f, 2.2f), side.y - 8);
+                        Bare(fungus);
+                        // Goes with its tree when the tree walks off.
+                        if (fungus) fungus.transform.SetParent(tree.transform, true);
+                    }
+                    break;
+                }
+            }
+
+            // Deadfall: fallen trunks lying along the lanes' sides, root plates and branches deeper in.
+            var dead = new GameObject("Deadfall").transform;
+            dead.SetParent(root, false);
+            var logs = new List<Vector2>();
+            foreach (var p in points)
+            {
+                if (logs.Count >= 5) break;
+                float depth = f.WallDepth(p);
+                if (depth < .5f || depth > 1.3f || EdgeRoom(p) < 1.5f || f.InLog(p, 1.5f)) continue;
+                if (logs.Any(q => Vector2.Distance(q, p) < 3.6f) || trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .6f)) continue;
+                // Along the edge of the lane: across the slope of the wall depth.
+                var grad = new Vector2(f.WallDepth(p + Vector2.right * .3f) - f.WallDepth(p - Vector2.right * .3f), f.WallDepth(p + Vector2.up * .3f) - f.WallDepth(p - Vector2.up * .3f));
+                if (grad.sqrMagnitude < 1e-4f) continue;
+                var along = new Vector2(-grad.y, grad.x).normalized;
+                float length = Rnd(3.6f, 5.4f);
+                var a = p + along * length * .5f;
+                var b = p - along * length * .5f;
+                if (f.WallDepth(a) < .25f || f.WallDepth(b) < .25f || EdgeRoom(a) < .4f || EdgeRoom(b) < .4f) continue;
+                float yaw = Mathf.Atan2(along.x, along.y) * Mathf.Rad2Deg;
+                var log = Place(dead, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, yaw, new Vector3(Rnd(1.2f, 1.5f), Rnd(1.2f, 1.5f), length / 3.55f));
+                Bare(log);
+                logs.Add(p);
+            }
+            int plates = 0, sticks = 0;
+            foreach (var p in points)
+            {
+                if (plates >= 3 && sticks >= 4) break;
+                float depth = f.WallDepth(p);
+                if (EdgeRoom(p) < 1.2f || trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .5f)) continue;
+                if (plates < 3 && depth > 1.3f && logs.All(q => Vector2.Distance(q, p) > 2.2f))
+                {
+                    Bare(Place(dead, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.5f)));
+                    logs.Add(p);
+                    plates++;
+                }
+                else if (sticks < 4 && depth > .2f && depth < 1.4f && logs.All(q => Vector2.Distance(q, p) > 1.6f))
+                {
+                    Bare(Place(dead, "Deadwood/" + (rng.NextDouble() < .5 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f)));
+                    logs.Add(p);
+                    sticks++;
+                }
+            }
+
+            // Undergrowth thick along the lanes, and behind it brambles over everything the lanes leave: the tangle
+            // hides what lies beyond and shows where the barrier stands.
+            var growth = new GameObject("Undergrowth").transform;
+            growth.SetParent(root, false);
+            var green = new List<Vector2>();
+            foreach (var p in points)
+            {
+                if (green.Count >= 40) break;
+                float depth = f.WallDepth(p);
+                if (depth < .05f || depth > 1f || f.InTrunk(p, .3f) || f.InLog(p)) continue;
+                if (green.Any(q => Vector2.Distance(q, p) < 1.05f)) continue;
+                var plant = Place(growth, "Plants/" + Undergrowth[rng.Next(Undergrowth.Length)], t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.7f));
+                Bare(plant);
+                NoShadow(plant);
+                green.Add(p);
+            }
+            var tangle = new List<Vector2>();
+            foreach (var p in points)
+            {
+                if (tangle.Count >= 56) break;
+                float depth = f.WallDepth(p);
+                if (depth < .6f || f.InTrunk(p, .3f) || f.InLog(p)) continue;
+                if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .15f)) continue;
+                if (tangle.Any(q => Vector2.Distance(q, p) < 1.35f) || green.Any(q => Vector2.Distance(q, p) < .8f)) continue;
+                double kind = rng.NextDouble();
+                GameObject piece;
+                if (kind < .5)
+                {
+                    float w = Rnd(1f, 1.5f);
+                    piece = Place(growth, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(w, w * Rnd(1.8f, 2.6f), w));
+                }
+                else if (kind < .7) piece = Place(growth, "Plants/FA_VG09_BushTallThorny", t, p, Rnd(0, 360), Vector3.one * Rnd(1.6f, 2.3f));
+                else if (kind < .85) piece = Place(growth, "Plants/FA_VG12_BroadLeavesTall", t, p, Rnd(0, 360), Vector3.one * Rnd(1.6f, 2.4f));
+                else
+                {
+                    // A broken trunk propped across the tangle.
+                    piece = Place(growth, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, Rnd(0, 360), new Vector3(Rnd(1f, 1.3f), Rnd(1f, 1.3f), Rnd(.8f, 1.2f)));
+                    if (piece) piece.transform.rotation *= Quaternion.Euler(Rnd(-18, 18), 0, Rnd(-10, 10));
+                }
+                Bare(piece);
+                NoShadow(piece);
+                tangle.Add(p);
+            }
+            // Roots over the lanes' sides, leaves on the lanes, now and then a web between the trunks.
+            var floor = new GameObject("Floor").transform;
+            floor.SetParent(root, false);
+            int roots = 0, leaves = 0;
+            foreach (var p in points)
+            {
+                if (roots >= 5 && leaves >= 5) break;
+                if (f.InLog(p, .2f)) continue;
+                float depth = f.WallDepth(p);
+                if (roots < 5 && depth > -.5f && depth < .3f && !f.InTrunk(p, .2f))
+                {
+                    var r = Place(floor, "Plants/FA_VG17_MossOnRoot", t, p, Rnd(0, 360), Vector3.one * Rnd(1.3f, 1.9f));
+                    Bare(r);
+                    roots++;
+                }
+                else if (leaves < 5 && depth < -.6f && !f.InTrunk(p, .4f))
+                {
+                    var l = Place(floor, "Decals/" + (rng.NextDouble() < .5 ? "FA_D11_LeavesPile" : "FA_D12_LeavesTrail"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.8f));
+                    Bare(l);
+                    leaves++;
+                }
+            }
+            if (rng.NextDouble() < .45 && trunks.Count >= 2)
+            {
+                var (a, ra) = trunks[0];
+                var (b, rb) = trunks[1];
+                var web = Place(floor, "Decals/FA_D21_WebDrape", null, Vector2.zero, Mathf.Atan2(b.x - a.x, b.y - a.y) * Mathf.Rad2Deg, Vector3.one * 1.6f);
+                var mid = (a + b) / 2;
+                if (web) web.transform.localPosition = new Vector3(mid.x - 8, GroundY(t, mid) + 2.4f, mid.y - 8);
+                Bare(web);
+            }
+
+            if (f.Heart)
+            {
+                // The shrine of the forest: a mask on the great tree, charms hanging round it, fireflies, a hum.
+                var shrine = new GameObject("Heart").transform;
+                shrine.SetParent(root, false);
+                var toward = (f.PocketSpot - f.Hub).normalized;
+                var face = f.Hub + toward * (ForestLayout.TrunkRadius - .1f);
+                var mask = Place(shrine, "Markers/FA_MK15_WoodMask", null, Vector2.zero, Mathf.Atan2(toward.x, toward.y) * Mathf.Rad2Deg, Vector3.one * 1.8f);
+                if (mask) mask.transform.localPosition = new Vector3(face.x - 8, GroundY(t, face) + 1.4f, face.y - 8);
+                Bare(mask);
+                // The mask and the charms belong to the great tree: they go with it when it wakes.
+                if (mask && great) mask.transform.SetParent(great.transform, true);
+                for (int k = 0; k < 4; k++)
+                {
+                    float a = Mathf.Atan2(toward.y, toward.x) + (k - 1.5f) * .9f;
+                    var at = f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (ForestLayout.TrunkRadius + 3.2f);
+                    var charm = Place(shrine, "Markers/" + (k % 2 == 0 ? "FA_MK17_MobileTwigs" : "FA_MK10_CharmTwigDiamond"), null, Vector2.zero, Rnd(0, 360), Vector3.one * 1.3f);
+                    if (charm) charm.transform.localPosition = new Vector3(at.x - 8, GroundY(t, at) + Rnd(2.6f, 3.4f), at.y - 8);
+                    Bare(charm);
+                    if (charm && great) charm.transform.SetParent(great.transform, true);
+                }
+                if (great) GreatStair(great.transform, root, t, f);
+                var flies = Place(shrine, "VFX/Insects/Fireflies/FirefliesGreen", null, Vector2.zero, 0, Vector3.one);
+                if (flies) flies.transform.localPosition = new Vector3(f.Hub.x - 8, GroundY(t, f.PocketSpot) + 1.2f, f.Hub.y - 8);
+                for (int k = 0; k < 6; k++)
+                {
+                    float a = k * Mathf.PI / 3 + Rnd(-.3f, .3f);
+                    var at = f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (ForestLayout.TrunkRadius + .3f);
+                    Bare(Place(shrine, "Plants/FA_VG17_MossOnRoot", t, at, -a * Mathf.Rad2Deg + 90, Vector3.one * Rnd(1.6f, 2.2f)));
+                }
+            }
+            if (f.Glade)
+            {
+                // Motes drifting in the light over the glade.
+                var motes = Place(root, "VFX/Dust/DustFloaty", null, Vector2.zero, 0, Vector3.one * 1.4f);
+                if (motes) motes.transform.localPosition = new Vector3(f.Hub.x - 8, GroundY(t, f.Hub) + 1.6f, f.Hub.y - 8);
+            }
+            ForestBarriers(root, f, owners);
+        }
+
+        /// <summary>
+        /// The forest's wall, exactly where the ground plan has it: every giant tree carries the part round its trunk as a
+        /// child barrier, so a tree that wakes and walks off (hidden for the outing) leaves the way open where it stood;
+        /// the rest is one barrier of the cell.
+        /// </summary>
+        static void ForestBarriers(Transform root, ForestLayout f, List<(GameObject go, Vector2 at, float reach)> owners)
+        {
+            const float cell = .5f;
+            var wall = f.WallCells(cell);
+            int n = wall.GetLength(0);
+            var masks = new bool[owners.Count][,];
+            var orphans = new bool[n, n];
+            bool anyOrphan = false;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    if (!wall[i, j]) continue;
+                    var p = new Vector2((i + .5f) * cell, (j + .5f) * cell);
+                    int best = -1;
+                    float score = float.MaxValue;
+                    for (int k = 0; k < owners.Count; k++)
+                    {
+                        var o = owners[k];
+                        if (!o.go) continue;
+                        float s = Vector2.Distance(p, o.at) - o.reach - .8f;
+                        if (s <= 0 && s < score) { score = s; best = k; }
+                    }
+                    if (best < 0) { orphans[i, j] = true; anyOrphan = true; continue; }
+                    (masks[best] ??= new bool[n, n])[i, j] = true;
+                }
+            for (int k = 0; k < owners.Count; k++)
+                if (masks[k] != null) Barrier(owners[k].go.transform, ForestLayout.Rects(masks[k], cell));
+            if (anyOrphan)
+            {
+                var rest = new GameObject("Wall");
+                rest.transform.SetParent(root, false);
+                Barrier(rest.transform, ForestLayout.Rects(orphans, cell));
+            }
+        }
+
+        /// <summary>
+        /// Boxes over canonical rectangles (6 m tall, from 1.5 m under the base), square with the world, on a child of
+        /// <paramref name="owner"/>; the owner turns only about the vertical and is scaled alike across, so the boxes
+        /// keep their shape under it.
+        /// </summary>
+        static void Barrier(Transform owner, List<Rect> rects)
+        {
+            var piece = new GameObject("Barrier").transform;
+            piece.SetParent(owner, false);
+            var chunk = owner;
+            while (chunk.parent) chunk = chunk.parent;
+            piece.position = owner.position;
+            piece.rotation = chunk.rotation;
+            var lossy = owner.lossyScale;
+            piece.localScale = new Vector3(1 / lossy.x, 1 / lossy.y, 1 / lossy.z);
+            foreach (var r in rects)
+            {
+                var box = piece.gameObject.AddComponent<BoxCollider>();
+                var centre = chunk.TransformPoint(new Vector3(r.center.x - 8, 1.5f, r.center.y - 8));
+                box.center = Quaternion.Inverse(chunk.rotation) * (centre - piece.position);
+                box.size = new Vector3(r.width, 6, r.height);
+            }
+        }
+
+        /// <summary>
+        /// The way up the greatest tree to its lookout: giant shelf fungi winding round the trunk, a walkable ramp hidden
+        /// in their caps, and a broad cap at the top with the lookout. The whole stair belongs to the tree: woken, it takes
+        /// its fungi with it.
+        /// </summary>
+        static void GreatStair(Transform tree, Transform root, TileTerrain t, ForestLayout f)
+        {
+            // Wide enough that a walker keeps a clear strip round the bend, not a thread the navigation loses.
+            const float radius = 3.2f, rise = 7f, sweepDeg = 290f, width = 2f;
+            const int steps = 26;
+            var stair = new GameObject("Stair").transform;
+            stair.SetParent(root, false);
+            // Its foot faces the first way in, a little to the side.
+            float a0 = 0;
+            for (int s = 0; s < 4; s++)
+                if (f.Open[s])
+                {
+                    var d = ForestLayout.Middle[s] - f.Hub;
+                    a0 = Mathf.Atan2(d.y, d.x) + 50 * Mathf.Deg2Rad;
+                    break;
+                }
+            float sweep = sweepDeg * Mathf.Deg2Rad;
+            Vector2 At(float a, float r) => f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
+            float h0 = GroundY(t, At(a0, radius)) - .05f;
+            for (int k = 0; k < steps; k++)
+            {
+                float a = a0 + sweep * k / steps, b = a0 + sweep * (k + 1) / steps;
+                Vector2 pa = At(a, radius), pb = At(b, radius);
+                float ha = h0 + rise * k / steps, hb = h0 + rise * (k + 1) / steps;
+                var from = new Vector3(pa.x - 8, ha, pa.y - 8);
+                var to = new Vector3(pb.x - 8, hb, pb.y - 8);
+                var step = new GameObject("Step").transform;
+                step.SetParent(stair, false);
+                var forward = to - from;
+                step.localRotation = Quaternion.LookRotation(forward, Vector3.up);
+                step.localPosition = (from + to) / 2 - step.localRotation * Vector3.up * .125f;
+                var box = step.gameObject.AddComponent<BoxCollider>();
+                box.size = new Vector3(width, .25f, forward.magnitude + .2f);
+                if (k % 2 == 0)
+                {
+                    // A cap from the trunk out over the step: its shelf sticks out of the bark the way the prefab grows it.
+                    float m = (a + b) / 2 + sweep / steps * .5f;
+                    var bark = At(m, ForestLayout.TrunkRadius - .1f);
+                    var inward = -new Vector2(Mathf.Cos(m), Mathf.Sin(m));
+                    var cap = Place(stair, "Plants/FA_VG15_ShelfFungus", null, Vector2.zero, Mathf.Atan2(inward.x, inward.y) * Mathf.Rad2Deg, new Vector3(5.5f, 3.6f, 6f));
+                    if (cap)
+                    {
+                        cap.transform.localPosition = new Vector3(bark.x - 8, (ha + hb) / 2 - .33f, bark.y - 8);
+                        foreach (var c in cap.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                    }
+                }
+            }
+            // The top: a broad cap to stand on and look out from.
+            float top = a0 + sweep + .3f;
+            var platform = At(top, radius + .2f);
+            var deck = new GameObject("Lookout cap").transform;
+            deck.SetParent(stair, false);
+            deck.localPosition = new Vector3(platform.x - 8, h0 + rise - .15f, platform.y - 8);
+            var floor = deck.gameObject.AddComponent<BoxCollider>();
+            floor.size = new Vector3(3, .3f, 3);
+            var topInward = -new Vector2(Mathf.Cos(top), Mathf.Sin(top));
+            var group = Place(stair, "Plants/FA_VG16_ShelfFungusGroup", null, Vector2.zero, Mathf.Atan2(topInward.x, topInward.y) * Mathf.Rad2Deg, new Vector3(7, 4, 7));
+            if (group)
+            {
+                var bark = At(top, ForestLayout.TrunkRadius - .1f);
+                group.transform.localPosition = new Vector3(bark.x - 8, h0 + rise - .5f, bark.y - 8);
+                foreach (var c in group.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            }
+            var lantern = Place(stair, "Props/FA_PR02_LanternGround", null, Vector2.zero, 0, Vector3.one);
+            if (lantern)
+            {
+                var spot = At(top + .25f, radius + .9f);
+                lantern.transform.localPosition = new Vector3(spot.x - 8, h0 + rise, spot.y - 8);
+                foreach (var c in lantern.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            }
+            var lookout = new GameObject("Lookout");
+            lookout.transform.SetParent(stair, false);
+            lookout.transform.localPosition = new Vector3(platform.x - 8, h0 + rise, platform.y - 8);
+            lookout.AddComponent<Lookout>().revealRadius = 650;
+            stair.SetParent(tree, true);
+        }
+
+        /// <summary>
+        /// A giant hollow trunk lying along a lane, half sunk in the ground: the lane runs through it. It keeps its own
+        /// shape as its collider, so inside it is open and its walls are solid.
+        /// </summary>
+        static void HollowTrunk(Transform parent, TileTerrain t)
+        {
+            var f = t.Forest;
+            const float scale = 4.6f;
+            float low = float.MaxValue;
+            for (float k = -.5f; k <= .5f; k += .1f) low = Mathf.Min(low, GroundY(t, f.LogAt + f.LogDir * f.LogLength * k));
+            var log = Place(parent, "Deadwood/FA_DW03_LogHollow", null, Vector2.zero, Mathf.Atan2(f.LogDir.x, f.LogDir.y) * Mathf.Rad2Deg, new Vector3(scale, scale, f.LogLength / 2.86f));
+            if (!log) return;
+            log.name = "Hollow trunk";
+            // Sunk so the hollow's floor is the ground: inside, the walk is on the lane itself.
+            log.transform.localPosition = new Vector3(f.LogAt.x - 8, low - .97f, f.LogAt.y - 8);
+            foreach (var c in log.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            foreach (var filter in log.GetComponentsInChildren<MeshFilter>())
+                filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+        }
+
+        /// <summary>
+        /// Deadfall closing the blind alcove of a forest cell: trunks piled across its mouth, a card obstacle like a
+        /// thorn thicket — Fire burns it to ashes and the way to the reward at the alcove's end is open.
+        /// </summary>
+        static WorldObstacle DeadfallPiece(Transform parent, TileTerrain t, System.Random rng)
+        {
+            var f = t.Forest;
+            float Rnd(float a, float b) => Mathf.Lerp(a, b, (float)rng.NextDouble());
+            var root = new GameObject("Deadfall");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = new Vector3(f.DeadfallAt.x - 8, GroundY(t, f.DeadfallAt), f.DeadfallAt.y - 8);
+            root.transform.localRotation = Quaternion.Euler(0, Mathf.Atan2(f.DeadfallDir.x, f.DeadfallDir.y) * Mathf.Rad2Deg, 0);
+            var barrierGo = new GameObject("Barrier");
+            barrierGo.transform.SetParent(root.transform, false);
+            var barrier = barrierGo.AddComponent<BoxCollider>();
+            barrier.center = new Vector3(0, 1.4f, 0);
+            barrier.size = new Vector3(3.8f, 2.8f, 1.6f);
+            var live = new GameObject("Deadfall pile").transform;
+            live.SetParent(root.transform, false);
+            var burnt = new GameObject("Ashes").transform;
+            burnt.SetParent(root.transform, false);
+            GameObject Piece(Transform under, string asset, Vector3 at, Vector3 euler, Vector3 size)
+            {
+                var go = Place(under, asset, null, Vector2.zero, 0, size);
+                if (!go) return null;
+                go.transform.localPosition = at;
+                go.transform.localRotation = Quaternion.Euler(euler);
+                foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                return go;
+            }
+            // Trunks across the mouth, one on another, crossing a little.
+            for (int k = 0; k < 4; k++)
+                Piece(live, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], new Vector3(Rnd(-.3f, .3f), .1f + k * .55f, Rnd(-.45f, .45f)),
+                    new Vector3(Rnd(-6, 6), 90 + Rnd(-22, 22), Rnd(-8, 8)), new Vector3(Rnd(1.2f, 1.45f), Rnd(1.2f, 1.45f), Rnd(1f, 1.15f)));
+            Piece(live, "Deadwood/FA_DW08_StumpUprooted", new Vector3(Rnd(-1.4f, 1.4f), 0, Rnd(.3f, .7f)), new Vector3(0, Rnd(0, 360), 0), Vector3.one * 1.7f);
+            for (int k = 0; k < 3; k++)
+                Piece(live, "Deadwood/" + (k % 2 == 0 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), new Vector3(Rnd(-1.5f, 1.5f), Rnd(.4f, 2f), Rnd(-.6f, .6f)),
+                    new Vector3(Rnd(-30, 30), Rnd(0, 360), Rnd(-30, 30)), Vector3.one * Rnd(1.3f, 1.7f));
+            // What is left after the fire: a low black heap.
+            for (int k = 0; k < 3; k++)
+                Piece(burnt, "Plants/FA_VG10_ThornThicketBurnt", new Vector3(-1.2f + k * 1.2f, 0, Rnd(-.3f, .3f)), new Vector3(0, Rnd(0, 360), 0), new Vector3(1.2f, .45f, 1.2f));
+            Piece(burnt, "Deadwood/FA_DW09_SticksSmall", new Vector3(Rnd(-.8f, .8f), 0, Rnd(-.3f, .3f)), new Vector3(0, Rnd(0, 360), 0), Vector3.one * 1.4f);
+            burnt.gameObject.SetActive(false);
+            var obstacle = root.AddComponent<WorldObstacle>();
+            obstacle.kind = ObstacleKind.Thorns;
+            obstacle.barrier = barrier;
+            obstacle.intact = live.gameObject;
+            obstacle.changed = burnt.gameObject;
+            obstacle.tint = new Color(1f, .62f, .3f);
+            Feedback(obstacle, "1c053b046a88e4e7b8c543f06e64b7e2", "40b80550388374f72a36150a39fb3d81", "a7ef1d25e7e664753b75a51a4803f109", "3070caddd61f843dd8ba16ca7c10784a");
+            return obstacle;
         }
 
         /// <summary>A block of thorns over a rectangle (canonical metres): a wall until Fire burns it.</summary>
@@ -756,6 +1322,11 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (t.Ramps.Count == 0) Scatter("Rocks", Boulders, 2, 1.5f, 2.5f, .6f, .9f, p => t.Height(p) < -t.CanyonDepth + .3f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .7f);
                     Scatter("Trees", Trees, 2, 2, 3.6f, .65f, 1.35f, p => t.Height(p) > -.2f && t.DistanceToCentre(p) > TileTerrain.RimHalf + 1.4f);
                     break;
+                case ShapeKind.Maze when t.Forest != null:
+                    // The lanes stay clear to walk; a little growth at their sides, a meadow in a glade.
+                    Scatter("Plants", Ferns, 5, 1, 1.4f, .7f, 1.1f, p => t.Forest.WallDepth(p) > -.9f);
+                    Scatter("Plants", Grass, t.Forest.Glade ? 22 : 6, 1, 1f, .8f, 1.3f);
+                    break;
                 case ShapeKind.Maze:
                     Scatter("Deadwood", Deadwood, 1, 6.5f, 2, .7f, .9f);
                     Scatter("Plants", Grass, 6, 1, 1.1f, .7f, 1.1f);
@@ -869,7 +1440,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.SceneThicket(p)) return false;
             if (t.Shape.Kind == ShapeKind.River && t.DistanceToCentre(p) < TileTerrain.BankHalf + .6f) return false;
             if (t.Shape.Kind == ShapeKind.Canyon && t.DistanceToCentre(p) < TileTerrain.RimHalf + .4f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .3f) return false;
-            if (t.Shape.Kind == ShapeKind.Maze && Mathf.Abs(p.x - 8) < 1.6f && Mathf.Abs(p.y - 8) < 1.6f) return false;
+            if (t.Shape.Kind == ShapeKind.Maze && t.Forest == null && Mathf.Abs(p.x - 8) < 1.6f && Mathf.Abs(p.y - 8) < 1.6f) return false;
+            if (t.Forest != null && (t.Forest.InTrunk(p, 1.1f) || t.Forest.InLog(p, .3f))) return false;
             // Steep ground (cliff faces) stays bare.
             float h = t.Height(p);
             float slope = Mathf.Max(Mathf.Abs(t.Height(p + Vector2.right * .5f) - h), Mathf.Abs(t.Height(p + Vector2.up * .5f) - h)) / .5f;
@@ -909,6 +1481,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             lastFall = 0;
             if (!prefab) return null;
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            placed.Add((go, asset));
             go.transform.localPosition = new Vector3(p.x - 8, 0, p.y - 8);
             go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = scale;
@@ -1027,6 +1600,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                 ShapeKind.Canyon => p => t.Height(p) < -t.CanyonDepth + .3f,
                 _ => p => true,
             };
+            // A glade keeps its finds in the open.
+            if (t.Forest != null && t.Forest.Glade) prefer = p => Vector2.Distance(p, t.Forest.Hub) < ForestLayout.GladeRadius - 1;
+            // Behind the deadfall lies only the alcove's own reward.
+            if (t.Forest != null && t.Forest.Deadfall) candidates = candidates.Where(p => !t.Forest.InAlcove(p)).ToList();
             var finds = Spread(candidates.Where(prefer).ToList(), 4, rng);
             if (finds.Count == 0) finds = Spread(candidates, 3, rng);
             // Scenes put their finds where the scene points: the top of the knoll, the floor of the ruin.
@@ -1046,7 +1623,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             view.findSockets = finds.Select((p, i) => Socket(group, "Find " + i, t, p, FindHeight(p, i))).ToArray();
 
             if (t.Variant == "island") view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
-            if (t.Shape.Kind == ShapeKind.Maze) view.pocketSocket = Socket(group, "Pocket", t, new Vector2(8, 8), null);
+            if (t.Shape.Kind == ShapeKind.Maze) view.pocketSocket = Socket(group, "Pocket", t, t.Forest != null ? t.Forest.PocketSpot : new Vector2(8, 8), null);
             if (t.Scene?.Pocket != null && t.InPart(t.Scene.Pocket.Value)) view.pocketSocket = Socket(group, "Pocket", t, t.Local(t.Scene.Pocket.Value), null);
 
             Func<Vector2, bool> home = t.Shape.Kind switch
@@ -1057,6 +1634,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             };
             var creatures = Spread(candidates.Where(home).ToList(), 2, rng);
             if (t.Shape.Kind == ShapeKind.Maze) creatures = new List<Vector2> { new Vector2(8, 8) };
+            // In the forest they wait at the heart's tree, in the blind alcove, or where the lanes meet.
+            if (t.Forest != null) creatures = new List<Vector2> { t.Forest.Heart || t.Forest.Deadfall ? t.Forest.GuardSpot : t.Forest.Alcove ?? t.Forest.Hub };
             if (t.Scene != null)
             {
                 var own = t.Scene.Creatures.Where(t.InPart).Select(t.Local).ToList();

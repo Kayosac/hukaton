@@ -33,6 +33,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly List<Ramp> Ramps = new List<Ramp>();
         /// <summary>The scene of a plain or plateau-top chunk, or the whole landmark of a landmark part; null otherwise.</summary>
         public readonly ChunkScene Scene;
+        /// <summary>The ground plan of a giant tangled forest's cell (a maze shape's forest variants); null otherwise.</summary>
+        public readonly ForestLayout Forest;
         /// <summary>Where this chunk sits in its scene: (0, 0) for one chunk, the part's corner for a landmark part.</summary>
         public readonly Vector2 Offset;
         readonly int seed;
@@ -54,6 +56,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
             seed = (shape.Id + "/" + variant).GetHashCode();
             if (shape.Kind == ShapeKind.Plain || shape.Kind == ShapeKind.PlateauTop) Scene = ChunkScene.Get(variant);
+            if (shape.Kind == ShapeKind.Maze && TileShapes.IsForest(variant)) Forest = new ForestLayout(shape.Mids, variant, seed);
             if (shape.Kind == ShapeKind.Landmark)
             {
                 // One piece of ground for the whole landmark: same scene and same noise in every part.
@@ -207,6 +210,12 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (d < RimHalf) return -CanyonDepth * (1 - Mathf.SmoothStep(0, 1, (d - FloorHalf) / (RimHalf - FloorHalf)));
                     return 0;
                 }
+                case ShapeKind.Maze when Forest != null:
+                {
+                    // Root mounds rise under the tangle; the lanes keep to the ground.
+                    float wall = Forest.WallDepth(p);
+                    return wall > 0 ? .95f * Mathf.SmoothStep(0, 1, wall / 2.4f) * fade : 0;
+                }
                 case ShapeKind.Plain when Variant == "pond":
                     return Bed(Vector2.Distance(p, PondCentre) + Noise(p, 2f, 11) * .3f * fade, PondRadius, PondBank, PondDeep);
                 default:
@@ -254,6 +263,14 @@ namespace Hakaton.WorldAssembly.EditorTools
             float calm = Mathf.Clamp01((WaterDistance(p) - .4f) / 2.4f) * (1 - onRamp);
             // A canyon's floor and walls stay as cut: the floor is the only way along it.
             if (Shape.Kind == ShapeKind.Canyon) calm *= Mathf.Clamp01((DistanceToCentre(p) - RimHalf - .4f) / 2f);
+            // Under a hollow trunk the lane lies level, so the hollow keeps its height all through.
+            if (Forest != null && Forest.Hollow)
+            {
+                // Edges keep their own wave: neighbours meet there.
+                float level = Forest.LogLevel(p) * EdgeFade(p, 1.5f);
+                calm *= 1 - level;
+                amplitude *= 1 - level;
+            }
             return h + Noise(p, 2f, 3) * amplitude * EdgeFade(p) + Undulation(p) * calm;
         }
 
@@ -347,6 +364,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         public bool InMazeWall(Vector2 p)
         {
             if (Shape.Kind != ShapeKind.Maze) return false;
+            if (Forest != null) return Forest.IsWall(p);
             bool inX = Mathf.Abs(p.x - 8) < Corridor, inY = Mathf.Abs(p.y - 8) < Corridor;
             if (inX && inY) return false;
             if (inX) return !(p.y > 8 ? Shape.Mids[0] == Mid.MazeOpen : Shape.Mids[2] == Mid.MazeOpen);

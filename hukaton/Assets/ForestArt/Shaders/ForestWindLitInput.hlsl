@@ -38,8 +38,45 @@ half _WindStrength;      // multiplier on the per-vertex sway amplitude stored i
 half _WindSpeed;
 half _FlutterStrength;   // multiplier on the per-vertex flutter amplitude stored in UV2.y (metres)
 half _FlutterSpeed;
+half _BiomeTake;         // how much the endless world's biome patches tint this material (plants 1, bark less)
 UNITY_TEXTURE_STREAMING_DEBUG_VARS;
 CBUFFER_END
+
+// Biome patches of the endless world (set globally only during an outing there, zero otherwise): the same lush / dry /
+// damp field the world's ground is tinted by (Hakaton/World Ground Lit), taken at the object's own position so a whole
+// plant takes the colour of the ground it stands on.
+half4 _WorldBiomeA;
+half4 _WorldBiomeB;
+half4 _WorldBiomeC;
+float _WorldBiomeScale;
+half _WorldBiomeStrength;
+
+float WorldBiomeHash(float2 p)
+{
+    p = frac(p * float2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return frac(p.x * p.y);
+}
+
+float WorldBiomeNoise(float2 p)
+{
+    float2 i = floor(p), f = frac(p);
+    f = f * f * (3 - 2 * f);
+    return lerp(lerp(WorldBiomeHash(i), WorldBiomeHash(i + float2(1, 0)), f.x), lerp(WorldBiomeHash(i + float2(0, 1)), WorldBiomeHash(i + float2(1, 1)), f.x), f.y);
+}
+
+half3 WorldBiomeTint()
+{
+    half k = _BiomeTake * _WorldBiomeStrength;
+    if (k <= 0.001) return half3(1, 1, 1);
+    float2 world = float2(UNITY_MATRIX_M._m03, UNITY_MATRIX_M._m23);
+    float scale = max(_WorldBiomeScale, 1);
+    float a = WorldBiomeNoise(world / scale) * .7 + WorldBiomeNoise(world / (scale * .37) + 31.7) * .3;
+    float b = WorldBiomeNoise(world / (scale * .61) + 17.3);
+    half3 tint = lerp(_WorldBiomeA.rgb, _WorldBiomeB.rgb, smoothstep(.38, .62, a));
+    tint = lerp(tint, _WorldBiomeC.rgb, smoothstep(.58, .78, b) * .85);
+    return lerp(half3(1, 1, 1), tint, k);
+}
 
 // NOTE: Do not ifdef the properties for dots instancing, but ifdef the actual usage.
 // Otherwise you might break CPU-side as property constant-buffer offsets change per variant.
@@ -262,7 +299,7 @@ inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfa
     outSurfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor, _Cutoff);
 
     half4 specGloss = SampleMetallicSpecGloss(uv, albedoAlpha.a);
-    outSurfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb;
+    outSurfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb * WorldBiomeTint();
     outSurfaceData.albedo = AlphaModulate(outSurfaceData.albedo, outSurfaceData.alpha);
 
 #if _SPECULAR_SETUP

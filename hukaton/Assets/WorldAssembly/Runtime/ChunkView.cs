@@ -1,4 +1,6 @@
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
+using Hakaton.OldApiary;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -27,7 +29,12 @@ namespace Hakaton.WorldAssembly.Unity
         public WorldObstacle[] obstacles = new WorldObstacle[0];
         [Tooltip("Ground height next to the middle of each edge segment (canonical side × 3 + segment): where links to neighbours land.")]
         public float[] edgeHeights = new float[12];
+        [Tooltip("Loose things the player and cards push about (crates, sacks, sticks, light logs), as in the Old Apiary.")]
         public PhysicsProp[] props = new PhysicsProp[0];
+        [Tooltip("What Fire and Lightning set alight: grass, bushes, young trees, wood, sacks (the Old Apiary's rules).")]
+        public Burnable[] burnables = new Burnable[0];
+        [Tooltip("Trees «Оживление дерева» can bring to life.")]
+        public AwakenableTree[] trees = new AwakenableTree[0];
         [Tooltip("Places that sound (a campfire, a chimney): the streamer keeps the nearest few looping.")]
         public AmbientSpot[] ambient = new AmbientSpot[0];
         [Tooltip("High places that show far landmarks for a while.")]

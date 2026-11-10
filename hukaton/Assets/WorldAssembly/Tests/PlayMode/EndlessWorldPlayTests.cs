@@ -3,8 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hakaton.Decks.Unity;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Game;
+using Hakaton.OldApiary;
 using Hakaton.WorldAssembly.Unity;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -358,22 +361,60 @@ namespace Hakaton.WorldAssembly.Tests
                 ["sinkhole"] = v => v.shapeId == "sinkhole-10",
                 ["swamp"] = v => v.shapeId == "swamp-11",
                 ["lake"] = v => v.shapeId == "lake-11",
+                ["forest"] = v => v.variantId == TileShapes.Forest,
+                ["forest-glade"] = v => v.variantId == TileShapes.ForestGlade,
+                ["forest-heart"] = v => v.variantId == TileShapes.ForestHeart,
             };
+            // The air of each place: settles at once for the photos.
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            if (air) air.settle = .05f;
+            // Not over water: the player standing there would drown and end the outing.
+            var moods = new List<string> { WorldAtmosphere.Rain, WorldAtmosphere.Storm, WorldAtmosphere.Swamp, WorldAtmosphere.High };
             var home = world.motor.transform.position;
             for (int step = 0; step < 20 && wanted.Count > 0; step++)
             {
                 var spot = home + new Vector3(step * 40, 0, step * 25);
                 world.motor.Teleport(spot, Quaternion.identity);
                 for (int f = 0; f < 50; f++) yield return null;
+                if (!streamer.Active) { Debug.Log($"[World] photo walk: the outing ended at step {step}"); break; }
                 foreach (var key in wanted.Keys.ToList())
                 {
                     var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).FirstOrDefault(wanted[key]);
                     if (!view) continue;
                     var centre = view.transform.position;
+                    if (key.StartsWith("forest"))
+                    {
+                        // Over the crowns, then down on a lane looking along it to where the creatures wait (taken
+                        // first: the view may be reused for another chunk while the camera is up there).
+                        var from = view.findSockets.FirstOrDefault(x => x);
+                        var to = view.creatureSockets.FirstOrDefault(x => x);
+                        var inEye = from ? from.position + Vector3.up * 1.6f : centre;
+                        var inTarget = to ? to.position + Vector3.up * (key == "forest-heart" ? 3 : 1) : centre;
+                        // The player waits on the lane meanwhile: a fall from up there would end the outing.
+                        yield return Shot(dir, "play-" + key, centre + new Vector3(-16, 24, -16), centre, inEye);
+                        if (from && to) yield return Shot(dir, "play-" + key + "-in", inEye, inTarget);
+                        wanted.Remove(key);
+                        continue;
+                    }
                     var eye = centre + new Vector3(-11, 7, -11);
                     yield return Shot(dir, "play-" + key, eye, centre + Vector3.up);
                     wanted.Remove(key);
                 }
+                if (air)
+                    foreach (var mood in moods.ToList())
+                    {
+                        if (air.Strength(mood) < .6f) continue;
+                        var at = world.motor.transform.position + Vector3.up * 1.7f;
+                        yield return Shot(dir, "play-air-" + mood, at, at + new Vector3(1, -.08f, .6f) * 10);
+                        var weather = streamer.transform.Find("Weather");
+                        int alive = 0;
+                        if (weather)
+                            foreach (Transform effect in weather)
+                                if (effect.name.StartsWith(mood + " "))
+                                    foreach (var ps in effect.GetComponentsInChildren<ParticleSystem>()) alive += ps.particleCount;
+                        Debug.Log($"[World] air {mood}: strength {air.Strength(mood):0.00}, fog {RenderSettings.fogDensity:0.0000}, particles {alive}");
+                        moods.Remove(mood);
+                    }
             }
             // From the player's own eyes, out in the first and second rings.
             int walk = 0;
@@ -398,16 +439,234 @@ namespace Hakaton.WorldAssembly.Tests
             // Where the player came down, if nothing was found under the spot (the ground may still be streaming in).
             var backEye = (under.Count > 0 ? under[0].point : world.motor.transform.position) + Vector3.up * 1.7f;
             yield return Shot(dir, "play-far-back", backEye, home + Vector3.up * 6);
-            Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys));
+            Debug.Log("[World] photographed; not found: " + string.Join(", ", wanted.Keys.Concat(moods.Select(m => "air " + m))));
         }
 
-        IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target)
+        [UnityTest]
+        public IEnumerator ChunksBurnAwakenAndRollLikeTheOldApiary()
         {
-            // Stand where the camera will be, so streaming and far silhouettes follow it as in play.
-            world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
+            Assert.That(streamer.fire, Is.Not.Null, "the endless world runs fire");
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            Assert.That(air.postProcess, Is.Not.Null, "the static location's post-processing");
+            Assert.That(air.postProcess.enabled && air.postProcess.isGlobal && air.postProcess.sharedProfile, Is.True, "post-processing on during the outing");
+            var views = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None);
+            int burnables = views.Sum(v => v.burnables.Length), trees = views.Sum(v => v.trees.Length), props = views.Sum(v => v.props.Length);
+            Debug.Log($"[World] loaded chunks: {burnables} burnables, {trees} trees to awaken, {props} loose props");
+            Assert.That(burnables, Is.GreaterThan(300), "grass, bushes and wood burn");
+            Assert.That(trees, Is.GreaterThan(20), "trees can be awakened");
+            Assert.That(props, Is.GreaterThan(5), "loose things can be pushed");
+            Assert.That(views.SelectMany(v => v.trees).All(t => t && t.GetComponentInChildren<Collider>()), Is.True, "a card can hit every awakenable tree");
+            yield return null;
+
+            // Fire takes the grass of a chunk by the start and spreads.
+            var start = world.motor.transform.position;
+            var view = views.Where(v => v.burnables.Count(b => b && b.style == BurnStyle.Ash && b.isActiveAndEnabled) > 6)
+                .OrderBy(v => Vector3.Distance(v.transform.position, start)).First();
+            var coord = streamer.CoordAt(view.transform.position);
+            int grassIndex = System.Array.FindIndex(view.burnables, b => b && b.style == BurnStyle.Ash && b.isActiveAndEnabled);
+            var grass = view.burnables[grassIndex];
+            Assert.That(world.Ignite(null, grass.Bounds.center, .5f, IgnitionSource.Fire), Is.GreaterThan(0), $"Fire lights the grass of {view.name}");
+            yield return WaitFor(() => streamer.fire.Lit > 1, 6);
+            Assert.That(streamer.fire.Lit, Is.GreaterThan(1), "flames spread to the neighbours");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var flame = grass.Bounds.center;
+            yield return Shot(dir, "play-fire", flame + new Vector3(-4.5f, 2.2f, -4.5f), flame, start + Vector3.up * 1.6f);
+
+            // A tree comes alive (as the card hides it), a loose prop is kicked away.
+            int treeIndex = System.Array.FindIndex(view.trees, t => t && t.Standing);
+            var treeView = treeIndex >= 0 ? view : views.First(v => v.trees.Any(t => t && t.Standing));
+            if (treeIndex < 0) treeIndex = System.Array.FindIndex(treeView.trees, t => t && t.Standing);
+            var treeCoord = streamer.CoordAt(treeView.transform.position);
+            world.HideForOuting(treeView.trees[treeIndex].gameObject);
+            var prop = views.SelectMany(v => v.props).First(p => p && p.body && !p.body.isKinematic);
+            var before = prop.body.position;
+            prop.body.AddForce(Vector3.up * 4 + Vector3.right * 3, ForceMode.VelocityChange);
+            for (int f = 0; f < 20; f++) yield return null;
+            Assert.That(Vector3.Distance(prop.body.position, before), Is.GreaterThan(.3f), "a loose prop flies when pushed");
+
+            // Far away and back: the chunks come back burnt and with the empty place of the tree.
+            for (int f = 0; f < 240 && streamer.fire.Burning > 0; f++) yield return null;
+            var away = start + new Vector3(260, 0, 260);
+            world.motor.Teleport(away + Vector3.up * 30, Quaternion.identity);
+            yield return WaitFor(() => !streamer.IsLoaded(coord) && !streamer.IsLoaded(treeCoord), 10);
+            Assert.That(streamer.IsLoaded(coord), Is.False, "the burnt chunk unloads");
+            world.motor.Teleport(start, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(coord) && streamer.IsLoaded(treeCoord), 20);
+            Assert.That(streamer.IsLoaded(coord) && streamer.IsLoaded(treeCoord), Is.True, $"the chunks {coord} and {treeCoord} come back");
+            for (int f = 0; f < 5; f++) yield return null;
+            ChunkView At(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(c));
+            var again = At(coord).burnables[grassIndex];
+            Assert.That(streamer.fire.Touched(again), Is.True, "the grass is still burnt");
+            Assert.That(again.GetComponentsInChildren<Renderer>().All(r => !r.enabled), Is.True, "burnt to ash");
+            Assert.That(At(treeCoord).trees[treeIndex].gameObject.activeSelf, Is.False, "the awakened tree's place stays empty");
+        }
+
+        [UnityTest]
+        public IEnumerator AWokenTreeLeavesItsPlaceInTheForestWallOpen()
+        {
+            // The nearest cell of a giant forest.
+            var map = streamer.Map;
+            ChunkPlan cell = null;
+            for (int x = -30; x <= 30; x++)
+                for (int y = -30; y <= 30; y++)
+                {
+                    var p = map.Chunk(x, y);
+                    if (!p.Forest || p.MazeHeart) continue;
+                    if (cell == null || x * x + y * y < cell.Coord.X * cell.Coord.X + cell.Coord.Y * cell.Coord.Y) cell = p;
+                }
+            Assert.That(cell, Is.Not.Null, "a giant forest within 480 m");
+            float size = map.Rules.ChunkSize;
+            var centre = streamer.root.position + new Vector3(cell.Coord.X * size, cell.BaseLevel * map.Rules.PlateauHeight, cell.Coord.Y * size);
+            world.motor.Teleport(centre + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(cell.Coord), 10);
+            for (int f = 0; f < 30; f++) yield return null;
+            var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(cell.Coord));
+
+            // A giant tree of the wall: where it stands the wall stops a body; woken, it takes that piece with it.
+            var tree = view.trees.First(t => t && t.Standing && t.transform.Find("Barrier"));
+            var piece = tree.transform.Find("Barrier").GetComponents<Collider>();
+            var spot = tree.transform.position + Vector3.up * 2.5f;
+            bool Blocked() => Physics.OverlapSphere(spot, .3f, ~(1 << 4), QueryTriggerInteraction.Ignore)
+                .Any(c => c.transform.IsChildOf(view.transform) && c.gameObject.name == "Barrier");
+            Assert.That(Blocked(), Is.True, $"the wall where {tree.name} stands");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var toward = Flat(tree.transform.position - centre);
+            var eye = tree.transform.position - toward.normalized * 7 + Vector3.up * 1.7f;
+            yield return Shot(dir, "play-tree-before", eye, tree.transform.position + Vector3.up * 2.5f, centre + Vector3.up * 1.7f);
+            world.HideForOuting(tree.gameObject);
+            yield return null;
+            Assert.That(Blocked(), Is.False, "the woken tree took its piece of the wall with it");
+            Assert.That(piece.All(c => !c.enabled || !c.gameObject.activeInHierarchy), Is.True);
+            yield return Shot(dir, "play-tree-after", eye, tree.transform.position + Vector3.up * 2.5f, centre + Vector3.up * 1.7f);
+        }
+
+        static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0, v.z);
+
+        [UnityTest]
+        public IEnumerator TheGreatTreeHasALookoutHollowTrunksLetTheLaneThroughFireOpensTheDeadfall()
+        {
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            ChunkPlan Nearest(string variant)
+            {
+                ChunkPlan best = null;
+                for (int x = -30; x <= 30; x++)
+                    for (int y = -30; y <= 30; y++)
+                    {
+                        var p = map.Chunk(x, y);
+                        if (p.Variant.Id != variant || p.Shape.Kind != ShapeKind.Maze) continue;
+                        if (best == null || x * x + y * y < best.Coord.X * best.Coord.X + best.Coord.Y * best.Coord.Y) best = p;
+                    }
+                return best;
+            }
+            Vector3 Centre(ChunkPlan p) => streamer.root.position + new Vector3(p.Coord.X * size, p.BaseLevel * map.Rules.PlateauHeight, p.Coord.Y * size);
+            ChunkView ViewAt(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(c));
+            bool Walk(Vector3 from, Vector3 to, float reach = 1.5f)
+            {
+                if (!NavMesh.SamplePosition(from, out var a, reach, NavMesh.AllAreas) || !NavMesh.SamplePosition(to, out var b, reach, NavMesh.AllAreas)) return false;
+                var path = new NavMeshPath();
+                return NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete;
+            }
+
+            // The heart: a stair of shelf fungi up the great tree to its lookout, walked from the ring below.
+            var heart = Nearest(TileShapes.ForestHeart);
+            Assert.That(heart, Is.Not.Null, "a forest's heart within 480 m");
+            world.motor.Teleport(Centre(heart) + new Vector3(4.6f, 3, 0), Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            var view = ViewAt(heart.Coord);
+            Assert.That(view.lookouts.Length, Is.EqualTo(1), "a lookout on the great tree");
+            var lookout = view.lookouts[0].transform.position;
+            Assert.That(lookout.y - view.transform.position.y, Is.GreaterThan(6), "high up the tree");
+            var ring = view.creatureSockets[0].position;
+            Assert.That(Walk(ring, lookout), Is.True, "the stair leads up from the ring");
+            yield return Shot(dir, "play-heart-stair", ring + Vector3.up * 1.7f + (ring - Centre(heart)).normalized * 2, lookout - Vector3.up * 2, ring + Vector3.up * 1.7f);
+            var outward = Flat(lookout - Centre(heart)).normalized;
+            yield return Shot(dir, "play-heart-lookout", lookout + Vector3.up * 1.7f, lookout + Vector3.up * 1.2f + outward * 10, ring + Vector3.up * 1.7f);
+
+            // A hollow trunk: the lane runs on through it.
+            var hollow = Nearest(TileShapes.ForestHollow);
+            Assert.That(hollow, Is.Not.Null, "a hollow trunk within 480 m");
+            world.motor.Teleport(Centre(hollow) + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            view = ViewAt(hollow.Coord);
+            var log = view.GetComponentsInChildren<Transform>().First(t => t.name == "Hollow trunk");
+            Assert.That(log.GetComponentsInChildren<MeshCollider>().Length, Is.GreaterThan(0), "the trunk is solid as it looks");
+            float half = log.lossyScale.z * 2.86f / 2;
+            var endA = log.position + log.forward * (half + 1.2f) + Vector3.up;
+            var endB = log.position - log.forward * (half + 1.2f) + Vector3.up;
+            Assert.That(Walk(endA, endB), Is.True, "through the hollow trunk");
+            yield return Shot(dir, "play-hollow-trunk", endB + log.forward * -2.5f + Vector3.up * .8f, log.position + Vector3.up * 1.4f, endB + Vector3.up * .7f);
+
+            // Deadfall closes a blind alcove with a reward behind it; fire opens it.
+            var hoard = Nearest(TileShapes.ForestDeadfall);
+            Assert.That(hoard, Is.Not.Null, "deadfall within 480 m");
+            world.motor.Teleport(Centre(hoard) + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            view = ViewAt(hoard.Coord);
+            var deadfall = view.obstacles.First(o => o && o.name == "Deadfall");
+            Assert.That(deadfall.Resolved, Is.False);
+            Assert.That(view.pocketSocket.GetComponentInChildren<WorldLoot>(), Is.Not.Null, "a reward lies behind the deadfall");
+            Assert.That(Walk(view.creatureSockets[0].position, view.pocketSocket.position), Is.False, "the deadfall shuts the alcove");
+            var front = deadfall.transform.position - deadfall.transform.forward * 4 + Vector3.up * 1.7f;
+            yield return Shot(dir, "play-deadfall-before", front, deadfall.transform.position + Vector3.up * 1.2f, view.creatureSockets[0].position + Vector3.up * 1.7f);
+            Assert.That(deadfall.React(CardAction.Fire, deadfall.transform.position), Is.True, "fire takes the deadfall");
+            yield return WaitFor(() => !deadfall.barrier.enabled, 5);
+            Assert.That(deadfall.barrier.enabled, Is.False, "the way to the reward is open");
+            for (int f = 0; f < 60; f++) yield return null;
+            yield return Shot(dir, "play-deadfall-after", front, deadfall.transform.position + Vector3.up * 1.2f, view.creatureSockets[0].position + Vector3.up * 1.7f);
+        }
+
+        [UnityTest]
+        public IEnumerator TheAirThickensUnderTheGiantTreesAndClearsAfterTheOuting()
+        {
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            Assert.That(air, Is.Not.Null, "the streamer carries the world's atmosphere");
+            air.settle = .05f;
+            for (int f = 0; f < 10; f++) yield return null;
+            float startFog = RenderSettings.fogDensity;
+            Assert.That(Shader.GetGlobalFloat("_WorldBiomeStrength"), Is.GreaterThan(0), "plants take the colour of the ground's patches");
+            // The nearest cell of a giant forest that is not its heart.
+            var map = streamer.Map;
+            ChunkPlan cell = null;
+            for (int x = -30; x <= 30; x++)
+                for (int y = -30; y <= 30; y++)
+                {
+                    var p = map.Chunk(x, y);
+                    if (!p.Forest || p.MazeHeart) continue;
+                    if (cell == null || x * x + y * y < cell.Coord.X * cell.Coord.X + cell.Coord.Y * cell.Coord.Y) cell = p;
+                }
+            Assert.That(cell, Is.Not.Null, "a giant forest within 480 m");
+            var centre = streamer.root.position + new Vector3(cell.Coord.X * map.Rules.ChunkSize, cell.BaseLevel * map.Rules.PlateauHeight + 3, cell.Coord.Y * map.Rules.ChunkSize);
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 45; f++) yield return null;
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 60; f++) yield return null;
+            Assert.That(air.Strength(WorldAtmosphere.Forest), Is.GreaterThan(.8f), $"forest air at {cell}");
+            float forestFog = RenderSettings.fogDensity;
+            Assert.That(forestFog, Is.GreaterThan(startFog * 1.2f), "thicker fog under the giant trees than at the start");
+            // The outing ends (as on the way home): the scene's own air and colours come back.
+            streamer.EndOuting();
+            yield return null;
+            yield return null;
+            Assert.That(Shader.GetGlobalFloat("_WorldBiomeStrength"), Is.EqualTo(0f), "plants back to their own colour at home");
+            Assert.That(RenderSettings.fogDensity, Is.LessThan(forestFog / 1.2f), "the scene's own fog back at home");
+        }
+
+        IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target, Vector3? stand = null)
+        {
+            // Stand where the camera will be (or under it), so streaming and far silhouettes follow it as in play.
+            var feet = (stand ?? eye) - Vector3.up * 1.6f;
+            world.motor.Teleport(feet, Quaternion.identity);
             // Let the chunks round the new spot stream in, as they would ahead of a walking player.
             for (int f = 0; f < 45; f++) yield return null;
-            world.motor.Teleport(eye - Vector3.up * 1.6f, Quaternion.identity);
+            world.motor.Teleport(feet, Quaternion.identity);
             yield return null;
             var cam = world.viewCamera;
             var saved = (cam.transform.position, cam.transform.rotation);

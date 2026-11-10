@@ -121,3 +121,9 @@ Keep this style by default unless the user explicitly changes it. This direction
 - These rules apply to greybox prototypes too. “Only cubes” describes the art fidelity, not an exception to prefab/scene authoring.
 - Keep shared character movement, camera feedback, input capture, and stamina in a reusable module independent of any game layer. Specialize the authored player through prefab variants. Modal interfaces claim and release control through the shared ownership API.
 - Keep the gameplay HUD sparse. Do not display permanent movement, mouse-look, or mouse-wheel instructions. Show object interactions only for the focused, reachable, unobstructed target; show trade controls only during a conversation and stamina only when it is relevant.
+
+# Parallel agents: stay in your own project
+
+- Several agents work at the same time, each in its own git worktree and branch with its own Unity editor. Work only in the worktree and branch the user gave you. Do not edit, stage, commit, merge or revert anything in another agent's worktree or in the main checkout, and do not send commands to another editor's bridge (`Logs/bridge` of another worktree), unless the user explicitly asks you to do that particular thing there.
+- When the user shows you an error, first find out whose worktree and branch it comes from. If it is not yours, do not fix it there, even when your merged changes caused it: tell the user where it is, what causes it and what the fix would be, and leave the fix to that worktree's owner. Change your own branch only if the fix belongs there.
+- Before touching any file, check that its path is inside your own worktree.
