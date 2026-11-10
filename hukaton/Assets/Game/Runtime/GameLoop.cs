@@ -202,7 +202,8 @@ namespace Hakaton.Game
         {
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
-            // The choice of place opens only once the shop has made its revenue goal; before that every outing is the endless world.
+            // The choice of place opens only once the shop has made its revenue goal; before that every outing goes to the
+            // ready-made location (the old apiary).
             if (outingChoice && expedition.HasPlaceChoice && PlaceChoiceUnlocked)
             {
                 outingChoice.Open(expedition.readyWorld.placeName, place =>
@@ -214,7 +215,7 @@ namespace Hakaton.Game
                 });
                 return;
             }
-            expedition.NextPlace = OutingPlace.Endless;
+            expedition.NextPlace = !PlaceChoiceUnlocked && expedition.readyWorld ? OutingPlace.Ready : OutingPlace.Endless;
             StartCoroutine(DepartWithTransition());
         }
 
