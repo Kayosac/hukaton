@@ -104,7 +104,13 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             var obstacles = new List<WorldObstacle>();
             if (terrain.Wet) obstacles.Add(Water(go.transform, terrain, meshPath, name));
-            if (shape.Kind == ShapeKind.Maze && terrain.Forest != null) ForestWalls(go.transform, terrain, rng);
+            if (shape.Kind == ShapeKind.Maze && terrain.Forest != null)
+            {
+                ForestWalls(go.transform, terrain, rng);
+                if (terrain.Forest.Deadfall && terrain.Forest.Alcove.HasValue) obstacles.Add(DeadfallPiece(go.transform, terrain, rng));
+                if (terrain.Forest.Hollow) HollowTrunk(go.transform, terrain);
+                view.lookouts = go.GetComponentsInChildren<Lookout>();
+            }
             else if (shape.Kind == ShapeKind.Maze) StoneWalls(go.transform, terrain, rng);
             if (terrain.Scene != null) ScenePieces(go.transform, terrain, rng, obstacles);
             if (terrain.Scene != null) Places(view, terrain);
@@ -593,6 +599,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     float scale = Rnd(min, max), radius = trunk * scale;
                     if (depth < radius + .3f || EdgeRoom(p) < radius + .4f) continue;
                     if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + radius + 1.6f)) continue;
+                    if (f.InLog(p, radius + .3f)) continue;
                     var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
                     if (!tree) continue;
                     trunks.Add((p, radius));
@@ -620,7 +627,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 if (logs.Count >= 5) break;
                 float depth = f.WallDepth(p);
-                if (depth < .5f || depth > 1.3f || EdgeRoom(p) < 1.5f) continue;
+                if (depth < .5f || depth > 1.3f || EdgeRoom(p) < 1.5f || f.InLog(p, 1.5f)) continue;
                 if (logs.Any(q => Vector2.Distance(q, p) < 3.6f) || trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .6f)) continue;
                 // Along the edge of the lane: across the slope of the wall depth.
                 var grad = new Vector2(f.WallDepth(p + Vector2.right * .3f) - f.WallDepth(p - Vector2.right * .3f), f.WallDepth(p + Vector2.up * .3f) - f.WallDepth(p - Vector2.up * .3f));
@@ -664,7 +671,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 if (green.Count >= 40) break;
                 float depth = f.WallDepth(p);
-                if (depth < .05f || depth > 1f || f.InTrunk(p, .3f)) continue;
+                if (depth < .05f || depth > 1f || f.InTrunk(p, .3f) || f.InLog(p)) continue;
                 if (green.Any(q => Vector2.Distance(q, p) < 1.05f)) continue;
                 var plant = Place(growth, "Plants/" + Undergrowth[rng.Next(Undergrowth.Length)], t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.7f));
                 Bare(plant);
@@ -676,7 +683,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 if (tangle.Count >= 56) break;
                 float depth = f.WallDepth(p);
-                if (depth < .6f || f.InTrunk(p, .3f)) continue;
+                if (depth < .6f || f.InTrunk(p, .3f) || f.InLog(p)) continue;
                 if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .15f)) continue;
                 if (tangle.Any(q => Vector2.Distance(q, p) < 1.35f) || green.Any(q => Vector2.Distance(q, p) < .8f)) continue;
                 double kind = rng.NextDouble();
@@ -705,6 +712,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var p in points)
             {
                 if (roots >= 5 && leaves >= 5) break;
+                if (f.InLog(p, .2f)) continue;
                 float depth = f.WallDepth(p);
                 if (roots < 5 && depth > -.5f && depth < .3f && !f.InTrunk(p, .2f))
                 {
@@ -737,19 +745,20 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var toward = (f.PocketSpot - f.Hub).normalized;
                 var face = f.Hub + toward * (ForestLayout.TrunkRadius - .1f);
                 var mask = Place(shrine, "Markers/FA_MK15_WoodMask", null, Vector2.zero, Mathf.Atan2(toward.x, toward.y) * Mathf.Rad2Deg, Vector3.one * 1.8f);
-                if (mask) mask.transform.localPosition = new Vector3(face.x - 8, GroundY(t, face) + 2.6f, face.y - 8);
+                if (mask) mask.transform.localPosition = new Vector3(face.x - 8, GroundY(t, face) + 1.4f, face.y - 8);
                 Bare(mask);
                 // The mask and the charms belong to the great tree: they go with it when it wakes.
                 if (mask && great) mask.transform.SetParent(great.transform, true);
                 for (int k = 0; k < 4; k++)
                 {
                     float a = Mathf.Atan2(toward.y, toward.x) + (k - 1.5f) * .9f;
-                    var at = f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (ForestLayout.TrunkRadius + 1.4f);
+                    var at = f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (ForestLayout.TrunkRadius + 3.2f);
                     var charm = Place(shrine, "Markers/" + (k % 2 == 0 ? "FA_MK17_MobileTwigs" : "FA_MK10_CharmTwigDiamond"), null, Vector2.zero, Rnd(0, 360), Vector3.one * 1.3f);
                     if (charm) charm.transform.localPosition = new Vector3(at.x - 8, GroundY(t, at) + Rnd(2.6f, 3.4f), at.y - 8);
                     Bare(charm);
                     if (charm && great) charm.transform.SetParent(great.transform, true);
                 }
+                if (great) GreatStair(great.transform, root, t, f);
                 var flies = Place(shrine, "VFX/Insects/Fireflies/FirefliesGreen", null, Vector2.zero, 0, Vector3.one);
                 if (flies) flies.transform.localPosition = new Vector3(f.Hub.x - 8, GroundY(t, f.PocketSpot) + 1.2f, f.Hub.y - 8);
                 for (int k = 0; k < 6; k++)
@@ -830,6 +839,161 @@ namespace Hakaton.WorldAssembly.EditorTools
                 box.center = Quaternion.Inverse(chunk.rotation) * (centre - piece.position);
                 box.size = new Vector3(r.width, 6, r.height);
             }
+        }
+
+        /// <summary>
+        /// The way up the greatest tree to its lookout: giant shelf fungi winding round the trunk, a walkable ramp hidden
+        /// in their caps, and a broad cap at the top with the lookout. The whole stair belongs to the tree: woken, it takes
+        /// its fungi with it.
+        /// </summary>
+        static void GreatStair(Transform tree, Transform root, TileTerrain t, ForestLayout f)
+        {
+            // Wide enough that a walker keeps a clear strip round the bend, not a thread the navigation loses.
+            const float radius = 3.2f, rise = 7f, sweepDeg = 290f, width = 2f;
+            const int steps = 26;
+            var stair = new GameObject("Stair").transform;
+            stair.SetParent(root, false);
+            // Its foot faces the first way in, a little to the side.
+            float a0 = 0;
+            for (int s = 0; s < 4; s++)
+                if (f.Open[s])
+                {
+                    var d = ForestLayout.Middle[s] - f.Hub;
+                    a0 = Mathf.Atan2(d.y, d.x) + 50 * Mathf.Deg2Rad;
+                    break;
+                }
+            float sweep = sweepDeg * Mathf.Deg2Rad;
+            Vector2 At(float a, float r) => f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
+            float h0 = GroundY(t, At(a0, radius)) - .05f;
+            for (int k = 0; k < steps; k++)
+            {
+                float a = a0 + sweep * k / steps, b = a0 + sweep * (k + 1) / steps;
+                Vector2 pa = At(a, radius), pb = At(b, radius);
+                float ha = h0 + rise * k / steps, hb = h0 + rise * (k + 1) / steps;
+                var from = new Vector3(pa.x - 8, ha, pa.y - 8);
+                var to = new Vector3(pb.x - 8, hb, pb.y - 8);
+                var step = new GameObject("Step").transform;
+                step.SetParent(stair, false);
+                var forward = to - from;
+                step.localRotation = Quaternion.LookRotation(forward, Vector3.up);
+                step.localPosition = (from + to) / 2 - step.localRotation * Vector3.up * .125f;
+                var box = step.gameObject.AddComponent<BoxCollider>();
+                box.size = new Vector3(width, .25f, forward.magnitude + .2f);
+                if (k % 2 == 0)
+                {
+                    // A cap from the trunk out over the step: its shelf sticks out of the bark the way the prefab grows it.
+                    float m = (a + b) / 2 + sweep / steps * .5f;
+                    var bark = At(m, ForestLayout.TrunkRadius - .1f);
+                    var inward = -new Vector2(Mathf.Cos(m), Mathf.Sin(m));
+                    var cap = Place(stair, "Plants/FA_VG15_ShelfFungus", null, Vector2.zero, Mathf.Atan2(inward.x, inward.y) * Mathf.Rad2Deg, new Vector3(5.5f, 3.6f, 6f));
+                    if (cap)
+                    {
+                        cap.transform.localPosition = new Vector3(bark.x - 8, (ha + hb) / 2 - .33f, bark.y - 8);
+                        foreach (var c in cap.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                    }
+                }
+            }
+            // The top: a broad cap to stand on and look out from.
+            float top = a0 + sweep + .3f;
+            var platform = At(top, radius + .2f);
+            var deck = new GameObject("Lookout cap").transform;
+            deck.SetParent(stair, false);
+            deck.localPosition = new Vector3(platform.x - 8, h0 + rise - .15f, platform.y - 8);
+            var floor = deck.gameObject.AddComponent<BoxCollider>();
+            floor.size = new Vector3(3, .3f, 3);
+            var topInward = -new Vector2(Mathf.Cos(top), Mathf.Sin(top));
+            var group = Place(stair, "Plants/FA_VG16_ShelfFungusGroup", null, Vector2.zero, Mathf.Atan2(topInward.x, topInward.y) * Mathf.Rad2Deg, new Vector3(7, 4, 7));
+            if (group)
+            {
+                var bark = At(top, ForestLayout.TrunkRadius - .1f);
+                group.transform.localPosition = new Vector3(bark.x - 8, h0 + rise - .5f, bark.y - 8);
+                foreach (var c in group.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            }
+            var lantern = Place(stair, "Props/FA_PR02_LanternGround", null, Vector2.zero, 0, Vector3.one);
+            if (lantern)
+            {
+                var spot = At(top + .25f, radius + .9f);
+                lantern.transform.localPosition = new Vector3(spot.x - 8, h0 + rise, spot.y - 8);
+                foreach (var c in lantern.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            }
+            var lookout = new GameObject("Lookout");
+            lookout.transform.SetParent(stair, false);
+            lookout.transform.localPosition = new Vector3(platform.x - 8, h0 + rise, platform.y - 8);
+            lookout.AddComponent<Lookout>().revealRadius = 650;
+            stair.SetParent(tree, true);
+        }
+
+        /// <summary>
+        /// A giant hollow trunk lying along a lane, half sunk in the ground: the lane runs through it. It keeps its own
+        /// shape as its collider, so inside it is open and its walls are solid.
+        /// </summary>
+        static void HollowTrunk(Transform parent, TileTerrain t)
+        {
+            var f = t.Forest;
+            const float scale = 4.6f;
+            float low = float.MaxValue;
+            for (float k = -.5f; k <= .5f; k += .1f) low = Mathf.Min(low, GroundY(t, f.LogAt + f.LogDir * f.LogLength * k));
+            var log = Place(parent, "Deadwood/FA_DW03_LogHollow", null, Vector2.zero, Mathf.Atan2(f.LogDir.x, f.LogDir.y) * Mathf.Rad2Deg, new Vector3(scale, scale, f.LogLength / 2.86f));
+            if (!log) return;
+            log.name = "Hollow trunk";
+            // Sunk so the hollow's floor is the ground: inside, the walk is on the lane itself.
+            log.transform.localPosition = new Vector3(f.LogAt.x - 8, low - .97f, f.LogAt.y - 8);
+            foreach (var c in log.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            foreach (var filter in log.GetComponentsInChildren<MeshFilter>())
+                filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+        }
+
+        /// <summary>
+        /// Deadfall closing the blind alcove of a forest cell: trunks piled across its mouth, a card obstacle like a
+        /// thorn thicket — Fire burns it to ashes and the way to the reward at the alcove's end is open.
+        /// </summary>
+        static WorldObstacle DeadfallPiece(Transform parent, TileTerrain t, System.Random rng)
+        {
+            var f = t.Forest;
+            float Rnd(float a, float b) => Mathf.Lerp(a, b, (float)rng.NextDouble());
+            var root = new GameObject("Deadfall");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = new Vector3(f.DeadfallAt.x - 8, GroundY(t, f.DeadfallAt), f.DeadfallAt.y - 8);
+            root.transform.localRotation = Quaternion.Euler(0, Mathf.Atan2(f.DeadfallDir.x, f.DeadfallDir.y) * Mathf.Rad2Deg, 0);
+            var barrierGo = new GameObject("Barrier");
+            barrierGo.transform.SetParent(root.transform, false);
+            var barrier = barrierGo.AddComponent<BoxCollider>();
+            barrier.center = new Vector3(0, 1.4f, 0);
+            barrier.size = new Vector3(3.8f, 2.8f, 1.6f);
+            var live = new GameObject("Deadfall pile").transform;
+            live.SetParent(root.transform, false);
+            var burnt = new GameObject("Ashes").transform;
+            burnt.SetParent(root.transform, false);
+            GameObject Piece(Transform under, string asset, Vector3 at, Vector3 euler, Vector3 size)
+            {
+                var go = Place(under, asset, null, Vector2.zero, 0, size);
+                if (!go) return null;
+                go.transform.localPosition = at;
+                go.transform.localRotation = Quaternion.Euler(euler);
+                foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                return go;
+            }
+            // Trunks across the mouth, one on another, crossing a little.
+            for (int k = 0; k < 4; k++)
+                Piece(live, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], new Vector3(Rnd(-.3f, .3f), .1f + k * .55f, Rnd(-.45f, .45f)),
+                    new Vector3(Rnd(-6, 6), 90 + Rnd(-22, 22), Rnd(-8, 8)), new Vector3(Rnd(1.2f, 1.45f), Rnd(1.2f, 1.45f), Rnd(1f, 1.15f)));
+            Piece(live, "Deadwood/FA_DW08_StumpUprooted", new Vector3(Rnd(-1.4f, 1.4f), 0, Rnd(.3f, .7f)), new Vector3(0, Rnd(0, 360), 0), Vector3.one * 1.7f);
+            for (int k = 0; k < 3; k++)
+                Piece(live, "Deadwood/" + (k % 2 == 0 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), new Vector3(Rnd(-1.5f, 1.5f), Rnd(.4f, 2f), Rnd(-.6f, .6f)),
+                    new Vector3(Rnd(-30, 30), Rnd(0, 360), Rnd(-30, 30)), Vector3.one * Rnd(1.3f, 1.7f));
+            // What is left after the fire: a low black heap.
+            for (int k = 0; k < 3; k++)
+                Piece(burnt, "Plants/FA_VG10_ThornThicketBurnt", new Vector3(-1.2f + k * 1.2f, 0, Rnd(-.3f, .3f)), new Vector3(0, Rnd(0, 360), 0), new Vector3(1.2f, .45f, 1.2f));
+            Piece(burnt, "Deadwood/FA_DW09_SticksSmall", new Vector3(Rnd(-.8f, .8f), 0, Rnd(-.3f, .3f)), new Vector3(0, Rnd(0, 360), 0), Vector3.one * 1.4f);
+            burnt.gameObject.SetActive(false);
+            var obstacle = root.AddComponent<WorldObstacle>();
+            obstacle.kind = ObstacleKind.Thorns;
+            obstacle.barrier = barrier;
+            obstacle.intact = live.gameObject;
+            obstacle.changed = burnt.gameObject;
+            obstacle.tint = new Color(1f, .62f, .3f);
+            Feedback(obstacle, "1c053b046a88e4e7b8c543f06e64b7e2", "40b80550388374f72a36150a39fb3d81", "a7ef1d25e7e664753b75a51a4803f109", "3070caddd61f843dd8ba16ca7c10784a");
+            return obstacle;
         }
 
         /// <summary>A block of thorns over a rectangle (canonical metres): a wall until Fire burns it.</summary>
@@ -1277,7 +1441,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Kind == ShapeKind.River && t.DistanceToCentre(p) < TileTerrain.BankHalf + .6f) return false;
             if (t.Shape.Kind == ShapeKind.Canyon && t.DistanceToCentre(p) < TileTerrain.RimHalf + .4f && t.DistanceToCentre(p) > TileTerrain.FloorHalf - .3f) return false;
             if (t.Shape.Kind == ShapeKind.Maze && t.Forest == null && Mathf.Abs(p.x - 8) < 1.6f && Mathf.Abs(p.y - 8) < 1.6f) return false;
-            if (t.Forest != null && t.Forest.InTrunk(p, 1.1f)) return false;
+            if (t.Forest != null && (t.Forest.InTrunk(p, 1.1f) || t.Forest.InLog(p, .3f))) return false;
             // Steep ground (cliff faces) stays bare.
             float h = t.Height(p);
             float slope = Mathf.Max(Mathf.Abs(t.Height(p + Vector2.right * .5f) - h), Mathf.Abs(t.Height(p + Vector2.up * .5f) - h)) / .5f;
@@ -1438,6 +1602,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             };
             // A glade keeps its finds in the open.
             if (t.Forest != null && t.Forest.Glade) prefer = p => Vector2.Distance(p, t.Forest.Hub) < ForestLayout.GladeRadius - 1;
+            // Behind the deadfall lies only the alcove's own reward.
+            if (t.Forest != null && t.Forest.Deadfall) candidates = candidates.Where(p => !t.Forest.InAlcove(p)).ToList();
             var finds = Spread(candidates.Where(prefer).ToList(), 4, rng);
             if (finds.Count == 0) finds = Spread(candidates, 3, rng);
             // Scenes put their finds where the scene points: the top of the knoll, the floor of the ruin.
@@ -1469,7 +1635,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var creatures = Spread(candidates.Where(home).ToList(), 2, rng);
             if (t.Shape.Kind == ShapeKind.Maze) creatures = new List<Vector2> { new Vector2(8, 8) };
             // In the forest they wait at the heart's tree, in the blind alcove, or where the lanes meet.
-            if (t.Forest != null) creatures = new List<Vector2> { t.Forest.Heart ? t.Forest.GuardSpot : t.Forest.Alcove ?? t.Forest.Hub };
+            if (t.Forest != null) creatures = new List<Vector2> { t.Forest.Heart || t.Forest.Deadfall ? t.Forest.GuardSpot : t.Forest.Alcove ?? t.Forest.Hub };
             if (t.Scene != null)
             {
                 var own = t.Scene.Creatures.Where(t.InPart).Select(t.Local).ToList();

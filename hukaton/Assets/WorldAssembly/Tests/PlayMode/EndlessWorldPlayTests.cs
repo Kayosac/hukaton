@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hakaton.Decks.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Expeditions.Cards;
 using Hakaton.Game;
@@ -542,6 +543,85 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0, v.z);
+
+        [UnityTest]
+        public IEnumerator TheGreatTreeHasALookoutHollowTrunksLetTheLaneThroughFireOpensTheDeadfall()
+        {
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            ChunkPlan Nearest(string variant)
+            {
+                ChunkPlan best = null;
+                for (int x = -30; x <= 30; x++)
+                    for (int y = -30; y <= 30; y++)
+                    {
+                        var p = map.Chunk(x, y);
+                        if (p.Variant.Id != variant || p.Shape.Kind != ShapeKind.Maze) continue;
+                        if (best == null || x * x + y * y < best.Coord.X * best.Coord.X + best.Coord.Y * best.Coord.Y) best = p;
+                    }
+                return best;
+            }
+            Vector3 Centre(ChunkPlan p) => streamer.root.position + new Vector3(p.Coord.X * size, p.BaseLevel * map.Rules.PlateauHeight, p.Coord.Y * size);
+            ChunkView ViewAt(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(c));
+            bool Walk(Vector3 from, Vector3 to, float reach = 1.5f)
+            {
+                if (!NavMesh.SamplePosition(from, out var a, reach, NavMesh.AllAreas) || !NavMesh.SamplePosition(to, out var b, reach, NavMesh.AllAreas)) return false;
+                var path = new NavMeshPath();
+                return NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete;
+            }
+
+            // The heart: a stair of shelf fungi up the great tree to its lookout, walked from the ring below.
+            var heart = Nearest(TileShapes.ForestHeart);
+            Assert.That(heart, Is.Not.Null, "a forest's heart within 480 m");
+            world.motor.Teleport(Centre(heart) + new Vector3(4.6f, 3, 0), Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            var view = ViewAt(heart.Coord);
+            Assert.That(view.lookouts.Length, Is.EqualTo(1), "a lookout on the great tree");
+            var lookout = view.lookouts[0].transform.position;
+            Assert.That(lookout.y - view.transform.position.y, Is.GreaterThan(6), "high up the tree");
+            var ring = view.creatureSockets[0].position;
+            Assert.That(Walk(ring, lookout), Is.True, "the stair leads up from the ring");
+            yield return Shot(dir, "play-heart-stair", ring + Vector3.up * 1.7f + (ring - Centre(heart)).normalized * 2, lookout - Vector3.up * 2, ring + Vector3.up * 1.7f);
+            var outward = Flat(lookout - Centre(heart)).normalized;
+            yield return Shot(dir, "play-heart-lookout", lookout + Vector3.up * 1.7f, lookout + Vector3.up * 1.2f + outward * 10, ring + Vector3.up * 1.7f);
+
+            // A hollow trunk: the lane runs on through it.
+            var hollow = Nearest(TileShapes.ForestHollow);
+            Assert.That(hollow, Is.Not.Null, "a hollow trunk within 480 m");
+            world.motor.Teleport(Centre(hollow) + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            view = ViewAt(hollow.Coord);
+            var log = view.GetComponentsInChildren<Transform>().First(t => t.name == "Hollow trunk");
+            Assert.That(log.GetComponentsInChildren<MeshCollider>().Length, Is.GreaterThan(0), "the trunk is solid as it looks");
+            float half = log.lossyScale.z * 2.86f / 2;
+            var endA = log.position + log.forward * (half + 1.2f) + Vector3.up;
+            var endB = log.position - log.forward * (half + 1.2f) + Vector3.up;
+            Assert.That(Walk(endA, endB), Is.True, "through the hollow trunk");
+            yield return Shot(dir, "play-hollow-trunk", endB + log.forward * -2.5f + Vector3.up * .8f, log.position + Vector3.up * 1.4f, endB + Vector3.up * .7f);
+
+            // Deadfall closes a blind alcove with a reward behind it; fire opens it.
+            var hoard = Nearest(TileShapes.ForestDeadfall);
+            Assert.That(hoard, Is.Not.Null, "deadfall within 480 m");
+            world.motor.Teleport(Centre(hoard) + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            view = ViewAt(hoard.Coord);
+            var deadfall = view.obstacles.First(o => o && o.name == "Deadfall");
+            Assert.That(deadfall.Resolved, Is.False);
+            Assert.That(view.pocketSocket.GetComponentInChildren<WorldLoot>(), Is.Not.Null, "a reward lies behind the deadfall");
+            Assert.That(Walk(view.creatureSockets[0].position, view.pocketSocket.position), Is.False, "the deadfall shuts the alcove");
+            var front = deadfall.transform.position - deadfall.transform.forward * 4 + Vector3.up * 1.7f;
+            yield return Shot(dir, "play-deadfall-before", front, deadfall.transform.position + Vector3.up * 1.2f, view.creatureSockets[0].position + Vector3.up * 1.7f);
+            Assert.That(deadfall.React(CardAction.Fire, deadfall.transform.position), Is.True, "fire takes the deadfall");
+            yield return WaitFor(() => !deadfall.barrier.enabled, 5);
+            Assert.That(deadfall.barrier.enabled, Is.False, "the way to the reward is open");
+            for (int f = 0; f < 60; f++) yield return null;
+            yield return Shot(dir, "play-deadfall-after", front, deadfall.transform.position + Vector3.up * 1.2f, view.creatureSockets[0].position + Vector3.up * 1.7f);
+        }
 
         [UnityTest]
         public IEnumerator TheAirThickensUnderTheGiantTreesAndClearsAfterTheOuting()

@@ -17,12 +17,21 @@ namespace Hakaton.WorldAssembly.EditorTools
         const float Lead = 2.6f;
 
         public readonly bool[] Open = new bool[4];
-        public readonly bool Glade, Heart;
+        public readonly bool Glade, Heart, Hollow, Deadfall;
         public readonly Vector2 Hub;
         /// <summary>Lane centrelines, edge middle first, hub last.</summary>
         public readonly List<Vector2[]> Lanes = new List<Vector2[]>();
-        /// <summary>Where the heart's reward lies, at the foot of the great tree; and where its guard waits.</summary>
+        /// <summary>
+        /// Where the guaranteed reward lies (at the great tree's foot, out of the way of its stair; at the end of the
+        /// alcove behind the deadfall), and where its guard waits.
+        /// </summary>
         public readonly Vector2 PocketSpot, GuardSpot;
+        /// <summary>Deadfall closing the blind alcove: its middle and the way into the alcove.</summary>
+        public readonly Vector2 DeadfallAt, DeadfallDir;
+        /// <summary>The hollow trunk across a lane: its middle, along the lane, and its length.</summary>
+        public readonly Vector2 LogAt, LogDir;
+        public readonly float LogLength;
+        public const float LogHalfWidth = 3f;
         readonly int seed;
 
         /// <summary>Middle of each canonical side (N, E, S, W) and the way into the chunk from it.</summary>
@@ -35,6 +44,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             for (int s = 0; s < 4; s++) Open[s] = canonicalMids[s] == Mid.MazeOpen;
             Glade = variant == TileShapes.ForestGlade;
             Heart = variant == TileShapes.ForestHeart;
+            Hollow = variant == TileShapes.ForestHollow;
+            Deadfall = variant == TileShapes.ForestDeadfall;
             Hub = new Vector2(8, 8);
             if (!Glade && !Heart) Hub += new Vector2(Unit(1) * 2 - 1, Unit(2) * 2 - 1) * 1.3f;
             int lanes = 0;
@@ -72,11 +83,83 @@ namespace Hakaton.WorldAssembly.EditorTools
             for (int s = 0; s < 4; s++) if (Open[s]) away += Inward[s];
             if (away.sqrMagnitude < .01f) away = new Vector2(1, 1);
             away = away.normalized;
-            PocketSpot = Hub + away * (TrunkRadius + 1.2f);
-            GuardSpot = Hub + new Vector2(-away.y, away.x) * (TrunkRadius + 1.6f);
+            // Past the stair that winds up the great tree.
+            PocketSpot = Hub + away * (TrunkRadius + 2.7f);
+            GuardSpot = Hub + new Vector2(-away.y, away.x) * (TrunkRadius + 2.7f);
             if (lanes == 0) Lanes.Add(new[] { Hub, Hub });
+            if (Hollow)
+            {
+                // Over the lane of one open side, from its edge in, where the lane still runs straight.
+                int open = 0;
+                for (int s = 0, k = (int)(Unit(40) * 4); s < 4; s++) if (Open[(k + s) & 3]) { open = (k + s) & 3; break; }
+                // Along the lane as it runs from that edge, as long as the lane keeps a body's room inside it.
+                var lane = Lanes[0];
+                int seen = 0;
+                for (int s = 0; s < 4; s++) if (Open[s]) { if (s == open) lane = Lanes[seen]; seen++; }
+                for (float length = 4.6f; length >= 3.2f; length -= .35f)
+                {
+                    var a = PointAlong(lane, .3f);
+                    var b = PointAlong(lane, .3f + length);
+                    bool clear = true;
+                    for (float k = 0; k <= 1.001f && clear; k += .05f) if (WallDepth(Vector2.Lerp(a, b, k)) > -.9f) clear = false;
+                    LogAt = (a + b) / 2;
+                    LogDir = (b - a).normalized;
+                    LogLength = length;
+                    if (clear) break;
+                }
+            }
+            if (Deadfall && lanes > 0)
+            {
+                // The alcove that fire opens: as roomy as the cell allows, and closed but for its mouth.
+                float bestRoom = -1;
+                Vector2 bestTip = Hub, bestFrom = Hub, bestDir = Vector2.zero;
+                foreach (var lane in Lanes)
+                    for (float frac = .3f; frac <= .85f; frac += .055f)
+                        for (int sign = -1; sign <= 1; sign += 2)
+                            for (float turn = -40; turn <= 40; turn += 20)
+                                for (float length = 6f; length >= 4.8f; length -= .6f)
+                                {
+                                    int at = Mathf.Clamp((int)(lane.Length * frac), 2, lane.Length - 3);
+                                    var p = lane[at];
+                                    var dir = (lane[at + 2] - lane[at - 2]).normalized;
+                                    var side = new Vector2(-dir.y, dir.x) * sign;
+                                    float r = turn * Mathf.Deg2Rad;
+                                    side = new Vector2(side.x * Mathf.Cos(r) - side.y * Mathf.Sin(r), side.x * Mathf.Sin(r) + side.y * Mathf.Cos(r));
+                                    var tip = p + side * length;
+                                    float edge = Mathf.Min(Mathf.Min(tip.x, 16 - tip.x), Mathf.Min(tip.y, 16 - tip.y));
+                                    if (edge <= 2.3f) continue;
+                                    // Past its mouth the alcove's outline lies in the tangle: no other way leads into it.
+                                    var along = new Vector2(-side.y, side.x);
+                                    bool closed = true;
+                                    for (int k = 6; k <= 12 && closed; k++)
+                                    {
+                                        var q = Vector2.Lerp(p, tip, k / 12f);
+                                        if (WallDepth(q + along * 1.7f) < .3f || WallDepth(q - along * 1.7f) < .3f) closed = false;
+                                    }
+                                    for (int k = 0; k < 8 && closed; k++)
+                                    {
+                                        float a = k * Mathf.PI / 4;
+                                        if (WallDepth(tip + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 2.1f) < .3f) closed = false;
+                                    }
+                                    if (!closed) continue;
+                                    float room = edge + .3f * Vector2.Distance(tip, Hub) + length;
+                                    if (room > bestRoom) { bestRoom = room; bestTip = tip; bestFrom = p; bestDir = along; }
+                                }
+                if (bestRoom > 0)
+                {
+                    var line = new List<Vector2>();
+                    // Straight in: the deadfall closes it where it leaves the lane.
+                    for (int k = 0; k <= 12; k++) line.Add(Vector2.Lerp(bestFrom, bestTip, k / 12f));
+                    Alcove = bestTip;
+                    alcove = line.ToArray();
+                    PocketSpot = bestTip;
+                    GuardSpot = Hub;
+                    DeadfallAt = line[6];
+                    DeadfallDir = (bestTip - bestFrom).normalized;
+                }
+            }
             // A blind alcove off one lane: somewhere to hide a find or a creature, and one more turn to get lost in.
-            if (!Heart && lanes > 0)
+            else if (!Heart && lanes > 0)
             {
                 var lane = Lanes[(int)(Unit(30) * Lanes.Count) % Lanes.Count];
                 int at = lane.Length / 2 + (int)((Unit(31) - .5f) * lane.Length * .3f);
@@ -185,6 +268,43 @@ namespace Hakaton.WorldAssembly.EditorTools
             float wobble = .15f * Noise(p, 1.4f, 12);
             if (LaneDistance(p, out _) + wobble < .7f) return true;
             return Heart && Mathf.Abs(Vector2.Distance(p, Hub) - TrunkRadius - 1.9f) + wobble < .55f;
+        }
+
+        static Vector2 PointAlong(Vector2[] line, float distance)
+        {
+            for (int i = 0; i + 1 < line.Length; i++)
+            {
+                float seg = Vector2.Distance(line[i], line[i + 1]);
+                if (distance <= seg) return Vector2.Lerp(line[i], line[i + 1], distance / Mathf.Max(seg, 1e-4f));
+                distance -= seg;
+            }
+            return line[line.Length - 1];
+        }
+
+        /// <summary>In the blind alcove behind the deadfall (finds keep out; the reward lies there).</summary>
+        public bool InAlcove(Vector2 p)
+        {
+            if (!Deadfall || alcove == null) return false;
+            for (int i = 6; i + 1 < alcove.Length; i++) if (SegmentDistance(p, alcove[i], alcove[i + 1], out _) < 1.7f) return true;
+            return Vector2.Distance(p, Alcove.Value) < 2.1f;
+        }
+
+        /// <summary>How level the ground is kept here for the hollow trunk: 1 under it, easing to 0 two metres out.</summary>
+        public float LogLevel(Vector2 p)
+        {
+            if (!Hollow) return 0;
+            var d = p - LogAt;
+            float out1 = Mathf.Abs(Vector2.Dot(d, LogDir)) - (LogLength / 2 + .9f);
+            float out2 = Mathf.Abs(LogDir.x * d.y - LogDir.y * d.x) - (LogHalfWidth + .3f);
+            return 1 - Mathf.SmoothStep(0, 1, Mathf.Max(out1, out2) / 2f);
+        }
+
+        /// <summary>Under the hollow trunk, or within <paramref name="margin"/> of it.</summary>
+        public bool InLog(Vector2 p, float margin = 0)
+        {
+            if (!Hollow) return false;
+            var d = p - LogAt;
+            return Mathf.Abs(Vector2.Dot(d, LogDir)) < LogLength / 2 + .3f + margin && Mathf.Abs(LogDir.x * d.y - LogDir.y * d.x) < LogHalfWidth + margin;
         }
 
         /// <summary>Inside the great tree's trunk (the heart only).</summary>

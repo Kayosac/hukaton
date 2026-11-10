@@ -151,7 +151,8 @@ namespace Hakaton.WorldAssembly
             return result;
         }
 
-        public const string Forest = "forest", ForestGlade = "forest-glade", ForestHeart = "forest-heart";
+        public const string Forest = "forest", ForestGlade = "forest-glade", ForestHeart = "forest-heart",
+            ForestHollow = "forest-hollow", ForestDeadfall = "forest-deadfall";
 
         /// <summary>A maze variant that is a giant tangled forest.</summary>
         public static bool IsForest(string variant) => variant.StartsWith(Forest, StringComparison.Ordinal);
@@ -288,7 +289,8 @@ namespace Hakaton.WorldAssembly
 
         /// <summary>
         /// A cell of a maze: corridor region 0; open sides lead on, walled sides are not crossed. Built of old stone, or
-        /// as a giant tangled forest (giant trees, root mounds and deadfall), with its glades and its heart.
+        /// as a giant tangled forest (giant trees, root mounds and deadfall), with its glades and its heart, a hollow
+        /// trunk the lane runs through, or deadfall closing a blind alcove that fire opens.
         /// </summary>
         static TileShape Maze(string id, bool n, bool e, bool s, bool w)
         {
@@ -305,7 +307,12 @@ namespace Hakaton.WorldAssembly
                 mids[side] = open[side] ? Mid.MazeOpen : Mid.MazeWall;
             }
             return new TileShape(id, ShapeKind.Maze, new[] { 0, 0, 0, 0 }, mids, new[] { new Region("corridor", 0) }, ports,
-                Array.Empty<Link>(), new[] { new Variant("stone"), new Variant(Forest), new Variant(ForestGlade), new Variant(ForestHeart) }, gates);
+                Array.Empty<Link>(), new[]
+                {
+                    new Variant("stone"), new Variant(Forest), new Variant(ForestGlade), new Variant(ForestHeart), new Variant(ForestHollow),
+                    // A blind alcove behind deadfall: fire burns the way to what lies there.
+                    new Variant(ForestDeadfall, new[] { new Link(0, 1, Need.Fire) }, new[] { new Region("hoard", 0, pocket: true) }),
+                }, gates);
         }
     }
 }

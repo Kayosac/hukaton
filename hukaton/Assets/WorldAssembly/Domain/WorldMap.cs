@@ -233,7 +233,13 @@ namespace Hakaton.WorldAssembly
                 }
             }
             if (shape.Kind == ShapeKind.Maze && feature != null && feature.Forest)
-                id = plan.MazeHeart ? TileShapes.ForestHeart : feature.Glade ? TileShapes.ForestGlade : TileShapes.Forest;
+            {
+                // Now and then a hollow trunk across the lane, or deadfall closing a blind alcove with something behind it.
+                double kind = Hash.Unit(Seed, Salt.Forest + 3, c.X, c.Y);
+                id = plan.MazeHeart ? TileShapes.ForestHeart : feature.Glade ? TileShapes.ForestGlade
+                    : kind < Rules.ForestDeadfall ? TileShapes.ForestDeadfall : kind < Rules.ForestDeadfall + Rules.ForestHollow ? TileShapes.ForestHollow
+                    : TileShapes.Forest;
+            }
             plan.Variant = shape.FindVariant(id);
         }
 
@@ -340,7 +346,7 @@ namespace Hakaton.WorldAssembly
                     break;
             }
             if (plan.MazeHeart) plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
-            if (plan.Variant.Id == "island" || TileShapes.IsPocketScene(plan.Variant.Id))
+            if (plan.Variant.Id == "island" || plan.Variant.Id == TileShapes.ForestDeadfall || TileShapes.IsPocketScene(plan.Variant.Id))
                 plan.PocketReward = ring == 2 || plan.BaseLevel >= 2 ? "crystal" : "find-hard";
         }
 

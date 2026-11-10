@@ -189,7 +189,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void GiantForestsGrowAwayFromTheStartWithAHeartAndAGlade()
         {
-            int worlds = 0, forests = 0, biggest = 0;
+            int worlds = 0, forests = 0, biggest = 0, deadfall = 0, hollow = 0;
             for (int seed = 1; seed <= 40; seed++)
             {
                 var map = new WorldMap(seed);
@@ -212,6 +212,12 @@ namespace Hakaton.WorldAssembly.Tests
                     Assert.GreaterOrEqual(cells.Count(q => q.Variant.Id == TileShapes.ForestGlade), 1, $"seed {seed}: glades of the forest at {c}");
                     foreach (var glade in cells.Where(q => q.Variant.Id == TileShapes.ForestGlade))
                         Assert.IsNotEmpty(glade.Loot, $"seed {seed}: an empty glade {glade}");
+                    foreach (var hoard in cells.Where(q => q.Variant.Id == TileShapes.ForestDeadfall))
+                    {
+                        Assert.IsNotNull(hoard.PocketReward, $"seed {seed}: nothing behind the deadfall of {hoard}");
+                        deadfall++;
+                    }
+                    hollow += cells.Count(q => q.Variant.Id == TileShapes.ForestHollow);
                     var heart = cells.First(q => q.MazeHeart);
                     Assert.IsTrue(heart.Spawns.Count > 0, $"seed {seed}: an unguarded heart {heart}");
                     biggest = Math.Max(biggest, cells.Count);
@@ -220,9 +226,11 @@ namespace Hakaton.WorldAssembly.Tests
                 }
                 worlds += any ? 1 : 0;
             }
-            UnityEngine.Debug.Log($"[World] giant forests: {forests} in {worlds} of 40 worlds, the biggest {biggest} chunks");
+            UnityEngine.Debug.Log($"[World] giant forests: {forests} in {worlds} of 40 worlds, the biggest {biggest} chunks; {deadfall} deadfall alcoves, {hollow} hollow trunks");
             Assert.Greater(worlds, 30);
             Assert.GreaterOrEqual(biggest, 12);
+            Assert.Greater(deadfall, forests / 2, "deadfall alcoves in the forests");
+            Assert.Greater(hollow, forests / 2, "hollow trunks in the forests");
         }
 
         [Test]

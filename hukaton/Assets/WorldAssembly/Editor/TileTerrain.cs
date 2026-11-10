@@ -263,6 +263,14 @@ namespace Hakaton.WorldAssembly.EditorTools
             float calm = Mathf.Clamp01((WaterDistance(p) - .4f) / 2.4f) * (1 - onRamp);
             // A canyon's floor and walls stay as cut: the floor is the only way along it.
             if (Shape.Kind == ShapeKind.Canyon) calm *= Mathf.Clamp01((DistanceToCentre(p) - RimHalf - .4f) / 2f);
+            // Under a hollow trunk the lane lies level, so the hollow keeps its height all through.
+            if (Forest != null && Forest.Hollow)
+            {
+                // Edges keep their own wave: neighbours meet there.
+                float level = Forest.LogLevel(p) * EdgeFade(p, 1.5f);
+                calm *= 1 - level;
+                amplitude *= 1 - level;
+            }
             return h + Noise(p, 2f, 3) * amplitude * EdgeFade(p) + Undulation(p) * calm;
         }
 
