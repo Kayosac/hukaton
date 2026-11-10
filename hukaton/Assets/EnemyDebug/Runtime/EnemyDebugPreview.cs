@@ -27,6 +27,7 @@ namespace Hakaton.EnemyDebug
             view.death = original.death;
             view.deathBack = original.deathBack;
             view.height = original.height;
+            view.Size = source.size;
             view.facesRight = original.facesRight;
             view.pixelSize = original.pixelSize;
             view.spriteRenderer.sharedMaterial = original.spriteRenderer.sharedMaterial;

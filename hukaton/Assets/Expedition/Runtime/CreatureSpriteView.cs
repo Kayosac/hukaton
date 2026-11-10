@@ -32,6 +32,8 @@ namespace Hakaton.Expeditions
         [Tooltip("Shader pixel cell in source texels: keeps on-screen pixels close to the visitors' whatever the atlas PPU.")]
         [Range(1, 32)] public float pixelSize = 8;
 
+        /// <summary>Size multiplier from the creature (<see cref="WorldCreature.size"/>): scales the drawing and its offsets.</summary>
+        public float Size { get; set; } = 1;
         public CreaturePose Pose { get; private set; }
         public bool ShowingBack { get; private set; }
         public Vector3 Top => transform.position + Vector3.up * height * transform.lossyScale.y;
@@ -84,9 +86,9 @@ namespace Hakaton.Expeditions
             Sprite sprite = Pick(pose);
             if (sprite != shown) Apply(sprite);
             spriteRenderer.flipX = mirrored;
-            transform.localPosition = offset;
+            transform.localPosition = offset * Size;
             transform.rotation = Quaternion.LookRotation(away) * Quaternion.Euler(0, 0, roll);
-            transform.localScale = new Vector3(scale.x, scale.y, 1);
+            transform.localScale = new Vector3(scale.x * Size, scale.y * Size, 1);
         }
 
         public void Tint(Color colour) { if (spriteRenderer) spriteRenderer.color = colour; }
