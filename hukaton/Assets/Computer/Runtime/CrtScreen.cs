@@ -47,6 +47,15 @@ namespace Hakaton.Computer
             if (instance) Destroy(instance);
         }
 
+        /// <summary>
+        /// Hidden during the blinks: the picture is black then anyway, and the full-screen black under it must fade as
+        /// one layer — two black layers over each other would fade unevenly and show the 4:3 frame.
+        /// </summary>
+        public void SetPictureVisible(bool visible)
+        {
+            if (picture) picture.enabled = visible;
+        }
+
         /// <summary>Off: the PC camera renders only while the tube shows anything.</summary>
         public void SetPowered(bool powered)
         {

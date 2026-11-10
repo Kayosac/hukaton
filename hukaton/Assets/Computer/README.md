@@ -34,6 +34,6 @@
 | `Runtime/PcUpgradesWindow.cs`, `PcUpgradeRow.cs`, `PcUpgradeTrack.cs` | Окно «Прокачка». |
 | `Runtime/PcScrollRect.cs`, `PcScrollThumb.cs` | Прокрутка колесом и полоса прокрутки XP. |
 
-Графику (`Art/Ui`, логотип — уменьшенная копия `Content/UI/Branding/PenusLogo.png`) рисует `output/pc-computer/make_sprites.py`, звуки `pc_wake`, `pc_off`, `pc_click`, `pc_error` — `output/pc-computer/make_sounds.py`. Тесты — `Tests/EditMode`: сортировка, прокачка, формула стекла.
+Обои рабочего стола — `Art/Ui/pc_wallpaper.png` (импорт: Max Size 256, Point — пиксельные). Остальную графику (`Art/Ui`, логотип — уменьшенная копия `Content/UI/Branding/PenusLogo.png`) рисует `output/pc-computer/make_sprites.py`, звуки `pc_wake`, `pc_off`, `pc_click`, `pc_error` — `output/pc-computer/make_sounds.py`. Тесты — `Tests/EditMode`: сортировка, прокачка, формула стекла.
 
 Отметка уровня на плитке — общий префаб `Decks/Prefabs/CardLevelMark.prefab`.

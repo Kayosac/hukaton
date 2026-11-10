@@ -89,6 +89,7 @@ namespace Hakaton.Computer
         {
             if (phase != Phase.Off || !isActiveAndEnabled || !workshop || workshop.Model.IsAway || workshop.Busy) return false;
             if (Gate) Gate.SetBlocked(this, true);
+            screen.SetPictureVisible(false);
             Blink(Phase.Closing);
             return true;
         }
@@ -99,6 +100,7 @@ namespace Hakaton.Computer
             switch (phase)
             {
                 case Phase.Closing:
+                    screen.SetPictureVisible(false);
                     Blink(Phase.Opening);
                     break;
                 case Phase.Booting:
@@ -165,7 +167,11 @@ namespace Hakaton.Computer
                     }
                     break;
                 case Phase.ShuttingDown:
-                    if (boot.State == PcBoot.Mode.Off) Blink(Phase.Opening);
+                    if (boot.State == PcBoot.Mode.Off)
+                    {
+                        screen.SetPictureVisible(false);
+                        Blink(Phase.Opening);
+                    }
                     break;
                 case Phase.Opening:
                 {
@@ -185,6 +191,8 @@ namespace Hakaton.Computer
 
         void PowerOn()
         {
+            SetDisplay(1);
+            screen.SetPictureVisible(true);
             bool full = !everBooted || bootJourneys != workshop.Model.Journeys;
             everBooted = true;
             bootJourneys = workshop.Model.Journeys;
