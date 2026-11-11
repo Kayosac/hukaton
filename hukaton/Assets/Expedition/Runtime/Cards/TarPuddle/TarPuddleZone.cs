@@ -24,6 +24,10 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("The slow is renewed every frame for this long, so it ends this soon after stepping off, s.")]
         [Min(.02f)] public float slowRefreshSeconds = .15f;
 
+        [Header("Tarred creatures")]
+        [Tooltip("A creature without its own fire vulnerability that is set alight while in this tar (on it unlit, or in its fire) burns like a fire-vulnerable one until that burn ends: these multipliers, flames sized by its height, setting things alight by touch.")]
+        public FireVulnerabilitySettings tarredFire = new FireVulnerabilitySettings();
+
         [Header("Look")]
         [Tooltip("The crooked tar blob: a unit-radius mesh scaled to the puddle.")]
         public Transform blob;
@@ -153,6 +157,12 @@ namespace Hakaton.Expeditions.Cards
 
         /// <summary>Standing in the fire.</summary>
         public bool InFire(Vector3 feet) => Inside(feet, fireHeight + height - layerHeight);
+
+        /// <summary>
+        /// In this tar: on it while unlit, in its fire while burning (the tar lit under a creature still holds it).
+        /// Burnt-out or washed tar holds nobody.
+        /// </summary>
+        public bool Holds(Vector3 feet) => state.Slows ? OnTar(feet) : state.Burns && InFire(feet);
 
         void SlowEveryoneOnIt()
         {

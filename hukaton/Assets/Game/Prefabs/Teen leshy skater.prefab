@@ -651,6 +651,7 @@ GameObject:
   - component: {fileID: 5774643847346976667}
   - component: {fileID: 6216464156025959744}
   - component: {fileID: 3671596284464933667}
+  - component: {fileID: 3768610442031047230}
   m_Layer: 0
   m_Name: Teen leshy skater
   m_TagString: Untagged
@@ -783,6 +784,7 @@ MonoBehaviour:
   stepDust: {fileID: 6272389595295986613}
   stepDustCount: 2
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
+  fireVulnerability: {fileID: 3768610442031047230}
   alertCue: {fileID: 11400000, guid: e39f6985d0e7a4a519c4787c186cb859, type: 2}
   threatCue: {fileID: 11400000, guid: 553042ab6d08b4e94a574165d36c5868, type: 2}
   windupCue: {fileID: 11400000, guid: 553042ab6d08b4e94a574165d36c5868, type: 2}
@@ -1447,3 +1449,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3249871430257441393, guid: 0dbce175acd764ab08436eef7dcecf44, type: 3}
   m_PrefabInstance: {fileID: 8797181274014239175}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &3768610442031047230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5263722189231579610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a3cc73f027d4142a12a76bccc45df40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.FireVulnerability
+  settings:
+    burnMultiplier: 2
+    damageMultiplier: 1.5
+    flames: {fileID: 4039943994851622645, guid: 46be5aed491c4452b50d8ef757eaca24, type: 3}
+    flamesSize: 1
+    flamesHeight: 0.25
+    flamesFadeSeconds: 0.5
+    touchReach: 0.3
+    touchInterval: 0.2
+    touchLayers:
+      serializedVersion: 2
+      m_Bits: 4294967295

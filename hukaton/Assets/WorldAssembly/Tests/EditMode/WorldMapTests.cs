@@ -212,9 +212,9 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
-        public void SmallEventsAreSprinkledHarmlessNearTheStartAndBrawlsReplaceTheBeasts()
+        public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts()
         {
-            int chunks = 0, events = 0;
+            int chunks = 0, brawlsNear = 0;
             var kinds = new Dictionary<string, int>();
             for (int seed = 1; seed <= 20; seed++)
             {
@@ -226,22 +226,29 @@ namespace Hakaton.WorldAssembly.Tests
                     chunks++;
                     Assert.AreEqual(p.Event, again.Chunk(c).Event, $"seed {seed}: the event of {p} depends on the seed and the chunk only");
                     if (p.Event == null) continue;
-                    events++;
                     kinds[p.Event] = kinds.TryGetValue(p.Event, out var n) ? n + 1 : 1;
                     Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: an event at the start {p}");
                     if (p.Event == WorldEvents.Brawl)
                     {
-                        Assert.Greater(p.Ring, 0, $"seed {seed}: a brawl in the calm ring {p}");
                         Assert.IsTrue(WorldEvents.FitsBrawl(p), $"seed {seed}: no room for a brawl {p}");
                         Assert.IsEmpty(p.Spawns, $"seed {seed}: beasts besides the brawl's packs {p}");
                     }
-                    else Assert.IsTrue(WorldEvents.FitsOddity(p), $"seed {seed}: no place for {p.Event} on {p}");
+                    else
+                    {
+                        Assert.Greater(p.Ring, 0, $"seed {seed}: a {p.Event} in ring 0 {p}");
+                        Assert.IsTrue(WorldEvents.FitsOddity(p), $"seed {seed}: no place for {p.Event} on {p}");
+                    }
+                    if (p.Event == WorldEvents.Brawl && p.Ring == 0) brawlsNear++;
                 }
             }
-            UnityEngine.Debug.Log($"[World] small events: {events} on {chunks} chunks ({string.Join(", ", kinds.Select(k => $"{k.Key} {k.Value}"))})");
-            Assert.That(events, Is.InRange(chunks / 14, chunks / 6), "about one chunk in nine holds an event");
-            foreach (var kind in new[] { WorldEvents.Brawl, WorldEvents.Payphone, WorldEvents.Television })
-                Assert.Greater(kinds.TryGetValue(kind, out var n) ? n : 0, events / 8, $"{kind} turns up");
+            Assert.Greater(brawlsNear, 0, "brawls near the start too");
+            int Count(string kind) => kinds.TryGetValue(kind, out var n) ? n : 0;
+            int oddities = Count(WorldEvents.Payphone) + Count(WorldEvents.Television);
+            UnityEngine.Debug.Log($"[World] small events on {chunks} chunks: {string.Join(", ", kinds.Select(k => $"{k.Key} {k.Value}"))}");
+            Assert.That(oddities, Is.InRange(chunks / 500, chunks / 100), "payphones and televisions: about one chunk in two hundred");
+            Assert.Greater(Count(WorldEvents.Payphone), 0);
+            Assert.Greater(Count(WorldEvents.Television), 0);
+            Assert.That(Count(WorldEvents.Brawl), Is.InRange(chunks / 60, chunks / 15), "brawls");
         }
 
         [Test]
