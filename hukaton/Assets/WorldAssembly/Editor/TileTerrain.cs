@@ -188,8 +188,10 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case ShapeKind.River:
                 {
                     float d = DistanceToCentre(p) + Noise(p, 2.5f, 8) * .35f * fade;
-                    bool ford = Variant == "ford";
-                    float h = Bed(d, ChannelHalf, BankHalf, ford ? FordDeep : Deep);
+                    // A ford is shallow in the middle of the chunk; where the river leaves it, it is as deep as any
+                    // river, so the beds of neighbours meet.
+                    float depth = Variant == "ford" ? Mathf.Lerp(Deep, FordDeep, Mathf.SmoothStep(0, 1, EdgeFade(p, 4f))) : Deep;
+                    float h = Bed(d, ChannelHalf, BankHalf, depth);
                     if (Shape.Id == "river-end")
                     {
                         float r = Vector2.Distance(p, new Vector2(8, 8)) + Noise(p, 2f, 9) * .4f * fade;
@@ -254,7 +256,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             float onRamp = 0;
             foreach (var ramp in Ramps)
             {
-                float w = RampWeight(ramp, p, out float t);
+                // A ramp that runs up to an edge (a canyon's descent) gives way to the plain ground there.
+                float w = RampWeight(ramp, p, out float t) * EdgeFade(p, 1.2f);
                 if (w > 0) h = Mathf.Lerp(h, Mathf.Lerp(ramp.HeightA, ramp.HeightB, t), w);
                 onRamp = Mathf.Max(onRamp, w);
             }
@@ -271,6 +274,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 calm *= 1 - level;
                 amplitude *= 1 - level;
             }
+            // Whatever calms the ground inside (a pond, a lake's banks, a ramp), every edge carries the full wave: the
+            // neighbour's side has it too, and anything less leaves a step between the two grounds.
+            calm = Mathf.Lerp(1, calm, EdgeFade(p, 1.5f));
             return h + Noise(p, 2f, 3) * amplitude * EdgeFade(p) + Undulation(p) * calm;
         }
 

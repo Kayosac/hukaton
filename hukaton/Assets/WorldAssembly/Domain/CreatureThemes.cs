@@ -102,7 +102,7 @@ namespace Hakaton.WorldAssembly
                         }
         }
 
-        /// <summary>Calm creatures: the only ones ring 0 may hold.</summary>
+        /// <summary>Calm creatures — the peaceful and the timid ones: the only ones ring 0 may hold.</summary>
         public static bool IsCalm(string creature) =>
             creature == "purple-mushroom" || creature == "kind-little-worm" || creature == "rooster-baseball" ||
             creature == "snail-frog-mount" || creature == "teen-leshy-skater" || creature == "zombie-beekeeper";

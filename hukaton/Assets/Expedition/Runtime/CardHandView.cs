@@ -10,13 +10,14 @@ namespace Hakaton.Expeditions
     /// First-person viewmodel of the hand: a wide, close fan of large cards centred under the crosshair
     /// (bottoms cut by the screen edge, like Shroom &amp; Gloom), spring-driven; it sways with the
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
-    /// The draw pile is not drawn: the HUD counts it beside the hand. Polls the model, so selection changes never re-deal the hand.
+    /// The draw pile is not drawn: the HUD counts it beside the hand. Oversized cheat hands scroll through the
+    /// authored slots around the selected card; every copy remains selectable without expanding the fan off screen.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class CardHandView : MonoBehaviour
     {
         public ExpeditionWorld world;
-        [Tooltip("Five authored card slots (children).")]
+        [Tooltip("Authored visible card slots (children). Larger hands scroll through these slots with selection.")]
         public CardView[] slots;
         [Tooltip("Up to three authored backs showing what is left in the draw pile.")]
         [FormerlySerializedAs("explorationBack")]
@@ -58,6 +59,7 @@ namespace Hakaton.Expeditions
 
         readonly List<Slot> active = new List<Slot>();
         readonly List<int> lastIds = new List<int>();
+        int firstVisible;
         SpringVector3 sway;
         Quaternion lastCamera;
         float bobPhase;
@@ -76,6 +78,7 @@ namespace Hakaton.Expeditions
             hidden = true;
             foreach (var slot in active) { slot.view.Hide(); slot.copyId = int.MinValue; }
             lastIds.Clear();
+            firstVisible = 0;
         }
 
         /// <summary>Starts a fresh outing: everything is dealt from below.</summary>
@@ -136,7 +139,7 @@ namespace Hakaton.Expeditions
                 foreach (var slot in active)
                 {
                     if (slot.copyId != card.Id || !slot.view.Visible) continue;
-                    float side = index - (cards.Count - 1) * .5f;
+                    float side = index - (Mathf.Min(cards.Count, lastIds.Count) - 1) * .5f;
                     Vector3 velocity = camera.forward * 2.2f + camera.right * side * 1.6f + camera.up * (2.4f + index * .3f);
                     world.SpawnDebris(slot.view, slot.view.transform.position, slot.view.transform.rotation, velocity,
                         new Vector3(Random.Range(-500, 500), Random.Range(-200, 200), Random.Range(-700, 700)), 1.1f);
@@ -184,21 +187,28 @@ namespace Hakaton.Expeditions
             var trip = world.workshop.Model.Current;
             if (trip == null) return;
             var hand = trip.Deck.Hand;
-            bool changed = fresh || hand.Count != lastIds.Count;
-            if (!changed) for (int i = 0; i < hand.Count; i++) if (hand[i].Id != lastIds[i]) { changed = true; break; }
+            int count = Mathf.Min(hand.Count, active.Count);
+            var selected = world.thrower.Selected;
+            int selectedIndex = selected == null ? 0 : IndexOf(hand, selected.Id);
+            int start = Mathf.Clamp(selectedIndex - count / 2, 0, hand.Count - count);
+            bool windowMoved = start != firstVisible;
+            bool changed = fresh || windowMoved || count != lastIds.Count;
+            if (!changed) for (int i = 0; i < count; i++) if (hand[start + i].Id != lastIds[i]) { changed = true; break; }
             if (!changed) return;
 
+            firstVisible = start;
             lastIds.Clear();
-            foreach (var card in hand) lastIds.Add(card.Id);
+            for (int i = 0; i < count; i++) lastIds.Add(hand[start + i].Id);
 
-            // Release slots whose card left the hand (thrown or discarded).
+            // Release cards outside the visible window, including thrown or discarded copies.
             foreach (var slot in active)
-                if (fresh || !Contains(hand, slot.copyId)) { slot.view.Hide(); slot.copyId = int.MinValue; }
+                if (fresh || !lastIds.Contains(slot.copyId)) { slot.view.Hide(); slot.copyId = int.MinValue; }
 
             Texture back = cardBack;
             int dealt = 0;
-            foreach (var card in hand)
+            for (int i = 0; i < count; i++)
             {
+                var card = hand[start + i];
                 if (Find(card.Id) != null) continue;
                 var slot = FreeSlot();
                 if (slot == null) break;
@@ -206,13 +216,13 @@ namespace Hakaton.Expeditions
                 slot.view.Show(world.Artwork(card), back, card.Level);
                 slot.view.SetGlow(0, returnGlow);
                 // New cards rise from below the screen, staggered like a quick deal.
-                Vector3 target = Target(IndexOf(hand, card.Id), hand.Count, false, 0, card.IsReturn);
+                Vector3 target = Target(i, count, false, 0, card.IsReturn);
                 slot.position.Snap(target + Vector3.down * .32f);
                 slot.scale.Snap(.85f);
                 slot.rotation = Quaternion.Euler(0, 0, -30);
                 slot.drawDelay = dealt * .055f;
                 slot.view.transform.localScale = Vector3.zero;
-                if (!fresh) world.Play(world.cues ? world.cues.cardDraw : null, null, .7f);
+                if (!fresh && !windowMoved) world.Play(world.cues ? world.cues.cardDraw : null, null, .7f);
                 dealt++;
             }
         }
@@ -251,14 +261,15 @@ namespace Hakaton.Expeditions
                 if (index < 0) continue;
                 if (slot.drawDelay > 0) { slot.drawDelay -= dt; continue; }
                 var card = hand[index];
+                int visibleIndex = index - firstVisible;
                 bool isSelected = selected != null && selected.Id == card.Id;
                 float charge = isSelected && preparation.Active ? preparation.Charge : 0;
-                Vector3 target = Target(index, hand.Count, isSelected, charge, card.IsReturn) + common;
+                Vector3 target = Target(visibleIndex, lastIds.Count, isSelected, charge, card.IsReturn) + common;
                 if (charge > .97f) target += Random.insideUnitSphere * chargeTremble;
                 slot.position.Step(target, cardFrequency, cardDamping, dt);
                 float scale = slot.scale.Step(isSelected ? selectedScale : 1, cardFrequency, cardDamping, dt);
 
-                float angle = Angle(index, hand.Count);
+                float angle = Angle(visibleIndex, lastIds.Count);
                 float spinRoll = isSelected && preparation.Active ? preparation.SpinX * -28 : 0;
                 Quaternion targetRotation = Quaternion.Euler(-charge * chargeTilt, charge * 10, -angle + spinRoll);
                 slot.rotation = Quaternion.Slerp(slot.rotation, targetRotation, Ease.Damp(16, dt));
@@ -267,7 +278,7 @@ namespace Hakaton.Expeditions
                 t.localPosition = slot.position.Value;
                 t.localRotation = slot.rotation;
                 t.localScale = new Vector3(cardWidth, cardWidth * 1.5f, 1) * scale;
-                slot.view.SetOrder(isSelected ? 50 : 10 + index);
+                slot.view.SetOrder(isSelected ? 50 : 10 + visibleIndex);
 
                 float glow = card.IsReturn ? .55f + Mathf.Sin(Time.time * 6) * .3f : isSelected ? .18f + charge * .5f : 0;
                 slot.view.SetGlow(glow, card.IsReturn ? returnGlow : world.Accent(card));
@@ -292,7 +303,6 @@ namespace Hakaton.Expeditions
 
         Slot Find(int id) { foreach (var slot in active) if (slot.copyId == id) return slot; return null; }
         Slot FreeSlot() { foreach (var slot in active) if (slot.copyId == int.MinValue) return slot; return null; }
-        static bool Contains(IReadOnlyList<CardCopy> hand, int id) => IndexOf(hand, id) >= 0;
         static int IndexOf(IReadOnlyList<CardCopy> hand, int id)
         {
             for (int i = 0; i < hand.Count; i++) if (hand[i].Id == id) return i;

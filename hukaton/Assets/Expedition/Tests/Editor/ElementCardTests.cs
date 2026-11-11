@@ -347,7 +347,8 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(fog.fogPrefab, Is.Not.Null);
 
             var lure = Effect<LureEffect>("Lure");
-            Assert.That((lure.duration.i, lure.duration.ii, lure.duration.iii, lure.radius), Is.EqualTo((6f, 12f, 20f, 10f)));
+            Assert.That((lure.duration.i, lure.duration.ii, lure.duration.iii), Is.EqualTo((6f, 12f, 20f)));
+            Assert.That((lure.radius.i, lure.radius.ii, lure.radius.iii), Is.EqualTo((20f, 40f, 70f)));
             Assert.That(lure.noisePrefab, Is.Not.Null);
 
             var attraction = Effect<AttractionEffect>("Attraction");
@@ -366,7 +367,7 @@ namespace Hakaton.Expeditions.Tests
             Check(Effect<RainCloudEffect>("Rain cloud"), "Радиус", 3, 4.5f, 6);
             Check(Effect<LightningEffect>("Lightning"), "Урон", 3, 5, 8);
             Check(Effect<FogEffect>("Fog"), "Длительность", 8, 14, 24);
-            Check(Effect<LureEffect>("Lure"), "Звук", 6, 12, 20);
+            Check(Effect<LureEffect>("Lure"), "Радиус", 20, 40, 70);
             Check(Effect<AttractionEffect>("Attraction"), "Импульс", 6, 9, 12);
         }
 

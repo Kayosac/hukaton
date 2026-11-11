@@ -112,6 +112,69 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator LureCardPullsCreaturesFromOutsideTheirTerritory()
+        {
+            var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Purple mushroom.prefab");
+            Vector3 player = world.motor.transform.position;
+            var creature = Object.Instantiate(prefab, player + new Vector3(0, 0, -40), Quaternion.identity);
+            creature.world = world;
+            creature.ResetForOuting(null);
+            world.creatures.Clear();
+            world.creatures.Add(creature);
+            yield return Seconds(1);
+            Assert.That(creature.InTerritory(player), Is.False, "the noise is far outside its own area");
+            var noise = world.SpawnForOuting(noisePrefab, player, Quaternion.identity);
+            noise.Setup(6, 50);
+            yield return Seconds(.3f);
+            Assert.That(creature.Investigating, Is.True, "the card's noise draws it out anyway");
+            Assert.That(creature.InTerritory(player), Is.True, "it settles at the noise instead of running home");
+        }
+
+        [UnityTest]
+        public IEnumerator LureCardCallsAggressiveCreaturesToo()
+        {
+            var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Goblin dog.prefab");
+            Assert.That(prefab.temperament, Is.EqualTo(Temperament.Aggressive));
+            Vector3 player = world.motor.transform.position;
+            var creature = Object.Instantiate(prefab, player + new Vector3(0, 0, -40), Quaternion.identity);
+            creature.world = world;
+            creature.ResetForOuting(null);
+            world.creatures.Clear();
+            world.creatures.Add(creature);
+            yield return Seconds(1);
+            var noise = world.SpawnForOuting(noisePrefab, player + new Vector3(0, 0, -30), Quaternion.identity);
+            noise.Setup(6, 50);
+            yield return Seconds(.3f);
+            Assert.That(creature.Investigating, Is.True, "an aggressive beast that has not noticed the player comes too");
+        }
+
+        [UnityTest]
+        public IEnumerator LureCardDistractsAnAttackerUntilItIsHurt()
+        {
+            var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Goblin dog.prefab");
+            Vector3 player = world.motor.transform.position;
+            var creature = Object.Instantiate(prefab, player + new Vector3(0, 0, -6), Quaternion.identity);
+            creature.world = world;
+            creature.maximumHealth = 1000;
+            creature.ResetForOuting(null);
+            world.creatures.Clear();
+            world.creatures.Add(creature);
+            creature.Damage(1, Vector3.zero, creature.Position, 0);
+            yield return Seconds(.5f);
+            Assert.That(creature.Investigating, Is.False, "the dog is after the player");
+            var noise = world.SpawnForOuting(noisePrefab, player + new Vector3(0, 0, -25), Quaternion.identity);
+            noise.Setup(8, 40);
+            yield return Seconds(2);
+            Assert.That(creature.Investigating, Is.True, "the noise draws it out of the fight and keeps it");
+            creature.Damage(1, Vector3.zero, creature.Position, 0);
+            yield return Seconds(1);
+            Assert.That(creature.Investigating, Is.False, "hurt, it stops listening to that noise");
+        }
+
+        [UnityTest]
         public IEnumerator UsingItAgainDoesNothing()
         {
             var moon = AssetDatabase.LoadAssetAtPath<MoonGravityOddityEffect>(Data + "Moon gravity.asset");

@@ -41,6 +41,12 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Treasure chests of the endless world by ring (0 centre, 1 middle, 2 far): the chance a chunk has one and its tier. Richer further out.")]
         public ChestSpawnTable[] chestTables = new ChestSpawnTable[3];
 
+        [Header("Events")]
+        [Tooltip("«Звериная разборка»: two packs at each other's throats (WorldEvents.Brawl).")]
+        public Hakaton.Expeditions.Events.BeastBrawl brawl;
+        [Tooltip("«Странное»: a ringing payphone and a hissing television (WorldEvents.Payphone / Television).")]
+        public Oddity payphone, television;
+
         /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable ChestTable(int ring)
         {

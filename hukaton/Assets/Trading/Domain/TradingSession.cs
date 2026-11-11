@@ -339,6 +339,15 @@ namespace Hakaton.Trading
 
         public ItemDefinition FindDefinition(string id) => catalog.Find(definition => definition.Id == id);
 
+        /// <summary>Debug/cheat helper: completes a revenue target without inventing a sale or crediting the wallet.</summary>
+        public bool CompleteRevenueGoal(long target)
+        {
+            if (target <= GrossRevenue) return false;
+            GrossRevenue = target;
+            Touch();
+            return true;
+        }
+
         public TradingSave Save()
         {
             var save = new TradingSave {
