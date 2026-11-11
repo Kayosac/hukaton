@@ -91,7 +91,6 @@ namespace Hakaton.Tutorial
 
         void Enter()
         {
-            if (goblin && goblin.face) bubble.speaker = goblin.face.spriteRenderer;
             seenSettlement = Session.SettlementSequence;
             seenDeparture = Session.DepartureSequence;
             seenCustomer = Session.CurrentCustomer?.Id ?? 0;
@@ -177,7 +176,7 @@ namespace Hakaton.Tutorial
                 return;
             }
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.eKey.wasPressedThisFrame) continueRequested = true;
+            if (keyboard != null && keyboard.eKey.wasPressedThisFrame && !bubble.SkipTyping()) continueRequested = true;
             if (!continueRequested) return;
             continueRequested = false;
             linesRead++;
@@ -202,7 +201,7 @@ namespace Hakaton.Tutorial
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {
-            if (blocking) continueRequested = true;
+            if (blocking && !bubble.SkipTyping()) continueRequested = true;
         }
 
         void Advance(ShopTutorialStage next)

@@ -51,6 +51,8 @@ namespace Hakaton.Expeditions
         public Transform handset;
         [Tooltip("Handset rotation (local Euler) when it hangs off the hook.")]
         public Vector3 handsetDangle = new Vector3(0, 0, -150);
+        [Tooltip("Handset shift from its place on the hook when it hangs (over the front of the shelf).")]
+        public Vector3 handsetDangleOffset;
 
         [Header("Television")]
         [Tooltip("The glass with the CRT screen material.")]
@@ -69,6 +71,7 @@ namespace Hakaton.Expeditions
 
         bool used, grounded;
         Quaternion handsetRest;
+        Vector3 handsetRestPosition;
         Vector3 rest;
         MaterialPropertyBlock block;
         float openY = 1, dot, flash;
@@ -81,7 +84,7 @@ namespace Hakaton.Expeditions
 
         void Awake()
         {
-            if (handset) handsetRest = handset.localRotation;
+            if (handset) { handsetRest = handset.localRotation; handsetRestPosition = handset.localPosition; }
             picture = staticPicture;
         }
 
@@ -118,7 +121,11 @@ namespace Hakaton.Expeditions
             Answering = false;
             used = state == State.Used;
             LastEffect = null;
-            if (handset) handset.localRotation = used ? Quaternion.Euler(handsetDangle) : handsetRest;
+            if (handset)
+            {
+                handset.localRotation = used ? Quaternion.Euler(handsetDangle) : handsetRest;
+                handset.localPosition = handsetRestPosition + (used ? handsetDangleOffset : Vector3.zero);
+            }
             openY = used ? 0 : 1;
             dot = 0;
             flash = 0;
@@ -222,12 +229,16 @@ namespace Hakaton.Expeditions
             // Then silence and dark, for good.
             time = 0;
             Quaternion from = handset ? handset.localRotation : Quaternion.identity;
+            Vector3 fromPosition = handset ? handset.localPosition : Vector3.zero;
             while (time < .5f)
             {
                 time += Time.deltaTime;
                 float k = Mathf.Clamp01(time / .5f);
                 if (kind == Kind.Payphone && handset)
+                {
                     handset.localRotation = Quaternion.SlerpUnclamped(from, Quaternion.Euler(handsetDangle), Ease.OutBack(k));
+                    handset.localPosition = Vector3.Lerp(fromPosition, handsetRestPosition + handsetDangleOffset, Ease.OutCubic(k));
+                }
                 if (kind == Kind.Television) { openY = 1 - Mathf.Clamp01(k * 2.5f); dot = k < .4f ? 0 : 1 - (k - .4f) / .6f; }
                 Show();
                 yield return null;

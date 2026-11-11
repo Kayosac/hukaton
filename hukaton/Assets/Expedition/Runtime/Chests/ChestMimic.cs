@@ -185,8 +185,11 @@ namespace Hakaton.Expeditions
             {
                 // Iced over: it cannot bite; the chest opens as a plain one and the mimic is spent.
                 float thaw = frozenUntil - Time.time;
+                bool encased = IceEncasement.IsEncased(this);
                 End(Mode.Opened);
-                StartCoroutine(ThawLater(thaw));
+                // Opening cracks an ice shell off harmlessly; a plain freeze just wears off.
+                if (encased) { IceEncasement.Break(this); Tint(false); }
+                else StartCoroutine(ThawLater(thaw));
                 return false;
             }
             if (mode != Mode.Disguised) return true;
@@ -210,6 +213,7 @@ namespace Hakaton.Expeditions
             alert = false;
             Health = maxHealth;
             frozenUntil = -1;
+            IceEncasement.Remove(this);
             tilt = 0;
             SetLid(0, true);
             SetTongue(0);
@@ -264,7 +268,9 @@ namespace Hakaton.Expeditions
         {
             var world = World;
             if (!Alive || !world || !world.Running || damage.Amount <= 0) return false;
-            Health = Mathf.Max(0, Health - damage.Amount);
+            // Encased in ice: a physical hit shatters the shell and lands twice as hard, fire melts it.
+            int amount = IceEncasement.ResolveHit(this, damage.Amount, damage.Kind, damage.Impulse, damage.Point, Health);
+            Health = Mathf.Max(0, Health - amount);
             if (overhead) overhead.ShowHealth(Health, maxHealth);
             world.Play(hurtCue, Centre);
             EndShiver();
@@ -299,6 +305,15 @@ namespace Hakaton.Expeditions
             Tint(true);
             if (world) world.Spawn(freezeBurst, Centre, Quaternion.identity, frozenTint, freezeBurstScale);
             if (world && world.sfx) world.sfx.StopLoop(this);
+        }
+
+        /// <summary>Ends a freeze at once (its ice shell melted or shattered); it wakes up a moment later.</summary>
+        public void Thaw()
+        {
+            if (frozenUntil < 0) return;
+            frozenUntil = -1;
+            Tint(false);
+            if (Alive && mode == Mode.Recovering) recoverAt = Mathf.Min(recoverAt, Time.time + 1);
         }
 
         void Die()
