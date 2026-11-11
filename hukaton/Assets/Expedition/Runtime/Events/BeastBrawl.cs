@@ -150,6 +150,8 @@ namespace Hakaton.Expeditions.Events
         public Vector3 Centre => spawned ? centre : transform.position;
         /// <summary>Seconds since the first blow (or how long the fight lasted once over).</summary>
         public float FightSeconds { get; private set; }
+        /// <summary>What set the packs on each other (for tests and tuning): player near, contact, blame, a bump, a blow, a call.</summary>
+        public string StartedBy { get; private set; } = "";
         /// <summary>Raised when the event moves to another phase.</summary>
         public event Action<Phase> PhaseChanged;
 
@@ -315,6 +317,7 @@ namespace Hakaton.Expeditions.Events
             spawned = false;
             PairingIndex = -1;
             FightSeconds = 0;
+            StartedBy = "";
             Current = Phase.NotStarted;
         }
 
@@ -341,10 +344,10 @@ namespace Hakaton.Expeditions.Events
             Vector3 player = world.Player.Position;
             if (variant == Variant.AlreadyFighting)
             {
-                if (Flat(player - centre).magnitude < startDistance) { Begin(.2f); return; }
+                if (Flat(player - centre).magnitude < startDistance) { Begin(.2f, "player in sight"); return; }
                 // Walking right up to the posturing beasts: the nearest one turns on the intruder.
                 foreach (var m in members)
-                    if (m.Brawler && Flat(player - m.creature.Position).magnitude < noticeDistance) { TurnOnPlayer(m); Begin(.2f); return; }
+                    if (m.Brawler && Flat(player - m.creature.Position).magnitude < noticeDistance) { TurnOnPlayer(m); Begin(.2f, "player walked up"); return; }
                 return;
             }
             // Calm packs: two beasts of different packs that come close (lured, pulled, shoved) go for each other.
@@ -356,17 +359,18 @@ namespace Hakaton.Expeditions.Events
                 {
                     var b = members[j];
                     if (b.pack == a.pack || !b.Brawler) continue;
-                    if (Flat(a.creature.Position - b.creature.Position).magnitude < contactDistance) { Begin(standoffSeconds); return; }
+                    if (Flat(a.creature.Position - b.creature.Position).magnitude < contactDistance) { Begin(standoffSeconds, "contact"); return; }
                 }
             }
         }
 
         /// <summary>The packs go for each other: a standoff of glares and growls, then the first blows.</summary>
-        public void Begin() => Begin(standoffSeconds);
+        public void Begin() => Begin(standoffSeconds, "call");
 
-        void Begin(float standoff)
+        void Begin(float standoff, string reason)
         {
             if (Current != Phase.NotStarted || !spawned) return;
+            StartedBy = reason;
             fightStarted = Time.time;
             standoffUntil = Time.time + standoff;
             SetPhase(Phase.Fighting);
@@ -482,15 +486,15 @@ namespace Hakaton.Expeditions.Events
             {
                 if (hitFlash && Find(by as WorldCreature) != null)
                     world.Spawn(hitFlash, creature.Centre, Quaternion.identity, hitFlashTint, hitFlashScale);
-                if (Current == Phase.NotStarted && by is WorldCreature attacker && PackOf(attacker) >= 0 && PackOf(attacker) != m.pack) Begin(standoffSeconds * .5f);
+                if (Current == Phase.NotStarted && by is WorldCreature attacker && PackOf(attacker) >= 0 && PackOf(attacker) != m.pack) Begin(standoffSeconds * .5f, "blow");
                 return;
             }
             if (source != BrawlHurtSource.Player) return;
             switch (Current)
             {
                 case Phase.NotStarted:
-                    if (variant == Variant.AlreadyFighting) { TurnOnPlayer(m); Begin(.2f); }
-                    else if (Blamed(m, impulse)) Begin(standoffSeconds);
+                    if (variant == Variant.AlreadyFighting) { TurnOnPlayer(m); Begin(.2f, "player hit"); }
+                    else if (Blamed(m, impulse)) Begin(standoffSeconds, "blame");
                     // otherwise it is the player's fault and the beast behaves as usual (it goes for him)
                     break;
                 case Phase.Fighting:
@@ -501,11 +505,12 @@ namespace Hakaton.Expeditions.Events
 
         void IBrawlReferee.CreatureBumped(WorldCreature creature, WorldCreature other)
         {
-            if (Current != Phase.NotStarted) return;
+            // Posturing packs stand close and jostle; only calm packs are set off by a bump.
+            if (Current != Phase.NotStarted || variant != Variant.Calm) return;
             var a = Find(creature);
             var b = Find(other);
             if (a == null || b == null || a.pack == b.pack || !a.Brawler || !b.Brawler) return;
-            Begin(standoffSeconds);
+            Begin(standoffSeconds, "bump");
         }
 
         /// <summary>

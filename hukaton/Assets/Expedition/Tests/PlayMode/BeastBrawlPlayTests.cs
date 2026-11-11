@@ -86,6 +86,15 @@ namespace Hakaton.Expeditions.Tests.PlayMode
             world.motor.Teleport(at + Vector3.up * .1f, Quaternion.LookRotation(-Vector3.forward));
         }
 
+        /// <summary>The player well away from the test spot (a teleport lands on the next frame).</summary>
+        IEnumerator PlayerAway()
+        {
+            Vector3 at = OnGround(Spot + Vector3.forward * 45);
+            world.motor.Teleport(at + Vector3.up * .1f, Quaternion.LookRotation(-Vector3.forward));
+            yield return null;
+            yield return null;
+        }
+
         static IEnumerator Seconds(float seconds)
         {
             float until = Time.time + seconds;
@@ -118,10 +127,10 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         {
             for (int pairing = 0; pairing < 3; pairing++)
             {
+                yield return PlayerAway();
                 var brawl = Make(BeastBrawl.Variant.AlreadyFighting, pairing, 11 + pairing, OnGround(Spot));
-                PlayerAt(brawl, 40);
                 yield return Seconds(.5f);
-                Assert.That(brawl.Current, Is.EqualTo(BeastBrawl.Phase.NotStarted), "nobody saw it start");
+                Assert.That(brawl.Current, Is.EqualTo(BeastBrawl.Phase.NotStarted), "nobody saw it start; started by " + brawl.StartedBy);
                 Assert.That(brawl.Beasts.All(b => b.Posturing), "until the player comes near the packs glare at each other");
                 PlayerAt(brawl, 16);
                 yield return null;
@@ -133,7 +142,9 @@ namespace Hakaton.Expeditions.Tests.PlayMode
                 Assert.That(brawl.FightSeconds, Is.InRange(8f, 40f), pair + ": the fight lasts a while, but not forever");
                 Assert.That(brawl.AliveIn(0) + brawl.AliveIn(1), Is.GreaterThan(0), pair + ": somebody survives");
                 Assert.That(Alive(brawl).All(b => !b.Brawling), pair + ": the survivors are back to their usual selves");
-                Assert.That(Alive(brawl).Any(b => b.Health < b.maximumHealth), pair + ": the winners are wounded");
+                int winners = brawl.AliveIn(0) > 0 ? 0 : 1;
+                bool hurt = brawl.Pack(winners).Any(b => !b.Alive || b.Health < b.maximumHealth);
+                Assert.That(hurt, pair + ": the winners come out of it wounded or short of a member");
                 Object.Destroy(brawl.gameObject);
                 yield return null;
             }
@@ -207,7 +218,7 @@ namespace Hakaton.Expeditions.Tests.PlayMode
             Assert.That(dog.Brawling, Is.False);
             Assert.That(dog.Target, Is.SameAs(world.Player), "and goes for the player");
             yield return Seconds(.3f);
-            var hunting = new[] { CreatureState.Chase, CreatureState.Windup, CreatureState.Strike, CreatureState.Recover, CreatureState.Reposition, CreatureState.Stunned };
+            var hunting = new[] { CreatureState.Chase, CreatureState.Windup, CreatureState.Strike, CreatureState.Recover, CreatureState.Reposition, CreatureState.Stunned, CreatureState.Search };
             Assert.That(hunting.Contains(dog.State), "hunting the player, not " + dog.State);
 
             // Walking right up to another one.

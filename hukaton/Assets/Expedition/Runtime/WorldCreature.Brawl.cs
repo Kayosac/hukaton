@@ -112,7 +112,8 @@ namespace Hakaton.Expeditions
                 // The whole fight fits in the circle: a shooter keeps its distance well inside it.
                 float across = arenaRadius * .5f;
                 ranged.keepDistance = Mathf.Min(ranged.keepDistance, across);
-                ranged.retreatDistance = Mathf.Min(ranged.retreatDistance, across * .6f);
+                // No backing off in a brawl: up close a shooter fights it out.
+                ranged.retreatDistance = 0;
                 ranged.range = Mathf.Min(ranged.range, arenaRadius * 1.6f);
                 ranged.minRange = Mathf.Min(ranged.minRange, across * .5f);
             }
@@ -185,7 +186,7 @@ namespace Hakaton.Expeditions
         {
             Vector3 outward = Flat(body.position - arenaCentre);
             float distance = outward.magnitude;
-            if (distance < arenaRadius - 1.2f || distance < .01f) return;
+            if (distance < arenaRadius - 1.5f || distance < .01f) return;
             outward /= distance;
             float away = Vector3.Dot(desired, outward);
             if (away > 0) desired -= outward * away;
@@ -196,15 +197,15 @@ namespace Hakaton.Expeditions
         {
             Vector3 outward = Flat(body.position - arenaCentre);
             float distance = outward.magnitude;
-            if (distance < arenaRadius - .4f || distance < .01f) return;
+            if (distance < arenaRadius - .7f || distance < .01f) return;
             outward /= distance;
             Vector3 velocity = body.linearVelocity;
             float away = Vector3.Dot(Flat(velocity), outward);
             if (away > 0) body.linearVelocity = velocity - outward * away;
-            if (distance > arenaRadius - .1f)
+            if (distance > arenaRadius - .35f)
             {
                 // Already over the line (a big knock): ease back inside.
-                Vector3 back = -outward * Mathf.Min(3, (distance - arenaRadius + .4f) * 6);
+                Vector3 back = -outward * Mathf.Min(3, (distance - arenaRadius + .7f) * 6);
                 body.linearVelocity = new Vector3(back.x, body.linearVelocity.y, back.z);
             }
         }
