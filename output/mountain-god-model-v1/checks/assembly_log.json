@@ -1,0 +1,219 @@
+{
+ "hand_fixes": {
+  "C01": [
+   "C01: palm moved 1.27 m to cup the body from below (layout palm floated -0.58 m off it); fingers re-wrapped around the held part (layout tips used for length only)",
+   "C01: finger block slid +1.42 m along the held part (knuckles were inside the body)"
+  ],
+  "C02": [
+   "C02: palm moved 0.38 m to cup the body from below (layout palm floated 0.11 m off it); fingers re-wrapped around the held part (layout tips used for length only)",
+   "C02: finger block slid +1.69 m along the held part (knuckles were inside the body)"
+  ]
+ },
+ "hands": "hands.py",
+ "head": "head.py",
+ "fragments": {
+  "F01": {
+   "group": "CORE",
+   "pos": [
+    -0.38,
+    -1.01,
+    12.81
+   ]
+  },
+  "F02": {
+   "group": "C01",
+   "pos": [
+    -6.39,
+    2.17,
+    10.79
+   ]
+  },
+  "F03": {
+   "group": "C01",
+   "pos": [
+    -2.54,
+    -0.94,
+    8.87
+   ]
+  },
+  "F04": {
+   "group": "C02",
+   "pos": [
+    7.48,
+    1.48,
+    10.96
+   ]
+  },
+  "F05": {
+   "group": "S03",
+   "pos": [
+    6.7,
+    1.28,
+    4.22
+   ]
+  },
+  "F06": {
+   "group": "S02",
+   "pos": [
+    0.31,
+    -3.86,
+    4.37
+   ]
+  }
+ },
+ "branches": {
+  "B01": {
+   "host": "C01",
+   "method": "ray"
+  },
+  "B02": {
+   "host": "C01",
+   "method": "nearest"
+  },
+  "B03": {
+   "host": "C02",
+   "method": "ray"
+  },
+  "B04": {
+   "host": "S01",
+   "method": "ray"
+  }
+ },
+ "pre_union_tris": 6052,
+ "split_touching_edges": 0,
+ "dissolved_collinear_verts": 662,
+ "union_s": 1.6,
+ "groups_fixed_verts": 2222,
+ "body": {
+  "tris": 9110,
+  "faces": 3120,
+  "verts": 4531,
+  "nonmanifold_edges": 0,
+  "components": 1,
+  "component_sizes": [
+   3120
+  ]
+ },
+ "eyes": {
+  "E01": {
+   "group": "S01",
+   "miss": null,
+   "snapped": null
+  },
+  "E02": {
+   "group": "S02",
+   "miss": null,
+   "snapped": null
+  },
+  "E03": {
+   "group": "S03",
+   "miss": null,
+   "snapped": null
+  },
+  "E04": {
+   "group": "A01",
+   "miss": null,
+   "snapped": null
+  },
+  "E05": {
+   "group": "A02",
+   "miss": null,
+   "snapped": null
+  },
+  "E06": {
+   "group": "C01",
+   "miss": null,
+   "snapped": null
+  },
+  "E07": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E08": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E09": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E10": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  }
+ },
+ "uv": {
+  "px_per_m": 46.8,
+  "pack_eff": 0.442,
+  "islands": 1193,
+  "density_p5": 0.93,
+  "density_p95": 1.07,
+  "aniso_mean": 1.14,
+  "aniso_p95": 1.44,
+  "flipped_tris": 1,
+  "area_m2": 845.1,
+  "tris": 9110,
+  "time_s": 18.46,
+  "charts": "developable",
+  "charts_split": 58,
+  "charts_still_bad": 0,
+  "ngons_triangulated": 1085,
+  "margin_px": 8,
+  "method": "MINIMUM_STRETCH"
+ },
+ "uv_s": 18.5,
+ "paint": {
+  "px_per_m": 46.8,
+  "coverage": 0.442,
+  "overlap_texels": 7,
+  "misses": [
+   "eye_closed_22: painted 0 texels"
+  ],
+  "times": {
+   "raster": 0.91,
+   "ao": 3.17,
+   "base": 1.03,
+   "decals": 0.71,
+   "write": 0.89
+  }
+ },
+ "paint_s": 7.6,
+ "cloth_tris": 136,
+ "leaves_tris": 56,
+ "pivot_offset": [
+  -0.288,
+  2.463,
+  0.0
+ ],
+ "split_touching_edges_final": 3,
+ "removed_sliver_faces": 6,
+ "body_final": {
+  "tris": 9104,
+  "faces": 7521,
+  "verts": 4528,
+  "nonmanifold_edges": 0,
+  "components": 1,
+  "component_sizes": [
+   7521
+  ]
+ },
+ "total_tris_lod0": 9296,
+ "total_s": 28.3,
+ "lod": {
+  "MG01_Body_LOD1": 3599,
+  "MG01_Body_LOD2": 1299,
+  "MG01_Cloth_LOD1": 136,
+  "MG01_Cloth_LOD2": 136,
+  "MG01_Leaves_LOD1": 56,
+  "LOD1_total": 3791,
+  "LOD2_total": 1435
+ },
+ "fbx": {
+  "path": "out/final5/MG01.fbx",
+  "bytes": 715244
+ }
+}
