@@ -47,6 +47,9 @@ namespace Hakaton.Expeditions
         // Ranged distances as authored: the brawl keeps the shooter inside the circle and puts them back afterwards.
         bool brawlRangedSaved;
         float savedKeepDistance, savedRetreatDistance, savedRange, savedMinRange;
+        // Melee reach as authored, when the brawl moves where the wind-up starts.
+        bool brawlReachSaved;
+        float savedAttackRange;
         // Hit bookkeeping for the referee: who is dealing the hit being applied right now.
         ICombatant hurtBy;
         bool hurtByCrash;
@@ -102,6 +105,7 @@ namespace Hakaton.Expeditions
             arenaCentre = centre;
             arenaRadius = Mathf.Max(1, radius);
             SetTarget(rival);
+            FitBrawlReach();
             if (HasRangedAttack && !brawlRangedSaved)
             {
                 brawlRangedSaved = true;
@@ -119,8 +123,34 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>
+        /// A walker's bite lands from its snout (<see cref="CheckStrikeContact"/>): a big one standing too close bites over
+        /// a small rival. In a brawl it starts the wind-up where the bite can reach a rival's middle; put back afterwards.
+        /// </summary>
+        void FitBrawlReach()
+        {
+            if (brawlReachSaved || dash || flying) return;
+            float s = Size;
+            float forward = .65f * s, up = .6f * s - .9f;
+            float reach = contactRange * contactRange - up * up;
+            if (reach <= 0) return;
+            float near = forward, far = forward + Mathf.Sqrt(reach);
+            if (attackRange > near + .15f && attackRange < far - .15f) return;
+            brawlReachSaved = true;
+            savedAttackRange = attackRange;
+            attackRange = (near + far) * .5f;
+        }
+
+        void RestoreBrawlReach()
+        {
+            if (!brawlReachSaved) return;
+            brawlReachSaved = false;
+            attackRange = savedAttackRange;
+        }
+
         void RestoreBrawlRanged()
         {
+            RestoreBrawlReach();
             if (!brawlRangedSaved) return;
             brawlRangedSaved = false;
             ranged.keepDistance = savedKeepDistance;

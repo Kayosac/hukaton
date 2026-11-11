@@ -52,8 +52,8 @@ namespace Hakaton.Expeditions.Events
             public WorldCreature packB;
             public Vector2Int countB = new Vector2Int(2, 3);
             [Tooltip("Health of the brawlers of the first pack as a share of their usual health: tunes how long the fight lasts and who usually wins.")]
-            [Range(.25f, 4)] public float healthA = 1;
-            [Range(.25f, 4)] public float healthB = 1;
+            [Range(.25f, 10)] public float healthA = 1;
+            [Range(.25f, 10)] public float healthB = 1;
 
             public WorldCreature Prefab(int pack) => pack == 0 ? packA : packB;
             public Vector2Int Count(int pack) => pack == 0 ? countA : countB;
@@ -91,7 +91,7 @@ namespace Hakaton.Expeditions.Events
         [Tooltip("The whole fight, chases included, stays within this distance of the centre, metres.")]
         [Min(2)] public float arenaRadius = 7;
         [Tooltip("Distance between the two packs' middles, metres: close for a fight under way, apart for calm packs.")]
-        [Min(.5f)] public float fightingPackGap = 3, calmPackGap = 7;
+        [Min(.5f)] public float fightingPackGap = 4.5f, calmPackGap = 7;
         [Tooltip("Pack members stand within this distance of their pack's middle, metres.")]
         [Min(0)] public float packSpread = 1.3f;
         [Tooltip("Calm pack members only wander this far from where they stand, metres (so the packs do not drift into each other by themselves).")]
