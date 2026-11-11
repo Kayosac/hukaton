@@ -80,6 +80,20 @@ namespace Hakaton.Expeditions.Cards
         }
 
         /// <summary>
+        /// Direction to lay the cord out from the anchor: none on a wall or an overhang (it hangs), downhill on a slope,
+        /// along the throw on a flat top.
+        /// </summary>
+        public static Vector3 LayDirection(Vector3 normal, Vector3 throwDirection)
+        {
+            if (normal.y <= .17f) return Vector3.zero;
+            Vector3 downhill = Vector3.down - normal * Vector3.Dot(Vector3.down, normal);
+            if (downhill.magnitude > .25f) return downhill.normalized;
+            Vector3 flat = throwDirection - normal * Vector3.Dot(throwDirection, normal);
+            if (flat.sqrMagnitude < 1e-4f) flat = Vector3.Cross(normal, Vector3.right);
+            return flat.normalized;
+        }
+
+        /// <summary>
         /// Closest approach between a ray (origin, unit direction, length) and the segment a–b.
         /// Returns the distance; <paramref name="rayT"/> is along the ray, <paramref name="segmentU"/> 0..1 along the segment.
         /// </summary>

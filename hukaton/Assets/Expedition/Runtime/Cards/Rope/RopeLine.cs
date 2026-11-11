@@ -34,6 +34,8 @@ namespace Hakaton.Expeditions.Cards
         [Min(.05f)] public float segmentLength = .3f;
         [Tooltip("Collision radius of the cord.")]
         [Min(.005f)] public float thickness = .05f;
+        [Tooltip("A cord piece that touches something is left this far off the surface, so the next sweep never starts inside it.")]
+        [Min(.0005f)] public float skin = .002f;
         [Range(1, 40)] public int iterations = 12;
         [Min(10)] public int stepsPerSecond = 60;
         [Range(0, 1)] public float airDamping = .015f;
@@ -142,6 +144,8 @@ namespace Hakaton.Expeditions.Cards
         int count, sleepSteps;
         bool sleeping;
         Vector3[] positions = Array.Empty<Vector3>(), previous = Array.Empty<Vector3>(), safe = Array.Empty<Vector3>();
+        /// <summary>Last place of each piece verified to be outside every collider: where it backs out to if it ever gets in.</summary>
+        Vector3[] clear = Array.Empty<Vector3>();
         bool[] contact = Array.Empty<bool>();
         Renderer[] pieceRenderers = Array.Empty<Renderer>();
         int collisionMask;
@@ -211,8 +215,9 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>
         /// Hangs the rope from <paramref name="surface"/> at <paramref name="point"/> (just off the surface along the
         /// normal). <paramref name="ropeLength"/> in metres (capped by the authored pieces), climbing speed in m/s.
+        /// <paramref name="throwDirection"/> (optional) lays the cord out on a flat top.
         /// </summary>
-        public void Attach(Collider surface, Vector3 point, Vector3 normal, float ropeLength, float climbingSpeed)
+        public void Attach(Collider surface, Vector3 point, Vector3 normal, float ropeLength, float climbingSpeed, Vector3 throwDirection = default)
         {
             collisionMask = CardFlight.CollisionMask;
             int water = LayerMask.NameToLayer("Water");
@@ -226,17 +231,24 @@ namespace Hakaton.Expeditions.Cards
             positions = new Vector3[count];
             previous = new Vector3[count];
             safe = new Vector3[count];
+            clear = new Vector3[count];
             contact = new bool[count];
             Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector3.up;
-            Vector3 anchor = point + n * (thickness * 1.6f);
+            Vector3 anchor = ClearAnchor(point, n);
             anchorCollider = surface;
             anchorTransform = surface ? surface.transform : null;
             anchorBody = surface ? surface.attachedRigidbody : null;
             localAnchor = anchorTransform ? anchorTransform.InverseTransformPoint(anchor) : anchor;
-            // The cord starts bundled at the anchor and unrolls downward under its own weight.
+            // On a wall or under an overhang the cord starts bundled at the anchor and unrolls downward under its own
+            // weight. On a top or a slope, where straight down is the surface itself, it is laid out along the surface
+            // (downhill; on a flat top along the throw), so it reads as a rope and can slide over an edge instead of
+            // piling up under the knot. Each piece is laid by a sweep from the one before it, so none starts inside.
+            Vector3 lay = RopeMath.LayDirection(n, throwDirection);
+            Vector3 layStep = lay.sqrMagnitude > 0 ? lay * (linkLength * .9f) : Vector3.down * .012f + n * .002f;
             for (int i = 0; i < count; i++)
             {
-                positions[i] = previous[i] = safe[i] = anchor + Vector3.down * (i * .012f) + n * (i * .002f);
+                Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], positions[i - 1] + layStep, out _);
+                positions[i] = previous[i] = safe[i] = clear[i] = laid;
                 contact[i] = false;
             }
             pieceRenderers = new Renderer[pieces];
@@ -271,7 +283,13 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 jump = anchor - lastAnchor;
                 // The anchor was carried far in one frame (Swap): carry the cord along instead of whipping it.
                 if (jump.sqrMagnitude > 9)
-                    for (int i = 0; i < count; i++) { positions[i] += jump; previous[i] += jump; safe[i] += jump; }
+                    for (int i = 0; i < count; i++)
+                    {
+                        // Carried without a sweep, so laid again from the piece before it: nothing ends up inside a wall.
+                        Vector3 carried = positions[i] + jump;
+                        Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], carried, out _);
+                        positions[i] = previous[i] = safe[i] = clear[i] = laid;
+                    }
                 if (jump.sqrMagnitude > 1e-8f) Wake();
                 lastAnchor = anchor;
                 transform.position = anchor;
@@ -565,12 +583,14 @@ namespace Hakaton.Expeditions.Cards
             {
                 Vector3 current = positions[i];
                 if (i == 0 && Attached) { previous[0] = current; positions[0] = safe[0] = anchor; continue; }
-                if (i == pinned) { previous[i] = current; positions[i] = safe[i] = grip; continue; }
+                // The held piece follows the hands, swept so it stops at a surface instead of entering it.
+                if (i == pinned) { previous[i] = current; positions[i] = safe[i] = Sweep(current, grip, out _); continue; }
                 Vector3 velocity = (current - previous[i]) * (1 - airDamping);
                 if (contact[i]) velocity *= 1 - groundFriction;
                 previous[i] = current;
-                safe[i] = Sweep(current, current + velocity + fall, out contact[i]);
+                safe[i] = Sweep(current, current + velocity + fall, out contact[i], out Vector3 surface);
                 positions[i] = safe[i];
+                if (contact[i]) StopBouncing(i, surface);
             }
             for (int k = 0; k < iterations; k++)
                 for (int i = 0; i + 1 < count; i++)
@@ -588,33 +608,115 @@ namespace Hakaton.Expeditions.Cards
             for (int i = 0; i < count; i++)
             {
                 if (Fixed(i, pinned)) continue;
-                positions[i] = Sweep(safe[i], positions[i], out bool touched);
+                positions[i] = Sweep(safe[i], positions[i], out bool touched, out Vector3 surface);
                 contact[i] |= touched;
+                if (touched) StopBouncing(i, surface);
                 moved = Mathf.Max(moved, (positions[i] - previous[i]).sqrMagnitude);
             }
+            KeepOutside();
             if (!holding && Attached && moved < .0004f * .0004f) { if (++sleepSteps > stepsPerSecond) sleeping = true; }
             else sleepSteps = 0;
         }
 
         bool Fixed(int index, int pinned) => (index == 0 && Attached) || index == pinned;
 
-        Vector3 Sweep(Vector3 from, Vector3 to, out bool touched)
+        Vector3 Sweep(Vector3 from, Vector3 to, out bool touched) => Sweep(from, to, out touched, out _);
+
+        /// <summary>
+        /// Moves a piece of cord from <paramref name="from"/> towards <paramref name="to"/>, stopping at what it hits and
+        /// sliding along it; <paramref name="normal"/> is the surface it ended against. See <see cref="Cast"/> for how
+        /// the cord never ends up inside what it touches.
+        /// </summary>
+        Vector3 Sweep(Vector3 from, Vector3 to, out bool touched, out Vector3 normal)
         {
             touched = false;
+            normal = Vector3.zero;
             Vector3 delta = to - from;
             float distance = delta.magnitude;
             if (distance < 1e-5f) return to;
-            Vector3 direction = delta / distance;
-            if (!Physics.SphereCast(from, thickness, direction, out var hit, distance, collisionMask, QueryTriggerInteraction.Ignore)) return to;
+            if (!Cast(from, delta / distance, distance, out Vector3 stop, out normal)) return to;
             touched = true;
-            Vector3 stop = from + direction * Mathf.Max(0, hit.distance - .002f);
             Vector3 rest = to - stop;
-            float into = Vector3.Dot(rest, hit.normal);
-            if (into < 0) rest -= hit.normal * into;
+            float into = Vector3.Dot(rest, normal);
+            if (into < 0) rest -= normal * into;
             float slide = rest.magnitude;
-            if (slide > 1e-5f && !Physics.SphereCast(stop, thickness, rest / slide, out _, slide, collisionMask, QueryTriggerInteraction.Ignore))
-                stop += rest;
-            return stop;
+            if (slide < 1e-5f) return stop;
+            if (!Cast(stop, rest / slide, slide, out Vector3 slid, out Vector3 second)) return stop + rest;
+            normal = second;
+            return slid;
+        }
+
+        /// <summary>
+        /// Casts a piece of cord (a sphere of <see cref="thickness"/>) along <paramref name="direction"/>. On a hit the
+        /// piece stops at the contact, lifted <see cref="skin"/> off the surface along its normal. A sphere cast ignores
+        /// a surface the sphere already touches at its start (a piece sliding along a slope or a trunk), so then the
+        /// centre's own ray finds it: the centre never passes a surface, and the cord does not fall inside a mesh.
+        /// </summary>
+        bool Cast(Vector3 from, Vector3 direction, float distance, out Vector3 stop, out Vector3 normal)
+        {
+            if (Physics.SphereCast(from, thickness, direction, out var hit, distance, collisionMask, QueryTriggerInteraction.Ignore)
+                && hit.distance > 0 && hit.normal.sqrMagnitude > .5f)
+            {
+                normal = hit.normal;
+                stop = from + direction * hit.distance + normal * skin;
+                return true;
+            }
+            if (Physics.Raycast(from, direction, out hit, distance + thickness, collisionMask, QueryTriggerInteraction.Ignore))
+            {
+                normal = hit.normal;
+                stop = hit.point + normal * (thickness + skin);
+                return true;
+            }
+            stop = from + direction * distance;
+            normal = Vector3.zero;
+            return false;
+        }
+
+        /// <summary>
+        /// A piece stopped by a surface keeps no speed away from it: the lift off the surface is a correction, not a
+        /// bounce. Without this a resting piece hops every step and the rope never falls asleep.
+        /// </summary>
+        void StopBouncing(int i, Vector3 surface)
+        {
+            if (surface.sqrMagnitude < .5f) return;
+            float outward = Vector3.Dot(positions[i] - previous[i], surface);
+            if (outward > 0) previous[i] += surface * outward;
+        }
+
+        bool Overlaps(Vector3 point) => Physics.CheckSphere(point, thickness * .8f, collisionMask, QueryTriggerInteraction.Ignore);
+
+        /// <summary>The centre is deep in something (not a piece merely touching two surfaces in a fork).</summary>
+        bool Sunk(Vector3 point) => Physics.CheckSphere(point, thickness * .35f, collisionMask, QueryTriggerInteraction.Ignore);
+
+        /// <summary>
+        /// Safety net after every step. <see cref="clear"/> holds each piece's last place known to be outside, refreshed
+        /// every step it is fine. A piece whose centre crossed a surface since then — into a hollow mesh such as a rock or
+        /// the terrain, where an overlap test sees nothing — is put back just off the surface it crossed; one whose
+        /// centre is deep in something returns to its clear place (one step back, no visible jump). Covers what the
+        /// sweeps cannot: a collider moving into the cord, the piece in the hands.
+        /// </summary>
+        void KeepOutside()
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 p = positions[i];
+                if (i == 0 && Attached) { clear[0] = p; continue; }
+                bool crossed = Physics.Linecast(clear[i], p, out var hit, collisionMask, QueryTriggerInteraction.Ignore);
+                if (!crossed && !Sunk(p)) { clear[i] = p; continue; }
+                Vector3 back = crossed ? hit.point + hit.normal * (thickness + skin) : clear[i];
+                if (crossed && (Sunk(back) || Physics.Linecast(clear[i], back, collisionMask, QueryTriggerInteraction.Ignore))) back = clear[i];
+                positions[i] = previous[i] = safe[i] = back;
+                clear[i] = back;
+                contact[i] = true;
+            }
+        }
+
+        /// <summary>The anchor just off the hit surface; pushed farther out along the normal when that spot is inside something.</summary>
+        Vector3 ClearAnchor(Vector3 point, Vector3 normal)
+        {
+            Vector3 anchor = point + normal * (thickness * 1.6f);
+            for (int k = 1; k <= 6 && Overlaps(anchor); k++) anchor = point + normal * (thickness * 1.6f + k * .05f);
+            return anchor;
         }
 
         // ---------- visual ----------
