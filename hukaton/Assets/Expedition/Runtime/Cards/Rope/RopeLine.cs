@@ -818,8 +818,30 @@ namespace Hakaton.Expeditions.Cards
         Vector3 ClearAnchor(Vector3 point, Vector3 normal)
         {
             Vector3 anchor = point + normal * (thickness * 1.6f);
+            // A tree built of overlapping capsules: the hit surface of one can lie inside another. Step out of the
+            // primitives the anchor overlaps (onto their surface, along the hit normal), then farther along the normal.
+            for (int pass = 0; pass < 4 && Overlaps(anchor); pass++) anchor = OutOfPrimitives(anchor, normal);
             for (int k = 1; k <= 6 && Overlaps(anchor); k++) anchor = point + normal * (thickness * 1.6f + k * .05f);
             return anchor;
+        }
+
+        /// <summary><paramref name="point"/> moved out of the primitive and convex colliders it overlaps, to <see cref="thickness"/> off them.</summary>
+        Vector3 OutOfPrimitives(Vector3 point, Vector3 normal)
+        {
+            int found = Physics.OverlapSphereNonAlloc(point, thickness, Nearby, collisionMask, QueryTriggerInteraction.Ignore);
+            for (int k = 0; k < found; k++)
+            {
+                var other = Nearby[k];
+                if (!other || !(other is BoxCollider || other is SphereCollider || other is CapsuleCollider || (other is MeshCollider mesh && mesh.convex))) continue;
+                Vector3 away = point - other.ClosestPoint(point);
+                float distance = away.magnitude;
+                if (distance >= thickness) continue;
+                // Inside it: its surface seen from far out along the normal.
+                point = distance > 1e-5f
+                    ? point + away / distance * (thickness + skin - distance)
+                    : other.ClosestPoint(point + normal * 20) + normal * (thickness + skin);
+            }
+            return point;
         }
 
         // ---------- visual ----------
