@@ -108,6 +108,9 @@ namespace Hakaton.Expeditions
         TimedModifier moveSpeedScale;
         Vector3 noisePoint;
         float investigateUntil;
+        // Lure card: drawn to the noise even from a fight; deaf to that noise again once hurt while listening.
+        bool lured;
+        float lureDeafUntil;
         ICombatant attackTarget;
 
         Vector3 PlayerPosition => world.motor.transform.position;
@@ -192,7 +195,8 @@ namespace Hakaton.Expeditions
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
             attackTarget = null;
-            investigateUntil = 0;
+            investigateUntil = lureDeafUntil = 0;
+            lured = false;
             ResetRanged();
             body.isKinematic = false;
             body.detectCollisions = true;
@@ -241,7 +245,10 @@ namespace Hakaton.Expeditions
             if (Time.time < stunnedUntil) { if (State != CreatureState.Stunned) Enter(CreatureState.Stunned); Halt(); return; }
             if (State == CreatureState.Stunned) Recover(.2f);
 
+            if (lured && State != CreatureState.Investigate) lured = false;
             if (Brawling) ThinkBrawl();
+            // Lured: walks to the noise and listens, deaf to the player, until the noise ends or it is hurt.
+            else if (lured) ThinkIdle(false);
             else switch (temperament)
             {
                 case Temperament.Timid: ThinkTimid(); break;
@@ -654,6 +661,7 @@ namespace Hakaton.Expeditions
             if (burnSeconds > 0) burnUntil = Time.time + burnSeconds;
             provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
+            if (lured) { lured = false; lureDeafUntil = investigateUntil; }
             if (Health == 0) StartCoroutine(Die(impulse));
             else if (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat)
                 Enter(temperament == Temperament.Timid ? CreatureState.Flee : CreatureState.Chase);
@@ -709,14 +717,21 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Lure: a calm creature (idle, wandering, grazing) walks over to a noise at <paramref name="point"/> and stays
-        /// for <paramref name="seconds"/>. Ignored when it is alert, fleeing or attacking. A point outside its territory
-        /// is ignored too, unless <paramref name="pull"/>: then the creature is drawn out and its home moves to the
-        /// noise, so it stays, wanders and fights there instead of running back. Seeing the player still interrupts
-        /// it as usual. Returns true when it goes.
+        /// for <paramref name="seconds"/>; seeing the player interrupts it as usual. Ignored when it is alert, fleeing
+        /// or attacking, unless <paramref name="distract"/> (the Lure card): then any creature leaves the fight for the
+        /// noise and stays deaf to the player until the noise ends or the creature is hurt — after a hit it ignores
+        /// that noise. Frozen, knocked-down and brawling creatures never go. A point outside its territory is ignored,
+        /// unless <paramref name="pull"/>: then the creature is drawn out and its home moves to the noise, so it stays,
+        /// wanders and fights there instead of running back. Returns true when it goes.
         /// </summary>
-        public bool Investigate(Vector3 point, float seconds, bool pull = false)
+        public bool Investigate(Vector3 point, float seconds, bool pull = false, bool distract = false)
         {
-            if (!world || !world.Running || !Alive || !IsCalm || seconds <= 0) return false;
+            if (!world || !world.Running || !Alive || seconds <= 0) return false;
+            if (distract)
+            {
+                if (Brawling || Time.time < lureDeafUntil || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
+            }
+            else if (!IsCalm) return false;
             if (!InTerritory(point))
             {
                 if (!pull) return false;
@@ -724,6 +739,11 @@ namespace Hakaton.Expeditions
             }
             noisePoint = point;
             investigateUntil = Time.time + seconds;
+            if (distract)
+            {
+                lured = true;
+                provokedUntil = provokeTimer = 0;
+            }
             if (State != CreatureState.Investigate) Enter(CreatureState.Investigate);
             return true;
         }

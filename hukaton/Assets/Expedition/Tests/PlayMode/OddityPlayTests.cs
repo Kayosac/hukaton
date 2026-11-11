@@ -151,6 +151,30 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator LureCardDistractsAnAttackerUntilItIsHurt()
+        {
+            var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Goblin dog.prefab");
+            Vector3 player = world.motor.transform.position;
+            var creature = Object.Instantiate(prefab, player + new Vector3(0, 0, -6), Quaternion.identity);
+            creature.world = world;
+            creature.maximumHealth = 1000;
+            creature.ResetForOuting(null);
+            world.creatures.Clear();
+            world.creatures.Add(creature);
+            creature.Damage(1, Vector3.zero, creature.Position, 0);
+            yield return Seconds(.5f);
+            Assert.That(creature.Investigating, Is.False, "the dog is after the player");
+            var noise = world.SpawnForOuting(noisePrefab, player + new Vector3(0, 0, -25), Quaternion.identity);
+            noise.Setup(8, 40);
+            yield return Seconds(2);
+            Assert.That(creature.Investigating, Is.True, "the noise draws it out of the fight and keeps it");
+            creature.Damage(1, Vector3.zero, creature.Position, 0);
+            yield return Seconds(1);
+            Assert.That(creature.Investigating, Is.False, "hurt, it stops listening to that noise");
+        }
+
+        [UnityTest]
         public IEnumerator UsingItAgainDoesNothing()
         {
             var moon = AssetDatabase.LoadAssetAtPath<MoonGravityOddityEffect>(Data + "Moon gravity.asset");
