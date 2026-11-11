@@ -15,6 +15,8 @@ namespace Hakaton.Expeditions
         {
             bool meaningful = c.Creature && c.Creature.Alive;
             if (meaningful) c.Creature.Damage(c.Power, Flat(c.Direction) * nudge, c.Point, 0);
+            else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive)
+                meaningful = other.TakeDamage(new DamageInfo(c.Power, Flat(c.Direction) * nudge, c.Point, c.ThrowOrigin));
             Feedback(c, meaningful);
         }
 

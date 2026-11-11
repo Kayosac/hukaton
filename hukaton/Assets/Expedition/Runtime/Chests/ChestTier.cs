@@ -102,6 +102,10 @@ namespace Hakaton.Expeditions
         /// Kinds are picked by weight among those that still fit; the last allowed piece carries the remainder.
         /// </summary>
         public void Split(int total, Func<float> next, System.Collections.Generic.List<(WorldCoin prefab, int value)> into)
+            => Split(total, next, into, maxPieces);
+
+        /// <summary>The same split with its own piece limit (a killed mimic pours out more coins).</summary>
+        public void Split(int total, Func<float> next, System.Collections.Generic.List<(WorldCoin prefab, int value)> into, int pieceLimit)
         {
             if (into == null || total <= 0 || kinds == null || kinds.Length == 0) return;
             int left = total;
@@ -110,7 +114,7 @@ namespace Hakaton.Expeditions
                 int index = Pick(left, next);
                 if (index < 0) index = Smallest();
                 if (index < 0) return;
-                int value = into.Count >= maxPieces - 1 ? left : Mathf.Min(left, kinds[index].value);
+                int value = into.Count >= Mathf.Max(1, pieceLimit) - 1 ? left : Mathf.Min(left, kinds[index].value);
                 into.Add((kinds[index].prefab, value));
                 left -= value;
             }

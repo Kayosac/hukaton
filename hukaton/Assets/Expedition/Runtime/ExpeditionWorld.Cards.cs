@@ -21,6 +21,8 @@ namespace Hakaton.Expeditions
 
         /// <summary>Fighters added by cards (awakened trees). Cleared when the outing ends.</summary>
         public CombatantRegistry Allies { get; } = new CombatantRegistry();
+        /// <summary>World fighters that are not creatures of the place (chest mimics, <see cref="ICardCreature"/>); they register themselves while enabled.</summary>
+        public CombatantRegistry Wild { get; } = new CombatantRegistry();
 
         /// <summary>The player as a fighter.</summary>
         public ICombatant Player => vitals;
@@ -173,6 +175,8 @@ namespace Hakaton.Expeditions
                 if (creature && creature.isActiveAndEnabled && creature.Alive) results.Add(creature);
             foreach (var ally in Allies.All)
                 if (ally.Alive) results.Add(ally);
+            foreach (var other in Wild.All)
+                if (other.Alive) results.Add(other);
         }
 
         /// <summary>The nearest live fighter within <paramref name="range"/> of the point that passes the filter, or null.</summary>

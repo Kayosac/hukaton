@@ -13,6 +13,22 @@ namespace Hakaton.Expeditions
     /// payout, coin kinds, Retro Arsenal effects, sounds — lives in its <see cref="ChestTier"/>. The model and lid
     /// come from ChestArt; this component sits on a prefab variant of the art prefab.
     /// </summary>
+    /// <summary>
+    /// Something living in a chest (a mimic): decides what E does and when the chest can be aimed at. A chest without
+    /// one behaves exactly as a plain chest.
+    /// </summary>
+    public interface IChestOccupant
+    {
+        /// <summary>False while the chest cannot be opened at all (running off, biting, dead): no focus, no prompt.</summary>
+        bool CanBeOpened { get; }
+        /// <summary>The player pressed E. True: the occupant took over (it bites); false: the chest opens as usual.</summary>
+        bool InterceptOpen();
+        /// <summary>The chest was reset to shut and full (<see cref="TreasureChest.ResetForOuting"/>).</summary>
+        void OnChestReset();
+        /// <summary>The chest was set opened and empty (<see cref="TreasureChest.SetEmpty"/>).</summary>
+        void OnChestEmptied();
+    }
+
     [DisallowMultipleComponent]
     public sealed class TreasureChest : MonoBehaviour
     {
@@ -24,7 +40,9 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
 
         public bool Opened { get; private set; }
-        public bool Available => !Opened && isActiveAndEnabled;
+        public bool Available => !Opened && isActiveAndEnabled && (Occupant == null || Occupant.CanBeOpened);
+        /// <summary>A mimic or other occupant on the same object; null for a plain chest.</summary>
+        public IChestOccupant Occupant { get; private set; }
         /// <summary>Coins the last opening paid out (tests, debug).</summary>
         public int LastPayout { get; private set; }
 
@@ -39,7 +57,11 @@ namespace Hakaton.Expeditions
 
         Vector3 Mouth => mouth ? mouth.position : transform.position + transform.up * .3f;
 
-        void Awake() => Record();
+        void Awake()
+        {
+            Record();
+            Occupant = GetComponent<IChestOccupant>();
+        }
 
         void Start() => ShowMarker();
 
@@ -70,6 +92,7 @@ namespace Hakaton.Expeditions
             transform.localScale = restScale;
             if (lid) lid.SetOpen(false, true);
             ShowMarker();
+            Occupant?.OnChestReset();
         }
 
         /// <summary>Already opened (a chunk coming back after the player left it): lid up, nothing inside.</summary>
@@ -81,6 +104,7 @@ namespace Hakaton.Expeditions
             if (lid) lid.SetOpen(true, true);
             if (marker) Destroy(marker.gameObject);
             marker = null;
+            Occupant?.OnChestEmptied();
         }
 
         public void SetFocused(bool value) => focused = value;
@@ -89,8 +113,29 @@ namespace Hakaton.Expeditions
         public bool Open()
         {
             if (Opened || !tier || !world || !world.Running) return false;
+            if (Occupant != null)
+            {
+                if (!Occupant.CanBeOpened) return false;
+                if (Occupant.InterceptOpen()) return true;
+            }
             Opened = true;
             StartCoroutine(Opening());
+            return true;
+        }
+
+        /// <summary>
+        /// Pours the contents out without the opening show (a killed mimic): the tier's payout times
+        /// <paramref name="coinMultiplier"/>, its bonus table rolled <paramref name="bonusRolls"/> times.
+        /// The lid is left to whoever calls this.
+        /// </summary>
+        public bool Spill(float coinMultiplier, int bonusRolls)
+        {
+            if (Opened || !tier || !world || !world.Running) return false;
+            Opened = true;
+            StopAllCoroutines();
+            if (marker) marker.Release(.3f);
+            marker = null;
+            StartCoroutine(Payout(coinMultiplier, bonusRolls));
             return true;
         }
 
@@ -133,7 +178,11 @@ namespace Hakaton.Expeditions
                 if (burst.prefab) StartCoroutine(PlayBurst(burst));
 
             while (lid && lid.Openness < tier.spewAtOpenness) yield return null;
+            yield return Payout(1, 1);
+        }
 
+        IEnumerator Payout(float coinMultiplier, int bonusRolls)
+        {
             if (tier.openGlow)
             {
                 var glow = world.Spawn(tier.openGlow, Mouth, transform.rotation, tier.openGlowTint, tier.openGlowScale);
@@ -141,11 +190,11 @@ namespace Hakaton.Expeditions
             }
 
             System.Func<float> next = () => Random.value;
-            LastPayout = tier.RollCoins(next);
+            LastPayout = Mathf.RoundToInt(tier.RollCoins(next) * Mathf.Max(0, coinMultiplier));
             pieces.Clear();
-            tier.Split(LastPayout, next, pieces);
+            tier.Split(LastPayout, next, pieces, coinMultiplier > 1 ? Mathf.CeilToInt(tier.maxPieces * coinMultiplier) : tier.maxPieces);
             extras.Clear();
-            if (tier.bonus != null) tier.bonus.Roll(next, extras);
+            if (tier.bonus != null) for (int roll = 0; roll < bonusRolls; roll++) tier.bonus.Roll(next, extras);
 
             int total = pieces.Count + extras.Count;
             float gap = total > 1 ? tier.spewSeconds / (total - 1) : 0;
@@ -202,6 +251,8 @@ namespace Hakaton.Expeditions
         void Update()
         {
             if (Opened || !recorded) return;
+            // An occupant that is busy (running, biting) moves the chest itself.
+            if (Occupant != null && !Occupant.CanBeOpened) { focused = false; return; }
             // Aimed at: a soft breathing pulse, like a find under the crosshair.
             focusPulse = Mathf.MoveTowards(focusPulse, focused ? 1 : 0, Time.deltaTime * 6);
             transform.localScale = restScale * (1 + focusPulse * (.035f + Mathf.Sin(Time.time * 9) * .015f));
