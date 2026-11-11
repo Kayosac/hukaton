@@ -86,6 +86,9 @@ namespace Hakaton.Expeditions
         public ParticleSystem stepDust;
         [Min(0)] public int stepDustCount = 2;
         public Color dustColour = new Color(.86f, .78f, .64f);
+        [Header("Fire")]
+        [Tooltip("Optional: makes this creature vulnerable to fire (longer burning, more fire damage, flames on the body, sets things alight by touch). Empty: fire works as usual.")]
+        public FireVulnerability fireVulnerability;
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
@@ -119,6 +122,14 @@ namespace Hakaton.Expeditions
         Vector3 ToTarget { get { var v = TargetPosition - body.position; v.y = 0; return v; } }
         float TargetDistance => ToTarget.magnitude;
         bool Provoked => Time.time < provokedUntil;
+        /// <summary>Alight: a fire hit set it burning and the burn has not run out (ice puts it out).</summary>
+        public bool Burning => Alive && State != CreatureState.Frozen && Time.time < burnUntil;
+        /// <summary>Seconds of burning left; zero when not burning.</summary>
+        public float BurnSecondsLeft => Burning ? burnUntil - Time.time : 0;
+        /// <summary>Visible height of the drawing in metres (see <see cref="TopHeight"/>).</summary>
+        public float Height => TopHeight;
+        /// <summary>The body capsule (sized with the creature), or null.</summary>
+        public CapsuleCollider BodyCapsule => capsule;
         /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
         float TopHeight => view ? view.height * Size : 1;
         /// <summary>The creature's size in the world: the size field times any scale of the root.</summary>
@@ -638,9 +649,14 @@ namespace Hakaton.Expeditions
 
         // ---------------- reactions ----------------
 
+        /// <summary>
+        /// A hit. <paramref name="burnSeconds"/> above zero makes it a fire hit: it sets the creature alight for that
+        /// long (a fire-vulnerable creature takes more of it, see <see cref="FireVulnerability"/>).
+        /// </summary>
         public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds)
         {
             if (!Alive) return;
+            FireVulnerability.ScaleHit(fireVulnerability, ref amount, ref burnSeconds);
             Health = Mathf.Max(0, Health - amount);
             if (amount > 0)
             {
@@ -651,7 +667,8 @@ namespace Hakaton.Expeditions
                 if (overhead) overhead.ShowHealth(Health, maximumHealth);
             }
             if (impulse.sqrMagnitude > 0) CardPhysics.Push(body, impulse);
-            if (burnSeconds > 0) burnUntil = Time.time + burnSeconds;
+            // A short flame does not cut a longer burn short.
+            if (burnSeconds > 0) burnUntil = Mathf.Max(burnUntil, Time.time + burnSeconds);
             provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
             if (Health == 0) StartCoroutine(Die(impulse));
@@ -682,6 +699,8 @@ namespace Hakaton.Expeditions
             if (!Alive) return;
             frozenUntil = Time.time + seconds;
             provokedUntil = Time.time + 8 + seconds;
+            // Ice puts the fire out.
+            burnUntil = 0;
             Enter(CreatureState.Frozen);
         }
 
