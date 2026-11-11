@@ -135,10 +135,11 @@ namespace Hakaton.Expeditions
         public bool Burning => Alive && State != CreatureState.Frozen && Time.time < burnUntil;
         /// <summary>Seconds of burning left; zero when not burning.</summary>
         public float BurnSecondsLeft => Burning ? burnUntil - Time.time : 0;
-        /// <summary>Visible height of the drawing in metres (see <see cref="TopHeight"/>).</summary>
-        public float Height => TopHeight;
-        /// <summary>Radius of the body in metres: its capsule (sized with the creature), or a quarter of the height without one.</summary>
-        public float BodyRadius
+        /// <summary>
+        /// Radius of the physical body in metres: its capsule (sized with the creature), or a quarter of the height
+        /// without one. What a burning body touches; <see cref="BodyRadius"/> is the wider visible half-width (ice shell).
+        /// </summary>
+        public float CapsuleRadius
         {
             get
             {

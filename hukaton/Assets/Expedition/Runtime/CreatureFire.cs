@@ -128,7 +128,7 @@ namespace Hakaton.Expeditions
             nextTouch = Time.time + Active.touchInterval;
             var world = creature.world;
             if (world && world.Running)
-                world.Ignite(creature.Position, creature.Height, creature.BodyRadius, Active.touchReach, IgnitionSource.Fire);
+                world.Ignite(creature.Position, creature.BodyHeight, creature.CapsuleRadius, Active.touchReach, IgnitionSource.Fire);
         }
 
         void ShowFlames()
@@ -138,7 +138,7 @@ namespace Hakaton.Expeditions
                 // Once per burn: placed by the creature (size per metre of its height, height share above the feet).
                 var world = creature.world;
                 if (!Active.flames || !world) return;
-                float height = creature.Height;
+                float height = creature.BodyHeight;
                 burning = world.Spawn(Active.flames, creature.Position, Quaternion.identity, Color.white, creature.flamesSize * height);
                 if (!burning) return;
                 burning.Follow(creature.transform, Vector3.up * height * creature.flamesHeight);
