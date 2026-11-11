@@ -30,7 +30,7 @@ namespace Hakaton.Expeditions
     }
 
     [DisallowMultipleComponent]
-    public sealed class TreasureChest : MonoBehaviour
+    public sealed class TreasureChest : MonoBehaviour, IInteractable
     {
         public ChestTier tier;
         public ChestLid lid;
@@ -108,6 +108,11 @@ namespace Hakaton.Expeditions
         }
 
         public void SetFocused(bool value) => focused = value;
+
+        // IInteractable: E opens it (a mimic decides for itself through IChestOccupant).
+        public bool CanInteract => Available;
+        public string Prompt => "E — открыть";
+        public bool Interact() => Open();
 
         /// <summary>Opens the chest during an outing; false if it is already open or there is no outing.</summary>
         public bool Open()

@@ -299,7 +299,7 @@ namespace Hakaton.Expeditions
             // One contextual hint: an action, never data about the item in focus.
             string hint = "";
             if (world.FocusedLoot) hint = "E — подобрать";
-            else if (world.FocusedChest) hint = "E — открыть";
+            else if (world.FocusedInteractable != null) hint = world.FocusedInteractable.Prompt;
             else if (preparation.Active) hint = "Shift + мышь — подкрутка";
             else if (world.CardPrompt != null) hint = world.CardPrompt;
             else if (card != null && card.IsReturn) hint = world.thrower.ReturnReady ? "ЛКМ — домой" : "";

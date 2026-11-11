@@ -77,8 +77,10 @@ namespace Hakaton.Expeditions
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
         public int Impacts { get; private set; }
         public WorldLoot FocusedLoot { get; private set; }
-        /// <summary>The shut chest under the crosshair within reach (only when no find is focused).</summary>
-        public TreasureChest FocusedChest { get; private set; }
+        /// <summary>The usable thing under the crosshair within reach (chest, oddity…), only when no find is focused.</summary>
+        public IInteractable FocusedInteractable { get; private set; }
+        /// <summary>The focused interactable when it is a chest.</summary>
+        public TreasureChest FocusedChest => FocusedInteractable as TreasureChest;
         /// <summary>Coins picked up on this outing; credited to the wallet on the way home (part lost on defeat).</summary>
         public int Coins { get; private set; }
         /// <summary>Raised for each coin picked up: its value and colour.</summary>
@@ -148,14 +150,14 @@ namespace Hakaton.Expeditions
         void Update()
         {
             FocusedLoot = null;
-            FocusedChest = null;
+            FocusedInteractable = null;
             if (!Running) return;
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
-            else if (control.GameplayActive) FocusedChest = FindFocusedChest();
-            if (FocusedChest) FocusedChest.SetFocused(true);
+            else if (control.GameplayActive) FocusedInteractable = FindInteractable(viewCamera.transform);
+            FocusedInteractable?.SetFocused(true);
         }
 
         WorldLoot FindFocusedLoot()
@@ -180,21 +182,25 @@ namespace Hakaton.Expeditions
             return best;
         }
 
-        /// <summary>A chest under the crosshair: the first solid thing a thin cast meets must belong to a shut chest.</summary>
-        TreasureChest FindFocusedChest()
+        /// <summary>
+        /// The usable thing under the crosshair: the first solid thing a thin cast from <paramref name="eye"/> meets
+        /// within reach must belong to an <see cref="IInteractable"/> that can be used now.
+        /// </summary>
+        public IInteractable FindInteractable(Transform eye)
         {
-            var eye = viewCamera.transform;
+            if (!eye || !settings) return null;
             if (!Physics.SphereCast(eye.position, .12f, eye.forward, out var hit, settings.interactionReach + .4f, ~(1 << 2), QueryTriggerInteraction.Ignore))
                 return null;
-            var chest = hit.collider.GetComponentInParent<TreasureChest>();
-            return chest && chest.Available ? chest : null;
+            var target = hit.collider.GetComponentInParent<IInteractable>();
+            return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract ? target : null;
         }
 
-        /// <summary>E: picks up the focused find, or opens the focused chest.</summary>
+        /// <summary>E: picks up the focused find, or uses the focused interactable (opens a chest, answers a phone…).</summary>
         public bool TryPickUpFocused()
         {
             if (FocusedLoot) return FocusedLoot.PickUp(viewCamera.transform);
-            return FocusedChest && FocusedChest.Open();
+            var target = FocusedInteractable;
+            return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract && target.Interact();
         }
 
         /// <summary>Adds coins to this outing's purse (a chest's coin reaching the bag).</summary>
