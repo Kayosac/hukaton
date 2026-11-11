@@ -525,12 +525,13 @@ namespace Hakaton.WorldAssembly.Tests
             for (int f = 0; f < 30; f++) yield return null;
             var view = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(cell.Coord));
 
-            // A giant tree of the wall: where it stands the wall stops a body; woken, it takes that piece with it.
-            var tree = view.trees.First(t => t && t.Standing && t.transform.Find("Barrier"));
-            var piece = tree.transform.Find("Barrier").GetComponents<Collider>();
-            var spot = tree.transform.position + Vector3.up * 2.5f;
+            // A giant tree of the wall: it stops a body as it looks, with the trunks and thorns round it that are its;
+            // woken, it takes them along and nothing is left where it stood.
+            var tree = view.trees.First(t => t && t.Standing && t.transform.parent && t.transform.parent.name == "Giant trees");
+            var piece = tree.GetComponentsInChildren<Collider>().Where(c => !c.isTrigger).ToArray();
+            var spot = tree.transform.position + Vector3.up * 1.2f;
             bool Blocked() => Physics.OverlapSphere(spot, .3f, ~(1 << 4), QueryTriggerInteraction.Ignore)
-                .Any(c => c.transform.IsChildOf(view.transform) && c.gameObject.name == "Barrier");
+                .Any(c => c.transform.IsChildOf(view.transform) && !c.GetComponent<TerrainCollider>() && c.transform.parent != view.transform);
             Assert.That(Blocked(), Is.True, $"the wall where {tree.name} stands");
             string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
             Directory.CreateDirectory(dir);
@@ -587,7 +588,7 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(lookout.y - view.transform.position.y, Is.GreaterThan(6), "high up the tree");
             var ring = view.creatureSockets[0].position;
             Assert.That(Walk(ring, lookout), Is.True, "the stair leads up from the ring");
-            yield return Shot(dir, "play-heart-stair", ring + Vector3.up * 1.7f + (ring - Centre(heart)).normalized * 2, lookout - Vector3.up * 2, ring + Vector3.up * 1.7f);
+            yield return Shot(dir, "play-heart-stair", ring + Vector3.up * 1.7f + (ring - Centre(heart)).normalized * .4f, lookout - Vector3.up * 2, ring + Vector3.up * 1.7f);
             var outward = Flat(lookout - Centre(heart)).normalized;
             yield return Shot(dir, "play-heart-lookout", lookout + Vector3.up * 1.7f, lookout + Vector3.up * 1.2f + outward * 10, ring + Vector3.up * 1.7f);
 
