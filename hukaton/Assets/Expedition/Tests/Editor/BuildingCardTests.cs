@@ -175,6 +175,31 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void TheEThatGrabsTheRopeDoesNotLetGoInTheSameFrame()
+        {
+            Assert.That(RopeMath.WantsToLetGo(false, true, false, true), Is.False, "E grabbed the rope this frame: keep holding.");
+            Assert.That(RopeMath.WantsToLetGo(false, true, false, false), Is.True, "E on a later frame lets go.");
+            Assert.That(RopeMath.WantsToLetGo(true, false, false, true), Is.True, "Space always lets go.");
+            Assert.That(RopeMath.WantsToLetGo(false, true, true, false), Is.False, "E with loot in focus picks the loot up instead.");
+            Assert.That(RopeMath.WantsToLetGo(false, false, false, false), Is.False);
+        }
+
+        [Test]
+        public void TheRopeHangsFromWallsAndLiesAlongTopsAndSlopes()
+        {
+            Assert.That(RopeMath.LayDirection(Vector3.right, Vector3.forward), Is.EqualTo(Vector3.zero), "A wall: the cord hangs.");
+            Assert.That(RopeMath.LayDirection(Vector3.down, Vector3.forward), Is.EqualTo(Vector3.zero), "An overhang: the cord hangs.");
+            Vector3 slope = new Vector3(1, 1, 0).normalized;
+            Vector3 downhill = RopeMath.LayDirection(slope, Vector3.forward);
+            Assert.That(Vector3.Dot(downhill, slope), Is.EqualTo(0).Within(Epsilon), "Along the slope, not into it.");
+            Assert.That(downhill.y, Is.LessThan(-.5f), "Downhill.");
+            Assert.That(downhill.x, Is.GreaterThan(.5f));
+            Vector3 top = RopeMath.LayDirection(Vector3.up, new Vector3(0, -.6f, .8f));
+            Assert.That(Vector3.Distance(top, Vector3.forward), Is.LessThan(Epsilon), "A flat top: along the throw, flat on the surface.");
+            Assert.That(RopeMath.LayDirection(Vector3.up, Vector3.down).magnitude, Is.EqualTo(1).Within(Epsilon), "A throw straight down still gets a direction.");
+        }
+
+        [Test]
         public void TheCrosshairFindsTheClosestPieceOfRope()
         {
             float distance = RopeMath.RayToSegment(Vector3.zero, Vector3.forward, 10, new Vector3(.2f, 2, 3), new Vector3(.2f, -2, 3), out float t, out float u);

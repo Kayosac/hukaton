@@ -75,6 +75,21 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
+        public void BoughtCardsGoStraightIntoTheDeckWhileItHasRoom()
+        {
+            // Deck of 5, hand 3; the collection holds 10.
+            var w = new DeckWorkshop(new DeckRules(deckLimit: 5, startingCoins: 100000), Specs, null,
+                new[] { new StartingCopies("fire", 3, 3) });
+            var offer = Offer();
+            Assert.That(offer.Buy(0, w, out var first), Is.Null);
+            Assert.That(offer.Buy(1, w, out var second), Is.Null);
+            Assert.That(w.IsSelected(first.Id) && w.IsSelected(second.Id), Is.True, "Room in the deck: equipped at once.");
+            Assert.That(offer.Buy(2, w, out var third), Is.Null);
+            Assert.That(w.IsSelected(third.Id), Is.False, "A full deck leaves the new card in the collection.");
+            Assert.That(w.Selected().Count, Is.EqualTo(5));
+        }
+
+        [Test]
         public void PoorOrFullBuyerChangesNothing()
         {
             var w = Workshop(10);

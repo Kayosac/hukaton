@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -11,9 +12,11 @@ namespace Hakaton.Dev
     /// Build Settings into Builds/Web next to Assets, gzip with decompression fallback so any static server can host
     /// it, and next to it the launcher from WebLauncher~ — double-click start.command (macOS) or start.bat (Windows):
     /// a small local server on the folder opens the game in the browser.
-    /// Textures are capped for the browser by the editor's own import override (Build Settings → Asset Import
-    /// Overrides), not by the project's import settings: the full-size atlases are over 2 GB, more than a browser tab
-    /// holds. The project's .meta files stay as authored; the cap is lifted again after the build.
+    /// Textures are capped for the browser by a temporary WebGL override on every texture bigger than the cap: the
+    /// full-size atlases are over 2 GB, more than a browser tab holds. A texture cut by hand into Sprites kept in a
+    /// separate asset (the stitched-linen button skin) is left full size: those sprites store their rects in the
+    /// texture's own pixels and fall apart on a smaller texture. The .meta files are restored byte for byte after
+    /// the build.
     /// </summary>
     static class WebBuild
     {
@@ -58,11 +61,10 @@ namespace Hakaton.Dev
             // Gzip with the loader's own fallback: served right by any server, natively decompressed by ours.
             var compression = PlayerSettings.WebGL.compressionFormat;
             bool fallback = PlayerSettings.WebGL.decompressionFallback;
-            int cap = EditorUserBuildSettings.overrideMaxTextureSize;
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
-            EditorUserBuildSettings.overrideMaxTextureSize = WebTextureCap;
             BuildReport report;
+            var capped = CapTextures();
             try
             {
                 report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
@@ -78,7 +80,7 @@ namespace Hakaton.Dev
             {
                 PlayerSettings.WebGL.compressionFormat = compression;
                 PlayerSettings.WebGL.decompressionFallback = fallback;
-                EditorUserBuildSettings.overrideMaxTextureSize = cap;
+                RestoreTextures(capped);
             }
             var summary = report.summary;
             if (summary.result != BuildResult.Succeeded)
@@ -101,6 +103,64 @@ namespace Hakaton.Dev
             return $"web build in {summary.totalTime.TotalMinutes:0.0} min, {bytes / 1048576f:0.0} MB → {output}";
         }
 
+        /// <summary>Puts a temporary WebGL max size on every texture bigger than the cap; returns their original .meta texts.</summary>
+        static Dictionary<string, string> CapTextures()
+        {
+            // Textures behind hand-made Sprites stored in other assets keep their full size.
+            var keep = new HashSet<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:Sprite"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetImporter.GetAtPath(path) is TextureImporter) continue;
+                foreach (var sprite in AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>())
+                    if (sprite.texture) keep.Add(AssetDatabase.GetAssetPath(sprite.texture));
+            }
+            var metas = new Dictionary<string, string>();
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets" }))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (keep.Contains(path) || !(AssetImporter.GetAtPath(path) is TextureImporter importer)) continue;
+                    importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+                    var web = importer.GetPlatformTextureSettings("WebGL");
+                    var main = importer.GetDefaultPlatformTextureSettings();
+                    int size = Mathf.Min(Mathf.Max(width, height), web.overridden ? web.maxTextureSize : main.maxTextureSize);
+                    if (size <= WebTextureCap) continue;
+                    metas[path] = File.ReadAllText(path + ".meta");
+                    if (!web.overridden)
+                    {
+                        web.format = TextureImporterFormat.Automatic;
+                        web.textureCompression = main.textureCompression;
+                        web.crunchedCompression = main.crunchedCompression;
+                        web.compressionQuality = main.compressionQuality;
+                        web.overridden = true;
+                    }
+                    web.maxTextureSize = WebTextureCap;
+                    importer.SetPlatformTextureSettings(web);
+                    importer.SaveAndReimport();
+                }
+            }
+            finally { AssetDatabase.StopAssetEditing(); }
+            Debug.Log($"[Build] web cap {WebTextureCap} on {metas.Count} textures, kept full size: {string.Join(", ", keep)}");
+            return metas;
+        }
+
+        static void RestoreTextures(Dictionary<string, string> metas)
+        {
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                foreach (var pair in metas)
+                {
+                    File.WriteAllText(pair.Key + ".meta", pair.Value);
+                    AssetDatabase.ImportAsset(pair.Key, ImportAssetOptions.ForceUpdate);
+                }
+            }
+            finally { AssetDatabase.StopAssetEditing(); }
+        }
+
         /// <summary>
         /// The default page shows the game in a 960 × 600 box: make it fill the browser window on dark ground, call it
         /// Hakaton, and keep saves between visits (persistent data synced to the browser's storage).
@@ -113,11 +173,53 @@ namespace Hakaton.Dev
                     .Replace("<title>Unity Web Player | " + PlayerSettings.productName + "</title>", "<title>Hakaton</title>")
                     .Replace("canvas.style.width = \"960px\";\n        canvas.style.height = \"600px\";",
                         "// Hakaton: the game fills the browser window.\n        document.querySelector(\"#unity-container\").className = \"unity-mobile\";\n        canvas.className = \"unity-mobile\";")
-                    .Replace("// config.autoSyncPersistentDataPath = true;", "config.autoSyncPersistentDataPath = true;");
+                    .Replace("// config.autoSyncPersistentDataPath = true;", "config.autoSyncPersistentDataPath = true;")
+                    .Replace("var canvas = document.querySelector(\"#unity-canvas\");",
+                        "var canvas = document.querySelector(\"#unity-canvas\");\n" + RawMouseScript)
+                    .Replace("</canvas>", "</canvas>\n      <button id=\"hakaton-fullscreen\" type=\"button\">На весь экран</button>")
+                    .Replace("document.querySelector(\"#unity-loading-bar\").style.display = \"none\";",
+                        "document.querySelector(\"#unity-loading-bar\").style.display = \"none\";\n" + FullscreenScript);
                 File.WriteAllText(page, html);
             }
-            if (File.Exists(style)) File.AppendAllText(style, "\nbody { background: #231F20; overflow: hidden }\n");
+            if (File.Exists(style)) File.AppendAllText(style, "\nbody { background: #231F20; overflow: hidden }\n" + FullscreenStyle);
         }
+
+        /// <summary>
+        /// Chrome on Windows now and then reports a huge mouse jump while the cursor is captured, and the view jerks
+        /// every few seconds. Raw mouse input (unadjustedMovement) has no such jumps; where it is not supported the
+        /// ordinary capture is requested instead.
+        /// </summary>
+        const string RawMouseScript = @"      (() => {
+        const lock = HTMLCanvasElement.prototype.requestPointerLock;
+        HTMLCanvasElement.prototype.requestPointerLock = function (options) {
+          let request;
+          try { request = lock.call(this, Object.assign({ unadjustedMovement: true }, options)); }
+          catch (e) { return lock.call(this, options); }
+          return request && request.catch ? request.catch(() => lock.call(this, options)) : request;
+        };
+      })();";
+
+        /// <summary>
+        /// The fullscreen button over the game: fullscreen keeps the cursor inside the game, and in Chrome the keyboard
+        /// lock hands Escape to the game instead of dropping fullscreen and the captured cursor (hold Escape to leave).
+        /// </summary>
+        const string FullscreenScript = @"                const fullscreen = document.querySelector(""#hakaton-fullscreen"");
+                fullscreen.style.display = ""block"";
+                fullscreen.onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                  if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock([""Escape""]).catch(() => {});
+                  canvas.focus();
+                };
+                document.addEventListener(""fullscreenchange"", () => {
+                  fullscreen.style.display = document.fullscreenElement ? ""none"" : ""block"";
+                  if (!document.fullscreenElement && navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+                });";
+
+        const string FullscreenStyle = @"#hakaton-fullscreen { display: none; position: fixed; top: 12px; right: 12px; z-index: 10;
+  padding: 8px 14px; border: 2px solid #E9DCC4; border-radius: 4px; background: rgba(35, 31, 32, .78);
+  color: #E9DCC4; font: 15px/1 sans-serif; cursor: pointer; opacity: .75 }
+#hakaton-fullscreen:hover { opacity: 1 }
+";
 
         /// <summary>What the last build is made of (from Library/LastBuild.buildreport): bytes by folder and the biggest assets.</summary>
         public static string LastReport(string _)

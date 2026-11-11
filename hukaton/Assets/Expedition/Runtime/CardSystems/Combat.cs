@@ -60,6 +60,16 @@ namespace Hakaton.Expeditions
         Transform Root { get; }
     }
 
+    /// <summary>
+    /// A body that is not a <see cref="WorldCreature"/> but takes the creature cards like one: Strike, Heavy strike
+    /// and Fire hurt it, Ice freezes it (a chest mimic). Registers itself in <see cref="ExpeditionWorld.Wild"/> so
+    /// chain lightning and burning tar find it too.
+    /// </summary>
+    public interface ICardCreature : ICombatant
+    {
+        void Freeze(float seconds);
+    }
+
     /// <summary>Fighters a card added to the outing (allies). The player and the scene's creatures are always counted
     /// by <see cref="ExpeditionWorld.Combatants"/> without registering.</summary>
     public sealed class CombatantRegistry

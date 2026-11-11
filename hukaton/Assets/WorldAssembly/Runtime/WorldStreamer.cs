@@ -38,6 +38,8 @@ namespace Hakaton.WorldAssembly.Unity
         public int Seed { get; private set; }
         public bool Active { get; private set; }
         public int LoadedCount => loaded.Count;
+        /// <summary>Treasure chests in the loaded chunks (tests, debug).</summary>
+        public int ChestCount { get { int n = 0; foreach (var e in loaded.Values) if (e.chest) n++; return n; } }
         public bool IsLoaded(ChunkCoord c) => loaded.ContainsKey(c);
         /// <summary>The expedition of the current outing (null between outings).</summary>
         public ExpeditionWorld World => Active ? world : null;
@@ -52,6 +54,7 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly List<Mesh> meshes = new List<Mesh>();
             public readonly List<(int index, WorldLoot loot)> loot = new List<(int, WorldLoot)>();
             public readonly List<(int index, WorldCreature creature)> creatures = new List<(int, WorldCreature)>();
+            public TreasureChest chest;
         }
 
         sealed class Memory
@@ -63,6 +66,7 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> burnt = new HashSet<int>();
             public readonly HashSet<int> awakened = new HashSet<int>();
             public readonly List<GameObject> loose = new List<GameObject>();
+            public bool chestOpened;
         }
 
         const int PocketIndex = 1000;
@@ -480,6 +484,7 @@ namespace Hakaton.WorldAssembly.Unity
                 }
 
             SpawnLoot(entry, mem);
+            SpawnChest(entry, mem);
             SpawnCreatures(entry, mem);
             PaintRoads(entry, coord);
             if (mem != null)
@@ -513,6 +518,54 @@ namespace Hakaton.WorldAssembly.Unity
                 var loot = PlaceLoot(plan.PocketReward, entry.view.pocketSocket);
                 if (loot) entry.loot.Add((PocketIndex, loot));
             }
+        }
+
+        readonly List<int> freeSockets = new List<int>();
+        readonly RaycastHit[] chestHits = new RaycastHit[8];
+
+        /// <summary>
+        /// A treasure chest, maybe: the ring's table rolls whether the chunk has one and which (richer further out),
+        /// from the seed and the chunk only. It stands on a find spot no find of this chunk uses; the start has none.
+        /// An opened chest stays opened and empty when its chunk comes back.
+        /// </summary>
+        void SpawnChest(Loaded entry, Memory mem)
+        {
+            var plan = entry.plan;
+            var c = plan.Coord;
+            if (!content || WorldRules.IsStartArea(c)) return;
+            var table = content.ChestTable(plan.Ring);
+            if (!table) return;
+            var prefab = table.Roll(Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y), Hash.Unit(Seed, Salt.ChestTier, c.X, c.Y));
+            if (!prefab) return;
+            // The spots the chunk's finds take (taken or not, so the choice never changes), as SpawnLoot picks them.
+            var sockets = entry.view.findSockets;
+            int n = sockets.Length;
+            if (n == 0) return;
+            freeSockets.Clear();
+            for (int s = 0; s < n; s++) if (sockets[s]) freeSockets.Add(s);
+            for (int i = 0; i < plan.Loot.Count; i++)
+                freeSockets.Remove(plan.Loot[i] != "find" ? 0 : (int)((Pick(c, i) + (uint)i) % (uint)n));
+            if (freeSockets.Count == 0) return;
+            var socket = sockets[freeSockets[(int)(Hash.Of(Seed, Salt.ChestSpot, c.X, c.Y) % (uint)freeSockets.Count)]];
+
+            // On the ground under the spot (sockets sit .15 m above it); not on a branch or a roof overhead.
+            Physics.SyncTransforms();
+            var at = socket.position + Vector3.down * .15f;
+            int count = Physics.RaycastNonAlloc(socket.position + Vector3.up * 2, Vector3.down, chestHits, 6, ~((1 << 2) | (1 << 4)), QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            for (int h = 0; h < count; h++)
+            {
+                var hit = chestHits[h];
+                if (hit.point.y > socket.position.y + .5f || hit.distance >= best) continue;
+                best = hit.distance;
+                at = hit.point;
+            }
+            float yaw = (float)(Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 1) * 360);
+            var chest = Instantiate(prefab, at, Quaternion.Euler(0, yaw, 0), entry.view.transform);
+            chest.name = prefab.name;
+            chest.world = world;
+            if (mem != null && mem.chestOpened) chest.SetEmpty(); else chest.ResetForOuting();
+            entry.chest = chest;
         }
 
         WorldLoot PlaceLoot(string id, Transform socket)
@@ -583,6 +636,7 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 if (!memory.TryGetValue(coord, out var mem)) memory[coord] = mem = new Memory();
                 foreach (var (index, loot) in entry.loot) if (!loot || loot.Taken) mem.takenLoot.Add(index);
+                if (entry.chest && entry.chest.Opened) mem.chestOpened = true;
                 foreach (var (index, creature) in entry.creatures)
                     mem.creatures[index] = creature && creature.gameObject.activeSelf && creature.Alive
                         ? (true, creature.Health, creature.transform.position)

@@ -71,7 +71,7 @@ namespace Hakaton.Decks
 
         /// <summary>
         /// Buys the slot's card at its current price. A refusal leaves everything as it was and names no price or
-        /// shortfall (the face-down price stays a secret).
+        /// shortfall (the face-down price stays a secret). A bought card goes straight into the deck when it has room.
         /// </summary>
         public string Buy(int slot, DeckWorkshop workshop, out CardCopy copy)
         {
@@ -79,7 +79,7 @@ namespace Hakaton.Decks
             if (slot < 0 || slot >= cards.Length || sold[slot]) return "Это место пустое.";
             if (workshop.CollectionFull) return "В коллекции нет места.";
             if (workshop.Coins < PriceAt(slot, workshop)) return "Не хватает монет.";
-            string error = workshop.Purchase(cards[slot], PriceAt(slot, workshop), out copy);
+            string error = workshop.Purchase(cards[slot], PriceAt(slot, workshop), out copy, equip: true);
             if (error != null) return error;
             sold[slot] = true;
             return null;

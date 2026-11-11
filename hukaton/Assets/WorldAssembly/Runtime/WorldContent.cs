@@ -37,6 +37,17 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Played once when a lookout shows the far landmarks.")]
         public Hakaton.Feel.SfxCue lookoutCue;
 
+        [Header("Chests")]
+        [Tooltip("Treasure chests of the endless world by ring (0 centre, 1 middle, 2 far): the chance a chunk has one and its tier. Richer further out.")]
+        public ChestSpawnTable[] chestTables = new ChestSpawnTable[3];
+
+        /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
+        public ChestSpawnTable ChestTable(int ring)
+        {
+            if (chestTables == null || chestTables.Length == 0) return null;
+            return chestTables[Mathf.Clamp(ring, 0, chestTables.Length - 1)];
+        }
+
         public GameObject Glow(string lootId) => lootId == "crystal" ? crystalGlow : lootId == "find-hard" ? hardGlow : null;
 
         public WorldLoot Loot(string id)

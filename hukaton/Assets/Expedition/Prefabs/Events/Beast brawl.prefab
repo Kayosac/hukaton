@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &157122403347453762
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 508819013849006502}
+  - component: {fileID: 872865383211835766}
+  m_Layer: 0
+  m_Name: Beast brawl
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &508819013849006502
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157122403347453762}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &872865383211835766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157122403347453762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dfc343b176854ce29bec6b5aa20aa72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.Events.BeastBrawl
+  world: {fileID: 0}
+  variant: 0
+  pairing: -1
+  pairings:
+  - name: "\u0413\u043E\u0431\u043B\u0438\u043D-\u043F\u0441\u044B \u043F\u0440\u043E\u0442\u0438\u0432
+      \u0442\u044B\u043A\u0432-\u043A\u0440\u044B\u0441"
+    packA: {fileID: 383250103703854854, guid: 6dde3cdf1cf234550aad204b37c191ce, type: 3}
+    countA: {x: 2, y: 2}
+    packB: {fileID: 383250103703854854, guid: 0e5098942f3b34240b0d49f98365853b, type: 3}
+    countB: {x: 3, y: 4}
+    healthA: 1.5
+    healthB: 3
+  - name: "\u041F\u0435\u0442\u0443\u0445 \u043F\u0440\u043E\u0442\u0438\u0432 \u0442\u044B\u043A\u0432-\u043A\u0440\u044B\u0441"
+    packA: {fileID: 8211502770020729366, guid: e42a533e3469a434e9acccebdf3faa5f, type: 3}
+    countA: {x: 2, y: 2}
+    packB: {fileID: 383250103703854854, guid: 0e5098942f3b34240b0d49f98365853b, type: 3}
+    countB: {x: 4, y: 4}
+    healthA: 1.5
+    healthB: 1.7
+  - name: "\u041F\u0447\u0435\u043B\u0438\u043D\u044B\u0439 \u0440\u043E\u0439 \u043F\u0440\u043E\u0442\u0438\u0432
+      \u0432\u0440\u0430\u0436\u0434\u0435\u0431\u043D\u044B\u0445 \u043A\u0443\u0441\u0442\u043E\u0432"
+    packA: {fileID: 383250103703854854, guid: 81eb084334f304881bdb0828e339de7f, type: 3}
+    countA: {x: 3, y: 4}
+    packB: {fileID: 383250103703854854, guid: a2b55da237e6e4b9f98b2dd70b0e1346, type: 3}
+    countB: {x: 2, y: 2}
+    healthA: 5.5
+    healthB: 3.5
+  arenaRadius: 7
+  fightingPackGap: 4.5
+  calmPackGap: 7
+  packSpread: 1.3
+  calmWanderRadius: 1
+  startDistance: 20
+  contactDistance: 2.2
+  blameAngle: 50
+  standoffSeconds: 1.3
+  noticeDistance: 3
+  retargetSeconds: 0.8
+  maximumSeconds: 45
+  hitFlash: {fileID: 1237379076613311922, guid: 051ef0d6dc35c47358269d28fbc8122a, type: 3}
+  hitFlashScale: 0.8
+  hitFlashTint: {r: 1, g: 1, b: 1, a: 1}
+  brawlDust: {fileID: 8948856644754878334, guid: 92d4a009a27f0419fa408275dd5ba337, type: 3}
+  dustScale: 1
+  dustInterval: 0.4
+  dustTint: {r: 0.86, g: 0.78, b: 0.64, a: 1}

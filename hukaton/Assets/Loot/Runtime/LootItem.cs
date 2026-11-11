@@ -24,10 +24,10 @@ namespace Hakaton.Loot
         public LootRarity rarity;
 
         [Header("Вид")]
-        [Tooltip("Рисунок (PNG с Texture Type = Sprite, Mesh Type = Full Rect). Показывается там, где нет модели: " +
+        [Tooltip("Рисунок (PNG с Texture Type = Sprite, Mesh Type = Full Rect, Pivot на видимом нижнем крае рисунка). Показывается там, где нет модели: " +
                  "у трофеев врагов обычно только он.")]
         public Sprite icon;
-        [Tooltip("Видимая высота рисунка, м.")]
+        [Tooltip("Высота полного холста спрайта, м (включая прозрачные поля).")]
         [Min(.05f)] public float iconHeight = .45f;
         [Tooltip("3D-модель для мира: префаб только с мешами, без скриптов, коллайдеров и Rigidbody. " +
                  "Основание модели в нуле. Пусто — рисунок.")]

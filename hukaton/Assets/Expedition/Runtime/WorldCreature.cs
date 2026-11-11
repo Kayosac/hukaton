@@ -93,6 +93,8 @@ namespace Hakaton.Expeditions
         public int Health { get; private set; }
         public bool Alive => Health > 0 && !dying;
         public CreatureState State { get; private set; }
+        /// <summary>Presentation modules clear their per-encounter state when this saved creature is reused.</summary>
+        public event System.Action OutingReset;
 
         Vector3 home, authoredHome, lastSeen, strikeDirection, desired, wanderTarget, fleeDirection;
         Quaternion homeRotation, authoredRotation, facing;
@@ -175,6 +177,7 @@ namespace Hakaton.Expeditions
         public void ResetForOuting(System.Random random)
         {
             StopAllCoroutines();
+            ResetBrawl();
             gameObject.SetActive(true);
             dying = false;
             Health = maximumHealth;
@@ -208,6 +211,7 @@ namespace Hakaton.Expeditions
             pose = CreaturePose.Default;
             if (view) view.Present(pose, transform.forward, Vector3.zero, Vector2.one, 0);
             Tint(Color.white, 0);
+            OutingReset?.Invoke();
         }
 
         /// <summary>
@@ -237,7 +241,8 @@ namespace Hakaton.Expeditions
             if (Time.time < stunnedUntil) { if (State != CreatureState.Stunned) Enter(CreatureState.Stunned); Halt(); return; }
             if (State == CreatureState.Stunned) Recover(.2f);
 
-            switch (temperament)
+            if (Brawling) ThinkBrawl();
+            else switch (temperament)
             {
                 case Temperament.Timid: ThinkTimid(); break;
                 case Temperament.Territorial: ThinkTerritorial(); break;
@@ -249,6 +254,8 @@ namespace Hakaton.Expeditions
 
         void Perceive(float dt)
         {
+            // A brawler always knows where its rival is: the fight is a few metres across.
+            if (Brawling) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
             if (Time.time >= nextSight)
             {
                 nextSight = Time.time + .12f;
@@ -518,7 +525,7 @@ namespace Hakaton.Expeditions
         {
             if (!overhead) return;
             // Noticing is drawn into the fear and aggression poses; the mark above only warns of the attack itself.
-            overhead.SetAlert(State == CreatureState.Windup || State == CreatureState.Strike || State == CreatureState.Aim || State == CreatureState.Shoot ? 2 : 0);
+            overhead.SetAlert(Posturing || State == CreatureState.Windup || State == CreatureState.Strike || State == CreatureState.Aim || State == CreatureState.Shoot ? 2 : 0);
         }
 
         // ---------------- movement ----------------
@@ -609,6 +616,7 @@ namespace Hakaton.Expeditions
             planar = Vector3.MoveTowards(planar, target, acceleration * dt);
             body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
             if (!controlled) body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt * (State == CreatureState.Windup ? 1.6f : 1)));
+            if (Brawling) ContainInArena();
             if (flying) FlyVertical(dt, controlled);
             if (State == CreatureState.Strike) CheckStrikeContact();
         }
@@ -649,6 +657,7 @@ namespace Hakaton.Expeditions
             if (Health == 0) StartCoroutine(Die(impulse));
             else if (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat)
                 Enter(temperament == Temperament.Timid ? CreatureState.Flee : CreatureState.Chase);
+            ReportHurt(amount, impulse);
         }
 
         /// <summary>Knocked off its feet: interrupts any attack (board: «сбивание с ног прерывает атаку»).</summary>
@@ -735,7 +744,9 @@ namespace Hakaton.Expeditions
             if (!Alive) return false;
             var by = damage.Instigator;
             bool fromAlly = Combat.IsAlive(by) && !ReferenceEquals(by, world.Player) && by.Faction != Faction;
+            hurtBy = by;
             Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0);
+            hurtBy = null;
             if (fromAlly && Alive) { SetTarget(by); lastSeen = by.Position; }
             return true;
         }
@@ -791,6 +802,7 @@ namespace Hakaton.Expeditions
         void OnCollisionEnter(Collision collision)
         {
             if (!world || !world.Running || !Alive) return;
+            ReportBump(collision);
             // Bumping into the player is not a crash; only the attack hurts, and only the player.
             if (collision.collider == world.motor.characterController || collision.collider.GetComponentInParent<CardProjectile>()) return;
             float normalSpeed = 0;
@@ -801,7 +813,9 @@ namespace Hakaton.Expeditions
             if (damage > 0)
             {
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, collision.GetContact(0).point, Quaternion.identity, new Color(.8f, .72f, .6f), 1);
+                hurtByCrash = true;
                 Damage(damage, Vector3.zero, collision.GetContact(0).point, 0);
+                hurtByCrash = false;
             }
             if (crashed && Alive)
             {

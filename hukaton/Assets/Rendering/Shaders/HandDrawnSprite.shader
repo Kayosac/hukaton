@@ -6,7 +6,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         [PerRendererData] _SpriteUVRect ("Sprite UV Rect", Vector) = (0,0,1,1)
         _Color ("Tint", Color) = (1,1,1,1)
         [Header(Crisp Pixels)]
-        _PixelsPerUnit ("Pixels Per World Unit", Float) = 184.875
+        _PixelsPerUnit ("Pixels Per World Unit", Float) = 500
         _AlphaCutoff ("Hard Alpha Cutoff", Range(0.01,1)) = 0.5
         [Header(Hand Drawn Motion)]
         _Motion ("Motion Amount", Range(0,2)) = 1
@@ -60,6 +60,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             float4 positionCS : SV_POSITION;
             float2 uv : TEXCOORD0;
             float3 positionRelativeWS : TEXCOORD1;
+            float fogFactor : TEXCOORD2;
             half4 color : COLOR;
             UNITY_VERTEX_OUTPUT_STEREO
         };
@@ -77,7 +78,10 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             // Its Transform and _WorldSpaceCameraPos need not then match that view.
             // Large interpolated world coordinates otherwise lose derivative precision.
             float3 viewOriginWS = GetViewToWorldMatrix()._m03_m13_m23;
-            output.positionRelativeWS = TransformObjectToWorld(input.positionOS) - viewOriginWS;
+            float3 positionWS = TransformObjectToWorld(input.positionOS);
+            output.positionRelativeWS = positionWS - viewOriginWS;
+            // Scene fog (Lighting > Environment) by view depth, like the rest of the world.
+            output.fogFactor = ComputeFogFactorZ0ToFar(max(0.0, -TransformWorldToView(positionWS).z));
             output.color = input.color * _Color * unity_SpriteColor;
             return output;
         }
@@ -132,10 +136,11 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             // Land on source texel centres explicitly. Derivative roundoff around an integer
             // texel edge must not choose different texels inside the same world pixel.
             atlasUV = (floor(atlasUV * _MainTex_TexelSize.zw + 0.01) + 0.5) * _MainTex_TexelSize.xy;
+            // Hard pixels: one source texel per world pixel, no filtering or colour blending.
             half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0);
             clip(texel.a - _AlphaCutoff);
             // Binary source coverage, with ordinary material/renderer fade still supported.
-            return half4(texel.rgb * input.color.rgb, input.color.a);
+            return half4(MixFog(texel.rgb * input.color.rgb, input.fogFactor), input.color.a);
         }
         ENDHLSL
 
@@ -148,6 +153,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_instancing
+            #pragma multi_compile_fog
             ENDHLSL
         }
         Pass
@@ -159,6 +165,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_instancing
+            #pragma multi_compile_fog
             ENDHLSL
         }
     }

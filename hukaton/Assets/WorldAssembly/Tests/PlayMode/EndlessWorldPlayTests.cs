@@ -39,6 +39,8 @@ namespace Hakaton.WorldAssembly.Tests
             playerSaves.Clear();
             if (Directory.Exists(saveFolder))
                 foreach (var file in Directory.GetFiles(saveFolder)) { playerSaves[file] = File.ReadAllBytes(file); File.Delete(file); }
+            // The game itself, without the main menu lying over it.
+            MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             yield return WaitFor(() => Object.FindAnyObjectByType<GameLoop>()?.Ready == true, 5);
             game = Object.FindAnyObjectByType<GameLoop>();

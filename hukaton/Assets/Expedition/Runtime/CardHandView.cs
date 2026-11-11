@@ -62,6 +62,7 @@ namespace Hakaton.Expeditions
         Quaternion lastCamera;
         float bobPhase;
         bool hidden = true;
+        bool lowered, dealPending;
 
         void Awake()
         {
@@ -71,6 +72,7 @@ namespace Hakaton.Expeditions
 
         public void Hide()
         {
+            dealPending = false;
             hidden = true;
             foreach (var slot in active) { slot.view.Hide(); slot.copyId = int.MinValue; }
             lastIds.Clear();
@@ -79,11 +81,33 @@ namespace Hakaton.Expeditions
         /// <summary>Starts a fresh outing: everything is dealt from below.</summary>
         public void Deal()
         {
+            if (lowered) { Hide(); dealPending = true; return; }
             Hide();
             hidden = false;
             lastCamera = transform.parent ? transform.parent.rotation : Quaternion.identity;
             sway.Snap(Vector3.zero);
             Sync(true);
+        }
+
+        /// <summary>
+        /// Out of sight behind the main menu: the hand dealt meanwhile waits, and rises from below (a fresh deal) once
+        /// the menu lets the player in.
+        /// </summary>
+        public void SetLowered(bool value)
+        {
+            if (lowered == value) return;
+            if (value)
+            {
+                bool shown = !hidden;
+                Hide();
+                lowered = true;
+                dealPending = shown;
+            }
+            else
+            {
+                lowered = false;
+                if (dealPending) Deal();
+            }
         }
 
         /// <summary>The card is leaving the hand as a projectile: returns its pose and frees the slot.</summary>

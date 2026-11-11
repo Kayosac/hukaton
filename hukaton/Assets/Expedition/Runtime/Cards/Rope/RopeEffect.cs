@@ -36,7 +36,7 @@ namespace Hakaton.Expeditions.Cards
             }
             var rope = c.World.SpawnForOuting(ropePrefab, c.Point, Quaternion.identity);
             if (!rope) return;
-            rope.Attach(target, c.Point, c.Normal, c.At(length), climbSpeed);
+            rope.Attach(target, c.Point, c.Normal, c.At(length), climbSpeed, c.Direction);
             Feedback(c, true);
         }
 

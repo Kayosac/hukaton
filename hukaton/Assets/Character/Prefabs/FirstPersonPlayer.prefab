@@ -228,6 +228,7 @@ MonoBehaviour:
   coyoteTime: 0.12
   jumpBufferTime: 0.14
   terminalSpeed: 40
+  referenceGravity: 9.81
 --- !u!114 &7809565239031082535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,6 +248,7 @@ MonoBehaviour:
   pitchPivot: {fileID: 1479323504913636604}
   cameraTransform: {fileID: 1999703791220063032}
   viewCamera: {fileID: 1409121672058997988}
+  feel: {fileID: 0}
   mouseSensitivity: 0.12
   lookSmoothTime: 0.025
   pitchLimit: 82
@@ -269,7 +271,7 @@ AudioSource:
   m_GameObject: {fileID: 3715002107750330547}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 6189651955318584818, guid: cf0832003d3544ef7a4420e2158116fd, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -374,6 +376,12 @@ MonoBehaviour:
   footstepClips:
   - {fileID: 8300000, guid: 84cf41e5769c04858bd363f823bebb45, type: 3}
   - {fileID: 8300000, guid: 07c519f5a8a5640ad85ea1c6ece9d123, type: 3}
+  woodClips: []
+  woodKeywords:
+  - Floor
+  - Timber
+  - Wood
+  - Plank
   jumpClip: {fileID: 8300000, guid: 4b87a90e186ff4a1c95dd3a0761edbf5, type: 3}
   landClip: {fileID: 8300000, guid: 467d6ebdad2ce48a1bc6134496afec2c, type: 3}
   walkStepDistance: 1.3

@@ -21,6 +21,9 @@ namespace Hakaton.Expeditions
                 c.Creature.Damage(c.Power, direction * c.Impulse, c.Point, 0);
                 c.Creature.Stagger(stagger, c.Point);
             }
+            else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive)
+                meaningful = other.TakeDamage(new DamageInfo(c.Power, (StrikeEffect.Flat(c.Direction) + Vector3.up * lift).normalized * c.Impulse,
+                    c.Point, c.ThrowOrigin));
             Feedback(c, meaningful);
         }
     }

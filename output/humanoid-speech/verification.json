@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-11",
+  "status": "implemented_and_verified",
+  "workspace": "/Users/kayosac/hukaton",
+  "branch": "board/2026-11-10",
+  "characters": [
+    "TeenLeshySkater",
+    "ZombieBeekeeper",
+    "RoosterBaseball"
+  ],
+  "line_count": 96,
+  "lines_per_character": {
+    "greetings": 6,
+    "neutral": 8,
+    "fear": 6,
+    "aggression": 6,
+    "attack": 6
+  },
+  "reaction_distance_metres": 4,
+  "quiet_encounter": "greeting, 1 second pause after 3.5 second display, one neutral remark, silence",
+  "new_encounter_after_seconds_out_of_range": 10,
+  "preserved": [
+    "source sprites",
+    "peaceful temperament",
+    "combat configuration",
+    "player camera ownership",
+    "unrelated scenes and assets"
+  ],
+  "tests": {
+    "edit_mode": {
+      "passed": 30,
+      "failed": 0,
+      "report": "output/humanoid-speech/final-editmode-tests.xml"
+    },
+    "play_mode": {
+      "passed": 6,
+      "failed": 0,
+      "report": "output/humanoid-speech/playmode-tests.xml"
+    }
+  },
+  "test_total": 36,
+  "unity_compile": "0 errors, 0 warnings after temporary authoring removal",
+  "authored_apiary_instances": {
+    "ZombieBeekeeper": 6,
+    "RoosterBaseball": 8,
+    "TeenLeshySkater": 6
+  },
+  "visual_checks": {
+    "scene": "Assets/EnemyDebug/Scenes/EnemyDebug.unity",
+    "resolution": [
+      1587,
+      1346
+    ],
+    "screenshots": [
+      "zombie-in-game.png",
+      "leshy-in-game.png",
+      "rooster-in-game.png",
+      "typography-in-game.png"
+    ],
+    "all_three_sprites_and_bubbles_inspected": true,
+    "no_text_overflow": true,
+    "sprite_plane_angle_degrees": 0,
+    "camera_guide": null,
+    "gameplay_control_active": true,
+    "latin_cyrillic_and_yo_inspected": true,
+    "pixel_font": "Pixeloid Sans 18, static RASTER, Mobile/Bitmap",
+    "snapshot_note": "Chosen lines and long display duration applied only to runtime profile copies for inspection; saved timing unchanged."
+  },
+  "temporary_authoring_removed": true,
+  "registry": {
+    "table": "tb_hakaton-enemies",
+    "behavior_cells_updated": 3,
+    "all_rows_read_back": 15,
+    "columns_row_heights_sprite_and_loot_attachments_unchanged": true,
+    "sprite_attachments_retrieved": 3,
+    "native_table_screenshot_review": false
+  },
+  "files": {
+    "hukaton/Assets/Expedition/Runtime/Speech/CreatureSpeechProfile.cs": "982fec35af348a8bb1e29aaa3141004b952f81d5f003ecd7aab14403d16c9e65",
+    "hukaton/Assets/Expedition/Runtime/Speech/CreatureSpeechController.cs": "d1abd5c038ad30d3b59bbd909962b0bc12020ba87f2bad6cec44a1317b3f3dfd",
+    "hukaton/Assets/Expedition/Runtime/Speech/HumanoidSpeech.cs": "8e120e98b224c2f612adba9823bf2f8decb5d32b498a58b2cbe94183df937c43",
+    "hukaton/Assets/Expedition/Runtime/Speech/CreatureSpeechBubble.cs": "69139f183b551cfef610c108e51263a2ba2137c0132cd6e3117cf403342f7833",
+    "hukaton/Assets/Game/Data/Speech/RoosterBaseball Speech.asset": "42ab471b99373b77576eac75e8997535aacae6d62c7e0bfa6846a8ec1ef54799",
+    "hukaton/Assets/Game/Data/Speech/ZombieBeekeeper Speech.asset": "f6d65bf9535666bb7ced5c48ad7b73e397d61e0e459828b477444f833fb1f0b6",
+    "hukaton/Assets/Game/Data/Speech/TeenLeshySkater Speech.asset": "ae690ea0e29e570313694d37e16f816f422e2635ee8e6ad0bb73f7ca21dacc09",
+    "hukaton/Assets/Game/Prefabs/UI/Creature speech bubble.prefab": "d6bb07116b9e40bb790c816db5dfeda6766809c0f474e03d24f6db9310b6441d"
+  },
+  "editor_restored_to": "Assets/Game/Scenes/Hakaton.unity (Edit Mode)"
+}

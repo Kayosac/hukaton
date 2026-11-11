@@ -13,14 +13,16 @@ using UnityEngine.SceneManagement;
 
 namespace Hakaton.Tutorial
 {
-    public enum CaveStage { Off, Instructions, Roots, Water, Bush, Ambush, Talk, Leaving, Done }
+    public enum CaveStage { Off, Instructions, Roots, Water, Bush, Ambush, Talk, GoHome, Leaving, Done }
 
     /// <summary>
     /// The cave prologue (board, «Туториал · согласовано», 01–04, 09). The hero wakes in a linear cave with three
     /// instruction cards — throw, move, discard — used strictly in order (R only after two throws). Each obstacle
     /// hands over the card it needs: Fire at the roots, Ice at the flooded stretch, Strike at the bush. Spells come
     /// back after every throw. Only a Strike on the bush brings out the goblin: ~5 s of panic around the bush, then
-    /// seven lines on E with the view held on him, and the screen goes dark into the shop.
+    /// seven lines on E with the view held on him. Then he hands over «Пора домой» («На! Используй эту»): the hand holds
+    /// only that card; once the player closes that line with E they get the hero back, use the card themselves, and
+    /// the tutorial goes on in the shop.
     /// Nothing is saved in here: quitting the cave starts it again from the awakening.
     /// The place itself (<see cref="CaveLevel"/>) lives in its own scene with its own lighting: it is loaded next to the
     /// game scene when the prologue begins and unloaded on the way to the shop.
@@ -88,6 +90,9 @@ namespace Hakaton.Tutorial
         [Tooltip("The bright idea: a jump and the pleased face.")]
         public int ideaLine = 4;
         [Min(0)] public float thinkSeconds = 1.6f;
+        [Tooltip("His last words: he hands over the Return card and the player uses it.")]
+        [TextArea] public string handOverLine = "На! Используй эту";
+        [TextArea] public string returnHint = "ЛКМ — вернуться в лавку";
         [Min(.05f)] public float darkSeconds = .7f;
 
         public CaveStage Stage { get; private set; } = CaveStage.Off;
@@ -111,7 +116,7 @@ namespace Hakaton.Tutorial
         WorldObstacle waterObstacle => Level ? Level.waterObstacle : null;
 
         int instructionsThrown;
-        bool continueRequested, wheelHintPending;
+        bool continueRequested, wheelHintPending, handOverOpen;
         float bushShake;
         Vector3 goblinShove, goblinOffset;
         float goblinFrozenUntil, goblinTintUntil, goblinTintSeconds = .35f;
@@ -229,10 +234,12 @@ namespace Hakaton.Tutorial
 
         void Update()
         {
-            if (!Active) return;
+            if (!Active || GamePause.Suspended) return;
             if (bush) Shake();
             if (Stage == CaveStage.Ambush || Stage == CaveStage.Talk) TintGoblin();
             if (wheelHintPending) world.Announce(wheelHint, .5f);
+            // the thrower's own «card is ready» notice goes first, then the short reminder stays up
+            if (Stage == CaveStage.GoHome && !handOverOpen && !world.Returning && Time.time >= world.NoticeUntil - .05f) world.Announce(returnHint, .5f);
             Vector3 player = world.motor.transform.position;
             switch (Stage)
             {
@@ -249,6 +256,7 @@ namespace Hakaton.Tutorial
                     Grant(strikeId);
                     break;
                 case CaveStage.Talk:
+                case CaveStage.GoHome when handOverOpen:
                     var keyboard = Keyboard.current;
                     if (keyboard != null && keyboard.eKey.wasPressedThisFrame) continueRequested = true;
                     break;
@@ -496,6 +504,7 @@ namespace Hakaton.Tutorial
         {
             Stage = CaveStage.Talk;
             world.thrower.Cancel();
+            control.AllowPause(this, true);
             control.SetBlocked(this, true);
             // A little above his face: he sits low in the frame, the bubble keeps the top.
             if (view) view.Guide(goblin.face.transform.position + Vector3.up * .35f);
@@ -515,8 +524,45 @@ namespace Hakaton.Tutorial
                 while (!continueRequested) yield return null;
                 continueRequested = false;
             }
+            yield return HandOver();
+        }
+
+        /// <summary>
+        /// «На! Используй эту»: the spells are gone and the hand holds the Return card. The line waits for E like the
+        /// others; only once it is closed does the player get the hero back and use the card themselves (the same fling
+        /// and dark as at the end of any outing), after which the shop tutorial takes over.
+        /// </summary>
+        IEnumerator HandOver()
+        {
+            Stage = CaveStage.GoHome;
+            var card = Trip.GrantReturn();
+            if (card == null) { bubble.Hide(); yield return Leave(); yield break; }
+            world.thrower.SelectCopy(card.Id);
+            bubble.Say(handOverLine, true);
+            goblin.Speak(true);
+            goblin.face.Please();
+            handOverOpen = true;
+            continueRequested = false;
+            yield return null;
+            while (!continueRequested) yield return null;
+            continueRequested = false;
+            handOverOpen = false;
             bubble.Hide();
-            yield return Leave();
+            world.PrologueReturned += OnReturnUsed;
+            if (view) view.Guide(null);
+            control.SetBlocked(this, false);
+        }
+
+        /// <summary>The Return card was used and the screen is dark: out of the cave into the shop.</summary>
+        void OnReturnUsed()
+        {
+            world.PrologueReturned -= OnReturnUsed;
+            if (Stage != CaveStage.GoHome) return;
+            StopAllCoroutines();
+            bubble.Hide();
+            Close();
+            Stage = CaveStage.Done;
+            Finished?.Invoke();
         }
 
         /// <summary>Straight out of the cave (cheats, tests): the same exit as after the last line, without the dark.</summary>
@@ -525,6 +571,7 @@ namespace Hakaton.Tutorial
             if (!Active) return;
             StopAllCoroutines();
             bubble.Hide();
+            handOverOpen = false;
             Close();
             Stage = CaveStage.Done;
             Finished?.Invoke();
@@ -533,7 +580,7 @@ namespace Hakaton.Tutorial
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {
-            if (Stage == CaveStage.Talk) continueRequested = true;
+            if (Stage == CaveStage.Talk || Stage == CaveStage.GoHome && handOverOpen) continueRequested = true;
         }
 
         IEnumerator Leave()
@@ -552,6 +599,7 @@ namespace Hakaton.Tutorial
             world.thrower.Thrown -= OnThrown;
             world.thrower.SelectionChanged -= OnSelectionChanged;
             world.Impacted -= OnImpacted;
+            world.PrologueReturned -= OnReturnUsed;
             if (view) view.Guide(null);
             control.SetBlocked(this, false);
             if (screamSource) screamSource.Stop();

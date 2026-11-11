@@ -19,7 +19,7 @@ namespace Hakaton.Loot
         MaterialPropertyBlock properties;
         Camera viewer;
 
-        /// <summary>Shows the drawing <paramref name="height"/> metres tall with its bottom edge on this object's origin.</summary>
+        /// <summary>Scales the sprite canvas to <paramref name="height"/> metres and places its authored ground pivot at the origin.</summary>
         public void Show(Sprite sprite, float height)
         {
             if (!spriteRenderer || !sprite) return;
@@ -28,7 +28,9 @@ namespace Hakaton.Loot
             float scale = drawn > 0 ? height / drawn : 1;
             var drawing = spriteRenderer.transform;
             drawing.localScale = Vector3.one * scale;
-            drawing.localPosition = new Vector3(0, -sprite.bounds.min.y * scale, 0);
+            // Loot pivots sit on the visible bottom of the artwork, above any transparent PNG margin.
+            // Aligning bounds.min here would cancel that pivot and lift the item off its shelf.
+            drawing.localPosition = Vector3.zero;
             if (properties == null) properties = new MaterialPropertyBlock();
             Rect rect = sprite.textureRect;
             Texture2D texture = sprite.texture;

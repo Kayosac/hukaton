@@ -117,8 +117,11 @@ namespace Hakaton.Decks
         /// <summary>Buys a copy at its full price (debug and tests; the goblin sells through <see cref="Purchase"/>).</summary>
         public string Buy(string definition, out CardCopy copy) => Purchase(definition, Spec(definition)?.Price ?? 0, out copy);
 
-        /// <summary>Adds a copy paid at <paramref name="price"/>. Nothing changes when there is no room or no money.</summary>
-        public string Purchase(string definition, int price, out CardCopy copy)
+        /// <summary>
+        /// Adds a copy paid at <paramref name="price"/>. Nothing changes when there is no room or no money.
+        /// With <paramref name="equip"/> the new copy goes straight into the deck if the deck has a free place.
+        /// </summary>
+        public string Purchase(string definition, int price, out CardCopy copy, bool equip = false)
         {
             copy = null;
             if (IsAway) return "Сначала вернитесь в лавку.";
@@ -129,6 +132,7 @@ namespace Hakaton.Decks
             if (!wallet.TrySpend(price)) return "Не хватает монет.";
             copy = new CardCopy(nextId++, spec, 1, price);
             owned.Add(copy);
+            if (equip && selected.Count < DeckLimit) selected.Add(copy.Id);
             Changed?.Invoke();
             return null;
         }

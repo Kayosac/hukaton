@@ -83,6 +83,18 @@ namespace Hakaton.Decks
             hand.Add(card);
         }
 
+        /// <summary>The end of the cave prologue: the hand is cleared and only the Return card is left in it.</summary>
+        internal CardCopy GiveReturn()
+        {
+            foreach (var c in hand) if (!c.IsReturn) discard.Add(c);
+            hand.Clear();
+            held.Clear();
+            heldSlots.Clear();
+            var card = CardCopy.Return();
+            hand.Add(card);
+            return card;
+        }
+
         internal List<CardCopy> DiscardHand()
         {
             // The prologue's R restores the spells: only the instruction cards (not mergeable) leave.
@@ -147,6 +159,9 @@ namespace Hakaton.Decks
             Deck.AddToHand(card);
             return card;
         }
+
+        /// <summary>The goblin hands over the way home at the end of the cave: the hand becomes just the Return card.</summary>
+        public CardCopy GrantReturn() => Completed ? null : Deck.GiveReturn();
 
         public bool ReturnHome()
         {

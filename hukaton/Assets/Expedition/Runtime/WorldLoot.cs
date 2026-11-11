@@ -33,6 +33,8 @@ namespace Hakaton.Expeditions
         SpringFloat scale = new SpringFloat(1);
         LootSpriteView drawing;
 
+        /// <summary>A creature's drop: pulled into the bag by itself once the player is close enough.</summary>
+        public bool Magnetic { get; set; }
         public bool Taken { get; private set; }
         public bool Available => !Taken && gameObject.activeInHierarchy;
 
@@ -94,6 +96,7 @@ namespace Hakaton.Expeditions
         public void Pop(Vector3 velocity)
         {
             popTime = Time.time;
+            Magnetic = true;
             scale.Snap(.2f);
             scale.Kick(12);
             if (body) { body.isKinematic = false; body.linearVelocity = velocity; body.angularVelocity = Random.insideUnitSphere * 6; }
@@ -136,6 +139,8 @@ namespace Hakaton.Expeditions
 
         void Update()
         {
+            if (Taken) return;
+            if (Magnetic && InMagnetReach()) PickUp(world.viewCamera.transform);
             if (!visual || Taken) return;
             focusPulse = Mathf.MoveTowards(focusPulse, focused ? 1 : 0, Time.deltaTime * 6);
             float target = 1 + focusPulse * (.18f + Mathf.Sin(Time.time * 9) * .05f);
@@ -146,6 +151,18 @@ namespace Hakaton.Expeditions
             bool settled = popTime < 0 || Time.time - popTime > 1.2f;
             visual.localPosition = settled ? Vector3.up * (.08f + Mathf.Sin(Time.time * 2.4f + origin.x) * .06f) : Vector3.zero;
             focused = false;
+        }
+
+        /// <summary>The player's body (feet to eye) is within the magnet radius and the drop has finished popping out.</summary>
+        bool InMagnetReach()
+        {
+            if (!world || !world.Running || !world.settings || !world.motor || !world.viewCamera) return false;
+            if (popTime >= 0 && Time.time - popTime < world.settings.lootMagnetDelay) return false;
+            Vector3 feet = world.motor.transform.position, eye = world.viewCamera.transform.position;
+            Vector3 axis = eye - feet;
+            float t = axis.sqrMagnitude > .0001f ? Mathf.Clamp01(Vector3.Dot(transform.position - feet, axis) / axis.sqrMagnitude) : 0;
+            float radius = world.settings.lootMagnetRadius;
+            return (transform.position - (feet + axis * t)).sqrMagnitude <= radius * radius;
         }
 
 #if UNITY_EDITOR

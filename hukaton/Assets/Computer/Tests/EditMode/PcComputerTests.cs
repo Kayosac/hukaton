@@ -106,4 +106,17 @@ namespace Hakaton.Computer.Tests
             }
         }
     }
+
+    public sealed class CrtSupersampleTests
+    {
+        [Test]
+        public void TheCanvasIsRenderedAtLeastAsTallAsThePictureOnScreen()
+        {
+            Assert.That(CrtScreen.SupersampleFor(480, 480, 4), Is.EqualTo(1));
+            Assert.That(CrtScreen.SupersampleFor(994, 480, 4), Is.EqualTo(3)); // 1080p
+            Assert.That(CrtScreen.SupersampleFor(1325, 480, 4), Is.EqualTo(3)); // 1440p
+            Assert.That(CrtScreen.SupersampleFor(1987, 480, 4), Is.EqualTo(4)); // 4K, capped
+            Assert.That(CrtScreen.SupersampleFor(300, 480, 4), Is.EqualTo(1));
+        }
+    }
 }

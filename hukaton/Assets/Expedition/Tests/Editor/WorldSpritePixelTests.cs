@@ -234,6 +234,12 @@ namespace Hakaton.Expeditions.Tests
             renderer.sharedMaterial = material;
             material.SetFloat("_PixelsPerUnit", 184.875f);
             renderer.sprite = source;
+            // As CaveDrawnProp does: the bush is a sub-rect of a power-of-two texture.
+            var atlasRect = source.textureRect;
+            var block = new MaterialPropertyBlock();
+            block.SetVector("_SpriteUVRect", new Vector4(atlasRect.x / source.texture.width, atlasRect.y / source.texture.height,
+                atlasRect.width / source.texture.width, atlasRect.height / source.texture.height));
+            renderer.SetPropertyBlock(block);
             renderer.transform.position = new Vector3(worldX, 1, 7);
             const float scale = .21976472f;
             renderer.transform.localScale = Vector3.one * scale;
@@ -250,9 +256,10 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(Vector2.Distance(renderer.bounds.size, worldSize), Is.LessThan(0.000001f));
             var baked = RenderThroughCamera(renderer, 1024, perspective, frameCenter: centre);
             var changed = original.Zip(baked, (a, b) => a.Equals(b) ? 0 : 1).Sum();
-            // Recreating an imported sprite rounds its mesh coordinates differently. Allow <0.01%
-            // raster/sample boundary differences; the view-override regression above remains bit-exact.
-            Assert.That(changed / (float)original.Length, Is.LessThan(.0001f),
+            // Recreating an imported sprite rounds its mesh coordinates differently. Allow <0.05%
+            // raster/sample boundary differences (the bush is authored at 100 texels/m, so texel edges
+            // meet this test's 184.875 grid more often); the view-override regression above remains bit-exact.
+            Assert.That(changed / (float)original.Length, Is.LessThan(.0005f),
                 $"Bush at x={worldX}: {changed} changed pixels after baking only Transform scale.");
         }
 
@@ -284,6 +291,34 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void SceneFogCoversSprites()
+        {
+            var renderer = Drawing();
+            bool fog = RenderSettings.fog; var mode = RenderSettings.fogMode;
+            var colour = RenderSettings.fogColor; float density = RenderSettings.fogDensity;
+            try
+            {
+                RenderSettings.fog = false;
+                var clear = RenderThroughCamera(renderer, perspective: true);
+                RenderSettings.fog = true;
+                RenderSettings.fogMode = FogMode.ExponentialSquared;
+                RenderSettings.fogDensity = .3f;
+                RenderSettings.fogColor = Color.blue;
+                var fogged = RenderThroughCamera(renderer, perspective: true);
+                var drawn = Enumerable.Range(0, clear.Length).Where(i => clear[i].a > 0).ToArray();
+                Assert.That(drawn.Length, Is.GreaterThan(1000));
+                // About 4.3 m away at density 0.3: the drawing must be mostly fog colour, as the world is.
+                Assert.That(drawn.Average(i => fogged[i].b - clear[i].b), Is.GreaterThan(100));
+                Assert.That(drawn.Average(i => clear[i].r - fogged[i].r), Is.GreaterThan(50));
+            }
+            finally
+            {
+                RenderSettings.fog = fog; RenderSettings.fogMode = mode;
+                RenderSettings.fogColor = colour; RenderSettings.fogDensity = density;
+            }
+        }
+
+        [Test]
         public void BothShaderPassesRenderTheSameGrid()
         {
             var renderer = Drawing();
@@ -309,6 +344,20 @@ namespace Hakaton.Expeditions.Tests
                 Assert.That(variant.parent, Is.SameAs(shared));
                 Assert.That(variant.IsPropertyOverriden("_PixelsPerUnit"), Is.False, path);
             }
+        }
+
+        [Test]
+        public void TheGoblinTraderAloneDrawsOnATwiceFinerGrid()
+        {
+            // User-approved exception: the small trader goblin keeps detail on its own grid.
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            var goblin = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite Goblin.mat");
+            Assert.That(goblin.parent, Is.SameAs(shared));
+            Assert.That(goblin.IsPropertyOverriden("_PixelsPerUnit"), Is.True);
+            Assert.That(goblin.GetFloat("_PixelsPerUnit"), Is.EqualTo(shared.GetFloat("_PixelsPerUnit") * 2).Within(1e-4f));
+            foreach (var path in new[] { "Assets/Tutorial/Prefabs/CounterGoblin.prefab", "Assets/ShopBlockout/Prefabs/GoblinCeilingRig.prefab" })
+                Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponentsInChildren<SpriteRenderer>(true)
+                    .Any(r => r.sharedMaterial == goblin && r.sprite && r.sprite.texture.name.Contains("Goblin")), Is.True, path);
         }
     }
 }

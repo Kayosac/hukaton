@@ -39,7 +39,18 @@ namespace Hakaton.Tutorial
         public void Poof()
         {
             VfxBurst.Spawn(poofVfx, face.transform.position, Quaternion.identity, null, new Color(.7f, .9f, .5f));
-            if (audioSource && poofSound) AudioSource.PlayClipAtPoint(poofSound, face.transform.position, .8f);
+            if (audioSource && poofSound)
+            {
+                // He disappears with this frame: the puff sounds from a short-lived source of its own, through his mixer group.
+                var puff = new GameObject("Poof sound").AddComponent<AudioSource>();
+                puff.transform.position = face.transform.position;
+                puff.clip = poofSound;
+                puff.volume = .8f;
+                puff.spatialBlend = audioSource.spatialBlend;
+                puff.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
+                puff.Play();
+                Destroy(puff.gameObject, poofSound.length + .1f);
+            }
             gameObject.SetActive(false);
         }
 

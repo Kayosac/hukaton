@@ -16,6 +16,9 @@ namespace Hakaton.Expeditions
         {
             bool meaningful = false;
             if (c.Creature) { c.Creature.Damage(c.Power, c.Direction * 1.5f, c.Point, burnVisualSeconds); meaningful = true; }
+            else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive
+                     && other.TakeDamage(new DamageInfo(c.Power, c.Direction * 1.5f, c.Point, c.ThrowOrigin, DamageKind.Fire)))
+                meaningful = true;
             var thicket = c.Obstacle ? c.Obstacle : c.World.ObstacleNear(c.Point, c.Radius, ObstacleKind.Thorns);
             if (thicket && thicket.React(CardAction.Fire, c.Point)) meaningful = true;
             // Card-made things that burn (IIgnitable): tar puddle, branch bridge.

@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &8317479959652019664
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 609387794987089036, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4165384336257178101, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_Name
+      value: Chest ray 1 white
+      objectReference: {fileID: 0}
+    - target: {fileID: 4576339535590550148, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5762304624907713388, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5847434743448515332, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4165384336257178101, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9080387687955055264}
+  m_SourcePrefab: {fileID: 100100000, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+--- !u!198 &4366889040931968700 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 5762304624907713388, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+  m_PrefabInstance: {fileID: 8317479959652019664}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5378411796982461477 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4165384336257178101, guid: 340d35b9b6cb24542a1ab7a01f37a7f9, type: 3}
+  m_PrefabInstance: {fileID: 8317479959652019664}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &9080387687955055264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5378411796982461477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955e669a313304cb2b509732256dce50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Feel::Hakaton.Feel.VfxBurst
+  systems:
+  - {fileID: 4366889040931968700}
+  tinted: []
+  flash: {fileID: 0}
+  flashIntensity: 3
+  flashSeconds: 0.25
+  lifetime: 2

@@ -43,6 +43,10 @@ namespace Hakaton.Expeditions
         [Min(0)] public float fallDamageSpeed = 11;
         [Min(.1f)] public float fallDamageStep = 3;
         [Min(.5f)] public float interactionReach = 3.2f;
+        [Tooltip("Creature drops within this distance of the player fly into the bag by themselves (metres).")]
+        [Min(0)] public float lootMagnetRadius = 2;
+        [Tooltip("A fresh drop is left to fly out of the creature for this long before it can be pulled in (seconds).")]
+        [Min(0)] public float lootMagnetDelay = .5f;
         [Range(0, 1)] public float defeatLootLoss = .5f;
         [Tooltip("Below this the world is out of bounds.")]
         public float killHeight = -8;

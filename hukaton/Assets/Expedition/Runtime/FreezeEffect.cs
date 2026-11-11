@@ -18,6 +18,11 @@ namespace Hakaton.Expeditions
         {
             bool meaningful = false;
             if (c.Creature) { c.Creature.Freeze(FreezeSeconds(c.Power, WetStatus.IsWet(c.Creature), wetMultiplier)); meaningful = true; }
+            else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive)
+            {
+                other.Freeze(FreezeSeconds(c.Power, other.Root && WetStatus.IsWet(other.Root), wetMultiplier));
+                meaningful = true;
+            }
             var water = c.Obstacle ? c.Obstacle : c.World.ObstacleNear(c.Point, c.Radius, ObstacleKind.Lake);
             if (water && water.React(CardAction.Freeze, c.Point)) meaningful = true;
             Feedback(c, meaningful);

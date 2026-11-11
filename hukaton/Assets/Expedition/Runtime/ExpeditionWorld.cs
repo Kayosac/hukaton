@@ -77,6 +77,16 @@ namespace Hakaton.Expeditions
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
         public int Impacts { get; private set; }
         public WorldLoot FocusedLoot { get; private set; }
+        /// <summary>The usable thing under the crosshair within reach (chest, oddity…), only when no find is focused.</summary>
+        public IInteractable FocusedInteractable { get; private set; }
+        /// <summary>The focused interactable when it is a chest.</summary>
+        public TreasureChest FocusedChest => FocusedInteractable as TreasureChest;
+        /// <summary>Coins picked up on this outing; credited to the wallet on the way home (part lost on defeat).</summary>
+        public int Coins { get; private set; }
+        /// <summary>Raised for each coin picked up: its value and colour.</summary>
+        public event Action<int, Color> CoinsCollected;
+        int coinStreak;
+        float lastCoinTime = -10;
         public string Notice { get; private set; }
         public float NoticeUntil { get; private set; }
         /// <summary>Raised for each item picked up.</summary>
@@ -84,6 +94,8 @@ namespace Hakaton.Expeditions
         public event Action<Vector3> PlayerLaunched;
         /// <summary>Every card landing: the copy and what it hit (the tutorial watches its bush).</summary>
         public event Action<CardCopy, Collider, Vector3> Impacted;
+        /// <summary>The Return card was used in the cave prologue and the screen is dark: the tutorial takes the player on.</summary>
+        public event Action PrologueReturned;
         /// <summary>The cave prologue runs instead of an outing to the valley.</summary>
         public bool InPrologue { get; private set; }
         /// <summary>Where a fall into the prologue's water puts the player back when no shores are listed below.</summary>
@@ -106,6 +118,7 @@ namespace Hakaton.Expeditions
             Returning = false;
             Impacts = 0;
             LootValue = 0;
+            Coins = 0;
             loot.Clear();
             pickups.Clear();
             ClearCardEffects();
@@ -137,11 +150,14 @@ namespace Hakaton.Expeditions
         void Update()
         {
             FocusedLoot = null;
+            FocusedInteractable = null;
             if (!Running) return;
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
+            else if (control.GameplayActive) FocusedInteractable = FindInteractable(viewCamera.transform);
+            FocusedInteractable?.SetFocused(true);
         }
 
         WorldLoot FindFocusedLoot()
@@ -166,7 +182,37 @@ namespace Hakaton.Expeditions
             return best;
         }
 
-        public bool TryPickUpFocused() => FocusedLoot && FocusedLoot.PickUp(viewCamera.transform);
+        /// <summary>
+        /// The usable thing under the crosshair: the first solid thing a thin cast from <paramref name="eye"/> meets
+        /// within reach must belong to an <see cref="IInteractable"/> that can be used now.
+        /// </summary>
+        public IInteractable FindInteractable(Transform eye)
+        {
+            if (!eye || !settings) return null;
+            if (!Physics.SphereCast(eye.position, .12f, eye.forward, out var hit, settings.interactionReach + .4f, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                return null;
+            var target = hit.collider.GetComponentInParent<IInteractable>();
+            return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract ? target : null;
+        }
+
+        /// <summary>E: picks up the focused find, or uses the focused interactable (opens a chest, answers a phone…).</summary>
+        public bool TryPickUpFocused()
+        {
+            if (FocusedLoot) return FocusedLoot.PickUp(viewCamera.transform);
+            var target = FocusedInteractable;
+            return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract && target.Interact();
+        }
+
+        /// <summary>Adds coins to this outing's purse (a chest's coin reaching the bag).</summary>
+        public void CollectCoins(int amount, Color colour)
+        {
+            if (!Running || amount <= 0) return;
+            Coins = checked(Coins + amount);
+            coinStreak = Time.time - lastCoinTime < .35f ? coinStreak + 1 : 0;
+            lastCoinTime = Time.time;
+            Play(cues ? cues.coinPickup : null, null, 1, 1 + Mathf.Min(coinStreak, 14) * .035f);
+            CoinsCollected?.Invoke(amount, colour);
+        }
 
         /// <summary>Credits one copy of the item to this outing's bag.</summary>
         public void Collect(LootItem item)
@@ -333,6 +379,7 @@ namespace Hakaton.Expeditions
             Returning = false;
             Impacts = 0;
             LootValue = 0;
+            Coins = 0;
             loot.Clear();
             pickups.Clear();
             ClearCardEffects();
@@ -363,19 +410,47 @@ namespace Hakaton.Expeditions
             motor.Teleport(shopPose.position, shopPose.rotation);
             vitals.Restore();
             if (sfx) sfx.StopLoop(this);
+            control.SetBlocked(this, false);
+            Returning = false;
             InPrologue = false;
         }
 
         void ReturnToShop(bool defeated, bool drowned)
         {
             if (!Running) return;
+            // The prologue has no defeat; its Return card (from the goblin) ends the cave instead of an outing.
+            if (InPrologue && defeated) return;
             if (!defeated && !workshop.Model.Current.ReturnHome()) return;
             if (defeated) workshop.Model.Current.Defeat();
             Returning = true;
             thrower.Cancel();
             // Drowning keeps the mouse: the player can still look around while sinking; the body is held by Sink.
             if (!drowned) control.SetBlocked(this, true);
-            StartCoroutine(ReturnTransition(defeated, drowned));
+            StartCoroutine(InPrologue ? PrologueReturn() : ReturnTransition(defeated, drowned));
+        }
+
+        /// <summary>The cave's Return card: the same fling and dark as at the end of an outing, then the tutorial moves on.</summary>
+        IEnumerator PrologueReturn()
+        {
+            yield return FlingReturnCard();
+            hand.Hide();
+            if (fade) yield return fade.FadeTo(1, settings.returnFadeSeconds);
+            if (time) time.ResetTime();
+            if (!InPrologue) yield break;
+            Returning = false;
+            PrologueReturned?.Invoke();
+        }
+
+        /// <summary>The Return card is flung skyward and bursts.</summary>
+        IEnumerator FlingReturnCard()
+        {
+            var eye = viewCamera.transform;
+            if (hand.Take(-1, out var pose, out var view))
+                SpawnDebris(view, pose.position, pose.rotation, eye.forward * 4 + Vector3.up * 9, new Vector3(0, 0, 900), .7f);
+            Play(cues ? cues.returnCard : null);
+            if (feel) { feel.Kick(new Vector3(-35, 0, 0)); feel.PunchFov(30); }
+            yield return new WaitForSecondsRealtime(.3f);
+            Spawn(vfx ? vfx.returnPoof : null, eye.position + eye.forward * 2.5f + Vector3.up * 1.5f, Quaternion.identity, new Color(1f, .82f, .35f));
         }
 
         /// <summary>The body sinks under water and the screen goes black at once; the mouse still looks around.</summary>
@@ -401,7 +476,6 @@ namespace Hakaton.Expeditions
 
         IEnumerator ReturnTransition(bool defeated, bool drowned)
         {
-            var eye = viewCamera.transform;
             if (drowned) { yield return Sink(); control.SetBlocked(this, true); }
             else if (defeated)
             {
@@ -409,16 +483,8 @@ namespace Hakaton.Expeditions
                 if (feel) { feel.AddTrauma(.6f); feel.Kick(new Vector3(40, 0, 25)); }
                 yield return new WaitForSecondsRealtime(.75f);
             }
-            else
-            {
-                // The Return card is flung skyward and bursts — then the screen goes dark.
-                if (hand.Take(-1, out var pose, out var view))
-                    SpawnDebris(view, pose.position, pose.rotation, eye.forward * 4 + Vector3.up * 9, new Vector3(0, 0, 900), .7f);
-                Play(cues ? cues.returnCard : null);
-                if (feel) { feel.Kick(new Vector3(-35, 0, 0)); feel.PunchFov(30); }
-                yield return new WaitForSecondsRealtime(.3f);
-                Spawn(vfx ? vfx.returnPoof : null, eye.position + eye.forward * 2.5f + Vector3.up * 1.5f, Quaternion.identity, new Color(1f, .82f, .35f));
-            }
+            // The Return card is flung skyward and bursts — then the screen goes dark.
+            else yield return FlingReturnCard();
             hand.Hide();
             if (fade && !drowned) yield return fade.FadeTo(1, settings.returnFadeSeconds);
             else if (fade) fade.Set(1, settings.drownColour);
@@ -427,6 +493,11 @@ namespace Hakaton.Expeditions
             if (time) time.ResetTime();
             if (sfx) sfx.StopLoop(this);
 
+            // The purse goes into the wallet; a defeat costs the same share as the finds.
+            int coinsKept = defeated ? Mathf.FloorToInt(Coins * (1 - settings.defeatLootLoss)) : Coins;
+            if (coinsKept > 0) workshop.Model.Wallet.Credit(coinsKept);
+            string coinNote = Coins > 0 ? (defeated ? $" Монет: {coinsKept} из {Coins}." : $" Монет: +{coinsKept}.") : "";
+            Coins = 0;
             int kept = 0, lost = 0;
             var retained = new List<LootSave>();
             foreach (var entry in loot)
@@ -447,10 +518,10 @@ namespace Hakaton.Expeditions
             Returning = false;
             // Complete only after local cleanup: the integration callback disables this world root.
             workshop.CompleteOuting(drowned
-                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}."
+                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
                 : defeated
-                ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}."
-                : $"Вы дома. В запас лавки добавлено: {kept}.", retained, defeated);
+                ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
+                : $"Вы дома. В запас лавки добавлено: {kept}.{coinNote}", retained, defeated);
             if (fade) fade.StartCoroutine(fade.FadeTo(0, settings.arriveFadeSeconds));
         }
     }

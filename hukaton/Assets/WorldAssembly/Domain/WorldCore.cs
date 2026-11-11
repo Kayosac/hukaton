@@ -75,10 +75,11 @@ namespace Hakaton.WorldAssembly
     }
 
     /// <summary>Salts so different decisions on the same coordinates do not correlate.</summary>
-    static class Salt
+    public static class Salt
     {
         public const int Noise = 11, Noise2 = 12, RiverBorder = 21, CanyonBorder = 22, RiverPair = 23, InnerRiver = 24,
             Path = 25, Maze = 31, MazeDfs = 32, MazeLoop = 33, MazeEntrance = 34, Variant = 41, Crossing = 42, Rotation = 43,
-            Creature = 51, Loot = 52, Ramp = 53, EndKind = 54, Scene = 61, Landmark = 71, Road = 81, Forest = 91;
+            Creature = 51, Loot = 52, Ramp = 53, EndKind = 54, Scene = 61, Landmark = 71, Road = 81, Forest = 91,
+            ChestPresence = 101, ChestTier = 102, ChestSpot = 103;
     }
 }

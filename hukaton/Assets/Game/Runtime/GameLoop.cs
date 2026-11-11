@@ -64,9 +64,19 @@ namespace Hakaton.Game
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
+        /// <summary>The door asks "ready-made location or endless world" only after the revenue goal.</summary>
+        public bool PlaceChoiceUnlocked => GoalReached;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
         public string LastNotice { get; private set; }
         public bool Ready { get; private set; }
+        /// <summary>This launch continued a saved game (the main menu's «Продолжить»).</summary>
+        public bool LoadedFromSave { get; private set; }
+        /// <summary>This launch began a new game by itself: no save, nothing broken (the cave, or the shop for tests).</summary>
+        public bool FreshStart { get; private set; }
+        /// <summary>The cave prologue is running: leaving now starts it again next time.</summary>
+        public bool InCave => cave && cave.Active;
+        /// <summary>Leaving now loses something: the cave run or the current outing (the shop is saved as it is).</summary>
+        public bool LeavingLosesProgress => Ready && (InCave || Phase == GamePhase.Expedition);
         bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver;
         // Survives the scene reload of StartOver; read once by the next new game.
         static NewGameStart? pendingStart;
@@ -101,11 +111,13 @@ namespace Hakaton.Game
                     if (preserveInvalidSave) warning = preservationError;
                 }
             }
+            LoadedFromSave = loaded;
             SetPhase(GamePhase.Shop);
             // A new game (no save): the cave prologue, then the goblin partner on the counter.
             bool afterTutorial = false;
             if (!loaded && warning == null)
             {
+                FreshStart = true;
                 afterTutorial = pendingStart == NewGameStart.AfterTutorial;
                 if (afterTutorial) wallet.Wallet.Credit(tutorialEarnings);
                 else if (cave) EnterCave();
@@ -139,6 +151,8 @@ namespace Hakaton.Game
         {
             if (!Ready) return;
             TrackShift();
+            // The whole tutorial is behind the player: a later new game may skip it.
+            if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen)
@@ -148,7 +162,7 @@ namespace Hakaton.Game
                     var eye = trade.World.ViewCamera.transform;
                     VfxBurst.Spawn(goalConfetti, eye.position + eye.forward * 2.5f + Vector3.up * .6f, Quaternion.identity, null, Color.white);
                     if (fade) fade.StartCoroutine(fade.ShowTitle("Лавка процветает!", revenueGoal + " монет выручки · можно продолжать", 2.4f));
-                    Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — можно продолжать свободную игру.", 10);
+                    Notify("Лавка процветает! " + revenueGoal + " монет выручки.\nЦель достигнута — у двери теперь можно выбрать место вылазки.", 10);
                 }
                 if (dirty || Time.unscaledTime >= nextTimedSave) SaveNow();
             }
@@ -188,7 +202,9 @@ namespace Hakaton.Game
         {
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
-            if (outingChoice && expedition.HasPlaceChoice)
+            // The choice of place opens only once the shop has made its revenue goal; before that every outing goes to the
+            // ready-made location (the old apiary).
+            if (outingChoice && expedition.HasPlaceChoice && PlaceChoiceUnlocked)
             {
                 outingChoice.Open(expedition.readyWorld.placeName, place =>
                 {
@@ -199,7 +215,7 @@ namespace Hakaton.Game
                 });
                 return;
             }
-            expedition.NextPlace = OutingPlace.Endless;
+            expedition.NextPlace = !PlaceChoiceUnlocked && expedition.readyWorld ? OutingPlace.Ready : OutingPlace.Endless;
             StartCoroutine(DepartWithTransition());
         }
 
@@ -301,6 +317,29 @@ namespace Hakaton.Game
             GameSaveStore.Discard(SavePath);
             pendingStart = from;
             SceneManager.LoadScene(gameObject.scene.path);
+        }
+
+        /// <summary>
+        /// Back to the main menu: the shop is saved as it stands; an outing or the cave is dropped (the save on disk is
+        /// the shop before it). The scene loads again and opens on the menu over the new starting point.
+        /// </summary>
+        public void ReturnToMainMenu()
+        {
+            SaveNow();
+            startingOver = true;
+            SceneManager.LoadScene(gameObject.scene.path);
+        }
+
+        /// <summary>Closes the game under the same rule as <see cref="ReturnToMainMenu"/>.</summary>
+        public void QuitGame()
+        {
+            SaveNow();
+            startingOver = true;
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         /// <summary>Skips whatever part of the tutorial is running (cheats, tests).</summary>
