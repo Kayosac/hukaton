@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions
 
         [Header("Fit")]
         [Tooltip("Shell width over the body's width (the crystals stick out of the outline).")]
-        [Min(1)] public float widthPadding = 1.45f;
+        [Min(1)] public float widthPadding = 1.2f;
         [Tooltip("Shell height over the body's height (the crown crystal sits above the head).")]
         [Min(1)] public float heightPadding = 1.3f;
         [Tooltip("How far the shell sinks into the ground, as a share of its height.")]

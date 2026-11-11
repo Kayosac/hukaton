@@ -178,11 +178,16 @@ namespace Hakaton.Expeditions
                 var bounds = new Bounds(transform.position, Vector3.zero);
                 foreach (var c in GetComponentsInChildren<Collider>())
                     if (c.enabled && !c.isTrigger) bounds.Encapsulate(c.bounds);
+                // The model may be bigger than its colliders (a mimic's lid and straps): cover what is seen.
+                foreach (var r in GetComponentsInChildren<Renderer>())
+                    if (r.enabled && (r is MeshRenderer || r is SkinnedMeshRenderer) && !r.GetComponent("TMP_Text")
+                        && (!shell || !r.transform.IsChildOf(shell.transform)))
+                        bounds.Encapsulate(r.bounds);
                 height = Mathf.Max(.3f, bounds.max.y - transform.position.y);
                 radius = Mathf.Max(.2f, Mathf.Max(bounds.extents.x, bounds.extents.z));
                 centre = new Vector3(bounds.center.x, transform.position.y, bounds.center.z);
             }
-            float widthPadding = kit ? kit.widthPadding : 1.45f, heightPadding = kit ? kit.heightPadding : 1.3f;
+            float widthPadding = kit ? kit.widthPadding : 1.2f, heightPadding = kit ? kit.heightPadding : 1.3f;
             shellHeight = height * heightPadding;
             shellRadius = radius * widthPadding;
             shellBase = centre - Vector3.up * shellHeight * (kit ? kit.sink : .06f);

@@ -90,6 +90,8 @@ def shell(name, seed, twist, lean, n_spikes):
     r=random.Random(seed)
     body=hull_object(name, shell_points(seed,n_spikes=0), twist=0)
     for v in body.data.vertices: v.co.x*=1.0; v.co.z*=0.95
+    bx=[v.co.x for v in body.data.vertices]; by=[v.co.y for v in body.data.vertices]
+    core=((min(bx)+max(bx))/2,(min(by)+max(by))/2,max(max(bx)-min(bx),max(by)-min(by)))
     for s in range(n_spikes):
         az=r.random()*math.tau
         z=r.uniform(.15,.85)
@@ -109,7 +111,10 @@ def shell(name, seed, twist, lean, n_spikes):
         v.co.y=x*math.sin(ang)+y*math.cos(ang)+lean.y*h*h
     bmesh.ops.triangulate(bm, faces=bm.faces); bm.normal_update(); bm.to_mesh(me); bm.free()
     for p in me.polygons: p.use_smooth=False
-    normalize_shell(body)
+    # pivot in the middle of the body (not of the crystals), body ~1 m wide: crystals stick out past it
+    cx,cy,w=core; zs=[v.co.z for v in me.vertices]; z0=min(zs); h=max(zs)-z0
+    for v in me.vertices:
+        v.co.x=(v.co.x-cx)/w; v.co.y=(v.co.y-cy)/w; v.co.z=(v.co.z-z0)/h
     return body
 
 shells=[]
