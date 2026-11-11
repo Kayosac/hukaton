@@ -66,6 +66,10 @@ namespace Hakaton.WorldAssembly
 
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
         public double[] CreatureChance = { .12, .2, .33 };
+        /// <summary>Chance a chunk holds a small event (<see cref="WorldEvents"/>) by ring; ring 0 only harmless ones.</summary>
+        public double[] EventChance = { .25, .28, .3 };
+        /// <summary>Share of beast brawls among the events where a brawl fits (rings 1–2, roomy flat scenes).</summary>
+        public double BrawlShare = .6;
         public double[] FindChance = { .35, .45, .5 };
         public double[] SceneFindChance = { .6, .65, .7 };
         public double[] SecondMaze = { 0, .5, .6 };

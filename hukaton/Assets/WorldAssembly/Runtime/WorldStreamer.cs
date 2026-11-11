@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Events;
 using Hakaton.Feel;
 using Hakaton.OldApiary;
 using UnityEngine;
@@ -55,6 +56,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly List<(int index, WorldLoot loot)> loot = new List<(int, WorldLoot)>();
             public readonly List<(int index, WorldCreature creature)> creatures = new List<(int, WorldCreature)>();
             public TreasureChest chest;
+            public BeastBrawl brawl;
+            public Oddity oddity;
         }
 
         sealed class Memory
@@ -67,6 +70,10 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> awakened = new HashSet<int>();
             public readonly List<GameObject> loose = new List<GameObject>();
             public bool chestOpened;
+            /// <summary>A mimic as it was left: shut, on guard where it last hid, killed or opened.</summary>
+            public ChestMimic.Snapshot? mimic;
+            public BeastBrawl.Save brawl;
+            public Oddity.State? oddity;
         }
 
         const int PocketIndex = 1000;
@@ -485,6 +492,7 @@ namespace Hakaton.WorldAssembly.Unity
 
             SpawnLoot(entry, mem);
             SpawnChest(entry, mem);
+            SpawnEvent(entry, mem);
             SpawnCreatures(entry, mem);
             PaintRoads(entry, coord);
             if (mem != null)
@@ -537,16 +545,9 @@ namespace Hakaton.WorldAssembly.Unity
             if (!table) return;
             var prefab = table.Roll(Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y), Hash.Unit(Seed, Salt.ChestTier, c.X, c.Y));
             if (!prefab) return;
-            // The spots the chunk's finds take (taken or not, so the choice never changes), as SpawnLoot picks them.
-            var sockets = entry.view.findSockets;
-            int n = sockets.Length;
-            if (n == 0) return;
-            freeSockets.Clear();
-            for (int s = 0; s < n; s++) if (sockets[s]) freeSockets.Add(s);
-            for (int i = 0; i < plan.Loot.Count; i++)
-                freeSockets.Remove(plan.Loot[i] != "find" ? 0 : (int)((Pick(c, i) + (uint)i) % (uint)n));
-            if (freeSockets.Count == 0) return;
-            var socket = sockets[freeSockets[(int)(Hash.Of(Seed, Salt.ChestSpot, c.X, c.Y) % (uint)freeSockets.Count)]];
+            int spot = ChestSpot(entry);
+            if (spot < 0) return;
+            var socket = entry.view.findSockets[spot];
 
             // On the ground under the spot (sockets sit .15 m above it); not on a branch or a roof overhead.
             Physics.SyncTransforms();
@@ -560,12 +561,130 @@ namespace Hakaton.WorldAssembly.Unity
                 best = hit.distance;
                 at = hit.point;
             }
-            float yaw = (float)(Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 1) * 360);
-            var chest = Instantiate(prefab, at, Quaternion.Euler(0, yaw, 0), entry.view.transform);
+            // The lock (the chest's -Z) toward the middle of the chunk, where the player comes from, a little askew.
+            var toMiddle = entry.view.transform.position - at;
+            toMiddle.y = 0;
+            float skew = (float)(Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 1) - .5) * 40;
+            var facing = toMiddle.sqrMagnitude > .25f ? Quaternion.LookRotation(-toMiddle) * Quaternion.Euler(0, skew, 0) : Quaternion.Euler(0, skew * 9, 0);
+            var chest = Instantiate(prefab, at, facing, entry.view.transform);
             chest.name = prefab.name;
             chest.world = world;
-            if (mem != null && mem.chestOpened) chest.SetEmpty(); else chest.ResetForOuting();
+            var mimic = chest.GetComponent<ChestMimic>();
+            if (mimic && mem != null && mem.mimic.HasValue)
+            {
+                chest.ResetForOuting();
+                mimic.Restore(mem.mimic.Value);
+            }
+            else if (mem != null && mem.chestOpened) chest.SetEmpty();
+            else chest.ResetForOuting();
             entry.chest = chest;
+        }
+
+        /// <summary>
+        /// Find spots no find of this chunk uses (taken or not, so the choice never changes), as SpawnLoot picks them;
+        /// in socket order.
+        /// </summary>
+        void FreeSockets(Loaded entry)
+        {
+            var plan = entry.plan;
+            var sockets = entry.view.findSockets;
+            int n = sockets.Length;
+            freeSockets.Clear();
+            for (int s = 0; s < n; s++) if (sockets[s]) freeSockets.Add(s);
+            for (int i = 0; i < plan.Loot.Count && n > 0; i++)
+                freeSockets.Remove(plan.Loot[i] != "find" ? 0 : (int)((Pick(plan.Coord, i) + (uint)i) % (uint)n));
+        }
+
+        /// <summary>The find spot the chunk's chest takes, whether the chest is there or not: −1 for none free.</summary>
+        int ChestSpot(Loaded entry)
+        {
+            var c = entry.plan.Coord;
+            FreeSockets(entry);
+            if (freeSockets.Count == 0) return -1;
+            return freeSockets[(int)(Hash.Of(Seed, Salt.ChestSpot, c.X, c.Y) % (uint)freeSockets.Count)];
+        }
+
+        /// <summary>
+        /// Where a payphone or a television stands: a find spot no find and no chest uses; else, when the scene has too
+        /// few, a creature spot; else the navigation nearest the middle of the chunk.
+        /// </summary>
+        bool OdditySpot(Loaded entry, out Vector3 spot)
+        {
+            var c = entry.plan.Coord;
+            uint pick = Hash.Of(Seed, Salt.EventSpot, c.X, c.Y);
+            FreeSockets(entry);
+            if (entry.chest)
+                for (int i = freeSockets.Count - 1; i >= 0; i--)
+                    if (Vector3.Distance(entry.view.findSockets[freeSockets[i]].position, entry.chest.transform.position) < 2.5f) freeSockets.RemoveAt(i);
+            if (freeSockets.Count > 0)
+            {
+                spot = entry.view.findSockets[freeSockets[(int)(pick % (uint)freeSockets.Count)]].position;
+                return true;
+            }
+            var creatureSockets = entry.view.creatureSockets;
+            if (creatureSockets.Length > 0 && creatureSockets[(int)(pick % (uint)creatureSockets.Length)])
+            {
+                // A step aside, so the chunk's beasts gather round it rather than inside it.
+                var socket = creatureSockets[(int)(pick % (uint)creatureSockets.Length)];
+                spot = socket.position + socket.right * 1.6f;
+                if (NavMesh.SamplePosition(spot, out var near, 1.5f, NavMesh.AllAreas)) { spot = near.position; return true; }
+                spot = socket.position;
+                return true;
+            }
+            if (NavMesh.SamplePosition(entry.view.transform.position, out var hit, 5, NavMesh.AllAreas)) { spot = hit.position; return true; }
+            spot = default;
+            return false;
+        }
+
+        /// <summary>
+        /// The chunk's small event (<see cref="WorldEvents"/>), if its plan has one. A payphone or a television stands on
+        /// a free spot (<see cref="OdditySpot"/>), facing the middle of the chunk; a brawl takes the creature spot nearest
+        /// the middle, its packs and variant from the seed. Remembered events come back as left.
+        /// </summary>
+        void SpawnEvent(Loaded entry, Memory mem)
+        {
+            var plan = entry.plan;
+            if (plan.Event == null || !content) return;
+            var c = plan.Coord;
+            var middle = entry.view.transform.position;
+            if (plan.Event == WorldEvents.Brawl)
+            {
+                if (!content.brawl) return;
+                var sockets = entry.view.creatureSockets;
+                Vector3 at = middle;
+                float best = float.MaxValue;
+                foreach (var s in sockets)
+                {
+                    if (!s) continue;
+                    float d = (s.position - middle).sqrMagnitude;
+                    if (d < best) { best = d; at = s.position; }
+                }
+                if (NavMesh.SamplePosition(at, out var hit, 3, NavMesh.AllAreas)) at = hit.position;
+                var brawl = Instantiate(content.brawl, at, Quaternion.identity, entry.view.transform);
+                brawl.name = content.brawl.name;
+                brawl.world = world;
+                brawl.variant = Hash.Unit(Seed, Salt.EventKind + 2, c.X, c.Y) < .5 ? BeastBrawl.Variant.AlreadyFighting : BeastBrawl.Variant.Calm;
+                if (mem != null && mem.brawl != null) brawl.Restore(mem.brawl);
+                else brawl.Spawn((int)Hash.Of(Seed, Salt.EventSeed, c.X, c.Y));
+                entry.brawl = brawl;
+                return;
+            }
+
+            var prefab = plan.Event == WorldEvents.Payphone ? content.payphone : plan.Event == WorldEvents.Television ? content.television : null;
+            if (!prefab) { Debug.LogWarning($"[World] no prefab for the event {plan.Event}"); return; }
+            if (!OdditySpot(entry, out var spot))
+            {
+                Debug.LogWarning($"[World] no room for the {plan.Event} on {plan}");
+                return;
+            }
+            var toMiddle = middle - spot;
+            toMiddle.y = 0;
+            var facing = toMiddle.sqrMagnitude > .25f ? Quaternion.LookRotation(toMiddle) : Quaternion.Euler(0, (float)(Hash.Unit(Seed, Salt.EventSpot, c.X, c.Y, 1) * 360), 0);
+            var oddity = Instantiate(prefab, spot, facing, entry.view.transform);
+            oddity.name = prefab.name;
+            oddity.world = world;
+            if (mem != null && mem.oddity.HasValue) oddity.Restore(mem.oddity.Value);
+            entry.oddity = oddity;
         }
 
         WorldLoot PlaceLoot(string id, Transform socket)
@@ -637,6 +756,9 @@ namespace Hakaton.WorldAssembly.Unity
                 if (!memory.TryGetValue(coord, out var mem)) memory[coord] = mem = new Memory();
                 foreach (var (index, loot) in entry.loot) if (!loot || loot.Taken) mem.takenLoot.Add(index);
                 if (entry.chest && entry.chest.Opened) mem.chestOpened = true;
+                if (entry.chest && entry.chest.TryGetComponent<ChestMimic>(out var mimic)) mem.mimic = mimic.Capture();
+                if (entry.brawl) mem.brawl = entry.brawl.Capture();
+                if (entry.oddity) mem.oddity = entry.oddity.Capture();
                 foreach (var (index, creature) in entry.creatures)
                     mem.creatures[index] = creature && creature.gameObject.activeSelf && creature.Alive
                         ? (true, creature.Health, creature.transform.position)
@@ -661,6 +783,7 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 foreach (var (_, loot) in entry.loot) world.finds.Remove(loot);
                 foreach (var (_, creature) in entry.creatures) world.creatures.Remove(creature);
+                if (entry.brawl) foreach (var beast in entry.brawl.Beasts) world.creatures.Remove(beast);
                 foreach (var o in entry.view.obstacles) world.obstacles.Remove(o);
                 foreach (var p in entry.view.props) world.props.Remove(p);
             }
