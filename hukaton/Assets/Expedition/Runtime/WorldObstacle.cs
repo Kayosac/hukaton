@@ -96,7 +96,7 @@ namespace Hakaton.Expeditions
             {
                 if (kind != ObstacleKind.Lake || !intact) return false;
                 Record();
-                return surfaceTriangles != null || waterSurface;
+                return surfaceTriangles != null || waterSurface != null;
             }
         }
 

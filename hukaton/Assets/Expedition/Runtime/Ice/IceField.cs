@@ -247,7 +247,7 @@ namespace Hakaton.Expeditions
             world.Spawn(freezeBurst, at, Quaternion.identity, tint, Mathf.Clamp(radius / 2.5f, .8f, 1.8f));
             // Frost puffs run out to the rim as the ice gets there.
             const int spokes = 6;
-            var pending = new List<(float when, Vector3 where)>();
+            var pending = new List<(float when, Vector3 spot)>();
             for (int i = 0; i < spokes; i++)
             {
                 float angle = (i + IceCells.Hash(i, (int)seed)) / spokes * Mathf.PI * 2;
@@ -257,12 +257,13 @@ namespace Hakaton.Expeditions
                 pending.Add((Time.time + r / spreadSpeed, AtSurface(p)));
             }
             pending.Sort((a, b) => a.when.CompareTo(b.when));
-            foreach (var (when, where) in pending)
+            float end = (pending.Count > 0 ? pending[pending.Count - 1].when : Time.time) + growSeconds;
+            foreach (var (when, spot) in pending)
             {
                 while (Time.time < when) yield return null;
-                world.Spawn(rimFrost, where, Quaternion.identity, tint, .6f);
+                world.Spawn(rimFrost, spot, Quaternion.identity, tint, .6f);
             }
-            while (Time.time < (pending.Count > 0 ? pending[pending.Count - 1].when : Time.time) + growSeconds) yield return null;
+            while (Time.time < end) yield return null;
             world.Play(settleSound, at, .7f);
         }
 
