@@ -212,9 +212,9 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
-        public void SmallEventsStayOutOfRingZeroOdditiesAreVeryRareAndBrawlsReplaceTheBeasts()
+        public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts()
         {
-            int chunks = 0;
+            int chunks = 0, brawlsNear = 0;
             var kinds = new Dictionary<string, int>();
             for (int seed = 1; seed <= 20; seed++)
             {
@@ -227,15 +227,21 @@ namespace Hakaton.WorldAssembly.Tests
                     Assert.AreEqual(p.Event, again.Chunk(c).Event, $"seed {seed}: the event of {p} depends on the seed and the chunk only");
                     if (p.Event == null) continue;
                     kinds[p.Event] = kinds.TryGetValue(p.Event, out var n) ? n + 1 : 1;
-                    Assert.Greater(p.Ring, 0, $"seed {seed}: an event in ring 0 {p}");
+                    Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: an event at the start {p}");
                     if (p.Event == WorldEvents.Brawl)
                     {
                         Assert.IsTrue(WorldEvents.FitsBrawl(p), $"seed {seed}: no room for a brawl {p}");
                         Assert.IsEmpty(p.Spawns, $"seed {seed}: beasts besides the brawl's packs {p}");
                     }
-                    else Assert.IsTrue(WorldEvents.FitsOddity(p), $"seed {seed}: no place for {p.Event} on {p}");
+                    else
+                    {
+                        Assert.Greater(p.Ring, 0, $"seed {seed}: a {p.Event} in ring 0 {p}");
+                        Assert.IsTrue(WorldEvents.FitsOddity(p), $"seed {seed}: no place for {p.Event} on {p}");
+                    }
+                    if (p.Event == WorldEvents.Brawl && p.Ring == 0) brawlsNear++;
                 }
             }
+            Assert.Greater(brawlsNear, 0, "brawls near the start too");
             int Count(string kind) => kinds.TryGetValue(kind, out var n) ? n : 0;
             int oddities = Count(WorldEvents.Payphone) + Count(WorldEvents.Television);
             UnityEngine.Debug.Log($"[World] small events on {chunks} chunks: {string.Join(", ", kinds.Select(k => $"{k.Key} {k.Value}"))}");

@@ -69,8 +69,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>Peaceful and timid creatures (<see cref="CreatureThemes.IsCalm"/>) come this many times over: each
         /// of their groups is repeated at other spots of the chunk.</summary>
         public int CalmCrowd = 3;
-        /// <summary>Chance of a beast brawl on a chunk where one fits (roomy flat scenes) by ring; never in ring 0.</summary>
-        public double[] BrawlChance = { 0, .12, .165 };
+        /// <summary>Chance of a beast brawl on a chunk where one fits (roomy flat scenes) by ring; any ring.</summary>
+        public double[] BrawlChance = { .12, .12, .165 };
         /// <summary>Chance of a payphone or a television on a chunk where one fits, by ring: very rare, never in ring 0.</summary>
         public double[] OddityChance = { 0, .015, .015 };
         public double[] FindChance = { .35, .45, .5 };
