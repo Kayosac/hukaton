@@ -88,6 +88,42 @@ namespace Hakaton.Expeditions
             transform.localScale = new Vector3(scale.x * Size, scale.y * Size, 1);
         }
 
+        /// <summary>
+        /// Keeps the drawing as it is (pose, squash, offset) and only turns it to the camera again: a frozen creature
+        /// stays a picture facing the player, never a flat card seen edge-on.
+        /// </summary>
+        public void FaceViewer()
+        {
+            if (!viewer) viewer = Camera.main;
+            if (!viewer) return;
+            Vector3 feet = transform.parent ? transform.parent.position : transform.position;
+            Vector3 away = feet - viewer.transform.position;
+            away.y = 0;
+            if (away.sqrMagnitude < .0001f) return;
+            transform.rotation = Quaternion.LookRotation(away.normalized);
+        }
+
+        /// <summary>
+        /// Widest reach of the current drawing to either side of the feet, as a share of its height (the drawing turns
+        /// about the feet, so this is the radius it sweeps). From the sprite's tight outline.
+        /// </summary>
+        public float ReachPerHeight
+        {
+            get
+            {
+                var sprite = spriteRenderer ? spriteRenderer.sprite : null;
+                if (!sprite) return .5f;
+                float reach = 0, low = float.MaxValue, high = float.MinValue;
+                foreach (var v in sprite.vertices)
+                {
+                    reach = Mathf.Max(reach, Mathf.Abs(v.x));
+                    low = Mathf.Min(low, v.y);
+                    high = Mathf.Max(high, v.y);
+                }
+                return high > low ? reach / (high - low) : .5f;
+            }
+        }
+
         public void Tint(Color colour) { if (spriteRenderer) spriteRenderer.color = colour; }
 
         Sprite Pick(CreaturePose pose)

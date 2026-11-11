@@ -11,20 +11,20 @@ namespace Hakaton.Expeditions
     [CreateAssetMenu(menuName = "Hakaton/Expedition/Ice Shell Kit")]
     public sealed class IceShellKit : ScriptableObject
     {
-        [Tooltip("Shell prefabs: a closed crystal chunk, base on y = 0, about 1 × 1 × 1 m. One is picked at random and fitted to the body.")]
+        [Tooltip("Shell prefabs: a crooked block of ice, base on y = 0, never smaller than the 1 × 1 × 1 m box (it hides a camera-facing drawing from every side). One is picked at random and fitted to the body.")]
         public GameObject[] shells = new GameObject[0];
         [Tooltip("Pieces the shell bursts into when a physical hit shatters it.")]
         public IceShard[] shards = new IceShard[0];
 
         [Header("Fit")]
-        [Tooltip("Shell width over the body's width (the crystals stick out of the outline).")]
-        [Min(1)] public float widthPadding = 1.2f;
-        [Tooltip("Shell height over the body's height (the crown crystal sits above the head).")]
-        [Min(1)] public float heightPadding = 1.3f;
+        [Tooltip("Shell width over the reach of the body (the drawing turning to the camera about its feet).")]
+        [Min(1)] public float widthPadding = 1.08f;
+        [Tooltip("Shell height over the body's height.")]
+        [Min(1)] public float heightPadding = 1.12f;
         [Tooltip("How far the shell sinks into the ground, as a share of its height.")]
-        [Range(0, .3f)] public float sink = .06f;
+        [Range(0, .3f)] public float sink = .04f;
         [Tooltip("Random tilt of the shell, degrees: nothing in this valley grows straight.")]
-        [Range(0, 20)] public float tilt = 7;
+        [Range(0, 20)] public float tilt = 3;
 
         [Header("Timing")]
         [Min(.05f)] public float growSeconds = .32f;
