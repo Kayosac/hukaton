@@ -29,7 +29,7 @@ namespace Hakaton.Expeditions
             Feedback(c, meaningful);
         }
 
-        bool FreezeBody(in ImpactContext c, ICardCreature creature, Component root)
+        bool FreezeBody(in ImpactContext c, IFreezable creature, Component root)
         {
             bool wet = root && WetStatus.IsWet(root);
             if (wet && IceEncasement.TryEncase(c.World, root)) return true;
