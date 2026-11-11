@@ -187,6 +187,31 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void PeacefulAndTimidCreaturesComeThriceOver()
+        {
+            int calm = 0, fierce = 0;
+            for (int seed = 1; seed <= 10; seed++)
+            {
+                var map = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    var p = map.Chunk(c);
+                    foreach (var group in p.Spawns.GroupBy(s => (s.Creature, s.Count)))
+                    {
+                        if (CreatureThemes.IsCalm(group.Key.Creature))
+                        {
+                            Assert.That(group.Count() % 3, Is.Zero, $"seed {seed}: {p} holds {group.Key.Creature}×{group.Key.Count} in {group.Count()} groups");
+                            calm += group.Count() * group.Key.Count;
+                        }
+                        else fierce += group.Count() * group.Key.Count;
+                    }
+                }
+            }
+            UnityEngine.Debug.Log($"[World] creatures in 10 worlds: {calm} calm, {fierce} others");
+            Assert.Greater(calm, 0);
+        }
+
+        [Test]
         public void SmallEventsAreSprinkledHarmlessNearTheStartAndBrawlsReplaceTheBeasts()
         {
             int chunks = 0, events = 0;
