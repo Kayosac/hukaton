@@ -19,6 +19,7 @@
 
 - **Частоты форм, кольца, пандусы, переходы, звери и находки** — `Domain/WorldRules.cs`, распределение по местности — `WorldMap.ChooseVariant` и `WorldMap.Populate`.
 - **Какие звери и находки** — `World content.asset`: роли `peaceful`, `small-hostile`, `hostile`, `thicket`, `territorial`, `brute` → префабы из `Assets/Game/Prefabs`.
+- **Сундуки** — таблицы по кольцам в `World content.asset` → `Chest Tables` (`Game/Data/Chests/Chests world ring 1–3`): шанс сундука в куске и веса уровней, дальше от центра — чаще и богаче. Бросок зависит только от зерна мира и координат куска (`WorldStreamer.SpawnChest`); сундук встаёт на свободную точку находки, в стартовой зоне его нет. Открытый сундук остаётся открытым и пустым, когда кусок загружается снова. Сам сундук — `Assets/Expedition/Prefabs/Chests`, уровни — `Game/Data/Chests/Chest 1–5`.
 - **Куски** — префабы в `Chunks/<форма>/`, каталог — `Chunk catalogue.asset`. Их строит генератор: меню **Hakaton → World → Rebuild chunk prefabs** (рельеф и вид — `Editor/TileTerrain.cs` и `Editor/ChunkPrefabBuilder.cs`). Префабы можно править руками, но повторная генерация их перезапишет.
 - **Сцена** — объект `Endless world` в `Game/Scenes/Hakaton.unity` (мир лежит под `Chunks` на высоте 500 м, над лавкой и пещерой). Старая пасека осталась в `Assets/OldApiary`, в сцене её нет.
 

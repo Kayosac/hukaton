@@ -86,5 +86,45 @@ namespace Hakaton.Expeditions.Tests
             }
             finally { Object.DestroyImmediate(table); }
         }
+    
+        static float ExpectedRank(ChestSpawnTable table)
+        {
+            float total = table.entries.Sum(e => e.weight), sum = table.entries.Sum(e => e.weight * e.prefab.tier.rank);
+            return total > 0 ? sum / total : 0;
+        }
+
+        [Test]
+        public void EndlessWorldIsRicherFurtherOut()
+        {
+            string[] rings = { "Chests world ring 1 centre", "Chests world ring 2 middle", "Chests world ring 3 far" };
+            var tables = rings.Select(r => AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/" + r + ".asset")).ToArray();
+            Assert.That(tables.All(t => t && t.entries.All(e => e.prefab)), "ring tables");
+            for (int i = 1; i < tables.Length; i++)
+            {
+                Assert.That(tables[i].chance, Is.GreaterThan(tables[i - 1].chance), rings[i]);
+                Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(tables[i - 1])), rings[i]);
+            }
+            var content = AssetDatabase.LoadAssetAtPath<Object>("Assets/WorldAssembly/World content.asset");
+            var serialized = new SerializedObject(content).FindProperty("chestTables");
+            Assert.That(serialized.arraySize, Is.EqualTo(3));
+            for (int i = 0; i < 3; i++) Assert.That(serialized.GetArrayElementAtIndex(i).objectReferenceValue, Is.EqualTo(tables[i]));
+        }
+
+        [Test]
+        public void OldApiaryHasChestSites()
+        {
+            var apiary = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/OldApiary/Prefabs/Old Apiary.prefab");
+            var sites = apiary.GetComponentsInChildren<ChestSite>(true);
+            Assert.That(sites.Length, Is.GreaterThanOrEqualTo(8));
+            foreach (var site in sites)
+            {
+                Assert.That(site.table, Is.Not.Null, site.name);
+                Assert.That(site.spawnPoints.Length, Is.GreaterThan(0), site.name);
+                Assert.That(site.spawnPoints.All(p => p && p.IsChildOf(site.transform)), site.name);
+            }
+            var hidden = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests Old Apiary hidden.asset");
+            var normal = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests Old Apiary.asset");
+            Assert.That(ExpectedRank(hidden), Is.GreaterThan(ExpectedRank(normal)), "hard-to-reach places hide richer chests");
+        }
     }
 }
