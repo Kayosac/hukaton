@@ -32,4 +32,4 @@ def dangle():
 
 shoot('OD01_Payphone.blend', 'payphone', 1.05, 3.4)
 shoot('OD01_Payphone.blend', 'payphone_used', 1.05, 3.4, dangle)
-shoot('OD02_OldTV.blend', 'tv', .62, 2.4)
+shoot('OD02_OldTV.blend', 'tv', .42, 2.0)
