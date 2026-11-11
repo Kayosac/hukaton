@@ -760,8 +760,14 @@ namespace Hakaton.Expeditions.Cards
             }
             if (Physics.Raycast(from, direction, out hit, distance + thickness, collisionMask, QueryTriggerInteraction.Ignore))
             {
+                // Stop where the centre comes within thickness + skin of that surface — along the motion and never
+                // farther than it asked: placing the piece off the surface along its normal instead flung it sideways
+                // in a crease (a rock wall meeting the ground), into the ground, and the cord sloshed back and forth.
+                // An overlap left over is PushOut's job.
                 normal = hit.normal;
-                stop = hit.point + normal * (thickness + skin);
+                float approach = -Vector3.Dot(direction, normal);
+                float gap = Vector3.Dot(from - hit.point, normal) - (thickness + skin);
+                stop = from + direction * (approach > 1e-4f ? Mathf.Clamp(gap / approach, 0, distance) : distance);
                 return true;
             }
             stop = from + direction * distance;
