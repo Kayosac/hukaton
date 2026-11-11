@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Hakaton.Decks.Unity;
 using Hakaton.Feel;
 using UnityEngine;
@@ -8,8 +9,9 @@ namespace Hakaton.Expeditions
     public enum ObstacleKind { Thorns, Lake }
 
     /// <summary>
-    /// A place cards change for the rest of the outing. Thorns burn open with Fire; the lake freezes with Ice.
-    /// The change animates (ice spreading, thicket burning down) but takes effect immediately.
+    /// A place cards change for the rest of the outing. Thorns burn open with Fire (the change animates, the thicket
+    /// burning down, but takes effect immediately). A lake is water: deep water drowns, and the Ice card freezes it in a
+    /// radius around the hit through <see cref="IceField"/> — never the whole mesh at once; Fire melts it back.
     /// </summary>
     public sealed class WorldObstacle : MonoBehaviour
     {
@@ -19,6 +21,8 @@ namespace Hakaton.Expeditions
         public GameObject intact, changed;
         [Tooltip("Lake only: solid surface on the Water layer that cards hit and the player falls through.")]
         public Collider waterSurface;
+        [Tooltip("Lake only: an Ice card that hits this water freezes at least this radius, m (0 = the card's own). For a stretch a story step needs crossed with one card.")]
+        [Min(0)] public float minimumIceRadius;
         public ExpeditionWorld world;
         [Header("Feedback")]
         public VfxBurst reactVfx;
@@ -29,8 +33,17 @@ namespace Hakaton.Expeditions
         [Min(.1f)] public float transformSeconds = 1.1f;
         public Color tint = Color.white;
 
-        public bool Resolved { get; private set; }
+        /// <summary>Thorns: burnt open. Lake: some of it is frozen right now (ice that holds, in <see cref="IceField"/>).</summary>
+        public bool Resolved => kind == ObstacleKind.Lake ? Iced : burnt;
+        /// <summary>Lake: is any of this water under ice that holds?</summary>
+        public bool Iced => world && world.ice && HasSurface && world.ice.Covers(SurfaceBounds);
+
+        bool burnt;
         Vector3[] surfaceTriangles;
+        Bounds surfaceBounds;
+        bool hasSurfaceBounds;
+        // Surface triangles bucketed by 1 m squares (start indices into surfaceTriangles) for quick point queries.
+        Dictionary<Vector2Int, List<int>> surfaceGrid;
         Renderer surfaceRenderer;
         Vector3 changedScale = Vector3.one, intactScale = Vector3.one;
         bool recorded;
@@ -41,7 +54,7 @@ namespace Hakaton.Expeditions
         {
             if (recorded) return;
             recorded = true;
-            changedScale = changed.transform.localScale;
+            if (changed) changedScale = changed.transform.localScale;
             intactScale = intact.transform.localScale;
             intactRenderers = intact.GetComponentsInChildren<Renderer>(true);
             block = new MaterialPropertyBlock();
@@ -60,6 +73,89 @@ namespace Hakaton.Expeditions
             var toWorld = filter.transform.localToWorldMatrix;
             surfaceTriangles = new Vector3[indices.Length];
             for (int i = 0; i < indices.Length; i++) surfaceTriangles[i] = toWorld.MultiplyPoint3x4(vertices[indices[i]]);
+            surfaceGrid = new Dictionary<Vector2Int, List<int>>();
+            for (int i = 0; i + 2 < surfaceTriangles.Length; i += 3)
+            {
+                Vector3 a = surfaceTriangles[i], b = surfaceTriangles[i + 1], c = surfaceTriangles[i + 2];
+                int x0 = Mathf.FloorToInt(Mathf.Min(a.x, Mathf.Min(b.x, c.x))), x1 = Mathf.FloorToInt(Mathf.Max(a.x, Mathf.Max(b.x, c.x)));
+                int z0 = Mathf.FloorToInt(Mathf.Min(a.z, Mathf.Min(b.z, c.z))), z1 = Mathf.FloorToInt(Mathf.Max(a.z, Mathf.Max(b.z, c.z)));
+                for (int x = x0; x <= x1; x++)
+                    for (int z = z0; z <= z1; z++)
+                    {
+                        var key = new Vector2Int(x, z);
+                        if (!surfaceGrid.TryGetValue(key, out var list)) surfaceGrid[key] = list = new List<int>();
+                        list.Add(i);
+                    }
+            }
+        }
+
+        /// <summary>Lake: does it have a surface the ice can form on (a readable water mesh or the surface collider)?</summary>
+        public bool HasSurface
+        {
+            get
+            {
+                if (kind != ObstacleKind.Lake || !intact) return false;
+                Record();
+                return surfaceTriangles != null || waterSurface;
+            }
+        }
+
+        /// <summary>Lake: world box around the water surface (the water mesh, else the surface collider).</summary>
+        public Bounds SurfaceBounds
+        {
+            get
+            {
+                Record();
+                if (!hasSurfaceBounds)
+                {
+                    // The water mesh never moves once placed: measured once.
+                    if (surfaceTriangles != null && surfaceTriangles.Length > 0)
+                    {
+                        surfaceBounds = new Bounds(surfaceTriangles[0], Vector3.zero);
+                        foreach (var v in surfaceTriangles) surfaceBounds.Encapsulate(v);
+                        hasSurfaceBounds = true;
+                    }
+                    else if (waterSurface) return waterSurface.bounds;
+                    else return barrier ? barrier.bounds : new Bounds(transform.position, Vector3.zero);
+                }
+                return surfaceBounds;
+            }
+        }
+
+        /// <summary>
+        /// Lake: the water surface height right above or below <paramref name="point"/>; false beside the water (unlike
+        /// <see cref="WaterLevelAt"/>, which falls back to a level for drowning). Used by the ice to follow the shore.
+        /// </summary>
+        public bool SurfaceAt(Vector3 point, out float level)
+        {
+            level = 0;
+            if (kind != ObstacleKind.Lake) return false;
+            Record();
+            if (surfaceTriangles != null)
+            {
+                if (!surfaceGrid.TryGetValue(new Vector2Int(Mathf.FloorToInt(point.x), Mathf.FloorToInt(point.z)), out var starts)) return false;
+                float best = float.NegativeInfinity;
+                foreach (int i in starts)
+                {
+                    Vector3 a = surfaceTriangles[i], b = surfaceTriangles[i + 1], c = surfaceTriangles[i + 2];
+                    float d = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
+                    if (Mathf.Abs(d) < 1e-7f) continue;
+                    float u = ((b.z - c.z) * (point.x - c.x) + (c.x - b.x) * (point.z - c.z)) / d;
+                    float v = ((c.z - a.z) * (point.x - c.x) + (a.x - c.x) * (point.z - c.z)) / d;
+                    const float edge = -1e-4f;
+                    if (u < edge || v < edge || 1 - u - v < edge) continue;
+                    best = Mathf.Max(best, u * a.y + v * b.y + (1 - u - v) * c.y);
+                }
+                if (float.IsNegativeInfinity(best)) return false;
+                level = best;
+                return true;
+            }
+            if (!waterSurface || !waterSurface.enabled) return false;
+            var box = waterSurface.bounds;
+            var ray = new Ray(new Vector3(point.x, box.max.y + 1, point.z), Vector3.down);
+            if (!waterSurface.Raycast(ray, out var hit, box.size.y + 2)) return false;
+            level = hit.point.y;
+            return true;
         }
 
         /// <summary>Water surface height above <paramref name="point"/>; false when the point is beside the water.</summary>
@@ -78,21 +174,29 @@ namespace Hakaton.Expeditions
         {
             Record();
             StopAllCoroutines();
-            Resolved = false;
+            burnt = false;
             intact.SetActive(true);
             intact.transform.localScale = intactScale;
             foreach (var r in intactRenderers) r.SetPropertyBlock(null);
-            changed.SetActive(false);
-            changed.transform.localScale = changedScale;
+            // A lake's old whole-mesh ice (still baked into some prefabs) is never shown: ice lives in the IceField.
+            if (changed)
+            {
+                changed.SetActive(false);
+                changed.transform.localScale = changedScale;
+            }
             barrier.enabled = true;
             if (waterSurface) waterSurface.enabled = true;
         }
 
-        /// <summary>Already frozen / burnt when its part of the world loads again in the same outing: no animation.</summary>
+        /// <summary>
+        /// Already burnt when its part of the world loads again in the same outing: no animation. A lake's ice is kept
+        /// by the <see cref="IceField"/> in world space, so a lake just comes back as water under it.
+        /// </summary>
         public void ResolveAtOnce()
         {
             ResetForOuting();
-            Resolved = true;
+            if (kind == ObstacleKind.Lake) return;
+            burnt = true;
             barrier.enabled = false;
             if (waterSurface) waterSurface.enabled = false;
             changed.SetActive(true);
@@ -111,34 +215,23 @@ namespace Hakaton.Expeditions
         public bool React(CardAction action, Vector3 point)
         {
             Record();
-            if (Resolved) return false;
-            bool matches = kind == ObstacleKind.Thorns ? action == CardAction.Fire : action == CardAction.Freeze;
-            if (!matches) return false;
-            Resolved = true;
-            StartCoroutine(kind == ObstacleKind.Lake ? Freeze(point) : Burn(point));
-            world.Announce(kind == ObstacleKind.Lake ? "Лёд выдержит до конца вылазки" : "Заросли выгорели — путь открыт", 2.5f);
+            if (kind == ObstacleKind.Lake)
+            {
+                // Ice and fire on water go through the field, in a radius around the point.
+                if (!world || !world.ice) return false;
+                if (action == CardAction.Freeze) return world.ice.Freeze(point, Mathf.Max(DefaultIceRadius, minimumIceRadius));
+                if (action == CardAction.Fire) return world.ice.Melt(point, DefaultIceRadius);
+                return false;
+            }
+            if (burnt || action != CardAction.Fire) return false;
+            burnt = true;
+            StartCoroutine(Burn(point));
+            world.Announce("Заросли выгорели — путь открыт", 2.5f);
             return true;
         }
 
-        IEnumerator Freeze(Vector3 point)
-        {
-            barrier.enabled = false;
-            if (waterSurface) waterSurface.enabled = false;
-            changed.SetActive(true);
-            world.Play(reactSound, point);
-            world.Spawn(reactVfx, point, Quaternion.identity, tint, 1.2f);
-            world.Spawn(reactVfx, changed.transform.position + Vector3.up * .2f, Quaternion.identity, tint, 2f);
-            float time = 0;
-            while (time < transformSeconds)
-            {
-                time += Time.deltaTime;
-                float k = Ease.OutBack(time / transformSeconds, 1.1f);
-                changed.transform.localScale = new Vector3(changedScale.x * k, changedScale.y, changedScale.z * k);
-                yield return null;
-            }
-            changed.transform.localScale = changedScale;
-            intact.SetActive(false);
-        }
+        /// <summary>Radius for a freeze or melt asked of the lake itself (not through a card), m.</summary>
+        const float DefaultIceRadius = 2.5f;
 
         IEnumerator Burn(Vector3 point)
         {
@@ -167,7 +260,7 @@ namespace Hakaton.Expeditions
                     r.SetPropertyBlock(block);
                 }
                 intact.transform.localScale = new Vector3(intactScale.x, intactScale.y * Mathf.Lerp(1, .25f, Ease.InCubic(k)), intactScale.z);
-                if (k > .35f && barrier.enabled) { barrier.enabled = false; changed.SetActive(true); }
+                if (k > .35f && barrier.enabled) { barrier.enabled = false; if (changed) changed.SetActive(true); }
                 yield return null;
             }
             if (world.sfx) world.sfx.StopLoop(this);
@@ -189,11 +282,12 @@ namespace Hakaton.Expeditions
 
         void OnTriggerStay(Collider other)
         {
-            if (kind != ObstacleKind.Lake || Resolved || !world.Running) return;
+            if (kind != ObstacleKind.Lake || !world || !world.Running) return;
             if (other.GetComponentInParent<PlayerVitals>() != world.vitals) return;
             // Wading is free. The moment the feet touch water over a deep bed the player is lost — drown at once,
-            // no waiting until the body has sunk.
+            // no waiting until the body has sunk. Standing on ice that holds is not in the water.
             Vector3 feet = world.motor.transform.position;
+            if (world.ice && world.ice.IsSolidAt(feet)) return;
             if (!WaterLevelAt(feet, out float level) || feet.y > level + .05f) return;
             float limit = world.settings.drownDepth;
             if (level - feet.y >= limit || DepthAt(feet, level) >= limit) world.Drown();
