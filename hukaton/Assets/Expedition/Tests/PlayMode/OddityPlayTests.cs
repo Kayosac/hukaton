@@ -132,6 +132,25 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator LureCardLeavesAggressiveCreaturesAlone()
+        {
+            var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Goblin dog.prefab");
+            Assert.That(prefab.temperament, Is.EqualTo(Temperament.Aggressive));
+            Vector3 player = world.motor.transform.position;
+            var creature = Object.Instantiate(prefab, player + new Vector3(0, 0, -40), Quaternion.identity);
+            creature.world = world;
+            creature.ResetForOuting(null);
+            world.creatures.Clear();
+            world.creatures.Add(creature);
+            yield return Seconds(1);
+            var noise = world.SpawnForOuting(noisePrefab, player + new Vector3(0, 0, -30), Quaternion.identity);
+            noise.Setup(6, 50);
+            yield return Seconds(.3f);
+            Assert.That(creature.Investigating, Is.False, "an openly hostile beast does not answer the lure");
+        }
+
+        [UnityTest]
         public IEnumerator UsingItAgainDoesNothing()
         {
             var moon = AssetDatabase.LoadAssetAtPath<MoonGravityOddityEffect>(Data + "Moon gravity.asset");
