@@ -158,10 +158,10 @@ def build_tv():
     body, screen = Part(), Part()
     cy = .36
     # the wooden front case (rounded box), its rim, the beige bezel, the screen hole
-    case = [rrect(0, cy, .25, .8, .58, .05), rrect(0, cy, .21, .83, .6, .06), rrect(0, cy, -.1, .81, .59, .06)]
+    case = [rrect(0, cy, .25, .8, .58, .08), rrect(0, cy, .21, .84, .61, .09), rrect(0, cy, -.1, .82, .6, .09)]
     loft(body, case, 'casing', jitter=.006)
-    bezel_out = rrect(0, cy, .25, .8, .58, .05)
-    bezel_in = rrect(0, cy, .252, .73, .51, .045)
+    bezel_out = rrect(0, cy, .25, .8, .58, .08)
+    bezel_in = rrect(0, cy, .252, .73, .51, .065)
     io = [body.v(J(p, .002)) for p in bezel_out]; ii = [body.v(p) for p in bezel_in]
     n = len(bezel_out)
     for i in range(n):
@@ -218,7 +218,60 @@ def uv_rect(reg, name):
     pad = 1
     return ((x0 + pad) / 512, 1 - (y1 - pad) / 512, (x1 - pad) / 512, 1 - (y0 + pad) / 512)
 
-def to_object(name, part, material, reg, origin=Vector((0, 0, 0))):
+# ---------------- living curvature ----------------
+# The concepts are hand-drawn: nothing is straight. Long edges are subdivided and every vertex goes through a smooth
+# per-object warp (lean, bend, bulging sides, domed top, a little twist) in Unity space, so the flat boxes sag and swell.
+
+def smooth(a, b, x):
+    t = min(1.0, max(0.0, (x - a) / (b - a)))
+    return t * t * (3 - 2 * t)
+
+def warp_phone(p):
+    x, y, z = p
+    # the post bends (a soft S), the whole thing leans a little
+    bend = .03 * math.sin(math.pi * min(y, 1.0)) - .008 * math.sin(2 * math.pi * min(y, 1.0))
+    x += bend * (1 - smooth(.95, 1.05, y)) + .035 * y
+    # the booth: walls belly out, the box twists and leans forward, the roof sits askew
+    k = smooth(.95, 1.8, y)
+    if y > .95:
+        belly = 1 + .07 * math.sin(math.pi * min(1, (y - .95) / .85))
+        x *= belly; z *= 1 + .04 * math.sin(math.pi * min(1, (y - .95) / .85))
+        a = .07 * k
+        x, z = x * math.cos(a) - z * math.sin(a), x * math.sin(a) + z * math.cos(a)
+        z += .03 * k
+    if y > 1.76:
+        y += .035 * x + .015 * math.sin(z * 9)
+        x += .02
+    # the base plate: one corner sunk
+    if y < .07:
+        y += .012 * (x + z)
+    return (x, y, z)
+
+def warp_tv(p):
+    x, y, z = p
+    cy = .36
+    h = (y - .06) / .62
+    # sides bulge in the middle, the case leans and twists, the top domes, the face swells
+    if y > .05:
+        x *= (1 + .1 * math.sin(math.pi * min(1, max(0, h)))) * (1 - .14 * (y - cy))
+        x += .09 * (y - cy) + .02 * math.sin(z * 5)
+        a = .16 * (y - cy) + .04
+        z += .03 * math.sin(x * 4) * smooth(.1, .3, y)
+        x, z = x * math.cos(a) - z * math.sin(a), x * math.sin(a) + z * math.cos(a)
+        y += .045 * math.cos(x * 3.4) * smooth(.45, .66, y) - .03 * smooth(.45, .66, y) * (x + .4)
+        y += .012 * math.sin(z * 6) * smooth(.4, .66, y)
+        if z > .15:
+            z += .02 * max(0, 1 - (x / .45) ** 2) * max(0, 1 - ((y - cy) / .32) ** 2)
+    return (x, y, z)
+
+def subdivide_long(bm, limit):
+    """Cuts long edges so the warp can curve them."""
+    for _ in range(2):
+        long = [e for e in bm.edges if e.calc_length() > limit]
+        if not long: break
+        bmesh.ops.subdivide_edges(bm, edges=long, cuts=1, use_grid_fill=True)
+
+def to_object(name, part, material, reg, origin=Vector((0, 0, 0)), warp=None, limit=.14):
     mesh = bpy.data.meshes.new(name)
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
@@ -252,11 +305,19 @@ def to_object(name, part, material, reg, origin=Vector((0, 0, 0))):
                     continue
                 a, b = [(p.y, p.z), (p.x, p.z), (p.x, p.y)][ax]
                 loop[uv].uv = (u0 + (u1 - u0) * min(1, a / span), v0 + (v1 - v0) * min(1, b / span))
+    if warp:
+        subdivide_long(bm, limit)
+        o = Vector(origin)
+        wo = Vector(warp(tuple(o)))
+        for v in bm.verts:
+            u = Vector((v.co.x, v.co.z, -v.co.y)) + o          # back to Unity space, absolute
+            w = Vector(warp(tuple(u))) - wo
+            v.co = B(tuple(w))
     bm.normal_update(); bm.to_mesh(mesh); bm.free(); mesh.validate()
     mat = bpy.data.materials.get(material) or bpy.data.materials.new(material)
     mesh.materials.append(mat)
     for poly in mesh.polygons: poly.use_smooth = False
-    obj.location = B(origin)
+    obj.location = B(warp(tuple(origin)) if warp else origin)
     return obj
 
 def fix_normals(obj):
@@ -296,9 +357,9 @@ def main():
     stats = {}
     bpy.ops.wm.read_factory_settings(use_empty=True)
     body, handset, lamp, pivot = build_phone()
-    ob = to_object('OD01_Body', body, 'M_OD01_Payphone', PHONE_REG)
-    oh = to_object('OD01_Handset', handset, 'M_OD01_Payphone', PHONE_REG, origin=pivot)
-    ol = to_object('OD01_Lamp', lamp, 'M_OD01_Lamp', PHONE_REG)
+    ob = to_object('OD01_Body', body, 'M_OD01_Payphone', PHONE_REG, warp=warp_phone)
+    oh = to_object('OD01_Handset', handset, 'M_OD01_Payphone', PHONE_REG, origin=pivot, warp=warp_phone)
+    ol = to_object('OD01_Lamp', lamp, 'M_OD01_Lamp', PHONE_REG, warp=warp_phone)
     for o in (ob, oh, ol): fix_normals(o)
     textured('M_OD01_Payphone', 'T_Payphone.png'); textured('M_OD01_Lamp', 'T_Payphone.png')
     stats['payphone'] = export('SM_OD01_Payphone', [ob, oh, ol], 'SM_OD01_Payphone')
@@ -306,8 +367,8 @@ def main():
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     body, screen = build_tv()
-    tb = to_object('OD02_Body', body, 'M_OD02_OldTV', TV_REG)
-    ts = to_object('OD02_Screen', screen, 'M_OD02_Screen', TV_REG)
+    tb = to_object('OD02_Body', body, 'M_OD02_OldTV', TV_REG, warp=warp_tv, limit=.1)
+    ts = to_object('OD02_Screen', screen, 'M_OD02_Screen', TV_REG, warp=warp_tv, limit=.1)
     fix_normals(tb)
     textured('M_OD02_OldTV', 'T_OldTV.png'); textured('M_OD02_Screen', 'T_OldTV_Static.png')
     stats['tv'] = export('SM_OD02_OldTV', [tb, ts], 'SM_OD02_OldTV')
