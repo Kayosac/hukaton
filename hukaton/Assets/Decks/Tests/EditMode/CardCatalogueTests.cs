@@ -28,7 +28,7 @@ namespace Hakaton.Decks.Tests
         /// <summary>The main I / II / III number of each card as the PC shows it.</summary>
         static readonly Dictionary<string, (float, float, float)> Levels = new Dictionary<string, (float, float, float)>
         {
-            { "impulse", (8, 11, 14) }, { "ice", (2, 4, 7) }, { "fire", (1, 2, 4) }, { "lure", (6, 12, 20) },
+            { "impulse", (8, 11, 14) }, { "ice", (2, 4, 7) }, { "fire", (1, 2, 4) }, { "lure", (20, 50, 100) },
             { "tar_puddle", (2, 3, 4) }, { "attraction", (6, 9, 12) }, { "fog", (8, 14, 24) }, { "rain_cloud", (3, 4.5f, 6) },
             { "lightning", (3, 5, 8) }, { "stone_cube", (1.1f, 1.5f, 2) }, { "branch_bridge", (5, 8, 12) },
             { "lightness", (6, 12, 20) }, { "mushroom_trampoline", (80, 90, 100) }, { "moon_gravity", (12, 25, 45) },
