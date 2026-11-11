@@ -132,7 +132,7 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator LureCardLeavesAggressiveCreaturesAlone()
+        public IEnumerator LureCardCallsAggressiveCreaturesToo()
         {
             var noisePrefab = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.LureNoise>("Assets/Game/Prefabs/Cards/Lure/Lure.prefab");
             var prefab = AssetDatabase.LoadAssetAtPath<WorldCreature>("Assets/Game/Prefabs/Goblin dog.prefab");
@@ -147,7 +147,7 @@ namespace Hakaton.Expeditions.Tests.PlayMode
             var noise = world.SpawnForOuting(noisePrefab, player + new Vector3(0, 0, -30), Quaternion.identity);
             noise.Setup(6, 50);
             yield return Seconds(.3f);
-            Assert.That(creature.Investigating, Is.False, "an openly hostile beast does not answer the lure");
+            Assert.That(creature.Investigating, Is.True, "an aggressive beast that has not noticed the player comes too");
         }
 
         [UnityTest]

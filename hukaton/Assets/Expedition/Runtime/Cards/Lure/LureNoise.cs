@@ -6,8 +6,8 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>
     /// The noise source left by «Манок» (prefab <c>Assets/Game/Prefabs/Cards/Lure/Lure.prefab</c>): chirps at the point
     /// of impact for 6 / 12 / 20 s. Every call it asks the calm creatures within hearing (20 / 40 / 70 m) to come and check
-    /// (<see cref="WorldCreature.Investigate"/>): only creatures that are not openly hostile (any temperament but Aggressive) and only while idle, wandering or
-    /// grazing; they come from anywhere within hearing —
+    /// (<see cref="WorldCreature.Investigate"/>): every creature, whatever its temperament, while it is idle, wandering or grazing; they come from anywhere within
+    /// hearing —
     /// the noise pulls them out of their territory and they settle at it; creatures already alert or attacking ignore it. A creature that calms down while the noise
     /// still sounds comes too. A small ring on the ground and a sound wave at each chirp mark it.
     /// </summary>
@@ -84,11 +84,8 @@ namespace Hakaton.Expeditions.Cards
             foreach (var creature in World.ActiveCreatures)
             {
                 if (!creature || !creature.isActiveAndEnabled || !creature.Alive) continue;
-                // Peaceful beasts only: openly hostile ones (Aggressive) do not answer the card at all. Exception: a calm
-                // beast-brawl pack, which the lure is meant to set on the other pack.
-                if (creature.temperament == Temperament.Aggressive && creature.Referee == null) continue;
                 if (Vector3.Distance(creature.Position, here) > hearing) continue;
-                // Calm creatures only, attackers ignore it; the card pulls them out of their territory too.
+                // Every calm creature, aggressive ones too; attackers ignore it. The card pulls them out of their territory too.
                 if (creature.Investigate(here, remaining, pull: true)) called++;
             }
         }
