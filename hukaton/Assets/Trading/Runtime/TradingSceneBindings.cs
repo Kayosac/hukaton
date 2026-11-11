@@ -21,6 +21,7 @@ namespace Hakaton.Trading.Unity
         [Header("Held stock")]
         public Transform HeldItemAnchor;
         public GameObject HeldItem;
+        public HeldStockView HeldStock;
 
         [Header("Display — same slot order in all three arrays")]
         public Transform[] SlotAnchors;
@@ -40,7 +41,7 @@ namespace Hakaton.Trading.Unity
         public bool ValidateReferences()
         {
             bool valid = ViewCamera && PlayerRoot && PlayerController && Movement && Control && Stamina && CounterPose && HeldItemAnchor
-                && HeldItem && Customer && Customers && Customers.actor && CustomerItemTarget && SoldItemsRoot
+                && HeldItem && HeldStock && HeldStock.IsConfigured && Customer && Customers && Customers.actor && CustomerItemTarget && SoldItemsRoot
                 && Complete(SlotAnchors, 6) && Complete(SlotRenderers, 6) && Complete(SlotColliders, 6);
             if (ShopView) valid &= ShopView.IsConfigured && DealItemAnchor;
             if (!valid) Debug.LogError("Trading scene references are incomplete. Check TradingSceneBindings in the Inspector.", this);

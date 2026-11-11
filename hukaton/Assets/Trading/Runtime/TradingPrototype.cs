@@ -29,8 +29,6 @@ namespace Hakaton.Trading.Unity
         public float holdThreshold = .35f;
         public float autoPlaceInterval = .16f;
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
-        [Tooltip("Size of the selected stock in the shopkeeper's hand relative to the same item on the shelf.")]
-        [Range(.1f, 1)] public float heldItemScale = .5f;
         [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
         [Min(0)] public float reactionBeat = .38f;
 
@@ -81,8 +79,7 @@ namespace Hakaton.Trading.Unity
         public StartingStock[] startingStock = new StartingStock[0];
         GameObject[] displayed;
         long[] displayedIds;
-        GameObject heldItem, heldVisual;
-        string heldVisualId;
+        GameObject heldItem;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
@@ -473,7 +470,7 @@ namespace Hakaton.Trading.Unity
             }
             PresentDealItem();
             heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
-            if (Session.Inventory.Count > 0) PresentHeldItem(Session.Inventory[selectedInventory].Definition.Id);
+            if (Session.Inventory.Count > 0) World.HeldStock.Show(lootCatalog, Item(Session.Inventory[selectedInventory].Definition.Id));
         }
 
         /// <summary>Every catalogue item becomes a shop definition; then the optional starting stock, interleaved.</summary>
@@ -524,18 +521,6 @@ namespace Hakaton.Trading.Unity
             Vector3 scale = root.lossyScale;
             box.size = new Vector3(bounds.size.x / Mathf.Max(.0001f, Mathf.Abs(scale.x)),
                 bounds.size.y / Mathf.Max(.0001f, Mathf.Abs(scale.y)), bounds.size.z / Mathf.Max(.0001f, Mathf.Abs(scale.z)));
-        }
-
-        /// <summary>The hand shows a copy of the same look that goes on the shelf.</summary>
-        void PresentHeldItem(string id)
-        {
-            if (heldVisual && heldVisualId == id) return;
-            if (heldVisual) Destroy(heldVisual);
-            heldVisualId = id;
-            heldVisual = lootCatalog.CreateVisual(Item(id), heldItem.transform, true);
-            if (!heldVisual) return;
-            heldVisual.transform.localScale = Vector3.one * heldItemScale;
-            foreach (var collider in heldVisual.GetComponentsInChildren<Collider>()) collider.enabled = false;
         }
 
         void PresentDealItem()

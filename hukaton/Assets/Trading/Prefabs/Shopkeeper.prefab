@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9094141681807970486}
+  - component: {fileID: 9012924572578921781}
   m_Layer: 0
   m_Name: HeldItemAnchor
   m_TagString: Untagged
@@ -25,13 +26,30 @@ Transform:
   m_GameObject: {fileID: 5400444430808104872}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.42, y: -0.3, z: 0.8}
+  m_LocalPosition: {x: 0.3, y: -0.14, z: 0.45}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1370322449826493623}
   m_Father: {fileID: 3852019822266661688}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9012924572578921781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5400444430808104872}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6251eb1a8923046779d9f34f7e1e7211, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Trading.Runtime::Hakaton.Trading.Unity.HeldStockView
+  viewCamera: {fileID: 4412202927896808676}
+  visualRoot: {fileID: 1370322449826493623}
+  viewportSize: {x: 0.32, y: 0.46}
+  viewportInset: {x: 0.025, y: 0.015}
+  distance: 0.45
 --- !u!1001 &3081424687147285622
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -290,5 +308,10 @@ AudioSource:
 --- !u!4 &3852019822266661688 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1999703791220063032, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+  m_PrefabInstance: {fileID: 3365736614291292160}
+  m_PrefabAsset: {fileID: 0}
+--- !u!20 &4412202927896808676 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 1409121672058997988, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
   m_PrefabInstance: {fileID: 3365736614291292160}
   m_PrefabAsset: {fileID: 0}
