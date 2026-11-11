@@ -25,6 +25,8 @@ namespace Hakaton.WorldAssembly
         public readonly List<string> Loot = new List<string>();
         /// <summary>Guaranteed reward on the island / maze heart.</summary>
         public string PocketReward;
+        /// <summary>A small event on this chunk (<see cref="WorldEvents"/>), or null.</summary>
+        public string Event;
 
         public int RegionCount => Shape.Regions.Length + Variant.ExtraRegions.Length;
         public Region RegionAt(int index) => index < Shape.Regions.Length ? Shape.Regions[index] : Variant.ExtraRegions[index - Shape.Regions.Length];
@@ -280,6 +282,7 @@ namespace Hakaton.WorldAssembly
             plan.Spawns.Clear();
             plan.Loot.Clear();
             plan.PocketReward = null;
+            plan.Event = null;
             if (WorldRules.IsStartArea(c)) return;
             int ring = plan.Ring;
             double creatureRoll = Hash.Unit(Seed, Salt.Creature, c.X, c.Y);
@@ -348,6 +351,9 @@ namespace Hakaton.WorldAssembly
             if (plan.MazeHeart) plan.PocketReward = ring == 2 ? "crystal" : "find-hard";
             if (plan.Variant.Id == "island" || plan.Variant.Id == TileShapes.ForestDeadfall || TileShapes.IsPocketScene(plan.Variant.Id))
                 plan.PocketReward = ring == 2 || plan.BaseLevel >= 2 ? "crystal" : "find-hard";
+            plan.Event = WorldEvents.Choose(plan, Seed, Rules);
+            // The brawl's two packs are the chunk's beasts.
+            if (plan.Event == WorldEvents.Brawl) plan.Spawns.Clear();
         }
 
         // ---------- ring 0–1 guarantee ----------
