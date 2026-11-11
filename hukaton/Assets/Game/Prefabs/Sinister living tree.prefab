@@ -309,6 +309,7 @@ GameObject:
   - component: {fileID: 4728948868572293746}
   - component: {fileID: 7600787088250017744}
   - component: {fileID: 5597657854787239124}
+  - component: {fileID: 2076488601298582457}
   m_Layer: 0
   m_Name: Sinister living tree
   m_TagString: Untagged
@@ -406,6 +407,7 @@ MonoBehaviour:
   stepDust: {fileID: 8209492253453965686}
   stepDustCount: 2
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
+  fireVulnerability: {fileID: 2076488601298582457}
   alertCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   threatCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   windupCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
@@ -1270,3 +1272,27 @@ ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 3249871430257441394, guid: 0dbce175acd764ab08436eef7dcecf44, type: 3}
   m_PrefabInstance: {fileID: 6698019698427994884}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2076488601298582457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4141966203500242417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a3cc73f027d4142a12a76bccc45df40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.FireVulnerability
+  creature: {fileID: 383250103703854854}
+  burnMultiplier: 2
+  damageMultiplier: 1.5
+  flames: {fileID: 4039943994851622645, guid: 46be5aed491c4452b50d8ef757eaca24, type: 3}
+  flamesSize: 1.2
+  flamesHeight: 0.45
+  flamesFadeSeconds: 0.5
+  touchReach: 0.3
+  touchInterval: 0.2
+  touchLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
