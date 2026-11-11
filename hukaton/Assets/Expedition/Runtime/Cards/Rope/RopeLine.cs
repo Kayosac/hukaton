@@ -36,6 +36,12 @@ namespace Hakaton.Expeditions.Cards
         [Min(.005f)] public float thickness = .05f;
         [Tooltip("A cord piece that touches something is left this far off the surface, so the next sweep never starts inside it.")]
         [Min(.0005f)] public float skin = .002f;
+        [Tooltip("The rope falls asleep (stops simulating) when no piece moved more than this in half a second, m.")]
+        [Min(0)] public float sleepTolerance = .008f;
+        [Tooltip("After this many seconds awake (not held) a slowly creeping rope may fall asleep at three times the tolerance.")]
+        [Min(0)] public float settleSeconds = 4;
+        [Tooltip("A piece touching something and moving slower than this, m/s, stops (static friction): no endless creep.")]
+        [Min(0)] public float restSpeed = .05f;
         [Range(1, 40)] public int iterations = 12;
         [Min(10)] public int stepsPerSecond = 60;
         [Range(0, 1)] public float airDamping = .015f;
@@ -141,11 +147,14 @@ namespace Hakaton.Expeditions.Cards
         Vector3 localAnchor, lastAnchor;
         bool detached;
         float detachedAt, length, climbSpeed = 2, linkLength = .3f, accumulator;
-        int count, sleepSteps;
+        int count, restSteps, awakeWindows;
         bool sleeping;
         Vector3[] positions = Array.Empty<Vector3>(), previous = Array.Empty<Vector3>(), safe = Array.Empty<Vector3>();
         /// <summary>Last place of each piece verified to be outside every collider: where it backs out to if it ever gets in.</summary>
         Vector3[] clear = Array.Empty<Vector3>();
+        /// <summary>Surface each piece last rested against, and the pieces' places at the start of the sleep window.</summary>
+        Vector3[] contactNormal = Array.Empty<Vector3>(), restProbe = Array.Empty<Vector3>();
+        static readonly Collider[] Nearby = new Collider[8];
         bool[] contact = Array.Empty<bool>();
         Renderer[] pieceRenderers = Array.Empty<Renderer>();
         int collisionMask;
@@ -232,6 +241,8 @@ namespace Hakaton.Expeditions.Cards
             previous = new Vector3[count];
             safe = new Vector3[count];
             clear = new Vector3[count];
+            contactNormal = new Vector3[count];
+            restProbe = new Vector3[count];
             contact = new bool[count];
             Vector3 n = normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector3.up;
             Vector3 anchor = ClearAnchor(point, n);
@@ -248,7 +259,10 @@ namespace Hakaton.Expeditions.Cards
             for (int i = 0; i < count; i++)
             {
                 Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], positions[i - 1] + layStep, out _);
-                positions[i] = previous[i] = safe[i] = clear[i] = laid;
+                // Laid along a top whose ground rises ahead, a piece could end up under it: keep it on the surface.
+                if (i > 0 && lay.sqrMagnitude > 0) laid = OnSurface(laid, n);
+                positions[i] = previous[i] = safe[i] = clear[i] = restProbe[i] = laid;
+                contactNormal[i] = Vector3.zero;
                 contact[i] = false;
             }
             pieceRenderers = new Renderer[pieces];
@@ -288,7 +302,7 @@ namespace Hakaton.Expeditions.Cards
                         // Carried without a sweep, so laid again from the piece before it: nothing ends up inside a wall.
                         Vector3 carried = positions[i] + jump;
                         Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], carried, out _);
-                        positions[i] = previous[i] = safe[i] = clear[i] = laid;
+                        positions[i] = previous[i] = safe[i] = clear[i] = restProbe[i] = laid;
                     }
                 if (jump.sqrMagnitude > 1e-8f) Wake();
                 lastAnchor = anchor;
@@ -330,7 +344,8 @@ namespace Hakaton.Expeditions.Cards
         void Wake()
         {
             sleeping = false;
-            sleepSteps = 0;
+            restSteps = 0;
+            awakeWindows = 0;
         }
 
         // ---------- focus and grabbing (one pass per frame for all ropes) ----------
@@ -586,11 +601,16 @@ namespace Hakaton.Expeditions.Cards
                 // The held piece follows the hands, swept so it stops at a surface instead of entering it.
                 if (i == pinned) { previous[i] = current; positions[i] = safe[i] = Sweep(current, grip, out _); continue; }
                 Vector3 velocity = (current - previous[i]) * (1 - airDamping);
-                if (contact[i]) velocity *= 1 - groundFriction;
+                if (contact[i])
+                {
+                    velocity *= 1 - groundFriction;
+                    // Static friction: a resting piece does not creep on bumpy ground or round a trunk.
+                    if (velocity.sqrMagnitude < restSpeed * restSpeed * h * h) velocity = Vector3.zero;
+                }
                 previous[i] = current;
                 safe[i] = Sweep(current, current + velocity + fall, out contact[i], out Vector3 surface);
                 positions[i] = safe[i];
-                if (contact[i]) StopBouncing(i, surface);
+                if (contact[i]) { StopBouncing(i, surface); contactNormal[i] = surface; }
             }
             for (int k = 0; k < iterations; k++)
                 for (int i = 0; i + 1 < count; i++)
@@ -604,18 +624,95 @@ namespace Hakaton.Expeditions.Cards
                     positions[i] += correction * wa;
                     positions[i + 1] -= correction * wb;
                 }
-            float moved = 0;
             for (int i = 0; i < count; i++)
             {
                 if (Fixed(i, pinned)) continue;
                 positions[i] = Sweep(safe[i], positions[i], out bool touched, out Vector3 surface);
                 contact[i] |= touched;
-                if (touched) StopBouncing(i, surface);
-                moved = Mathf.Max(moved, (positions[i] - previous[i]).sqrMagnitude);
+                if (touched) { StopBouncing(i, surface); contactNormal[i] = surface; }
+                // The links pull a cord wrapped round a trunk or over a bump into it: push it back out.
+                if (contact[i]) PushOut(i);
             }
             KeepOutside();
-            if (!holding && Attached && moved < .0004f * .0004f) { if (++sleepSteps > stepsPerSecond) sleeping = true; }
-            else sleepSteps = 0;
+            FallAsleepWhenStill();
+        }
+
+        /// <summary>
+        /// Sleep is judged over half a second, not per step: a piece resting on a surface keeps settling by a few
+        /// millimetres (gravity against the stop), which nets out, so a per-step threshold would never be reached.
+        /// </summary>
+        void FallAsleepWhenStill()
+        {
+            if (holding || !Attached) { restSteps = 0; return; }
+            if (++restSteps < Mathf.Max(1, stepsPerSecond / 2)) return;
+            restSteps = 0;
+            float most = 0;
+            for (int i = 0; i < count; i++)
+            {
+                most = Mathf.Max(most, (positions[i] - restProbe[i]).sqrMagnitude);
+                restProbe[i] = positions[i];
+            }
+            float tolerance = ++awakeWindows * .5f >= settleSeconds ? sleepTolerance * 3 : sleepTolerance;
+            if (most < tolerance * tolerance) sleeping = true;
+        }
+
+        /// <summary>
+        /// Moves a piece that sinks into what it touches back out to <see cref="thickness"/> off it. Primitive and convex
+        /// colliders (trunk capsules, boulders) give their closest point; for a hollow mesh (terrain, rocks) the surface
+        /// is found by a short ray along the normal the piece last rested against. A centre that is already inside is
+        /// <see cref="KeepOutside"/>'s job.
+        /// </summary>
+        void PushOut(int i)
+        {
+            Vector3 p = positions[i];
+            int found = Physics.OverlapSphereNonAlloc(p, thickness, Nearby, collisionMask, QueryTriggerInteraction.Ignore);
+            Vector3 lastOut = Vector3.zero;
+            for (int k = 0; k < found; k++)
+            {
+                var other = Nearby[k];
+                if (!other) continue;
+                Vector3 outward;
+                float depth;
+                if (other is TerrainCollider || (other is MeshCollider mesh && !mesh.convex))
+                {
+                    // A hollow mesh has no closest point: find its surface by a short ray along the normal the piece
+                    // last rested against, or from above.
+                    Vector3 rested = contactNormal[i].sqrMagnitude > .5f ? contactNormal[i] : Vector3.up;
+                    if (!other.Raycast(new Ray(p + rested * thickness, -rested), out var hit, thickness * 2)
+                        && !other.Raycast(new Ray(p + Vector3.up * thickness, Vector3.down), out hit, thickness * 2)) continue;
+                    outward = hit.normal;
+                    depth = thickness - Vector3.Dot(p - hit.point, outward);
+                }
+                else if (other is BoxCollider || other is SphereCollider || other is CapsuleCollider || other is MeshCollider)
+                {
+                    Vector3 away = p - other.ClosestPoint(p);
+                    float distance = away.magnitude;
+                    if (distance < 1e-5f) continue;
+                    outward = away / distance;
+                    depth = thickness - distance;
+                }
+                else continue;
+                if (depth <= skin) continue;
+                p += outward * (depth + skin);
+                lastOut = outward;
+            }
+            if (lastOut == Vector3.zero) return;
+            // A positional correction, not a push: the piece gains no speed from it (else it creeps and twitches).
+            previous[i] += p - positions[i];
+            positions[i] = p;
+            contactNormal[i] = lastOut;
+        }
+
+        /// <summary>
+        /// <paramref name="point"/>, or the same place lifted onto the surface (of normal ~<paramref name="up"/>) when
+        /// the piece is under it — found by a ray from a little above.
+        /// </summary>
+        Vector3 OnSurface(Vector3 point, Vector3 up)
+        {
+            const float probe = .6f;
+            if (!Physics.Raycast(point + up * probe, -up, out var hit, probe + thickness, collisionMask, QueryTriggerInteraction.Ignore))
+                return point;
+            return Vector3.Dot(point - hit.point, hit.normal) < thickness + skin ? hit.point + hit.normal * (thickness + skin) : point;
         }
 
         bool Fixed(int index, int pinned) => (index == 0 && Attached) || index == pinned;
@@ -702,8 +799,14 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 p = positions[i];
                 if (i == 0 && Attached) { clear[0] = p; continue; }
                 bool crossed = Physics.Linecast(clear[i], p, out var hit, collisionMask, QueryTriggerInteraction.Ignore);
+                if (!crossed && Sunk(p))
+                {
+                    PushOut(i);
+                    p = positions[i];
+                }
                 if (!crossed && !Sunk(p)) { clear[i] = p; continue; }
-                Vector3 back = crossed ? hit.point + hit.normal * (thickness + skin) : clear[i];
+                // Deep in something with no crossing seen (it started there): its clear place, or the surface above it.
+                Vector3 back = crossed ? hit.point + hit.normal * (thickness + skin) : (clear[i] - p).sqrMagnitude > 1e-6f ? clear[i] : OnSurface(p, Vector3.up);
                 if (crossed && (Sunk(back) || Physics.Linecast(clear[i], back, collisionMask, QueryTriggerInteraction.Ignore))) back = clear[i];
                 positions[i] = previous[i] = safe[i] = back;
                 clear[i] = back;
