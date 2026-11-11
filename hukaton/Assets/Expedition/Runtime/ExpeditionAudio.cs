@@ -21,6 +21,8 @@ namespace Hakaton.Expeditions
         [Header("Loot")]
         public SfxCue pickup;
         public SfxCue trophyDrop;
+        [Tooltip("A coin from a chest landing in the bag; the pitch climbs during a quick run of coins.")]
+        public SfxCue coinPickup;
         [Header("World")]
         public SfxCue ambience;
         public SfxCue locationTitle;

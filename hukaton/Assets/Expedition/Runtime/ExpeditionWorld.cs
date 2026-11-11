@@ -77,6 +77,14 @@ namespace Hakaton.Expeditions
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
         public int Impacts { get; private set; }
         public WorldLoot FocusedLoot { get; private set; }
+        /// <summary>The shut chest under the crosshair within reach (only when no find is focused).</summary>
+        public TreasureChest FocusedChest { get; private set; }
+        /// <summary>Coins picked up on this outing; credited to the wallet on the way home (part lost on defeat).</summary>
+        public int Coins { get; private set; }
+        /// <summary>Raised for each coin picked up: its value and colour.</summary>
+        public event Action<int, Color> CoinsCollected;
+        int coinStreak;
+        float lastCoinTime = -10;
         public string Notice { get; private set; }
         public float NoticeUntil { get; private set; }
         /// <summary>Raised for each item picked up.</summary>
@@ -108,6 +116,7 @@ namespace Hakaton.Expeditions
             Returning = false;
             Impacts = 0;
             LootValue = 0;
+            Coins = 0;
             loot.Clear();
             pickups.Clear();
             ClearCardEffects();
@@ -139,11 +148,14 @@ namespace Hakaton.Expeditions
         void Update()
         {
             FocusedLoot = null;
+            FocusedChest = null;
             if (!Running) return;
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
+            else if (control.GameplayActive) FocusedChest = FindFocusedChest();
+            if (FocusedChest) FocusedChest.SetFocused(true);
         }
 
         WorldLoot FindFocusedLoot()
@@ -168,7 +180,33 @@ namespace Hakaton.Expeditions
             return best;
         }
 
-        public bool TryPickUpFocused() => FocusedLoot && FocusedLoot.PickUp(viewCamera.transform);
+        /// <summary>A chest under the crosshair: the first solid thing a thin cast meets must belong to a shut chest.</summary>
+        TreasureChest FindFocusedChest()
+        {
+            var eye = viewCamera.transform;
+            if (!Physics.SphereCast(eye.position, .12f, eye.forward, out var hit, settings.interactionReach + .4f, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                return null;
+            var chest = hit.collider.GetComponentInParent<TreasureChest>();
+            return chest && chest.Available ? chest : null;
+        }
+
+        /// <summary>E: picks up the focused find, or opens the focused chest.</summary>
+        public bool TryPickUpFocused()
+        {
+            if (FocusedLoot) return FocusedLoot.PickUp(viewCamera.transform);
+            return FocusedChest && FocusedChest.Open();
+        }
+
+        /// <summary>Adds coins to this outing's purse (a chest's coin reaching the bag).</summary>
+        public void CollectCoins(int amount, Color colour)
+        {
+            if (!Running || amount <= 0) return;
+            Coins = checked(Coins + amount);
+            coinStreak = Time.time - lastCoinTime < .35f ? coinStreak + 1 : 0;
+            lastCoinTime = Time.time;
+            Play(cues ? cues.coinPickup : null, null, 1, 1 + Mathf.Min(coinStreak, 14) * .035f);
+            CoinsCollected?.Invoke(amount, colour);
+        }
 
         /// <summary>Credits one copy of the item to this outing's bag.</summary>
         public void Collect(LootItem item)
@@ -335,6 +373,7 @@ namespace Hakaton.Expeditions
             Returning = false;
             Impacts = 0;
             LootValue = 0;
+            Coins = 0;
             loot.Clear();
             pickups.Clear();
             ClearCardEffects();
@@ -448,6 +487,11 @@ namespace Hakaton.Expeditions
             if (time) time.ResetTime();
             if (sfx) sfx.StopLoop(this);
 
+            // The purse goes into the wallet; a defeat costs the same share as the finds.
+            int coinsKept = defeated ? Mathf.FloorToInt(Coins * (1 - settings.defeatLootLoss)) : Coins;
+            if (coinsKept > 0) workshop.Model.Wallet.Credit(coinsKept);
+            string coinNote = Coins > 0 ? (defeated ? $" Монет: {coinsKept} из {Coins}." : $" Монет: +{coinsKept}.") : "";
+            Coins = 0;
             int kept = 0, lost = 0;
             var retained = new List<LootSave>();
             foreach (var entry in loot)
@@ -468,10 +512,10 @@ namespace Hakaton.Expeditions
             Returning = false;
             // Complete only after local cleanup: the integration callback disables this world root.
             workshop.CompleteOuting(drowned
-                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}."
+                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
                 : defeated
-                ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}."
-                : $"Вы дома. В запас лавки добавлено: {kept}.", retained, defeated);
+                ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
+                : $"Вы дома. В запас лавки добавлено: {kept}.{coinNote}", retained, defeated);
             if (fade) fade.StartCoroutine(fade.FadeTo(0, settings.arriveFadeSeconds));
         }
     }

@@ -17,6 +17,8 @@ namespace Hakaton.Expeditions
         public List<WorldObstacle> obstacles = new List<WorldObstacle>();
         public List<WorldCreature> creatures = new List<WorldCreature>();
         public List<PhysicsProp> props = new List<PhysicsProp>();
+        [Tooltip("Places where a chest may turn up; each rolls its table every outing.")]
+        public List<ChestSite> chestSites = new List<ChestSite>();
 
         ExpeditionWorld world;
         int outings;
@@ -35,6 +37,7 @@ namespace Hakaton.Expeditions
             foreach (var f in finds) if (f) { f.world = expedition; f.ResetForOuting(random); }
             foreach (var p in props) if (p) p.ResetForOuting();
             foreach (var c in creatures) if (c) { c.world = expedition; c.ResetForOuting(random); }
+            foreach (var site in chestSites) if (site) site.ResetForOuting(expedition, random);
             var start = departure ? departure : transform;
             return new Pose(start.position, start.rotation);
         }
@@ -48,6 +51,7 @@ namespace Hakaton.Expeditions
                 world.creatures.Clear();
                 world.props.Clear();
             }
+            foreach (var site in chestSites) if (site) site.Clear();
             world = null;
             gameObject.SetActive(false);
         }

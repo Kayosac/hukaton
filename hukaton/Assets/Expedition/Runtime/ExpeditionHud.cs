@@ -115,6 +115,7 @@ namespace Hakaton.Expeditions
             if (on)
             {
                 world.Collected += OnCollected;
+                world.CoinsCollected += OnCoins;
                 world.vitals.Changed += OnHealthChanged;
                 world.thrower.SelectionChanged += OnSelectionChanged;
                 world.thrower.Thrown += OnThrown;
@@ -122,6 +123,7 @@ namespace Hakaton.Expeditions
             else
             {
                 world.Collected -= OnCollected;
+                world.CoinsCollected -= OnCoins;
                 world.vitals.Changed -= OnHealthChanged;
                 world.thrower.SelectionChanged -= OnSelectionChanged;
                 world.thrower.Thrown -= OnThrown;
@@ -138,6 +140,22 @@ namespace Hakaton.Expeditions
         void OnCollected(LootItem item)
         {
             toastLines.Add((item.displayName, item.price, Time.time, NameColour(item)));
+            if (toastLines.Count > pickupRows) toastLines.RemoveAt(0);
+        }
+
+        const string CoinsRow = "Монеты";
+
+        /// <summary>Chest coins add up in one row while they keep coming, instead of a row per coin.</summary>
+        void OnCoins(int amount, Color colour)
+        {
+            string hex = ColorUtility.ToHtmlStringRGB(colour);
+            int last = toastLines.Count - 1;
+            if (last >= 0 && toastLines[last].name == CoinsRow && Time.time - toastLines[last].time < pickupSeconds * .6f)
+            {
+                toastLines[last] = (CoinsRow, toastLines[last].value + amount, Time.time, hex);
+                return;
+            }
+            toastLines.Add((CoinsRow, amount, Time.time, hex));
             if (toastLines.Count > pickupRows) toastLines.RemoveAt(0);
         }
 
@@ -281,6 +299,7 @@ namespace Hakaton.Expeditions
             // One contextual hint: an action, never data about the item in focus.
             string hint = "";
             if (world.FocusedLoot) hint = "E — подобрать";
+            else if (world.FocusedChest) hint = "E — открыть";
             else if (preparation.Active) hint = "Shift + мышь — подкрутка";
             else if (world.CardPrompt != null) hint = world.CardPrompt;
             else if (card != null && card.IsReturn) hint = world.thrower.ReturnReady ? "ЛКМ — домой" : "";
