@@ -146,12 +146,16 @@ namespace Hakaton.Expeditions
             int count = 0;
             var direct = target ? target.GetComponentInParent<IIgnitable>() : null;
             if (direct != null && direct.Ignite(source, point)) count++;
-            var nearby = new List<ICardZone>();
-            Zones.Near(point, reach, nearby);
-            foreach (var zone in nearby)
-                if (zone is IIgnitable ignitable && !ReferenceEquals(ignitable, direct) && ignitable.Ignite(source, point)) count++;
-            return count;
+            return count + Zones.Ignite(point, point, 0, reach, source, direct);
         }
+
+        /// <summary>
+        /// Sets alight what a burning body touches: ignitable card zones (tar, branch bridge, dry grass) within
+        /// <paramref name="reach"/> of the body from <paramref name="feet"/> to <paramref name="height"/> above them,
+        /// <paramref name="radius"/> thick (see <see cref="CardZoneRegistry.IgniteBody"/>). Returns how many caught fire.
+        /// </summary>
+        public int Ignite(Vector3 feet, float height, float radius, float reach, IgnitionSource source)
+            => Zones.IgniteBody(feet, height, radius, reach, source);
 
         /// <summary>
         /// Is the line of sight between two points hidden by a card zone (<see cref="IVisionBlocker"/>, the fog)?

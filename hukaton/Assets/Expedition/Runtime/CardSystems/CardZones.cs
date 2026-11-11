@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Pool;
+using Object = UnityEngine.Object;
 
 namespace Hakaton.Expeditions
 {
@@ -40,9 +43,14 @@ namespace Hakaton.Expeditions
     public sealed class CardZoneRegistry
     {
         readonly List<ICardZone> zones = new List<ICardZone>();
+        // Cached: a method group would make a new delegate on every purge.
+        static readonly Predicate<ICardZone> Dead = IsDead;
 
         /// <summary>Every live zone (dead entries are purged first). Do not add or remove while iterating.</summary>
-        public IReadOnlyList<ICardZone> All
+        public IReadOnlyList<ICardZone> All => Live;
+
+        // The list itself: a foreach over it does not allocate (one over the IReadOnlyList would box its enumerator).
+        List<ICardZone> Live
         {
             get
             {
@@ -65,7 +73,7 @@ namespace Hakaton.Expeditions
         public int Containing(Vector3 point, List<ICardZone> results, CardZoneKind? kind = null)
         {
             int added = 0;
-            foreach (var zone in All)
+            foreach (var zone in Live)
                 if ((kind == null || zone.Kind == kind) && zone.Bounds.Contains(point) && zone.Contains(point)) { results.Add(zone); added++; }
             return added;
         }
@@ -75,7 +83,7 @@ namespace Hakaton.Expeditions
         {
             int added = 0;
             float squared = radius * radius;
-            foreach (var zone in All)
+            foreach (var zone in Live)
                 if ((kind == null || zone.Kind == kind) && zone.Bounds.SqrDistance(point) <= squared) { results.Add(zone); added++; }
             return added;
         }
@@ -84,7 +92,7 @@ namespace Hakaton.Expeditions
         public int Overlapping(Bounds bounds, List<ICardZone> results, CardZoneKind? kind = null)
         {
             int added = 0;
-            foreach (var zone in All)
+            foreach (var zone in Live)
                 if ((kind == null || zone.Kind == kind) && zone.Bounds.Intersects(bounds)) { results.Add(zone); added++; }
             return added;
         }
@@ -93,7 +101,7 @@ namespace Hakaton.Expeditions
         public int OfType<T>(List<T> results) where T : class
         {
             int added = 0;
-            foreach (var zone in All)
+            foreach (var zone in Live)
                 if (zone is T match) { results.Add(match); added++; }
             return added;
         }
@@ -101,12 +109,77 @@ namespace Hakaton.Expeditions
         /// <summary>The first zone containing the point that implements <typeparamref name="T"/>; null when none.</summary>
         public T FirstContaining<T>(Vector3 point) where T : class
         {
-            foreach (var zone in All)
+            foreach (var zone in Live)
                 if (zone is T match && zone.Bounds.Contains(point) && zone.Contains(point)) return match;
             return null;
         }
 
-        void Purge() => zones.RemoveAll(IsDead);
+        /// <summary>
+        /// Sets alight the <see cref="IIgnitable"/> zones a body touches: those whose bounds come within
+        /// <paramref name="radius"/> + <paramref name="reach"/> of the segment <paramref name="bottom"/>–<paramref name="top"/>
+        /// (a creature from its feet to its top, a point for an impact). Each is handed the point of the body (the
+        /// segment thickened by <paramref name="radius"/>) nearest to it and judges by its own rules whether that point
+        /// reaches it: the tar by the distance to its centre, the branch bridge by its walkway, burnables by their
+        /// field. <paramref name="skip"/> is not lit again (the collider an impact hit). Re-entrant: an ignition may
+        /// start another. Returns how many caught fire.
+        /// </summary>
+        public int Ignite(Vector3 bottom, Vector3 top, float radius, float reach, IgnitionSource source, IIgnitable skip = null)
+        {
+            int count = 0;
+            float within = radius + reach;
+            // A pooled list of its own: a nested ignition cannot cut this loop short.
+            using (ListPool<ICardZone>.Get(out var nearby))
+            {
+                Near((bottom + top) * .5f, (top - bottom).magnitude * .5f + within, nearby);
+                foreach (var zone in nearby)
+                {
+                    if (!(zone is IIgnitable ignitable) || ReferenceEquals(ignitable, skip) || IsDead(zone)) continue;
+                    if (TouchPoint(zone.Bounds, bottom, top, radius, reach, out var point) && ignitable.Ignite(source, point)) count++;
+                }
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// <see cref="Ignite"/> for an upright body (a creature) standing at <paramref name="feet"/>,
+        /// <paramref name="height"/> tall and <paramref name="radius"/> thick: full width at the feet, where tar,
+        /// branches and grass are, rounded off at the top.
+        /// </summary>
+        public int IgniteBody(Vector3 feet, float height, float radius, float reach, IgnitionSource source)
+            => Ignite(feet, feet + Vector3.up * Mathf.Max(0, height - radius), radius, reach, source);
+
+        /// <summary>
+        /// Does a body (the segment <paramref name="bottom"/>–<paramref name="top"/> thickened by <paramref name="radius"/>)
+        /// come within <paramref name="reach"/> of the box? <paramref name="point"/>: the point of the body nearest to the
+        /// box (inside the box where they overlap; the segment's own point for a bare point).
+        /// </summary>
+        public static bool TouchPoint(Bounds box, Vector3 bottom, Vector3 top, float radius, float reach, out Vector3 point)
+        {
+            // Alternating projections between the segment and the box: exact for a point, converges at once for an
+            // upright body beside or over a box.
+            Vector3 onBody = ClosestOnSegment(bottom, top, box.center), inBox = box.ClosestPoint(onBody);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 next = ClosestOnSegment(bottom, top, inBox);
+                if ((next - onBody).sqrMagnitude < 1e-8f) break;
+                onBody = next;
+                inBox = box.ClosestPoint(onBody);
+            }
+            Vector3 gap = inBox - onBody;
+            float distance = gap.magnitude, within = radius + reach;
+            point = distance > radius ? onBody + gap * (radius / distance) : inBox;
+            return distance <= within + 1e-4f;
+        }
+
+        static Vector3 ClosestOnSegment(Vector3 a, Vector3 b, Vector3 point)
+        {
+            Vector3 ab = b - a;
+            float length = ab.sqrMagnitude;
+            if (length < 1e-8f) return a;
+            return a + ab * Mathf.Clamp01(Vector3.Dot(point - a, ab) / length);
+        }
+
+        void Purge() => zones.RemoveAll(Dead);
 
         static bool IsDead(ICardZone zone) => zone == null || (zone is Object unityObject && !unityObject);
     }
