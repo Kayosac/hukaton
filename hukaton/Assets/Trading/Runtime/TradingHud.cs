@@ -231,6 +231,7 @@ namespace Hakaton.Trading.Unity
             var session = controller.Session;
             var customer = session.CurrentCustomer;
             var deal = session.CurrentDeal;
+            if (customer.Id != shownCustomerId) TypedLine.Forget(speech);
             shownCustomerId = customer.Id;
             shownDealId = deal == null ? 0 : deal.Id;
             shownDealRevision = deal == null ? 0 : deal.Revision;

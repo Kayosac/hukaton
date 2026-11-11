@@ -467,6 +467,7 @@ namespace Hakaton.Backroom
         {
             lineUntil = 0;
             if (bubbleGroup) bubbleGroup.alpha = 0;
+            if (bubble) bubble.ForgetLine();
             if (continueHint) continueHint.Show(false);
         }
 

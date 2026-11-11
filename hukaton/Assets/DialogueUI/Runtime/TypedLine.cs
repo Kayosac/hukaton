@@ -27,6 +27,15 @@ namespace Hakaton.DialogueUI
             else GetComponent<TMP_Text>().text = text;
         }
 
+        /// <summary>The next <see cref="Show"/> types again even if it repeats this line (the bubble was hidden).</summary>
+        public void Forget() => line = null;
+
+        /// <summary>Forgets the line on <paramref name="label"/> if it is typed.</summary>
+        public static void Forget(TMP_Text label)
+        {
+            if (label && label.TryGetComponent(out TypedLine typed)) typed.Forget();
+        }
+
         /// <summary>Shows the rest of the line at once. True if it was still typing.</summary>
         public bool Skip()
         {

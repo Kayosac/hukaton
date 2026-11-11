@@ -4,11 +4,13 @@ using Febucci.TextAnimatorForUnity.TextMeshPro;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Hakaton.DialogueUI.Editor
 {
     /// <summary>
-    /// Authoring: every label the player is spoken to on (customers, both goblins, outing creatures) gets
+    /// Authoring for the speech the player hears (customers, both goblins, outing creatures):
+    /// the goblins' and creatures' bubbles use the button's linen plate (no tail), and every spoken label gets
     /// Text Animator's typewriter and a <see cref="TypedLine"/>.
     /// Run through the bridge: <c>invoke Hakaton.DialogueUI.Editor.TypedSpeechSetup.Apply</c>.
     /// </summary>
@@ -22,6 +24,7 @@ namespace Hakaton.DialogueUI.Editor
             "Assets/Backroom/Prefabs/GoblinCardTable.prefab",
         };
         const string Hud = "Assets/Trading/Prefabs/TradingHUD.prefab";
+        const string Plate = "Assets/Content/UI/Dialogue/Textures/StitchedLinenPlate9Slice.png";
 
         static string Apply()
         {
@@ -39,6 +42,7 @@ namespace Hakaton.DialogueUI.Editor
                             if (so.FindProperty(field)?.objectReferenceValue is DialogueBubbleLayout layout && layout.Dialogue)
                                 labels.Add(layout.Dialogue);
                     }
+                    foreach (var label in labels) UsePlate(label.GetComponentInParent<DialogueBubbleLayout>(true));
                     // Undo an earlier, too wide pass on the other plates.
                     foreach (var typed in root.GetComponentsInChildren<TypedLine>(true))
                         if (!labels.Contains(typed.GetComponent<TMP_Text>())) Strip(typed.gameObject);
@@ -113,6 +117,25 @@ namespace Hakaton.DialogueUI.Editor
             s.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>The tailless plate: same frame metrics as the bubble, the bottom padding now equals the top.</summary>
+        static void UsePlate(DialogueBubbleLayout layout)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Plate);
+            var image = layout.Body ? layout.Body.GetComponent<Image>() : null;
+            if (!sprite || !image || image.sprite == sprite) return;
+            image.sprite = sprite;
+            image.type = Image.Type.Sliced;
+            var so = new SerializedObject(layout);
+            var padding = so.FindProperty("padding");
+            var p = padding.vector4Value;
+            var minimum = so.FindProperty("minimumHeight");
+            minimum.floatValue = Mathf.Max(1, minimum.floatValue - (p.w - p.y));
+            p.w = p.y;
+            padding.vector4Value = p;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            layout.RefreshLayout();
+        }
+
         static void Strip(GameObject go)
         {
             Object.DestroyImmediate(go.GetComponent<TypedLine>(), true);
@@ -135,26 +158,6 @@ namespace Hakaton.DialogueUI.Editor
                     for (int i = 0; i < from.arraySize; i++) Copy(from.GetArrayElementAtIndex(i), to.GetArrayElementAtIndex(i));
                     break;
             }
-        }
-
-        static string Probe()
-        {
-            var go = new GameObject("probe", typeof(RectTransform));
-            try
-            {
-                go.AddComponent<TextMeshProUGUI>();
-                var animator = go.AddComponent<TextAnimator_TMP>();
-                var p = new SerializedObject(animator).FindProperty("localSettings");
-                var names = new List<string>();
-                var it = p.Copy(); var end = it.GetEndProperty(); bool enter = true;
-                while (it.Next(enter) && !SerializedProperty.EqualContents(it, end))
-                {
-                    enter = false;
-                    names.Add(it.name + (it.propertyType == SerializedPropertyType.Enum ? "[" + string.Join("|", it.enumNames) + "]" : ""));
-                }
-                return string.Join(", ", names);
-            }
-            finally { Object.DestroyImmediate(go); }
         }
     }
 }
