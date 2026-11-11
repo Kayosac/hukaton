@@ -34,6 +34,8 @@ namespace Hakaton.Expeditions
         public ScreenFade fade;
         public ExpeditionAudio cues;
         public ExpeditionVfx vfx;
+        [Tooltip("Ice on water: frozen in a radius by the Ice card, melted by Fire.")]
+        public IceField ice;
         [Header("Authored places and prefabs")]
         public Transform departurePose;
         public Transform shopPose;
