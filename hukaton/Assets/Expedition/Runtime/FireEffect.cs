@@ -23,7 +23,7 @@ namespace Hakaton.Expeditions
             if (thicket && thicket.React(CardAction.Fire, c.Point)) meaningful = true;
             // Ice: an encased creature thaws, ice on water melts around the hit.
             if (IceEncasement.MeltAround(c.World, c.Target, c.Point, c.Radius)) meaningful = true;
-            if (c.World.ice && c.World.ice.Melt(c.Point, c.Radius)) meaningful = true;
+            if (IcePatch.MeltAt(c.World, c.Point, c.Radius)) meaningful = true;
             // Card-made things that burn (IIgnitable): tar puddle, branch bridge.
             if (c.World.Ignite(c.Target, c.Point, igniteReach, IgnitionSource.Fire) > 0) meaningful = true;
             Feedback(c, meaningful);

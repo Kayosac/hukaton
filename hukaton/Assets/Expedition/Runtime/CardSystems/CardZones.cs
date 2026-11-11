@@ -15,7 +15,9 @@ namespace Hakaton.Expeditions
         Mushroom,
         Rope,
         StoneCube,
-        Other
+        Other,
+        /// <summary>A sheet of ice on water (<see cref="IcePatch"/>).</summary>
+        Ice
     }
 
     /// <summary>

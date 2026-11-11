@@ -11,7 +11,7 @@ namespace Hakaton.Expeditions
     /// <summary>
     /// A place cards change for the rest of the outing. Thorns burn open with Fire (the change animates, the thicket
     /// burning down, but takes effect immediately). A lake is water: deep water drowns, and the Ice card freezes it in a
-    /// radius around the hit through <see cref="IceField"/> — never the whole mesh at once; Fire melts it back.
+    /// radius around the hit as a card-made <see cref="IcePatch"/> on top of it — never the whole mesh at once; Fire melts it back.
     /// </summary>
     public sealed class WorldObstacle : MonoBehaviour
     {
@@ -33,10 +33,10 @@ namespace Hakaton.Expeditions
         [Min(.1f)] public float transformSeconds = 1.1f;
         public Color tint = Color.white;
 
-        /// <summary>Thorns: burnt open. Lake: some of it is frozen right now (ice that holds, in <see cref="IceField"/>).</summary>
+        /// <summary>Thorns: burnt open. Lake: some of it is under ice that holds right now (an <see cref="IcePatch"/>).</summary>
         public bool Resolved => kind == ObstacleKind.Lake ? Iced : burnt;
         /// <summary>Lake: is any of this water under ice that holds?</summary>
-        public bool Iced => world && world.ice && HasSurface && world.ice.Covers(SurfaceBounds);
+        public bool Iced => world && HasSurface && IcePatch.Covers(world, SurfaceBounds);
 
         bool burnt;
         Vector3[] surfaceTriangles;
@@ -178,7 +178,7 @@ namespace Hakaton.Expeditions
             intact.SetActive(true);
             intact.transform.localScale = intactScale;
             foreach (var r in intactRenderers) r.SetPropertyBlock(null);
-            // A lake's old whole-mesh ice (still baked into some prefabs) is never shown: ice lives in the IceField.
+            // A lake's old whole-mesh ice (still baked into some prefabs) is never shown: ice is a card-made IcePatch.
             if (changed)
             {
                 changed.SetActive(false);
@@ -190,7 +190,7 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Already burnt when its part of the world loads again in the same outing: no animation. A lake's ice is kept
-        /// by the <see cref="IceField"/> in world space, so a lake just comes back as water under it.
+        /// by its <see cref="IcePatch"/> in world space, so a lake just comes back as water under it.
         /// </summary>
         public void ResolveAtOnce()
         {
@@ -215,23 +215,14 @@ namespace Hakaton.Expeditions
         public bool React(CardAction action, Vector3 point)
         {
             Record();
-            if (kind == ObstacleKind.Lake)
-            {
-                // Ice and fire on water go through the field, in a radius around the point.
-                if (!world || !world.ice) return false;
-                if (action == CardAction.Freeze) return world.ice.Freeze(point, Mathf.Max(DefaultIceRadius, minimumIceRadius));
-                if (action == CardAction.Fire) return world.ice.Melt(point, DefaultIceRadius);
-                return false;
-            }
+            // Water is changed by card-made ice (IcePatch), not by the lake itself.
+            if (kind == ObstacleKind.Lake) return false;
             if (burnt || action != CardAction.Fire) return false;
             burnt = true;
             StartCoroutine(Burn(point));
             world.Announce("Заросли выгорели — путь открыт", 2.5f);
             return true;
         }
-
-        /// <summary>Radius for a freeze or melt asked of the lake itself (not through a card), m.</summary>
-        const float DefaultIceRadius = 2.5f;
 
         IEnumerator Burn(Vector3 point)
         {
@@ -287,7 +278,7 @@ namespace Hakaton.Expeditions
             // Wading is free. The moment the feet touch water over a deep bed the player is lost — drown at once,
             // no waiting until the body has sunk. Standing on ice that holds is not in the water.
             Vector3 feet = world.motor.transform.position;
-            if (world.ice && world.ice.IsSolidAt(feet)) return;
+            if (IcePatch.IsSolidAt(world, feet)) return;
             if (!WaterLevelAt(feet, out float level) || feet.y > level + .05f) return;
             float limit = world.settings.drownDepth;
             if (level - feet.y >= limit || DepthAt(feet, level) >= limit) world.Drown();

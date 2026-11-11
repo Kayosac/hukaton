@@ -10,6 +10,8 @@ namespace Hakaton.Expeditions
     {
         [Tooltip("A dry creature freezes for the card's power in seconds. A WET creature is encased in ice instead: frozen until fire melts it or a physical hit shatters it.")]
         [Min(1)] public float wetMultiplier = 2;
+        [Tooltip("The ice that forms on water: spawned at the first freeze; a freeze next to a sheet grows that sheet.")]
+        public IcePatch icePrefab;
         [Tooltip("Radius of ice on water by card level I / II / III, as a multiple of the card's effect radius.")]
         public Vector3 waterRadiusByLevel = new Vector3(1f, 1.3f, 1.65f);
 
@@ -25,7 +27,7 @@ namespace Hakaton.Expeditions
 
             // Water: ice forms in a radius around the hit, whatever lakes and chunks it spans.
             float radius = c.Radius * WaterRadiusScale(c.Level);
-            if (c.World.ice && c.World.ice.Freeze(c.Point, radius)) meaningful = true;
+            if (IcePatch.FreezeAt(c.World, icePrefab, c.Point, radius)) meaningful = true;
             Feedback(c, meaningful);
         }
 

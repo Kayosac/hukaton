@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// The pure bookkeeping of <see cref="IceField"/>: a sparse world-space grid of ice cells over water. A freeze adds
+    /// The pure bookkeeping of an <see cref="IcePatch"/>: a sparse world-space grid of ice cells over water. A freeze adds
     /// cells inside a crooked circle (a wave out from the hit: each cell is born a little later the further out it is);
     /// a melt schedules cells inside a circle to thaw, the same wave the other way. No Unity objects, so it is tested
     /// in EditMode.
@@ -89,6 +89,16 @@ namespace Hakaton.Expeditions
                     added++;
                     changed?.Add(key);
                 }
+            return added;
+        }
+
+        /// <summary>Takes over another set's cells where this one has none (two sheets of ice that now touch). Returns how many came over.</summary>
+        public int Absorb(IceCells other)
+        {
+            if (other == null || other == this) return 0;
+            int added = 0;
+            foreach (var pair in other.cells)
+                if (!cells.ContainsKey(pair.Key)) { cells[pair.Key] = pair.Value; added++; }
             return added;
         }
 

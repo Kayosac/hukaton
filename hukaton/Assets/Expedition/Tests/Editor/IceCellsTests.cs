@@ -129,5 +129,20 @@ namespace Hakaton.Expeditions.Tests
             cells.Melt(Vector3.zero, 5, 0, 4);
             Assert.That(cells.AnyHolding(new Bounds(Vector3.zero, Vector3.one * 4)), Is.False);
         }
-    }
+    
+        [Test]
+        public void AbsorbTakesTheOtherSheetsCellsWithoutDuplicates()
+        {
+            var a = new IceCells(Cell);
+            var b = new IceCells(Cell);
+            a.Freeze(Vector3.zero, 1, 0, 100, 0, 0, Everywhere);
+            b.Freeze(new Vector3(1.5f, 0, 0), 1, 0, 100, 0, 0, Everywhere);
+            int before = a.Count;
+            int came = a.Absorb(b);
+            Assert.That(came, Is.GreaterThan(0));
+            Assert.That(came, Is.LessThan(b.Count), "the overlap stays the host's own");
+            Assert.That(a.Count, Is.EqualTo(before + came));
+            Assert.That(a.Contains(a.Key(new Vector3(2.2f, 0, 0))), Is.True);
+        }
+}
 }

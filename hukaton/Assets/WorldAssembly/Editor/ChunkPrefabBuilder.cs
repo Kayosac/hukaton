@@ -287,7 +287,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             water.RecalculateNormals();
             water.RecalculateBounds();
             AssetDatabase.AddObjectToAsset(water, assetPath);
-            // No baked ice: the Ice card freezes water in a radius through the expedition's IceField.
+            // No baked ice: the Ice card freezes water in a radius as a card-made IcePatch.
 
             var root = new GameObject("Water");
             root.transform.SetParent(parent, false);

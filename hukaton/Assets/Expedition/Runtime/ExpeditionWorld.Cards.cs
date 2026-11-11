@@ -108,7 +108,6 @@ namespace Hakaton.Expeditions
             outingRestores.Clear();
             Zones.Clear();
             Allies.Clear();
-            if (ice) ice.Clear();
             OutingCleared?.Invoke();
         }
 
