@@ -709,12 +709,19 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Lure: a calm creature (idle, wandering, grazing) walks over to a noise at <paramref name="point"/> and stays
-        /// for <paramref name="seconds"/>. Ignored when it is alert, fleeing or attacking, or the point is outside its
-        /// territory. Seeing the player still interrupts it as usual. Returns true when it goes.
+        /// for <paramref name="seconds"/>. Ignored when it is alert, fleeing or attacking. A point outside its territory
+        /// is ignored too, unless <paramref name="pull"/>: then the creature is drawn out and its home moves to the
+        /// noise, so it stays, wanders and fights there instead of running back. Seeing the player still interrupts
+        /// it as usual. Returns true when it goes.
         /// </summary>
-        public bool Investigate(Vector3 point, float seconds)
+        public bool Investigate(Vector3 point, float seconds, bool pull = false)
         {
-            if (!world || !world.Running || !Alive || !IsCalm || seconds <= 0 || !InTerritory(point)) return false;
+            if (!world || !world.Running || !Alive || !IsCalm || seconds <= 0) return false;
+            if (!InTerritory(point))
+            {
+                if (!pull) return false;
+                home = SnapToGround(point);
+            }
             noisePoint = point;
             investigateUntil = Time.time + seconds;
             if (State != CreatureState.Investigate) Enter(CreatureState.Investigate);

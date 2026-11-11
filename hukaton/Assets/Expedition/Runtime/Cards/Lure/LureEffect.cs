@@ -5,8 +5,8 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// «Манок» (воздух, ранг 1/5). A noise source (<see cref="LureNoise"/>) at the point of impact sounds for
-    /// 6 / 12 / 20 s. Calm creatures within 20 / 50 / 100 m (levels I / II / III) go to check it but never leave their
-    /// territory; creatures already attacking are not distracted.
+    /// 6 / 12 / 20 s. Calm creatures within 20 / 50 / 100 m (levels I / II / III) come to it, even from outside their
+    /// territory, and settle there; creatures already attacking are not distracted.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class LureEffect : CardEffect, ICardStatLine
