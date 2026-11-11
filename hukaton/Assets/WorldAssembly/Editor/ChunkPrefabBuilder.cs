@@ -83,6 +83,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             AssetDatabase.DeleteAsset(meshPath);
 
             placed.Clear();
+            pinned.Clear();
             var go = new GameObject(name);
             var view = go.AddComponent<ChunkView>();
             view.shapeId = shape.Id;
@@ -118,6 +119,8 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             Crossings(go.transform, terrain, rng);
             Dress(go.transform, terrain, rng);
+            Solidify();
+            KeepWaysOpen(go.transform, terrain);
             Interactive(view);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
@@ -425,8 +428,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     {
                         var p = new Vector2(x + (float)rng.NextDouble() * .6f - .3f, z + (float)rng.NextDouble() * .6f - .3f);
                         float s = 1.25f + (float)rng.NextDouble() * .6f;
-                        var rock = Place(block, "Rocks/" + WallRocks[rng.Next(WallRocks.Length)], t, p, (float)rng.NextDouble() * 360, new Vector3(s, s * (1.3f + (float)rng.NextDouble() * .4f), s));
-                        if (rock) foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                        // The rocks are solid as they look (Solidify); the block's box closes the gaps between them.
+                        Place(block, "Rocks/" + WallRocks[rng.Next(WallRocks.Length)], t, p, (float)rng.NextDouble() * 360, new Vector3(s, s * (1.3f + (float)rng.NextDouble() * .4f), s));
                     }
                 for (int k = 0; k < 3; k++)
                 {
@@ -471,6 +474,178 @@ namespace Hakaton.WorldAssembly.EditorTools
         };
 
         /// <summary>Loose things the player and cards push about, with their mass at scale 1 (the Old Apiary's bodies).</summary>
+        /// <summary>
+        /// Rocks and deadwood that keep a collider get one shaped like what is seen (the prefabs' boxes are rough: a rope
+        /// or a card went through slabs and tops, and stopped in the air beside them). Done after placing, so footprints
+        /// and heights are measured as before. Light loose things get convex shapes so they can still roll
+        /// (<see cref="Interactive"/>); the rest the exact mesh. Things stripped bare on purpose stay bare.
+        /// </summary>
+        static void Solidify()
+        {
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || !(asset.StartsWith("Rocks/") || asset.StartsWith("Deadwood/"))) continue;
+                var old = go.GetComponentsInChildren<Collider>();
+                if (old.Length == 0 || old.Any(c => c is MeshCollider)) continue;
+                string id = asset.Substring(asset.LastIndexOf('/') + 1);
+                var scale = go.transform.lossyScale;
+                // What dresses a maze wall stays put (it never rolled: it had no collider before).
+                bool loose = LooseMass.ContainsKey(id) && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f && !InWall(go.transform);
+                foreach (var c in old) Object.DestroyImmediate(c);
+                foreach (var filter in go.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (!filter.sharedMesh || (loose && filter.name.EndsWith("_Moss"))) continue;
+                    var shape = filter.gameObject.AddComponent<MeshCollider>();
+                    shape.sharedMesh = filter.sharedMesh;
+                    shape.convex = loose;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The trees' old upright capsules (local centre, radius, height), from before the bark itself became their
+        /// collider: they still measure a tree's footprint when it is placed, and come back where the bark would
+        /// close a way (<see cref="KeepWaysOpen"/>).
+        /// </summary>
+        static readonly Dictionary<string, (Vector3 centre, float radius, float height)[]> TreeCapsules = new Dictionary<string, (Vector3, float, float)[]>
+        {
+            ["FA_TR01_ThickCrooked"] = new[] { (new Vector3(-.35f, 1.9f, .15f), .95f, 3.9f) },
+            ["FA_TR02_TallNarrow"] = new[] { (new Vector3(.28f, 2.6f, 0), .36f, 5.2f) },
+            ["FA_TR03_DoubleFork"] = new[] { (new Vector3(-.15f, 1.6f, .05f), .65f, 3.2f) },
+            ["FA_TR04_Leaning"] = new[] { (new Vector3(-.25f, 1.4f, .03f), .6f, 2.8f), (new Vector3(-1, 3.5f, 0), .45f, 2f) },
+            ["FA_TR05_Zigzag"] = new[] { (new Vector3(.45f, 1.4f, .03f), .6f, 2.8f), (new Vector3(0, 3.8f, 0), .5f, 2.4f) },
+            ["FA_TR06_Hollow"] = new[] { (new Vector3(0, 1.8f, 0), .95f, 3.6f) },
+            ["FA_TR07_YoungStraight"] = new[] { (new Vector3(.02f, 1.3f, 0), .18f, 2.6f) },
+            ["FA_TR08_YoungBow"] = new[] { (new Vector3(-.1f, 1.2f, 0), .2f, 2.4f) },
+            ["FA_TR09_YoungFork"] = new[] { (new Vector3(0, .9f, 0), .18f, 1.8f) },
+            ["FA_TR10_DeadBare"] = new[] { (new Vector3(-.05f, 2.4f, .02f), .5f, 4.8f) },
+            ["FA_TR11_Snapped"] = new[] { (new Vector3(.05f, 1.8f, 0), .5f, 3.6f) },
+            ["FA_TR12_Split"] = new[] { (new Vector3(0, 1.5f, 0), .6f, 3f), (new Vector3(0, 3.2f, 0), .55f, 1.6f) },
+            ["FA_TR13_Arch"] = new[] { (new Vector3(-1.9f, 1.3f, 0), .62f, 2.6f), (new Vector3(1.92f, 1.3f, 0), .62f, 2.6f) },
+            ["FA_TR14_KnottyGiant"] = new[] { (new Vector3(-.3f, 2.2f, .1f), 1.45f, 4.4f), (new Vector3(.2f, 5.6f, -.05f), 1f, 3.4f) },
+        };
+
+        /// <summary>
+        /// The ways stay open: the middle of every lane of a forest maze, corridor of a stone maze and cliff ramp
+        /// (<see cref="Clearway"/>) keeps room for the player. A tree, rock or piece of deadwood of a maze wall whose now
+        /// solid shape (the bark, <see cref="Solidify"/>) reaches into it is moved deeper into its wall, a quarter metre
+        /// at a time, up to <see cref="WayShiftMax"/>; what is not part of a wall or cannot move far enough gets its old
+        /// collision back (none for rocks and deadwood, the old capsules for a tree).
+        /// </summary>
+        static void KeepWaysOpen(Transform chunk, TileTerrain t)
+        {
+            if (t.Shape.Kind != ShapeKind.Maze && t.Shape.Kind != ShapeKind.Cliff) return;
+            Physics.SyncTransforms();
+            var owners = new Dictionary<Collider, (GameObject go, string asset)>();
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || !(asset.StartsWith("Trees/") || asset.StartsWith("Rocks/") || asset.StartsWith("Deadwood/"))) continue;
+                foreach (var c in go.GetComponentsInChildren<MeshCollider>()) owners[c] = (go, asset);
+            }
+            if (owners.Count == 0) return;
+            var way = new List<Vector2>();
+            for (float x = .25f; x < 16; x += .5f)
+                for (float z = .25f; z < 16; z += .5f)
+                    if (Clearway(t, new Vector2(x, z))) way.Add(new Vector2(x, z));
+            var hits = new Collider[32];
+            // Ways points the object's solid shape reaches into (chunk-local, canonical 0..16).
+            List<Vector2> Intrusions(GameObject only)
+            {
+                Physics.SyncTransforms();
+                var found = new List<Vector2>();
+                foreach (var p in way)
+                {
+                    float y = GroundY(t, p);
+                    Vector3 bottom = chunk.TransformPoint(new Vector3(p.x - 8, y + WayStep + WayRadius, p.y - 8));
+                    Vector3 top = chunk.TransformPoint(new Vector3(p.x - 8, y + WayHeight - WayRadius, p.y - 8));
+                    int n = Physics.OverlapCapsuleNonAlloc(bottom, top, WayRadius, hits, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                    for (int k = 0; k < n; k++)
+                        if (owners.TryGetValue(hits[k], out var owner) && (only == null || owner.go == only)) { found.Add(p); break; }
+                }
+                return found;
+            }
+            var blocking = new HashSet<GameObject>();
+            foreach (var p in Intrusions(null))
+            {
+                float y = GroundY(t, p);
+                Vector3 bottom = chunk.TransformPoint(new Vector3(p.x - 8, y + WayStep + WayRadius, p.y - 8));
+                Vector3 top = chunk.TransformPoint(new Vector3(p.x - 8, y + WayHeight - WayRadius, p.y - 8));
+                int n = Physics.OverlapCapsuleNonAlloc(bottom, top, WayRadius, hits, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                for (int k = 0; k < n; k++) if (owners.TryGetValue(hits[k], out var owner)) blocking.Add(owner.go);
+            }
+            foreach (var go in blocking)
+            {
+                string asset = owners.First(o => o.Value.go == go).Value.asset;
+                if (InWall(go.transform) && !pinned.Contains(go) && MoveIntoWall(go, chunk, t, Intrusions)) continue;
+                foreach (var c in go.GetComponentsInChildren<MeshCollider>()) Object.DestroyImmediate(c);
+                string id = asset.Substring(asset.LastIndexOf('/') + 1);
+                if (!asset.StartsWith("Trees/") || !TreeCapsules.TryGetValue(id, out var capsules)) continue;
+                foreach (var (centre, r, h) in capsules)
+                {
+                    var capsule = go.AddComponent<CapsuleCollider>();
+                    capsule.center = centre;
+                    capsule.radius = r;
+                    capsule.height = h;
+                    capsule.direction = 1;
+                }
+            }
+        }
+
+        /// <summary>Things of the chunk being built that must stay where they are (the heart's tree with its stair).</summary>
+        static readonly HashSet<GameObject> pinned = new HashSet<GameObject>();
+
+        const float WayRadius = .34f, WayHeight = 1.8f, WayStep = .3f, WayShiftStep = .25f, WayShiftMax = 1.5f;
+
+        /// <summary>
+        /// Moves <paramref name="go"/> away from the way points it reaches into, on the ground, until it reaches into
+        /// none; false (and back where it was) if that takes more than <see cref="WayShiftMax"/> or leaves the chunk.
+        /// </summary>
+        static bool MoveIntoWall(GameObject go, Transform chunk, TileTerrain t, System.Func<GameObject, List<Vector2>> intrusions)
+        {
+            var tr = go.transform;
+            Vector3 start = tr.position;
+            Vector3 local = chunk.InverseTransformPoint(start);
+            var at = new Vector2(local.x + 8, local.z + 8);
+            var touched = intrusions(go);
+            if (touched.Count == 0) return true;
+            var centroid = Vector2.zero;
+            foreach (var p in touched) centroid += p;
+            centroid /= touched.Count;
+            Vector2 away = at - centroid;
+            if (away.sqrMagnitude < 1e-4f) return false;
+            away.Normalize();
+            for (float d = WayShiftStep; d <= WayShiftMax + 1e-3f; d += WayShiftStep)
+            {
+                var to = at + away * d;
+                if (to.x < .3f || to.x > 15.7f || to.y < .3f || to.y > 15.7f) break;
+                float rise = GroundY(t, to) - GroundY(t, at);
+                tr.position = chunk.TransformPoint(new Vector3(to.x - 8, local.y + rise, to.y - 8));
+                if (intrusions(go).Count == 0) return true;
+            }
+            tr.position = start;
+            Physics.SyncTransforms();
+            return false;
+        }
+
+        /// <summary>
+        /// The middle of the ways, which stays open: points of a forest maze lane at least 0.9 m from its edge, of a
+        /// stone maze corridor at least 0.9 m from its walls, of a cliff ramp at least 0.5 m from its sides.
+        /// </summary>
+        static bool Clearway(TileTerrain t, Vector2 p)
+        {
+            if (t.Shape.Kind == ShapeKind.Cliff)
+            {
+                const float r = .5f;
+                return t.OnRamp(p) && t.OnRamp(p + new Vector2(r, 0)) && t.OnRamp(p - new Vector2(r, 0)) && t.OnRamp(p + new Vector2(0, r)) && t.OnRamp(p - new Vector2(0, r));
+            }
+            if (t.Forest != null) return t.Forest.WallDepth(p) < -.9f;
+            const float m = .9f;
+            return !t.InMazeWall(p) && !t.InMazeWall(p + new Vector2(m, 0)) && !t.InMazeWall(p - new Vector2(m, 0))
+                && !t.InMazeWall(p + new Vector2(0, m)) && !t.InMazeWall(p - new Vector2(0, m))
+                && !t.InMazeWall(p + new Vector2(m, m) * .7071f) && !t.InMazeWall(p - new Vector2(m, m) * .7071f)
+                && !t.InMazeWall(p + new Vector2(m, -m) * .7071f) && !t.InMazeWall(p - new Vector2(m, -m) * .7071f);
+        }
+
         static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
         {
             ["FA_DW01_LogWhole"] = 5, ["FA_DW02_LogSplit"] = 3, ["FA_DW04_LogRotten"] = 3, ["FA_DW09_SticksSmall"] = .4f, ["FA_DW10_SticksLarge"] = 1.5f,
@@ -587,6 +762,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 // Its own collider is the heart's middle (the barrier leaves the trunk out): woken, it leaves the place open.
                 great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
+                // The stair winds round it: it never moves (KeepWaysOpen).
+                if (great) pinned.Add(great);
                 trunks.Add((f.Hub, ForestLayout.TrunkRadius));
             }
             foreach (var p in points)
@@ -638,8 +815,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var b = p - along * length * .5f;
                 if (f.WallDepth(a) < .25f || f.WallDepth(b) < .25f || EdgeRoom(a) < .4f || EdgeRoom(b) < .4f) continue;
                 float yaw = Mathf.Atan2(along.x, along.y) * Mathf.Rad2Deg;
-                var log = Place(dead, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, yaw, new Vector3(Rnd(1.2f, 1.5f), Rnd(1.2f, 1.5f), length / 3.55f));
-                Bare(log);
+                // Fallen trunks, root plates and branches are solid as they look (Solidify).
+                Place(dead, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, yaw, new Vector3(Rnd(1.2f, 1.5f), Rnd(1.2f, 1.5f), length / 3.55f));
                 logs.Add(p);
             }
             int plates = 0, sticks = 0;
@@ -650,13 +827,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (EdgeRoom(p) < 1.2f || trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + .5f)) continue;
                 if (plates < 3 && depth > 1.3f && logs.All(q => Vector2.Distance(q, p) > 2.2f))
                 {
-                    Bare(Place(dead, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.5f)));
+                    Place(dead, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.8f, 2.5f));
                     logs.Add(p);
                     plates++;
                 }
                 else if (sticks < 4 && depth > .2f && depth < 1.4f && logs.All(q => Vector2.Distance(q, p) > 1.6f))
                 {
-                    Bare(Place(dead, "Deadwood/" + (rng.NextDouble() < .5 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f)));
+                    Place(dead, "Deadwood/" + (rng.NextDouble() < .5 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f));
                     logs.Add(p);
                     sticks++;
                 }
@@ -1384,7 +1561,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 // Set into the face: a little behind the surface, at the height of the spot.
                 var at = p - outward * .5f;
                 rock.transform.localPosition = new Vector3(at.x - 8, t.Height(p) - 1.2f * s, at.y - 8);
-                foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                // Solid as it looks (Solidify): a rope or a card stops on the slab, not on the ground behind it.
                 // Scree below it.
                 var foot = p + outward * 1.6f;
                 if (!t.IsSaddle && t.Height(foot) < Plateau * .25f && !t.OnRamp(foot) && !NearLink(foot, 1.6f) && t.WaterDistance(foot) > .5f && rng.NextDouble() < .6)
@@ -1491,7 +1668,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             while (chunk.parent) chunk = chunk.parent;
             go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, 0, p.y - 8));
             Physics.SyncTransforms();
-            float radius = Footprint(go);
+            float radius = Footprint(go, asset);
             float low = GroundY(t, p), high = low;
             for (int k = 0; k < 8 && radius > .05f; k++)
             {
@@ -1533,8 +1710,28 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>Radius of what stands on the ground: the colliders' footprint, else a little of the renderers'.</summary>
-        static float Footprint(GameObject go)
+        static float Footprint(GameObject go, string asset)
         {
+            string id = asset.Substring(asset.LastIndexOf('/') + 1);
+            if (asset.StartsWith("Trees/") && TreeCapsules.TryGetValue(id, out var capsules))
+            {
+                // A tree is measured by its old upright capsules, not its bark (wider, with the branches): it stands
+                // where and how deep it always did, and the slopes keep their trees.
+                var tr = go.transform;
+                Vector3 scale = tr.lossyScale;
+                float radius = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                Bounds? all = null;
+                foreach (var (centre, r, height) in capsules)
+                {
+                    float half = Mathf.Max(0, height * Mathf.Abs(scale.y) * .5f - r * radius);
+                    Vector3 mid = tr.TransformPoint(centre);
+                    var box = new Bounds(mid + tr.up * half, Vector3.zero);
+                    box.Encapsulate(mid - tr.up * half);
+                    box.Expand(r * radius * 2);
+                    if (all == null) all = box; else { var x = all.Value; x.Encapsulate(box); all = x; }
+                }
+                return Mathf.Clamp(Mathf.Min(all.Value.extents.x, all.Value.extents.z) * .85f, .1f, 2.2f);
+            }
             var colliders = go.GetComponentsInChildren<Collider>();
             Bounds? b = null;
             foreach (var c in colliders) { if (b == null) b = c.bounds; else { var x = b.Value; x.Encapsulate(c.bounds); b = x; } }
