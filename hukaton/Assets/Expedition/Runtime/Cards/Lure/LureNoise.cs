@@ -5,7 +5,7 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// The noise source left by «Манок» (prefab <c>Assets/Game/Prefabs/Cards/Lure/Lure.prefab</c>): chirps at the point
-    /// of impact for 6 / 12 / 20 s. Every call it asks the calm creatures within hearing (20 / 50 / 100 m) to come and check
+    /// of impact for 6 / 12 / 20 s. Every call it asks the calm creatures within hearing (20 / 40 / 70 m) to come and check
     /// (<see cref="WorldCreature.Investigate"/>): only idle, wandering or grazing ones go, from anywhere within hearing —
     /// the noise pulls them out of their territory and they settle at it; creatures already alert or attacking ignore it. A creature that calms down while the noise
     /// still sounds comes too. A small ring on the ground and a sound wave at each chirp mark it.
