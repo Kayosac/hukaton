@@ -241,7 +241,7 @@ namespace Hakaton.Trading.Unity
             dealActions.SetActive(!request);
             if (request)
             {
-                speech.text = $"Ищу: {customer.RequestedCategory}.";
+                TypedLine.Say(speech, $"Ищу: {customer.RequestedCategory}.");
                 lastOfferMark.SetActive(false);
                 bool display = controller.UsesDisplayView;
                 bool stock = controller.HasMatchingStock;
@@ -266,7 +266,7 @@ namespace Hakaton.Trading.Unity
                     if (deal.Mood == CustomerMood.Angry || deal.IsLastOffer) speechPunch.Shake(.35f, 1);
                 }
             }
-            speech.text = revealed ? deal.Reaction : "…";
+            TypedLine.Say(speech, revealed ? deal.Reaction : "…");
             lastOfferMark.SetActive(revealed && deal.IsLastOffer);
             var options = deal.GetPriceOptions();
             for (int i = 0; i < priceButtons.Length; i++)

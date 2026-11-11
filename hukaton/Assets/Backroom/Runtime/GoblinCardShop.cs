@@ -182,9 +182,10 @@ namespace Hakaton.Backroom
             {
                 bool next = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
                     || keyboard.enterKey.wasPressedThisFrame) || mouse != null && mouse.leftButton.wasPressedThisFrame;
-                if (next) NextLine();
+                if (next && !(bubble && bubble.SkipTyping())) NextLine();
                 return;
             }
+            if (lineUntil > 0 && bubble && bubble.IsTyping) lineUntil = Time.unscaledTime + 2.6f;
             if (lineUntil > 0 && Time.unscaledTime > lineUntil) HideBubble();
             StepAside();
             if (inspecting)

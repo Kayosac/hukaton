@@ -119,6 +119,48 @@ namespace Hakaton.DialogueUI.Editor
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
+        /// <summary>
+        /// Speech plates are not buttons: a non-interactable fade group around them would paint the disabled
+        /// (dark, "pressed") tint. Paint the plain normal linen once and switch the button behaviour off.
+        /// </summary>
+        static string Calm()
+        {
+            var report = new System.Collections.Generic.List<string>();
+            foreach (var path in new[] { Creature, Tutorial, Trader })
+            {
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    int count = 0;
+                    foreach (var behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
+                    {
+                        if (!behaviour || behaviour is DialogueBubbleLayout) continue;
+                        var so = new SerializedObject(behaviour);
+                        foreach (var field in new[] { "bubble", "layout" })
+                        {
+                            if (!(so.FindProperty(field)?.objectReferenceValue is DialogueBubbleLayout layout)) continue;
+                            var button = layout.GetComponent<StitchedLinenButton>();
+                            if (!button) continue;
+                            button.enabled = true;
+                            button.interactable = true;
+                            var b = new SerializedObject(button);
+                            b.FindProperty("editorPreview").enumValueIndex = (int)StitchedLinenButton.VisualState.Normal;
+                            b.ApplyModifiedPropertiesWithoutUndo();
+                            button.Rebuild();
+                            button.transition = Selectable.Transition.None;
+                            button.enabled = false;
+                            count++;
+                        }
+                    }
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                    report.Add(System.IO.Path.GetFileNameWithoutExtension(path) + ": " + count);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            AssetDatabase.SaveAssets();
+            return string.Join("; ", report);
+        }
+
         /// <summary>The tutorial plate back where the goblin's bubble always hung: top centre, 40 px down.</summary>
         static string TopCentre(string path)
         {
