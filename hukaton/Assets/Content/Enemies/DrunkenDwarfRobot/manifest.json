@@ -440,7 +440,8 @@
   "unity_verification": "unity-verification.json",
   "density_resample_2026_11_11": {
     "DrunkenDwarfRobotAtlas.png": {
-      "texels_per_world_metre": 128,
+      "texels_per_world_metre": 100,
+      "material": "Assets/Rendering/Materials/HandDrawnSprite.mat (grid 100)",
       "world_scale_basis": 1,
       "source_size": [
         4800,
@@ -448,113 +449,113 @@
       ],
       "source_ppu": 313.75,
       "atlas_size": [
-        2048,
+        1024,
         2048
       ],
-      "pixels_per_unit": 128,
+      "pixels_per_unit": 100,
       "packing": "grid",
       "cell": [
-        626,
-        515
+        490,
+        403
       ],
-      "columns": 3,
-      "rows": 3,
+      "columns": 2,
+      "rows": 4,
       "sprites": [
         {
           "name": "DrunkenDwarfRobot_DefaultFront",
           "rect_unity": [
             0,
-            1533,
-            626,
-            515
+            1645,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_DefaultBack",
           "rect_unity": [
-            626,
-            1533,
-            626,
-            515
+            490,
+            1645,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_AggroFront",
           "rect_unity": [
-            1252,
-            1533,
-            626,
-            515
+            0,
+            1242,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_HurtFront",
           "rect_unity": [
-            0,
-            1018,
-            626,
-            515
+            490,
+            1242,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_AttackFront",
           "rect_unity": [
-            626,
-            1018,
-            626,
-            515
+            0,
+            839,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_DeathFront",
           "rect_unity": [
-            1252,
-            1018,
-            626,
-            515
+            490,
+            839,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         },
         {
           "name": "DrunkenDwarfRobot_DeathBack",
           "rect_unity": [
             0,
-            503,
-            626,
-            515
+            436,
+            490,
+            403
           ],
           "pivot": [
             0.5,
-            0.0038835
+            0.0049628
           ]
         }
       ],
       "originals": "output/sprite-density/originals/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobotAtlas.png",
       "tool": "output/sprite-density/tool/resample.py",
-      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+      "note": "Resampled to the shared grid density (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
     }
   }
 }

@@ -356,7 +356,8 @@
   "unity_verification": "unity-verification.json",
   "density_resample_2026_11_11": {
     "PurpleMushroomAtlas.png": {
-      "texels_per_world_metre": 128,
+      "texels_per_world_metre": 100,
+      "material": "Assets/Rendering/Materials/HandDrawnSprite.mat (grid 100)",
       "world_scale_basis": 2,
       "source_size": [
         4032,
@@ -365,13 +366,13 @@
       "source_ppu": 3272.0,
       "atlas_size": [
         256,
-        512
+        256
       ],
-      "pixels_per_unit": 256,
+      "pixels_per_unit": 200,
       "packing": "grid",
       "cell": [
-        88,
-        88
+        70,
+        70
       ],
       "columns": 2,
       "rows": 3,
@@ -380,84 +381,84 @@
           "name": "PurpleMushroom_DefaultFront",
           "rect_unity": [
             0,
-            424,
-            88,
-            88
+            186,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         },
         {
           "name": "PurpleMushroom_DefaultBack",
           "rect_unity": [
-            88,
-            424,
-            88,
-            88
+            70,
+            186,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         },
         {
           "name": "PurpleMushroom_StartleFront",
           "rect_unity": [
             0,
-            336,
-            88,
-            88
+            116,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         },
         {
           "name": "PurpleMushroom_HurtFront",
           "rect_unity": [
-            88,
-            336,
-            88,
-            88
+            70,
+            116,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         },
         {
           "name": "PurpleMushroom_DeathFront",
           "rect_unity": [
             0,
-            248,
-            88,
-            88
+            46,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         },
         {
           "name": "PurpleMushroom_DeathBack",
           "rect_unity": [
-            88,
-            248,
-            88,
-            88
+            70,
+            46,
+            70,
+            70
           ],
           "pivot": [
             0.5,
-            0.0227273
+            0.0285714
           ]
         }
       ],
       "originals": "output/sprite-density/originals/Enemies/PurpleMushroom/PurpleMushroomAtlas.png",
       "tool": "output/sprite-density/tool/resample.py",
-      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+      "note": "Resampled to the shared grid density (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
     }
   }
 }

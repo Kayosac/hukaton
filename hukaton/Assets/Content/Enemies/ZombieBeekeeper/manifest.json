@@ -348,7 +348,8 @@
   "unity_verification": "unity-verification.json",
   "density_resample_2026_11_11": {
     "ZombieBeekeeperAtlas.png": {
-      "texels_per_world_metre": 128,
+      "texels_per_world_metre": 100,
+      "material": "Assets/Rendering/Materials/HandDrawnSprite.mat (grid 100)",
       "world_scale_basis": 1.25,
       "source_size": [
         4032,
@@ -359,11 +360,11 @@
         512,
         1024
       ],
-      "pixels_per_unit": 160.0,
+      "pixels_per_unit": 125.0,
       "packing": "grid",
       "cell": [
-        248,
-        275
+        194,
+        216
       ],
       "columns": 2,
       "rows": 3,
@@ -372,84 +373,84 @@
           "name": "ZombieBeekeeper_DefaultFront",
           "rect_unity": [
             0,
-            749,
-            248,
-            275
+            808,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         },
         {
           "name": "ZombieBeekeeper_DefaultBack",
           "rect_unity": [
-            248,
-            749,
-            248,
-            275
+            194,
+            808,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         },
         {
           "name": "ZombieBeekeeper_StartleFront",
           "rect_unity": [
             0,
-            474,
-            248,
-            275
+            592,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         },
         {
           "name": "ZombieBeekeeper_HurtFront",
           "rect_unity": [
-            248,
-            474,
-            248,
-            275
+            194,
+            592,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         },
         {
           "name": "ZombieBeekeeper_DeathFront",
           "rect_unity": [
             0,
-            199,
-            248,
-            275
+            376,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         },
         {
           "name": "ZombieBeekeeper_DeathBack",
           "rect_unity": [
-            248,
-            199,
-            248,
-            275
+            194,
+            376,
+            194,
+            216
           ],
           "pivot": [
             0.5,
-            0.0072727
+            0.0092593
           ]
         }
       ],
       "originals": "output/sprite-density/originals/Enemies/ZombieBeekeeper/ZombieBeekeeperAtlas.png",
       "tool": "output/sprite-density/tool/resample.py",
-      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+      "note": "Resampled to the shared grid density (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
     }
   }
 }

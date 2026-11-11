@@ -361,7 +361,8 @@
   "unity_verification": "unity-verification.json",
   "density_resample_2026_11_11": {
     "SnailFrogMountAtlas.png": {
-      "texels_per_world_metre": 128,
+      "texels_per_world_metre": 100,
+      "material": "Assets/Rendering/Materials/HandDrawnSprite.mat (grid 100)",
       "world_scale_basis": 0.9,
       "source_size": [
         4032,
@@ -370,13 +371,13 @@
       "source_ppu": 606.0,
       "atlas_size": [
         512,
-        1024
+        512
       ],
-      "pixels_per_unit": 115.2,
+      "pixels_per_unit": 90.0,
       "packing": "grid",
       "cell": [
-        222,
-        217
+        174,
+        170
       ],
       "columns": 2,
       "rows": 3,
@@ -385,84 +386,84 @@
           "name": "SnailFrogMount_DefaultFront",
           "rect_unity": [
             0,
-            807,
-            222,
-            217
+            342,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         },
         {
           "name": "SnailFrogMount_DefaultBack",
           "rect_unity": [
-            222,
-            807,
-            222,
-            217
+            174,
+            342,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         },
         {
           "name": "SnailFrogMount_StartleFront",
           "rect_unity": [
             0,
-            590,
-            222,
-            217
+            172,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         },
         {
           "name": "SnailFrogMount_HurtFront",
           "rect_unity": [
-            222,
-            590,
-            222,
-            217
+            174,
+            172,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         },
         {
           "name": "SnailFrogMount_DeathFront",
           "rect_unity": [
             0,
-            373,
-            222,
-            217
+            2,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         },
         {
           "name": "SnailFrogMount_DeathBack",
           "rect_unity": [
-            222,
-            373,
-            222,
-            217
+            174,
+            2,
+            174,
+            170
           ],
           "pivot": [
             0.5,
-            0.0092166
+            0.0117647
           ]
         }
       ],
       "originals": "output/sprite-density/originals/Enemies/SnailFrogMount/SnailFrogMountAtlas.png",
       "tool": "output/sprite-density/tool/resample.py",
-      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+      "note": "Resampled to the shared grid density (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
     }
   }
 }

@@ -257,7 +257,7 @@ namespace Hakaton.Expeditions.Tests
             var baked = RenderThroughCamera(renderer, 1024, perspective, frameCenter: centre);
             var changed = original.Zip(baked, (a, b) => a.Equals(b) ? 0 : 1).Sum();
             // Recreating an imported sprite rounds its mesh coordinates differently. Allow <0.05%
-            // raster/sample boundary differences (the bush is authored at 128 texels/m, so texel edges
+            // raster/sample boundary differences (the bush is authored at 100 texels/m, so texel edges
             // meet this test's 184.875 grid more often); the view-override regression above remains bit-exact.
             Assert.That(changed / (float)original.Length, Is.LessThan(.0005f),
                 $"Bush at x={worldX}: {changed} changed pixels after baking only Transform scale.");
@@ -344,6 +344,20 @@ namespace Hakaton.Expeditions.Tests
                 Assert.That(variant.parent, Is.SameAs(shared));
                 Assert.That(variant.IsPropertyOverriden("_PixelsPerUnit"), Is.False, path);
             }
+        }
+
+        [Test]
+        public void TheGoblinTraderAloneDrawsOnATwiceFinerGrid()
+        {
+            // User-approved exception: the small trader goblin keeps detail on its own grid.
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            var goblin = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite Goblin.mat");
+            Assert.That(goblin.parent, Is.SameAs(shared));
+            Assert.That(goblin.IsPropertyOverriden("_PixelsPerUnit"), Is.True);
+            Assert.That(goblin.GetFloat("_PixelsPerUnit"), Is.EqualTo(shared.GetFloat("_PixelsPerUnit") * 2).Within(1e-4f));
+            foreach (var path in new[] { "Assets/Tutorial/Prefabs/CounterGoblin.prefab", "Assets/ShopBlockout/Prefabs/GoblinCeilingRig.prefab" })
+                Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponentsInChildren<SpriteRenderer>(true)
+                    .Any(r => r.sharedMaterial == goblin && r.sprite && r.sprite.texture.name.Contains("Goblin")), Is.True, path);
         }
     }
 }

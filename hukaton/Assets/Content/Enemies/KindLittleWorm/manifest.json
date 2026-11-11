@@ -429,7 +429,8 @@
   "unity_verification": "unity-verification.json",
   "density_resample_2026_11_11": {
     "KindLittleWormAtlas.png": {
-      "texels_per_world_metre": 128,
+      "texels_per_world_metre": 100,
+      "material": "Assets/Rendering/Materials/HandDrawnSprite.mat (grid 100)",
       "world_scale_basis": 2,
       "source_size": [
         4080,
@@ -437,100 +438,100 @@
       ],
       "source_ppu": 4498.8257,
       "atlas_size": [
-        256,
-        128
+        128,
+        256
       ],
-      "pixels_per_unit": 256,
+      "pixels_per_unit": 200,
       "packing": "grid",
       "cell": [
-        65,
-        59
+        51,
+        47
       ],
-      "columns": 3,
-      "rows": 2,
+      "columns": 2,
+      "rows": 3,
       "sprites": [
         {
           "name": "KindLittleWorm_DefaultFront",
           "rect_unity": [
             0,
-            69,
-            65,
-            59
+            209,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         },
         {
           "name": "KindLittleWorm_DefaultBack",
           "rect_unity": [
-            65,
-            69,
-            65,
-            59
+            51,
+            209,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         },
         {
           "name": "KindLittleWorm_StartleFront",
           "rect_unity": [
-            130,
-            69,
-            65,
-            59
+            0,
+            162,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         },
         {
           "name": "KindLittleWorm_HurtFront",
           "rect_unity": [
-            0,
-            10,
-            65,
-            59
+            51,
+            162,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         },
         {
           "name": "KindLittleWorm_DeathFront",
           "rect_unity": [
-            65,
-            10,
-            65,
-            59
+            0,
+            115,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         },
         {
           "name": "KindLittleWorm_DeathBack",
           "rect_unity": [
-            130,
-            10,
-            65,
-            59
+            51,
+            115,
+            51,
+            47
           ],
           "pivot": [
-            0.4923077,
-            0.0338983
+            0.4901961,
+            0.0425532
           ]
         }
       ],
       "originals": "output/sprite-density/originals/Enemies/KindLittleWorm/KindLittleWormAtlas.png",
       "tool": "output/sprite-density/tool/resample.py",
-      "note": "Resampled to a common 128 texels per world metre (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
+      "note": "Resampled to the shared grid density (world size and pivots unchanged; >=1 px dark outer contour). Older width/height/cell/rect fields above describe the pre-resample masters/atlas."
     }
   }
 }
