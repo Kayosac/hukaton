@@ -16,15 +16,18 @@ namespace Hakaton.DialogueUI.Editor
         const string Button = "Assets/Content/UI/Dialogue/Prefabs/StitchedLinenButton.prefab";
         const string Creature = "Assets/Game/Prefabs/UI/Creature speech bubble.prefab";
         const string Tutorial = "Assets/Tutorial/Prefabs/TutorialBubble.prefab";
+        const string Trader = "Assets/Backroom/Prefabs/GoblinCardTable.prefab";
 
         static string Apply()
         {
             // Creatures: a small plate in a world canvas, right over the head.
             string a = Swap(Creature, 16, new Vector4(16, 14, 16, 16), 120, 280, 44, .04f);
-            // Tutorial goblin: the full skin over the game view.
+            // Tutorial goblin and the trader: the full skin, where their bubble used to hang (top centre).
             string b = Swap(Tutorial, 8, new Vector4(36, 30, 36, 34), 240, 520, 92, -1);
+            string c = Swap(Trader, 8, new Vector4(36, 30, 36, 34), 240, 520, 92, -1);
+            string d = TopCentre(Tutorial);
             AssetDatabase.SaveAssets();
-            return a + "; " + b;
+            return a + "; " + b + "; " + c + "; " + d;
         }
 
         static string Swap(string path, float density, Vector4 padding, float minWidth, float maxWidth, float minHeight, float headGap)
@@ -50,8 +53,10 @@ namespace Hakaton.DialogueUI.Editor
                 var rect = (RectTransform)plate.transform;
                 rect.anchorMin = oldRect.anchorMin;
                 rect.anchorMax = oldRect.anchorMax;
-                rect.pivot = new Vector2(.5f, 0);
-                rect.anchoredPosition = Vector2.zero;
+                // A world canvas hangs the plate from its bottom (the head); a screen one keeps the bubble's place.
+                bool world = headGap >= 0;
+                rect.pivot = world ? new Vector2(.5f, 0) : oldRect.pivot;
+                rect.anchoredPosition = world ? Vector2.zero : oldRect.anchoredPosition;
                 rect.localScale = Vector3.one;
                 rect.localRotation = Quaternion.identity;
 
@@ -77,6 +82,17 @@ namespace Hakaton.DialogueUI.Editor
                 so.FindProperty("padding").vector4Value = padding;
                 so.ApplyModifiedPropertiesWithoutUndo();
 
+                // A fade group living on the old bubble moves to the plate.
+                CanvasGroup oldGroup = old.GetComponent<CanvasGroup>(), newGroup = null;
+                if (oldGroup)
+                {
+                    newGroup = plate.AddComponent<CanvasGroup>();
+                    newGroup.alpha = oldGroup.alpha;
+                    newGroup.interactable = oldGroup.interactable;
+                    newGroup.blocksRaycasts = oldGroup.blocksRaycasts;
+                    newGroup.ignoreParentGroups = oldGroup.ignoreParentGroups;
+                }
+
                 // Everything that pointed at the old bubble now points at the plate.
                 foreach (var behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
                 {
@@ -88,6 +104,7 @@ namespace Hakaton.DialogueUI.Editor
                     {
                         if (it.propertyType != SerializedPropertyType.ObjectReference) continue;
                         if (it.objectReferenceValue == old) { it.objectReferenceValue = layoutOnPlate; changed = true; }
+                        else if (oldGroup && it.objectReferenceValue == oldGroup) { it.objectReferenceValue = newGroup; changed = true; }
                     }
                     if (headGap >= 0 && refs.FindProperty("headGap") is SerializedProperty gap && gap.propertyType == SerializedPropertyType.Float)
                     { gap.floatValue = headGap; changed = true; }
@@ -98,6 +115,24 @@ namespace Hakaton.DialogueUI.Editor
                 layoutOnPlate.RefreshLayout();
                 PrefabUtility.SaveAsPrefabAsset(root, path);
                 return path + ": plate";
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        /// <summary>The tutorial plate back where the goblin's bubble always hung: top centre, 40 px down.</summary>
+        static string TopCentre(string path)
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var button = root.GetComponentInChildren<StitchedLinenButton>(true);
+                if (!button) return path + ": no plate";
+                var rect = (RectTransform)button.transform;
+                rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1);
+                rect.pivot = new Vector2(.5f, 1);
+                rect.anchoredPosition = new Vector2(0, -40);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                return path + ": top centre";
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }

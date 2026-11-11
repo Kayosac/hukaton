@@ -91,7 +91,6 @@ namespace Hakaton.Tutorial
 
         void Enter()
         {
-            if (goblin && goblin.face) bubble.speaker = goblin.face.spriteRenderer;
             seenSettlement = Session.SettlementSequence;
             seenDeparture = Session.DepartureSequence;
             seenCustomer = Session.CurrentCustomer?.Id ?? 0;
