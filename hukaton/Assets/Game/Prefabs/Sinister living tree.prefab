@@ -347,6 +347,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  flying: 0
+  cruiseHeight: 1.8
+  windupClimb: 0.7
+  diveHeight: 0.9
+  climbSpeed: 4
+  climbAcceleration: 14
+  bobHeight: 0.12
+  bobFrequency: 0.9
+  jitter: 0
+  shadowSize: 0.4
+  shadowOpacity: 0.35
+  ranged:
+    projectile: {fileID: 0}
+    range: 12
+    minRange: 3.5
+    aimSeconds: 0.6
+    cooldown: 2.2
+    recovery: 0.5
+    projectiles: 1
+    spreadAngle: 24
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.6
+    keepDistance: 8
+    retreatDistance: 4
+    retreatSpeed: 0.8
+    circleSpeed: 0
+    closeCombat: 0
+    shoveDamage: 1
   world: {fileID: 0}
   temperament: 2
   displayName: "\u0417\u043B\u043E\u0432\u0435\u0449\u0435\u0435 \u0434\u0435\u0440\u0435\u0432\u043E"
@@ -355,6 +385,7 @@ MonoBehaviour:
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
   size: 1
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.24
   stunStarsScale: 2.6
   drops:
@@ -408,6 +439,8 @@ MonoBehaviour:
   stepDustCount: 2
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
   fireVulnerability: {fileID: 2076488601298582457}
+  flamesSize: 0.9
+  flamesHeight: 0.5
   alertCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   threatCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   windupCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
@@ -487,6 +520,19 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &2076488601298582457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4141966203500242417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a3cc73f027d4142a12a76bccc45df40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.FireVulnerability
+  settings: {fileID: 11400000, guid: d76cb45de990640579b2f33250dedd85, type: 2}
 --- !u!1 &5025864113893485271
 GameObject:
   m_ObjectHideFlags: 0
@@ -1272,27 +1318,3 @@ ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 3249871430257441394, guid: 0dbce175acd764ab08436eef7dcecf44, type: 3}
   m_PrefabInstance: {fileID: 6698019698427994884}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2076488601298582457
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4141966203500242417}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a3cc73f027d4142a12a76bccc45df40, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.FireVulnerability
-  settings:
-    burnMultiplier: 2
-    damageMultiplier: 1.5
-    flames: {fileID: 4039943994851622645, guid: 46be5aed491c4452b50d8ef757eaca24, type: 3}
-    flamesSize: 0.9
-    flamesHeight: 0.5
-    flamesFadeSeconds: 0.5
-    touchReach: 0.3
-    touchInterval: 0.2
-    touchLayers:
-      serializedVersion: 2
-      m_Bits: 4294967295
