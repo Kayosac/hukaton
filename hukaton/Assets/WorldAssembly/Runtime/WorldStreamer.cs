@@ -718,6 +718,15 @@ namespace Hakaton.WorldAssembly.Unity
                 var prefab = content.Creature(spawn.Creature, Pick(plan.Coord, 50 + g));
                 var socket = sockets[(Pick(plan.Coord, 60) + (uint)g) % (uint)sockets.Length];
                 float turn = Pick(plan.Coord, 70 + g) % 628 / 100f;
+                // More groups than spots (the calm ones come in threes): the later ones settle a few metres off.
+                int lap = g / sockets.Length;
+                var centre = socket.position;
+                if (lap > 0)
+                {
+                    float a = turn + lap * 2.1f;
+                    var aside = centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (2.6f + .8f * lap);
+                    if (NavMesh.SamplePosition(aside, out var spot, 2f, NavMesh.AllAreas)) centre = spot.position + Vector3.up * .15f;
+                }
                 for (int m = 0; m < spawn.Count; m++, k++)
                 {
                     bool remembered = false;
@@ -728,7 +737,7 @@ namespace Hakaton.WorldAssembly.Unity
                         if (!state.alive) continue;
                     }
                     if (!prefab) continue;
-                    var at = socket.position;
+                    var at = centre;
                     if (m > 0)
                     {
                         float a = turn + m * 2.4f;

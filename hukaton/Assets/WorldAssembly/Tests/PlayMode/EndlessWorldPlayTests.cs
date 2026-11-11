@@ -578,7 +578,8 @@ namespace Hakaton.WorldAssembly.Tests
             var heart = Nearest(TileShapes.ForestHeart);
             Assert.That(heart, Is.Not.Null, "a forest's heart within 480 m");
             world.motor.Teleport(Centre(heart) + new Vector3(4.6f, 3, 0), Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 20);
+            Assert.That(streamer.IsLoaded(heart.Coord), Is.True, $"{heart} loads");
             for (int f = 0; f < 40; f++) yield return null;
             var view = ViewAt(heart.Coord);
             Assert.That(view.lookouts.Length, Is.EqualTo(1), "a lookout on the great tree");
@@ -594,7 +595,8 @@ namespace Hakaton.WorldAssembly.Tests
             var hollow = Nearest(TileShapes.ForestHollow);
             Assert.That(hollow, Is.Not.Null, "a hollow trunk within 480 m");
             world.motor.Teleport(Centre(hollow) + Vector3.up * 3, Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 20);
+            Assert.That(streamer.IsLoaded(hollow.Coord), Is.True, $"{hollow} loads");
             for (int f = 0; f < 40; f++) yield return null;
             view = ViewAt(hollow.Coord);
             var log = view.GetComponentsInChildren<Transform>().First(t => t.name == "Hollow trunk");
@@ -609,7 +611,8 @@ namespace Hakaton.WorldAssembly.Tests
             var hoard = Nearest(TileShapes.ForestDeadfall);
             Assert.That(hoard, Is.Not.Null, "deadfall within 480 m");
             world.motor.Teleport(Centre(hoard) + Vector3.up * 3, Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 20);
+            Assert.That(streamer.IsLoaded(hoard.Coord), Is.True, $"{hoard} loads");
             for (int f = 0; f < 40; f++) yield return null;
             view = ViewAt(hoard.Coord);
             var deadfall = view.obstacles.First(o => o && o.name == "Deadfall");

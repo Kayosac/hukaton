@@ -66,6 +66,9 @@ namespace Hakaton.WorldAssembly
 
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
         public double[] CreatureChance = { .12, .2, .33 };
+        /// <summary>Peaceful and timid creatures (<see cref="CreatureThemes.IsCalm"/>) come this many times over: each
+        /// of their groups is repeated at other spots of the chunk.</summary>
+        public int CalmCrowd = 3;
         /// <summary>Chance a chunk holds a small event (<see cref="WorldEvents"/>) by ring; ring 0 only harmless ones.</summary>
         public double[] EventChance = { .25, .28, .3 };
         /// <summary>Share of beast brawls among the events where a brawl fits (rings 1–2, roomy flat scenes).</summary>
