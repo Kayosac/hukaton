@@ -25,8 +25,8 @@ namespace Hakaton.Expeditions.Cards
         [Min(.02f)] public float slowRefreshSeconds = .15f;
 
         [Header("Tarred creatures")]
-        [Tooltip("A creature without its own fire vulnerability that is set alight while in this tar (on it unlit, or in its fire) burns like a fire-vulnerable one until that burn ends: these multipliers, flames sized by its height, setting things alight by touch.")]
-        public FireVulnerabilitySettings tarredFire = new FireVulnerabilitySettings();
+        [Tooltip("A creature without its own fire vulnerability that is set alight while in this tar (on it unlit, or in its fire) burns like a fire-vulnerable one until that burn ends, by these rules (the shared Fire vulnerability asset): multipliers, flames placed as the creature sets them, setting things alight by touch. Empty: tar does not make anyone vulnerable.")]
+        public FireVulnerabilitySettings tarredFire;
 
         [Header("Look")]
         [Tooltip("The crooked tar blob: a unit-radius mesh scaled to the puddle.")]

@@ -32,6 +32,9 @@ namespace Hakaton.DialogueUI
             RefreshLayout();
         }
 
+        /// <summary>Call when the bubble is hidden: the same line shown again is typed again.</summary>
+        public void ForgetLine() => TypedLine.Forget(dialogue);
+
         /// <summary>Letters of the line are still being typed.</summary>
         public bool IsTyping => dialogue && dialogue.TryGetComponent(out TypedLine typed) && typed.IsTyping;
 

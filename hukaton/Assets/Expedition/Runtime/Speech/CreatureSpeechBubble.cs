@@ -33,6 +33,7 @@ namespace Hakaton.Expeditions
         public void Hide()
         {
             if (content) content.alpha = 0;
+            if (layout) layout.ForgetLine();
         }
 
         void LateUpdate() => FollowSprite();

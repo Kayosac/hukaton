@@ -27,6 +27,7 @@ namespace Hakaton.Tutorial
         public void Hide()
         {
             if (group) group.alpha = 0;
+            if (bubble) bubble.ForgetLine();
         }
 
         void Awake() => Hide();

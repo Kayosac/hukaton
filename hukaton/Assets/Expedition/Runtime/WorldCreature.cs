@@ -89,6 +89,10 @@ namespace Hakaton.Expeditions
         [Header("Fire")]
         [Tooltip("Optional: makes this creature vulnerable to fire (longer burning, more fire damage, flames on the body, sets things alight by touch). Empty: fire works as usual, except a burn that started in tar (see the tar puddle's Tarred Fire).")]
         public FireVulnerability fireVulnerability;
+        [Tooltip("Size of the Retro Arsenal flames on this body while it burns vulnerably (its own fire vulnerability, or set alight in tar), per metre of its visible height. The FireTorch flame is about half a metre at scale one.")]
+        [Min(0)] public float flamesSize = 1;
+        [Tooltip("Height of those flames above the feet, as a share of the visible height: low enough to leave the face clear.")]
+        [Range(0, 1)] public float flamesHeight = .25f;
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
@@ -131,10 +135,19 @@ namespace Hakaton.Expeditions
         public bool Burning => Alive && State != CreatureState.Frozen && Time.time < burnUntil;
         /// <summary>Seconds of burning left; zero when not burning.</summary>
         public float BurnSecondsLeft => Burning ? burnUntil - Time.time : 0;
-        /// <summary>Visible height of the drawing in metres (see <see cref="TopHeight"/>).</summary>
-        public float Height => TopHeight;
-        /// <summary>The body capsule (sized with the creature), or null.</summary>
-        public CapsuleCollider BodyCapsule => capsule;
+        /// <summary>
+        /// Radius of the physical body in metres: its capsule (sized with the creature), or a quarter of the height
+        /// without one. What a burning body touches; <see cref="BodyRadius"/> is the wider visible half-width (ice shell).
+        /// </summary>
+        public float CapsuleRadius
+        {
+            get
+            {
+                if (!capsule) return TopHeight * .25f;
+                Vector3 scale = capsule.transform.lossyScale;
+                return capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+            }
+        }
         /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
         float TopHeight => view ? view.height * Size : 1;
         /// <summary>The creature's size in the world: the size field times any scale of the root.</summary>
