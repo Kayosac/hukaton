@@ -5,7 +5,8 @@
 //   Ice.mat      (_Shell = 0) — a sheet of ice on water: opaque result composited from the opaque texture, writes
 //                depth, queue Transparent-90 (just after the water). Flat top + skirt; thickness ~0.12 m.
 //   IceShell.mat (_Shell = 1) — a closed faceted shell around a creature sprite: alpha blended over the sprite
-//                (sprites are Transparent 3000; the shell sits at 3050), back faces first, then front faces.
+//                (sprites are Transparent 3000 and write depth for their hard pixels; the shell sits at 3050, so a
+//                drawing in front of a shell hides it and the creature inside shows through), back faces first, then front.
 //
 // Properties meant to be driven per renderer (MaterialPropertyBlock):
 //   _Reveal  0..1  freeze-in. 0 = nothing, crystals grow in as noisy frost, 1 = finished clear ice.

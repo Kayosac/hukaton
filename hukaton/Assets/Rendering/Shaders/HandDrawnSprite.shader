@@ -18,6 +18,10 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         _Anchor ("Foot Anchor (texture Y)", Range(0,0.5)) = 0.08
         _Seed ("Motion Phase", Float) = 0
         [HideInInspector] _RendererColor ("Renderer Color", Color) = (1,1,1,1)
+        // Depth: coverage is binary, so the drawing writes depth and ice shells drawn after it are hidden behind it.
+        // Off for plates that carry text on top (speech bubbles).
+        [Header(Depth)]
+        [ToggleUI] _ZWrite ("Write Depth", Float) = 1
     }
 
     SubShader
@@ -29,7 +33,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             "PreviewType"="Plane"
         }
         Cull Off
-        ZWrite Off
+        // Hard pixels: what survives the alpha cutoff is solid, so it may write depth (see _ZWrite).
+        ZWrite [_ZWrite]
         Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
 
         HLSLINCLUDE
