@@ -175,6 +175,16 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void TheEThatGrabsTheRopeDoesNotLetGoInTheSameFrame()
+        {
+            Assert.That(RopeMath.WantsToLetGo(false, true, false, true), Is.False, "E grabbed the rope this frame: keep holding.");
+            Assert.That(RopeMath.WantsToLetGo(false, true, false, false), Is.True, "E on a later frame lets go.");
+            Assert.That(RopeMath.WantsToLetGo(true, false, false, true), Is.True, "Space always lets go.");
+            Assert.That(RopeMath.WantsToLetGo(false, true, true, false), Is.False, "E with loot in focus picks the loot up instead.");
+            Assert.That(RopeMath.WantsToLetGo(false, false, false, false), Is.False);
+        }
+
+        [Test]
         public void TheCrosshairFindsTheClosestPieceOfRope()
         {
             float distance = RopeMath.RayToSegment(Vector3.zero, Vector3.forward, 10, new Vector3(.2f, 2, 3), new Vector3(.2f, -2, 3), out float t, out float u);

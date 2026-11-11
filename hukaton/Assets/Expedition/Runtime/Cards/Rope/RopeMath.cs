@@ -54,6 +54,13 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Impulse the rope gives its anchor while correcting a body of <paramref name="mass"/> by <paramref name="correction"/> in one step (towards the body).</summary>
         public static Vector3 TensionImpulse(Vector3 correction, float mass, float dt) => dt > 0 ? -correction * (mass / dt) : Vector3.zero;
 
+        /// <summary>
+        /// The player lets go of the rope: Space, or E unless loot is in focus (E picks it up). The E press that grabbed
+        /// the rope this very frame is not also a release — otherwise the hands would let go in the frame they took hold.
+        /// </summary>
+        public static bool WantsToLetGo(bool jumpPressed, bool interactPressed, bool lootFocused, bool grabbedThisFrame)
+            => jumpPressed || (interactPressed && !lootFocused && !grabbedThisFrame);
+
         /// <summary>Climbing speed along the rope (+ up): W/S only when the view is pitched beyond <paramref name="climbLookAngle"/>.</summary>
         public static float ClimbRate(Vector2 move, float pitchDegrees, float climbLookAngle, float climbSpeed)
         {

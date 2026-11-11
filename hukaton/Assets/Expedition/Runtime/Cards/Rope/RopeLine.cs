@@ -150,6 +150,7 @@ namespace Hakaton.Expeditions.Cards
         PlayerVitals hurtSource;
         bool holding, mantling;
         float gripLength, holdStart, mantleTime, nextLedgeProbe;
+        int grabFrame = -1;
         Vector3 gripVelocity, mantleFrom, mantleTo, pendingImpulse;
 
         public bool Attached { get; private set; }
@@ -374,6 +375,7 @@ namespace Hakaton.Expeditions.Cards
             gripLength = Mathf.Clamp(Mathf.Max(arc, Vector3.Distance(AnchorPoint, GripPoint())), topReach, length);
             gripVelocity = m.Velocity;
             holdStart = Time.time;
+            grabFrame = Time.frameCount;
             hurtSource = world.vitals;
             if (hurtSource) hurtSource.Changed += OnPlayerHealthChanged;
             world.Play(grabSound, GripPoint());
@@ -443,7 +445,9 @@ namespace Hakaton.Expeditions.Cards
             var input = motor.input;
             Vector2 move = gameplay && input ? input.Move : Vector2.zero;
             var keys = Keyboard.current;
-            bool letGo = gameplay && ((input && input.JumpPressed) || (keys != null && keys.eKey.wasPressedThisFrame && !world.FocusedLoot));
+            // The E press that grabbed the rope (Coordinate runs just before this, in the same frame) does not let go.
+            bool letGo = gameplay && RopeMath.WantsToLetGo(input && input.JumpPressed, keys != null && keys.eKey.wasPressedThisFrame,
+                world.FocusedLoot, Time.frameCount == grabFrame);
             if (letGo) { LetGo(); return; }
             if (!controlsExplained && Time.time - holdStart >= firstHoldPromptSeconds) controlsExplained = true;
             if (world) world.ShowCardPrompt(controlsExplained ? holdPrompt : firstHoldPrompt, false);
