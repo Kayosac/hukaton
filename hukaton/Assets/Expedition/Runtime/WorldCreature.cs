@@ -87,7 +87,7 @@ namespace Hakaton.Expeditions
         [Min(0)] public int stepDustCount = 2;
         public Color dustColour = new Color(.86f, .78f, .64f);
         [Header("Fire")]
-        [Tooltip("Optional: makes this creature vulnerable to fire (longer burning, more fire damage, flames on the body, sets things alight by touch). Empty: fire works as usual.")]
+        [Tooltip("Optional: makes this creature vulnerable to fire (longer burning, more fire damage, flames on the body, sets things alight by touch). Empty: fire works as usual, except a burn that started in tar (see the tar puddle's Tarred Fire).")]
         public FireVulnerability fireVulnerability;
         [Header("Sounds")]
         public SfxCue alertCue;
@@ -112,6 +112,8 @@ namespace Hakaton.Expeditions
         Vector3 noisePoint;
         float investigateUntil;
         ICombatant attackTarget;
+        CreatureFire fire;
+        CreatureFire Fire => fire ??= new CreatureFire(this);
 
         Vector3 PlayerPosition => world.motor.transform.position;
         Vector3 ToPlayer { get { var v = PlayerPosition - body.position; v.y = 0; return v; } }
@@ -173,6 +175,8 @@ namespace Hakaton.Expeditions
         }
 #endif
 
+        void OnDisable() => fire?.PutOut(0);
+
         void Awake()
         {
             ApplySize();
@@ -222,6 +226,7 @@ namespace Hakaton.Expeditions
             pose = CreaturePose.Default;
             if (view) view.Present(pose, transform.forward, Vector3.zero, Vector2.one, 0);
             Tint(Color.white, 0);
+            Fire.Reset();
             OutingReset?.Invoke();
         }
 
@@ -649,6 +654,21 @@ namespace Hakaton.Expeditions
 
         // ---------------- reactions ----------------
 
+        /// <summary>The vulnerable burn in force: the trait, or tar it was set alight in (null: an ordinary burn).</summary>
+        public FireVulnerabilitySettings FireVulnerable => Fire.Active;
+
+        /// <summary>
+        /// Fire hits on a fire-vulnerable creature, or on one set alight while in tar, burn longer and hurt more
+        /// (see <see cref="CreatureFire"/>). Tar fire under it counts: the tar is where it stands when it catches.
+        /// </summary>
+        void ScaleFireHit(ref int amount, ref float burnSeconds)
+        {
+            if (burnSeconds <= 0) return;
+            var trait = fireVulnerability ? fireVulnerability.settings : null;
+            var tar = trait == null ? CreatureFire.TarredAt(world, Position) : null;
+            Fire.Hit(ref amount, ref burnSeconds, trait, tar, Burning);
+        }
+
         /// <summary>
         /// A hit. <paramref name="burnSeconds"/> above zero makes it a fire hit: it sets the creature alight for that
         /// long (a fire-vulnerable creature takes more of it, see <see cref="FireVulnerability"/>).
@@ -656,7 +676,7 @@ namespace Hakaton.Expeditions
         public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds)
         {
             if (!Alive) return;
-            FireVulnerability.ScaleHit(fireVulnerability, ref amount, ref burnSeconds);
+            ScaleFireHit(ref amount, ref burnSeconds);
             Health = Mathf.Max(0, Health - amount);
             if (amount > 0)
             {
@@ -874,6 +894,7 @@ namespace Hakaton.Expeditions
         {
             if (appliedSize != CurrentSize) ApplySize();
             if (flying) UpdateShadow();
+            Fire.Tick();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
