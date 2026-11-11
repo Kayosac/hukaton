@@ -21,7 +21,7 @@ namespace Hakaton.Expeditions
     /// (<see cref="CreatureSpriteView"/>) that is squashed, hopped and tinted procedurally.
     /// Every attack is telegraphed: the aggression drawing, a crouch, sound and a red "!!" before the direction locks.
     /// </summary>
-    public sealed partial class WorldCreature : MonoBehaviour, ICombatant
+    public sealed partial class WorldCreature : MonoBehaviour, ICombatant, IFreezable
     {
         [Header("Identity")]
         public ExpeditionWorld world;
@@ -218,6 +218,7 @@ namespace Hakaton.Expeditions
             float roll = random != null ? (float)random.NextDouble() : Random.value;
             spawnSize = Mathf.Lerp(Mathf.Min(spawnSizeRange.x, spawnSizeRange.y), Mathf.Max(spawnSizeRange.x, spawnSizeRange.y), roll);
             ApplySize();
+            IceEncasement.Remove(this);
             frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
@@ -693,9 +694,17 @@ namespace Hakaton.Expeditions
         /// long (a fire-vulnerable creature takes more of it, see <see cref="FireVulnerability"/>).
         /// </summary>
         public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds)
+            => Damage(amount, impulse, point, burnSeconds, burnSeconds > 0 ? DamageKind.Fire : DamageKind.Hit);
+
+        /// <summary>
+        /// Every hit on the creature ends here. Encased in ice (<see cref="IceEncasement"/>): a physical hit shatters
+        /// the shell and lands twice as hard, fire melts it, a killing blow of any kind breaks it.
+        /// </summary>
+        public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds, DamageKind kind)
         {
             if (!Alive) return;
             ScaleFireHit(ref amount, ref burnSeconds);
+            amount = IceEncasement.ResolveHit(this, amount, kind, impulse, point, Health);
             Health = Mathf.Max(0, Health - amount);
             if (amount > 0)
             {
@@ -737,12 +746,26 @@ namespace Hakaton.Expeditions
         public void Freeze(float seconds)
         {
             if (!Alive) return;
-            frozenUntil = Time.time + seconds;
-            provokedUntil = Time.time + 8 + seconds;
+            // Never shortens a longer freeze (an ice shell holds until it melts or shatters).
+            frozenUntil = Mathf.Max(frozenUntil, Time.time + seconds);
+            provokedUntil = Mathf.Max(provokedUntil, Time.time + 8 + Mathf.Min(seconds, 60));
             // Ice puts the fire out.
             burnUntil = 0;
             Enter(CreatureState.Frozen);
         }
+
+        /// <summary>Ends any freeze at once: the ice shell melted or shattered. It comes out angry.</summary>
+        public void Thaw()
+        {
+            if (frozenUntil <= Time.time) return;
+            frozenUntil = 0;
+            provokedUntil = Time.time + 8;
+        }
+
+        /// <summary>Visible height of the creature (the drawing), m: what an ice shell has to cover.</summary>
+        public float BodyHeight => TopHeight;
+        /// <summary>Half the width the ice shell has to cover, m.</summary>
+        public float BodyRadius => Mathf.Max(capsule ? capsule.radius * transform.lossyScale.x : .3f, TopHeight * .32f);
 
         // ---------------- card hooks (tmp/new-cards/API.md) ----------------
 
@@ -823,7 +846,7 @@ namespace Hakaton.Expeditions
             var by = damage.Instigator;
             bool fromAlly = Combat.IsAlive(by) && !ReferenceEquals(by, world.Player) && by.Faction != Faction;
             hurtBy = by;
-            Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0);
+            Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0, damage.Kind);
             hurtBy = null;
             if (fromAlly && Alive) { SetTarget(by); lastSeen = by.Position; }
             return true;

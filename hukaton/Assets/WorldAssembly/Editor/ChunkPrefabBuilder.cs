@@ -287,13 +287,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             water.RecalculateNormals();
             water.RecalculateBounds();
             AssetDatabase.AddObjectToAsset(water, assetPath);
-            var ice = new Mesh { name = name + " ice" };
-            ice.SetVertices(verts.Select(v => v + Vector3.up * .12f).ToList());
-            ice.SetTriangles(tris, 0);
-            ice.SetUVs(0, verts.Select(v => new Vector2(v.x, v.z) / 3f).ToList());
-            ice.RecalculateNormals();
-            ice.RecalculateBounds();
-            AssetDatabase.AddObjectToAsset(ice, assetPath);
+            // No baked ice: the Ice card freezes water in a radius as a card-made IcePatch.
 
             var root = new GameObject("Water");
             root.transform.SetParent(parent, false);
@@ -312,18 +306,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             visual.AddComponent<MeshFilter>().sharedMesh = water;
             visual.AddComponent<MeshRenderer>().sharedMaterial = Mat("Assets/WorldAssembly/Materials/River water.mat");
 
-            var frozen = new GameObject("Ice");
-            frozen.transform.SetParent(root.transform, false);
-            frozen.AddComponent<MeshFilter>().sharedMesh = ice;
-            frozen.AddComponent<MeshRenderer>().sharedMaterial = Mat("Assets/Expedition/Materials/Ice.mat");
-            frozen.AddComponent<MeshCollider>().sharedMesh = ice;
-            frozen.SetActive(false);
-
             var obstacle = root.AddComponent<WorldObstacle>();
             obstacle.kind = ObstacleKind.Lake;
             obstacle.barrier = barrier;
             obstacle.intact = visual;
-            obstacle.changed = frozen;
             obstacle.waterSurface = surface.GetComponent<Collider>();
             obstacle.tint = new Color(.55f, .85f, 1f);
             Feedback(obstacle, "883ca243c76bf4c7788012001a4f876b", null, "aedb344531d8648dc9cce21ac4fd52e3", null);

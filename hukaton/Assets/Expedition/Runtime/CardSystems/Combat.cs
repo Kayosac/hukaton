@@ -65,9 +65,18 @@ namespace Hakaton.Expeditions
     /// and Fire hurt it, Ice freezes it (a chest mimic). Registers itself in <see cref="ExpeditionWorld.Wild"/> so
     /// chain lightning and burning tar find it too.
     /// </summary>
-    public interface ICardCreature : ICombatant
+    public interface ICardCreature : ICombatant, IFreezable
+    {
+    }
+
+    /// <summary>
+    /// A body Ice can stop: a creature, a chest mimic. <see cref="Freeze"/> for a while (a dry body hit by Ice);
+    /// <see cref="Thaw"/> ends any freeze at once (the ice shell of <see cref="IceEncasement"/> melted or shattered).
+    /// </summary>
+    public interface IFreezable
     {
         void Freeze(float seconds);
+        void Thaw();
     }
 
     /// <summary>Fighters a card added to the outing (allies). The player and the scene's creatures are always counted
