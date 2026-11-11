@@ -64,6 +64,7 @@ namespace Hakaton.Game
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
+        public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
         /// <summary>The door asks "ready-made location or endless world" only after the revenue goal.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
@@ -357,6 +358,15 @@ namespace Hakaton.Game
             MarkDirty();
             if (workshop.EmbeddedOpen) workshop.RefreshWorkshop();
             SaveNow(); // Away from the shop, the dirty state is saved on return.
+            return true;
+        }
+
+        /// <summary>Completes the current revenue goal; the normal goal celebration and unlocks still apply.</summary>
+        public bool CompleteActiveGoal()
+        {
+            if (!CanCompleteActiveGoal || !trade.Session.CompleteRevenueGoal(revenueGoal)) return false;
+            RefreshProgress();
+            SaveNow(); // During an outing, Changed keeps the progress dirty until the return to the shop.
             return true;
         }
 

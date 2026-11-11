@@ -98,6 +98,101 @@ namespace Hakaton.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator ActiveGoalCheatUnlocksOutingChoiceAndPersistsWithoutAwardingCoins()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            var menu = Object.FindAnyObjectByType<CheatMenu>();
+            Assert.That(menu, Is.Not.Null);
+            Assert.That(game.CanCompleteActiveGoal, Is.False, "The cave tutorial has its own skip action.");
+            Assert.That(menu.CompleteActiveGoal(), Is.False);
+            game.SkipTutorial();
+            Assert.That(game.CanCompleteActiveGoal, Is.True);
+            Assert.That(game.PlaceChoiceUnlocked, Is.False);
+            int coins = game.wallet.Wallet.Balance;
+            int sales = game.trade.Session.SalesCount;
+            var stock = game.trade.Session.Inventory.Select(item => item.Id).ToArray();
+
+            menu.SetOpen(true);
+            yield return null;
+            Assert.That(menu.CompleteActiveGoal(), Is.True);
+            Assert.That(game.GoalReached, Is.True);
+            Assert.That(game.PlaceChoiceUnlocked, Is.True);
+            Assert.That(game.CanCompleteActiveGoal, Is.False);
+            Assert.That(game.objectiveLabel.text, Does.Contain(game.revenueGoal + "/" + game.revenueGoal));
+            Assert.That(menu.CompleteActiveGoal(), Is.False);
+            Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(coins));
+            Assert.That(game.trade.Session.SalesCount, Is.EqualTo(sales));
+            Assert.That(game.trade.Session.Inventory.Select(item => item.Id), Is.EqualTo(stock));
+            yield return null; // The normal game loop celebrates and saves the reached goal.
+            Assert.That(game.Capture().goalCelebrated, Is.True);
+            Assert.That(GameSaveStore.Load(game.SavePath, game.ValidateSave, out var save, out var warning), Is.True, warning);
+            Assert.That(save.shop.grossRevenue, Is.EqualTo(game.revenueGoal));
+            Assert.That(save.goalCelebrated, Is.True);
+            Assert.That(game.Restore(save), Is.True);
+            Assert.That(game.PlaceChoiceUnlocked, Is.True);
+            Assert.That(game.CanCompleteActiveGoal, Is.False);
+            menu.SetOpen(false);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator CheatCardsOverflowTheHandAndRemainVisibleSelectableAndThrowable()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            var menu = Object.FindAnyObjectByType<CheatMenu>();
+            game.SkipTutorial();
+            var world = game.expedition;
+            // This checks hand bindings and gameplay, without rendering the full expedition world.
+            world.viewCamera.enabled = false;
+            Assert.That(game.TryDepart(), Is.True);
+            yield return WaitFor(() => world.Running, 3);
+            var model = world.workshop.Model;
+            var trip = model.Current;
+            var original = trip.Deck.Hand.Select(card => card.Id).ToArray();
+            int stock = trip.Deck.StockCount;
+            int capacity = trip.Deck.Capacity;
+            int owned = model.Owned.Count;
+            var definition = world.workshop.config.cards.First(card => card && card.id == "fire");
+
+            menu.SetOpen(true);
+            for (int i = 0; i < 100; i++)
+                Assert.That(menu.GrantCard(definition, 1), Is.Not.Null, "No slot limit for cheat cards.");
+            Assert.That(trip.Deck.Hand.Count, Is.EqualTo(original.Length + 100));
+            Assert.That(trip.Deck.Hand.Select(card => card.Id).Distinct().Count(), Is.EqualTo(trip.Deck.Hand.Count));
+            Assert.That(original, Is.SubsetOf(trip.Deck.Hand.Select(card => card.Id)));
+            Assert.That(trip.Deck.StockCount, Is.EqualTo(stock));
+            Assert.That(trip.Deck.Capacity, Is.EqualTo(capacity), "Normal draw capacity stays unchanged.");
+            Assert.That(model.Owned.Count, Is.EqualTo(owned), "Cheat copies stay temporary.");
+
+            foreach (int index in new[] { trip.Deck.Hand.Count - 1, 0, world.hand.slots.Length, trip.Deck.Hand.Count / 2 })
+            {
+                world.thrower.Select(index);
+                var selected = trip.Deck.Hand[index];
+                yield return null;
+                yield return null; // Let the hand's LateUpdate follow the selection.
+                Assert.That(world.thrower.Selected, Is.SameAs(selected));
+                Assert.That(world.hand.slots.Count(view => view.Visible), Is.EqualTo(world.hand.slots.Length));
+                Assert.That(world.hand.Take(selected.Id, out _, out var view), Is.True,
+                    "Every selected copy must have a physical hand view, including overflow cards.");
+                Assert.That(view.Front, Is.SameAs(world.Artwork(selected)));
+                world.hand.Deal(); // Restore the view consumed by the pose check.
+            }
+
+            menu.SetOpen(false);
+            var thrown = world.thrower.Selected;
+            world.thrower.Preparation.Begin();
+            Assert.That(world.thrower.Release(), Is.Not.Null);
+            Assert.That(trip.Deck.Hand.Any(card => card.Id == thrown.Id), Is.False);
+            Assert.That(trip.Deck.Hand.Count, Is.EqualTo(original.Length + 99));
+            yield return null;
+            world.thrower.Discard();
+            yield return null;
+            Assert.That(trip.Deck.Hand.Count, Is.LessThanOrEqualTo(capacity), "Discard returns to normal dealing.");
+            Assert.That(world.hand.slots.Count(view => view.Visible), Is.EqualTo(trip.Deck.Hand.Count));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator DepartThrowACardAndComeBackHomeAfterDefeat()
         {
             var game = Object.FindAnyObjectByType<GameLoop>();
