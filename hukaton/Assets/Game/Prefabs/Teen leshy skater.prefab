@@ -650,6 +650,7 @@ GameObject:
   - component: {fileID: 1361130970836477841}
   - component: {fileID: 5774643847346976667}
   - component: {fileID: 6216464156025959744}
+  - component: {fileID: 3671596284464933667}
   m_Layer: 0
   m_Name: Teen leshy skater
   m_TagString: Untagged
@@ -687,6 +688,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  flying: 0
+  cruiseHeight: 1.8
+  windupClimb: 0.7
+  diveHeight: 0.9
+  climbSpeed: 4
+  climbAcceleration: 14
+  bobHeight: 0.12
+  bobFrequency: 0.9
+  jitter: 0
+  shadowSize: 0.4
+  shadowOpacity: 0.35
+  ranged:
+    projectile: {fileID: 0}
+    range: 12
+    minRange: 3.5
+    aimSeconds: 0.6
+    cooldown: 2.2
+    recovery: 0.5
+    projectiles: 1
+    spreadAngle: 24
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.6
+    keepDistance: 8
+    retreatDistance: 4
+    retreatSpeed: 0.8
+    circleSpeed: 0
+    closeCombat: 0
+    shoveDamage: 1
   world: {fileID: 0}
   temperament: 3
   displayName: "\u041B\u0435\u0448\u0438\u0439-\u0441\u043A\u0435\u0439\u0442\u0435\u0440"
@@ -695,6 +726,7 @@ MonoBehaviour:
   view: {fileID: 6448454109056461587}
   overhead: {fileID: 848991441110991114}
   size: 1.2
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.128
   stunStarsScale: 1.8
   drops:
@@ -830,6 +862,21 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &3671596284464933667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5263722189231579610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b825daa4efb21467fb8331d888ed5aad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.HumanoidSpeech
+  creature: {fileID: 8211502770020729366}
+  profile: {fileID: 11400000, guid: 5083a82b4dc324e018100616c8d91f76, type: 2}
+  bubble: {fileID: 7970189041859162485}
 --- !u!1 &5923198748287721565
 GameObject:
   m_ObjectHideFlags: 0
@@ -860,7 +907,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 4562329692829930190}
   m_Father: {fileID: 6233387474604262816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8521073979017314750
@@ -1195,6 +1243,131 @@ MonoBehaviour:
   pipEmpty: {fileID: 21300000, guid: 9549f5f4258e74a4f99cc9c0249873f6, type: 3}
   healthSeconds: 2.5
   fullSizeDistance: 7
+--- !u!1001 &5656284981976557232
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2434789396073271773}
+    m_Modifications:
+    - target: {fileID: 2370271700403034053, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: spritePlane
+      value: 
+      objectReference: {fileID: 6448454109056461587}
+    - target: {fileID: 7153711633511727728, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_Name
+      value: Creature speech bubble
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.006666667
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.006666667
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 1.9799999
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+--- !u!224 &4562329692829930190 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8155895333093553278, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+  m_PrefabInstance: {fileID: 5656284981976557232}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7970189041859162485 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2370271700403034053, guid: 4274f5a76708a4bf0868a7eb634f3194, type: 3}
+  m_PrefabInstance: {fileID: 5656284981976557232}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7d5af0c045464058811f72085e79472, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.CreatureSpeechBubble
 --- !u!1001 &8797181274014239175
 PrefabInstance:
   m_ObjectHideFlags: 0

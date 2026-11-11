@@ -1,0 +1,3127 @@
+{
+  "project_id": "01M6WVK7017HGXKC9MDPA30KFS",
+  "updated_on": "2026-11-11",
+  "enemy_count": 15,
+  "columns": [
+    "Враг",
+    "Спрайт врага",
+    "Характер",
+    "Описание поведения",
+    "Описание паттерна боя",
+    "Здоровье (HP)",
+    "Урон (сердца)",
+    "Добыча"
+  ],
+  "units": {
+    "health": "HP существ",
+    "damage": "сердца игрока; ближний и дальний урон в одной текстовой ячейке; урон снаряда указан за один снаряд",
+    "loot_price": "рекомендованная цена за один предмет в монетах",
+    "loot_chance": "исходный шанс за бросок: drops.entries[].chance × 100; без добавки от atLeastOne"
+  },
+  "sources": [
+    "hukaton/Assets/Content/Enemies/*/manifest.json",
+    "hukaton/Assets/Game/Prefabs/*.prefab",
+    "hukaton/Assets/Expedition/Runtime/WorldCreature.cs",
+    "hukaton/Assets/Game/Scenes/Hakaton.unity",
+    "hukaton/Assets/OldApiary/Prefabs/Old Apiary.prefab",
+    "hukaton/Assets/Expedition/Runtime/WorldCreature.Ranged.cs",
+    "hukaton/Assets/Expedition/Runtime/EnemyProjectileProfile.cs",
+    "hukaton/Assets/Expedition/Runtime/EnemyProjectileFlight.cs",
+    "hukaton/Assets/Expedition/Runtime/EnemyProjectile.cs",
+    "hukaton/Assets/Expedition/Runtime/WorldCreature.Flight.cs",
+    "hukaton/Assets/Loot/Runtime/LootTable.cs",
+    "hukaton/Assets/Loot/Runtime/LootItem.cs",
+    "hukaton/Assets/Loot/Runtime/LootRarity.cs",
+    "hukaton/Assets/Loot/Items/*.asset",
+    "hukaton/Assets/Expedition/Runtime/Speech/HumanoidSpeech.cs",
+    "hukaton/Assets/Expedition/Runtime/Speech/CreatureSpeechProfile.cs",
+    "hukaton/Assets/Game/Data/Speech/*.asset"
+  ],
+  "notes": [
+    "Показаны сохранённые параметры префабов; Play mode в этой задаче не проверялся.",
+    "Игровой темперамент важнее типа художественного набора: BuddingTroll территориальный.",
+    "GoblinDog: префаб агрессивный; у логова в Hakaton и Old Apiary сохранено переопределение temperament=1.",
+    "Спрайты — уменьшенные полные default-front ячейки актуальных атласов, без обрезки рисунка. Масштаб каталога не является физическим масштабом мира.",
+    "Пугливые: гриб, червячок, улитка. Мирные петух, леший и пасечник отвечают на провокацию.",
+    "Клоун и рой летают; у петуха и роя настроена дальняя атака. Урон указан за удар или отдельный снаряд.",
+    "Добыча взята из назначенных таблиц drops: 30 предметов у 14 существ. У червячка таблица пуста.",
+    "У каждой иконки добычи нативная подпись: цена в монетах / исходный шанс выпадения в процентах. По окончательному выбору пользователя гарантия atLeastOne в отображаемый процент не включается. Проверены все 30 подписей."
+  ],
+  "rows": [
+    {
+      "enemy": "PurpleMushroom",
+      "name": "Фиолетовый грибной монстрик",
+      "row_index": 0,
+      "category": "Пугливый",
+      "behavior": "Пугливый: замечает угрозу и замирает в пределах 10 м. Убегает при сближении до 6 м, провокации или спринте игрока в пределах 8,4 м. Отбежав дальше 13 м без новой провокации, может остановиться.",
+      "combat_pattern": "Не атакует. Бегство рывками: 0,45 с движения → 0,6 с паузы. Скорость побега 7 м/с; пауза даёт окно для броска.",
+      "health": 2,
+      "damage_half_hearts": 0,
+      "health_text": "2 HP",
+      "damage_text": "0 — не атакует",
+      "prefab": "hukaton/Assets/Game/Prefabs/Purple mushroom.prefab",
+      "prefab_sha256": "0af4964f8518878c12adbf08d97346e907f36eadc95403dc7baec3afa286e070",
+      "manifest": "hukaton/Assets/Content/Enemies/PurpleMushroom/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/PurpleMushroom/PurpleMushroomAtlas.png",
+      "atlas_sha256": "b4a26b5ec6e8b5c84784ef5c59421b0fcc328c59e5c5474a0f321e0143cc19ba",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "4bd04da5b1439668be7a5a0939ca8df1682c30033f644192d9eb2cc7134ff0f9",
+      "sprite": "output/enemy-catalog/sprites/PurpleMushroom.png",
+      "sprite_sha256": "4284df43486cd8a3ede7eb416e9e6e940b2eddc27ae347e5aadd6745ffc820dd",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 0,
+        "size": 2,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 1,
+        "maximumHealth": 2,
+        "attackHalfHearts": 0,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 3,
+        "wanderSpeed": 0.7,
+        "dashSpeed": 7,
+        "territoryRadius": 4,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 10,
+        "fleeRange": 6,
+        "safeDistance": 13,
+        "dashSeconds": 0.45,
+        "pauseSeconds": 0.6,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.04,
+        "gaitFrequency": 3.4,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "PurpleMushroom",
+        "frame_id": "01M72SFDX97R7WFXK609MRK0EQ",
+        "image_id": "01M72SG2QY0YV7W7BQ878QDAYV",
+        "column_element_ids": {
+          "temperament": "01M72SFJE04JBNYFRZZXFRN3FF",
+          "behavior": "01M72SFJE08KZCYF45Y6NH0SDC",
+          "combat_pattern": "01M72SFJE00QDYM5RV6QSAY2NC",
+          "health": "01M72SFJE0XNT6D7JTCJ529XG0",
+          "damage": "01M72SFJE0T3X1E8JG5RF23DDJ"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SFDX97R7WFXK609MRK0EQ",
+        "y": 410
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "59bwvnhz34",
+        "sprite_asset_id": "4284df43486cd8a3ede7eb416e9e6e940b2eddc27ae347e5aadd6745ffc820dd",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "4284df43486cd8a3ede7eb416e9e6e940b2eddc27ae347e5aadd6745ffc820dd",
+          "w": 480,
+          "h": 480,
+          "alt": "Фиолетовый грибной монстрик — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "01fb9d79a143f61a4015b626b1bb0df5e1ac93bae8ca401d4f7728f938860d02",
+            "w": 320,
+            "h": 320,
+            "alt": "Грибная шляпка / 30 монет / 100%",
+            "caption": "30 монет / 100%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "hare_foot",
+          "name": "Грибная шляпка",
+          "price": 30,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/hare_foot.asset",
+          "asset_sha256": "d5b28417efe9dd166cf3159a0b411ff7764620c548b33d6a1abc545a811e3e7c",
+          "icon": "hukaton/Assets/Content/Enemies/PurpleMushroom/PurpleMushroom_loot.png",
+          "icon_sha256": "50ae62372e2129bb5945d54c63a352e5db68bc407d639f389db1094487397ede",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "PurpleMushroom",
+          "item_id": "hare_foot",
+          "source": "hukaton/Assets/Content/Enemies/PurpleMushroom/PurpleMushroom_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/hare_foot.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "01fb9d79a143f61a4015b626b1bb0df5e1ac93bae8ca401d4f7728f938860d02",
+          "alt": "Грибная шляпка / 30 монет / 100%"
+        }
+      ],
+      "loot_captions": [
+        "30 монет / 100%"
+      ]
+    },
+    {
+      "enemy": "GoblinDog",
+      "name": "Сутулый гоблин-пёс",
+      "row_index": 1,
+      "category": "Агрессивный",
+      "behavior": "Обычно сам преследует при обнаружении до 15 м. У логова предупреждает с 10 м; провокация — 1,1 с ближе 6 м или урон. На стадии угрозы успокаивается при отходе за 13 м. Предел обычной погони — 26 м.",
+      "combat_pattern": "Рывок вперёд с укусом. Подготовка 0,65 с → атака 0,3 с → пауза 1 с. Дальность контакта 1,8 м. Вплотную отходит перед повторным рывком.",
+      "health": 8,
+      "damage_half_hearts": 2,
+      "health_text": "8 HP",
+      "damage_text": "Ближний: 1; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Goblin dog.prefab",
+      "prefab_sha256": "f5be2f4b848e6a369a2f4d337f5a9c855672662bcd7fe06057ccde036664c3cc",
+      "manifest": "hukaton/Assets/Content/Enemies/GoblinDog/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/GoblinDog/GoblinDogAtlas.png",
+      "atlas_sha256": "c0949f5b80e6e99858f120f9d565c7416db81f64525f3d214823e072ae17243b",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "bc543ec9104f99455b38ea759d5c354da39eba996cb19ee5697cab89a810cc3d",
+      "sprite": "output/enemy-catalog/sprites/GoblinDog.png",
+      "sprite_sha256": "245b775b29ffeb135f2a5c77f30be8a17b02293034c114498d6697cde0900086",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 1.34,
+        "stunStarsHeight": 0.25,
+        "stunStarsScale": 1.8,
+        "maximumHealth": 8,
+        "attackHalfHearts": 2,
+        "windup": 0.65,
+        "strikeSeconds": 0.3,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 1,
+        "sightRange": 15,
+        "hearingRange": 5,
+        "leash": 26,
+        "speed": 4.8,
+        "wanderSpeed": 1.3,
+        "dashSpeed": 8.5,
+        "territoryRadius": 6,
+        "turnRate": 420,
+        "attackRange": 3.4,
+        "contactRange": 1.8,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.035,
+        "gaitFrequency": 2.4,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "GoblinDog",
+        "frame_id": "01M72SHT7N4E40GJXWW474454J",
+        "image_id": "01M72SHY3QA1D3YE8EB3HGB0YF",
+        "column_element_ids": {
+          "temperament": "01M72SHX8XM0AD3Q23R92N1KJM",
+          "behavior": "01M72SHX8XMKFTRBDJ8QGQKTWM",
+          "combat_pattern": "01M72SHX8X5QY05EPCJ2K0WTZV",
+          "health": "01M72SHX8X4X8RR3G4K8JQBMCA",
+          "damage": "01M72SHX8XKS2F5PMPKB48JNC0"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SHT7N4E40GJXWW474454J",
+        "y": 820
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "4539z43yz9",
+        "sprite_asset_id": "245b775b29ffeb135f2a5c77f30be8a17b02293034c114498d6697cde0900086",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "245b775b29ffeb135f2a5c77f30be8a17b02293034c114498d6697cde0900086",
+          "w": 480,
+          "h": 480,
+          "alt": "Сутулый гоблин-пёс — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "5d267e5338d5e08fdb41343e32f5e42156cdd8fcd3607f203a28d77bd96198c2",
+            "w": 320,
+            "h": 320,
+            "alt": "Клык гоблин-пса / 80 монет / 70%",
+            "caption": "80 монет / 70%"
+          },
+          {
+            "asset": "d90b5f55457d269214ac34e71c6d47a79d97bff4f1f83f46c5b0857f5f438960",
+            "w": 320,
+            "h": 320,
+            "alt": "Шкура гоблин-пса / 120 монет / 35%",
+            "caption": "120 монет / 35%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "boar_tusk",
+          "name": "Клык гоблин-пса",
+          "price": 80,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/boar_tusk.asset",
+          "asset_sha256": "f64a214c023372eef08493ef458808426a23da8a5626ee973b4ecd2e60c83cd1",
+          "icon": "hukaton/Assets/Content/Enemies/GoblinDog/GoblinDog_fang_loot.png",
+          "icon_sha256": "cf79da449e7abc04d0f29e3cbb2e7938b8149cf6edc79b5e78dba1178dcd883e",
+          "chance": 0.7,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 70.0
+        },
+        {
+          "id": "wolf_pelt",
+          "name": "Шкура гоблин-пса",
+          "price": 120,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/wolf_pelt.asset",
+          "asset_sha256": "787d6c66ea0a440be507b15f3df961808c3776bba8d16942429c717fe78e3d8f",
+          "icon": "hukaton/Assets/Content/Enemies/GoblinDog/GoblinDog_pelt_loot.png",
+          "icon_sha256": "0a056212ea7432abdc8db55674c41359ef2f32ee530274c391b1114021669788",
+          "chance": 0.35,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 35.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "GoblinDog",
+          "item_id": "boar_tusk",
+          "source": "hukaton/Assets/Content/Enemies/GoblinDog/GoblinDog_fang_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/boar_tusk.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "5d267e5338d5e08fdb41343e32f5e42156cdd8fcd3607f203a28d77bd96198c2",
+          "alt": "Клык гоблин-пса / 80 монет / 70%"
+        },
+        {
+          "enemy": "GoblinDog",
+          "item_id": "wolf_pelt",
+          "source": "hukaton/Assets/Content/Enemies/GoblinDog/GoblinDog_pelt_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/wolf_pelt.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "d90b5f55457d269214ac34e71c6d47a79d97bff4f1f83f46c5b0857f5f438960",
+          "alt": "Шкура гоблин-пса / 120 монет / 35%"
+        }
+      ],
+      "loot_captions": [
+        "80 монет / 70%",
+        "120 монет / 35%"
+      ]
+    },
+    {
+      "enemy": "BuddingTroll",
+      "name": "Почкующийся тролль",
+      "row_index": 2,
+      "category": "Территориальный",
+      "behavior": "Охраняет территорию. Предупреждает при сближении до 12 м. Вступает в бой после 1,3 с ближе 6,5 м или в ответ на урон. При отходе за 15 м на стадии угрозы успокаивается.",
+      "combat_pattern": "Тяжёлый удар двумя руками по земле; тряска камеры. Подготовка 1 с → атака 0,5 с → пауза 1,6 с. Дальность контакта 3,4 м. После промаха пауза 1,3 с.",
+      "health": 24,
+      "damage_half_hearts": 4,
+      "health_text": "24 HP",
+      "damage_text": "Ближний: 2; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Budding troll.prefab",
+      "prefab_sha256": "940e2a718fb9af48f19dba35cdca4ed0633d0125107a497bf0caf9c213e67798",
+      "manifest": "hukaton/Assets/Content/Enemies/BuddingTroll/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTrollAtlas.png",
+      "atlas_sha256": "f79e83d706e04dc63366ec6d7cd812966aa9515173ad4b7e8a70c1a2e76c5319",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "9e3c7c6f29e02a16afc04163d188cc10cb7b3c34588c7d079625369b863491c2",
+      "sprite": "output/enemy-catalog/sprites/BuddingTroll.png",
+      "sprite_sha256": "34e1073f5468fae9d273f04b12176cd68f9f3100dc438b9beb47bc20b8fc2033",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 1,
+        "size": 2,
+        "stunStarsHeight": 0.35,
+        "stunStarsScale": 2.8,
+        "maximumHealth": 24,
+        "attackHalfHearts": 4,
+        "windup": 1,
+        "strikeSeconds": 0.5,
+        "recovery": 1.6,
+        "recoveryOnMiss": 1.3,
+        "dash": 0,
+        "strikeShake": 0.4,
+        "sightRange": 18,
+        "hearingRange": 5,
+        "leash": 22,
+        "speed": 3,
+        "wanderSpeed": 0.9,
+        "dashSpeed": 6,
+        "territoryRadius": 5,
+        "turnRate": 150,
+        "attackRange": 4.4,
+        "contactRange": 3.4,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 12,
+        "calmRange": 15,
+        "aggroRange": 6.5,
+        "provokeSeconds": 1.3,
+        "hopHeight": 0.015,
+        "gaitFrequency": 1.2,
+        "hurtSeconds": 0.4,
+        "corpseSeconds": 2,
+        "stepDustCount": 4
+      },
+      "legacy_board": {
+        "enemy": "BuddingTroll",
+        "frame_id": "01M72SJ18ERVK7J1AYYMKDDQD8",
+        "image_id": "01M72SJ578PW7C1FDDYY3CXARJ",
+        "column_element_ids": {
+          "temperament": "01M72SJ4G6BY7SYVVM1KCB0DFG",
+          "behavior": "01M72SJ4G7SJKCBF6ETAHTSE6A",
+          "combat_pattern": "01M72SJ4G7N66J4K479C9MGAPP",
+          "health": "01M72SJ4G7FHAXJHK727J27AZ0",
+          "damage": "01M72SJ4G7BDHG8M7Y4E3DYQ2P"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SJ18ERVK7J1AYYMKDDQD8",
+        "y": 1230
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "9ga72gvmqk",
+        "sprite_asset_id": "34e1073f5468fae9d273f04b12176cd68f9f3100dc438b9beb47bc20b8fc2033",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "34e1073f5468fae9d273f04b12176cd68f9f3100dc438b9beb47bc20b8fc2033",
+          "w": 480,
+          "h": 480,
+          "alt": "Почкующийся тролль — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "5c31512034b17c47e03133a06259532c52c6c7e9c7d715726efaf0bbff874639",
+            "w": 320,
+            "h": 320,
+            "alt": "Почка тролля / 120 монет / 100%",
+            "caption": "120 монет / 100%"
+          },
+          {
+            "asset": "3bca53beff58c78635192b88b9215658340d254f3e1fee7fb123fcf2916d36e5",
+            "w": 320,
+            "h": 320,
+            "alt": "Клубок тролльих жил / 160 монет / 60%",
+            "caption": "160 монет / 60%"
+          },
+          {
+            "asset": "43fc94c7de2fcc80930fd7deab0eada770501a5ae689d5aab550e4de572bf16d",
+            "w": 320,
+            "h": 320,
+            "alt": "Лишняя кисть / 250 монет / 15%",
+            "caption": "250 монет / 15%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "troll_bud",
+          "name": "Почка тролля",
+          "price": 120,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/troll_bud.asset",
+          "asset_sha256": "f8f7f8520ee7c4d6042c3197f139406a2df83c669be9bd558841bc46ae12cc47",
+          "icon": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_bud_loot.png",
+          "icon_sha256": "79fc4e44a6fa88cbb199836cc9154d4b60f74d934889b63b6cbc5afb6fabea00",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "troll_sinew",
+          "name": "Клубок тролльих жил",
+          "price": 160,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/troll_sinew.asset",
+          "asset_sha256": "049fac3c51518b41fa663eafdde1b0fb2c5e14be6a4edba803a7d13dc391c638",
+          "icon": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_sinew_loot.png",
+          "icon_sha256": "2527080b15479651927faca5b885a3a251e2438663cd91aa51829400c8d7047c",
+          "chance": 0.6,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 60.0
+        },
+        {
+          "id": "troll_extra_hand",
+          "name": "Лишняя кисть",
+          "price": 250,
+          "rarity": "Редкий",
+          "asset": "hukaton/Assets/Loot/Items/troll_extra_hand.asset",
+          "asset_sha256": "57eaee72ae7a8a573f1ce39b5fb9c59ca38c9b15c92742dc400bfd2f3ca57209",
+          "icon": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_extra_hand_loot.png",
+          "icon_sha256": "9df31c2f7bfa88b093bf32a94eb01aab488f25b68e6b8b7d3c579db32a95198d",
+          "chance": 0.15,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 15.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "BuddingTroll",
+          "item_id": "troll_bud",
+          "source": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_bud_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/troll_bud.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "5c31512034b17c47e03133a06259532c52c6c7e9c7d715726efaf0bbff874639",
+          "alt": "Почка тролля / 120 монет / 100%"
+        },
+        {
+          "enemy": "BuddingTroll",
+          "item_id": "troll_sinew",
+          "source": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_sinew_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/troll_sinew.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "3bca53beff58c78635192b88b9215658340d254f3e1fee7fb123fcf2916d36e5",
+          "alt": "Клубок тролльих жил / 160 монет / 60%"
+        },
+        {
+          "enemy": "BuddingTroll",
+          "item_id": "troll_extra_hand",
+          "source": "hukaton/Assets/Content/Enemies/BuddingTroll/BuddingTroll_extra_hand_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/troll_extra_hand.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "43fc94c7de2fcc80930fd7deab0eada770501a5ae689d5aab550e4de572bf16d",
+          "alt": "Лишняя кисть / 250 монет / 15%"
+        }
+      ],
+      "loot_captions": [
+        "120 монет / 100%",
+        "160 монет / 60%",
+        "250 монет / 15%"
+      ]
+    },
+    {
+      "enemy": "HostileBush",
+      "name": "Враждебный куст",
+      "row_index": 3,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 9 м. Сближается со скоростью 3,2 м/с. Потеряв цель, ищет её и возвращается; предел обычной погони от дома — 14 м.",
+      "combat_pattern": "Хлёсткий удар рукой-веткой. Подготовка 0,5 с → атака 0,3 с → пауза 0,9 с. Дальность контакта 2,3 м.",
+      "health": 6,
+      "damage_half_hearts": 2,
+      "health_text": "6 HP",
+      "damage_text": "Ближний: 1; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Hostile bush.prefab",
+      "prefab_sha256": "196b55141d142cc3e1812d78c36c9d24d9bd4f007e0d2892e489e54a8fca8309",
+      "manifest": "hukaton/Assets/Content/Enemies/HostileBush/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/HostileBush/HostileBushAtlas.png",
+      "atlas_sha256": "8570735d76ea9fe1a1c76f683f2cd2a2be7978143cfc1d4725750096edcc7895",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "d827369ea96bef0a005a81e897b8ba016d914b31baf0451c25b52735732b6c7e",
+      "sprite": "output/enemy-catalog/sprites/HostileBush.png",
+      "sprite_sha256": "12af085d728a14b89b53cfd967ab0660ae34fc8a62df19d5b2133884576c91e0",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 2,
+        "stunStarsHeight": 0.2,
+        "stunStarsScale": 1.6,
+        "maximumHealth": 6,
+        "attackHalfHearts": 2,
+        "windup": 0.5,
+        "strikeSeconds": 0.3,
+        "recovery": 0.9,
+        "recoveryOnMiss": -1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 9,
+        "hearingRange": 3.5,
+        "leash": 14,
+        "speed": 3.2,
+        "wanderSpeed": 0.5,
+        "dashSpeed": 8.5,
+        "territoryRadius": 2,
+        "turnRate": 360,
+        "attackRange": 3,
+        "contactRange": 2.3,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.03,
+        "gaitFrequency": 3.2,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "HostileBush",
+        "frame_id": "01M72SJ7Z54EKR54F9PNJB79HW",
+        "image_id": "01M72SJC7WC7EVEV9TAH3K89T5",
+        "column_element_ids": {
+          "temperament": "01M72SJBADYA9XD8WWPTHSSMC9",
+          "behavior": "01M72SJBAD1TWQ0XM7KCGDVHA3",
+          "combat_pattern": "01M72SJBAEH8K50D9GY1T3BXVY",
+          "health": "01M72SJBAE4DSZWER75S9JD9X3",
+          "damage": "01M72SJBAEK9CJ1ESXJXESVDPS"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SJ7Z54EKR54F9PNJB79HW",
+        "y": 1640
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "tz38xrg715",
+        "sprite_asset_id": "12af085d728a14b89b53cfd967ab0660ae34fc8a62df19d5b2133884576c91e0",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "12af085d728a14b89b53cfd967ab0660ae34fc8a62df19d5b2133884576c91e0",
+          "w": 480,
+          "h": 480,
+          "alt": "Враждебный куст — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "1cda2958473a1d4d2e862b1f598cce75748586468b9f1bab6128c7f9f09b0180",
+            "w": 320,
+            "h": 320,
+            "alt": "Корневое сердце / 50 монет / 100%",
+            "caption": "50 монет / 100%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "bush_root_heart",
+          "name": "Корневое сердце",
+          "price": 50,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/bush_root_heart.asset",
+          "asset_sha256": "2eafb803a614fe8d9f1fa2d0929f226b400b1c39dc41091cdf6cfb396db929d4",
+          "icon": "hukaton/Assets/Content/Enemies/HostileBush/HostileBush_loot.png",
+          "icon_sha256": "b997588b08536cde52f7141d1c61d6f45c246de9ace02c6d66c9470857a759eb",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "HostileBush",
+          "item_id": "bush_root_heart",
+          "source": "hukaton/Assets/Content/Enemies/HostileBush/HostileBush_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/bush_root_heart.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "1cda2958473a1d4d2e862b1f598cce75748586468b9f1bab6128c7f9f09b0180",
+          "alt": "Корневое сердце / 50 монет / 100%"
+        }
+      ],
+      "loot_captions": [
+        "50 монет / 100%"
+      ]
+    },
+    {
+      "enemy": "RatPumpkin",
+      "name": "Крысиная тыква-светильник",
+      "row_index": 4,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 10 м. Сближается со скоростью 3,4 м/с. Потеряв цель, ищет её и возвращается; предел обычной погони от дома — 16 м.",
+      "combat_pattern": "Тыква наклоняется вперёд, крысы выскакивают для укуса. Подготовка 0,55 с → атака 0,3 с → пауза 0,9 с. Дальность контакта 1,1 м.",
+      "health": 3,
+      "damage_half_hearts": 1,
+      "health_text": "3 HP",
+      "damage_text": "Ближний: 0,5; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Rat pumpkin.prefab",
+      "prefab_sha256": "4787c7bd1dc40d244f512566e772a7e75cca6376a7961eb069c3c6adb41ad599",
+      "manifest": "hukaton/Assets/Content/Enemies/RatPumpkin/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/RatPumpkin/RatPumpkinAtlas.png",
+      "atlas_sha256": "9ac17875ea289975fa4acf324f4dac3e3b8172499af0637fc17efb2006ebef19",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "6c7c0ec1db0f4eb1a62bf274dcc6c41bbbbf10d45f53ee93456474f11663765f",
+      "sprite": "output/enemy-catalog/sprites/RatPumpkin.png",
+      "sprite_sha256": "22a132acde19a5fc328d840d16d3a64d7d1a8e7cf6e1f089bc030bacbbe6fc1b",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 3,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 0.9,
+        "maximumHealth": 3,
+        "attackHalfHearts": 1,
+        "windup": 0.55,
+        "strikeSeconds": 0.3,
+        "recovery": 0.9,
+        "recoveryOnMiss": -1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 10,
+        "hearingRange": 3,
+        "leash": 16,
+        "speed": 3.4,
+        "wanderSpeed": 1.2,
+        "dashSpeed": 8.5,
+        "territoryRadius": 5,
+        "turnRate": 420,
+        "attackRange": 1.6,
+        "contactRange": 1.1,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.06,
+        "gaitFrequency": 3.6,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "RatPumpkin",
+        "frame_id": "01M72SJEXMDXF2Z66TKF5F6JZG",
+        "image_id": "01M72SJJW3080518QH87XHKC75",
+        "column_element_ids": {
+          "temperament": "01M72SJHMMK8S852V1JEENVF5H",
+          "behavior": "01M72SJHMM94B5M0V0ZQ0JBSE3",
+          "combat_pattern": "01M72SJHMM2JFAFHT3ERYG452P",
+          "health": "01M72SJHMMJ7V5NMMAWC9R6HC4",
+          "damage": "01M72SJHMMRD0K10YC11SZ4DN7"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SJEXMDXF2Z66TKF5F6JZG",
+        "y": 2050
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "pbyspbk62n",
+        "sprite_asset_id": "22a132acde19a5fc328d840d16d3a64d7d1a8e7cf6e1f089bc030bacbbe6fc1b",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "22a132acde19a5fc328d840d16d3a64d7d1a8e7cf6e1f089bc030bacbbe6fc1b",
+          "w": 480,
+          "h": 480,
+          "alt": "Крысиная тыква-светильник — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "7a1fda95fc106bcf2a08a33f94781e3b52e62d257f0c8987f4c910de7a0a97a6",
+            "w": 320,
+            "h": 320,
+            "alt": "Тыквенная челюсть / 30 монет / 80%",
+            "caption": "30 монет / 80%"
+          },
+          {
+            "asset": "a0e5efeadd5e83ae07b77d15996ffb89c5b4ff15e87b80f696c001814e7e8c2f",
+            "w": 320,
+            "h": 320,
+            "alt": "Крысиный король / 90 монет / 20%",
+            "caption": "90 монет / 20%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "pumpkin_jaw",
+          "name": "Тыквенная челюсть",
+          "price": 30,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/pumpkin_jaw.asset",
+          "asset_sha256": "8dcd68903536fbcb09514eda0b9c3a561c816378e29398b3655ac9c31361a666",
+          "icon": "hukaton/Assets/Content/Enemies/RatPumpkin/RatPumpkin_pumpkin_jaw_loot.png",
+          "icon_sha256": "ea88f6786a1e5840be0d39629361347b9870136bd9815ff9cc140964c8f91cf7",
+          "chance": 0.8,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 80.0
+        },
+        {
+          "id": "rat_king",
+          "name": "Крысиный король",
+          "price": 90,
+          "rarity": "Редкий",
+          "asset": "hukaton/Assets/Loot/Items/rat_king.asset",
+          "asset_sha256": "b0601fa9fbdeda90afe241b8f12312da34ea034fd83663045f30ab8d9c01401a",
+          "icon": "hukaton/Assets/Content/Enemies/RatPumpkin/RatPumpkin_rat_king_loot.png",
+          "icon_sha256": "b5463ae2fce62006416f0f45d6a6db79ff349d4d27b8361bd9ccce1b4542ba94",
+          "chance": 0.2,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 20.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "RatPumpkin",
+          "item_id": "pumpkin_jaw",
+          "source": "hukaton/Assets/Content/Enemies/RatPumpkin/RatPumpkin_pumpkin_jaw_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/pumpkin_jaw.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "7a1fda95fc106bcf2a08a33f94781e3b52e62d257f0c8987f4c910de7a0a97a6",
+          "alt": "Тыквенная челюсть / 30 монет / 80%"
+        },
+        {
+          "enemy": "RatPumpkin",
+          "item_id": "rat_king",
+          "source": "hukaton/Assets/Content/Enemies/RatPumpkin/RatPumpkin_rat_king_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/rat_king.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "a0e5efeadd5e83ae07b77d15996ffb89c5b4ff15e87b80f696c001814e7e8c2f",
+          "alt": "Крысиный король / 90 монет / 20%"
+        }
+      ],
+      "loot_captions": [
+        "30 монет / 80%",
+        "90 монет / 20%"
+      ]
+    },
+    {
+      "enemy": "FloatingClownEmoji",
+      "name": "Парящий клоун-эмодзи",
+      "row_index": 5,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 14 м. Летит со скоростью 4,2 м/с, держится примерно в 2 м над землёй и перелетает низкие препятствия. При заморозке или оглушении падает. Потеряв цель, ищет её и возвращается; предел обычной погони — 20 м.",
+      "combat_pattern": "Перед атакой поднимается выше и пикирует на цель всей головой. Подготовка 0,5 с → рывок 0,3 с → пауза 0,9 с, затем возвращается на высоту полёта. Скорость рывка 9 м/с; дальность контакта 1,2 м. Вплотную отходит перед повторной атакой.",
+      "health": 3,
+      "damage_half_hearts": 1,
+      "health_text": "3 HP",
+      "damage_text": "Ближний: 0,5; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Floating clown emoji.prefab",
+      "prefab_sha256": "432c29251312fb0a407111f613d85c1967846d1af820364457937e6fffbd2b10",
+      "manifest": "hukaton/Assets/Content/Enemies/FloatingClownEmoji/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/FloatingClownEmoji/FloatingClownEmojiAtlas.png",
+      "atlas_sha256": "bbc0c4e32c8018e72e681b3fdff54a503eadeaceaae8d478cdee8da8963b950b",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "aa3d87cdb3793c81f34629f0eeb6bff5c9dde738127804ce8d656d11270c8954",
+      "sprite": "output/enemy-catalog/sprites/FloatingClownEmoji.png",
+      "sprite_sha256": "7a52d4d24547c93602dca713dc0d52a6860561c2ca125d19f69a7248e152279c",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 2,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 0.9,
+        "maximumHealth": 3,
+        "attackHalfHearts": 1,
+        "windup": 0.5,
+        "strikeSeconds": 0.3,
+        "recovery": 0.9,
+        "recoveryOnMiss": -1,
+        "dash": 1,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 20,
+        "speed": 4.2,
+        "wanderSpeed": 1.2,
+        "dashSpeed": 9,
+        "territoryRadius": 5,
+        "turnRate": 480,
+        "attackRange": 2.6,
+        "contactRange": 1.2,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.05,
+        "gaitFrequency": 1.6,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2,
+        "flying": 1,
+        "cruiseHeight": 2,
+        "windupClimb": 0.9,
+        "diveHeight": 0.9,
+        "climbSpeed": 3.5,
+        "climbAcceleration": 12,
+        "bobHeight": 0.18,
+        "bobFrequency": 0.45,
+        "jitter": 0.01,
+        "shadowSize": 0.35,
+        "shadowOpacity": 0.3
+      },
+      "legacy_board": {
+        "enemy": "FloatingClownEmoji",
+        "frame_id": "01M72SJNGHHV49B8FHXAHYKSKY",
+        "image_id": "01M72SJTVXKQ8PXD2GAZ3ZQZPT",
+        "column_element_ids": {
+          "temperament": "01M72SJQZZNRJX88GWW7G6WDT8",
+          "behavior": "01M72SJQZZX7TBP56WRNQMC6PZ",
+          "combat_pattern": "01M72SJQZZPMKQGYGHNYSB7NGG",
+          "health": "01M72SJQZZ45G8MSAWKDGT1D5X",
+          "damage": "01M72SJQZZBM4NWBMDW027CCAM"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SJNGHHV49B8FHXAHYKSKY",
+        "y": 2460
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "agddxkg8xn",
+        "sprite_asset_id": "7a52d4d24547c93602dca713dc0d52a6860561c2ca125d19f69a7248e152279c",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "7a52d4d24547c93602dca713dc0d52a6860561c2ca125d19f69a7248e152279c",
+          "w": 480,
+          "h": 480,
+          "alt": "Парящий клоун-эмодзи — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "fafdc560f7d4cd555f13cdc4b93ad0683af60df3107ec0f34e1edbe1fd0fac2b",
+            "w": 320,
+            "h": 320,
+            "alt": "Осколок клоунской маски / 35 монет / 100%",
+            "caption": "35 монет / 100%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": true,
+      "loot": [
+        {
+          "id": "clown_mask_shard",
+          "name": "Осколок клоунской маски",
+          "price": 35,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/clown_mask_shard.asset",
+          "asset_sha256": "6eb7acd64e8994c841758a2d86c08dde8480adb558795a24275ba5c29f6a3621",
+          "icon": "hukaton/Assets/Content/Enemies/FloatingClownEmoji/FloatingClownEmoji_loot.png",
+          "icon_sha256": "5f5932dce689a1476a7ade8a21f560f274de505ccc692e325dd7bec79fcaa6ce",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "FloatingClownEmoji",
+          "item_id": "clown_mask_shard",
+          "source": "hukaton/Assets/Content/Enemies/FloatingClownEmoji/FloatingClownEmoji_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/clown_mask_shard.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "fafdc560f7d4cd555f13cdc4b93ad0683af60df3107ec0f34e1edbe1fd0fac2b",
+          "alt": "Осколок клоунской маски / 35 монет / 100%"
+        }
+      ],
+      "loot_captions": [
+        "35 монет / 100%"
+      ]
+    },
+    {
+      "enemy": "RoosterBaseball",
+      "name": "Человеко-петух в бейсбольной форме",
+      "row_index": 6,
+      "category": "Мирный",
+      "behavior": "Сам не нападает. Урон, сбивание с ног или заморозка провоцируют ответную атаку. Через 8 с без новой провокации успокаивается и возвращается домой; при заморозке отсчёт идёт после её окончания. Скорость преследования 4,5 м/с. Гуманоид: при встрече в прямой видимости до 4 м произносит приветствие, затем одну нейтральную реплику. Реплики показаны в бабле над спрайтом; камера и управление остаются свободными. В бою выбирает короткие фразы по состоянию с паузами; набор испуга предусмотрен для Alert/Flee. Коко мечтает о бейсбольной карьере.",
+      "combat_pattern": "Смешанный ответный бой. На 3,2–13 м бросает один бейсбольный мяч по прямой: прицеливание 0,65 с, направление фиксируется перед броском, скорость мяча 16 м/с; перезарядка 2,2 с. Стремится держаться на 8 м, ближе 4,5 м пятится. В пределах 2 м приоритет у удара битой: подготовка 0,65 с → удар 0,25 с → пауза 1 с; контакт 1,6 м. Мяч отбрасывает, может попасть в других существ; его можно сбить картой.",
+      "health": 4,
+      "damage_half_hearts": 2,
+      "health_text": "4 HP",
+      "damage_text": "Ближний: 1; дальний: 0,5 за мяч",
+      "prefab": "hukaton/Assets/Game/Prefabs/Rooster baseball.prefab",
+      "prefab_sha256": "3a06a1e5afa095e51a3cd423eca9d039bf57199827649a74889de37a8cce01ac",
+      "manifest": "hukaton/Assets/Content/Enemies/RoosterBaseball/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseballAtlas.png",
+      "atlas_sha256": "f8fd1265dc007f017a2215515f13ff94ad953c325a33f2a80ebb6d0a07fdbcf2",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "a04e28687bb080b2c20779541c08a1c38dc673966d00d1ce75d3071d96b97064",
+      "sprite": "output/enemy-catalog/sprites/RoosterBaseball.png",
+      "sprite_sha256": "c91d67033a8cb90028cf905bb2ef433eb537fd9ed64d1f8f162bc81eff4e8781",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "flying": 0,
+        "cruiseHeight": 1.8,
+        "windupClimb": 0.7,
+        "diveHeight": 0.9,
+        "climbSpeed": 4,
+        "climbAcceleration": 14,
+        "bobHeight": 0.12,
+        "bobFrequency": 0.9,
+        "jitter": 0,
+        "shadowSize": 0.4,
+        "shadowOpacity": 0.35,
+        "temperament": 3,
+        "size": 1,
+        "stunStarsHeight": 0.136,
+        "stunStarsScale": 1.8,
+        "maximumHealth": 4,
+        "attackHalfHearts": 2,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 4.5,
+        "wanderSpeed": 1.3,
+        "dashSpeed": 9.5,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 12,
+        "fleeRange": 7,
+        "safeDistance": 16,
+        "dashSeconds": 0.45,
+        "pauseSeconds": 0.6,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.05,
+        "gaitFrequency": 2.8,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "RoosterBaseball",
+        "frame_id": "01M72SJYAN0P3NX1V2P6P3R530",
+        "image_id": "01M72SK2G3GG99FHGSJSBHM7XQ",
+        "column_element_ids": {
+          "temperament": "01M72SK1KECY7GNT6MQ5A52683",
+          "behavior": "01M72SK1KEYG7WH7R71MT0RQJD",
+          "combat_pattern": "01M72SK1KECTN6FQAKCS72HDFZ",
+          "health": "01M72SK1KEDG9MT6G16MB5H0PD",
+          "damage": "01M72SK1KEFC0ZHZ02K4CM79XF"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SJYAN0P3NX1V2P6P3R530",
+        "y": 2870
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "6yfn9cfcxt",
+        "sprite_asset_id": "c91d67033a8cb90028cf905bb2ef433eb537fd9ed64d1f8f162bc81eff4e8781",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "c91d67033a8cb90028cf905bb2ef433eb537fd9ed64d1f8f162bc81eff4e8781",
+          "w": 480,
+          "h": 480,
+          "alt": "Человеко-петух в бейсбольной форме — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "24bcd6f6a9912b01a2ca33273a215a16e9065647acf4c6bd90921243c929935a",
+            "w": 320,
+            "h": 320,
+            "alt": "Красный гребень / 40 монет / 100%",
+            "caption": "40 монет / 100%"
+          },
+          {
+            "asset": "965d742ba6e7dd3b8bfd43fa6217fe931f53594a36a4242c6e6610ac8a945f07",
+            "w": 320,
+            "h": 320,
+            "alt": "Петушиная бейсболка / 90 монет / 50%",
+            "caption": "90 монет / 50%"
+          },
+          {
+            "asset": "fa6677d5f90fe193c30d2d47da2dda79b28bd14127315d89767eac27837fc5f3",
+            "w": 320,
+            "h": 320,
+            "alt": "Потрёпанная бита / 150 монет / 10%",
+            "caption": "150 монет / 10%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": {
+        "range": 13,
+        "minRange": 3.2,
+        "aimSeconds": 0.65,
+        "cooldown": 2.2,
+        "recovery": 0.5,
+        "projectiles": 1,
+        "spreadAngle": 0,
+        "burst": 1,
+        "burstInterval": 0.2,
+        "muzzleHeight": 0.65,
+        "keepDistance": 8,
+        "retreatDistance": 4.5,
+        "retreatSpeed": 0.8,
+        "circleSpeed": 0,
+        "closeCombat": 0,
+        "shoveDamage": 1
+      },
+      "flying": false,
+      "loot": [
+        {
+          "id": "rooster_comb",
+          "name": "Красный гребень",
+          "price": 40,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/rooster_comb.asset",
+          "asset_sha256": "054b5274069db840aae0064d79235c6327a5b8cb721a5052f88aea07b7b45f5b",
+          "icon": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_comb_loot.png",
+          "icon_sha256": "1899575f75fc6772352d2072891cbcdee2643939c767dd6247c9f3455d9cbf49",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "rooster_cap",
+          "name": "Петушиная бейсболка",
+          "price": 90,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/rooster_cap.asset",
+          "asset_sha256": "369c4e6716bfc42bc927fae461ea32effac0b062e5bf1f5121288c85f9f125e9",
+          "icon": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_cap_loot.png",
+          "icon_sha256": "6731696fda99d99b0ea8f08463a74e210c7139fef92633858e102309276b05a2",
+          "chance": 0.5,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 50.0
+        },
+        {
+          "id": "rooster_bat",
+          "name": "Потрёпанная бита",
+          "price": 150,
+          "rarity": "Легендарный",
+          "asset": "hukaton/Assets/Loot/Items/rooster_bat.asset",
+          "asset_sha256": "6e255ef63cb54b2ed723e79b70ab2454a88e27467cbbbcb13fe0ae66af1508ce",
+          "icon": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_baseball_bat_loot.png",
+          "icon_sha256": "b986b68c637df787cec49c3c9234f81f155139984700c077baa7645cf099b72c",
+          "chance": 0.1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 10.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "RoosterBaseball",
+          "item_id": "rooster_comb",
+          "source": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_comb_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/rooster_comb.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "24bcd6f6a9912b01a2ca33273a215a16e9065647acf4c6bd90921243c929935a",
+          "alt": "Красный гребень / 40 монет / 100%"
+        },
+        {
+          "enemy": "RoosterBaseball",
+          "item_id": "rooster_cap",
+          "source": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_cap_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/rooster_cap.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "965d742ba6e7dd3b8bfd43fa6217fe931f53594a36a4242c6e6610ac8a945f07",
+          "alt": "Петушиная бейсболка / 90 монет / 50%"
+        },
+        {
+          "enemy": "RoosterBaseball",
+          "item_id": "rooster_bat",
+          "source": "hukaton/Assets/Content/Enemies/RoosterBaseball/RoosterBaseball_baseball_bat_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/rooster_bat.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "fa6677d5f90fe193c30d2d47da2dda79b28bd14127315d89767eac27837fc5f3",
+          "alt": "Потрёпанная бита / 150 монет / 10%"
+        }
+      ],
+      "loot_captions": [
+        "40 монет / 100%",
+        "90 монет / 50%",
+        "150 монет / 10%"
+      ],
+      "speech_profile": "hukaton/Assets/Game/Data/Speech/RoosterBaseball Speech.asset",
+      "speech_component": "hukaton/Assets/Expedition/Runtime/Speech/HumanoidSpeech.cs",
+      "speech_registry_verified_on": "2026-11-11"
+    },
+    {
+      "enemy": "KindLittleWorm",
+      "name": "Очень добрый червячок",
+      "row_index": 7,
+      "category": "Пугливый",
+      "behavior": "Пугливый: замечает угрозу и замирает в пределах 8 м. Убегает при сближении до 5 м, провокации или спринте игрока в пределах 7 м. Отбежав дальше 10 м без новой провокации, может остановиться.",
+      "combat_pattern": "Не атакует. Бегство рывками: 0,45 с движения → 0,6 с паузы. Скорость побега 2,8 м/с; пауза даёт окно для броска.",
+      "health": 1,
+      "damage_half_hearts": 0,
+      "health_text": "1 HP",
+      "damage_text": "0 — не атакует",
+      "prefab": "hukaton/Assets/Game/Prefabs/Kind little worm.prefab",
+      "prefab_sha256": "6cead8db4671a692f3bc2822d2d6398d2620f36578199fa21224258c1e4bc0c3",
+      "manifest": "hukaton/Assets/Content/Enemies/KindLittleWorm/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/KindLittleWorm/KindLittleWormAtlas.png",
+      "atlas_sha256": "8db4ee71f474c9faa06f5b8b426884839c6111c67cd38f7c77caa036f9be3f9e",
+      "default_rect_top_left": [
+        0,
+        0,
+        1360,
+        1360
+      ],
+      "cell_rgba_sha256": "e5854089f92fce393f8dc5cc7cc9bf5a12c0d8da292af4baa07937ecf0c95561",
+      "sprite": "output/enemy-catalog/sprites/KindLittleWorm.png",
+      "sprite_sha256": "585dfb0aa02088072cb3ce6a5a242d19b910827b879985c21863283e854bca57",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 0,
+        "size": 2,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 0.7,
+        "maximumHealth": 1,
+        "attackHalfHearts": 0,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 1.4,
+        "wanderSpeed": 0.6,
+        "dashSpeed": 2.8,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 8,
+        "fleeRange": 5,
+        "safeDistance": 10,
+        "dashSeconds": 0.45,
+        "pauseSeconds": 0.6,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.02,
+        "gaitFrequency": 4,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "KindLittleWorm",
+        "frame_id": "01M72SK5DFHHRYD6YRKN5F7YE8",
+        "image_id": "01M72SK93JEKGYNZFW7SH3F92Q",
+        "column_element_ids": {
+          "temperament": "01M72SK8DJW8WXFJQ2422ETYE4",
+          "behavior": "01M72SK8DJK6G4Z5EK7P7KWH75",
+          "combat_pattern": "01M72SK8DJ5JGYPP763XDVXRH4",
+          "health": "01M72SK8DJV23SFCSKT6FSFYDE",
+          "damage": "01M72SK8DJYJ2MFBJ6BB8E4VQR"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SK5DFHHRYD6YRKN5F7YE8",
+        "y": 3280
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "zzypzpqaq0",
+        "sprite_asset_id": "585dfb0aa02088072cb3ce6a5a242d19b910827b879985c21863283e854bca57",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "585dfb0aa02088072cb3ce6a5a242d19b910827b879985c21863283e854bca57",
+          "w": 480,
+          "h": 480,
+          "alt": "Очень добрый червячок — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [],
+      "loot_captions": []
+    },
+    {
+      "enemy": "SnailFrogMount",
+      "name": "Ездовая улитка с лягушкой-наездником",
+      "row_index": 8,
+      "category": "Пугливый",
+      "behavior": "Пугливый: замечает угрозу и замирает в пределах 10 м. Убегает при сближении до 6 м, провокации или спринте игрока в пределах 8,4 м. Отбежав дальше 12 м без новой провокации, может остановиться.",
+      "combat_pattern": "Не атакует. Бегство рывками: 1,2 с движения → 0,8 с паузы. Скорость побега 2,4 м/с; пауза даёт окно для броска.",
+      "health": 6,
+      "damage_half_hearts": 0,
+      "health_text": "6 HP",
+      "damage_text": "0 — не атакует",
+      "prefab": "hukaton/Assets/Game/Prefabs/Snail frog mount.prefab",
+      "prefab_sha256": "3697793241aa83529a307aee1476bbccdc9b9bcb06a4017c076e4dcf55479db6",
+      "manifest": "hukaton/Assets/Content/Enemies/SnailFrogMount/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/SnailFrogMount/SnailFrogMountAtlas.png",
+      "atlas_sha256": "d0b6e8e66459d2be190c000509a7d108938b3bd98a428ba741cae4ecc3931c2a",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "9607609104d7be5eaccaca478fef911d6541749d36ab7c0be2d1effcd604c3a3",
+      "sprite": "output/enemy-catalog/sprites/SnailFrogMount.png",
+      "sprite_sha256": "a8cf64c113fa2c844c8a7ffcd639f71eff379389d7e4d7b28c542069e0418bba",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 0,
+        "size": 0.9,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 1.5,
+        "maximumHealth": 6,
+        "attackHalfHearts": 0,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 1,
+        "wanderSpeed": 0.5,
+        "dashSpeed": 2.4,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 10,
+        "fleeRange": 6,
+        "safeDistance": 12,
+        "dashSeconds": 1.2,
+        "pauseSeconds": 0.8,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.01,
+        "gaitFrequency": 1.2,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "SnailFrogMount",
+        "frame_id": "01M72SKCJQSZP66N72YZ21J6R7",
+        "image_id": "01M72SKH2K12TQXENZ50ZW1CTB",
+        "column_element_ids": {
+          "temperament": "01M72SKGA7NWJF184TMTDS85CQ",
+          "behavior": "01M72SKGA7CGDM790JBS98QGDB",
+          "combat_pattern": "01M72SKGA7NNPFWDAK7STSRHHK",
+          "health": "01M72SKGA7FD0RW426DAWSDT09",
+          "damage": "01M72SKGA7JQCQHQZDNGFN83HR"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SKCJQSZP66N72YZ21J6R7",
+        "y": 3690
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "2q24f6jh6n",
+        "sprite_asset_id": "a8cf64c113fa2c844c8a7ffcd639f71eff379389d7e4d7b28c542069e0418bba",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "a8cf64c113fa2c844c8a7ffcd639f71eff379389d7e4d7b28c542069e0418bba",
+          "w": 480,
+          "h": 480,
+          "alt": "Ездовая улитка с лягушкой-наездником — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "f7ed74543d510b1ab9f1af24519ef80847b69dc19c4fe2af32c441e41ce1bf54",
+            "w": 320,
+            "h": 320,
+            "alt": "Спиральная раковина / 30 монет / 100%",
+            "caption": "30 монет / 100%"
+          },
+          {
+            "asset": "16929789c95f3f4eff2999b34f14635d318079d1f12e1357a83f58e019b9e774",
+            "w": 320,
+            "h": 320,
+            "alt": "Лягушачья лапка / 100 монет / 15%",
+            "caption": "100 монет / 15%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "snail_shell",
+          "name": "Спиральная раковина",
+          "price": 30,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/snail_shell.asset",
+          "asset_sha256": "3c6ab761ea0bd4ddde114fdff97f28e657e2e8ca48061eb7cb4c2d1b5b6292bb",
+          "icon": "hukaton/Assets/Content/Enemies/SnailFrogMount/SnailFrogMount_spiral_shell_loot.png",
+          "icon_sha256": "914b51e39edffb88ed0eb74d3e2572c2dc7db36c5b4375bea9c60a09274637d8",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "frog_foot",
+          "name": "Лягушачья лапка",
+          "price": 100,
+          "rarity": "Редкий",
+          "asset": "hukaton/Assets/Loot/Items/frog_foot.asset",
+          "asset_sha256": "da7e20a4d28e2e174d05d83a54cf53a631a04dd875bd6eba9b575de4a8b1cbc5",
+          "icon": "hukaton/Assets/Content/Enemies/SnailFrogMount/SnailFrogMount_frog_foot_loot.png",
+          "icon_sha256": "23226de51c47619de38274f62277d2d28859ce2ccbacce5b56e251e28e267955",
+          "chance": 0.15,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 15.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "SnailFrogMount",
+          "item_id": "snail_shell",
+          "source": "hukaton/Assets/Content/Enemies/SnailFrogMount/SnailFrogMount_spiral_shell_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/snail_shell.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "f7ed74543d510b1ab9f1af24519ef80847b69dc19c4fe2af32c441e41ce1bf54",
+          "alt": "Спиральная раковина / 30 монет / 100%"
+        },
+        {
+          "enemy": "SnailFrogMount",
+          "item_id": "frog_foot",
+          "source": "hukaton/Assets/Content/Enemies/SnailFrogMount/SnailFrogMount_frog_foot_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/frog_foot.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "16929789c95f3f4eff2999b34f14635d318079d1f12e1357a83f58e019b9e774",
+          "alt": "Лягушачья лапка / 100 монет / 15%"
+        }
+      ],
+      "loot_captions": [
+        "30 монет / 100%",
+        "100 монет / 15%"
+      ]
+    },
+    {
+      "enemy": "TeenLeshySkater",
+      "name": "Леший-подросток со скейтом",
+      "row_index": 9,
+      "category": "Мирный",
+      "behavior": "Сам не нападает. Урон, сбивание с ног или заморозка провоцируют ответную атаку. Через 8 с без новой провокации успокаивается и возвращается домой; при заморозке отсчёт идёт после её окончания. Скорость преследования 5 м/с. Гуманоид: при встрече в прямой видимости до 4 м произносит приветствие, затем одну нейтральную реплику. Реплики показаны в бабле над спрайтом; камера и управление остаются свободными. В бою выбирает короткие фразы по состоянию с паузами; набор испуга предусмотрен для Alert/Flee. Леший — экоактивист, презирающий людей.",
+      "combat_pattern": "Ответная ближняя атака при сближении до 2 м. Подготовка 0,65 с → удар 0,25 с → пауза 1 с. Дальность контакта 1,6 м. Дальней атаки нет.",
+      "health": 4,
+      "damage_half_hearts": 2,
+      "health_text": "4 HP",
+      "damage_text": "Ближний: 1; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Teen leshy skater.prefab",
+      "prefab_sha256": "1d86c8fb33ebb6bc1f1b510c036bcf728be7bbe8fd199fb32dc56b309f4f27a8",
+      "manifest": "hukaton/Assets/Content/Enemies/TeenLeshySkater/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkaterAtlas.png",
+      "atlas_sha256": "291f254048e6c35ac14838ac108bfa47d6ee8ede4ef8c5022714de302033377a",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "0ab661b2992ba63843eac745ea91c0854370f3908c717486f5d324f4aa8d9c7c",
+      "sprite": "output/enemy-catalog/sprites/TeenLeshySkater.png",
+      "sprite_sha256": "9bcbb90e2e59c5252551c22ebcb6b19c02e8f00db1f86233591868e09364e51e",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 3,
+        "size": 1.2,
+        "stunStarsHeight": 0.128,
+        "stunStarsScale": 1.8,
+        "maximumHealth": 4,
+        "attackHalfHearts": 2,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 5,
+        "wanderSpeed": 1.6,
+        "dashSpeed": 11,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 13,
+        "fleeRange": 8,
+        "safeDistance": 18,
+        "dashSeconds": 0.8,
+        "pauseSeconds": 0.35,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.015,
+        "gaitFrequency": 1.5,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "TeenLeshySkater",
+        "frame_id": "01M72SKMB5HAM6J6A62KK8MRWD",
+        "image_id": "01M72SKSDXKEE5FKG8Y2TG48SN",
+        "column_element_ids": {
+          "temperament": "01M72SKQH3CJVRMCQJKBABSR87",
+          "behavior": "01M72SKQH3NR2DJQ8MR37N6S7D",
+          "combat_pattern": "01M72SKQH3B2TH40P7YX7SJQK9",
+          "health": "01M72SKQH3R0WG9NPHHW3HGA0J",
+          "damage": "01M72SKQH3C9YE6QN803ZMHVGD"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SKMB5HAM6J6A62KK8MRWD",
+        "y": 4100
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "35c5efy0kx",
+        "sprite_asset_id": "9bcbb90e2e59c5252551c22ebcb6b19c02e8f00db1f86233591868e09364e51e",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "9bcbb90e2e59c5252551c22ebcb6b19c02e8f00db1f86233591868e09364e51e",
+          "w": 480,
+          "h": 480,
+          "alt": "Леший-подросток со скейтом — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "2133ba5afe9ac5e79d86d701e4652cf4af975c044d2e49fe3b03f7e45fb46c6e",
+            "w": 320,
+            "h": 320,
+            "alt": "Самокрутка лешего / 40 монет / 100%",
+            "caption": "40 монет / 100%"
+          },
+          {
+            "asset": "decc3aeb9e3fcf726a97602487c4965d76ad0b9dac82bdae1666bc33944780b0",
+            "w": 320,
+            "h": 320,
+            "alt": "Толстовка лешего / 90 монет / 50%",
+            "caption": "90 монет / 50%"
+          },
+          {
+            "asset": "7f2a01d53f7fad4c6f49cabd5c82c83738afc8a75373a00ec0acacb42cf7652b",
+            "w": 320,
+            "h": 320,
+            "alt": "Потрёпанный скейт / 150 монет / 10%",
+            "caption": "150 монет / 10%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "leshy_cigarette",
+          "name": "Самокрутка лешего",
+          "price": 40,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/leshy_cigarette.asset",
+          "asset_sha256": "7052c83e5ee32c5d657025a4580d0d4fa6f945a694be44af23b95a5d26dae889",
+          "icon": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_cigarette_loot.png",
+          "icon_sha256": "17c99b937329930a83a9f06bfe8ef937d0ea580b463dd4fd4baa704a5594c283",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "leshy_hoodie",
+          "name": "Толстовка лешего",
+          "price": 90,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/leshy_hoodie.asset",
+          "asset_sha256": "e8b8e48f9a639fbdb6ccd45b0091951cf850f376b3dbbec4a8d7f194d1712e94",
+          "icon": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_hoodie_loot.png",
+          "icon_sha256": "4c03c6f4ee6c5fa52c127e4b61291cf0247c8f4d83c05b070618fc3c565e0277",
+          "chance": 0.5,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 50.0
+        },
+        {
+          "id": "leshy_skateboard",
+          "name": "Потрёпанный скейт",
+          "price": 150,
+          "rarity": "Легендарный",
+          "asset": "hukaton/Assets/Loot/Items/leshy_skateboard.asset",
+          "asset_sha256": "a4422a2976c5472f3abb191cbc83e2d0f0068b3be31714fa0d647fe3207b30d1",
+          "icon": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_skateboard_loot.png",
+          "icon_sha256": "aad9ec93d3fd8f65e583b2479b86864d7288d2a437c9eff9e29501b99e78b9fb",
+          "chance": 0.1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 10.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "TeenLeshySkater",
+          "item_id": "leshy_cigarette",
+          "source": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_cigarette_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/leshy_cigarette.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "2133ba5afe9ac5e79d86d701e4652cf4af975c044d2e49fe3b03f7e45fb46c6e",
+          "alt": "Самокрутка лешего / 40 монет / 100%"
+        },
+        {
+          "enemy": "TeenLeshySkater",
+          "item_id": "leshy_hoodie",
+          "source": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_hoodie_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/leshy_hoodie.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "decc3aeb9e3fcf726a97602487c4965d76ad0b9dac82bdae1666bc33944780b0",
+          "alt": "Толстовка лешего / 90 монет / 50%"
+        },
+        {
+          "enemy": "TeenLeshySkater",
+          "item_id": "leshy_skateboard",
+          "source": "hukaton/Assets/Content/Enemies/TeenLeshySkater/TeenLeshySkater_skateboard_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/leshy_skateboard.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "7f2a01d53f7fad4c6f49cabd5c82c83738afc8a75373a00ec0acacb42cf7652b",
+          "alt": "Потрёпанный скейт / 150 монет / 10%"
+        }
+      ],
+      "loot_captions": [
+        "40 монет / 100%",
+        "90 монет / 50%",
+        "150 монет / 10%"
+      ],
+      "speech_profile": "hukaton/Assets/Game/Data/Speech/TeenLeshySkater Speech.asset",
+      "speech_component": "hukaton/Assets/Expedition/Runtime/Speech/HumanoidSpeech.cs",
+      "speech_registry_verified_on": "2026-11-11"
+    },
+    {
+      "enemy": "SinisterLivingTree",
+      "name": "Зловещее ожившее дерево",
+      "row_index": 10,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 13 м. Сближается со скоростью 2,4 м/с. Потеряв цель, ищет её и возвращается; предел обычной погони от дома — 18 м.",
+      "combat_pattern": "Рывок и широкий удар веткой-когтем. Подготовка 0,8 с → атака 0,4 с → пауза 1,3 с. Дальность контакта 3 м. Вплотную отходит перед повторным рывком.",
+      "health": 18,
+      "damage_half_hearts": 3,
+      "health_text": "18 HP",
+      "damage_text": "Ближний: 1,5; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Sinister living tree.prefab",
+      "prefab_sha256": "fe396f4b8b2002c8dd0068c93e76570b83a2122594ba5aeeefd62b26b464dca9",
+      "manifest": "hukaton/Assets/Content/Enemies/SinisterLivingTree/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTreeAtlas.png",
+      "atlas_sha256": "dbcb5b7b21b4cfbc947ad4538c755c2b45efd97f81c10cd12230af44343aac9c",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "b6a8d965a39496d40522d2ffab6d9648d88dbddb00e0878ce83e57bd5f7a538f",
+      "sprite": "output/enemy-catalog/sprites/SinisterLivingTree.png",
+      "sprite_sha256": "c0fd37444e7ffbd7e846ddc4f252b01ba6ac07820444768a1be7e0325a6fa84b",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 1,
+        "stunStarsHeight": 0.24,
+        "stunStarsScale": 2.6,
+        "maximumHealth": 18,
+        "attackHalfHearts": 3,
+        "windup": 0.8,
+        "strikeSeconds": 0.4,
+        "recovery": 1.3,
+        "recoveryOnMiss": -1,
+        "dash": 1,
+        "strikeShake": 0,
+        "sightRange": 13,
+        "hearingRange": 4,
+        "leash": 18,
+        "speed": 2.4,
+        "wanderSpeed": 0.96000004,
+        "dashSpeed": 7,
+        "territoryRadius": 5,
+        "turnRate": 180,
+        "attackRange": 4.2,
+        "contactRange": 3,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.02,
+        "gaitFrequency": 1.4,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "SinisterLivingTree",
+        "frame_id": "01M72SKWD6DAZ1C59CX8PETGG8",
+        "image_id": "01M72SM1WR5EYPV9D5VQCDX7N3",
+        "column_element_ids": {
+          "temperament": "01M72SKZY5DDN9MQBH997N764B",
+          "behavior": "01M72SKZY5G9FGH0RGBX07ANWG",
+          "combat_pattern": "01M72SKZY5PGJP16GRAQK047D7",
+          "health": "01M72SKZY5ZPS9V7D6EEZNGZ54",
+          "damage": "01M72SKZY569GB3652XBS1YJC5"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SKWD6DAZ1C59CX8PETGG8",
+        "y": 4510
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "egmtzq0m7a",
+        "sprite_asset_id": "c0fd37444e7ffbd7e846ddc4f252b01ba6ac07820444768a1be7e0325a6fa84b",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "c0fd37444e7ffbd7e846ddc4f252b01ba6ac07820444768a1be7e0325a6fa84b",
+          "w": 480,
+          "h": 480,
+          "alt": "Зловещее ожившее дерево — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "00cbbb99ad0717a3aa497dba791b6b4633fcadedd9a786cff9e0c4b82fdd5f7b",
+            "w": 320,
+            "h": 320,
+            "alt": "Злая маска из коры / 100 монет / 100%",
+            "caption": "100 монет / 100%"
+          },
+          {
+            "asset": "731d9f04e09f1f5d2c95e8cdd1b1a3c01ee525d3f4f237ab9bbfb1fd158982e0",
+            "w": 320,
+            "h": 320,
+            "alt": "Вросший топор / 180 монет / 30%",
+            "caption": "180 монет / 30%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "tree_bark_mask",
+          "name": "Злая маска из коры",
+          "price": 100,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/tree_bark_mask.asset",
+          "asset_sha256": "42eda9847aeec853a2b1a030e1cb1281a581b355d1af9b86277ab77ac4e3b575",
+          "icon": "hukaton/Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTree_bark_mask_loot.png",
+          "icon_sha256": "90f48fb47317dc004cb3e03a0b418640d75be3d11c6b6d73537589860d687c7a",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "tree_embedded_axe",
+          "name": "Вросший топор",
+          "price": 180,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/tree_embedded_axe.asset",
+          "asset_sha256": "4411d387bd2b15aba7bbad3fdb94a3a693cefa3648c0d4e56330fd58e45f817f",
+          "icon": "hukaton/Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTree_embedded_axe_loot.png",
+          "icon_sha256": "2d6755ff9f0c5ab72c3f7ad119c258f1a8250ff5d2eebd7043c7f13833c31bc0",
+          "chance": 0.3,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 30.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "SinisterLivingTree",
+          "item_id": "tree_bark_mask",
+          "source": "hukaton/Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTree_bark_mask_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/tree_bark_mask.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "00cbbb99ad0717a3aa497dba791b6b4633fcadedd9a786cff9e0c4b82fdd5f7b",
+          "alt": "Злая маска из коры / 100 монет / 100%"
+        },
+        {
+          "enemy": "SinisterLivingTree",
+          "item_id": "tree_embedded_axe",
+          "source": "hukaton/Assets/Content/Enemies/SinisterLivingTree/SinisterLivingTree_embedded_axe_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/tree_embedded_axe.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "731d9f04e09f1f5d2c95e8cdd1b1a3c01ee525d3f4f237ab9bbfb1fd158982e0",
+          "alt": "Вросший топор / 180 монет / 30%"
+        }
+      ],
+      "loot_captions": [
+        "100 монет / 100%",
+        "180 монет / 30%"
+      ]
+    },
+    {
+      "enemy": "DrunkenDwarfRobot",
+      "name": "Самопальный робот пьяных дварфов",
+      "row_index": 11,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 16 м. Сближается со скоростью 2,6 м/с. Потеряв цель, ищет её и возвращается; предел обычной погони от дома — 24 м.",
+      "combat_pattern": "Неуклюжий тяжёлый удар молотом сверху; тряска камеры. Подготовка 1,1 с → атака 0,55 с → пауза 1,7 с. Дальность контакта 3,8 м.",
+      "health": 30,
+      "damage_half_hearts": 4,
+      "health_text": "30 HP",
+      "damage_text": "Ближний: 2; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Drunken dwarf robot.prefab",
+      "prefab_sha256": "f4960cbcc0750a837c2eab50ddcd1942f6d7840524e071d7ca1a93612b806a6f",
+      "manifest": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobotAtlas.png",
+      "atlas_sha256": "8dce8865956d38b3773a310af5227435c9d80606ff15f3d5252599211888eebd",
+      "default_rect_top_left": [
+        0,
+        0,
+        1600,
+        1360
+      ],
+      "cell_rgba_sha256": "75cd7f2247adaad61681f9f76714788cab599900f0392fd935eae81b42cd8055",
+      "sprite": "output/enemy-catalog/sprites/DrunkenDwarfRobot.png",
+      "sprite_sha256": "24ce31fc6cfcd3a35f75b4ad7803ba60c85f3fe2dbb91ea12149db42352254c2",
+      "sprite_size": [
+        480,
+        408
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 1,
+        "stunStarsHeight": 0.32,
+        "stunStarsScale": 3,
+        "maximumHealth": 30,
+        "attackHalfHearts": 4,
+        "windup": 1.1,
+        "strikeSeconds": 0.55,
+        "recovery": 1.7,
+        "recoveryOnMiss": -1,
+        "dash": 0,
+        "strikeShake": 0.5,
+        "sightRange": 16,
+        "hearingRange": 5,
+        "leash": 24,
+        "speed": 2.6,
+        "wanderSpeed": 1.04,
+        "dashSpeed": 8.5,
+        "territoryRadius": 5,
+        "turnRate": 140,
+        "attackRange": 5,
+        "contactRange": 3.8,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.02,
+        "gaitFrequency": 1.1,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 2,
+        "stepDustCount": 4
+      },
+      "legacy_board": {
+        "enemy": "DrunkenDwarfRobot",
+        "frame_id": "01M72SM5DXW9V18GYJ23NQ1Y16",
+        "image_id": "01M72SM9M5VNV6BPEZ08R6N8M0",
+        "column_element_ids": {
+          "temperament": "01M72SM8PXM7YAKJS7NV68KZCX",
+          "behavior": "01M72SM8PXMDM9197NSWTPP9AA",
+          "combat_pattern": "01M72SM8PXAKYX71EHPR6H5Y72",
+          "health": "01M72SM8PXJTAPH67QSSAY7MM8",
+          "damage": "01M72SM8PXF5WD00BY39PFB946"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SM5DXW9V18GYJ23NQ1Y16",
+        "y": 4920
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "s4em223gk8",
+        "sprite_asset_id": "24ce31fc6cfcd3a35f75b4ad7803ba60c85f3fe2dbb91ea12149db42352254c2",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "24ce31fc6cfcd3a35f75b4ad7803ba60c85f3fe2dbb91ea12149db42352254c2",
+          "w": 480,
+          "h": 408,
+          "alt": "Самопальный робот пьяных дварфов — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "d0c14cb21c418c67c9e31d2e33773aa437534c485fefcbf9a193b7a71c367fd3",
+            "w": 320,
+            "h": 320,
+            "alt": "Пивная кружка механика / 120 монет / 100%",
+            "caption": "120 монет / 100%"
+          },
+          {
+            "asset": "2e4145035f4304c0e7151c74cc1ea0e9e336bade9670cba7312ec489bb1afb62",
+            "w": 320,
+            "h": 320,
+            "alt": "Шлем-кастрюля / 160 монет / 60%",
+            "caption": "160 монет / 60%"
+          },
+          {
+            "asset": "3f0e2dae3694f12ba9d9fe83da4384b76964819b076294f03e52eb78991c1e7f",
+            "w": 320,
+            "h": 320,
+            "alt": "Клешня хламобота / 220 монет / 30%",
+            "caption": "220 монет / 30%"
+          },
+          {
+            "asset": "570c23e4d1ddbfeb05978687ec0c207b35956ef49c4937215a77ae9ba058d031",
+            "w": 320,
+            "h": 320,
+            "alt": "Самопальный пульт / 350 монет / 10%",
+            "caption": "350 монет / 10%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "dwarf_beer_mug",
+          "name": "Пивная кружка механика",
+          "price": 120,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/dwarf_beer_mug.asset",
+          "asset_sha256": "944909c606ae20ad870445ca0070baa9dcbed1e4bccc5cca11388ea53656eec1",
+          "icon": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_beer_mug_loot.png",
+          "icon_sha256": "16119293965765f88d42b95a8d5af1b9e5458e4b1b98865a8e6473ce71b783b7",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "dwarf_saucepan_helmet",
+          "name": "Шлем-кастрюля",
+          "price": 160,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/dwarf_saucepan_helmet.asset",
+          "asset_sha256": "6daacc5fa04e40b9f6030dcec14f8e9e6b04bbe7b4ed4cfbe04ddc939421e892",
+          "icon": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_saucepan_helmet_loot.png",
+          "icon_sha256": "101faf557af6afade999aac84ae752f82d020b2f7b2fa988b59dffcb27bcb540",
+          "chance": 0.6,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 60.0
+        },
+        {
+          "id": "dwarf_scrap_claw",
+          "name": "Клешня хламобота",
+          "price": 220,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/dwarf_scrap_claw.asset",
+          "asset_sha256": "1e14eef7346b91ab48f6ea33dcfefad09c19a1ebff74d060dba57a494cb7b51a",
+          "icon": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_scrap_claw_loot.png",
+          "icon_sha256": "2e058e1d3a01d7282e937220d8cc2840ed11232e7a8613b47aaf077fe3efa684",
+          "chance": 0.3,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 30.0
+        },
+        {
+          "id": "dwarf_control_panel",
+          "name": "Самопальный пульт",
+          "price": 350,
+          "rarity": "Легендарный",
+          "asset": "hukaton/Assets/Loot/Items/dwarf_control_panel.asset",
+          "asset_sha256": "ca519c071b0f074d5978df5687194af96adb00a43d70d760b9736e63cbf52e55",
+          "icon": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_scrap_control_panel_loot.png",
+          "icon_sha256": "fe1e8a4ce90bbb706e37ca5266b37884be51b347f986aaa6c33b9ca425a2cebe",
+          "chance": 0.1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 10.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "DrunkenDwarfRobot",
+          "item_id": "dwarf_beer_mug",
+          "source": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_beer_mug_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/dwarf_beer_mug.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "d0c14cb21c418c67c9e31d2e33773aa437534c485fefcbf9a193b7a71c367fd3",
+          "alt": "Пивная кружка механика / 120 монет / 100%"
+        },
+        {
+          "enemy": "DrunkenDwarfRobot",
+          "item_id": "dwarf_saucepan_helmet",
+          "source": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_saucepan_helmet_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/dwarf_saucepan_helmet.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "2e4145035f4304c0e7151c74cc1ea0e9e336bade9670cba7312ec489bb1afb62",
+          "alt": "Шлем-кастрюля / 160 монет / 60%"
+        },
+        {
+          "enemy": "DrunkenDwarfRobot",
+          "item_id": "dwarf_scrap_claw",
+          "source": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_scrap_claw_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/dwarf_scrap_claw.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "3f0e2dae3694f12ba9d9fe83da4384b76964819b076294f03e52eb78991c1e7f",
+          "alt": "Клешня хламобота / 220 монет / 30%"
+        },
+        {
+          "enemy": "DrunkenDwarfRobot",
+          "item_id": "dwarf_control_panel",
+          "source": "hukaton/Assets/Content/Enemies/DrunkenDwarfRobot/DrunkenDwarfRobot_scrap_control_panel_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/dwarf_control_panel.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "570c23e4d1ddbfeb05978687ec0c207b35956ef49c4937215a77ae9ba058d031",
+          "alt": "Самопальный пульт / 350 монет / 10%"
+        }
+      ],
+      "loot_captions": [
+        "120 монет / 100%",
+        "160 монет / 60%",
+        "220 монет / 30%",
+        "350 монет / 10%"
+      ]
+    },
+    {
+      "enemy": "ZombieBeekeeper",
+      "name": "Зомби-пасечник",
+      "row_index": 12,
+      "category": "Мирный",
+      "behavior": "Сам не нападает. Урон, сбивание с ног или заморозка провоцируют ответную атаку. Через 8 с без новой провокации успокаивается и возвращается домой; при заморозке отсчёт идёт после её окончания. Скорость преследования 1,8 м/с. Гуманоид: при встрече в прямой видимости до 4 м произносит приветствие, затем одну нейтральную реплику. Реплики показаны в бабле над спрайтом; камера и управление остаются свободными. В бою выбирает короткие фразы по состоянию с паузами; набор испуга предусмотрен для Alert/Flee. Пасечник стесняется того, что он зомби.",
+      "combat_pattern": "Ответная ближняя атака при сближении до 2 м. Подготовка 0,65 с → удар 0,25 с → пауза 1 с. Дальность контакта 1,6 м. Дальней атаки нет.",
+      "health": 5,
+      "damage_half_hearts": 2,
+      "health_text": "5 HP",
+      "damage_text": "Ближний: 1; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Zombie beekeeper.prefab",
+      "prefab_sha256": "ef0719724b94b4e6f275f5c29e9971016f8ef7d2c915c6ad5adf7ab4a74cb458",
+      "manifest": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/ZombieBeekeeperAtlas.png",
+      "atlas_sha256": "c44d05f952021804e3baba2df9ce844036ce9fb268f1427204dc41ddec95051a",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1408
+      ],
+      "cell_rgba_sha256": "6e26e55a5a96b184cdd0d4f736a34db5d6691b05403fa3041b0ec6cc4eeb0139",
+      "sprite": "output/enemy-catalog/sprites/ZombieBeekeeper.png",
+      "sprite_sha256": "301d32d587572bc60b166a6537851c09b6deb05f13b86cda1b7a9f738b6cebaa",
+      "sprite_size": [
+        458,
+        480
+      ],
+      "stats": {
+        "temperament": 3,
+        "size": 1.25,
+        "stunStarsHeight": 0.136,
+        "stunStarsScale": 1.8,
+        "maximumHealth": 5,
+        "attackHalfHearts": 2,
+        "windup": 0.65,
+        "strikeSeconds": 0.25,
+        "recovery": 1,
+        "recoveryOnMiss": 1,
+        "dash": 0,
+        "strikeShake": 0,
+        "sightRange": 14,
+        "hearingRange": 4,
+        "leash": 16,
+        "speed": 1.8,
+        "wanderSpeed": 0.6,
+        "dashSpeed": 3.2,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2,
+        "contactRange": 1.6,
+        "alertRange": 10,
+        "fleeRange": 6,
+        "safeDistance": 12,
+        "dashSeconds": 0.9,
+        "pauseSeconds": 0.7,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.02,
+        "gaitFrequency": 1.4,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "ZombieBeekeeper",
+        "frame_id": "01M72SMD24MY4FF910MVEHH7GT",
+        "image_id": "01M72SMGW2DFMM21A04384KVK5",
+        "column_element_ids": {
+          "temperament": "01M72SMG69XQ73JVP1X8N0XRJE",
+          "behavior": "01M72SMG6981MBYM54KNEKYDVA",
+          "combat_pattern": "01M72SMG69GT1FKM2SFQWCBHSN",
+          "health": "01M72SMG69QVBKKK83GX1NQCZ4",
+          "damage": "01M72SMG69AVJSXX7JZDQJX3D8"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SMD24MY4FF910MVEHH7GT",
+        "y": 5330
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "1kfjtpx081",
+        "sprite_asset_id": "301d32d587572bc60b166a6537851c09b6deb05f13b86cda1b7a9f738b6cebaa",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "301d32d587572bc60b166a6537851c09b6deb05f13b86cda1b7a9f738b6cebaa",
+          "w": 458,
+          "h": 480,
+          "alt": "Зомби-пасечник — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "a78cea63306af2c2ac992be9b22fdb3a67102a67f6934017f42cf9e077c89b61",
+            "w": 320,
+            "h": 320,
+            "alt": "Шляпа пасечника / 40 монет / 100%",
+            "caption": "40 монет / 100%"
+          },
+          {
+            "asset": "fc4e916c526bd67f7dc9dd2b049ada8b57a996c1aeb1c71fb5824e9d82339329",
+            "w": 320,
+            "h": 320,
+            "alt": "Старый дымарь / 90 монет / 50%",
+            "caption": "90 монет / 50%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "beekeeper_hat",
+          "name": "Шляпа пасечника",
+          "price": 40,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/beekeeper_hat.asset",
+          "asset_sha256": "6328cf6dbf04bf5752c0ecb8daf985354efe6a3a1d73b951c0099087de4d432b",
+          "icon": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/ZombieBeekeeper_beekeeper_hat_loot.png",
+          "icon_sha256": "0d5ea4cbd57982f14a7a153e5b8c0cca7cc2b8e73fceb3be04e67c448525dad3",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "beekeeper_smoker",
+          "name": "Старый дымарь",
+          "price": 90,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/beekeeper_smoker.asset",
+          "asset_sha256": "6c39e790bde4ae39c74fe6a102f8c7372d9232f52a951c01ca85f9dc5fb2e878",
+          "icon": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/ZombieBeekeeper_old_smoker_loot.png",
+          "icon_sha256": "6b40737d5d318efcc0754d3f380111d037d0a9fad8e179f77d32a39f2afa224a",
+          "chance": 0.5,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 50.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "ZombieBeekeeper",
+          "item_id": "beekeeper_hat",
+          "source": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/ZombieBeekeeper_beekeeper_hat_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/beekeeper_hat.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "a78cea63306af2c2ac992be9b22fdb3a67102a67f6934017f42cf9e077c89b61",
+          "alt": "Шляпа пасечника / 40 монет / 100%"
+        },
+        {
+          "enemy": "ZombieBeekeeper",
+          "item_id": "beekeeper_smoker",
+          "source": "hukaton/Assets/Content/Enemies/ZombieBeekeeper/ZombieBeekeeper_old_smoker_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/beekeeper_smoker.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "fc4e916c526bd67f7dc9dd2b049ada8b57a996c1aeb1c71fb5824e9d82339329",
+          "alt": "Старый дымарь / 90 монет / 50%"
+        }
+      ],
+      "loot_captions": [
+        "40 монет / 100%",
+        "90 монет / 50%"
+      ],
+      "speech_profile": "hukaton/Assets/Game/Data/Speech/ZombieBeekeeper Speech.asset",
+      "speech_component": "hukaton/Assets/Expedition/Runtime/Speech/HumanoidSpeech.cs",
+      "speech_registry_verified_on": "2026-11-11"
+    },
+    {
+      "enemy": "BeeSwarm",
+      "name": "Нелепый рой пчёл",
+      "row_index": 13,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 15 м. Летит со скоростью 4,6 м/с, держится примерно в 1,6 м над землёй и перелетает низкие препятствия. При заморозке или оглушении падает. Потеряв цель, ищет её и возвращается; предел обычной погони — 22 м.",
+      "combat_pattern": "Смешанный бой. На 4–11 м выпускает по дуге веер из 3 капель мёда (28°): прицеливание 0,7 с, скорость капель 8 м/с, перезарядка 2,6 с. Брызги радиусом 0,8 м наносят урон и замедляют до 50% скорости на 2,5 с. Стремится держаться на 7 м и кружит вокруг цели. В пределах 2,8 м поднимается и пикирует всем роем: подготовка 0,4 с → рывок 0,35 с → пауза 0,7 с; контакт 1,3 м. Капли можно сбить картой; они поражают и других существ.",
+      "health": 2,
+      "damage_half_hearts": 1,
+      "health_text": "2 HP",
+      "damage_text": "Ближний: 0,5; дальний: 0,5 за каплю",
+      "prefab": "hukaton/Assets/Game/Prefabs/Bee swarm.prefab",
+      "prefab_sha256": "16c66e0eda044d04264a93941e184cf9ef0824ba7b9377d2ab049fae1a7b1ff7",
+      "manifest": "hukaton/Assets/Content/Enemies/BeeSwarm/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/BeeSwarm/BeeSwarmAtlas.png",
+      "atlas_sha256": "826f76a47412689aa7e5f20483b64331f65111871a2d697b5d3ee2d883f03fa4",
+      "default_rect_top_left": [
+        0,
+        0,
+        1600,
+        1280
+      ],
+      "cell_rgba_sha256": "6e972c8bff2183c072b7bc259f5c1622d13dbc9ec179add692c9b109b08757b7",
+      "sprite": "output/enemy-catalog/sprites/BeeSwarm.png",
+      "sprite_sha256": "39c8292177192f168431e255029094853e6ff80ad96f4d61fa98088dab2e72a6",
+      "sprite_size": [
+        480,
+        384
+      ],
+      "stats": {
+        "flying": 1,
+        "cruiseHeight": 1.6,
+        "windupClimb": 0.6,
+        "diveHeight": 0.9,
+        "climbSpeed": 4.5,
+        "climbAcceleration": 16,
+        "bobHeight": 0.08,
+        "bobFrequency": 1.4,
+        "jitter": 0.06,
+        "shadowSize": 0.35,
+        "shadowOpacity": 0.35,
+        "temperament": 2,
+        "size": 2,
+        "stunStarsHeight": 0.12,
+        "stunStarsScale": 0.9,
+        "maximumHealth": 2,
+        "attackHalfHearts": 1,
+        "windup": 0.4,
+        "strikeSeconds": 0.35,
+        "recovery": 0.7,
+        "recoveryOnMiss": -1,
+        "dash": 1,
+        "strikeShake": 0,
+        "sightRange": 15,
+        "hearingRange": 5,
+        "leash": 22,
+        "speed": 4.6,
+        "wanderSpeed": 1.2,
+        "dashSpeed": 9.5,
+        "territoryRadius": 5,
+        "turnRate": 540,
+        "attackRange": 2.8,
+        "contactRange": 1.3,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.04,
+        "gaitFrequency": 5,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "BeeSwarm",
+        "frame_id": "01M72SMN1M0MZ3WNK482R8XRF3",
+        "image_id": "01M72SMTPRHYA0WZRQB81C2HXW",
+        "column_element_ids": {
+          "temperament": "01M72SMSYQWJJBD69P6F5M97S1",
+          "behavior": "01M72SMSYQFT9QWZFMK1XK9A09",
+          "combat_pattern": "01M72SMSYQEE3FT5WFXC6EZG8C",
+          "health": "01M72SMSYQEERKBA0SXKQ7XY71",
+          "damage": "01M72SMSYQ7B2C84DS3WXGFBWH"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SMN1M0MZ3WNK482R8XRF3",
+        "y": 5740
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "ptyqb7e9gt",
+        "sprite_asset_id": "39c8292177192f168431e255029094853e6ff80ad96f4d61fa98088dab2e72a6",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "39c8292177192f168431e255029094853e6ff80ad96f4d61fa98088dab2e72a6",
+          "w": 480,
+          "h": 384,
+          "alt": "Нелепый рой пчёл — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "5f1f285cea55289cdcfda8a0e0e0ced75dc2b98969a308dbcf75a11b84d4f044",
+            "w": 320,
+            "h": 320,
+            "alt": "Обломок сот / 15 монет / 100%",
+            "caption": "15 монет / 100%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": {
+        "range": 11,
+        "minRange": 4,
+        "aimSeconds": 0.7,
+        "cooldown": 2.6,
+        "recovery": 0.4,
+        "projectiles": 3,
+        "spreadAngle": 28,
+        "burst": 1,
+        "burstInterval": 0.2,
+        "muzzleHeight": 0.5,
+        "keepDistance": 7,
+        "retreatDistance": 0,
+        "retreatSpeed": 0.8,
+        "circleSpeed": 1.5,
+        "closeCombat": 0,
+        "shoveDamage": 1
+      },
+      "flying": true,
+      "loot": [
+        {
+          "id": "honeycomb_chunk",
+          "name": "Обломок сот",
+          "price": 15,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/honeycomb_chunk.asset",
+          "asset_sha256": "e3a04667df5099399e351a6c81c98cc3136d01fe22f77bf0bf95a5cb50629412",
+          "icon": "hukaton/Assets/Content/Enemies/BeeSwarm/BeeSwarm_loot.png",
+          "icon_sha256": "1b08f24777659ba8ccd790699fb8e1a36503700c46cb9db056480004183fc4ad",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 3,
+          "display_chance_percent": 100
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "BeeSwarm",
+          "item_id": "honeycomb_chunk",
+          "source": "hukaton/Assets/Content/Enemies/BeeSwarm/BeeSwarm_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/honeycomb_chunk.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "5f1f285cea55289cdcfda8a0e0e0ced75dc2b98969a308dbcf75a11b84d4f044",
+          "alt": "Обломок сот / 15 монет / 100%"
+        }
+      ],
+      "loot_captions": [
+        "15 монет / 100%"
+      ]
+    },
+    {
+      "enemy": "EnragedBeeMutant",
+      "name": "Разъярённый пчелочеловек-мутант",
+      "row_index": 14,
+      "category": "Агрессивный",
+      "behavior": "Сам нападает при обнаружении в прямой видимости до 14 м. Сближается со скоростью 3,6 м/с. Потеряв цель, ищет её и возвращается; предел обычной погони от дома — 20 м.",
+      "combat_pattern": "Мощный удар кулаком вперёд; тряска камеры. Подготовка 0,75 с → атака 0,4 с → пауза 1,2 с. Дальность контакта 2,4 м.",
+      "health": 14,
+      "damage_half_hearts": 3,
+      "health_text": "14 HP",
+      "damage_text": "Ближний: 1,5; дальний: нет",
+      "prefab": "hukaton/Assets/Game/Prefabs/Enraged bee mutant.prefab",
+      "prefab_sha256": "cd925ab5ac9774f2baa8f9ca546868a81419ff0d8a8eed070b30bb79eb31dc30",
+      "manifest": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutantAtlas.png",
+      "atlas_sha256": "e575adab8fc0c0af8e7f85eae4650579a674c55a981d5024f25f6d309a883474",
+      "default_rect_top_left": [
+        0,
+        0,
+        1344,
+        1344
+      ],
+      "cell_rgba_sha256": "5a4c99f04352cbb4e79513eb48460ee74b79d6814ce95975dc4a75fcb387cfd3",
+      "sprite": "output/enemy-catalog/sprites/EnragedBeeMutant.png",
+      "sprite_sha256": "79511bda8f3025fc9613269537d9a68050113696533562e780cbda33b064915d",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "stats": {
+        "temperament": 2,
+        "size": 1.35,
+        "stunStarsHeight": 0.16,
+        "stunStarsScale": 2,
+        "maximumHealth": 14,
+        "attackHalfHearts": 3,
+        "windup": 0.75,
+        "strikeSeconds": 0.4,
+        "recovery": 1.2,
+        "recoveryOnMiss": -1,
+        "dash": 0,
+        "strikeShake": 0.25,
+        "sightRange": 14,
+        "hearingRange": 5,
+        "leash": 20,
+        "speed": 3.6,
+        "wanderSpeed": 1.2,
+        "dashSpeed": 8.5,
+        "territoryRadius": 5,
+        "turnRate": 300,
+        "attackRange": 3.2,
+        "contactRange": 2.4,
+        "alertRange": 12,
+        "fleeRange": 7.5,
+        "safeDistance": 15,
+        "dashSeconds": 0.55,
+        "pauseSeconds": 0.55,
+        "threatRange": 10,
+        "calmRange": 13,
+        "aggroRange": 6,
+        "provokeSeconds": 1.1,
+        "hopHeight": 0.03,
+        "gaitFrequency": 2.2,
+        "hurtSeconds": 0.35,
+        "corpseSeconds": 1.4,
+        "stepDustCount": 2
+      },
+      "legacy_board": {
+        "enemy": "EnragedBeeMutant",
+        "frame_id": "01M72SMYTAAH6AKY7Y0DAVVJ1P",
+        "image_id": "01M72SN5ARY23YGBGNPB5AWN0A",
+        "column_element_ids": {
+          "temperament": "01M72SN44P3S9NHNRWAX5DNCYT",
+          "behavior": "01M72SN44P2CGK5NMVXVHH7J7S",
+          "combat_pattern": "01M72SN44P22WY7KV39JSZASKB",
+          "health": "01M72SN44P3XDPXV7FA99T8P4V",
+          "damage": "01M72SN44P18WQWFYKCNFAAFKH"
+        },
+        "url": "kayospace://board/hakaton-enemy-catalog?element=01M72SMYTAAH6AKY7Y0DAVVJ1P",
+        "y": 6150
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "cds2nyvkm4",
+        "sprite_asset_id": "79511bda8f3025fc9613269537d9a68050113696533562e780cbda33b064915d",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "79511bda8f3025fc9613269537d9a68050113696533562e780cbda33b064915d",
+          "w": 480,
+          "h": 480,
+          "alt": "Разъярённый пчелочеловек-мутант — спрайт спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true,
+        "loot_column_id": "jm428e0bxn",
+        "loot_image_attachments": [
+          {
+            "asset": "c4f8677274119a76a45a0c798ff7a183dd400fd8c68809e460c524ad1bbcb818",
+            "w": 320,
+            "h": 320,
+            "alt": "Крыло мутанта / 60 монет / 100%",
+            "caption": "60 монет / 100%"
+          },
+          {
+            "asset": "9713c552e53134b5a104d41e4ce0f260646493774071b7c70276287bba8261dd",
+            "w": 320,
+            "h": 320,
+            "alt": "Жало мутанта / 100 монет / 50%",
+            "caption": "100 монет / 50%"
+          },
+          {
+            "asset": "c488a990d93fb9a1b03f748bd28ed6af1ca735047a4676193d6d52cdd3bedab9",
+            "w": 320,
+            "h": 320,
+            "alt": "Банка мёда / 180 монет / 20%",
+            "caption": "180 монет / 20%"
+          }
+        ],
+        "loot_icons_retrieved_byte_identical": true,
+        "loot_captions_readback_verified": true
+      },
+      "ranged": null,
+      "flying": false,
+      "loot": [
+        {
+          "id": "mutant_wing",
+          "name": "Крыло мутанта",
+          "price": 60,
+          "rarity": "Обычный",
+          "asset": "hukaton/Assets/Loot/Items/mutant_wing.asset",
+          "asset_sha256": "7045e134170ddfb714f66038cd785f0f29a5408821f8924f13ab55772c091f43",
+          "icon": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_mutant_wing_loot.png",
+          "icon_sha256": "79666977d756eae30e32a95927f1a132b850affc43fe8a438b8d73c1d9fe055c",
+          "chance": 1,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 100
+        },
+        {
+          "id": "mutant_stinger",
+          "name": "Жало мутанта",
+          "price": 100,
+          "rarity": "Необычный",
+          "asset": "hukaton/Assets/Loot/Items/mutant_stinger.asset",
+          "asset_sha256": "d1b1261fc3a843ef7fc735328d45fb81c2c2f256757af02b11d1fddb7a22c526",
+          "icon": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_mutant_stinger_loot.png",
+          "icon_sha256": "2b9fb336b555bf6ef2b9843014c70072e8685253a8e6fa2fa0522509bb5c4381",
+          "chance": 0.5,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 50.0
+        },
+        {
+          "id": "honey_jar",
+          "name": "Банка мёда",
+          "price": 180,
+          "rarity": "Редкий",
+          "asset": "hukaton/Assets/Loot/Items/honey_jar.asset",
+          "asset_sha256": "ea7ad7eef7ae5293b304af5928808bed24c80b0284be6e6d8c8c73b8a58bf547",
+          "icon": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_honey_jar_loot.png",
+          "icon_sha256": "4a5f7f09dc20d27cb3e76c173e0887512248e1381fc5959ca2b1842714b5fab9",
+          "chance": 0.2,
+          "minimum": 1,
+          "maximum": 1,
+          "display_chance_percent": 20.0
+        }
+      ],
+      "loot_text": null,
+      "at_least_one_drop": true,
+      "loot_table_icon_files": [
+        {
+          "enemy": "EnragedBeeMutant",
+          "item_id": "mutant_wing",
+          "source": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_mutant_wing_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/mutant_wing.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "c4f8677274119a76a45a0c798ff7a183dd400fd8c68809e460c524ad1bbcb818",
+          "alt": "Крыло мутанта / 60 монет / 100%"
+        },
+        {
+          "enemy": "EnragedBeeMutant",
+          "item_id": "mutant_stinger",
+          "source": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_mutant_stinger_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/mutant_stinger.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "9713c552e53134b5a104d41e4ce0f260646493774071b7c70276287bba8261dd",
+          "alt": "Жало мутанта / 100 монет / 50%"
+        },
+        {
+          "enemy": "EnragedBeeMutant",
+          "item_id": "honey_jar",
+          "source": "hukaton/Assets/Content/Enemies/EnragedBeeMutant/EnragedBeeMutant_honey_jar_loot.png",
+          "source_size": [
+            1254,
+            1254
+          ],
+          "path": "output/enemy-catalog/update-2026-11-10/loot-icons/honey_jar.png",
+          "size": [
+            320,
+            320
+          ],
+          "sha256": "c488a990d93fb9a1b03f748bd28ed6af1ca735047a4676193d6d52cdd3bedab9",
+          "alt": "Банка мёда / 180 монет / 20%"
+        }
+      ],
+      "loot_captions": [
+        "60 монет / 100%",
+        "100 монет / 50%",
+        "180 монет / 20%"
+      ]
+    }
+  ],
+  "artifact_kind": "table",
+  "requested_artifact_kind": "native_table",
+  "migration_status": "complete",
+  "table_id": "tb_hakaton-enemies",
+  "table_url": "kayospace://board/tb_hakaton-enemies",
+  "user_feedback": "The user required a native table, rejected the board substitute, and added cell-image tools. The native table now contains all 15 enemy rows and their PNG cell attachments.",
+  "legacy_board": {
+    "board_id": "hakaton-enemy-catalog",
+    "board_url": "kayospace://board/hakaton-enemy-catalog",
+    "board_name": "Hakaton — таблица всех врагов",
+    "layout": {
+      "row_start_y": 410,
+      "row_step": 410,
+      "row_height": 360,
+      "row_width": 1959,
+      "content_x": 32,
+      "column_widths": [
+        270,
+        230,
+        450,
+        530,
+        125,
+        170
+      ],
+      "column_gap": 24
+    },
+    "verification": {
+      "all_enemy_folders_covered": true,
+      "all_remote_text_matches_prepared_data": true,
+      "all_rows_have_one_sprite": true,
+      "visual_review_all_rows": true,
+      "no_observed_clipping_or_overlap": true,
+      "unity_play_mode_run": false,
+      "source_hashes_unchanged": true,
+      "health_and_damage_rechecked": true,
+      "remote_readback_verified": true,
+      "native_table_created": false,
+      "native_table_readback_verified": false
+    }
+  },
+  "table_name": "Hakaton — таблица всех врагов",
+  "table_columns": [
+    {
+      "id": "nzvksyet8q",
+      "name": "Враг",
+      "type": "text",
+      "width": 309
+    },
+    {
+      "id": "71x5m43nt4",
+      "name": "Спрайт врага",
+      "type": "url",
+      "width": 264
+    },
+    {
+      "id": "8ds5cv44sg",
+      "name": "Характер",
+      "type": "select",
+      "options": [
+        "Пугливый",
+        "Мирный",
+        "Агрессивный",
+        "Территориальный"
+      ],
+      "width": 178
+    },
+    {
+      "id": "wsc2ek33h1",
+      "name": "Описание поведения",
+      "type": "text",
+      "width": 480
+    },
+    {
+      "id": "dj8rxdb84s",
+      "name": "Описание паттерна боя",
+      "type": "text",
+      "width": 480
+    },
+    {
+      "id": "2r0hr2mz12",
+      "name": "Здоровье (HP)",
+      "type": "number",
+      "width": 169
+    },
+    {
+      "id": "4bkmw8spck",
+      "name": "Урон (сердца)",
+      "type": "text",
+      "width": 280
+    },
+    {
+      "id": "jm428e0bxn",
+      "name": "Добыча",
+      "type": "text",
+      "width": 480
+    }
+  ],
+  "verification": {
+    "native_table_readback_verified": true,
+    "all_15_rows_present": true,
+    "all_15_sprites_preserved": true,
+    "all_30_loot_icons_attached": true,
+    "all_30_loot_icons_retrieved_byte_identical": true,
+    "all_updated_values_verified": true,
+    "unrelated_values_and_column_settings_preserved": true,
+    "row_height": 172,
+    "table_ui_screenshot_reviewed": false,
+    "unity_play_mode_run": false,
+    "task_complete": true,
+    "loot_names_removed_and_read_back": true,
+    "loot_full_visibility_verified": false,
+    "native_loot_captions_verified": 30,
+    "duplicate_loot_text_removed": true,
+    "configured_drop_chance_captions_verified": 30
+  },
+  "image_verification": "output/enemy-catalog/image-cell-verification.json",
+  "latest_update": {
+    "directory": "output/enemy-catalog/update-2026-11-10",
+    "before": "output/enemy-catalog/update-2026-11-10/table-before.json",
+    "after": "output/enemy-catalog/loot-drop-percentages-2026-11-11/table-after.json",
+    "source_audit": "output/enemy-catalog/update-2026-11-10/source-audit.json",
+    "verification": "output/enemy-catalog/update-2026-11-10/verification.json",
+    "user_choices": {
+      "separate_timid": true,
+      "damage": "one text column",
+      "loot": "native caption per icon: price in coins / configured drop chance in percent; no item names; excludes guaranteed fallback",
+      "add_size_column": false
+    },
+    "caption_verification": "output/enemy-catalog/loot-drop-percentages-2026-11-11/verification.json",
+    "probability_sources": "output/enemy-catalog/loot-drop-percentages-2026-11-11/probability-sources.json"
+  },
+  "previous_image_migration_verification": {
+    "native_table_created": true,
+    "native_table_readback_verified": true,
+    "all_15_rows_present": true,
+    "all_15_images_attached": true,
+    "all_image_asset_ids_match_source_png_sha256": true,
+    "all_15_images_retrieved_from_table": true,
+    "retrieved_images_visually_inspected": true,
+    "non_sprite_cells_unchanged": true,
+    "columns_unchanged": true,
+    "sprites_stored_as_links": false,
+    "row_height": 320,
+    "table_ui_screenshot_reviewed": false,
+    "task_complete": true
+  },
+  "layout_issue": {
+    "status": "native_captions_applied",
+    "evidence": "output/enemy-catalog/native-loot-captions/verification.json",
+    "visual_status": "Not visually reviewed: view_board does not support native tables. Caption values and associations verified by read_table."
+  },
+  "humanoid_speech_verification": {
+    "date": "2026-11-11",
+    "table": "tb_hakaton-enemies",
+    "rows": {
+      "TeenLeshySkater": "35c5efy0kx",
+      "ZombieBeekeeper": "1kfjtpx081",
+      "RoosterBaseball": "6yfn9cfcxt"
+    },
+    "readback": "output/humanoid-speech/registry-readback.json",
+    "all_15_rows_read_back": true,
+    "only_3_behavior_cells_changed": true,
+    "sprite_attachments_retrieved_and_visually_checked": [
+      "TeenLeshySkater",
+      "ZombieBeekeeper",
+      "RoosterBaseball"
+    ],
+    "row_heights_and_column_widths_preserved": true,
+    "native_table_screenshot_review": false
+  }
+}

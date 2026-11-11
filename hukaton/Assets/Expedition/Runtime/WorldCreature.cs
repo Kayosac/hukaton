@@ -93,6 +93,8 @@ namespace Hakaton.Expeditions
         public int Health { get; private set; }
         public bool Alive => Health > 0 && !dying;
         public CreatureState State { get; private set; }
+        /// <summary>Presentation modules clear their per-encounter state when this saved creature is reused.</summary>
+        public event System.Action OutingReset;
 
         Vector3 home, authoredHome, lastSeen, strikeDirection, desired, wanderTarget, fleeDirection;
         Quaternion homeRotation, authoredRotation, facing;
@@ -208,6 +210,7 @@ namespace Hakaton.Expeditions
             pose = CreaturePose.Default;
             if (view) view.Present(pose, transform.forward, Vector3.zero, Vector2.one, 0);
             Tint(Color.white, 0);
+            OutingReset?.Invoke();
         }
 
         /// <summary>
