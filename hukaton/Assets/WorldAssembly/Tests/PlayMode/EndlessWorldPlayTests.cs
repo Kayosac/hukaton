@@ -820,6 +820,164 @@ namespace Hakaton.WorldAssembly.Tests
             else Debug.Log("[World] no mimic among the nearest chest rolls");
         }
 
+        [UnityTest]
+        public IEnumerator RainFrontsComeOverWetEverybodyPutFireOutAndThunder()
+        {
+            var rain = streamer.GetComponent<WorldRain>();
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            Assert.That(rain, Is.Not.Null, "the world's rain goes with its air");
+            air.settle = .3f;
+            Assert.That(rain.RainsAt(world.motor.transform.position), Is.False, "no rain at the start");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            // A thunderstorm over dry ground the player can stand on, that holds for a while; dry there a little earlier.
+            var map = streamer.Map;
+            var rules = map.Rules;
+            ChunkPlan cell = null;
+            float when = -1;
+            for (float t = 60; t < 3600 && cell == null; t += 10)
+                for (int x = -17; x <= 17 && cell == null; x++)
+                    for (int y = -17; y <= 17 && cell == null; y++)
+                    {
+                        var plan = map.Chunk(x, y);
+                        double d = System.Math.Sqrt(x * x + y * y) * rules.ChunkSize;
+                        if (d < 150 || d > 270 || plan.BaseLevel >= 3) continue;
+                        if (plan.Shape.Kind != ShapeKind.Plain && plan.Shape.Kind != ShapeKind.PlateauTop || plan.Variant.Id == "pond") continue;
+                        double cx = x * rules.ChunkSize, cy = y * rules.ChunkSize;
+                        bool holds = true;
+                        for (float k = 0; k <= 50 && holds; k += 10) holds = WorldWeather.At(rules, streamer.Seed, cx, cy, t + k).Storm > .7f;
+                        if (!holds || WorldWeather.At(rules, streamer.Seed, cx, cy, t - 30).Rain > 0) continue;
+                        cell = plan;
+                        when = t;
+                    }
+            Assert.That(cell, Is.Not.Null, "a thunderstorm within an hour");
+            var (wx, wy) = WorldWeather.WindOf(streamer.Seed, rules.Weather);
+            var upwind = -new Vector3((float)wx, 0, (float)wy).normalized;
+            var centre = streamer.root.position + new Vector3(cell.Coord.X * rules.ChunkSize, cell.BaseLevel * rules.PlateauHeight + 3, cell.Coord.Y * rules.ChunkSize);
+            Debug.Log($"[World] storm over {cell} at {when:0} s; wind {wx:0.0}, {wy:0.0} m/s");
+
+            // Before it: still dry, the front comes on the wind.
+            rain.SetClock(when - 30);
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 45; f++) yield return null;
+            world.motor.Teleport(centre, Quaternion.identity);
+            for (int f = 0; f < 30; f++) yield return null;
+            // In the open, away from trunks and rocks, to see the sky.
+            var feet = ClearSpot(world.motor.transform.position);
+            world.motor.Teleport(feet, Quaternion.identity);
+            for (int f = 0; f < 10; f++) yield return null;
+            var eye = feet + Vector3.up * 1.7f;
+            Assert.That(rain.RainsAt(feet), Is.False, "dry before the front");
+            Assert.That(rain.Clouds, Is.GreaterThan(5), "the front's clouds are in the sky");
+            var look = Open(eye, upwind);
+            yield return Shot(dir, "play-rain-front-coming", eye, eye + look * 40 + Vector3.up * 8, feet + Vector3.up * 1.6f);
+            Debug.Log($"[World] front coming: {rain.Clouds} clouds, {rain.Veils} rain veils, gloom {rain.Gloom:0.00}");
+
+            // Under it: everybody out in the open gets wet, the air darkens, the rain is heard, lightning strikes.
+            rain.SetClock(when + 2);
+            float until = Time.time + 5;
+            while (Time.time < until) yield return null;
+            Assert.That(rain.RainsAt(feet), Is.True, "it rains on the player now");
+            Assert.That(WetStatus.IsWet(world.Player.Root), Is.True, "the player is wet");
+            Assert.That(rain.Falling, Is.GreaterThan(.5f), "rain falls round the camera");
+            Assert.That(air.Strength(WorldAtmosphere.Rain), Is.GreaterThan(.6f), "rainy air");
+            Assert.That(air.Strength(WorldAtmosphere.Storm), Is.GreaterThan(.5f), "stormy air");
+            var weather = streamer.content;
+            Assert.That(world.sfx.pool.Any(s => s && s.isPlaying && s.loop && (weather.rainLoop.clips.Contains(s.clip) || weather.downpourLoop.clips.Contains(s.clip))),
+                Is.True, "the rain is heard");
+            look = Open(eye, -upwind);
+            yield return Shot(dir, "play-rain-storm", eye, eye + look * 30 + Vector3.up * 4, feet + Vector3.up * 1.6f);
+            look = Open(eye, upwind);
+            yield return Shot(dir, "play-rain-storm-sky", eye, eye + look * 10 + Vector3.up * 9, feet + Vector3.up * 1.6f);
+            int strikes = rain.Strikes;
+            yield return WaitFor(() => rain.Strikes > strikes, 30);
+            Assert.That(rain.Strikes, Is.GreaterThan(strikes), "lightning strikes in a thunderstorm");
+            Debug.Log($"[World] under the storm: {rain.Clouds} clouds, {rain.Veils} veils, {rain.Strikes} strikes, fog {RenderSettings.fogDensity:0.0000}");
+
+            // A burning creature out in the rain goes out.
+            rain.SetClock(when + 10);
+            var creature = world.ActiveCreatures.FirstOrDefault(c => c && c.Alive && rain.RainsAt(c.Centre) && !rain.Sheltered(c.Centre, c.transform));
+            if (creature)
+            {
+                int doused = rain.Doused;
+                creature.Damage(0, Vector3.zero, creature.Centre, 8, DamageKind.Fire);
+                if (creature.Burning)
+                {
+                    yield return WaitFor(() => !creature.Burning, 2);
+                    Assert.That(creature.Burning, Is.False, $"{creature.name} put out by the rain");
+                    Assert.That(rain.Doused, Is.GreaterThan(doused));
+                    Assert.That(WetStatus.IsWet(creature.Root), Is.True, $"{creature.name} wet");
+                }
+                else Debug.Log($"[World] {creature.name} does not burn");
+            }
+            else Debug.Log("[World] no creature out in the rain");
+
+            // Grass set alight in the rain goes out too.
+            var grass = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None)
+                .SelectMany(v => v.burnables)
+                .Where(b => b && b.isActiveAndEnabled && b.style == BurnStyle.Ash)
+                .Select(b => (b, top: new Vector3(b.Bounds.center.x, b.Bounds.max.y + .05f, b.Bounds.center.z)))
+                .Where(x => rain.RainsAt(x.top) && !rain.Sheltered(x.top, x.b.transform))
+                .OrderBy(x => Vector3.Distance(x.b.transform.position, feet))
+                .Select(x => x.b).FirstOrDefault();
+            Assert.That(grass, Is.Not.Null, "grass out in the rain");
+            Assert.That(world.Ignite(null, grass.Bounds.center, .5f, IgnitionSource.Fire), Is.GreaterThan(0), "fire takes the grass for a moment");
+            Assert.That(streamer.fire.Burning, Is.GreaterThan(0));
+            yield return WaitFor(() => streamer.fire.Burning == 0, 3);
+            Assert.That(streamer.fire.Burning, Is.EqualTo(0), "the rain puts the fire out");
+
+            // Home: the sky clears.
+            streamer.EndOuting();
+            yield return null;
+            yield return null;
+            Assert.That(rain.Clouds, Is.EqualTo(0), "no clouds left after the outing");
+        }
+
+        /// <summary>The nearest ground round <paramref name="near"/> with nothing standing within 4 m up to 10 m high.</summary>
+        static Vector3 ClearSpot(Vector3 near)
+        {
+            int mask = ~((1 << 2) | (1 << 4));
+            var best = near;
+            float bestDistance = float.MaxValue;
+            for (int x = -4; x <= 4; x++)
+                for (int z = -4; z <= 4; z++)
+                {
+                    var over = near + new Vector3(x * 3, 15, z * 3);
+                    if (!Physics.Raycast(over, Vector3.down, out var ground, 30, mask, QueryTriggerInteraction.Ignore)) continue;
+                    var feet = ground.point;
+                    var hits = Physics.OverlapCapsule(feet + Vector3.up * 5.5f, feet + Vector3.up * 10, 4, mask, QueryTriggerInteraction.Ignore);
+                    if (hits.Any(h => !h.attachedRigidbody || h.attachedRigidbody.isKinematic)) continue;
+                    float d = Vector3.Distance(feet, near);
+                    if (d < bestDistance) { bestDistance = d; best = feet; }
+                }
+            return best;
+        }
+
+        /// <summary>
+        /// Of the directions round <paramref name="toward"/> (looking a little up), the one that sees furthest before
+        /// anything drawn is in the way (tree crowns have no colliders: their boxes count).
+        /// </summary>
+        static Vector3 Open(Vector3 eye, Vector3 toward)
+        {
+            var drawn = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None)
+                .Where(r => r.enabled && r.gameObject.activeInHierarchy && !r.GetComponentInParent<WorldRain>() && !r.transform.IsChildOf(Camera.main ? Camera.main.transform : null))
+                .Select(r => r.bounds).ToList();
+            var best = toward;
+            float far = -1;
+            foreach (float angle in new[] { 0f, 25, -25, 50, -50, 80, -80, 120, -120 })
+            {
+                var dir = Quaternion.Euler(0, angle, 0) * toward;
+                var ray = new Ray(eye, (dir + Vector3.up * .2f).normalized);
+                float reach = 80;
+                foreach (var box in drawn)
+                    if (!box.Contains(eye) && box.IntersectRay(ray, out float d) && d > .5f) reach = Mathf.Min(reach, d);
+                // Straight ahead counts a little more: the front comes from there.
+                reach *= 1 - Mathf.Abs(angle) / 600;
+                if (reach > far) { far = reach; best = dir; }
+            }
+            return best;
+        }
+
         IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target, Vector3? stand = null)
         {
             // Stand where the camera will be (or under it), so streaming and far silhouettes follow it as in play.

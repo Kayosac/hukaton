@@ -8,9 +8,10 @@ namespace Hakaton.WorldAssembly.Unity
     /// <summary>
     /// The air of the endless world changes with the place (Kayospace «Открытый мир v2»: атмосфера по местам): fog
     /// gathers over water and thickens in the bog and under trees, thins on the heights where the wind blows, dust
-    /// hangs at the bottom of pits, and far from the start rain (snow on the summits) drifts over the land in wide
-    /// patches. The chunks round the player each add their mood, weighted by how near they are; everything eases
-    /// over a few seconds. The scene's own fog, ambient light and sun come back when the outing ends.
+    /// hangs at the bottom of pits, and away from the start the rain fronts of <see cref="WorldRain"/> go over: the air
+    /// darkens as their clouds come near, under them it rains (snow on the summits) and lightning lights it up. The
+    /// chunks round the player each add their mood, weighted by how near they are; everything eases over a few
+    /// seconds. The scene's own fog, ambient light and sun come back when the outing ends.
     /// </summary>
     [RequireComponent(typeof(WorldStreamer))]
     public sealed class WorldAtmosphere : MonoBehaviour
@@ -59,9 +60,8 @@ namespace Hakaton.WorldAssembly.Unity
 
         [Tooltip("Seconds for the air to settle after the place changes.")]
         [Min(.1f)] public float settle = 2.5f;
-        [Tooltip("Rain patches: their size, m, and how much of the land they cover in the middle and far rings.")]
-        [Min(16)] public float rainCell = 170;
-        public Vector2 rainCover = new Vector2(.18f, .38f);
+        [Tooltip("A lightning flash: ambient light and sunlight times 1 + this at its brightest.")]
+        public Vector2 flash = new Vector2(2.2f, 1.4f);
 
         [Header("Post-processing")]
         [Tooltip("The static location's look (WorldPP): a global volume switched on only while the endless world is out there.")]
@@ -74,6 +74,7 @@ namespace Hakaton.WorldAssembly.Unity
         [Range(0, 1)] public float plantTint = .75f;
 
         WorldStreamer streamer;
+        WorldRain rain;
         FarSilhouettes silhouettes;
         bool active;
         float baseFog, baseAmbient, baseSun;
@@ -92,6 +93,9 @@ namespace Hakaton.WorldAssembly.Unity
         void Awake()
         {
             streamer = GetComponent<WorldStreamer>();
+            // The rain goes with the air (added here for scenes made before it).
+            rain = GetComponent<WorldRain>();
+            if (!rain) rain = gameObject.AddComponent<WorldRain>();
             silhouettes = GetComponent<FarSilhouettes>();
             if (postProcess) postProcess.enabled = false;
         }
@@ -182,18 +186,12 @@ namespace Hakaton.WorldAssembly.Unity
             Raise(High, own.BaseLevel >= 3 ? 1 : own.BaseLevel == 2 ? .55f : 0);
             Raise(High, Mathf.Clamp01((at.y - ground - 5) / 4) * .7f);
             Raise(Deep, Mathf.Clamp01((ground - 1.5f - at.y) / 2.5f));
-            // Weather drifts over the land in wide patches, more of it further out; snow on the summits.
-            int ring = map.Rules.RingAt(at.x - origin.x, at.z - origin.z);
-            if (ring > 0)
-            {
-                float n = Noise((at.x - origin.x) / rainCell, (at.z - origin.z) / rainCell, streamer.Seed);
-                float cover = ring == 1 ? rainCover.x : rainCover.y;
-                float wet = Mathf.Clamp01((n - (1 - cover)) / .12f);
-                float heavy = ring >= 2 ? Mathf.Clamp01((n - (1 - cover * .45f)) / .1f) : 0;
-                bool cold = own.BaseLevel >= 3;
-                Raise(cold ? Snow : Rain, wet);
-                if (!cold) Raise(Storm, heavy);
-            }
+            // Rain fronts go over with the wind: the air greys as their clouds come near and under them it rains
+            // (thunderstorms far out); on the summits it snows.
+            var sky = rain.SkyAt(at);
+            bool cold = own.BaseLevel >= 3;
+            Raise(cold ? Snow : Rain, Mathf.Max(sky.Rain, rain.Gloom * .6f));
+            if (!cold) Raise(Storm, Mathf.Max(sky.Storm, rain.StormGloom * .5f));
         }
 
         void Raise(string mood, float k)
@@ -237,14 +235,6 @@ namespace Hakaton.WorldAssembly.Unity
             }
         }
 
-        static float Noise(float x, float y, int seed)
-        {
-            float gx = Mathf.Floor(x), gy = Mathf.Floor(y), fx = x - gx, fy = y - gy;
-            fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
-            float V(float a, float b) => (float)Hash.Unit(seed, 91, (int)a, (int)b);
-            return Mathf.Lerp(Mathf.Lerp(V(gx, gy), V(gx + 1, gy), fx), Mathf.Lerp(V(gx, gy + 1), V(gx + 1, gy + 1), fx), fy);
-        }
-
         // ---------- the air ----------
 
         void Apply()
@@ -261,7 +251,15 @@ namespace Hakaton.WorldAssembly.Unity
                     ambient *= Mathf.Lerp(1, mood.ambient, k);
                     colour = Color.Lerp(colour, mood.tint, mood.tintAmount * k);
                 }
-                Drift(mood, k);
+                Drift(mood, Falling(mood.name, k));
+            }
+            // Lightning lights the land for a moment.
+            float lit = rain.Flash;
+            if (lit > 0)
+            {
+                ambient *= 1 + flash.x * lit;
+                sunlight *= 1 + flash.y * lit;
+                colour = Color.Lerp(colour, new Color(.86f, .89f, .96f), .35f * lit);
             }
             RenderSettings.fogDensity = baseFog * fog;
             RenderSettings.fogColor = colour;
@@ -269,6 +267,12 @@ namespace Hakaton.WorldAssembly.Unity
             if (sun) sun.intensity = baseSun * sunlight;
             if (silhouettes) silhouettes.FogChanged();
         }
+
+        /// <summary>
+        /// How much of a mood's particles fall round the camera: the rain, the downpour and the snow only where they
+        /// fall (not under a roof, not while their clouds are only coming near); the rest by the mood's strength.
+        /// </summary>
+        float Falling(string mood, float k) => mood == Rain ? rain.Falling : mood == Storm ? rain.Pouring : mood == Snow ? rain.Snowing : k;
 
         /// <summary>A mood's particles follow the camera and grow with its strength; they stop when it fades.</summary>
         void Drift(Mood mood, float k)

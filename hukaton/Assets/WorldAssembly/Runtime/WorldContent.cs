@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using UnityEngine;
 
 namespace Hakaton.WorldAssembly.Unity
@@ -46,6 +47,21 @@ namespace Hakaton.WorldAssembly.Unity
         public Hakaton.Expeditions.Events.BeastBrawl brawl;
         [Tooltip("«Странное»: a ringing payphone and a hissing television (WorldEvents.Payphone / Television).")]
         public Oddity payphone, television;
+
+        [Header("Weather")]
+        [Tooltip("The rain fronts heard round the player (flat loops): rain, and the downpour of a thunderstorm.")]
+        public Hakaton.Feel.SfxCue rainLoop, downpourLoop;
+        [Tooltip("Thunder after a lightning strike, later the further it struck.")]
+        public Hakaton.Feel.SfxCue thunder;
+        [Tooltip("«Мокрый» under the hearts while the player is wet (the «Дождевая туча» card's badge).")]
+        public PlayerStatusBadge wetBadge;
+        [Tooltip("Lightning out of the thunder clouds: the «Разряд молнии» arc, drawn big.")]
+        public LightningArc lightning;
+        [Tooltip("Clouds over the rain fronts: their shape and material (Hakaton/World Cloud: seen far through the fog, darker in a storm).")]
+        public Mesh cloudMesh;
+        public Material cloudMaterial;
+        [Tooltip("Rain hanging from the clouds (Hakaton/World Rain Veil).")]
+        public Material rainVeil;
 
         /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable ChestTable(int ring)
