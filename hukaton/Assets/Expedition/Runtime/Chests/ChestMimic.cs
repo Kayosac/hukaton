@@ -6,7 +6,7 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// A chest that bites. It sits on a <see cref="TreasureChest"/> (same prefab, same tier, same marker) and looks like
-    /// one; only close up (<see cref="tellDistance"/>) the lid twitches now and then and it breathes.
+    /// one; only close up (<see cref="tellDistance"/>) the box gives a small shiver now and then (the lid stays shut) and it breathes.
     /// E without ice: a warning like every creature attack (red «!!», the lid gapes, the body jerks, a growl), the bite
     /// (half hearts and a shove), then it hops away with coins rattling inside and, after a while, plays chest again
     /// nearby — this time on guard, so the next E ends the same way. Killed by cards it pours out more than a plain
@@ -46,9 +46,11 @@ namespace Hakaton.Expeditions
 
         [Header("Tells (only close up)")]
         [Min(0)] public float tellDistance = 6;
-        [Tooltip("Seconds between lid twitches: from and to. On guard it twitches twice as often.")]
-        public Vector2 twitchEvery = new Vector2(2.5f, 6f);
-        [Min(0)] public float twitchAngle = 8;
+        [Tooltip("Seconds between shivers: from and to. On guard a little more often. Rare on purpose: it is a trap.")]
+        public Vector2 twitchEvery = new Vector2(7f, 15f);
+        [Tooltip("How far the box sways in a shiver, degrees. The lid never opens.")]
+        [Min(0)] public float twitchAngle = 1.5f;
+        [Min(.05f)] public float twitchSeconds = .35f;
         [Tooltip("Quiet breathing loop heard within the tell distance.")]
         public SfxCue breath;
         [Range(0, 1)] public float breathVolume = .7f;
@@ -120,6 +122,8 @@ namespace Hakaton.Expeditions
         Vector3 home;
         Quaternion lidClosed, tongueRest;
         float lidAngle, lidTarget, lidSpeed = 300;
+        float shiverUntil = -1, shiverStrength;
+        Quaternion shiverBase;
         float nextTwitch, frozenUntil = -1, recoverAt, tilt;
         bool registered;
         MaterialPropertyBlock block;
@@ -186,6 +190,7 @@ namespace Hakaton.Expeditions
                 return false;
             }
             if (mode != Mode.Disguised) return true;
+            EndShiver();
             StartCoroutine(Bite());
             return true;
         }
@@ -199,6 +204,7 @@ namespace Hakaton.Expeditions
         public void OnChestReset()
         {
             StopAllCoroutines();
+            shiverUntil = -1;
             Pose();
             mode = Mode.Disguised;
             alert = false;
@@ -261,6 +267,7 @@ namespace Hakaton.Expeditions
             Health = Mathf.Max(0, Health - damage.Amount);
             if (overhead) overhead.ShowHealth(Health, maxHealth);
             world.Play(hurtCue, Centre);
+            EndShiver();
             StartCoroutine(Flinch());
             if (Health == 0) { Die(); return true; }
             if (Frozen) return true;
@@ -282,6 +289,7 @@ namespace Hakaton.Expeditions
             bool was = Frozen;
             frozenUntil = Mathf.Max(frozenUntil, Time.time + seconds);
             if (was) return;
+            EndShiver();
             // Caught mid-move: everything stops where it is, mouth shut.
             StopAllCoroutines();
             if (mode != Mode.Disguised) { mode = Mode.Recovering; recoverAt = Mathf.Max(recoverAt, frozenUntil + 1); }
@@ -483,19 +491,33 @@ namespace Hakaton.Expeditions
             float distance = PlayerDistance();
             if (distance > tellDistance)
             {
+                EndShiver();
                 if (world.sfx) world.sfx.StopLoop(this);
                 if (lidAngle != 0) { lidAngle = Mathf.MoveTowards(lidAngle, 0, Time.deltaTime * lidSpeed); ApplyLid(); }
                 return;
             }
             Breathe(world, 1);
-            if (Time.time >= nextTwitch)
+            if (lidAngle != 0) { lidAngle = Mathf.MoveTowards(lidAngle, 0, Time.deltaTime * lidSpeed); ApplyLid(); }
+            if (Time.time >= nextTwitch && shiverUntil < 0)
             {
-                lidTarget = twitchAngle * Random.Range(.6f, 1.2f);
+                shiverBase = transform.rotation;
+                shiverUntil = Time.time + twitchSeconds;
+                shiverStrength = twitchAngle * Random.Range(.7f, 1.1f);
                 ScheduleTwitch();
             }
-            lidAngle = Mathf.MoveTowards(lidAngle, lidTarget, Time.deltaTime * lidSpeed);
-            if (Mathf.Approximately(lidAngle, lidTarget)) lidTarget = 0;
-            ApplyLid();
+            if (shiverUntil < 0) return;
+            float left = shiverUntil - Time.time;
+            if (left <= 0) { EndShiver(); return; }
+            // A small sideways sway that dies out; the lid stays shut.
+            float sway = Mathf.Sin(Time.time * 45) * shiverStrength * (left / twitchSeconds);
+            transform.rotation = shiverBase * Quaternion.Euler(0, sway * .3f, sway);
+        }
+
+        void EndShiver()
+        {
+            if (shiverUntil < 0) return;
+            transform.rotation = shiverBase;
+            shiverUntil = -1;
         }
 
         void Breathe(ExpeditionWorld world, float loudness)
@@ -509,7 +531,7 @@ namespace Hakaton.Expeditions
         void ScheduleTwitch()
         {
             float span = Random.Range(twitchEvery.x, twitchEvery.y);
-            nextTwitch = Time.time + (alert ? span * .5f : span);
+            nextTwitch = Time.time + (alert ? span * .75f : span);
         }
 
         IEnumerator Flinch()
