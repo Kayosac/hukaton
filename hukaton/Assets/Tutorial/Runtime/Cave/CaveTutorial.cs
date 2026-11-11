@@ -503,6 +503,7 @@ namespace Hakaton.Tutorial
         IEnumerator Talk()
         {
             Stage = CaveStage.Talk;
+            bubble.speaker = goblin.face.spriteRenderer;
             world.thrower.Cancel();
             control.AllowPause(this, true);
             control.SetBlocked(this, true);
