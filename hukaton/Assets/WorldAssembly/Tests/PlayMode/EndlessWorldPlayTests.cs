@@ -578,7 +578,8 @@ namespace Hakaton.WorldAssembly.Tests
             var heart = Nearest(TileShapes.ForestHeart);
             Assert.That(heart, Is.Not.Null, "a forest's heart within 480 m");
             world.motor.Teleport(Centre(heart) + new Vector3(4.6f, 3, 0), Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(heart.Coord), 20);
+            Assert.That(streamer.IsLoaded(heart.Coord), Is.True, $"{heart} loads");
             for (int f = 0; f < 40; f++) yield return null;
             var view = ViewAt(heart.Coord);
             Assert.That(view.lookouts.Length, Is.EqualTo(1), "a lookout on the great tree");
@@ -594,7 +595,8 @@ namespace Hakaton.WorldAssembly.Tests
             var hollow = Nearest(TileShapes.ForestHollow);
             Assert.That(hollow, Is.Not.Null, "a hollow trunk within 480 m");
             world.motor.Teleport(Centre(hollow) + Vector3.up * 3, Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(hollow.Coord), 20);
+            Assert.That(streamer.IsLoaded(hollow.Coord), Is.True, $"{hollow} loads");
             for (int f = 0; f < 40; f++) yield return null;
             view = ViewAt(hollow.Coord);
             var log = view.GetComponentsInChildren<Transform>().First(t => t.name == "Hollow trunk");
@@ -609,7 +611,8 @@ namespace Hakaton.WorldAssembly.Tests
             var hoard = Nearest(TileShapes.ForestDeadfall);
             Assert.That(hoard, Is.Not.Null, "deadfall within 480 m");
             world.motor.Teleport(Centre(hoard) + Vector3.up * 3, Quaternion.identity);
-            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 10);
+            yield return WaitFor(() => streamer.IsLoaded(hoard.Coord), 20);
+            Assert.That(streamer.IsLoaded(hoard.Coord), Is.True, $"{hoard} loads");
             for (int f = 0; f < 40; f++) yield return null;
             view = ViewAt(hoard.Coord);
             var deadfall = view.obstacles.First(o => o && o.name == "Deadfall");
@@ -661,6 +664,161 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(RenderSettings.fogDensity, Is.LessThan(forestFog / 1.2f), "the scene's own fog back at home");
         }
 
+        [UnityTest]
+        public IEnumerator ChestsAndSmallEventsStandInTheWorldAndComeBackAsLeft()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            int seed = streamer.Seed;
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            List<ChunkPlan> Nearest(System.Func<ChunkPlan, bool> wanted)
+            {
+                var found = new List<ChunkPlan>();
+                for (int x = -30; x <= 30; x++)
+                    for (int y = -30; y <= 30; y++)
+                    {
+                        var p = map.Chunk(x, y);
+                        if (wanted(p)) found.Add(p);
+                    }
+                return found.OrderBy(p => p.Coord.X * p.Coord.X + p.Coord.Y * p.Coord.Y).ToList();
+            }
+            Vector3 Centre(ChunkPlan p) => streamer.root.position + new Vector3(p.Coord.X * size, p.BaseLevel * map.Rules.PlateauHeight, p.Coord.Y * size);
+            ChunkView ViewAt(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).First(v => streamer.CoordAt(v.transform.position).Equals(c));
+            IEnumerator Visit(ChunkPlan p)
+            {
+                world.motor.Teleport(Centre(p) + Vector3.up * 3, Quaternion.identity);
+                yield return WaitFor(() => streamer.IsLoaded(p.Coord), 10);
+                for (int f = 0; f < 40; f++) yield return null;
+            }
+            IEnumerator Away(ChunkPlan p)
+            {
+                // Far enough that the chunk unloads, on ground the guarantee keeps walkable.
+                world.motor.Teleport(Centre(p) + new Vector3(12 * size, 6, 0), Quaternion.identity);
+                yield return WaitFor(() => !streamer.IsLoaded(p.Coord), 10);
+                Assert.That(streamer.IsLoaded(p.Coord), Is.False, $"{p} unloads");
+            }
+            Vector3 Front(Transform t, float distance) => t.position + t.forward * distance + Vector3.up * 1.6f;
+
+            // A ringing payphone: E uses it for good, and it stays silent when its chunk comes back.
+            var phonePlan = Nearest(p => p.Event == WorldEvents.Payphone).FirstOrDefault();
+            Assert.That(phonePlan, Is.Not.Null, "a payphone within 480 m");
+            yield return Visit(phonePlan);
+            var phone = ViewAt(phonePlan.Coord).GetComponentInChildren<Oddity>();
+            Assert.That(phone, Is.Not.Null, $"the payphone stands on {phonePlan}");
+            Assert.That(phone.kind, Is.EqualTo(Oddity.Kind.Payphone));
+            Assert.That(phone.CanInteract, Is.True, "it rings for the player");
+            yield return Shot(dir, "play-event-payphone", Front(phone.transform, 3.5f), phone.transform.position + Vector3.up * 1.3f);
+            Assert.That(phone.Interact(), Is.True, "E answers it");
+            yield return WaitFor(() => phone.Capture() == Oddity.State.Used, 10);
+            Assert.That(phone.Capture(), Is.EqualTo(Oddity.State.Used));
+            yield return Away(phonePlan);
+            yield return Visit(phonePlan);
+            phone = ViewAt(phonePlan.Coord).GetComponentInChildren<Oddity>();
+            Assert.That(phone.Capture(), Is.EqualTo(Oddity.State.Used), "the answered payphone is silent when its chunk comes back");
+            Assert.That(phone.CanInteract, Is.False);
+
+            // A hissing television.
+            var tvPlan = Nearest(p => p.Event == WorldEvents.Television).FirstOrDefault();
+            Assert.That(tvPlan, Is.Not.Null, "a television within 480 m");
+            yield return Visit(tvPlan);
+            var tv = ViewAt(tvPlan.Coord).GetComponentInChildren<Oddity>();
+            Assert.That(tv, Is.Not.Null, $"the television stands on {tvPlan}");
+            Assert.That(tv.kind, Is.EqualTo(Oddity.Kind.Television));
+            yield return Shot(dir, "play-event-television", Front(tv.transform, 3.5f), tv.transform.position + Vector3.up * .9f);
+
+            // A beast brawl: two packs on the navigation; the fight ends and the survivors come back as they were.
+            var brawlPlan = Nearest(p => p.Event == WorldEvents.Brawl).FirstOrDefault();
+            Assert.That(brawlPlan, Is.Not.Null, "a brawl within 480 m");
+            // Two chunks off: loaded, but out of the packs' sight, so the fight has not started yet.
+            world.motor.Teleport(Centre(brawlPlan) + new Vector3(2 * size, 6, 0), Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(brawlPlan.Coord), 10);
+            for (int f = 0; f < 40; f++) yield return null;
+            var brawl = ViewAt(brawlPlan.Coord).GetComponentInChildren<Hakaton.Expeditions.Events.BeastBrawl>();
+            Assert.That(brawl, Is.Not.Null, $"the brawl is on {brawlPlan}");
+            Assert.That(brawl.Spawned, Is.True);
+            var beasts = brawl.Beasts.ToList();
+            Assert.That(beasts.Count, Is.GreaterThanOrEqualTo(3), "two packs");
+            foreach (var beast in beasts)
+                Assert.That(NavMesh.SamplePosition(beast.transform.position, out _, 1.5f, NavMesh.AllAreas), Is.True, $"{beast.name} stands on the navigation");
+            Assert.That(brawl.Current, Is.EqualTo(Hakaton.Expeditions.Events.BeastBrawl.Phase.NotStarted), "nothing starts out of sight");
+            // Ringside, 9 m off on the navigation; a calm pair is set on each other as a Манок would.
+            var away = Flat(brawl.Centre - Centre(brawlPlan)).sqrMagnitude > 1 ? Flat(Centre(brawlPlan) - brawl.Centre).normalized : Vector3.forward;
+            var ringside = brawl.Centre + away * 9;
+            if (NavMesh.SamplePosition(ringside, out var side, 4, NavMesh.AllAreas)) ringside = side.position;
+            ringside += Vector3.up * 1.7f;
+            world.motor.Teleport(ringside - Vector3.up * 1.6f, Quaternion.identity);
+            for (int f = 0; f < 10; f++) yield return null;
+            if (brawl.Current == Hakaton.Expeditions.Events.BeastBrawl.Phase.NotStarted) brawl.Begin();
+            for (int f = 0; f < 120; f++) yield return null;
+            // Framed on the fighters themselves, 6 m off on the ringside's side.
+            var fighters = brawl.Beasts.Where(b => b && b.Alive).ToList();
+            var thick = fighters.Count > 0 ? fighters.Aggregate(Vector3.zero, (sum, b) => sum + b.transform.position) / fighters.Count : brawl.Centre;
+            var eye = thick + Flat(ringside - thick).normalized * 6 + Vector3.up * 1.8f;
+            yield return Shot(dir, "play-event-brawl", eye, thick + Vector3.up * .5f, ringside);
+            yield return WaitFor(() => brawl.Current == Hakaton.Expeditions.Events.BeastBrawl.Phase.Over, 50);
+            Assert.That(brawl.Current, Is.EqualTo(Hakaton.Expeditions.Events.BeastBrawl.Phase.Over), $"the fight ends ({brawl.FightSeconds:0} s)");
+            int alive = brawl.AliveIn(0) + brawl.AliveIn(1);
+            Debug.Log($"[World] brawl on {brawlPlan} ({brawl.variant}): {beasts.Count} beasts, {alive} left after {brawl.FightSeconds:0} s, started by {brawl.StartedBy}");
+            Assert.That(brawl.FightSeconds, Is.GreaterThan(5), "a real fight, not one called off at once");
+            Assert.That(alive, Is.LessThan(beasts.Count), "someone fell");
+            yield return Away(brawlPlan);
+            yield return Visit(brawlPlan);
+            brawl = ViewAt(brawlPlan.Coord).GetComponentInChildren<Hakaton.Expeditions.Events.BeastBrawl>();
+            Assert.That(brawl.Current, Is.EqualTo(Hakaton.Expeditions.Events.BeastBrawl.Phase.Over), "the fight stays over");
+            Assert.That(brawl.AliveIn(0) + brawl.AliveIn(1), Is.EqualTo(alive), "the fallen stay fallen");
+
+            // Chests: an ordinary one opens and stays open; a mimic on guard comes back on guard.
+            ChestSpawnTable Table(ChunkPlan p) => streamer.content.ChestTable(p.Ring);
+            TreasureChest Rolled(ChunkPlan p) => WorldRules.IsStartArea(p.Coord) || !Table(p) ? null
+                : Table(p).Roll(Hash.Unit(seed, Salt.ChestPresence, p.Coord.X, p.Coord.Y), Hash.Unit(seed, Salt.ChestTier, p.Coord.X, p.Coord.Y));
+            // References die with their chunk as the player moves on: keep the plans, look the chests up again.
+            TreasureChest plain = null, mimicChest = null;
+            ChunkPlan plainPlan = null, mimicPlan = null;
+            var rolls = Nearest(p => Rolled(p) != null).Take(80).ToList();
+            Debug.Log($"[World] chest rolls: {rolls.Count(p => !Rolled(p).GetComponent<ChestMimic>())} chests, {rolls.Count(p => Rolled(p).GetComponent<ChestMimic>())} mimics among the {rolls.Count} nearest");
+            foreach (var p in rolls)
+            {
+                bool isMimic = Rolled(p).GetComponent<ChestMimic>();
+                if (isMimic ? mimicPlan != null : plainPlan != null) continue;
+                yield return Visit(p);
+                var chest = ViewAt(p.Coord).GetComponentInChildren<TreasureChest>();
+                if (!chest) continue;
+                if (isMimic) { mimicChest = chest; mimicPlan = p; } else { plain = chest; plainPlan = p; }
+                if (plainPlan != null && mimicPlan != null) break;
+            }
+            Assert.That(plainPlan, Is.Not.Null, "an ordinary chest among the nearest rolls");
+            yield return Visit(plainPlan);
+            plain = ViewAt(plainPlan.Coord).GetComponentInChildren<TreasureChest>();
+            // A chest's lock is on its -Z side.
+            yield return Shot(dir, "play-chest", Front(plain.transform, -2.6f), plain.transform.position + Vector3.up * .4f);
+            Assert.That(plain.Interact(), Is.True, "E opens it");
+            for (int f = 0; f < 60; f++) yield return null;
+            yield return Away(plainPlan);
+            yield return Visit(plainPlan);
+            Assert.That(ViewAt(plainPlan.Coord).GetComponentInChildren<TreasureChest>().Opened, Is.True, "an opened chest stays open");
+            if (mimicPlan != null)
+            {
+                yield return Visit(mimicPlan);
+                mimicChest = ViewAt(mimicPlan.Coord).GetComponentInChildren<TreasureChest>();
+                var mimic = mimicChest.GetComponent<ChestMimic>();
+                yield return Shot(dir, "play-chest-mimic", Front(mimicChest.transform, -2.6f), mimicChest.transform.position + Vector3.up * .4f);
+                Assert.That(mimic.Current, Is.EqualTo(ChestMimic.State.Closed));
+                // Opened unfrozen: it bites (the player cannot be hurt here) and runs; then it plays chest on guard.
+                world.motor.Teleport(mimicChest.transform.position - mimicChest.transform.forward * 1.6f, Quaternion.identity);
+                yield return null;
+                mimicChest.Interact();
+                yield return WaitFor(() => mimic.Current == ChestMimic.State.Alert && !mimic.Busy, 25);
+                Assert.That(mimic.Current, Is.EqualTo(ChestMimic.State.Alert), "on guard after the bite");
+                yield return Away(mimicPlan);
+                yield return Visit(mimicPlan);
+                mimic = ViewAt(mimicPlan.Coord).GetComponentInChildren<ChestMimic>();
+                Assert.That(mimic.Current, Is.EqualTo(ChestMimic.State.Alert), "the mimic comes back on guard");
+            }
+            else Debug.Log("[World] no mimic among the nearest chest rolls");
+        }
+
         IEnumerator Shot(string dir, string name, Vector3 eye, Vector3 target, Vector3? stand = null)
         {
             // Stand where the camera will be (or under it), so streaming and far silhouettes follow it as in play.
@@ -671,6 +829,10 @@ namespace Hakaton.WorldAssembly.Tests
             world.motor.Teleport(feet, Quaternion.identity);
             yield return null;
             var cam = world.viewCamera;
+            // World Resolution hands sprites and other transparents to its presentation camera; off for the shot, so
+            // this camera draws them itself.
+            var resolution = cam.GetComponents<MonoBehaviour>().FirstOrDefault(m => m && m.enabled && m.GetType().Name == "WorldResolution");
+            if (resolution) resolution.enabled = false;
             var saved = (cam.transform.position, cam.transform.rotation);
             cam.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(target - eye));
             var rt = new RenderTexture(1280, 720, 24);
@@ -687,6 +849,7 @@ namespace Hakaton.WorldAssembly.Tests
             Object.Destroy(tex);
             rt.Release();
             cam.transform.SetPositionAndRotation(saved.Item1, saved.Item2);
+            if (resolution) resolution.enabled = true;
         }
 
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
