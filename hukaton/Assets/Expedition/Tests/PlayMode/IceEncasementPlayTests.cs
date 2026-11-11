@@ -39,8 +39,8 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         [TearDown]
         public void TearDown()
         {
-            Object.DestroyImmediate(bodyObject);
-            Object.DestroyImmediate(worldObject);
+            if (bodyObject) Object.DestroyImmediate(bodyObject);
+            if (worldObject) Object.DestroyImmediate(worldObject);
         }
 
         [Test]
