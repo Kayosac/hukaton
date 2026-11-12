@@ -24,6 +24,8 @@ namespace Hakaton.Expeditions.Tests
             material = Own(new Material(shader));
             material.SetFloat("_PixelsPerUnit", 16);
             material.SetFloat("_Motion", 0);
+            // These checks measure the world grid itself; the close-up split has its own tests below.
+            material.SetFloat("_MaxRefine", 0);
         }
 
         [TearDown]
@@ -288,6 +290,49 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(near.Count, Is.EqualTo(16), "Near row runs: " + string.Join(",", near));
             Assert.That(far.Count, Is.EqualTo(16), "Far row runs: " + string.Join(",", far));
             Assert.That(near.Sum(), Is.EqualTo(far.Sum() * 2).Within(2));
+        }
+
+        // A 1/16 m cell seen through the 45-degree test view is 81.5 / distance px of a 1080-line view.
+        [TestCase(4f, 16)] // 20 px: under the 25 px limit, the world grid holds.
+        [TestCase(2f, 32)] // 41 px: split once.
+        [TestCase(1f, 64)] // 81 px: split twice.
+        public void CloseUpSplitsTheWorldGridByPowersOfTwo(float distance, int cells)
+        {
+            material.SetFloat("_MaxRefine", 4);
+            material.SetFloat("_MaxCellPixels", 25);
+            var renderer = Drawing();
+            var image = Render(renderer, distance: distance);
+            var across = Runs(image);
+            var down = Runs(image, vertical: true);
+            // Near 1 m the 1 m drawing overflows the 256 px view: count only the cells inside it.
+            int visible = distance < 2 ? across.Count : cells;
+            Assert.That(across.Count, Is.EqualTo(visible), "Row runs: " + string.Join(",", across));
+            Assert.That(down.Count, Is.EqualTo(across.Count), "The whole drawing is on one grid.");
+            if (distance >= 2) Assert.That(across.Max() - across.Min(), Is.LessThanOrEqualTo(1), "Equal cells: " + string.Join(",", across));
+            else Assert.That(across.Where((run, i) => i > 0 && i < across.Count - 1).All(run => System.Math.Abs(run - across[1]) <= 1), Is.True);
+        }
+
+        [Test]
+        public void CloseUpSplitKeepsEveryWorldGridLine()
+        {
+            material.SetFloat("_MaxCellPixels", 25);
+            var renderer = Drawing();
+            material.SetFloat("_MaxRefine", 0);
+            var world = Runs(Render(renderer, distance: 2));
+            material.SetFloat("_MaxRefine", 4);
+            var split = Runs(Render(renderer, distance: 2));
+            Assert.That(world.Count, Is.EqualTo(16));
+            Assert.That(split.Count, Is.EqualTo(32));
+            for (int i = 0; i < world.Count; i++)
+                Assert.That(split[2 * i] + split[2 * i + 1], Is.EqualTo(world[i]).Within(1), "World cell " + i);
+        }
+
+        [Test]
+        public void TheSharedMaterialSplitsCloseUpCells()
+        {
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            Assert.That(shared.GetFloat("_MaxRefine"), Is.GreaterThanOrEqualTo(3), "The shop counter and held items need the split.");
+            Assert.That(shared.GetFloat("_MaxCellPixels"), Is.InRange(1.5f, 4f));
         }
 
         [Test]
