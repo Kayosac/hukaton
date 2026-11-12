@@ -18,17 +18,26 @@ namespace Hakaton.Decks
         public readonly int Rank;
         /// <summary>False keeps every copy at level I.</summary>
         public readonly bool Mergeable;
+        /// <summary>
+        /// The goblin's dummy («Пустышка»): does nothing. Never in his rank draw (a place holds it by its own chance),
+        /// always sold for <see cref="BlindPrice"/>, never merged; it sits in the collection and the deck like any card
+        /// and leaves both for good as an outing begins.
+        /// </summary>
+        public readonly bool Dummy;
         readonly int[] uses;
 
         /// <param name="usesPerLevel">Uses of one copy per outing at I / II / III. One for ordinary cards; Teleport 1 / 2 / 3.</param>
-        public CardSpec(string id, string name, int price, int rank = 1, bool mergeable = true, IReadOnlyList<int> usesPerLevel = null)
+        /// <param name="dummy">A dummy card (<see cref="Dummy"/>); it never merges.</param>
+        public CardSpec(string id, string name, int price, int rank = 1, bool mergeable = true, IReadOnlyList<int> usesPerLevel = null,
+            bool dummy = false)
         {
             if (price < 0 || rank < 1 || rank > 5) throw new ArgumentOutOfRangeException(nameof(price));
             Id = id;
             Name = name;
             Price = price;
             Rank = rank;
-            Mergeable = mergeable;
+            Dummy = dummy;
+            Mergeable = mergeable && !dummy;
             uses = usesPerLevel == null ? new[] { 1, 1, 1 } : usesPerLevel.ToArray();
             if (uses.Length != MaxLevel || uses.Any(u => u < 1)) throw new ArgumentException("One use count per level", nameof(usesPerLevel));
         }

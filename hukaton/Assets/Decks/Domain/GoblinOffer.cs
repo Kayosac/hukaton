@@ -10,6 +10,8 @@ namespace Hakaton.Decks
     /// rank with equal chances; cards may repeat. A face-down card sells for half its price rounded up, without showing
     /// the card or the price; once bought it turns face up and its place stays empty. One free action turns all the
     /// remaining cards face up: from then on each costs its full price, and nothing can be hidden again.
+    /// Playtest (12.11.2026): any place may instead hold a dummy («Пустышка», <see cref="CardSpec.Dummy"/>) by its own
+    /// chance, the penalty for buying blind: it looks like any card face down and always costs its half price.
     /// </summary>
     public sealed class GoblinOffer
     {
@@ -29,13 +31,24 @@ namespace Hakaton.Decks
             Revealed = revealed;
         }
 
-        public static GoblinOffer Roll(IEnumerable<CardSpec> catalogue, Random random)
+        /// <param name="dummyChance">Chance (0–1) for each place to hold the catalogue's dummy (<see cref="CardSpec.Dummy"/>)
+        /// instead of a rolled card. Dummies never enter the rank draw; with no dummy or a zero chance the ten are rolled
+        /// exactly as before (no extra random numbers are taken).</param>
+        public static GoblinOffer Roll(IEnumerable<CardSpec> catalogue, Random random, double dummyChance = 0)
         {
-            var byRank = catalogue.GroupBy(s => s.Rank).ToDictionary(g => g.Key, g => g.OrderBy(s => s.Id, StringComparer.Ordinal).ToList());
+            var specs = catalogue.ToList();
+            var dummy = dummyChance > 0 ? specs.Where(s => s.Dummy).OrderBy(s => s.Id, StringComparer.Ordinal).FirstOrDefault() : null;
+            var byRank = specs.Where(s => !s.Dummy).GroupBy(s => s.Rank)
+                .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Id, StringComparer.Ordinal).ToList());
             if (byRank.Count == 0) throw new ArgumentException("Empty catalogue", nameof(catalogue));
             var picks = new string[Size];
             for (int i = 0; i < Size; i++)
             {
+                if (dummy != null && random.NextDouble() < dummyChance)
+                {
+                    picks[i] = dummy.Id;
+                    continue;
+                }
                 int rank = RollRank(byRank.Keys, random);
                 var options = byRank[rank];
                 picks[i] = options[random.Next(options.Count)].Id;
@@ -62,11 +75,14 @@ namespace Hakaton.Decks
         public bool IsSold(int slot) => sold[slot];
         public bool AnyLeft => sold.Any(s => !s);
 
-        /// <summary>What the slot costs now: half (rounded up) face down, full once revealed.</summary>
+        /// <summary>
+        /// What the slot costs now: half (rounded up) face down, full once revealed. A dummy costs its half either way:
+        /// face down it passes for any card, face up it is just cheap.
+        /// </summary>
         public int PriceAt(int slot, DeckWorkshop workshop)
         {
             var spec = workshop.Spec(cards[slot]);
-            return spec == null ? 0 : Revealed ? spec.Price : spec.BlindPrice;
+            return spec == null ? 0 : Revealed && !spec.Dummy ? spec.Price : spec.BlindPrice;
         }
 
         /// <summary>
@@ -134,13 +150,18 @@ namespace Hakaton.Decks
             Changed?.Invoke();
         }
 
-        /// <summary>A new visit: rolls a new ten. False when the goblin cannot be called yet.</summary>
-        public bool Call(IEnumerable<CardSpec> catalogue, Random random)
+        /// <summary>
+        /// A new visit: rolls a new ten. False when the goblin cannot be called yet. <paramref name="dummyChance"/>: each
+        /// place's chance to hold a dummy (<see cref="GoblinOffer.Roll"/>); the very first visit, the introduction, never
+        /// lays out a dummy.
+        /// </summary>
+        public bool Call(IEnumerable<CardSpec> catalogue, Random random, double dummyChance = 0)
         {
             if (!CanCall) return false;
+            var offer = GoblinOffer.Roll(catalogue, random, visited ? dummyChance : 0);
             visited = true;
             outingSince = shiftSince = false;
-            Offer = GoblinOffer.Roll(catalogue, random);
+            Offer = offer;
             Changed?.Invoke();
             return true;
         }

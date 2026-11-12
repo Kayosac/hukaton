@@ -433,6 +433,8 @@ namespace Hakaton.Decks.Unity
         /// <summary>"Урон  3 · 5 · 8": the card's main number at I / II / III, the copy's level in bold.</summary>
         public static string PowerLine(CardDefinition definition, int level)
         {
+            // The dummy has no number to show: it does nothing at any level.
+            if (definition.dummy) return "Польза  " + Mark(0, true);
             string label, unit;
             LevelFloat values;
             if (definition.effectAsset is ICardStatLine stats && stats.TryGetStat(out label, out values, out unit)) { }

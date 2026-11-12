@@ -10,7 +10,9 @@ namespace Hakaton.Backroom
     /// card seamlessly (same place on screen, same size, same tilt, same side up), flies forward close to the camera
     /// (a card bought blind turns over on the way), and hangs there, breathing a little. Held with the left button it
     /// turns under the mouse and keeps spinning a moment when let go. Sent away "into the bag" it makes a show of it:
-    /// winds up, spins faster and faster and shoots out of the frame still spinning and tumbling over. Lives in the camera's space, so it stays in front of the eyes. Purely presentation.
+    /// winds up, spins faster and faster and shoots out of the frame still spinning and tumbling over. Skipped
+    /// (<see cref="Finish"/>) it is put away at once from any of these moments. Lives in the camera's space, so it stays
+    /// in front of the eyes. Purely presentation.
     /// </summary>
     public sealed class CardInspect : MonoBehaviour
     {
@@ -34,7 +36,7 @@ namespace Hakaton.Backroom
         bool faceDown, turnedOver, dragging;
         Vector2 spin;
         Action turned, gone, launched;
-        bool hasLaunched;
+        bool hasLaunched, finished;
 
         /// <summary>At the eyes and ready to be turned.</summary>
         public bool Arrived => age >= hold + Arrive;
@@ -109,13 +111,31 @@ namespace Hakaton.Backroom
         /// <summary>Away into the bag from wherever it is now; <paramref name="launch"/> fires as it shoots off.</summary>
         public void Dismiss(Action launch = null)
         {
-            if (Leaving) return;
+            if (Leaving || finished) return;
             launched = launch;
             if (faceDown && !turnedOver) { turnedOver = true; turned?.Invoke(); }
             leaveAge = 0;
             leaveLocal = Local;
             leaveSize = view.transform.localScale;
             leaveTurn = Quaternion.Inverse(viewCamera.transform.rotation) * transform.rotation;
+        }
+
+        /// <summary>
+        /// Skipped: put away at once, from wherever it is (on its way up, held, or on its way out). A blind card that has
+        /// not turned yet still fires its turn; the stow fires as if it had shot off (<paramref name="launch"/>, unless
+        /// it was already sent away with one); then it is gone, and the gone callback has run when this returns.
+        /// </summary>
+        public void Finish(Action launch = null)
+        {
+            if (finished) return;
+            finished = true;
+            if (!Leaving) launched = launch;
+            if (faceDown && !turnedOver) { turnedOver = true; turned?.Invoke(); }
+            if (!hasLaunched) { hasLaunched = true; launched?.Invoke(); }
+            var done = gone;
+            turned = gone = launched = null;
+            done?.Invoke();
+            Destroy(gameObject);
         }
 
         /// <summary>Gone at once, without a word to whoever launched it (the table closed under it).</summary>
@@ -129,6 +149,7 @@ namespace Hakaton.Backroom
 
         void Update()
         {
+            if (finished) return;
             if (!viewCamera) { Destroy(gameObject); return; }
             float dt = Time.unscaledDeltaTime;
             age += dt;

@@ -47,6 +47,9 @@ namespace Hakaton.Decks.Unity
         [Min(0)] public int purchasePrice = 100;
         [Tooltip("Rarity rank 1–5: the goblin rolls a rank first, then a card of that rank.")]
         [Range(1, 5)] public int rank = 1;
+        [Tooltip("The goblin's dummy («Пустышка», the config's dummy card): does nothing, never merges, always sells for " +
+                 "half its price, and leaves the deck and the collection for good as an outing begins.")]
+        public bool dummy;
 
         [Header("Levels I / II / III")]
         [Tooltip("Off keeps every copy at level I (no merging on the PC).")]
@@ -60,6 +63,11 @@ namespace Hakaton.Decks.Unity
         public LevelFloat impulse = LevelFloat.All(8);
         [Min(0)] public float effectRadius = 2.5f;
 
-        public CardSpec ToSpec() => new CardSpec(id, displayName, purchasePrice, rank, upgradable, uses.ToArray());
+        /// <param name="asDummy">Treat it as the dummy even if its own <see cref="dummy"/> flag is off (the config's dummy card).</param>
+        public CardSpec ToSpec(bool asDummy = false)
+        {
+            bool isDummy = dummy || asDummy;
+            return new CardSpec(id, displayName, purchasePrice, rank, upgradable && !isDummy, uses.ToArray(), isDummy);
+        }
     }
 }

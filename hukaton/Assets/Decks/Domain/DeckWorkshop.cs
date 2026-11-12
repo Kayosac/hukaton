@@ -83,7 +83,8 @@ namespace Hakaton.Decks
                 throw new ArgumentException("Invalid starting deck", nameof(initialDeck));
             foreach (var spec in list)
             {
-                int count = initialCopies == null ? copiesPerType : initialCopies.TryGetValue(spec.Id, out var c) ? c : 0;
+                // Dummies only ever come from the goblin.
+                int count = initialCopies == null ? (spec.Dummy ? 0 : copiesPerType) : initialCopies.TryGetValue(spec.Id, out var c) ? c : 0;
                 int inDeck = initialDeck == null ? count : initialDeck.TryGetValue(spec.Id, out var d) ? d : 0;
                 yield return new StartingCopies(spec.Id, count, inDeck);
             }
@@ -209,7 +210,8 @@ namespace Hakaton.Decks
             added = 0;
             if (IsAway) return "Сначала вернитесь в лавку.";
             var present = new HashSet<string>(owned.Select(c => c.Spec.Id));
-            var missing = catalog.Values.Where(s => !present.Contains(s.Id)).ToList();
+            // The dummy is not a card type to unlock: it only comes from the goblin, as a penalty.
+            var missing = catalog.Values.Where(s => !s.Dummy && !present.Contains(s.Id)).ToList();
             int maxStep = Rules.DeckSteps - 1;
             int capacity = DeckRules.CollectionFactor * Rules.DeckLimitAt(maxStep);
             if (missing.Count > capacity - owned.Count || missing.Count > int.MaxValue - nextId)
@@ -253,11 +255,23 @@ namespace Hakaton.Decks
             return null;
         }
 
+        /// <summary>
+        /// Starts an outing with the deck. Dummies in the deck (<see cref="CardSpec.Dummy"/>) do not go: they leave the
+        /// deck and the collection for good, the outing sets off with the rest and lists them in
+        /// <see cref="Expedition.Dummies"/> for the hand to fling away. Dummies left in the collection stay there.
+        /// </summary>
         public string Depart(int seed)
         {
             string error = CanDepart();
             if (error != null) return error;
-            Current = new Expedition(Selected(), handSize, seed);
+            var deck = Selected();
+            var dummies = deck.Where(c => c.Spec.Dummy).ToList();
+            foreach (var dummy in dummies)
+            {
+                owned.Remove(dummy);
+                selected.Remove(dummy.Id);
+            }
+            Current = new Expedition(deck.Where(c => !c.Spec.Dummy), handSize, seed) { Dummies = dummies.AsReadOnly() };
             Journeys++;
             Changed?.Invoke();
             return null;

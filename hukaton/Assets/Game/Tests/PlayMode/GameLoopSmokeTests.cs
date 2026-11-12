@@ -67,7 +67,8 @@ namespace Hakaton.Game.Tests
             var selected = model.Selected().Select(c => c.Id).ToArray();
             long revenue = game.trade.Session.GrossRevenue;
             Assert.That(menu.UnlockCollection(), Is.True);
-            Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Select(c => c.Id)));
+            // The goblin's dummy is in the catalogue (saves must load it) but is never unlocked.
+            Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Where(c => !c.Dummy).Select(c => c.Id)));
             Assert.That(model.HandSize, Is.EqualTo(model.Rules.MaxHand));
             Assert.That(model.DeckAtMaximum, Is.True);
             Assert.That(game.trade.Session.ShiftAtMaximum, Is.True, "The cheat also maxes the shift length.");

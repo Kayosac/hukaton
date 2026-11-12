@@ -161,6 +161,7 @@ namespace Hakaton.Expeditions
             hud.canvas.enabled = true;
             hud.BeginOuting();
             hand.Deal();
+            ShedDummies();
             if (time) time.ResetTime();
             if (sfx && cues) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
         }

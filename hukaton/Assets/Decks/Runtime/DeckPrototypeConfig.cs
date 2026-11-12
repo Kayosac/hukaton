@@ -31,6 +31,12 @@ namespace Hakaton.Decks.Unity
         public CardDefinition[] cards;
         [Tooltip("Cards that exist only in the story (the cave's instruction cards): never sold, dealt or kept.")]
         public CardDefinition[] storyCards = Array.Empty<CardDefinition>();
+        [Tooltip("The goblin's dummy («Пустышка»): the penalty for buying blind. Kept apart from the cards above: never in " +
+                 "his rank draw, never merged, never given by the debug unlock. Bought, it takes a place in the collection " +
+                 "and the deck like any card, and leaves both for good as the next outing begins.")]
+        public CardDefinition dummyCard;
+        [Tooltip("Chance for each of the goblin's ten places to hold the dummy instead of a rolled card (never on his first visit).")]
+        [Range(0, 1)] public float dummyChance = .1f;
         public Sprite returnArtwork;
         [Tooltip("Deck limit at the start. The collection holds twice the current deck limit.")]
         [Min(1)]
@@ -56,9 +62,17 @@ namespace Hakaton.Decks.Unity
         public DeckRules Rules() => new DeckRules(deckLimit, initialHand, maximumHand, maximumCardLevel, handUpgradePrice,
             startingCoins, deckLimitSteps.Select(s => s.limit).ToArray(), deckLimitSteps.Select(s => s.price).ToArray());
 
-        public DeckWorkshop CreateWorkshop(CoinWallet wallet = null) => new DeckWorkshop(Rules(), cards.Select(c => c.ToSpec()),
+        public DeckWorkshop CreateWorkshop(CoinWallet wallet = null) => new DeckWorkshop(Rules(), Specs(),
             wallet, initialCopies.Select(c => new StartingCopies(c.definitionId, c.count, c.inDeck, c.protectedFromBurning)));
 
-        public CardDefinition Find(string id) => cards.FirstOrDefault(c => c.id == id) ?? storyCards.FirstOrDefault(c => c && c.id == id);
+        /// <summary>The workshop's catalogue: the cards and, when assigned, the dummy (saves holding it must load).</summary>
+        public System.Collections.Generic.IEnumerable<CardSpec> Specs()
+        {
+            foreach (var card in cards) yield return card.ToSpec();
+            if (dummyCard) yield return dummyCard.ToSpec(true);
+        }
+
+        public CardDefinition Find(string id) => cards.FirstOrDefault(c => c.id == id) ?? storyCards.FirstOrDefault(c => c && c.id == id)
+            ?? (dummyCard && dummyCard.id == id ? dummyCard : null);
     }
 }
