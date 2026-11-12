@@ -381,7 +381,11 @@ namespace Hakaton.Game
         {
             float resolve = EaseOutCubic(shown);
             float units = Mathf.Lerp(openPixelSize, pixelSize, resolve);
-            float worldPerUnit = Mathf.Abs(sheet.lossyScale.x);
+            // A screen-space overlay canvas hands the shader its geometry in canvas units, before the canvas scale
+            // (the screen-height scaler), so the grid is measured against the canvas, not the screen: otherwise the
+            // canvas scale counts twice and a 4K screen gets pixels twice as coarse as Full HD.
+            float canvasScale = canvas ? Mathf.Abs(canvas.rootCanvas.transform.lossyScale.x) : 1;
+            float worldPerUnit = Mathf.Abs(sheet.lossyScale.x) / Mathf.Max(canvasScale, 1e-4f);
             if (Mathf.Approximately(units, appliedPixel) && Mathf.Approximately(worldPerUnit, appliedScale)) return;
             appliedPixel = units; appliedScale = worldPerUnit;
             if (shared) shared.SetFloat(PixelsPerUnitId, 1f / Mathf.Max(units * worldPerUnit, 1e-4f));

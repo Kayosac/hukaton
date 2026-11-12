@@ -8,9 +8,9 @@ namespace Hakaton.Game
 {
     /// <summary>
     /// The window of a chosen map point: its name, a small view of the place and «Идти» / «Остаться».
-    /// Rises a little while fading in, fades out on close; its own canvas is off while hidden. The card is laid out
-    /// around its content every time it opens: a long name widens it (up to <see cref="maxTitleWidth"/>), past that the
-    /// name wraps and the card grows taller — the text always fits, at its fixed pixel-font size.
+    /// Rises a little while fading in, fades out on close; its own canvas is off while hidden. The card keeps its width;
+    /// the name takes the biggest pixel-font size that fits it on one line (<see cref="titleSizes"/>, whole multiples
+    /// of the font's grid so the pixels stay crisp). Only a name too long even for the smallest size wraps.
     /// </summary>
     public sealed class OutingMapCard : MonoBehaviour
     {
@@ -28,8 +28,8 @@ namespace Hakaton.Game
         [Tooltip("Left/right, top, bottom: from the card edge to the content (includes the linen border).")]
         public Vector3 padding = new Vector3(26, 22, 26);
         [Min(0)] public float titleGap = 4, buttonsGap = 12, buttonSpacing = 12;
-        [Tooltip("The card widens for a long name up to this content width; beyond it the name wraps.")]
-        [Min(100)] public float maxTitleWidth = 860;
+        [Tooltip("Name sizes tried from the first: the biggest that fits on one line is used. Keep them whole multiples of the font's grid (Ithaca: 16).")]
+        public float[] titleSizes = { 64, 48, 32, 16 };
         [Min(.01f)] public float showSeconds = .18f;
         [Min(.01f)] public float hideSeconds = .1f;
         [Tooltip("How far below its place (canvas pixels) the card starts rising from. Whole pixels only.")]
@@ -83,9 +83,16 @@ namespace Hakaton.Game
             Vector2 picture = previewFrame.sizeDelta;
             Vector2 button = new Vector2(Mathf.Max(go.sizeDelta.x, stay.sizeDelta.x), Mathf.Max(go.sizeDelta.y, stay.sizeDelta.y));
             float row = button.x * 2 + buttonSpacing;
-            title.textWrappingMode = TMPro.TextWrappingModes.Normal;
-            var natural = title.GetPreferredValues(title.text, Mathf.Infinity, Mathf.Infinity);
-            float content = Even(Mathf.Max(picture.x, row, Mathf.Min(natural.x, maxTitleWidth)));
+            float content = Even(Mathf.Max(picture.x, row));
+            title.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+            bool fits = false;
+            foreach (float size in titleSizes)
+            {
+                title.fontSize = size;
+                if (title.GetPreferredValues(title.text, Mathf.Infinity, Mathf.Infinity).x <= content) { fits = true; break; }
+            }
+            // Too long even at the smallest size: that size, on two lines or more.
+            if (!fits) title.textWrappingMode = TMPro.TextWrappingModes.Normal;
             float titleHeight = Even(title.GetPreferredValues(title.text, content, Mathf.Infinity).y);
             float width = content + 2 * padding.x;
             float height = padding.y + titleHeight + titleGap + picture.y + buttonsGap + button.y + padding.z;
