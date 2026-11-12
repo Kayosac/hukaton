@@ -19,8 +19,9 @@ namespace Hakaton.Game
     /// The map at the door. Shows the opened outing points on the charcoal parchment; a new point grows a short step
     /// away from the one it comes from, joined to it by a dashed route, and burns and blinks until clicked. Clicking a
     /// point opens its card: name, a small view, «Идти» / «Остаться». Escape, the right button or the cross steps back.
-    /// Everything on the parchment is drawn with the creatures' hand-drawn sprite material at a coarse pixel grid tied to
-    /// the parchment (so it looks the same at any resolution); opening sharpens the pixels from big blocks.
+    /// Everything on the parchment is drawn with ONE material: a runtime copy of the creatures' hand-drawn sprite material
+    /// whose pixel grid follows the parchment (the asset's grid is the world's, shared by every creature, so it is not
+    /// touched). The grid looks the same at any resolution; opening sharpens the pixels from big blocks.
     /// </summary>
     public sealed class OutingMap : MonoBehaviour
     {
@@ -30,6 +31,8 @@ namespace Hakaton.Game
             [Tooltip("Stable save key. Never rename after release.")] public string id;
             public OutingPlace place;
             public Sprite icon;
+            [Tooltip("The same drawing in ember: blinks over the icon while the point is new.")]
+            public Sprite emberIcon;
             public Sprite preview;
             [Tooltip("The point this one grows from (its route starts there). Empty: a root point at Home.")]
             public string parentId;
@@ -40,7 +43,6 @@ namespace Hakaton.Game
 
         static readonly int PixelsPerUnitId = Shader.PropertyToID("_PixelsPerUnit");
         static readonly int MaxRefineId = Shader.PropertyToID("_MaxRefine");
-        static readonly int SpriteUvRectId = Shader.PropertyToID("_SpriteUVRect");
 
         [Header("Authored parts")]
         [Tooltip("Switched off while the map is closed: nothing is drawn or raycast then.")]
@@ -92,7 +94,6 @@ namespace Hakaton.Game
         readonly Dictionary<string, OutingMapSiteView> views = new Dictionary<string, OutingMapSiteView>();
         readonly List<Image> pendingDashes = new List<Image>();
         readonly List<float> pendingAt = new List<float>();
-        readonly List<Material> pixelMaterials = new List<Material>();
         Material shared;
         Action<OutingPlace> chosen;
         Func<OutingPlace, string> nameOf;
@@ -111,10 +112,7 @@ namespace Hakaton.Game
             if (points) points.gameObject.SetActive(false);
         }
 
-        void OnDestroy()
-        {
-            foreach (var m in pixelMaterials) if (m) Destroy(m);
-        }
+        void OnDestroy() { if (shared) Destroy(shared); }
 
         static OutingMapSave NewState() => new OutingMapSave { seed = Environment.TickCount };
 
@@ -220,25 +218,11 @@ namespace Hakaton.Game
         void EnsureMaterials()
         {
             if (shared || !pixelMaterial) return;
-            shared = PixelCopy(null, "map");
-            if (paper) paper.material = shared;
-            if (closeButton && closeButton.targetGraphic is Image cross) cross.material = PixelCopy(cross.sprite, "cross");
-        }
-
-        /// <summary>A copy of the creature material at the map's grid; for an atlas sprite, framed on its own cell.</summary>
-        Material PixelCopy(Sprite sprite, string label)
-        {
-            var m = new Material(pixelMaterial) { name = pixelMaterial.name + " (" + label + ")" };
-            m.SetFloat(MaxRefineId, 0);
-            if (sprite && sprite.texture)
-            {
-                var r = sprite.textureRect;
-                float w = sprite.texture.width, h = sprite.texture.height;
-                m.SetVector(SpriteUvRectId, new Vector4(r.x / w, r.y / h, r.width / w, r.height / h));
-            }
-            pixelMaterials.Add(m);
+            shared = new Material(pixelMaterial) { name = pixelMaterial.name + " (outing map)" };
+            shared.SetFloat(MaxRefineId, 0);
             appliedPixel = -1;
-            return m;
+            if (paper) paper.material = shared;
+            if (closeButton && closeButton.targetGraphic) closeButton.targetGraphic.material = shared;
         }
 
         void DrawMissing(float delay)
@@ -284,14 +268,14 @@ namespace Hakaton.Game
                 var view = Instantiate(sitePrefab, points);
                 ((RectTransform)view.transform).anchoredPosition = Local(opened);
                 if (view.ring) view.ring.material = shared;
-                view.Bind(opened.id, site.icon, !opened.seen, appear, Pick, PixelCopy(site.icon, opened.id));
+                view.Bind(opened.id, site.icon, site.emberIcon, !opened.seen, appear, Pick, shared);
                 views[opened.id] = view;
             }
         }
 
         void ClearDrawing()
         {
-            foreach (var v in views.Values) if (v) { pixelMaterials.Remove(v.PixelMaterial); Destroy(v.gameObject); }
+            foreach (var v in views.Values) if (v) Destroy(v.gameObject);
             views.Clear();
             if (routes) foreach (Transform dash in routes) Destroy(dash.gameObject);
             pendingDashes.Clear(); pendingAt.Clear();
@@ -389,8 +373,7 @@ namespace Hakaton.Game
             float worldPerUnit = Mathf.Abs(sheet.lossyScale.x);
             if (Mathf.Approximately(units, appliedPixel) && Mathf.Approximately(worldPerUnit, appliedScale)) return;
             appliedPixel = units; appliedScale = worldPerUnit;
-            float ppu = 1f / Mathf.Max(units * worldPerUnit, 1e-4f);
-            foreach (var m in pixelMaterials) if (m) m.SetFloat(PixelsPerUnitId, ppu);
+            if (shared) shared.SetFloat(PixelsPerUnitId, 1f / Mathf.Max(units * worldPerUnit, 1e-4f));
         }
 
         void Show(float amount)
