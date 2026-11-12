@@ -127,7 +127,7 @@ namespace Hakaton.Trading
     public sealed class CustomerTerms
     {
         public string Name { get; set; } = "Посетитель";
-        public string RequestedCategory { get; set; }
+        /// <summary>The display slot whose item the visitor asks for; it must hold an item when he arrives.</summary>
         public int RequestedSlot { get; set; } = -1;
         public bool AsksPrice { get; set; } = true;
         public float OpeningRatio { get; set; } = .8f;
@@ -160,7 +160,6 @@ namespace Hakaton.Trading
     {
         public long Id { get; }
         public string Name { get; }
-        public string RequestedCategory { get; }
         public int RequestedSlot { get; }
         public bool AsksPrice { get; }
         public int MaxPrice { get; }
@@ -170,7 +169,7 @@ namespace Hakaton.Trading
 
         internal Customer(long id, CustomerTerms terms)
         {
-            Id = id; Name = terms.Name; RequestedCategory = terms.RequestedCategory;
+            Id = id; Name = terms.Name;
             RequestedSlot = terms.RequestedSlot; AsksPrice = terms.AsksPrice;
             MaxPrice = terms.MaxPrice; InitialPatience = terms.Patience; OpeningRatio = terms.OpeningRatio;
             Script = terms.Script;
@@ -211,7 +210,9 @@ namespace Hakaton.Trading
             B = customer.AsksPrice ? R : Math.Max(1, Math.Min(R - 1, RoundMoney(R * customer.OpeningRatio)));
             N = customer.AsksPrice ? (int?)null : B;
             Patience = customer.InitialPatience; MaxPrice = customer.MaxPrice;
-            Reaction = customer.AsksPrice ? "Сколько стоит?" : $"Дам {B} монет. Договорились?";
+            // The visitor names the item himself; the name leads the line as is (no Russian case endings needed).
+            Reaction = customer.AsksPrice ? $"{item.Definition.Name} — сколько стоит?"
+                : $"{item.Definition.Name} — дам {B} монет. Договорились?";
             Comfort = customer.AsksPrice ? R : B;
         }
 

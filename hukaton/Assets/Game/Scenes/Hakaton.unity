@@ -150,37 +150,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1150446505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &20201243
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 20201244}
-  m_Layer: 0
-  m_Name: "B \u2014 front view of display beside NPC"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &20201244
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 20201243}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.1409744, y: 0.6929114, z: -0.1409744, w: 0.6929114}
-  m_LocalPosition: {x: 0.4, y: 1.6, z: 1.695}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1701193630}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &21109318
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9200,10 +9169,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hakaton.Trading.Runtime::Hakaton.Trading.Unity.TradingShopView
   modal: {fileID: 1042966984}
   counterCamera: {fileID: 1429910119}
-  displayCamera: {fileID: 20201244}
   counterFov: 75
-  displayFov: 80
-  categoryReadSeconds: 0.75
 --- !u!114 &997696179
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11500,7 +11466,6 @@ Transform:
   m_Children:
   - {fileID: 1898697629}
   - {fileID: 1429910119}
-  - {fileID: 20201244}
   - {fileID: 319027108}
   - {fileID: 771839636}
   - {fileID: 282889092}

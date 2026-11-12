@@ -128,10 +128,14 @@ namespace Hakaton.Trading
                 throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
             if (!IsOpen || ClockPaused) return;
             RemainingSeconds = Math.Max(0, RemainingSeconds - elapsedSeconds);
-            // Selecting an item for a category visitor is already part of the active conversation.
+            // A visitor already at the counter is served to the end of the conversation.
             if (RemainingSeconds <= 0 && CurrentCustomer == null) FinishShift("Время смены закончилось.");
         }
 
+        /// <summary>
+        /// The next visitor walks in and names one item on the display himself: the deal over it starts at once
+        /// (his first line asks its price or offers his starting price for it).
+        /// </summary>
         public bool AdvanceCustomer(CustomerTerms terms = null)
         {
             if (!IsOpen || CurrentCustomer != null) return false;
@@ -143,23 +147,8 @@ namespace Hakaton.Trading
             var nextTerms = terms ?? CustomerScript?.Invoke() ?? GenerateCustomer();
             ValidateCustomerTerms(nextTerms);
             CurrentCustomer = new Customer(++nextCustomerId, nextTerms);
-            LastMessage = CurrentCustomer.RequestedSlot >= 0
-                ? "Покупатель выбрал предмет на витрине."
-                : $"Ищу товар категории «{CurrentCustomer.RequestedCategory}». Что предложите?";
-            Touch();
-            if (CurrentCustomer.RequestedSlot >= 0)
-                SelectItem(CurrentCustomer.RequestedSlot, CurrentCustomer.Id);
-            return true;
-        }
-
-        public bool SelectItem(int slotIndex, long customerId)
-        {
-            if (!IsOpen || CurrentCustomer == null || CurrentCustomer.Id != customerId || CurrentDeal != null
-                || !ValidSlot(slotIndex) || slots[slotIndex] == null) return false;
-            var customer = CurrentCustomer;
-            if (customer.RequestedSlot >= 0 && customer.RequestedSlot != slotIndex) return false;
-            if (customer.RequestedSlot < 0 && slots[slotIndex].Definition.Category != customer.RequestedCategory) return false;
-            CurrentDeal = new TradeDeal(++nextDealId, customer, slots[slotIndex], slotIndex);
+            int slot = CurrentCustomer.RequestedSlot;
+            CurrentDeal = new TradeDeal(++nextDealId, CurrentCustomer, slots[slot], slot);
             LastMessage = CurrentDeal.Reaction;
             Touch();
             return true;
@@ -451,33 +440,18 @@ namespace Hakaton.Trading
         {
             var occupied = new List<int>();
             for (int i = 0; i < slots.Length; i++) if (slots[i] != null) occupied.Add(i);
+            // Every visitor wants one particular item that is on the display.
             int selected = occupied[random.Next(occupied.Count)];
-            bool categoryRequest = random.Next(3) == 0;
-            // Ask only for categories that are actually on display: an unanswerable request just burns the clock.
-            string category = categoryRequest ? slots[occupied[random.Next(occupied.Count)]].Definition.Category : null;
             int referencePrice = slots[selected].Definition.RecommendedPrice;
-            int minimumPrice = referencePrice;
-            if (categoryRequest)
-            {
-                referencePrice = 1;
-                minimumPrice = int.MaxValue;
-                foreach (var definition in catalog)
-                {
-                    if (definition.Category != category) continue;
-                    referencePrice = Math.Max(referencePrice, definition.RecommendedPrice);
-                    minimumPrice = Math.Min(minimumPrice, definition.RecommendedPrice);
-                }
-            }
             // A one-coin item has no positive integer price below R. Such requests ask the price.
-            bool asksPrice = random.NextDouble() < Settings.AsksPriceProbability || minimumPrice <= 1;
+            bool asksPrice = random.NextDouble() < Settings.AsksPriceProbability || referencePrice <= 1;
             float ceilingRatio = asksPrice ? Range(Settings.MinCeilingRatio, Settings.MaxCeilingRatio)
                 : Range(Settings.MinOfferCeilingRatio, Settings.MaxOfferCeilingRatio);
             float openingRatio = Range(Settings.MinOpeningRatio, Settings.MaxOpeningRatio);
             return new CustomerTerms
             {
                 Name = new[] { "Охотник", "Собиратель", "Путник", "Сосед" }[random.Next(4)],
-                RequestedCategory = category,
-                RequestedSlot = categoryRequest ? -1 : selected,
+                RequestedSlot = selected,
                 AsksPrice = asksPrice,
                 OpeningRatio = openingRatio,
                 MaxPrice = Math.Max(asksPrice ? referencePrice : Math.Max(1, TradeDeal.RoundMoney(referencePrice * openingRatio)), TradeDeal.RoundMoney(referencePrice * ceilingRatio)),
@@ -490,31 +464,15 @@ namespace Hakaton.Trading
             if (terms.MaxPrice < 1 || terms.Patience < 1 || terms.OpeningRatio <= 0 || terms.OpeningRatio >= 1
                 || float.IsNaN(terms.OpeningRatio) || string.IsNullOrWhiteSpace(terms.Name))
                 throw new ArgumentException("Invalid customer terms.", nameof(terms));
-            int maxR = 0;
-            int minR = int.MaxValue;
-            if (terms.RequestedSlot >= 0)
-            {
-                if (!ValidSlot(terms.RequestedSlot) || slots[terms.RequestedSlot] == null)
-                    throw new ArgumentException("The requested slot must contain an item.", nameof(terms));
-                maxR = slots[terms.RequestedSlot].Definition.RecommendedPrice;
-                minR = maxR;
-            }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(terms.RequestedCategory))
-                    throw new ArgumentException("A category request needs a category.", nameof(terms));
-                foreach (var item in slots)
-                    if (item != null && item.Definition.Category == terms.RequestedCategory)
-                    {
-                        maxR = Math.Max(maxR, item.Definition.RecommendedPrice);
-                        minR = Math.Min(minR, item.Definition.RecommendedPrice);
-                    }
-            }
-            if (!terms.AsksPrice && minR <= 1)
+            // The visitor names one item himself: it must be on the display.
+            if (!ValidSlot(terms.RequestedSlot) || slots[terms.RequestedSlot] == null)
+                throw new ArgumentException("A visitor must ask for an item that is on the display.", nameof(terms));
+            int r = slots[terms.RequestedSlot].Definition.RecommendedPrice;
+            if (!terms.AsksPrice && r <= 1)
                 throw new ArgumentException("One-coin goods require a price question; no lower positive opening exists.", nameof(terms));
-            if (terms.AsksPrice && terms.MaxPrice < maxR)
+            if (terms.AsksPrice && terms.MaxPrice < r)
                 throw new ArgumentException("Price-asking visitors must be able to pay R.", nameof(terms));
-            if (!terms.AsksPrice && maxR > 0 && terms.MaxPrice < Math.Max(1, TradeDeal.RoundMoney(maxR * terms.OpeningRatio)))
+            if (!terms.AsksPrice && terms.MaxPrice < Math.Max(1, TradeDeal.RoundMoney(r * terms.OpeningRatio)))
                 throw new ArgumentException("The opening offer cannot exceed the budget.", nameof(terms));
         }
 

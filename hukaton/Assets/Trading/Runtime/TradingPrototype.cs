@@ -50,19 +50,9 @@ namespace Hakaton.Trading.Unity
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
         /// <summary>False during the short beat after an offer while the visitor considers it.</summary>
         public bool ReactionRevealed => Time.unscaledTime >= revealAt;
+        /// <summary>The open shop is seen from the authored counter view (camera A).</summary>
         public bool UsesDisplayView => World && World.ShopView;
-        public bool SelectingFromDisplay => UsesDisplayView && World.ShopView.Selecting;
         public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
-        public bool HasMatchingStock
-        {
-            get
-            {
-                if (Session?.CurrentCustomer == null) return false;
-                foreach (var item in Session.Slots)
-                    if (item != null && item.Definition.Category == Session.CurrentCustomer.RequestedCategory) return true;
-                return false;
-            }
-        }
         public string CustomerName => World.Customers.VisitorName;
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
@@ -155,12 +145,10 @@ namespace Hakaton.Trading.Unity
             if (Session.IsOpen)
             {
                 ClearFocus();
-                if (SelectingFromDisplay && !ViewTransitioning) UpdateDisplaySelection();
                 if (keyboard != null)
                 {
                     // Escape at the counter opens the pause menu; E closes the shop.
-                    if (keyboard.escapeKey.wasPressedThisFrame && !GamePause.EscapeConsumed && SelectingFromDisplay) World.ShopView.ReturnToCounter();
-                    else if (keyboard.eKey.wasPressedThisFrame)
+                    if (keyboard.eKey.wasPressedThisFrame)
                     {
                         // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
                         if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
@@ -285,31 +273,6 @@ namespace Hakaton.Trading.Unity
             {
                 ContextPrompt = ExitsLocked ? string.Empty : "E  Выйти из лавки";
                 ContextDetail = string.Empty;
-            }
-        }
-
-        void UpdateDisplaySelection()
-        {
-            var mouse = Mouse.current;
-            if (mouse == null || !ActionsReady || Session.CurrentDeal != null || hud.ContainsBlockingPanel(mouse.position.ReadValue())) return;
-            // The view camera may render into a low-resolution World Resolution texture, so its pixel
-            // space is not the screen's. Viewport coordinates are the same in both cases.
-            Vector2 pointer = mouse.position.ReadValue();
-            var ray = World.ViewCamera.ViewportPointToRay(new Vector3(pointer.x / Screen.width, pointer.y / Screen.height));
-            if (!Physics.Raycast(ray, out var hit, 4, ~(1 << 2), QueryTriggerInteraction.Collide)) return;
-            for (int i = 0; i < displayed.Length; i++)
-            {
-                var item = Session.Slots[i];
-                if (item == null || item.Definition.Category != Session.CurrentCustomer.RequestedCategory) continue;
-                bool overItem = displayed[i] && hit.collider.transform.IsChildOf(displayed[i].transform);
-                if (!overItem && hit.collider != World.SlotColliders[i]) continue;
-                hoveredSlot = i;
-                // The paper card names the goods and their base price, as when stocking.
-                FocusedItem = item;
-                ContextPrompt = "ЛКМ  Предложить";
-                ContextDetail = string.Empty;
-                if (mouse.leftButton.wasPressedThisFrame) SelectCustomerItem(i, Session.CurrentCustomer.Id);
-                break;
             }
         }
 
@@ -638,17 +601,9 @@ namespace Hakaton.Trading.Unity
             selectedInventory = StockSelection.StepKind(Session.Inventory, selectedInventory, direction);
         }
 
-        public void SelectCustomerItem(int slotIndex, long customerId)
-        {
-            if (!ActionsReady || Session.CurrentCustomer == null) return;
-            if (Session.SelectItem(slotIndex, customerId)) actionReadyAt = Time.unscaledTime + .3f;
-            World.Customers.Sync(Session);
-            if (World.ShopView && Session.CurrentDeal != null) World.ShopView.ReturnToCounter();
-        }
-
         public void OfferPrice(long dealId, int revision, int optionIndex)
         {
-            if (!ActionsReady || SelectingFromDisplay) return;
+            if (!ActionsReady) return;
             int salesBefore = Session.SettlementSequence;
             if (!Session.Offer(dealId, revision, optionIndex)) return;
             if (Session.CurrentCustomer == null && Session.SettlementSequence == salesBefore)
@@ -664,7 +619,7 @@ namespace Hakaton.Trading.Unity
 
         public void AcceptPrice(long dealId, int revision)
         {
-            if (!ActionsReady || SelectingFromDisplay || !Session.Accept(dealId, revision)) return;
+            if (!ActionsReady || !Session.Accept(dealId, revision)) return;
             actionReadyAt = Time.unscaledTime + .4f;
             ObserveSale();
             World.Customers.Sync(Session);

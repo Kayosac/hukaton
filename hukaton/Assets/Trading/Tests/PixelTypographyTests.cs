@@ -72,8 +72,10 @@ namespace Hakaton.Trading.Tests
             Assert.That(hud.speech.fontSize, Is.EqualTo(24));
             Assert.That(hud.priceButtons.Length, Is.EqualTo(5));
             foreach (var button in hud.priceButtons.Append(hud.accept).Append(hud.refuseDeal)
-                         .Append(hud.browseDisplay).Append(hud.backToCounter).Append(hud.refuseRequest))
+                         .Append(hud.acceptOffer).Append(hud.declineOffer))
                 Assert.That(button.transform.localScale, Is.EqualTo(Vector3.one), button.name + ": sized by density, never scaled");
+            Assert.That(hud.acceptOffer.transform.IsChildOf(hud.offerActions.transform), Is.True);
+            Assert.That(hud.declineOffer.transform.IsChildOf(hud.offerActions.transform), Is.True);
             Assert.That(hud.conversation.GetComponentsInChildren<TMP_Text>(true).Any(t => t.text.Contains("Ориентир")), Is.False);
         }
 
