@@ -24,6 +24,8 @@ namespace Hakaton.Teaser
             [Range(5, 120)] public float fieldOfView = 50;
             [Tooltip("Covers the whole picture with black (overlay UI above the matte stays visible).")]
             public bool blackMatte;
+            [Tooltip("The camera clears to black instead of the sky (for objects shown alone, like the coin).")]
+            public bool clearToBlack;
             [Tooltip("Objects shown only during this shot.")]
             public GameObject[] visible = new GameObject[0];
         }
@@ -45,6 +47,9 @@ namespace Hakaton.Teaser
         public bool Finished => Frame >= totalFrames;
 
         int ticks;
+        bool cameraBaseCaptured;
+        CameraClearFlags cameraBaseClear;
+        Color cameraBaseBackground;
 
         void Awake()
         {
@@ -92,6 +97,19 @@ namespace Hakaton.Teaser
             if (current != null)
                 foreach (var go in current.visible) SetActive(go, true);
             SetActive(blackMatte, current == null || current.blackMatte);
+
+            if (viewCamera)
+            {
+                if (!cameraBaseCaptured)
+                {
+                    cameraBaseClear = viewCamera.clearFlags;
+                    cameraBaseBackground = viewCamera.backgroundColor;
+                    cameraBaseCaptured = true;
+                }
+                bool black = current != null && current.clearToBlack;
+                viewCamera.clearFlags = black ? CameraClearFlags.SolidColor : cameraBaseClear;
+                viewCamera.backgroundColor = black ? Color.black : cameraBaseBackground;
+            }
 
             if (current != null && viewCamera)
             {
