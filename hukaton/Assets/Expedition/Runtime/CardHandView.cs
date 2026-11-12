@@ -262,11 +262,12 @@ namespace Hakaton.Expeditions
             Vector3 swayTarget = Vector3.ClampMagnitude(lookVelocity * swayPerDegreePerSecond, maxSway);
             sway.Step(swayTarget, swayFrequency, swayDamping, dt);
 
-            float speed = world.motor.IsGrounded ? world.motor.PlanarVelocity.magnitude : 0;
+            bool onFoot = world.motor.GroundedForFeedback;
+            float speed = onFoot ? world.motor.PlanarVelocity.magnitude : 0;
             bobPhase += dt * Mathf.Lerp(0, 9, Mathf.Clamp01(speed / 6f));
             Vector3 bob = new Vector3(Mathf.Sin(bobPhase * .5f) * bobAmplitude, -Mathf.Abs(Mathf.Sin(bobPhase)) * bobAmplitude, 0)
                 * Mathf.Clamp01(speed / 3f);
-            float airborne = world.motor.IsGrounded ? 0 : Mathf.Clamp(world.motor.VerticalSpeed * -.004f, -.03f, .03f);
+            float airborne = onFoot ? 0 : Mathf.Clamp(world.motor.VerticalSpeed * -.004f, -.03f, .03f);
             Vector3 common = sway.Value + bob + Vector3.up * airborne;
             var fan = Fan(lastIds.Count);
 

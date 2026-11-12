@@ -30,7 +30,8 @@ namespace Hakaton.Character
 
         void LateUpdate()
         {
-            if (!motor || !source || !motor.IsGrounded || motor.PlanarVelocity.sqrMagnitude < .09f)
+            // A frame or two off the ground on a bump or a step's edge keeps the stride going.
+            if (!motor || !source || !motor.GroundedForFeedback || motor.PlanarVelocity.sqrMagnitude < .09f)
             { distance = 0; return; }
             distance += motor.PlanarVelocity.magnitude * Time.deltaTime;
             float stride = motor.IsSprinting ? sprintStepDistance : walkStepDistance;
