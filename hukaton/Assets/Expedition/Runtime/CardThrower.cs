@@ -26,13 +26,13 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         public FirstPersonInput input;
         public PlayerControlGate control;
-        [Tooltip("Bright dashed preview of the first moments of flight (Texture Mode: Repeat Per Segment, one dash per segment).")]
+        [Tooltip("Solid glowing preview of the first moments of flight (material Fx Aim trajectory: thin white core, halo in the card's colour).")]
         public LineRenderer trajectory;
         [Tooltip("Camera-space point where a card physically leaves the hand.")]
         public Transform launchSocket;
-        [Tooltip("Width of the preview on screen, pixels at 1080 lines; scales with the window height, constant at any distance.")]
-        [Min(.5f)] public float previewWidthPixels = 6;
-        [Tooltip("One dash with its gap on screen, pixels at 1080 lines: the path is cut into segments of this screen length.")]
+        [Tooltip("Width of the preview on screen with its glow, pixels at 1080 lines; the bright core is about a fifth of it. Scales with the window height, constant at any distance.")]
+        [Min(.5f)] public float previewWidthPixels = 12;
+        [Tooltip("Screen length of one line segment, pixels at 1080 lines: the path is cut into pieces of this length so the width stays exact along it.")]
         [Min(1)] public float previewDashPixels = 12;
         [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
         [Min(0)] public float previewStartOffset = .25f;
@@ -57,7 +57,7 @@ namespace Hakaton.Expeditions
         readonly Gradient previewGradient = new Gradient();
         readonly GradientColorKey[] previewColours = new GradientColorKey[2];
         readonly GradientAlphaKey[] previewAlphas = { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) };
-        // The preview as drawn: one vertex per dash, a fixed screen length apart.
+        // The preview as drawn: one vertex per piece, a fixed screen length apart.
         const int MaxDashPoints = 256, WidthKeys = 24;
         readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
         readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
@@ -299,9 +299,8 @@ namespace Hakaton.Expeditions
             trajectory.positionCount = dashes;
             for (int i = 0; i < dashes; i++) trajectory.SetPosition(i, dashPoints[i]);
             UpdatePreviewWidth(view, dashes);
-            // Bright along the whole path: the strip's white core takes the card's accent lifted halfway to white
-            // (its black ink edge stays black), barely softer by the hand.
-            Color core = Color.Lerp(world.Accent(card), Color.white, .5f);
+            // The halo glows in the card's accent (the core is white in the shader), barely softer by the hand.
+            Color core = world.Accent(card);
             previewColours[0] = new GradientColorKey(core, 0);
             previewColours[1] = new GradientColorKey(core, 1);
             previewGradient.SetKeys(previewColours, previewAlphas);
@@ -332,7 +331,7 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Re-cuts the sampled path into pieces of equal SCREEN length (<see cref="previewDashPixels"/> at 1080 lines),
-        /// so with Repeat Per Segment every dash has the same size on screen near the hand and far away.
+        /// so the width keys and the line's shading stay even on screen near the hand and far away.
         /// Points are placed perspective-correctly on the world path; the end of the path closes the last dash.
         /// </summary>
         int LayOutDashes(Camera view, int count)

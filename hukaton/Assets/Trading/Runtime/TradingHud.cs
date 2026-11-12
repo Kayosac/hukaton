@@ -92,7 +92,7 @@ namespace Hakaton.Trading.Unity
         [Min(0)] public float answerHop = 2;
 
         [Header("Stamina")]
-        [Tooltip("The crooked arc of pips under the aim (Stamina pips prefab); shows itself only while stamina matters.")]
+        [Tooltip("The arc of pips around the aim, under it (Stamina pips prefab); shows itself only while stamina matters.")]
         public Hakaton.Character.StaminaPips staminaPips;
 
         [Tooltip("Set when a ShopFeel animates the wallet counter.")]

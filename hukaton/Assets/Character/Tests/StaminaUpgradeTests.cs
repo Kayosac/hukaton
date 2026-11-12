@@ -92,12 +92,21 @@ namespace Hakaton.Character.Tests
         [Test]
         public void TheArcIsCentredInWholeUnitsWithRisingEnds()
         {
-            Assert.That(StaminaGauge.Arc(0, 5, 8, .004f), Is.EqualTo((-16, 1)));
-            Assert.That(StaminaGauge.Arc(2, 5, 8, .004f), Is.EqualTo((0, 0)));
-            Assert.That(StaminaGauge.Arc(4, 5, 8, .004f), Is.EqualTo((16, 1)));
-            Assert.That(StaminaGauge.Arc(0, 10, 8, .004f), Is.EqualTo((-36, 5)));
-            Assert.That(StaminaGauge.Arc(9, 10, 8, .004f), Is.EqualTo((36, 5)));
-            Assert.That(StaminaGauge.Arc(0, 1, 8, .004f), Is.EqualTo((0, 0)));
+            // Five pips 8 apart on a radius of 21: about 22 degrees between them, the ends rise a third of the radius.
+            Assert.That(StaminaGauge.Arc(2, 5, 8, 21, 180), Is.EqualTo((0, 0)));
+            Assert.That(StaminaGauge.Arc(0, 5, 8, 21, 180), Is.EqualTo((-14, 6)));
+            Assert.That(StaminaGauge.Arc(4, 5, 8, 21, 180), Is.EqualTo((14, 6)));
+            Assert.That(StaminaGauge.Arc(1, 5, 8, 21, 180), Is.EqualTo((-8, 2)));
+            // Ten pips would wrap over the aim: the span is capped at 180 degrees, the ends level with the aim.
+            Assert.That(StaminaGauge.Arc(0, 10, 8, 21, 180), Is.EqualTo((-21, 21)));
+            Assert.That(StaminaGauge.Arc(9, 10, 8, 21, 180), Is.EqualTo((21, 21)));
+            Assert.That(StaminaGauge.Arc(0, 1, 8, 21, 180), Is.EqualTo((0, 0)));
+            // On a circle around the aim: every pip is the radius away from it (to a unit of rounding).
+            for (int i = 0; i < 7; i++)
+            {
+                var (x, y) = StaminaGauge.Arc(i, 7, 8, 21, 180);
+                Assert.That(Math.Sqrt(x * x + (21 - y) * (21 - y)), Is.EqualTo(21).Within(1), $"pip {i}");
+            }
         }
 
         [Test]

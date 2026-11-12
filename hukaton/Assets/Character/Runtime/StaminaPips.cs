@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Hakaton.Character
 {
     /// <summary>
-    /// Stamina as a crooked arc of pips under the crosshair (Game/Prefabs/UI/Stamina pips.prefab, one instance in the shop
+    /// Stamina as an arc of pips around the crosshair, under it (Game/Prefabs/UI/Stamina pips.prefab, one instance in the shop
     /// HUD and one in the outing HUD): one pip per second of sprint, and every «Выносливость» step bought on the PC adds a
     /// pip. Shown only while it matters (sprinting, getting the breath back, out of breath) and faded out soon after the
     /// budget is full. A spent pip pops up and goes hollow; pips fill back one by one with a small hop; out of breath the
@@ -31,16 +31,12 @@ namespace Hakaton.Character
         public Sprite tiredPip;
 
         [Header("Arc (layout units)")]
-        [Tooltip("Distance between neighbouring pips.")]
+        [Tooltip("Distance between neighbouring pips along the arc.")]
         [Min(1)] public int spacing = 8;
-        [Tooltip("How far the ends rise: units per squared unit from the middle (0: a straight row).")]
-        [Min(0)] public float curve = .004f;
-        [Tooltip("Whole-unit nudges per pip that make the arc crooked (repeated when there are more pips).")]
-        public Vector2Int[] crooked =
-        {
-            new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, -1), new Vector2Int(0, 0), new Vector2Int(-1, 1),
-            new Vector2Int(0, -1), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(-1, 0), new Vector2Int(0, -1)
-        };
+        [Tooltip("Radius of the arc around the aim: the same as the arc root's distance under the aim, so the arc hugs the crosshair.")]
+        [Min(1)] public int radius = 21;
+        [Tooltip("The arc never spans more than this; a bigger budget packs the pips closer.")]
+        [Range(30, 300)] public float maxSpanDegrees = 180;
 
         [Header("Motion (springs, rounded to whole units)")]
         [Tooltip("Upward kick (units/s) of a pip that has just been spent.")]
@@ -115,11 +111,10 @@ namespace Hakaton.Character
             int shakeX = Mathf.RoundToInt(shake.Step(0, frequency * 1.6f, damping, deltaTime));
             for (int i = 0; i < count; i++)
             {
-                var (x, y) = StaminaGauge.Arc(i, count, spacing, curve);
-                var nudge = crooked != null && crooked.Length > 0 ? crooked[i % crooked.Length] : Vector2Int.zero;
+                var (x, y) = StaminaGauge.Arc(i, count, spacing, radius, maxSpanDegrees);
                 int hop = Mathf.RoundToInt(hops[i].Step(0, frequency, damping, deltaTime));
                 var pip = pips[i];
-                pip.rectTransform.anchoredPosition = new Vector2(x + nudge.x + shakeX, y + nudge.y + hop);
+                pip.rectTransform.anchoredPosition = new Vector2(x + shakeX, y + hop);
                 var look = StaminaGauge.Look(i, lit, exhausted);
                 var sprite = look == StaminaPipLook.Full ? fullPip : look == StaminaPipLook.Tired ? tiredPip : emptyPip;
                 if (pip.sprite != sprite) pip.sprite = sprite;

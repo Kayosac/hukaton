@@ -63,7 +63,7 @@ namespace Hakaton.Expeditions
         public TMP_Text notice, cardLabel;
 
         [Header("Stamina")]
-        [Tooltip("The crooked arc of pips under the aim (Stamina pips prefab); shows itself only while stamina matters.")]
+        [Tooltip("The arc of pips around the aim, under it (Stamina pips prefab); shows itself only while stamina matters.")]
         public Hakaton.Character.StaminaPips staminaPips;
 
         [Header("Overlays")]

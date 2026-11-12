@@ -33,14 +33,18 @@ namespace Hakaton.Character
             => exhausted ? StaminaPipLook.Tired : index < lit ? StaminaPipLook.Full : StaminaPipLook.Empty;
 
         /// <summary>
-        /// Slot of a pip on the arc, in whole layout units from the arc's root: centred left to right <paramref name="spacing"/>
-        /// apart, the ends rising by <paramref name="curve"/> per squared unit from the middle (a gentle smile under the aim).
+        /// Slot of a pip on the arc, in whole layout units from the arc's root (the middle of the arc, straight under the
+        /// aim): the pips sit on a circle of <paramref name="radius"/> around the aim, <paramref name="spacing"/> apart along
+        /// it, centred under the aim with the ends curling up to its sides. The whole arc never spans more than
+        /// <paramref name="maxSpanDegrees"/>: a bigger budget packs the pips closer instead of wrapping over the aim.
         /// </summary>
-        public static (int x, int y) Arc(int index, int count, int spacing, float curve)
+        public static (int x, int y) Arc(int index, int count, int spacing, int radius, float maxSpanDegrees)
         {
-            int left = -((count - 1) * spacing) / 2;
-            int x = left + index * spacing;
-            int y = (int)Math.Round(curve * x * x, MidpointRounding.AwayFromZero);
+            if (count <= 1 || radius <= 0) return (0, 0);
+            double step = Math.Min((double)spacing / radius, maxSpanDegrees * Math.PI / 180 / (count - 1));
+            double angle = (index - (count - 1) * .5) * step;
+            int x = (int)Math.Round(radius * Math.Sin(angle), MidpointRounding.AwayFromZero);
+            int y = (int)Math.Round(radius * (1 - Math.Cos(angle)), MidpointRounding.AwayFromZero);
             return (x, y);
         }
     }
