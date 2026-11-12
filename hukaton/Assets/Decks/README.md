@@ -50,4 +50,4 @@
 
 Префабы: `Prefabs/DeckWorkshop.prefab` (база), игровой вариант — `Assets/ShopBlockout/Prefabs/ShopDeckWorkshop.prefab`. Арт карт — `Art/`, рубашка — `Art/Backs/card_back_exploration.png` (`card_back_combat.png` больше не используется). Тесты — `Tests/EditMode/` (колода, слияние, коллекция, каталог, гоблин, пролог, пустышка — `DummyCardTests`).
 
-**Нужен арт от пользователя:** у пустышки пока нет своей картинки. Временно её лицо — рубашка `Art/Backs/PenusCardBack.png` (купленная вслепую, она переворачивается у глаз и показывает «ещё одну рубашку»). Когда будет арт, его достаточно назначить в поле `artwork` ассета `Assets/Game/Data/dummy.asset`.
+Арт пустышки — `Art/blank.png` (поле `artwork` ассета `Assets/Game/Data/dummy.asset`).
