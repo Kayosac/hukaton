@@ -42,7 +42,7 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float growSeconds = .55f;
         [Range(.01f, 1)] public float startScale = .14f;
         [Tooltip("Crooked: a random lean on landing, degrees (min, max).")]
-        public Vector2 leanDegrees = new Vector2(3, 9);
+        public Vector2 leanDegrees = new Vector2(5, 11);
         [Tooltip("Idle sway, degrees, and its frequency, Hz.")]
         [Min(0)] public float swayDegrees = 3f, swayFrequency = .45f;
         [Tooltip("Jolt of a hit (spring velocity, degrees per second).")]
@@ -61,7 +61,7 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Level III: the flare when it is destroyed.")]
         public VfxBurst burstVfx;
         public VfxBurst sinkVfx;
-        [Min(0)] public float riseScale = 1.2f, hitScale = .9f, flamesScale = 1.5f, breakScale = 2.4f, burstScale = 1.1f, sinkScale = 1.2f;
+        [Min(0)] public float riseScale = 1.2f, hitScale = .9f, flamesScale = 3f, breakScale = 2.4f, burstScale = 1.1f, sinkScale = 1.2f;
         public Color fireTint = new Color(1f, .55f, .2f, 1);
         public Color dustTint = new Color(.75f, .66f, .52f, 1);
 
@@ -170,7 +170,7 @@ namespace Hakaton.Expeditions.Cards
             flames = World.Spawn(flamesVfx, Centre, Quaternion.identity, fireTint, flamesScale);
             if (flames)
             {
-                flames.Follow(transform, Vector3.up * cardHeight * .4f);
+                flames.Follow(transform, Vector3.up * cardHeight * .3f);
                 flames.HoldFor(numbers.BurnSeconds + .5f);
             }
             World.Play(igniteCue, Centre);
