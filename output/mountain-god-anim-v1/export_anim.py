@@ -45,6 +45,6 @@ bpy.ops.export_scene.fbx(filepath=OUT, use_selection=True, object_types={"ARMATU
                          add_leaf_bones=False, primary_bone_axis="Y", secondary_bone_axis="X", use_armature_deform_only=False,
                          bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=False,
                          bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1.0,
-                         bake_anim_simplify_factor=0.5, mesh_smooth_type="OFF", use_triangles=False, path_mode="STRIP",
+                         bake_anim_simplify_factor=0.5, mesh_smooth_type="FACE", use_triangles=False, path_mode="STRIP",
                          use_mesh_modifiers=False)
 print("exported", OUT)

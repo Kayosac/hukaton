@@ -1,15 +1,36 @@
-# MG01: god animation (draft v3 for review)
+# MG01: god animation (v4)
 
 The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
 his support hands. Previews: `MG01_rider.mp4` (riding the finger: the pull and the talk), `MG01_body.mp4` (the body up
 close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp4` is the v2 view from the lip.
+
+## v4 (after the review in Unity: holes, torn limbs, a faceted hand)
+
+What was wrong, and what changed:
+
+- The limb separation deleted faces and closed the holes with fans that were sometimes wound backwards. Blender's
+  previews draw back faces, Unity culls them, so in the game the god had holes, torn-off limbs and see-through caps.
+  Now nothing is deleted: every face goes to the part most of its corners belong to, the skin is split along face edges
+  between parts that move apart, corners left shared at the end of a tear are ripped, stray faces join the part around
+  them, and each opening gets a domed cap wound like its neighbours. Checked on every build: no open edges, no faces
+  wound against their neighbours, one piece (`topo2.py`).
+- Weights follow the side a vertex ended up on (the bone its faces follow, not its own heaviest weight); a limb never
+  follows another limb, even at a joint; the beard comes away from the chest. Long stretched edges at the waiting pose:
+  216 before, 60 now, all at the hip, knee and shoulder joints (`diag2.py`).
+- The model was low-poly and flat-shaded: up close the 400 m hand broke into huge facets. One Catmull-Clark level
+  (weights interpolated) and smooth shading: 115 k quads, a whole round skin. The finger is thinner after smoothing
+  (top 14 m above the bone at the tip); the dock and the Unity capsules use the new thickness.
+- IK no longer twists the long arms inside their chains (only the chain root and the hand may turn about their own
+  length), so they do not fold like a sweet wrapper.
+- Checked in Unity Play (world worktree): the views from the review (the god from the lip, the hand at the lip, the
+  ride under the body) are smooth and whole; the meeting runs from the edge to the end of the talk.
 
 ## v3 (after the second review)
 
 - The other cradle hand (C02) no longer drags a stretched mess: its fingers were fused to the belly, to thigh L02 and
   to its own shoulder. Faces bridging two limbs, or bones far apart inside one free limb (C01, C02, A01–A04, the
   dropping legs L01 and L02), are cut; each side of an opening is closed on its own; weights follow the same split.
-  Stretched edges at the waiting pose: 186 before, 30 now (left at the hip, knee and shoulder joints).
+  Stretched edges at the waiting pose: 186 before, 31 now (left at the hip, knee and shoulder joints).
 - The pull: the hand goes off the lip down to the cloud sea, sweeps toward him low over the clouds (the player rides
   about 50 m above them, under the god's whole height, past his support hand and its rock), then climbs along his front
   to the face. He bends down after it and straightens as it rises. 16 s.
@@ -61,4 +82,6 @@ at god coordinates x 100: in Unity they take the god group's position and 180 de
 - `clips.py` — the clips; `export_anim.py` — FBX with the takes for Unity.
 - `springs.py`, `GodSpringBones.cs` — hat and beard springs.
 - `hand_rocks.py`, `probe2.py` (hand contact data) — the rocks.
-- `env.py`, `seq.py`, `stamp.py` — preview renders.
+- `env.py`, `seq.py`, `stamp.py` — preview renders; `qa2.py`, `qa3.py` — QA renders as Unity draws them (back faces
+  culled) at every second of every clip; `topo2.py`, `diag2.py` — mesh and stretch checks.
+- `unity/GodEncounterBuilder.cs`, `unity/GodCheck.cs` — the one-off scene builder and the Play check (not in Assets).

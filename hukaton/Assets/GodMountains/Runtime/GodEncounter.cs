@@ -58,6 +58,8 @@ namespace Hakaton.GodMountains
         [Min(1)] public float fallDepth = 8;
         [Tooltip("Where along the head bone his eyes are (bone units).")]
         public float faceHeight = .55f;
+        [Tooltip("The finger's top above the fingertip bone, m (the finger is about 40 m thick).")]
+        public float fingerTopHeight = 20;
         [Tooltip("How fast the view follows the hand while it comes (1/s).")]
         [Min(.1f)] public float followRate = 1.6f;
 
@@ -91,6 +93,9 @@ namespace Hakaton.GodMountains
         CharacterController body;
 
         Vector3 Player => motor ? motor.transform.position : Vector3.zero;
+
+        /// <summary>The top of the fingertip bone's skin: what the player looks at and jumps onto.</summary>
+        Vector3 FingerTop => finger.position + Vector3.up * fingerTopHeight;
 
         void Start()
         {
@@ -160,17 +165,17 @@ namespace Hakaton.GodMountains
                 yield return WaitForState(AlertIdleState);
             }
             god.SetTrigger(ReachId);
-            // The view follows the hand with a little lag, from his face down to the lip.
+            // The view follows the hand with a little lag, from his face down to the top of the finger at the lip.
             while (!InState(ReachHoldState))
             {
-                look = Vector3.Lerp(look, finger.position, 1 - Mathf.Exp(-followRate * Time.deltaTime));
+                look = Vector3.Lerp(look, FingerTop, 1 - Mathf.Exp(-followRate * Time.deltaTime));
                 view.Guide(look);
                 yield return null;
             }
             float settle = 1.2f;
             while ((settle -= Time.deltaTime) > 0)
             {
-                look = Vector3.Lerp(look, finger.position, 1 - Mathf.Exp(-followRate * Time.deltaTime));
+                look = Vector3.Lerp(look, FingerTop, 1 - Mathf.Exp(-followRate * Time.deltaTime));
                 view.Guide(look);
                 yield return null;
             }

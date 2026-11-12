@@ -38,7 +38,7 @@ namespace Hakaton.GodMountains.EditorTools
         {
             { "hat_01", 1.513f }, { "beard_00", 2.062f }, { "C01_f0_02", .376f },
         };
-        static readonly (string bone, float radius)[] Finger = { ("C01_f0_00", .30f), ("C01_f0_01", .23f), ("C01_f0_02", .19f) };
+        static readonly (string bone, float radius)[] Finger = { ("C01_f0_00", .24f), ("C01_f0_01", .17f), ("C01_f0_02", .14f) };
 
         static StringBuilder log;
 
