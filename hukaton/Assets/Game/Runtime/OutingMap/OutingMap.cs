@@ -19,9 +19,10 @@ namespace Hakaton.Game
     /// The map at the door. Shows the opened outing points on the charcoal parchment; a new point grows a short step
     /// away from the one it comes from, joined to it by a dashed route, and burns and blinks until clicked. Clicking a
     /// point opens its card: name, a small view, «Идти» / «Остаться». Escape, the right button or the cross steps back.
-    /// Everything on the parchment is drawn with ONE material: a runtime copy of the creatures' hand-drawn sprite material
-    /// whose pixel grid follows the parchment (the asset's grid is the world's, shared by every creature, so it is not
-    /// touched). The grid looks the same at any resolution; opening sharpens the pixels from big blocks.
+    /// The parchment, routes, ring and cross share ONE runtime copy of the creatures' hand-drawn sprite material whose
+    /// pixel grid follows the parchment; all icons share a second copy with a finer grid (the asset's grid is the world's,
+    /// shared by every creature, so it is not touched). The grids look the same at any resolution; opening sharpens the
+    /// pixels from big blocks.
     /// </summary>
     public sealed class OutingMap : MonoBehaviour
     {
@@ -69,6 +70,8 @@ namespace Hakaton.Game
         public Material pixelMaterial;
         [Tooltip("Size of one map pixel in parchment units (the parchment is 1472 wide).")]
         [Min(.5f)] public float pixelSize = 4;
+        [Tooltip("Size of one icon pixel in parchment units: the icons (and their ember twins) are drawn finer than the paper.")]
+        [Min(.5f)] public float iconPixelSize = 2;
         [Tooltip("Pixel size the map opens from (and closes to).")]
         [Min(1)] public float openPixelSize = 40;
         [Header("Look")]
@@ -96,7 +99,7 @@ namespace Hakaton.Game
         readonly Dictionary<string, OutingMapSiteView> views = new Dictionary<string, OutingMapSiteView>();
         readonly List<Image> pendingDashes = new List<Image>();
         readonly List<float> pendingAt = new List<float>();
-        Material shared;
+        Material shared, iconShared;
         Action<OutingPlace> chosen;
         Func<OutingPlace, string> nameOf;
         OutingMapSiteView selected;
@@ -114,7 +117,11 @@ namespace Hakaton.Game
             if (points) points.gameObject.SetActive(false);
         }
 
-        void OnDestroy() { if (shared) Destroy(shared); }
+        void OnDestroy()
+        {
+            if (shared) Destroy(shared);
+            if (iconShared) Destroy(iconShared);
+        }
 
         static OutingMapSave NewState() => new OutingMapSave { seed = Environment.TickCount };
 
@@ -222,6 +229,7 @@ namespace Hakaton.Game
             if (shared || !pixelMaterial) return;
             shared = new Material(pixelMaterial) { name = pixelMaterial.name + " (outing map)" };
             shared.SetFloat(MaxRefineId, 0);
+            iconShared = new Material(shared) { name = pixelMaterial.name + " (outing map icons)" };
             appliedPixel = -1;
             if (paper) paper.material = shared;
             if (closeButton && closeButton.targetGraphic) closeButton.targetGraphic.material = shared;
@@ -270,7 +278,7 @@ namespace Hakaton.Game
                 var view = Instantiate(sitePrefab, points);
                 ((RectTransform)view.transform).anchoredPosition = Local(opened);
                 if (view.ring) view.ring.material = shared;
-                view.Bind(opened.id, site.icon, site.emberIcon, !opened.seen, appear, Pick, shared);
+                view.Bind(opened.id, site.icon, site.emberIcon, !opened.seen, appear, Pick, iconShared);
                 views[opened.id] = view;
             }
         }
@@ -371,11 +379,14 @@ namespace Hakaton.Game
         /// <summary>One map pixel = <see cref="pixelSize"/> parchment units on screen; opening resolves from big blocks.</summary>
         void ApplyPixels()
         {
-            float units = Mathf.Lerp(openPixelSize, pixelSize, EaseOutCubic(shown));
+            float resolve = EaseOutCubic(shown);
+            float units = Mathf.Lerp(openPixelSize, pixelSize, resolve);
             float worldPerUnit = Mathf.Abs(sheet.lossyScale.x);
             if (Mathf.Approximately(units, appliedPixel) && Mathf.Approximately(worldPerUnit, appliedScale)) return;
             appliedPixel = units; appliedScale = worldPerUnit;
             if (shared) shared.SetFloat(PixelsPerUnitId, 1f / Mathf.Max(units * worldPerUnit, 1e-4f));
+            float iconUnits = Mathf.Lerp(openPixelSize, iconPixelSize, resolve);
+            if (iconShared) iconShared.SetFloat(PixelsPerUnitId, 1f / Mathf.Max(iconUnits * worldPerUnit, 1e-4f));
         }
 
         void Show(float amount)
