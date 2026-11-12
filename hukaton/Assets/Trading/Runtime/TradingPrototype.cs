@@ -318,9 +318,10 @@ namespace Hakaton.Trading.Unity
             var mouse = Mouse.current;
             if (mouse == null || !GameplayActive || World.Control.CapturedThisFrame) return;
             if (pressedSlot >= 0 && hoveredSlot != pressedSlot) ResetPlacement();
+            // The wheel steps between kinds of goods, not between single copies.
             float scroll = mouse.scroll.ReadValue().y;
             if (scroll != 0 && Session.Inventory.Count > 0)
-                selectedInventory = (selectedInventory + (scroll > 0 ? -1 : 1) + Session.Inventory.Count) % Session.Inventory.Count;
+                selectedInventory = StockSelection.StepKind(Session.Inventory, selectedInventory, scroll > 0 ? -1 : 1);
             if (mouse.leftButton.wasPressedThisFrame && hoveredSlot >= 0 && Session.ExpeditionId == 0)
             {
                 pressedSlot = hoveredSlot;
@@ -354,11 +355,12 @@ namespace Hakaton.Trading.Unity
         void Place(int slot)
         {
             ClampSelection();
+            string placedId = Session.Inventory.Count > 0 ? Session.Inventory[selectedInventory].Definition.Id : null;
             if (Session.PlaceItem(selectedInventory, slot))
             {
+                // The same goods stay in hand while copies remain; then the next kind, so holding fills the shelf.
+                selectedInventory = StockSelection.AfterPlacing(Session.Inventory, selectedInventory, placedId);
                 ItemPlaced?.Invoke(slot);
-                // After the selected item, continue in inventory order.
-                selectedInventory = Session.Inventory.Count == 0 ? 0 : selectedInventory % Session.Inventory.Count;
                 RefreshWorld();
                 if (displayed[slot] != null) StartCoroutine(Snap(displayed[slot].transform));
             }
@@ -633,7 +635,7 @@ namespace Hakaton.Trading.Unity
         public void CycleInventory(int direction)
         {
             if (Session == null || Session.IsOpen || Session.Inventory.Count == 0) return;
-            selectedInventory = (selectedInventory + direction + Session.Inventory.Count) % Session.Inventory.Count;
+            selectedInventory = StockSelection.StepKind(Session.Inventory, selectedInventory, direction);
         }
 
         public void SelectCustomerItem(int slotIndex, long customerId)
