@@ -32,11 +32,17 @@ namespace Hakaton.Expeditions
         Vector3 velocity, launchPosition;
         float gravity, travelled, roll;
         bool ended;
+        // Sticky hour card: the projectile's own clock runs slower inside the zone (same path, N times slower). 1 normally.
+        TimedModifier timeScale;
 
         public EnemyProjectileProfile Profile => profile;
         public WorldCreature Shooter => shooter;
         public Vector3 Velocity => velocity;
         public bool Ended => ended;
+        /// <summary>Flight-time multiplier (Sticky hour ×1/2…1/4); 1 normally. The path stays the same.</summary>
+        public float TimeScale => timeScale.Current(Time.time, 1);
+        /// <summary>Slows the flight for a while; refresh it every physics step from a zone.</summary>
+        public void ApplyTimeScale(float scale, float seconds) => timeScale.Apply(Mathf.Clamp(scale, .05f, 10), seconds, Time.time);
 
         static readonly int SpriteUvRect = Shader.PropertyToID("_SpriteUVRect");
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
@@ -87,13 +93,13 @@ namespace Hakaton.Expeditions
         {
             if (ended || !world || !profile) return;
             if (!world.Running) { End(); return; }
-            float dt = Time.fixedDeltaTime;
+            float realDt = Time.fixedDeltaTime, dt = realDt * TimeScale;
             if (profile.homingTurnRate > 0 && Combat.IsAlive(target))
                 velocity = EnemyProjectileFlight.Steer(velocity, target.Centre - transform.position, profile.homingTurnRate, dt);
             Vector3 from = transform.position, to = from, nextVelocity = velocity;
             EnemyProjectileFlight.Advance(ref to, ref nextVelocity, gravity, dt);
 
-            if (profile.cardsShootDown && TouchesCard(from, to, dt)) { ShootDown(); return; }
+            if (profile.cardsShootDown && TouchesCard(from, to, realDt)) { ShootDown(); return; }
             if (Sweep(from, to, out var point, out var normal, out var collider, out var victim))
             {
                 transform.position = point;
@@ -236,8 +242,10 @@ namespace Hakaton.Expeditions
             direction = direction.sqrMagnitude > 1e-4f ? direction.normalized : Vector3.zero;
             Vector3 push = direction * profile.knockback + Vector3.up * profile.knockbackUp;
             Vector3 source = shooter ? shooter.Centre : launchPosition;
-            bool landed = victim.TakeDamage(new DamageInfo(profile.damage, push, point, source, profile.kind, shooter));
-            if (!landed && profile.damage > 0) return;
+            // A shooter shrunk by the Crooked mirror hits weaker (never below ½ heart).
+            int damage = shooter ? WorldCreature.ScaledDamage(profile.damage, shooter.DamageScale) : profile.damage;
+            bool landed = victim.TakeDamage(new DamageInfo(damage, push, point, source, profile.kind, shooter));
+            if (!landed && damage > 0) return;
             ApplyEffects(victim, point);
         }
 

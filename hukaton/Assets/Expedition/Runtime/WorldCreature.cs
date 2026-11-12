@@ -119,6 +119,8 @@ namespace Hakaton.Expeditions
         bool lured;
         float lureDeafUntil;
         ICombatant attackTarget;
+        // Sticky hour card: the creature's own clock (walking, turning, every state timer) runs slower. 1 normally.
+        TimedModifier timeScale;
         CreatureFire fire;
         CreatureFire Fire => fire ??= new CreatureFire(this);
 
@@ -223,6 +225,7 @@ namespace Hakaton.Expeditions
             frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
+            timeScale.Clear();
             attackTarget = null;
             investigateUntil = lureDeafUntil = 0;
             lured = false;
@@ -266,7 +269,7 @@ namespace Hakaton.Expeditions
         void Update()
         {
             if (!world || !world.Running || !Alive) return;
-            float dt = Time.deltaTime;
+            float dt = Time.deltaTime * TimeScale;
             stateTime += dt;
             Perceive(dt);
 
@@ -649,10 +652,10 @@ namespace Hakaton.Expeditions
             Vector3 planar = new Vector3(velocity.x, 0, velocity.z);
             // While frozen or knocked about, physics keeps the momentum: cards and rocks still push it around.
             float acceleration = controlled ? 3 : State == CreatureState.Strike && dash ? 90 : State == CreatureState.Flee ? 45 : 18;
-            Vector3 target = controlled ? Vector3.zero : desired * MoveSpeedScale;
+            Vector3 target = controlled ? Vector3.zero : desired * (MoveSpeedScale * TimeScale);
             planar = Vector3.MoveTowards(planar, target, acceleration * dt);
             body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
-            if (!controlled) body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt * (State == CreatureState.Windup ? 1.6f : 1)));
+            if (!controlled) body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt * TimeScale * (State == CreatureState.Windup ? 1.6f : 1)));
             if (Brawling) ContainInArena();
             if (flying) FlyVertical(dt, controlled);
             if (State == CreatureState.Strike) CheckStrikeContact();
@@ -670,7 +673,7 @@ namespace Hakaton.Expeditions
             if (to.magnitude > contactRange || Vector3.Dot(strikeDirection, Flat(to).normalized) < .1f) return;
             hitThisStrike = true;
             Vector3 knockback = (strikeDirection * (dash ? 7 : 4) + Vector3.up * 2.5f);
-            victim.TakeDamage(new DamageInfo(StrikeDamage, knockback, aim, body.position, DamageKind.Hit, this));
+            victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this));
         }
 
         // ---------------- reactions ----------------
@@ -786,6 +789,25 @@ namespace Hakaton.Expeditions
 
         /// <summary>Slows (or speeds) the creature for a while. Refresh it every tick from a zone it stands in.</summary>
         public void ApplyMoveSpeedScale(float scale, float seconds) => moveSpeedScale.Apply(Mathf.Max(0, scale), seconds, Time.time);
+
+        /// <summary>
+        /// The creature's own clock (Sticky hour: ×1/2, 1/3, 1/4): walking, turning and every state timer — wind-up,
+        /// strike, recovery, aiming, a burst — run this much slower. 1 normally. Refresh it every tick from a zone.
+        /// </summary>
+        public float TimeScale => timeScale.Current(Time.time, 1);
+
+        /// <summary>Slows the creature's own clock for a while (Sticky hour). Same refresh rule as the slowdown.</summary>
+        public void ApplyTimeScale(float scale, float seconds) => timeScale.Apply(Mathf.Clamp(scale, .05f, 10), seconds, Time.time);
+
+        /// <summary>
+        /// Multiplier on the damage of its own strikes and shots (Crooked mirror ×0.5…0.3); 1 normally. Set and put
+        /// back by the card's status on the creature.
+        /// </summary>
+        public float DamageScale { get; set; } = 1;
+
+        /// <summary>Damage times <paramref name="scale"/>, never below ½ heart (1) for a hit that does any damage.</summary>
+        public static int ScaledDamage(int amount, float scale)
+            => amount <= 0 || Mathf.Approximately(scale, 1) ? amount : Mathf.Max(1, Mathf.RoundToInt(amount * Mathf.Max(0, scale)));
 
         /// <summary>Received-impulse multiplier on this body (Lightness ×1.5); 1 normally.</summary>
         public float ImpulseScale => BodyModifierStatus.ImpulseScaleOf(body);
