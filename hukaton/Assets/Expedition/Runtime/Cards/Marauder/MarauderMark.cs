@@ -5,7 +5,7 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// The mark of «Мародёр» over a beast's head (prefab <c>Assets/Game/Prefabs/Cards/Marauder/Marauder mark.prefab</c>,
-    /// a child of the creature): the card's crossed-out loot sack, crooked and swaying, above the "!!" marks. It blinks in
+    /// a child of the creature): the card's crossed-out loot sack, crooked and swaying, just above its drawing. It blinks in
     /// its last seconds and shrinks away when it runs out. While it holds, the creature's death rolls its drop table
     /// <see cref="Rolls"/> times (<see cref="ILootRollBonus"/>); a beast that dies marked pays out with a burst of coins.
     /// </summary>
@@ -17,12 +17,12 @@ namespace Hakaton.Expeditions.Cards
         public SpriteRenderer sack;
 
         [Header("Look")]
-        [Tooltip("Height of the mark above the creature's overhead marks (the red \"!!\"), m.")]
-        public float lift = .62f;
-        [Tooltip("Without overhead marks: height above the top of the creature, m.")]
+        [Tooltip("Gap between the top of the creature's drawing and the middle of the mark, m.")]
+        public float lift = .4f;
+        [Tooltip("Without a drawing: height of the mark above the creature's feet, m.")]
         public float fallbackHeight = 2.2f;
         [Tooltip("Closer than this the mark shrinks with distance, so it never swallows the screen, m.")]
-        [Min(.1f)] public float fullSizeDistance = 7;
+        [Min(.1f)] public float fullSizeDistance = 4;
         [Tooltip("Crooked sway around the view axis: degrees and cycles per second.")]
         public float swayDegrees = 9, swaySpeed = .37f;
         [Tooltip("Bob up and down: metres and cycles per second.")]
@@ -147,8 +147,9 @@ namespace Hakaton.Expeditions.Cards
         {
             if (!creature) return;
             float t = Time.time + phase;
-            Vector3 at = creature.overhead
-                ? creature.overhead.transform.position + Vector3.up * lift
+            // Just above the top of the drawing (the "!!" marks of small beasts sit much higher).
+            Vector3 at = creature.view
+                ? creature.Position + Vector3.up * (creature.view.height * creature.Size + lift)
                 : creature.Position + Vector3.up * fallbackHeight;
             at += Vector3.up * Mathf.Sin(t * bobSpeed * Mathf.PI * 2) * bobHeight;
             transform.position = at;
