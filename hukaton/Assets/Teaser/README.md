@@ -2,7 +2,7 @@
 
 18 s, 16:9, 30 fps (540 frames). Scene: `Scenes/PenusTeaser.unity`.
 
-The scene is a copy of the game scene with the gameplay systems, player, menus and other locations removed. It keeps the authored shop room, the Old Apiary forest (creatures, finds and chests switched off), the trading HUD (only the customer's speech plate) and the main menu (only the logo). Everything on screen is the game's own art: the Hangover coin as a 3D model built from the HUD coin sprites (`Assets/Content/Currency/HangoverCoin`), the thrown card with the PENUS back, the shop customer actor with the peasant appearance, the goblin dog and fang drawings through the loot sprite view (HandDrawnSprite), the card dealer on the ceiling rig, the menu logo with its card finish, the speech plate with the Text Animator typewriter.
+The scene is a copy of the game scene with the gameplay systems, player, menus and other locations removed. It keeps the authored shop room, the Old Apiary forest (creatures, finds and chests switched off), the trading HUD (only the customer's speech plate) and the main menu (only the logo). Everything on screen is the game's own art (plus the front-view staging sprites below): the Hangover coin as a 3D model built from the HUD coin sprites (`Assets/Content/Currency/HangoverCoin`), the thrown card with the PENUS back, the shop customer actor with the peasant appearance, the goblin dog and fang drawings through the loot sprite view (HandDrawnSprite), the card dealer on the ceiling rig, the menu logo with its card finish, the speech plate with the Text Animator typewriter.
 
 ## How it plays
 
@@ -10,13 +10,16 @@ The scene is a copy of the game scene with the gameplay systems, player, menus a
 
 | Track | What it does |
 | --- | --- |
-| `TeaserTurntable` (Stage / Hangover coin) | turns the 3D coin on a curve; its shot clears the camera to black |
-| `TeaserCardFlight` (camera child) | flies the card in camera space, so it carries through the forest → shop cut unchanged |
-| `TeaserCustomer` (ShopCustomer) | walks the real customer to the counter in the pre-roll, sets expressions, hides him off his shots |
+| `TeaserTurntable`, `TeaserTint`, `TeaserMove`, `TeaserParticleCue` (Stage) | the 3D coin comes out of the dark as a crescent (a soft dark disc slides off it while its brightness rises), spins once fast and smoothly, flashes and gets a Retro Arsenal sparkle; the camera drifts away from it on a black background |
+| `TeaserCardFlight` (camera child) | the card in the middle of the picture spins up and drifts into the depth in slow motion; camera space, so it carries through the forest → shop cut unchanged |
+| `TeaserCustomer` (ShopCustomer) | walks the real customer (teaser front-view appearance) to the counter in the pre-roll, hides him off his shots |
 | `TeaserSpeech` (ShopTradingHUD) | shows the plate and types the line; the label's Text Animator runs on the Script loop, advanced by teaser time |
-| `TeaserSpriteStand` (Stage) | shows the dog (default → attack at 8 s) and the fang at their in-game sizes |
+| `TeaserSpriteStand` (Stage) | shows the goblin dog (front view) and the fang at their in-game sizes; the fang stands in the middle of the counter's red trading pad |
 | `TeaserSway` | the dealer's pendulum sway and the logo's turn (same 14° / 5 s as the menu) |
+| `TeaserScale` (logo) | the logo slowly grows over the last three seconds |
 | `TeaserSparkle` (on the logo) | one pass of Retro Arsenal `minisparkles` over the logo's own star at 15.6 s |
+
+Front-view staging art (`Art/Front`, from `output/PENUS-Teaser-Front-Sprites-v1.zip`): the peasant via `PeasantFrontTeaser` appearance, the goblin dog on its stand, the card dealer on the ceiling rig (cables re-attached to his buckles). The upside-down forest is a teaser grove planted with the forest prefabs inside the Old Apiary (`Stage/Forest grove (teaser)`); the apiary's own plants in that area are switched off in this scene.
 
 Shot poses live under `Shot poses`; move them in the Scene view to reframe.
 
