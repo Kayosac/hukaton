@@ -3,12 +3,13 @@
 Same world as «Кривая тропа» (E phrygian, crooked meters, flute, kalimba, music box, choir, retrowave pads, VHS),
 new material: the sigh motif E–F–E–B. A music box whispers it while the coin comes out of the dark; slow-motion
 choir and flute carry the card through the upside-down forest into the shop; the three faces are struck by low
-chords falling Em → C → B, the mouth is a rising drum roll that stutters and is cut dead by the knock; the question
+chords falling Em → C → B, the mouth is a rising drum roll that stutters and is cut dead by the blow that kills the
+dog (black: its death cry, the fang torn out, then the knock of the fang on the counter); the question
 waits over a sub hum and a speeding heartbeat. v4: no drop on the logo. The heartbeat slows, the music box sighs
 the motif while the logo turns out of the dark (its last note on the glint), and the theme comes in for good —
 choir, kalimba, the 5/8 pulse, the flute singing the motif over Em F Em C B7 Em F — until the picture glitches and
 everything is cut dead (glitch_plan.py). Effects and the glitch are in teaser_common.
-Run: python3 teaser_score_b.py  ->  PENUS-Teaser-22s-v4-audio.wav (48 kHz stereo, about -14 LUFS)
+Run: python3 teaser_score_b.py  ->  PENUS-Teaser-22s-v5-audio.wav (48 kHz stereo, about -14 LUFS)
 """
 from teaser_common import *  # noqa: F401,F403
 
@@ -95,7 +96,7 @@ music.add(riser, 8.0, gain=1.0)
 mix_music = music.x + drums.x + 0.8 * box.x
 mix_music = mix_music + 0.25 * reverb(mix_music, rng, 2.4, 0.7)
 mix_music = stutter(mix_music, 9.12, 0.045, 4)
-mix_music = window(mix_music, 0.0, 9.4, ramp=0.002)       # cut dead by the knock
+mix_music = window(mix_music, 0.0, 9.4, ramp=0.002)       # cut dead by the blow (black, 9.4–10.0)
 
 # ---------------------------------------------------------------- 9.4–15: the question waits
 quiet = Bus()
@@ -166,5 +167,5 @@ theme_x = wow(theme_x, 15.0, CUT, cents=7)
 dream = effects(rng)
 dream = wow(mix_music + quiet_x + dream, 0.0, 15.0, cents=12)
 mix = glitch(dream + theme_x + tape_hiss(rng), rng)
-out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-22s-v4-audio.wav"), rms_db=-17.2)
-print("B v4 ok, peak", float(np.max(np.abs(out))), "samples", len(out))
+out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-22s-v5-audio.wav"), rms_db=-17.2)
+print("B v5 ok, peak", float(np.max(np.abs(out))), "samples", len(out))

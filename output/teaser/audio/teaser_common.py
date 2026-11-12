@@ -145,27 +145,70 @@ def effects(rng):
     amb_clip(forest, 6.0, 7.0, 9.0, 0.28)
     amb_clip(shop_amb, 7.0, 8.0, 6.0, 0.5)
     amb_clip(forest, 8.0, 9.4, 12.0, 0.25)
-    amb_clip(shop_amb, 9.4, 14.9, 10.0, 0.8)
+    amb_clip(shop_amb, 10.0, 14.9, 10.6, 0.8)
 
-    bell = load("shop/door_bell.wav")
-    for t, st, gn in ((5.0, 0, 0.62), (6.0, -2, 0.62), (7.0, -4, 0.66)):
-        b = filt(pitch(bell, st), "lp", 5200 - 700 * (-st))
-        w = 1 + 0.004 * np.sin(2 * np.pi * 5.5 * np.arange(len(b)) / SR)
-        b = np.interp(np.cumsum(w) - w[0], np.arange(len(b)), b)
-        sfx.add(fade(b[: int(0.98 * SR)], 0.001, 0.12), t, pan=0.1, gain=gn)
+    for t, st in ((5.0, 0), (6.0, -2), (7.0, -4)):               # the eye-matched cuts
+        air, hit = cut_thock(rng, st)
+        sfx.add(air, t - len(air) / SR, gain=1.0)
+        sfx.add(tail(hit, 0.6, 0.18, rng, lp=3000, wet=0.25), t, gain=0.65)
     sfx.add(fade(load("backroom/rope_pull.wav")[: int(0.45 * SR)], 0.002, 0.1), 7.08, pan=0.35, gain=0.32)
 
     growl = filt(np.concatenate([pitch(load("creatures/wolf_growl.wav"), -3), pitch(load("creatures/wolf_growl.wav"), -4)]), "hp", 70)
     g = Bus(); g.add(growl[: int(1.4 * SR)], 8.0, gain=0.85)
     sfx.x += window(g.x, 0, 9.4, ramp=0.002)
-    sfx.add(load("shop/place_item_01.wav"), 9.4, gain=1.25)
+    sfx.x += kill_and_tear(rng)                                    # black, 9.4–10.0
+    sfx.add(load("shop/place_item_01.wav"), 10.0, gain=1.25)       # the fang lands on the counter
 
     tick = load("shop/clock_tick.wav")
-    for k, t in enumerate((10.0, 11.0, 12.0, 13.0, 14.0)):
-        sfx.add(pitch(tick, 0 if k % 2 == 0 else -3), t, pan=-0.35, gain=0.75)
+    for t, st in ((11.0, -3), (12.0, 0), (13.0, -3), (14.0, 0)):
+        sfx.add(pitch(tick, st), t, pan=-0.35, gain=0.75)
     sfx.add(fade(filt(load("voices/peasant_hmm.wav"), "lp", 1500), 0.01, 0.08), 12.08, pan=0.05, gain=0.95)
 
     return sfx.x + amb.x
+
+
+# ---------------------------------------------------------------- the eye-matched cuts and the black before the fang
+def cut_thock(rng, st=0.0):
+    """A soft, deep "dum-tok" for a match cut: air pulled in, then a low tom with a short wooden knock. No ring."""
+    k = 2 ** (st / 12)
+    n = int(0.6 * SR); t = np.arange(n) / SR
+    f = (60 + 75 * np.exp(-t / 0.03)) * k
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.15)
+    body = np.tanh(body * 1.8) / np.tanh(1.8)
+    knock = np.sin(2 * np.pi * 420 * k * t) * np.exp(-t / 0.016) * 0.42 \
+        + np.sin(2 * np.pi * 1130 * k * t) * np.exp(-t / 0.006) * 0.16
+    click = filt(rng.standard_normal(n), "bp", (900, 3000)) * np.exp(-t / 0.003) * 0.3
+    hit = fade(body * 0.85 + knock + click, 0.0005, 0.05)
+    m = int(0.15 * SR); tm = np.arange(m) / SR
+    air = filt(rng.standard_normal(m), "bp", (250, 2200)) * (tm / tm[-1]) ** 2.6 * 0.18
+    return fade(air, 0.01, 0.002), hit
+
+
+def kill_and_tear(rng):
+    """The black between the jaw and the counter: the goblin dog is struck and dies, then the fang is torn out."""
+    k = Bus()
+    k.add(fade(filt(pitch(load("impacts/strike_hit_01.wav"), -3), "lp", 5000), 0.001, 0.05), 9.40, gain=0.85)
+    k.add(fade(pitch(load("impacts/heavy_hit_02.wav"), -5)[: int(0.35 * SR)], 0.001, 0.1), 9.40, gain=0.45)
+    cry = filt(pitch(load("creatures/creature_death.wav"), -3), "lp", 4500)
+    k.add(fade(cry[: int(0.5 * SR)], 0.003, 0.14), 9.42, pan=0.05, gain=0.95)
+    k.add(fade(pitch(load("creatures/body_thud.wav"), -2)[: int(0.3 * SR)], 0.001, 0.08), 9.62, gain=0.6)
+    n = int(0.29 * SR); t = np.arange(n) / SR
+    dens = (t / t[-1]) ** 1.5                                       # wet tearing gets denser
+    tear = np.zeros(n); i = 0
+    while i < n:
+        g = int(SR * rng.uniform(0.002, 0.006))
+        grain = filt(rng.standard_normal(g), "bp", (rng.uniform(450, 900), rng.uniform(1800, 3800))) * np.hanning(g)
+        e = min(n, i + g); tear[i:e] += grain[: e - i] * rng.uniform(0.5, 1.0)
+        i += max(30, int(SR * (0.013 - 0.010 * dens[i]) * rng.uniform(0.5, 1.5)))
+    tear *= 0.3 + 0.7 * dens
+    squelch = filt(rng.standard_normal(n), "bp", (220, 900)) * (0.5 + 0.5 * np.sin(2 * np.pi * 23 * t)) * dens * 0.3
+    jitter = filt(rng.standard_normal(n), "lp", 25); jitter /= np.max(np.abs(jitter)) + 1e-9
+    strain = filt(np.sign(np.sin(2 * np.pi * np.cumsum(85 + 45 * t / t[-1] + 12 * jitter) / SR)), "lp", 650) * dens * 0.07
+    k.add(fade(tear + squelch + strain, 0.02, 0.01), 9.66, gain=1.7)
+    k.add(fade(filt(pitch(load("creatures/wolf_snap.wav"), -6), "lp", 4000)[: int(0.22 * SR)], 0.001, 0.05), 9.90, gain=0.8)
+    m = int(0.06 * SR); tm = np.arange(m) / SR
+    k.add(np.sin(2 * np.pi * np.cumsum(70 + 260 * np.exp(-tm / 0.02)) / SR) * np.exp(-tm / 0.025), 9.93, gain=0.5)
+    return window(k.x, 9.4, 10.0, ramp=0.002)
 
 
 # ---------------------------------------------------------------- the end glitch, frame by frame with the picture
