@@ -1086,13 +1086,28 @@ namespace Hakaton.Expeditions
 
         static readonly List<LootItem> dropped = new List<LootItem>();
 
+        /// <summary>
+        /// How many times <see cref="drops"/> is rolled on death: 1, or the most any loot mark on the body asks for
+        /// (<see cref="ILootRollBonus"/>, the «Мародёр» card).
+        /// </summary>
+        public int LootRolls
+        {
+            get
+            {
+                int rolls = 1;
+                foreach (var bonus in GetComponentsInChildren<ILootRollBonus>()) rolls = Mathf.Max(rolls, bonus.LootRolls);
+                return rolls;
+            }
+        }
+
         /// <summary>Rolls <see cref="drops"/>; every copy pops out of the body on its own arc.</summary>
         void DropLoot()
         {
             dropped.Clear();
             // the cave prologue gives no loot (its mushrooms are scenery and practice)
             if (world.InPrologue) return;
-            drops.Roll(dropped);
+            // «Мародёр»: a loot mark on the body rolls the table more than once (ILootRollBonus).
+            for (int roll = LootRolls; roll > 0; roll--) drops.Roll(dropped);
             if (dropped.Count == 0) return;
             Vector3 from = transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
             foreach (var item in dropped)
