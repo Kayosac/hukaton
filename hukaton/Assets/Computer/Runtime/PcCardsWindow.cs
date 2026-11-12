@@ -13,7 +13,8 @@ namespace Hakaton.Computer
     /// <summary>
     /// «Карты»: every owned copy in a scrolling grid, drawn like the brazier's list. Copies outside the deck are
     /// translucent; a click puts a copy into the deck or takes it out; dragging a copy onto an equal one of the same
-    /// level merges them (I + I → II, II + II → III). The sort button cycles through <see cref="PcSort.Cycle"/>.
+    /// level merges them (I + I → II, II + II → III); <see cref="PcMergeShow"/> plays the merge in the grid, then the
+    /// cards glide to their new cells. The sort button cycles through <see cref="PcSort.Cycle"/>.
     /// </summary>
     public sealed class PcCardsWindow : MonoBehaviour
     {
@@ -30,10 +31,13 @@ namespace Hakaton.Computer
         public PcTooltip tooltip;
         public TMP_Text deckCount, collectionCount, sortLabel;
         public Button sortButton;
+        [Tooltip("Plays a merge right in the grid (optional: without it the merge shows at once).")]
+        public PcMergeShow mergeShow;
 
         readonly List<PcCardTile> tiles = new List<PcCardTile>();
         PcSortMode sort;
         PcCardTile hovered, dragged, target;
+        bool merging;
 
         DeckPrototype Workshop => computer.workshop;
         DeckWorkshop Model => Workshop.Model;
@@ -55,6 +59,8 @@ namespace Hakaton.Computer
         void OnDisable()
         {
             if (Workshop) Model.Changed -= OnModelChanged;
+            // Being disabled: no refreshing now; the window refreshes when it opens again.
+            if (mergeShow) mergeShow.Abandon();
             CancelDrag();
         }
 
@@ -65,13 +71,17 @@ namespace Hakaton.Computer
             window.SetStatus("Клик — в колоду или из неё. Перетащите карту на такую же, чтобы объединить.");
         }
 
+        bool ShowPlaying => mergeShow && mergeShow.Playing;
+
         void OnModelChanged()
         {
-            if (window.IsOpen && !dragged) Refresh();
+            // While a merge is being committed or shown, the grid waits for the show's end.
+            if (window.IsOpen && !dragged && !merging && !ShowPlaying) Refresh();
         }
 
         public void NextSort()
         {
+            if (mergeShow) mergeShow.Finish();
             sort = PcSort.Next(sort);
             PlayerPrefs.SetInt(SortKey, (int)sort);
             computer.Ui(PcComputer.UiSound.Click);
@@ -81,6 +91,8 @@ namespace Hakaton.Computer
 
         public void Refresh()
         {
+            // Anyone refreshing mid-show gets the settled grid first (the show ends, then this refresh runs).
+            if (ShowPlaying) mergeShow.Finish();
             var copies = PcSort.Apply(Model.Owned, sort, Model.IsSelected);
             while (tiles.Count < copies.Count)
             {
@@ -116,7 +128,7 @@ namespace Hakaton.Computer
 
         void OnClicked(PcCardTile tile)
         {
-            if (!Ready || dragged) return;
+            if (!Ready || dragged || mergeShow && mergeShow.SwallowsClick) return;
             var copy = Model.Find(tile.CopyId);
             if (copy == null) return;
             bool wasIn = Model.IsSelected(copy.Id);
@@ -181,7 +193,13 @@ namespace Hakaton.Computer
 
         void OnDragStarted(PcCardTile tile)
         {
-            if (!Ready) { tile.EndDragNow(); return; }
+            if (!Ready || ShowPlaying)
+            {
+                // A drag that starts mid-show was aimed at the old grid: skip the show and let the player pick again.
+                if (ShowPlaying) mergeShow.Finish();
+                tile.EndDragNow();
+                return;
+            }
             dragged = tile;
             PcCursor.Grabbing = true;
             HideTooltip();
@@ -244,8 +262,13 @@ namespace Hakaton.Computer
                 computer.Ui(PcComputer.UiSound.Error);
                 return;
             }
-            // The dropped copy goes into the one it was dropped on: the result keeps that one's place.
-            string error = Model.Merge(into.Id, source.Id, out var result);
+            // The dropped copy goes into the one it was dropped on: the result keeps that one's place. The model is
+            // merged right now (anything saved or read meanwhile sees the result); only the picture waits for the show.
+            string error;
+            CardCopy result;
+            merging = true;
+            try { error = Model.Merge(into.Id, source.Id, out result); }
+            finally { merging = false; }
             if (error != null)
             {
                 Restore();
@@ -253,12 +276,46 @@ namespace Hakaton.Computer
                 computer.Ui(PcComputer.UiSound.Error);
                 return;
             }
-            tile.Vanish();
-            Refresh();
-            var merged = tiles.FirstOrDefault(t => t.isActiveAndEnabled && t.CopyId == result.Id);
-            if (merged) merged.Celebrate();
-            computer.Play(Workshop.mergeSound ? Workshop.mergeSound : Workshop.config.coinSound);
+            foreach (var t in tiles) t.SetRole(PcCardTile.Role.None);
             window.SetStatus($"Карта «{result.Spec.Name}» улучшена до {CardCopy.UpgradeMark(result.Level)}.");
+            int resultId = result.Id;
+            var definition = Workshop.config.Find(result.Spec.Id);
+            tile.Hold();
+            var show = new PcMergeShow.Request
+            {
+                ghost = tile, target = under, resultLevel = result.Level, resultInDeck = Model.IsSelected(resultId),
+                accent = definition ? definition.accent : Color.white
+            };
+            if (mergeShow && mergeShow.Play(show, revealed => SettleMerge(resultId, revealed))) return;
+            tile.Vanish();
+            SettleMerge(resultId, false);
+            computer.Play(Workshop.mergeSound ? Workshop.mergeSound : Workshop.config.coinSound);
+        }
+
+        /// <summary>
+        /// After a merge: the grid shows the new collection, and every card that changed cell glides there from where
+        /// it was (the merged card from the merge cell). <paramref name="revealed"/>: the show already presented the
+        /// new level; otherwise the merged card flares up now.
+        /// </summary>
+        void SettleMerge(int resultId, bool revealed)
+        {
+            if (!computer || !Workshop) return;
+            var drawnAt = new Dictionary<int, Vector3>();
+            PcCardTile before = null;
+            foreach (var t in tiles)
+            {
+                if (!t || !t.isActiveAndEnabled || t.Gone || t.Dragged || t.Held) continue;
+                drawnAt[t.CopyId] = t.body.position;
+                if (t.CopyId == resultId) before = t;
+            }
+            Refresh();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(grid);
+            foreach (var t in tiles)
+                if (t && t.isActiveAndEnabled && drawnAt.TryGetValue(t.CopyId, out var at)) t.GlideFrom(at);
+            var merged = tiles.FirstOrDefault(t => t && t.isActiveAndEnabled && t.CopyId == resultId);
+            if (!merged) return;
+            if (!revealed) merged.Celebrate();
+            else if (merged != before) merged.Pop();
         }
 
         void Restore()
@@ -269,6 +326,7 @@ namespace Hakaton.Computer
 
         public void CancelDrag()
         {
+            if (mergeShow) mergeShow.Stop();
             if (dragged) dragged.EndDragNow();
             if (target) target.SetTargeted(false);
             dragged = target = null;
