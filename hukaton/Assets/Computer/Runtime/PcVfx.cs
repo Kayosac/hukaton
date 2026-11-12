@@ -20,7 +20,7 @@ namespace Hakaton.Computer
             public GameObject root;
             public ParticleSystem[] systems;
             public float stopAt = float.PositiveInfinity, dieAt;
-            public bool clearOnImpact, stopped;
+            public bool clearOnImpact, stopOnImpact, stopped;
 
             public void StopEmitting()
             {

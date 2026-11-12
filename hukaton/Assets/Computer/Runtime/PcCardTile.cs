@@ -158,15 +158,7 @@ namespace Hakaton.Computer
         {
             if (e.button != PointerEventData.InputButton.Left || !dragLayer || !CrtRaycaster.Current || Held) return;
             Dragged = true;
-            // Lift the body out of the scroll view, keeping where it is and its size.
-            Vector2 size = body.rect.size;
-            Vector3 world = body.position;
-            body.SetParent(dragLayer, false);
-            body.anchorMin = body.anchorMax = new Vector2(.5f, .5f);
-            body.sizeDelta = size;
-            body.position = world;
-            body.SetAsLastSibling();
-            if (bodyGroup) bodyGroup.blocksRaycasts = false;
+            Detach(dragLayer);
             CrtRaycaster.Current.ToLocal(dragLayer, e.position, out var pointer);
             grab = body.anchoredPosition - pointer;
             DragStarted?.Invoke(this);
@@ -193,10 +185,35 @@ namespace Hakaton.Computer
             EndDragNow();
         }
 
+        /// <summary>Lifts the body out of the scroll view onto a layer, keeping where it is and its size.</summary>
+        void Detach(RectTransform layer)
+        {
+            Vector2 size = body.rect.size;
+            Vector3 world = body.position;
+            body.SetParent(layer, false);
+            body.anchorMin = body.anchorMax = new Vector2(.5f, .5f);
+            body.sizeDelta = size;
+            body.position = world;
+            body.SetAsLastSibling();
+            if (bodyGroup) bodyGroup.blocksRaycasts = false;
+        }
+
         /// <summary>Called from a <see cref="Dropped"/> handler: the body stays on the drag layer for the merge show.</summary>
         public void Hold()
         {
             if (Dragged) Held = true;
+        }
+
+        /// <summary>
+        /// The merge target: its body is lifted onto the drag layer too (above the window's spotlight) and held there,
+        /// placed by the merge show, until <see cref="EndDragNow"/> brings it home.
+        /// </summary>
+        public bool Lift()
+        {
+            if (Dragged || Held || !dragLayer) return false;
+            Held = true;
+            Detach(dragLayer);
+            return true;
         }
 
         /// <summary>Puts a held body at a point of the drag layer (whole pixels).</summary>

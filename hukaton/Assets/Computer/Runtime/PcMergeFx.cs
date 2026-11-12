@@ -42,6 +42,8 @@ namespace Hakaton.Computer
             [Min(0)] public float speed;
             [Tooltip("Swallowed by the impact: cleared the moment the cards smash (for gathering effects).")]
             public bool clearOnImpact;
+            [Tooltip("Stops emitting at the impact; particles already flying finish their flight (for sprays during the grind).")]
+            public bool stopOnImpact;
             [Tooltip("Seconds before it stops emitting (for looping effects); 0: plays out by itself.")]
             [Min(0)] public float hold;
         }
@@ -93,11 +95,22 @@ namespace Hakaton.Computer
             [Tooltip("The accent-coloured frame pulses this many times per second.")]
             [Min(0)] public float glowPulseHz = 10;
             [Tooltip("White flash over both cards by the end of the grind (0..1).")]
-            [Range(0, 1)] public float grindFlash = .6f;
+            [Range(0, 1)] public float grindFlash = .45f;
+
+            [Header("Spotlight")]
+            [Tooltip("The Cards window darkens under the two merging cards and the particles, so they pop: opacity of the dark layer.")]
+            [Range(0, 1)] public float spotlight = .65f;
+            public Color spotlightColour = new Color(.078f, .047f, .031f, 1);
+            [Tooltip("Fade in from the drop, seconds.")]
+            [Min(0)] public float spotlightInSeconds = .15f;
+            [Tooltip("Fade out once the grid settles, seconds.")]
+            [Min(0)] public float spotlightOutSeconds = .3f;
 
             [Header("Impact and reveal")]
-            [Tooltip("The card's art is squashed to this scale for the frozen moment.")]
+            [Tooltip("The card's art is squashed to this scale for the frozen moment (the card is fully white then).")]
             public Vector2 impactSquash = new Vector2(1.12f, .9f);
+            [Tooltip("After the frozen moment the card's white fades out over this long (a punch, not a glare).")]
+            [Min(0)] public float cardFlashFadeSeconds = .1f;
             [Tooltip("The Cards window shakes by up to this many pixels.")]
             [Min(0)] public float windowShakePixels = 3;
             [Min(0)] public float windowShakeSeconds = .25f;
@@ -112,8 +125,11 @@ namespace Hakaton.Computer
             [Range(0, 1)] public float grindWobble = .04f;
             [Range(0, 1)] public float grindNoise = .03f;
             [Range(0, 1)] public float impactWobble = .1f;
-            [Range(0, 1)] public float impactFlash = .25f;
-            [Tooltip("The CRT pulse fades out over about this long after the impact.")]
+            [Tooltip("Whole-screen white added by the tube at the impact: keep it small, the card carries the flash.")]
+            [Range(0, 1)] public float impactFlash = .08f;
+            [Tooltip("The tube's white lasts this long (about two frames).")]
+            [Min(.01f)] public float crtFlashSeconds = .07f;
+            [Tooltip("The tube's wobble and static fade out over about this long after the impact.")]
             [Min(.01f)] public float crtFadeSeconds = .25f;
 
             [Header("Effects and sound")]
@@ -131,10 +147,11 @@ namespace Hakaton.Computer
                         label = "III", resultLevel = 3,
                         flySeconds = .24f, grindSeconds = .6f, holdSeconds = .08f, revealSeconds = .58f,
                         anticipationPixels = 8, overshoot = 1.8f, arcPixels = 12, overlapPixels = 14, tiltDegrees = 6, windUpSwell = .14f,
-                        jitterPixels = new Vector2(1, 3), glowPulseHz = 14, grindFlash = .75f,
-                        impactSquash = new Vector2(1.18f, .86f), windowShakePixels = 4, windowShakeSeconds = .32f,
+                        jitterPixels = new Vector2(1, 3), glowPulseHz = 14, grindFlash = .55f,
+                        spotlight = .72f, spotlightInSeconds = .15f, spotlightOutSeconds = .35f,
+                        impactSquash = new Vector2(1.18f, .86f), cardFlashFadeSeconds = .12f, windowShakePixels = 4, windowShakeSeconds = .32f,
                         swell = 6, markHopPixels = 9, flipFrequency = 11,
-                        grindWobble = .07f, grindNoise = .05f, impactWobble = .18f, impactFlash = .4f, crtFadeSeconds = .32f
+                        grindWobble = .07f, grindNoise = .05f, impactWobble = .18f, impactFlash = .12f, crtFlashSeconds = .08f, crtFadeSeconds = .32f
                     };
                 return new Level { label = "II", resultLevel = Mathf.Max(1, resultLevel) };
             }

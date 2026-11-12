@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using Hakaton.Feel;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Hakaton.Computer
 {
     /// <summary>
-    /// The merge, played right in the card grid. The dropped card winds up and dashes onto the other one, the two
-    /// grind together (whole-pixel jitter, accent glow, rising white, the tube wobbling), smash in a white flash with
-    /// a Retro Arsenal burst at the cell and a shake of the window, and the card squash-flips showing its new level.
+    /// The merge, played right in the card grid. The Cards window darkens (a spotlight: both cards are lifted onto the
+    /// drag layer above it, the particles draw above everything), the dropped card winds up and dashes onto the other
+    /// one, the two grind together (whole-pixel jitter, accent glow, sparks, rising white, the tube wobbling), smash in a
+    /// short white punch with Retro Arsenal bursts at the cell and a shake of the window, and the card squash-flips
+    /// showing its new level.
     /// Then the grid settles: the window refreshes and the cards glide to their new cells.
     /// The model is merged before the show starts; only the picture waits. A click, Space or Enter skips to the end;
     /// closing the window or the PC stops it at once. Settings per result level: <see cref="PcMergeFx"/>.
@@ -25,6 +28,9 @@ namespace Hakaton.Computer
         public Transform fxRoot;
         [Tooltip("Shaken by the impact: the Cards window.")]
         public RectTransform shakeTarget;
+        [Tooltip("A dark layer over the whole Cards window (its last child, not a raycast target), faded in during the show. " +
+                 "The two merging cards are lifted above it onto the drag layer.")]
+        public Graphic spotlight;
 
         /// <summary>What to play: the dropped card, the one it was dropped on, and the merged result.</summary>
         public struct Request
@@ -45,7 +51,9 @@ namespace Hakaton.Computer
         /// <summary>The show is on, or a click has just skipped it: its release must not also toggle a card.</summary>
         public bool SwallowsClick => playing || swallowRelease;
 
-        bool playing, grindStarted, impactDone, revealStarted, swallowRelease, crtTouched, shaking;
+        bool playing, grindStarted, impactDone, revealStarted, swallowRelease, crtTouched, shaking, lifted;
+        float spotAlpha, spotPeak, spotInSeconds, spotOutSeconds;
+        Color spotColour;
         Request request;
         PcMergeFx.Level level;
         PcMergeTimeline timeline;
@@ -89,6 +97,15 @@ namespace Hakaton.Computer
             shaking = false;
             if (shakeTarget) shakeRest = shakeTarget.anchoredPosition;
 
+            // Both cards above the spotlight: the target joins the dropped card on the drag layer, under it.
+            lifted = what.target.Lift();
+            what.ghost.body.SetAsLastSibling();
+            spotPeak = lifted ? level.spotlight : 0;
+            spotColour = level.spotlightColour;
+            spotInSeconds = level.spotlightInSeconds;
+            spotOutSeconds = level.spotlightOutSeconds;
+            if (spotlight) spotlight.raycastTarget = false;
+
             Schedule();
             what.ghost.HideMark();
             what.ghost.SetRole(PcCardTile.Role.None);
@@ -111,6 +128,7 @@ namespace Hakaton.Computer
         {
             End();
             ClearFx();
+            SetSpotlight(0);
         }
 
         /// <summary>
@@ -125,13 +143,16 @@ namespace Hakaton.Computer
                 events.Clear();
                 nextEvent = 0;
                 settle = null;
+                // A held card goes home in its own OnDisable (no re-parenting from here while the hierarchy is switching off).
                 if (request.ghost) request.ghost.EndPose();
                 if (request.target) request.target.EndPose();
                 request = default;
+                lifted = false;
                 ResetCrt();
                 ResetShake();
             }
             ClearFx();
+            SetSpotlight(0);
         }
 
         void OnDisable() => Abandon();
@@ -153,6 +174,7 @@ namespace Hakaton.Computer
         {
             float now = Time.unscaledTime;
             AgeFx(now);
+            FadeSpotlight(Mathf.Min(Time.unscaledDeltaTime, 1 / 20f));
             var mouse = Mouse.current;
             if (swallowRelease && (mouse == null || !mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)) swallowRelease = false;
             if (!playing) return;
@@ -187,7 +209,7 @@ namespace Hakaton.Computer
         /// <summary>The target cell's middle in the drag layer's space (followed every frame: the grid may scroll).</summary>
         Vector2 TargetOnDragLayer()
         {
-            var layer = request.ghost ? request.ghost.body.parent : null;
+            var layer = cards ? cards.dragLayer : null;
             return layer ? (Vector2)layer.InverseTransformPoint(request.target.transform.position) : Vector2.zero;
         }
 
@@ -195,11 +217,10 @@ namespace Hakaton.Computer
         {
             var ghost = request.ghost;
             var target = request.target;
-            if (!impactDone)
-            {
-                to = TargetOnDragLayer();
-                grindFrom = to - direction * level.overlapPixels;
-            }
+            to = TargetOnDragLayer();
+            grindFrom = to - direction * level.overlapPixels;
+            // The lifted target stays exactly over its cell (the cell scrolls or shakes with the window).
+            if (lifted) target.PlaceHeld(to);
             Color accent = request.accent;
             float tilt = level.tiltDegrees;
 
@@ -240,17 +261,19 @@ namespace Hakaton.Computer
             float since = time - timeline.ImpactAt;
             if (time < timeline.RevealAt)
             {
-                // The frozen moment: squashed, white.
+                // The frozen moment (two or three frames): squashed, white.
                 target.Pose(Vector2.zero, 0, level.impactSquash, 1, 1, accent);
             }
             else
             {
                 if (!revealStarted) Reveal();
                 float r = time - timeline.RevealAt;
-                target.Pose(Vector2.zero, 0, Vector2.one, Mathf.Clamp01(1 - r / .3f), Mathf.Clamp01(1 - r / .45f), accent);
+                float white = level.cardFlashFadeSeconds > 0 ? Mathf.Clamp01(1 - r / level.cardFlashFadeSeconds) : 0;
+                target.Pose(Vector2.zero, 0, Vector2.one, white, Mathf.Clamp01(1 - r / .45f), accent);
             }
             float fade = Mathf.Exp(-since / Mathf.Max(.01f, level.crtFadeSeconds));
-            Crt(level.impactWobble * fade, level.grindNoise * fade, level.impactFlash * fade);
+            float punch = Mathf.Clamp01(1 - since / Mathf.Max(.01f, level.crtFlashSeconds));
+            Crt(level.impactWobble * fade, level.grindNoise * fade, level.impactFlash * punch);
             Shake(since);
             if (time >= timeline.End) End();
         }
@@ -262,7 +285,11 @@ namespace Hakaton.Computer
             request.ghost.Vanish();
             request.target.HideMark();
             foreach (var effect in live)
-                if (effect.clearOnImpact && effect.root) Kill(effect);
+            {
+                if (!effect.root) continue;
+                if (effect.clearOnImpact) Kill(effect);
+                else if (effect.stopOnImpact) effect.StopEmitting();
+            }
             live.RemoveAll(effect => !effect.root);
             shaking = shakeTarget;
         }
@@ -296,15 +323,49 @@ namespace Hakaton.Computer
                 if (!impactDone) what.ghost.Vanish();
                 what.ghost.EndPose();
             }
-            if (what.target) what.target.EndPose();
+            if (what.target)
+            {
+                // Home from the drag layer (it sits right over its cell, so there is nothing to glide).
+                if (lifted && what.target.Held) what.target.EndDragNow();
+                what.target.EndPose();
+            }
+            lifted = false;
             foreach (var effect in live)
-                if (effect.clearOnImpact && effect.root) Kill(effect);
+            {
+                if (!effect.root) continue;
+                if (effect.clearOnImpact) Kill(effect);
+                else if (effect.stopOnImpact) effect.StopEmitting();
+            }
             live.RemoveAll(effect => !effect.root);
             ResetCrt();
             ResetShake();
             var then = settle;
             settle = null;
             then?.Invoke(revealStarted);
+        }
+
+        // ---------- spotlight ----------
+
+        /// <summary>Fades the dark layer in while the show plays (from the drop) and out after it (while the grid settles).</summary>
+        void FadeSpotlight(float dt)
+        {
+            if (!spotlight || !playing && spotAlpha <= 0) return;
+            bool on = playing && lifted;
+            float want = on ? spotPeak : 0;
+            float seconds = on ? spotInSeconds : spotOutSeconds;
+            float step = seconds > 0 ? Mathf.Max(spotPeak, .01f) / seconds * dt : 1;
+            SetSpotlight(Mathf.MoveTowards(spotAlpha, want, step));
+        }
+
+        void SetSpotlight(float alpha)
+        {
+            spotAlpha = Mathf.Clamp01(alpha);
+            if (!spotlight) return;
+            var colour = spotColour;
+            colour.a = spotAlpha;
+            spotlight.color = colour;
+            bool visible = spotAlpha > .001f;
+            if (spotlight.enabled != visible) spotlight.enabled = visible;
         }
 
         // ---------- CRT and shake ----------
@@ -370,6 +431,7 @@ namespace Hakaton.Computer
                 request.accent, burst.accent, burst.speed, burst.hold, Time.unscaledTime);
             if (effect == null) return;
             effect.clearOnImpact = burst.clearOnImpact && !impactDone;
+            effect.stopOnImpact = burst.stopOnImpact && !impactDone;
             live.Add(effect);
         }
 

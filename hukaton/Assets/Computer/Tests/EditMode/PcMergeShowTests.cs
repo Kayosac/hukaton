@@ -45,6 +45,20 @@ namespace Hakaton.Computer.Tests
         }
 
         [Test]
+        public void TheImpactIsAPunchNotAGlare()
+        {
+            foreach (var level in new[] { PcMergeFx.Level.Defaults(2), PcMergeFx.Level.Defaults(3) })
+            {
+                Assert.That(level.crtFlashSeconds, Is.LessThanOrEqualTo(.1f), "the tube's white lasts two or three frames");
+                Assert.That(level.impactFlash, Is.LessThanOrEqualTo(.15f), "the card carries the flash, not the whole screen");
+                Assert.That(level.holdSeconds + level.cardFlashFadeSeconds, Is.LessThanOrEqualTo(.25f), "the card is white only briefly");
+                Assert.That(level.spotlight, Is.InRange(.5f, .85f), "the window darkens so the cards and the effects pop");
+                Assert.That(level.spotlightInSeconds, Is.LessThanOrEqualTo(level.flySeconds), "dark before the cards meet");
+            }
+            Assert.That(PcMergeFx.Level.Defaults(3).spotlight, Is.GreaterThan(PcMergeFx.Level.Defaults(2).spotlight));
+        }
+
+        [Test]
         public void TheBeatsFollowEachOther()
         {
             var timeline = new PcMergeTimeline(.2f, .4f, .06f, .5f);
