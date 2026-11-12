@@ -357,6 +357,7 @@ namespace Hakaton.Expeditions.Tests
                 {
                     if (!sprite) continue;
                     Assert.That(sprite.pixelsPerUnit / scale, Is.EqualTo(grid * 2).Within(grid * .01f), sprite.name);
+                    Assert.That(sprite.pivot.y, Is.EqualTo(0).Within(.01f), sprite.name + ": the frame ends on the feet line.");
                     customers++;
                 }
             }
