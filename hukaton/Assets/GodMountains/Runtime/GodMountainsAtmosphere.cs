@@ -5,11 +5,13 @@ using UnityEngine.Rendering;
 namespace Hakaton.GodMountains
 {
     /// <summary>
-    /// The air of the god mountains (docs/level-design/god-mountains, chapter 7): fog, sky colour and flat ambient light
+    /// The air of the god mountains (docs/level-design/god-mountains, chapter 7): fog, sky colour and ambient light
     /// follow the viewer along the walking route. The route is the authored chain of points; the viewer's place on it is
     /// measured in metres from the first point, and the air at that distance is blended between the two nearest keys.
     /// Keys sit where nothing far is visible: behind the stone frame (inside → cloud) and in the bend of the gorge
     /// (cloud → heights), so the change is never seen.
+    /// The sky is the game's pixel sky (Hukaton/Fantasy Day Sky) when one is given: inside and in the cloud the fog hides
+    /// all of it, in the heights it opens. The template material is never changed; a copy made at runtime is.
     /// </summary>
     [DisallowMultipleComponent, DefaultExecutionOrder(400)]
     public sealed class GodMountainsAtmosphere : MonoBehaviour
@@ -23,8 +25,10 @@ namespace Hakaton.GodMountains
             [Min(0)] public float density;
             [Tooltip("Background of the viewer's camera (Solid Color): the sky.")]
             public Color sky;
-            [Tooltip("Flat ambient light.")]
+            [Tooltip("Ambient light from the sides; from above it is 1.35 times stronger, from below half as strong.")]
             public Color ambient;
+            [Tooltip("With a sky material: 1 — the whole sky is fog colour, 0 — clear sky down to the template's fog start.")]
+            [Range(0, 1)] public float skyHidden;
         }
 
         [Serializable]
@@ -45,6 +49,29 @@ namespace Hakaton.GodMountains
         public Air[] profiles = Array.Empty<Air>();
         [Tooltip("Ascending by metres. Before the first key and after the last the air is that key's own.")]
         public Key[] keys = Array.Empty<Key>();
+        [Tooltip("Optional skybox (Hukaton/Fantasy Day Sky). Empty: the camera's solid background takes the air's sky colour.")]
+        public Material sky;
+
+        static readonly int FogStartId = Shader.PropertyToID("_FogStart");
+        Material skyCopy;
+        float clearFogStart;
+
+        void OnDestroy()
+        {
+            if (!skyCopy) return;
+            if (Application.isPlaying) Destroy(skyCopy); else DestroyImmediate(skyCopy);
+        }
+
+        Material SkyCopy()
+        {
+            if (!sky) return null;
+            if (!skyCopy)
+            {
+                skyCopy = new Material(sky) { name = sky.name + " (route)", hideFlags = HideFlags.DontSave };
+                clearFogStart = sky.HasProperty(FogStartId) ? sky.GetFloat(FogStartId) : 0;
+            }
+            return skyCopy;
+        }
 
         void LateUpdate()
         {
@@ -90,9 +117,17 @@ namespace Hakaton.GodMountains
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = air.fog;
             RenderSettings.fogDensity = air.density;
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = air.ambient;
+            // Light from above, less from the sides, little from below: the rock's big planes read even without sun.
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = air.ambient * 1.35f;
+            RenderSettings.ambientEquatorColor = air.ambient;
+            RenderSettings.ambientGroundColor = air.ambient * .5f;
             if (viewCamera) viewCamera.backgroundColor = air.sky;
+            var copy = SkyCopy();
+            if (!copy) return;
+            copy.SetFloat(FogStartId, Mathf.Lerp(clearFogStart, 90, air.skyHidden));
+            if (RenderSettings.skybox != copy) RenderSettings.skybox = copy;
+            if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox;
         }
 
         Air Profile(int index) => profiles[Mathf.Clamp(index, 0, profiles.Length - 1)];
@@ -105,6 +140,7 @@ namespace Hakaton.GodMountains
             density = Mathf.Exp(Mathf.Lerp(Mathf.Log(Mathf.Max(a.density, 1e-6f)), Mathf.Log(Mathf.Max(b.density, 1e-6f)), t)),
             sky = Color.Lerp(a.sky, b.sky, t),
             ambient = Color.Lerp(a.ambient, b.ambient, t),
+            skyHidden = Mathf.Lerp(a.skyHidden, b.skyHidden, t),
         };
     }
 }
