@@ -42,8 +42,15 @@
 | Игрок | `Prefabs/Player.prefab` — вариант общего персонажа из `Assets/Character` (рука с картами, точка броска, `CameraFeel`) |
 | Интерфейс | `Prefabs/UI/Expedition HUD.prefab`, `Prefabs/UI/Screen fade.prefab`, `Prefabs/Progress HUD.prefab`; лавка — `Assets/ShopBlockout/Prefabs/ShopTradingHUD.prefab` |
 | Баланс торга, смена | `TradingPrototype` на объекте торговли в сцене |
+| Меню и настройки | `Prefabs/UI/Main menu.prefab`, `Prefabs/UI/Pause menu.prefab`, общее окно `Prefabs/UI/Settings window.prefab` (`SettingsPanel`); флажок — `Prefabs/UI/Pixel checkbox.prefab`; счётчик FPS — `Prefabs/UI/FPS counter.prefab` (`FpsCounter`) |
 
 Шрифты — только Ithaca (32) и Pixeloid Sans (18) как bitmap TMP, Canvas с Constant Pixel Size. Текст не масштабируется и не вращается: «пружинящий» текст сдвигается на целые пиксели (`TextPunch`).
+
+## Настройки
+
+Окно «Настройки» одно на главное меню и паузу (`Prefabs/UI/Settings window.prefab`, 436 × 468 единиц макета меню; размер экземпляра переопределён в обоих меню — при изменении окна поправить и там). В нём общая громкость, музыка, эффекты, чувствительность мыши и флажок **«Счётчик FPS»** (по умолчанию выключен). Значения лежат в `PlayerPrefs` (`penus.settings.master|music|effects|sensitivity|fps`) отдельно от сохранения, применяются сразу через событие `GameSettings.Changed` (`SettingsApplier` — звук и мышь, `FpsCounter` — счётчик) и записываются на диск по «Назад».
+
+Счётчик FPS — экземпляр `Prefabs/UI/FPS counter.prefab` в корне сцены: свой Canvas Screen Space Overlay, Pixel Perfect, порядок 200 — поверх меню, паузы, компьютера и затемнений. Объект всегда активен, настройка включает и выключает только его Canvas. Показывает среднее число кадров за 0,5 с реального времени (`Time.unscaledDeltaTime`, пауза его не останавливает): «60 FPS» шрифтом Pixeloid 9 в целых единицах макета 736 × 414 (`ReferenceUiScale` с целым увеличением: 18 px при 1080p), кремовый с тёмной тенью (`TextShadowMirror`). Место одно везде: правый верхний угол, сразу под часами смены лавки (на `gapBelow` = 4 единицы ниже, правый край — по краю часов). Поле `clearOf` указывает на часы `ShopTradingHUD`, `clearOfLayout` — на их макет; положение пересчитывается из единиц макета часов, поэтому верно и при выключенном Canvas лавки. Так счётчик не закрывает часы в лавке и строки находок на вылазке (они в том же углу). Без `clearOf` он стоит в углу с отступом `cornerInset`.
 
 ## Ощущения
 
@@ -55,7 +62,7 @@
 
 ## Тесты
 
-Unity Test Runner. EditMode — правила торговли, колод, кошелька, сохранений, типографики, NPC, модели полёта карты (`Hakaton.Expedition.EditorTests`). PlayMode — движение персонажа, мастерская в лавке, сквозной смоук-тест в реальной сцене (`Hakaton.Game.PlayModeTests`: вылазка → бросок → поражение → лавка; сохранения игрока на время теста откладываются и возвращаются).
+Unity Test Runner. EditMode — правила торговли, колод, кошелька, сохранений, типографики, NPC, модели полёта карты (`Hakaton.Expedition.EditorTests`), подсчёт счётчика FPS (`FpsCounterTests`). PlayMode — движение персонажа, мастерская в лавке, сквозной смоук-тест в реальной сцене (`Hakaton.Game.PlayModeTests`: вылазка → бросок → поражение → лавка; сохранения игрока на время теста откладываются и возвращаются; `MenuPlayTests.SettingsApplyAtOnce` — настройки, включая «Счётчик FPS», применяются сразу).
 
 ## Инструменты разработки
 
