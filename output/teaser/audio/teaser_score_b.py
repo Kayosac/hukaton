@@ -4,9 +4,11 @@ Same world as «Кривая тропа» (E phrygian, crooked meters, flute, ka
 new material: the sigh motif E–F–E–B. A music box whispers it while the coin comes out of the dark; slow-motion
 choir and flute carry the card through the upside-down forest into the shop; the three faces are struck by low
 chords falling Em → C → B, the mouth is a rising drum roll that stutters and is cut dead by the knock; the question
-waits over a sub hum and a speeding heartbeat; the logo drops with the motif in full, then the room is quiet for the
-real door bell. Effects and the drop are shared with score A (teaser_common).
-Run: python3 teaser_score_b.py  ->  PENUS-Teaser-18s-v3-audio-B.wav (48 kHz stereo, about -14 LUFS)
+waits over a sub hum and a speeding heartbeat. v4: no drop on the logo. The heartbeat slows, the music box sighs
+the motif while the logo turns out of the dark (its last note on the glint), and the theme comes in for good —
+choir, kalimba, the 5/8 pulse, the flute singing the motif over Em F Em C B7 Em F — until the picture glitches and
+everything is cut dead (glitch_plan.py). Effects and the glitch are in teaser_common.
+Run: python3 teaser_score_b.py  ->  PENUS-Teaser-22s-v4-audio.wav (48 kHz stereo, about -14 LUFS)
 """
 from teaser_common import *  # noqa: F401,F403
 
@@ -108,27 +110,61 @@ for i, m in enumerate((88, 89)):
     quiet.add(filt(x, "lp", 2500), 13.2 + i * 0.55, pan=0.6, gain=0.18)
 quiet_x = window(quiet.x, 9.4, 14.92, ramp=0.01)
 
-# ---------------------------------------------------------------- 15: the logo drops with the motif in full
-logo = Bus()
-for v in (40, 47, 52, 54, 55, 59):
-    st = supersaw(hz(v, rng.uniform(-3, 3)), 2.6, rng, maxf=4200)
-    st *= (np.exp(-np.arange(len(st)) / SR / 0.75))[:, None]
-    logo.add(st, 15.0, gain=0.62)
-cb = stereo(choir([64, 71, 76], 1.6, rng))
-cb = cb * (np.exp(-np.arange(len(cb)) / SR / 0.5))[:, None]
-logo.add(cb, 15.0, gain=0.6)
-notes = [(15.0, 0.24, MOTIF[0]), (15.25, 0.24, MOTIF[1]), (15.5, 0.33, MOTIF[2]), (15.85, 0.6, MOTIF[3])]
-for st_, x in legato(notes, rng, kind="saw", glide=0.05, vib_cents=8, vib_rate=5.5):
-    lead.add(filt(x, "lp", 3200), st_, pan=0.05, gain=0.75)
-lead.x = lead.x + 0.5 * reverb(lead.x, rng, 2.0, 0.6)
-logo.x += lead.x
-duck = np.ones(N); a, b = int(16.0 * SR), int(16.3 * SR); duck[a:b] = np.linspace(1, 0.25, b - a); duck[b:] = 0.25
-logo_x = window(logo.x * duck[:, None], 14.99, 17.8, ramp=0.002)
-pad = Bus(); p = supersaw(hz(40), 1.7, rng, maxf=900); p = p * env(len(p), 0.5, 0.4)[:, None]; pad.add(p, 16.1, gain=0.25)
+# ---------------------------------------------------------------- 15–21.87: the theme comes in under the logo
+theme, tdrums, tbox = Bus(), Bus(), Bus()
+for t, gn in ((15.10, 0.7), (15.62, 0.5), (16.30, 0.35)):            # the heartbeat lets go
+    tbox.add(hb, t, gain=gn)
+n = int(2.4 * SR); tt = np.arange(n) / SR
+theme.add(np.sin(2 * np.pi * 41.2 * tt) * env(n, 0.05, 1.2) * 0.12, 14.9, gain=1.0)   # the hum hands over to the bass
+for t, m in ((15.15, 88), (15.45, 89), (15.75, 88), (16.36, 83)):    # the sigh on the turning logo, B on the glint
+    x = bitcrush(toy_piano(hz(m, -40 + rng.uniform(-6, 6)), 0.5, rng), 9000, 6)
+    tbox.add(filt(x, "lp", 3200), t, pan=0.25 if m != 83 else -0.15, gain=0.6)
+for m, p in ((100, -0.4), (107, 0.35), (95, 0.1)):
+    theme.add(fm_bell(hz(m, -15), 1.2, rng), 16.36, pan=p, gain=0.3)
+
+BARS = [(15.0, "Em"), (16.0, "F"), (17.0, "Em"), (18.0, "C"), (19.0, "B7"), (20.0, "Em"), (21.0, "F")]
+CHORDS = {"Em": [40, 47, 52, 55, 59], "F": [41, 48, 53, 57, 64], "C": [36, 43, 48, 52, 59], "B7": [35, 42, 47, 51, 57]}
+for k, (t0, name) in enumerate(BARS):
+    notes = CHORDS[name]
+    lift = k / (len(BARS) - 1)                                       # everything grows towards the cut
+    ch = stereo(choir([v + 12 for v in notes[2:]], 1.05, rng))
+    theme.add(np.stack([filt(ch[:, c], "lp", 2400) for c in range(2)], 1), t0 - (0.25 if k else 0.0), gain=0.75 + 0.35 * lift)
+    if t0 >= 16.0:                                                   # kalimba in eighths
+        tones = [notes[2], notes[3], notes[4], notes[3], notes[4] + 5 if name != "B7" else notes[4] + 6]
+        for i in range(5):
+            theme.add(kalimba(hz(tones[i] + 12, rng.uniform(-10, 10)), 0.4, rng), t0 + i * 0.2,
+                      pan=0.35 if i % 2 else -0.3, gain=0.34 + 0.12 * lift)
+        tdrums.add(frame_drum(rng, 70), t0, gain=0.55 + 0.3 * lift)
+    if t0 >= 17.0:                                                   # the pulse: 5/8 as 2+3
+        for v in notes[:4]:
+            pad = supersaw(hz(v + 12, rng.uniform(-3, 3)), 1.02, rng, maxf=2400)
+            pad *= env(len(pad), 0.06, 0.08)[:, None]
+            theme.add(np.stack([filt(pad[:, c], "lp", 1300 + 900 * lift) for c in range(2)], 1), t0, gain=0.22 + 0.2 * lift)
+        for i in range(5):
+            theme.add(saw_bass(hz(notes[0], rng.uniform(-4, 4)), 0.16, rng), t0 + i * 0.2, gain=(0.7 if i in (0, 2) else 0.42) * (0.8 + 0.3 * lift))
+            tdrums.add(hat(rng, 0.02), t0 + i * 0.2 + 0.1, pan=0.45, gain=0.16 + 0.1 * lift)
+        tdrums.add(kick808(rng, 150, 44, 0.4), t0, gain=0.75 + 0.3 * lift)
+        tdrums.add(kick808(rng, 150, 44, 0.3), t0 + 0.4, gain=0.5 + 0.3 * lift)
+        tdrums.add(woodblock(rng, 900 + rng.uniform(-30, 30)), t0 + 0.4, pan=-0.35, gain=0.25)
+    if t0 >= 19.0:
+        tdrums.add(gated_snare(rng), t0 + 0.4, pan=0.05, gain=0.45 + 0.25 * lift)
+flute = [(17.0, 0.58, 76), (17.6, 0.38, 77), (18.0, 0.58, 76), (18.6, 0.38, 71), (19.0, 0.38, 72), (19.4, 0.18, 71),
+         (19.6, 0.38, 69), (20.0, 0.58, 71), (20.6, 0.38, 67), (21.0, 0.38, 77), (21.4, 0.6, 76)]
+for st_, x in legato([(t, d, m - 0.25) for t, d, m in flute], rng, kind="flute", glide=0.07, vib_cents=22, vib_rate=4.6):
+    theme.add(x, st_, pan=-0.1, gain=0.95)
+for st_, x in legato([(t, d, m - 12) for t, d, m in flute if t >= 19.0], rng, kind="saw", glide=0.05, vib_cents=8, vib_rate=5.5):
+    theme.add(filt(x, "lp", 2600), st_, pan=0.12, gain=0.32)
+for at, dur in ((17.0, 0.9), (21.0, 1.1)):                          # reverse swells into the pulse and the last bar
+    x = reverse(crash(rng, dur)); tdrums.add(x, at - len(x) / SR + 0.01, pan=0.15, gain=0.55)
+
+theme_x = theme.x + tdrums.x + 0.8 * tbox.x
+theme_x = theme_x + 0.22 * reverb(theme_x, rng, 2.2, 0.65)
+theme_x = window(theme_x, 14.88, DUR, ramp=0.01)
+theme_x = wow(theme_x, 15.0, CUT, cents=7)
 
 # ---------------------------------------------------------------- mix
-dream, door = effects(rng)
+dream = effects(rng)
 dream = wow(mix_music + quiet_x + dream, 0.0, 15.0, cents=12)
-mix = dream + drop(rng, 1.0) + logo_x + pad.x + door + tape_hiss(rng)
-out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-18s-v3-audio-B.wav"), rms_db=-17.2)
-print("B ok, peak", float(np.max(np.abs(out))))
+mix = glitch(dream + theme_x + tape_hiss(rng), rng)
+out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-22s-v4-audio.wav"), rms_db=-17.2)
+print("B v4 ok, peak", float(np.max(np.abs(out))), "samples", len(out))

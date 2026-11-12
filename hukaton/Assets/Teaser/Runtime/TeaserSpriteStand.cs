@@ -15,6 +15,8 @@ namespace Hakaton.Teaser
         {
             public float seconds;
             public Sprite sprite;
+            [Tooltip("World height of this sprite's canvas, metres; 0 = the stand's height.")]
+            public float height;
         }
 
         public LootSpriteView view;
@@ -27,13 +29,13 @@ namespace Hakaton.Teaser
         public override void Evaluate(float seconds)
         {
             if (!view || keys.Length == 0) return;
-            Sprite sprite = keys[0].sprite;
+            Key current = keys[0];
             foreach (var key in keys)
-                if (seconds >= key.seconds) sprite = key.sprite;
-            if (sprite && sprite != shown)
+                if (seconds >= key.seconds) current = key;
+            if (current.sprite && current.sprite != shown)
             {
-                view.Show(sprite, height);
-                shown = sprite;
+                view.Show(current.sprite, current.height > 0 ? current.height : height);
+                shown = current.sprite;
             }
         }
     }

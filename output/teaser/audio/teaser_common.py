@@ -1,5 +1,5 @@
-"""Shared sound for the PENUS teaser scores: helpers, the game's sound effects placed on the v3 edit, and the
-logo drop. Scores: teaser_score.py (A, «Кривая тропа» instruments) and teaser_score_b.py (B, new trailer music)."""
+"""Shared sound for the PENUS teaser score: helpers, the game's sound effects placed on the edit, the end glitch.
+Score: teaser_score_b.py (the trailer music kept from v3, extended to the 22 s v4 edit)."""
 import os, sys
 import numpy as np
 from scipy.io import wavfile
@@ -11,7 +11,10 @@ from synth import *   # noqa: E402,F401,F403
 from synth2 import *  # noqa: E402,F401,F403
 
 SFX = os.path.normpath(os.path.join(HERE, "..", "..", "..", "hukaton", "Assets", "Audio", "Sfx"))
-DUR = 18.0
+sys.path.insert(0, os.path.join(HERE, ".."))
+import glitch_plan  # noqa: E402
+DUR = glitch_plan.TOTAL / glitch_plan.FPS          # 22.0 s
+CUT = glitch_plan.CUT / glitch_plan.FPS            # 21.867 s: the sound ends dead with the picture
 N = int((DUR + 4.0) * SR)
 
 
@@ -108,7 +111,7 @@ def tape_hiss(rng):
     t = np.arange(N) / SR
     hiss = np.stack([filt(rng.standard_normal(N), "bp", (2000, 12000)) for _ in range(2)], 1) * 0.0035
     hum = (np.sin(2 * np.pi * 50 * t) + 0.5 * np.sin(2 * np.pi * 100 * t)) * 0.0018
-    return window(hiss + hum[:, None], 0.0, 17.8, ramp=0.004)
+    return window(hiss + hum[:, None], 0.0, CUT, ramp=0.0)
 
 
 def stereo(x):
@@ -118,8 +121,8 @@ def stereo(x):
 
 # ---------------------------------------------------------------- the game's sound effects on the v3 edit
 def effects(rng):
-    """Returns (dream, final): effects under the tape (0–15 s) and the clean real door at the end."""
-    sfx, amb, final = Bus(), Bus(), Bus()
+    """Effects under the tape (0–15 s). Nothing plays over the logo: the music carries it to the end."""
+    sfx, amb = Bus(), Bus()
     coin = load("shop/coin_single.wav")
     sfx.add(fade(tail(pitch(coin, -12), 2.4, 0.9, rng, lp=4200, wet=0.55), 0.002, 0.3), 0.0, gain=0.95)
     sfx.add(fade(tail(pitch(coin, -5), 1.6, 0.6, rng, lp=7000, wet=0.5), 0.002, 0.3), 0.0, pan=0.15, gain=0.32)
@@ -143,7 +146,6 @@ def effects(rng):
     amb_clip(shop_amb, 7.0, 8.0, 6.0, 0.5)
     amb_clip(forest, 8.0, 9.4, 12.0, 0.25)
     amb_clip(shop_amb, 9.4, 14.9, 10.0, 0.8)
-    amb_clip(shop_amb, 16.25, 17.8, 20.0, 0.7)
 
     bell = load("shop/door_bell.wav")
     for t, st, gn in ((5.0, 0, 0.62), (6.0, -2, 0.62), (7.0, -4, 0.66)):
@@ -163,39 +165,46 @@ def effects(rng):
         sfx.add(pitch(tick, 0 if k % 2 == 0 else -3), t, pan=-0.35, gain=0.75)
     sfx.add(fade(filt(load("voices/peasant_hmm.wav"), "lp", 1500), 0.01, 0.08), 12.08, pan=0.05, gain=0.95)
 
-    final.add(bell, 16.3, pan=0.25, gain=0.95)
-    final.add(pitch(load("player/footstep_creaky_03.wav"), -5), 16.92, pan=0.3, gain=0.5)
-    final.add(load("player/footstep_creaky_01.wav"), 17.42, pan=0.15, gain=0.62)
-    return sfx.x + amb.x, final.x
+    return sfx.x + amb.x
 
 
-# ---------------------------------------------------------------- the drop on the logo (15.0 s)
-def drop(rng, depth=1.0):
-    """A rising pull, a hair of silence, then the hit: sub boom, the game's heavy impact and blast, noise slam.
-    Tails die by ~16.2 s so the real door bell stays alone."""
-    d = Bus()
-    t = np.arange(int(0.78 * SR)) / SR
-    noise = rng.standard_normal(len(t))
-    rise = filt(noise, "bp", (600, 7000)) * (t / t[-1]) ** 2.2 * 0.35
-    tone = np.sin(2 * np.pi * np.cumsum(220 * 2 ** (t / t[-1] * 2.2)) / SR) * (t / t[-1]) ** 3 * 0.18
-    d.add(fade(rise + tone, 0.05, 0.004), 14.14, gain=1.0)
-    x = reverse(crash(rng, 0.7)); d.add(x[-int(0.75 * SR):], 14.17, pan=0.2, gain=0.7)
-    # (14.92–15.0 left empty on purpose)
-    n = int(1.3 * SR); tt = np.arange(n) / SR
-    f = 32 + 30 * np.exp(-tt / 0.09)
-    sub = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt / 0.42)
-    sub = np.tanh(sub * 2.2) / np.tanh(2.2)
-    d.add(fade(sub, 0.001, 0.2), 15.0, gain=1.05 * depth)
-    d.add(pitch(load("impacts/heavy_hit_01.wav"), -7), 15.0, gain=0.9 * depth)
-    d.add(filt(pitch(load("impacts/impulse_blast_01.wav"), -5), "lp", 6000), 15.0, pan=0.05, gain=0.55 * depth)
-    slam = filt(rng.standard_normal(int(0.5 * SR)), "lp", 4000) * np.exp(-np.arange(int(0.5 * SR)) / SR / 0.07)
-    d.add(slam, 15.0, gain=0.5 * depth)
-    return window(d.x, 14.0, 16.25, ramp=0.002)
+# ---------------------------------------------------------------- the end glitch, frame by frame with the picture
+def glitch(x, rng):
+    """Breaks the sound on the frames of glitch_plan.PLAN and cuts it dead at CUT."""
+    y = x.copy()
+    slot = SR // glitch_plan.FPS
+    for f, kind in glitch_plan.PLAN:
+        a = int(round(f / glitch_plan.FPS * SR)); b = a + slot
+        seg = y[a:b].copy()
+        if kind == "light":
+            seg = np.stack([bitcrush(seg[:, c], 9000, 7) for c in range(2)], 1)
+        elif kind == "bands":
+            half = seg[: slot // 2]
+            seg = np.concatenate([half, half])[:slot]
+            seg = np.stack([bitcrush(seg[:, c], 6000, 6) for c in range(2)], 1)
+        elif kind == "freeze":
+            seg = y[a - slot:a].copy()
+        elif kind == "blocks":
+            seg = np.stack([bitcrush(seg[:, c], 3500, 5) for c in range(2)], 1)
+            seg += stereo(static_burst(rng, (slot + 2) / SR)[:slot]) * 0.25
+        elif kind == "dark":
+            seg *= 0.0
+            seg[:40] += 0.3 * np.linspace(1, 0, 40)[:, None]
+        elif kind in ("heavy", "shred"):
+            n = slot // (6 if kind == "heavy" else 12)
+            piece = seg[:n]
+            seg = np.concatenate([piece * (0.9 ** k) for k in range(slot // n + 1)])[:slot]
+            seg = np.stack([bitcrush(seg[:, c], 2500 if kind == "heavy" else 1800, 4) for c in range(2)], 1)
+            seg += stereo(static_burst(rng, (slot + 2) / SR)[:slot]) * (0.35 if kind == "heavy" else 0.5)
+        y[a:b] = seg
+    y[int(round(CUT * SR)):] = 0.0
+    return y
 
 
 def master_write(mix, path, rms_db=-19.5):
-    mix = window(mix, 0.0, 17.8, ramp=0.003)[: int(DUR * SR)]
-    rms = np.sqrt(np.mean(mix[: int(17.8 * SR)] ** 2))
+    mix = mix[: int(DUR * SR)].copy()
+    mix[int(round(CUT * SR)):] = 0.0
+    rms = np.sqrt(np.mean(mix[: int(CUT * SR)] ** 2))
     mix = mix * 10 ** (rms_db / 20) / rms
     mix = np.tanh(mix * 1.25) / np.tanh(1.25)
     pk = np.max(np.abs(mix))
