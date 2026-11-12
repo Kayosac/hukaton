@@ -26,10 +26,16 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         public FirstPersonInput input;
         public PlayerControlGate control;
-        [Tooltip("Bright dashed preview of the first moments of flight.")]
+        [Tooltip("Bright dashed preview of the first moments of flight (Texture Mode: Repeat Per Segment, one dash per segment).")]
         public LineRenderer trajectory;
         [Tooltip("Camera-space point where a card physically leaves the hand.")]
         public Transform launchSocket;
+        [Tooltip("Width of the preview on screen, pixels at 1080 lines; scales with the window height, constant at any distance.")]
+        [Min(.5f)] public float previewWidthPixels = 6;
+        [Tooltip("One dash with its gap on screen, pixels at 1080 lines: the path is cut into segments of this screen length.")]
+        [Min(1)] public float previewDashPixels = 12;
+        [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
+        [Min(0)] public float previewStartOffset = .25f;
 
         public ThrowPreparation Preparation { get; } = new ThrowPreparation();
         /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
@@ -49,6 +55,13 @@ namespace Hakaton.Expeditions
         bool returnWasInHand, fullChargeCued;
         readonly Vector3[] previewPoints = new Vector3[64];
         readonly Gradient previewGradient = new Gradient();
+        readonly GradientColorKey[] previewColours = new GradientColorKey[2];
+        readonly GradientAlphaKey[] previewAlphas = { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) };
+        // The preview as drawn: one vertex per dash, a fixed screen length apart.
+        const int MaxDashPoints = 256, WidthKeys = 24;
+        readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
+        readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
+        readonly AnimationCurve widthCurve = new AnimationCurve();
 
         public CardCopy Selected
         {
@@ -279,15 +292,123 @@ namespace Hakaton.Expeditions
                 velocity = nextVelocity;
                 previewPoints[used++] = position;
             }
-            trajectory.positionCount = used;
-            for (int i = 0; i < used; i++) trajectory.SetPosition(i, previewPoints[i]);
+            var view = world.viewCamera;
+            used = TrimStart(used, previewStartOffset);
+            int dashes = view ? LayOutDashes(view, used) : 0;
+            if (dashes < 2) { trajectory.enabled = false; return; }
+            trajectory.positionCount = dashes;
+            for (int i = 0; i < dashes; i++) trajectory.SetPosition(i, dashPoints[i]);
+            UpdatePreviewWidth(view, dashes);
             // Bright along the whole path: the strip's white core takes the card's accent lifted halfway to white
             // (its black ink edge stays black), barely softer by the hand.
             Color core = Color.Lerp(world.Accent(card), Color.white, .5f);
-            previewGradient.SetKeys(
-                new[] { new GradientColorKey(core, 0), new GradientColorKey(core, 1) },
-                new[] { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) });
+            previewColours[0] = new GradientColorKey(core, 0);
+            previewColours[1] = new GradientColorKey(core, 1);
+            previewGradient.SetKeys(previewColours, previewAlphas);
             trajectory.colorGradient = previewGradient;
+        }
+
+        /// <summary>Drops the first <paramref name="offset"/> metres of the sampled path (at most half of it) in place.</summary>
+        int TrimStart(int count, float offset)
+        {
+            float total = 0;
+            for (int i = 1; i < count; i++) total += Vector3.Distance(previewPoints[i - 1], previewPoints[i]);
+            float skip = Mathf.Min(offset, total * .5f);
+            if (skip <= 0) return count;
+            float walked = 0;
+            for (int first = 1; first < count; first++)
+            {
+                float segment = Vector3.Distance(previewPoints[first - 1], previewPoints[first]);
+                if (walked + segment < skip) { walked += segment; continue; }
+                Vector3 start = Vector3.Lerp(previewPoints[first - 1], previewPoints[first], segment > 1e-6f ? (skip - walked) / segment : 1);
+                // Reads stay ahead of writes (first >= 1), so the shift is safe in place.
+                int kept = 0;
+                previewPoints[kept++] = start;
+                for (int i = first; i < count; i++) previewPoints[kept++] = previewPoints[i];
+                return kept;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Re-cuts the sampled path into pieces of equal SCREEN length (<see cref="previewDashPixels"/> at 1080 lines),
+        /// so with Repeat Per Segment every dash has the same size on screen near the hand and far away.
+        /// Points are placed perspective-correctly on the world path; the end of the path closes the last dash.
+        /// </summary>
+        int LayOutDashes(Camera view, int count)
+        {
+            float aspect = view.aspect, near = view.nearClipPlane;
+            // Screen lengths in units of the view height.
+            float period = previewDashPixels / 1080f;
+            Vector3 a = previewPoints[0], va = view.WorldToViewportPoint(a);
+            if (va.z < near) return 0;
+            int dashes = 0;
+            dashPoints[dashes++] = a;
+            float carry = 0;
+            for (int i = 1; i < count; i++)
+            {
+                Vector3 b = previewPoints[i], vb = view.WorldToViewportPoint(b);
+                if (vb.z < near) break;
+                float length = Vector2.Distance(new Vector2(va.x * aspect, va.y), new Vector2(vb.x * aspect, vb.y));
+                float next = period - carry;
+                while (next <= length && dashes < MaxDashPoints - 1)
+                {
+                    float f = next / length;
+                    // Screen fraction → world fraction along a perspective-projected segment.
+                    float t = f * va.z / ((1 - f) * vb.z + f * va.z);
+                    dashPoints[dashes++] = Vector3.LerpUnclamped(a, b, t);
+                    next += period;
+                }
+                carry = length - (next - period);
+                a = b;
+                va = vb;
+                if (dashes >= MaxDashPoints - 1) break;
+            }
+            // A tail shorter than a quarter dash would squeeze a whole dash into a sliver: end on the last dash instead.
+            if (carry > period * .25f) dashPoints[dashes++] = a;
+            return dashes;
+        }
+
+        /// <summary>
+        /// Width so every point of the line is <see cref="previewWidthPixels"/> (at 1080 lines) wide on screen:
+        /// proportional to its depth in front of the camera. The curve is keyed along the line's length.
+        /// </summary>
+        void UpdatePreviewWidth(Camera view, int count)
+        {
+            var eye = view.transform;
+            Vector3 origin = eye.position, forward = eye.forward;
+            float perMetreOfDepth = previewWidthPixels / 1080f * 2 * Mathf.Tan(view.fieldOfView * .5f * Mathf.Deg2Rad);
+            float total = 0;
+            for (int i = 1; i < count; i++) total += Vector3.Distance(dashPoints[i - 1], dashPoints[i]);
+            // Walk the polyline once, sampling the depth at evenly spaced fractions of its length.
+            int segment = 1;
+            float walked = 0, segmentLength = count > 1 ? Vector3.Distance(dashPoints[0], dashPoints[1]) : 0;
+            for (int k = 0; k < WidthKeys; k++)
+            {
+                float time = k / (WidthKeys - 1f), target = time * total;
+                while (segment < count - 1 && walked + segmentLength < target)
+                {
+                    walked += segmentLength;
+                    segment++;
+                    segmentLength = Vector3.Distance(dashPoints[segment - 1], dashPoints[segment]);
+                }
+                float along = segmentLength > 1e-6f ? Mathf.Clamp01((target - walked) / segmentLength) : 1;
+                Vector3 point = Vector3.Lerp(dashPoints[segment - 1], dashPoints[segment], along);
+                float depth = Mathf.Max(view.nearClipPlane, Vector3.Dot(point - origin, forward));
+                widthKeys[k] = new Keyframe(time, perMetreOfDepth * depth);
+            }
+            // Straight lines between the keys.
+            float step = 1f / (WidthKeys - 1);
+            for (int k = 0; k < WidthKeys; k++)
+            {
+                float slopeIn = k > 0 ? (widthKeys[k].value - widthKeys[k - 1].value) / step : 0;
+                float slopeOut = k < WidthKeys - 1 ? (widthKeys[k + 1].value - widthKeys[k].value) / step : slopeIn;
+                widthKeys[k].inTangent = k > 0 ? slopeIn : slopeOut;
+                widthKeys[k].outTangent = slopeOut;
+            }
+            widthCurve.keys = widthKeys;
+            trajectory.widthMultiplier = 1;
+            trajectory.widthCurve = widthCurve;
         }
 
         void OnDisable() => Cancel();

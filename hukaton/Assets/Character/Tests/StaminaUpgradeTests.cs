@@ -179,6 +179,88 @@ namespace Hakaton.Character.Tests
             }
         }
 
+        /// <summary>
+        /// Playtest regression (outing screenshots): the arc shows the real stamina — half spent is 3 full + 2 empty, empty
+        /// is all hollow red, and it stays red until the recovery threshold. While out of breath a "sprinting" tick is a
+        /// recovery tick (the budget cannot be spent), which is what a harness driving <c>Tick(dt, true)</c> sees.
+        /// </summary>
+        [Test]
+        public void PipsFollowTheRealStaminaThroughSpendingExhaustionAndRecovery()
+        {
+            var player = new GameObject("Stamina test player");
+            var arc = new GameObject("Stamina pips", typeof(RectTransform), typeof(CanvasGroup));
+            var template = new GameObject("Pip", typeof(RectTransform), typeof(Image));
+            var texture = new Texture2D(6, 6);
+            try
+            {
+                template.transform.SetParent(arc.transform, false);
+                Sprite Make(string name)
+                {
+                    var sprite = Sprite.Create(texture, new Rect(0, 0, 6, 6), new Vector2(.5f, .5f));
+                    sprite.name = name;
+                    return sprite;
+                }
+                var pips = arc.AddComponent<StaminaPips>();
+                pips.visibility = arc.GetComponent<CanvasGroup>();
+                pips.pipTemplate = template.GetComponent<Image>();
+                pips.fullPip = Make("full");
+                pips.emptyPip = Make("empty");
+                pips.tiredPip = Make("tired");
+                var stamina = player.AddComponent<PlayerStamina>();
+                _ = stamina.Upgrade;
+                const string F = "full", E = "empty", R = "tired";
+
+                pips.Present(stamina, true, 1);
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { F, F, F, F, F }));
+
+                // Half spent: 50 of 100 at 20 a pip.
+                stamina.Tick(2.5f, true);
+                pips.Present(stamina, true, 1);
+                Assert.That((stamina.Value, stamina.Exhausted), Is.EqualTo((50f, false)));
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { F, F, F, E, E }));
+                Assert.That(pips.visibility.alpha, Is.EqualTo(1));
+
+                // Spent to the end: out of breath, every pip hollow and red.
+                stamina.Tick(3, true);
+                pips.Present(stamina, true, 1 / 60f);
+                Assert.That((stamina.Value, stamina.Exhausted), Is.EqualTo((0f, true)));
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { R, R, R, R, R }));
+
+                // Holding sprint while out of breath spends nothing: these ticks count towards recovery.
+                for (int i = 0; i < 5; i++) stamina.Tick(.1f, true);
+                pips.Present(stamina, true, 1 / 60f);
+                Assert.That((stamina.Value, stamina.Exhausted), Is.EqualTo((0f, true)));
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { R, R, R, R, R }));
+
+                // Getting the breath back: still red below the recovery threshold (25%), even with stamina in two pips.
+                stamina.Tick(1.4f, false);
+                pips.Present(stamina, true, 1 / 60f);
+                Assert.That(stamina.Value, Is.EqualTo(22.5f).Within(.01f));
+                Assert.That(stamina.Exhausted, Is.True);
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { R, R, R, R, R }));
+
+                // Above it: back to normal, the filled pips lit.
+                stamina.Tick(.2f, false);
+                pips.Present(stamina, true, 1 / 60f);
+                Assert.That(stamina.Value, Is.EqualTo(27.5f).Within(.01f));
+                Assert.That(stamina.Exhausted, Is.False);
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { F, F, E, E, E }));
+                Assert.That(pips.visibility.alpha, Is.GreaterThan(0), "Still shown while recovering.");
+
+                // Full again: hidden after the hold.
+                stamina.Tick(10, false);
+                for (int i = 0; i < 3; i++) pips.Present(stamina, true, 1);
+                Assert.That(Sprites(arc), Is.EqualTo(new[] { F, F, F, F, F }));
+                Assert.That(pips.visibility.alpha, Is.Zero);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(arc);
+                UnityEngine.Object.DestroyImmediate(player);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
         static string[] Sprites(GameObject arc)
         {
             var names = new System.Collections.Generic.List<string>();
