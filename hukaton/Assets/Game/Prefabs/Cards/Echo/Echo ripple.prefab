@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &4265831134526585834
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2500507098972656683, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: looping
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500507098972656683, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6584060925938006370, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_Name
+      value: Echo ripple
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8567528748469821829, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6584060925938006370, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7605901695476887997}
+  m_SourcePrefab: {fileID: 100100000, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+--- !u!198 &1837700806348484545 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 2500507098972656683, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+  m_PrefabInstance: {fileID: 4265831134526585834}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6947944096167248520 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6584060925938006370, guid: 08d0fdeb6a316b2448ec595850e77694, type: 3}
+  m_PrefabInstance: {fileID: 4265831134526585834}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7605901695476887997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6947944096167248520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955e669a313304cb2b509732256dce50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Feel::Hakaton.Feel.VfxBurst
+  systems:
+  - {fileID: 1837700806348484545}
+  tinted:
+  - {fileID: 1837700806348484545}
+  flash: {fileID: 0}
+  flashIntensity: 3
+  flashSeconds: 0.25
+  lifetime: 1.6
