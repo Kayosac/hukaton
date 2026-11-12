@@ -13,10 +13,10 @@
 - A06 Slab B: parts 3, tris 578, size 3.80 × 2.22 × 0.60
 - Roof slab A: parts 1, tris 308, size 4.10 × 2.56 × 1.01
 - Roof slab B: parts 1, tris 308, size 4.12 × 2.53 × 1.08
-- A09 Massif A: parts 12, tris 5586, size 576.30 × 471.21 × 311.48
-- A09 Massif B: parts 8, tris 3864, size 578.45 × 482.65 × 303.46
-- A09 Massif C: parts 12, tris 5170, size 587.55 × 459.90 × 294.62
 - G01 Stone frame: parts 3, tris 712, size 2.78 × 0.71 × 3.05
 - G03 Hollow ring: parts 22, tris 10134, size 10.72 × 12.02 × 15.50
 - A07 Shrub: parts 1, tris 308, size 1.77 × 1.16 × 1.52
 - A08 Rosette: parts 1, tris 20, size 0.79 × 0.83 × 0.53
+- A09 Massif A: parts 97, tris 24498, size 584.85 × 606.41 × 337.45
+- A09 Massif B: parts 74, tris 19848, size 616.48 × 560.21 × 340.61
+- A09 Massif C: parts 95, tris 29466, size 588.22 × 559.93 × 321.81

@@ -780,6 +780,205 @@ def a08_rosette():
     return e
 
 
+# ------------------------------------------------------------------ v2 additions (each with its own random stream,
+# built after the v1 set so the v1 assets come out exactly as before)
+
+def own_rng(seed):
+    """Run an asset builder on its own random stream; the shared one (UV shifts of v1 assets) stays untouched."""
+    def wrap(fn):
+        def run(*a, **k):
+            global rng
+            saved, rng = rng, random.Random(seed)
+            try:
+                return fn(*a, **k)
+            finally:
+                rng = saved
+        return run
+    return wrap
+
+
+def a09_massif_v2(tag, seed):
+    """A09 with detail for the panorama: the traced tiers split by three dipping beds and three joints, chipped
+    hard; crags and needles on every tier's crest; low buttresses at the foot of the front."""
+    @own_rng(900 + seed)
+    def build():
+        r = random.Random(seed * 31)
+        e = asset(f"A09 Massif {tag}")
+        parts = view_parts("A09-distant-massif", "ABC".index(tag), 1.0, .12)
+        hmax = max(z for p in parts for _, z in p)
+        for i, part in enumerate(parts):
+            h = max(z for _, z in part)
+            xs = [x for x, _ in part]
+            x0, x1 = min(xs), max(xs)
+            back = .3 + .7 * h / hmax
+            y0 = -240 + 480 * (1 - back) * .6
+            pts = [(x, y + (z / max(h, 1e-3)) * 480 * back * .38, z) if y < y0 + 1 else (x, y, z)
+                   for x, y, z in extrude(part, 480 * back, taper=.62, top_drop=.12, y0=y0, sink=0)]
+            spec = [("bed", h * f, 13) for f in (.24, .47, .7)] + \
+                [("joint", x0 + (x1 - x0) * f + r.uniform(-20, 20), h * r.uniform(.3, .8), 32) for f in (.25, .5, .75)]
+            obs = detail_rock(f"A09{tag}_{i}", pts, e, joints(spec, seed + i), chips=5, chip=(10, 30), bulge=.03,
+                              bevel=3, wobble=.014, far=True, seed=seed + i)
+            ob = max(obs, key=lambda o: len(o.data.vertices))
+            if h == hmax:
+                vx = [v.co.x for v in ob.data.vertices]
+                paint_crack(ob, (min(vx) + (max(vx) - min(vx)) * .3, -600, h * .6), (.1, 0, -1), h * .3, (0, -1, 0), seed + 9, width=2.4)
+            # crags and needles along the crest: on the highest outline points of this tier
+            tops = sorted(part, key=lambda q: -q[1])[:6]
+            yf = y0 + 480 * back * .38
+            for k, (cx, cz) in enumerate(tops[:r.randint(3, 5)]):
+                # blocky stepped crags, wider than tall, leaning a little: the crest breaks into tiers, not needles
+                w = r.uniform(.07, .14) * (x1 - x0)
+                hh = r.uniform(.07, .14) * h
+                cy = yf + r.uniform(20, 80)
+                lean = r.uniform(-.25, .25) * w
+                base = [(cx + dx * w * r.uniform(.8, 1.1), cy + dy * w * .7 * r.uniform(.8, 1.1), cz - hh * .6) for dx in (-1, 1) for dy in (-1, 1)]
+                apex = [(cx + lean + dx * w * r.uniform(.45, .75), cy + dy * w * .45 * r.uniform(.6, 1), cz + hh * r.uniform(.75, 1.0)) for dx in (-1, 1) for dy in (-1, 1)]
+                detail_rock(f"A09{tag}_{i}_crag{k}", base + apex, e, joints([("bed", cz + hh * .1, 12)], seed + 70 + k), chips=2,
+                            chip=(6, 16), bulge=.02, bevel=2, wobble=.01, far=True, seed=seed * 13 + k)
+            # buttresses in front of the tier's foot
+            for k in range(r.randint(1, 3)):
+                bw = r.uniform(.12, .22) * (x1 - x0)
+                bx = r.uniform(x0 + bw, x1 - bw)
+                bh = r.uniform(.15, .32) * h
+                by = y0 - r.uniform(20, 70)
+                bpts = [(bx + dx * bw, by + dy * bw * .7, 0) for dx in (-1, 1) for dy in (-1, 1)] + \
+                       [(bx + r.uniform(-.6, .6) * bw, by + r.uniform(-.2, .5) * bw * .7, bh * r.uniform(.7, 1)) for _ in range(3)]
+                detail_rock(f"A09{tag}_{i}_buttress{k}", bpts, e, joints([("bed", bh * .5, 12)], seed + 50 + k), chips=3,
+                            chip=(8, 22), bulge=.03, bevel=2, wobble=.012, far=True, seed=seed * 17 + k)
+        return e
+    return build()
+
+
+def _chunk_pts(r, cx, cy, z0, sx, sy, sz, n=9):
+    return [(cx + r.uniform(-1, 1) * sx, cy + r.uniform(-1, 1) * sy, z0 + r.uniform(0, 1) * sz) for _ in range(n)] + \
+           [(cx + r.uniform(-1, 1) * sx, cy + r.uniform(-1, 1) * sy, z0) for _ in range(4)]
+
+
+def p01_pebbles(tag, seed):
+    """Small stones lying in a loose drift, about 1.2 × 0.7 m; pivot on the ground in the middle."""
+    @own_rng(1000 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset(f"P01 Pebbles {tag}")
+        for k in range(r.randint(8, 12)):
+            sz = r.uniform(.05, .2) * (1.4 if k == 0 else 1)
+            x, y = r.gauss(0, .38), r.gauss(0, .22)
+            hull_part(f"P01{tag}_{k}", _chunk_pts(r, x, y, -.02, sz, sz * .8, sz * .75), e, bevel=min(.02, sz * .12))
+        return e
+    return build()
+
+
+def p02_rubble(tag, seed):
+    """Broken chips heaped against a wall: the wall at y = 0 (+y into it), the heap spills toward -y up to 0.7 m,
+    highest by the wall (0.5 m). Pivot on the ground at the wall line."""
+    @own_rng(1100 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset(f"P02 Rubble {tag}")
+        k = 0
+        for layer, (count, ymin, ymax, z0, smin, smax) in enumerate([(9, -.7, .05, -.03, .08, .26), (5, -.35, .08, .12, .1, .24), (3, -.18, .1, .26, .08, .18)]):
+            for _ in range(count):
+                s_ = r.uniform(smin, smax)
+                x, y = r.uniform(-.6, .6) * (1 - layer * .25), r.uniform(ymin, ymax)
+                pts = _chunk_pts(r, x, y, z0, s_ * r.uniform(.8, 1.3), s_ * r.uniform(.6, 1.0), s_ * r.uniform(.5, .9), 7)
+                hull_part(f"P02{tag}_{k}", pts, e, bevel=.015)
+                k += 1
+        return e
+    return build()
+
+
+def p03_flat_stones(seed):
+    """Two or three thin slabs lying over each other, 0.3–0.7 m; pivot on the ground in the middle."""
+    @own_rng(1200 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset("P03 Flat stones")
+        z = -.01
+        for k in range(3):
+            w, d, t = r.uniform(.3, .7), r.uniform(.2, .45), r.uniform(.05, .09)
+            x, y = r.uniform(-.25, .25), r.uniform(-.15, .15)
+            a = r.uniform(0, math.pi)
+            ca, sa = math.cos(a), math.sin(a)
+            outline = [(r.uniform(.75, 1) * math.cos(q) * w * .5, r.uniform(.75, 1) * math.sin(q) * d * .5) for q in [j * math.pi / 3 + r.uniform(-.2, .2) for j in range(6)]]
+            tilt = r.uniform(-.04, .04)
+            pts = []
+            for ox, oy in outline:
+                px_, py_ = x + ox * ca - oy * sa, y + ox * sa + oy * ca
+                pts += [(px_, py_, z + ox * tilt), (px_ * .97, py_ * .97, z + t + ox * tilt)]
+            smooth_rock(f"P03_{k}", pts, e, bulge=.02, wobble=.01, bevel=.012, seed=seed + k)
+            z += t * .55
+        return e
+    return build()
+
+
+def p04_cairn(seed):
+    """A crooked stack of five flat stones, 0.75 m: someone was here, or no one. Pivot on the ground in the middle."""
+    @own_rng(1300 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset("P04 Cairn")
+        z, x, y = -.02, 0.0, 0.0
+        for k in range(5):
+            w = .46 * (1 - k * .14) * r.uniform(.85, 1.1)
+            t = r.uniform(.09, .16)
+            a = r.uniform(0, math.pi)
+            ca, sa = math.cos(a), math.sin(a)
+            x += r.uniform(-.05, .05)
+            y += r.uniform(-.05, .05)
+            tx, ty = r.uniform(-.08, .08), r.uniform(-.08, .08)
+            pts = []
+            for j in range(7):
+                q = j * 2 * math.pi / 7 + r.uniform(-.2, .2)
+                ox, oy = math.cos(q) * w * .5 * r.uniform(.8, 1), math.sin(q) * w * .38 * r.uniform(.8, 1)
+                px_, py_ = x + ox * ca - oy * sa, y + ox * sa + oy * ca
+                pts += [(px_, py_, z + ox * tx + oy * ty), (x + (px_ - x) * .85, y + (py_ - y) * .85, z + t + ox * tx + oy * ty)]
+            smooth_rock(f"P04_{k}", pts, e, bulge=.04, wobble=.015, bevel=.015, seed=seed + k)
+            z += t * .92
+        return e
+    return build()
+
+
+def p05_chunk(tag, seed):
+    """A block fallen from the walls, 0.5–0.8 m, cracked once. Pivot on the ground in the middle."""
+    @own_rng(1400 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset(f"P05 Chunk {tag}")
+        sx, sy, sz = r.uniform(.3, .42), r.uniform(.22, .32), r.uniform(.25, .4)
+        detail_rock(f"P05{tag}", _chunk_pts(r, 0, 0, -.04, sx, sy, sz, 10), e, joints([("joint", r.uniform(-.1, .1), sz * .5, 30)], seed),
+                    chips=3, chip=(.05, .14), bulge=.03, bevel=.02, wobble=.012, seed=seed)
+        return e
+    return build()
+
+
+def p06_tuft(tag, seed):
+    """A tuft of leaves out of a crack, 0.25–0.4 m: crossed leaf cards (rosette leaf of the foliage atlas)."""
+    @own_rng(1500 + seed)
+    def build():
+        r = random.Random(seed)
+        e = asset(f"P06 Tuft {tag}")
+        bm = bmesh.new()
+        uvl = bm.loops.layers.uv.new("UV")
+        n = r.randint(6, 9)
+        for k in range(n):
+            a = k * 2 * math.pi / n + r.uniform(-.3, .3)
+            rise = math.radians(r.uniform(48, 78))
+            d = V(math.cos(a) * math.cos(rise), math.sin(a) * math.cos(rise), math.sin(rise))
+            leaf_card(bm, uvl, V(r.uniform(-.03, .03), r.uniform(-.03, .03), -.02), d, r.uniform(.07, .11), r.uniform(.2, .36),
+                      .125, .375, .5, 1.0, bend=r.uniform(.1, .25), roll=r.uniform(-.6, .6))
+        me = bpy.data.meshes.new(f"P06_tuft_{tag}")
+        bm.to_mesh(me)
+        bm.free()
+        me.materials.append(MAT["GM_Leaf"])
+        for poly in me.polygons:
+            poly.use_smooth = False
+        ob = bpy.data.objects.new(f"P06_tuft_{tag}", me)
+        bpy.context.collection.objects.link(ob)
+        ob.parent = e
+        return e
+    return build()
+
+
 # ------------------------------------------------------------------ build all
 
 assets = [
@@ -791,10 +990,26 @@ assets = [
     g03_hollow(3.35, [(137.5, 22), (0, 15)]),
     a07_shrub(), a08_rosette(),
 ]
+# v1 massifs stay in the list only so the shared random stream (and every asset after them) is unchanged; the
+# panorama uses the detailed v2 massifs, exported under the same file names.
+_v1_massifs = [a for a in assets if a.name.startswith("A09 Massif")]
+assets = [a for a in assets if a not in _v1_massifs]
+for e in _v1_massifs:
+    for c in list(e.children):
+        bpy.data.objects.remove(c, do_unlink=True)
+    bpy.data.objects.remove(e, do_unlink=True)
+assets = assets + [
+    a09_massif_v2("A", 8), a09_massif_v2("B", 9), a09_massif_v2("C", 10),
+    p01_pebbles("A", 1), p01_pebbles("B", 2), p02_rubble("A", 3), p02_rubble("B", 4), p03_flat_stones(5), p04_cairn(6),
+    p05_chunk("A", 7), p05_chunk("B", 8), p06_tuft("A", 9), p06_tuft("B", 10),
+]
+ONLY = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else None
 
 # ------------------------------------------------------------------ export (one FBX per asset)
 report = []
 for e in assets:
+    if ONLY and not any(e.name.startswith(p) for p in ONLY):
+        continue
     for o in bpy.context.scene.objects:
         o.select_set(False)
     e.select_set(True)
