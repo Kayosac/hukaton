@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Trading;
 
@@ -46,13 +47,14 @@ namespace Hakaton.Computer
 
         /// <summary>
         /// The PC's improvements: hand size and the deck limit (deck workshop), then the shift length when the shop is
-        /// given and has upgrades to sell, then the bulk buyer's chance — only once the player has met him (a surprise
-        /// until then).
+        /// given and has upgrades to sell, then the player's stamina when given, then the bulk buyer's chance — only once
+        /// the player has met him (a surprise until then).
         /// </summary>
-        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null)
+        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null, StaminaUpgrade stamina = null)
         {
             var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
             if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
+            if (stamina != null && stamina.Steps > 0) tracks.Add(new StaminaTrack(model, stamina));
             if (shop != null && shop.BulkBuyerMet && shop.BulkBuyerSteps > 0) tracks.Add(new BulkBuyerTrack(shop));
             return tracks;
         }
@@ -102,6 +104,28 @@ namespace Hakaton.Computer
             public override int Price => shop.ShiftPrice;
             public override string Buy() => shop.ImproveShift();
             public override string Bought => $"Смена длится {Seconds(shop.ShiftLength)}.";
+        }
+
+        /// <summary>«Выносливость»: seconds of sprint (one more pip under the crosshair), paid from the shared wallet.</summary>
+        sealed class StaminaTrack : PcUpgradeTrack
+        {
+            readonly DeckWorkshop model;
+            readonly StaminaUpgrade stamina;
+            public StaminaTrack(DeckWorkshop model, StaminaUpgrade stamina) { this.model = model; this.stamina = stamina; }
+            public override string Title => "Выносливость";
+            public override int Step => stamina.Level;
+            public override int Steps => stamina.Steps;
+            public override string Values => Maxed ? Seconds(stamina.Seconds) : Whole(stamina.Seconds) + Arrow + Seconds(stamina.NextSeconds);
+            public override int Price => stamina.Price;
+            public override string Buy()
+            {
+                if (model.IsAway) return "Сначала вернитесь в лавку.";
+                if (stamina.Maxed) return "Выносливость уже на пределе.";
+                if (!model.Wallet.TrySpend(stamina.Price)) return "Не хватает монет.";
+                stamina.Raise();
+                return null;
+            }
+            public override string Bought => $"Бег без передышки: {Seconds(stamina.Seconds)}.";
         }
 
         sealed class BulkBuyerTrack : PcUpgradeTrack

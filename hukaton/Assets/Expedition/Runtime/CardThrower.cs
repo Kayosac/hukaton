@@ -16,8 +16,8 @@ namespace Hakaton.Expeditions
     }
 
     /// <summary>
-    /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
-    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand, R discards the hand (a new one is drawn),
+    /// Expedition input and the throw itself. Hold LMB to charge, release LMB to throw; Shift stays a plain sprint,
+    /// also while charging. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand, R discards the hand (a new one is drawn),
     /// E picks up. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
@@ -26,7 +26,7 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         public FirstPersonInput input;
         public PlayerControlGate control;
-        [Tooltip("Dotted preview of the first moments of flight.")]
+        [Tooltip("Bright dashed preview of the first moments of flight.")]
         public LineRenderer trajectory;
         [Tooltip("Camera-space point where a card physically leaves the hand.")]
         public Transform launchSocket;
@@ -91,10 +91,7 @@ namespace Hakaton.Expeditions
             if (mouse.leftButton.wasPressedThisFrame) Begin();
             if (Preparation.Active)
             {
-                bool modifier = keys != null && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed);
-                input.SetLookBlocked(this, modifier);
-                Vector2 delta = mouse.delta.ReadValue();
-                Preparation.Tick(Time.deltaTime, modifier, delta.x, delta.y, world.settings.chargeSeconds, world.settings.gesturePixels);
+                Preparation.Tick(Time.deltaTime, world.settings.chargeSeconds);
                 ChargeFeedback();
                 if (mouse.leftButton.wasReleasedThisFrame) Release();
             }
@@ -129,7 +126,6 @@ namespace Hakaton.Expeditions
                 return;
             }
             Preparation.Begin();
-            input.SetSprintBlocked(this, true);
             fullChargeCued = false;
             world.Play(world.cues ? world.cues.charge : null, null, .6f);
         }
@@ -148,12 +144,11 @@ namespace Hakaton.Expeditions
             var card = Selected;
             if (!Preparation.Active || !world.Running || card == null || card.IsReturn) return null;
             float charge = Preparation.Charge;
-            var spin = new Vector2(Preparation.SpinX, Preparation.SpinY);
             ComputeLaunch(charge, out var origin, out var velocity);
             Cancel();
             if (world.workshop.Model.Current.Release(card.Id) == null) return null;
             world.hand.Take(card.Id, out var handPose, out var handView);
-            var projectile = world.Launch(card, origin, velocity, spin, handView, handView ? handPose : (Pose?)null);
+            var projectile = world.Launch(card, origin, velocity, handView, handView ? handPose : (Pose?)null);
 
             // The socket can sit inside a wall when hugging geometry: resolve at the wall immediately.
             var eye = world.viewCamera.transform.position;
@@ -161,7 +156,7 @@ namespace Hakaton.Expeditions
 
             if (world.feel)
             {
-                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), -20 * spin.x));
+                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), UnityEngine.Random.Range(-4f, 4f)));
                 world.feel.PunchFov(10 + 25 * charge);
             }
             world.Play(world.cues ? world.cues.cardThrow : null, null, .7f + .3f * charge, Mathf.Lerp(.95f, 1.12f, charge));
@@ -187,7 +182,6 @@ namespace Hakaton.Expeditions
         public void Cancel()
         {
             Preparation.Cancel();
-            if (input) { input.SetLookBlocked(this, false); input.SetSprintBlocked(this, false); }
             if (trajectory) trajectory.enabled = false;
         }
 
@@ -267,17 +261,15 @@ namespace Hakaton.Expeditions
             trajectory.enabled = show;
             if (!show) return;
             ComputeLaunch(Preparation.Charge, out var position, out var velocity);
-            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge)
-                + world.settings.spinPreviewSeconds * Preparation.SpinAmount;
+            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge);
             int count = Mathf.Clamp(Mathf.CeilToInt(seconds / (1f / 50f)), 2, previewPoints.Length);
             float step = seconds / (count - 1);
             previewPoints[0] = position;
             int used = 1;
-            var clock = default(CardFlight.Clock);
             for (int i = 1; i < count; i++)
             {
                 Vector3 next = position, nextVelocity = velocity;
-                CardFlight.Advance(ref next, ref nextVelocity, ref clock, new Vector2(Preparation.SpinX, Preparation.SpinY), world.settings, step);
+                CardFlight.Advance(ref next, ref nextVelocity, world.settings, step);
                 if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
                 {
                     previewPoints[used++] = hit.point;
@@ -289,11 +281,12 @@ namespace Hakaton.Expeditions
             }
             trajectory.positionCount = used;
             for (int i = 0; i < used; i++) trajectory.SetPosition(i, previewPoints[i]);
-            // Faint by the hand, strongest where the path bends: the far end is where a spin shows.
-            Color accent = world.Accent(card);
+            // Bright along the whole path: the strip's white core takes the card's accent lifted halfway to white
+            // (its black ink edge stays black), barely softer by the hand.
+            Color core = Color.Lerp(world.Accent(card), Color.white, .5f);
             previewGradient.SetKeys(
-                new[] { new GradientColorKey(accent, 0), new GradientColorKey(accent, 1) },
-                new[] { new GradientAlphaKey(.15f, 0), new GradientAlphaKey(.85f, .3f), new GradientAlphaKey(.75f, 1) });
+                new[] { new GradientColorKey(core, 0), new GradientColorKey(core, 1) },
+                new[] { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) });
             trajectory.colorGradient = previewGradient;
         }
 

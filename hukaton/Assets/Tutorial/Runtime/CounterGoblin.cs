@@ -35,10 +35,10 @@ namespace Hakaton.Tutorial
                 audioSource.PlayOneShot(chatter[Random.Range(0, chatter.Length)], .55f);
         }
 
-        /// <summary>Gone in a puff of smoke.</summary>
+        /// <summary>Gone in a puff of smoke, as big as he is (the floor-standing instances are scaled up).</summary>
         public void Poof()
         {
-            VfxBurst.Spawn(poofVfx, face.transform.position, Quaternion.identity, null, new Color(.7f, .9f, .5f));
+            VfxBurst.Spawn(poofVfx, face.transform.position, Quaternion.identity, null, new Color(.7f, .9f, .5f), Mathf.Max(.01f, transform.lossyScale.y));
             if (audioSource && poofSound)
             {
                 // He disappears with this frame: the puff sounds from a short-lived source of its own, through his mixer group.

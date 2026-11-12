@@ -8,8 +8,9 @@ Drag `Prefabs/FirstPersonPlayer.prefab` into another scene, or create a prefab v
 
 - `PlayerControlGate` owns cursor capture and modal ownership. Escape releases the cursor and suppresses gameplay input. A click captures again; `CapturedThisFrame` prevents that click from also interacting with the world. Losing application focus releases capture. Each UI or game layer blocks using its own owner; one layer cannot release another layer's block.
 - `FirstPersonInput` samples movement, mouse look, sprint and jump. Input is cleared while capture is unavailable.
-- `FirstPersonMotor` moves the authored `CharacterController`: acceleration, braking, air control, jump buffering, coyote time, gravity and stamina use. `Teleport(position, rotation)` clears motion and aligns yaw and view pitch.
-- `PlayerStamina` owns the stamina budget. Its independent `StaminaState` implements delay, recovery and exhaustion hysteresis.
+- `FirstPersonMotor` moves the authored `CharacterController`: acceleration, braking, air control, jump buffering, coyote time, gravity and stamina use. `Teleport(position, rotation)` clears motion and aligns yaw and view pitch. Velocity is what input and pushes ask for: a wall (anything steeper than the slope limit) only removes the part of it that drove into the wall and did not get through, so the player slides along walls and climbs steps at full speed. The capsule's displacement is never fed back as velocity, so the controller pushing the capsule out of a corner or a narrow gap cannot bounce it from side to side.
+- `PlayerStamina` owns the stamina budget. Its independent `StaminaState` implements delay, recovery and exhaustion hysteresis. `PlayerStamina.Upgrade` is the PC's «Выносливость» (`StaminaUpgrade`, pure): every bought step adds `upgradeSecondsPerStep` (1 s) of sprint, prices in `upgradePrices` (200 / 450 / 800 / 1250 / 1800: 5 » 10 s). The serialized `capacity` stays the base; a step (or a loaded save) resizes the budget and fills it (`StaminaState.Resize`). The game save keeps the level (`GameSave.player.staminaLevel`).
+- `StaminaPips` (UI, `Game/Prefabs/UI/Stamina pips.prefab`) draws stamina as a crooked arc of pips under the crosshair, one instance inside each HUD's 736 × 368 layout (shop and outing), fed every frame by its HUD (`Present`). One pip = one step = 1 s of sprint (`StaminaGauge`: lit while any stamina is left in it). It shows only while stamina is not full (sprinting, recovering, exhausted) and fades out 0.6 s after it is full again. A spent pip pops up and goes hollow, refilled pips hop, and out of breath every pip is hollow and red until the recovery threshold. All motion is in whole layout units; nothing rotates or scales. Art: `Game/Art/Ui/ui_stamina_pip_{full,empty,tired}.png` (6 × 6, Point, uncompressed).
 - `FirstPersonView` controls yaw/pitch and modest movement feedback. The camera's authored position, rotation and FOV are the baseline. `motionIntensity = 0` disables bob, roll and landing dip; `sprintFov = 0` disables the sprint FOV change.
 - Optional `FirstPersonAudio` produces footsteps by actual travelled distance and listens to jump/landing events. Its clips and AudioSource are authored assets/references.
 
@@ -30,7 +31,7 @@ motor.Teleport(conversationPose.position, conversationPose.rotation);
 control.SetBlocked(this, false);
 ```
 
-Always release your own claim on disable/destruction. World interaction should require `control.GameplayActive && !control.CapturedThisFrame`. `PlayerStamina.Normalized` supplies a HUD gauge without a dependency from the player to any UI.
+Always release your own claim on disable/destruction. World interaction should require `control.GameplayActive && !control.CapturedThisFrame`. `PlayerStamina.Normalized` (or `Value` / `Capacity` / `StaminaPerPip`) supplies a HUD gauge without a dependency from the player to any UI.
 
 `FirstPersonModalView` provides a fixed camera without moving the character body. Assign the camera, shared control gate and an authored full-screen black `CanvasGroup`. `Enter(pose, fov)` and `SetPose(pose, fov)` switch to external scene markers under a 0.2 s blink; `Exit()` restores the FPS camera and releases only this component's control claim. Disable also restores the camera and clears its claim. It is independent of the trading layer; `TradingShopView` uses it for the counter and display viewpoints. Transition timings and FOV are editable in the Inspector.
 
@@ -40,9 +41,9 @@ Movement defaults: walk 4 m/s, sprint 6.5 m/s, acceleration 18 m/s², braking 24
 
 Base camera FOV is 75°. Walk bob amplitude is 5.5 cm with a slower sideways sway and 0.65° gait roll; sprint increases the amplitude by 1.45× and the pace from 1.8 to 2.5 Hz. Motion blends in and out with actual movement. Strafe roll is 0.8°, landing dip at most 4.5 cm, sprint FOV +5°. These values are Inspector fields and can be reduced independently.
 
-EditMode tests are in `Hakaton.Character.Tests` and cover the stamina budget and independent control owners.
+EditMode tests are in `Hakaton.Character.Tests` and cover the stamina budget, its resize, the «Выносливость» steps, the pip arc (count, lit, exhausted, whole-unit layout) and independent control owners.
 
-PlayMode tests are in `Hakaton.Character.PlayModeTests`. They instantiate the saved player prefab on a disposable physics surface and drive keyboard input through Unity's Input System to check walking, sprinting, braking, jumping, landing, stamina consumption, and modal control ownership. Run them in the Unity Test Runner's PlayMode tab in the Editor; the fixture loads its prefab through AssetDatabase.
+PlayMode tests are in `Hakaton.Character.PlayModeTests`. They instantiate the saved player prefab on a disposable physics surface and drive keyboard input through Unity's Input System to check walking, sprinting, braking, jumping, landing, stamina consumption, modal control ownership, sliding along a wall and standing still (no side-to-side bouncing) when pushed into a narrow wedge. Run them in the Unity Test Runner's PlayMode tab in the Editor; the fixture loads its prefab through AssetDatabase.
 
 ## Sprite NPCs
 

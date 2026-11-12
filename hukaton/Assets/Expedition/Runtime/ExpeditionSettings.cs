@@ -10,18 +10,6 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float chargeSeconds = .65f;
         [Min(.1f)] public float minimumSpeed = 6, maximumSpeed = 18;
         [Min(0)] public float cardGravity = 9.81f;
-        [Tooltip("Sideways acceleration at full spin and maximum throw speed, m/s²; scales with the card's speed.")]
-        [Min(0)] public float curveAcceleration = 22;
-        [Tooltip("Vertical acceleration at full up/down spin, m/s². Above gravity: full up-spin makes the card climb off the hand.")]
-        [Min(0)] public float liftAcceleration = 15;
-        [Tooltip("Longest time up/down spin lift stays at full strength, seconds. Matters for near-vertical throws that never stall.")]
-        [Min(0)] public float liftHoldSeconds = 2.5f;
-        [Tooltip("Below this speed, m/s, the card has stalled at the top of its climb: the lift lets go and it falls.")]
-        [Min(0)] public float liftReleaseSpeed = 3;
-        [Tooltip("Seconds over which the lift then wears off to nothing; after that only gravity acts, so the card slows on the way up and falls faster and faster.")]
-        [Min(0)] public float liftFadeSeconds = .6f;
-        [Tooltip("Mouse travel (any direction, Shift held) for a full-strength spin, pixels.")]
-        [Min(1)] public float gesturePixels = 220;
         [Tooltip("Share of the player's own planar velocity added to the throw.")]
         [Range(0, 1)] public float inheritVelocity = .25f;
         [Min(.01f)] public float cardRadius = .06f;
@@ -29,8 +17,6 @@ namespace Hakaton.Expeditions
         [Header("Aiming")]
         [Tooltip("Preview length at full charge, seconds of flight. Short on purpose: aiming stays a skill.")]
         [Min(0)] public float previewSeconds = .55f;
-        [Tooltip("Extra preview at full spin, seconds, so the curve the spin will cause is visible before the throw.")]
-        [Min(0)] public float spinPreviewSeconds = .6f;
         [Min(1)] public float aimConvergeDistance = 18;
         [Header("Hand")]
         [Tooltip("Input grace after the Return card appears, so a held click can't send you home by accident.")]

@@ -17,19 +17,20 @@ namespace Hakaton.Trading.Unity
     public sealed class TradingHud : MonoBehaviour
     {
         [Header("Compact exploration HUD")]
-        public RectTransform layoutRoot, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
-        public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility, staminaVisibility;
+        public RectTransform layoutRoot, selectedItemPanel, contextPanel, noticePanel;
+        public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility;
         public TMP_Text walletText, contextPrompt, contextDetail, noticeText;
         [Tooltip("Item card, first line: name and count (accent font).")]
         [FormerlySerializedAs("selectedItemText")] public TMP_Text selectedItemTitle;
         [Tooltip("Item card, second line: base price (body font).")]
         public TMP_Text selectedItemDetail;
-        public Image staminaFill, contextProgressFill, reticleDot;
+        public Image contextProgressFill, reticleDot;
         public GameObject reticle;
         [Tooltip("Magnification of the shop HUD layout (736 × 368 mockup units).")]
         public ReferenceUiScale shopLayout;
-        public Color reticleIdle = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
-        public Color reticleFocused = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+        [Tooltip("The aim point is a small white square, an even whole number of screen pixels (PixelSquare).")]
+        public Color reticleIdle = Color.white;
+        public Color reticleFocused = Color.white;
 
         [Header("Shift clock")]
         [Tooltip("Shown while the shop is open.")]
@@ -89,15 +90,16 @@ namespace Hakaton.Trading.Unity
         [Min(4)] public float contextHeightWithDetail = 24;
         [Tooltip("Reference units the bubble hops when the visitor answers.")]
         [Min(0)] public float answerHop = 2;
-        public Color staminaColor = new Color(.76f, .81f, .69f);
-        public Color tiredColor = new Color(.88f, .48f, .32f);
+
+        [Header("Stamina")]
+        [Tooltip("The crooked arc of pips under the aim (Stamina pips prefab); shows itself only while stamina matters.")]
+        public Hakaton.Character.StaminaPips staminaPips;
 
         [Tooltip("Set when a ShopFeel animates the wallet counter.")]
         public bool feelDrivesWallet;
         TradingPrototype controller;
         long shownCustomerId, shownDealId;
         int shownDealRevision;
-        float displayedStamina = 1;
         TextPunch speechPunch;
         long revealedDealId;
         int revealedRevision = -1;
@@ -118,7 +120,7 @@ namespace Hakaton.Trading.Unity
             refuseDeal.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
             acceptOffer.onClick.AddListener(() => controller.SellToBulkBuyer(shownCustomerId));
             declineOffer.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
-            selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = staminaVisibility.alpha = 0;
+            selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = 0;
             speechPunch = new TextPunch(speechBubble);
             Refresh();
         }
@@ -188,10 +190,8 @@ namespace Hakaton.Trading.Unity
             noticeText.text = controller.Notice;
             Fade(noticeVisibility, !string.IsNullOrEmpty(controller.Notice));
 
-            displayedStamina = Mathf.Lerp(displayedStamina, controller.StaminaFraction, 1 - Mathf.Exp(-14 * Time.unscaledDeltaTime));
-            staminaFill.fillAmount = displayedStamina;
-            staminaFill.color = Color.Lerp(tiredColor, staminaColor, Mathf.InverseLerp(.12f, .4f, controller.StaminaFraction));
-            Fade(staminaVisibility, exploring && controller.ShowStamina);
+            // The arc under the aim, together with the aim itself; it shows only while the stamina is not full.
+            if (staminaPips) staminaPips.Present(controller.Stamina, exploring && controller.GameplayActive, Time.unscaledDeltaTime);
             bool talking = session.IsOpen && session.CurrentCustomer != null && controller.CustomerReady && !controller.ViewTransitioning;
             conversation.SetActive(talking);
             if (talking) RefreshTrade();

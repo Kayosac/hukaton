@@ -127,8 +127,8 @@ namespace Hakaton.Trading.Unity
         public ItemInstance FocusedItem { get; private set; }
         public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen
             && Session.ExpeditionId == 0;
-        public float StaminaFraction => World.Stamina.Normalized;
-        public bool ShowStamina => World.Stamina.Normalized < .995f;
+        /// <summary>The shopkeeper's stamina, for the arc of pips under the aim.</summary>
+        public PlayerStamina Stamina => World ? World.Stamina : null;
         public float ContextProgress => pressedSlot >= 0 ? Mathf.Clamp01((Time.unscaledTime - pressStarted) / holdThreshold) : 0;
         int lastSettlement;
         int presentedDealSlot = -1;
@@ -293,10 +293,13 @@ namespace Hakaton.Trading.Unity
             World.Control.AllowPause(this, true);
             World.Control.SetBlocked(this, Session.IsOpen);
             if (Session.IsOpen == previousOpen) return;
-            ResetPlacement();
-            if (Session.IsOpen && !World.ShopView) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
-            if (World.ShopView) World.ShopView.Sync();
             previousOpen = Session.IsOpen;
+            ResetPlacement();
+            // The view first: entering it holds the current camera pose until the blink is black, so the body is moved
+            // only behind the blink. Every way a shift ends (time, last sale, empty display, E, the clock's cross, the
+            // tutorial, the bulk buyer) passes here and leaves the shopkeeper behind the counter.
+            if (World.ShopView) World.ShopView.Sync();
+            if (Session.IsOpen || World.returnToCounterOnClose) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
         }
 
         void ClearFocus()
@@ -593,7 +596,10 @@ namespace Hakaton.Trading.Unity
             return made;
         }
 
-        /// <summary>Models without a collider and drawings get a box around their renderers.</summary>
+        /// <summary>
+        /// Models without a collider and drawings get a box around their renderers. It is a trigger: the aim finds
+        /// triggers, while a solid box would turn with a drawing that faces the camera and shove the player.
+        /// </summary>
         static void EnsureCollider(GameObject item)
         {
             if (item.GetComponentInChildren<Collider>()) return;
@@ -602,6 +608,7 @@ namespace Hakaton.Trading.Unity
             Bounds bounds = renderers[0].bounds;
             foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
             var box = item.AddComponent<BoxCollider>();
+            box.isTrigger = true;
             var root = item.transform;
             box.center = root.InverseTransformPoint(bounds.center);
             Vector3 scale = root.lossyScale;
@@ -630,6 +637,8 @@ namespace Hakaton.Trading.Unity
         {
             Vector3 start = item.position;
             Quaternion rotation = item.rotation;
+            // Nothing in flight can be aimed at or bumped into; the item collides again where it lands.
+            SetCollidersEnabled(item, false);
             const float duration = .24f;
             for (float t = 0; t < duration && item; t += Time.deltaTime)
             {
@@ -638,7 +647,14 @@ namespace Hakaton.Trading.Unity
                 item.rotation = Quaternion.Slerp(rotation, destination.rotation, f);
                 yield return null;
             }
-            if (item) item.SetPositionAndRotation(destination.position, destination.rotation);
+            if (!item) yield break;
+            item.SetPositionAndRotation(destination.position, destination.rotation);
+            SetCollidersEnabled(item, true);
+        }
+
+        static void SetCollidersEnabled(Transform item, bool on)
+        {
+            foreach (var collider in item.GetComponentsInChildren<Collider>(true)) collider.enabled = on;
         }
 
         LootItem Item(string id)

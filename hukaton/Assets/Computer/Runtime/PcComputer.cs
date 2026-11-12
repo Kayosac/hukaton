@@ -68,6 +68,11 @@ namespace Hakaton.Computer
         /// over (not serialized); without it the improvements window shows only the deck workshop's tracks.
         /// </summary>
         public TradingSession Shop { get; set; }
+        /// <summary>
+        /// The player's «Выносливость» (sprint seconds), handed over by the game like <see cref="Shop"/> (not serialized);
+        /// without it the improvements window has no stamina track.
+        /// </summary>
+        public StaminaUpgrade Stamina { get; set; }
 
         void Awake()
         {

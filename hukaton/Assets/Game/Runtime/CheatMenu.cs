@@ -100,11 +100,15 @@ namespace Hakaton.Game
             shop.MaximizeShift();
             // The bulk buyer's chance too; his PC track still stays hidden until he has been met.
             shop.MaximizeBulkBuyer();
+            // «Выносливость» too: every pip of sprint.
+            var stamina = game.player.stamina ? game.player.stamina.Upgrade : null;
+            stamina?.Maximize();
             game.SaveNow();
             status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
                 + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit
                 + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с"
-                + ", скупщик: " + Mathf.RoundToInt(shop.BulkBuyerChance * 100) + "%.";
+                + ", скупщик: " + Mathf.RoundToInt(shop.BulkBuyerChance * 100) + "%"
+                + (stamina != null ? ", бег: " + Mathf.RoundToInt(stamina.Seconds) + " с." : ".");
             return true;
         }
 
@@ -136,6 +140,15 @@ namespace Hakaton.Game
             status = completed ? "Цель выполнена. Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal + "."
                 : "Нет активной цели. Цель выручки доступна после обучения.";
             return completed;
+        }
+
+        /// <summary>The goblin's word about deep water comes again after the next drowning.</summary>
+        public bool ResetDrownLecture()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.ForgetDrownLecture();
+            status = "Гоблин снова встретит в лавке после того, как утонете.";
+            return true;
         }
 
         public int StockDisplayRandomly()
@@ -212,6 +225,8 @@ namespace Hakaton.Game
             GUILayout.Label("Цель", title);
             GUI.enabled = game.CanCompleteActiveGoal;
             if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
+            GUI.enabled = game.Ready && game.DrownLectureGiven;
+            if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
             GUI.enabled = true;
             GUILayout.Space(8);
 

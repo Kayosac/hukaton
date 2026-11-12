@@ -287,8 +287,7 @@ namespace Hakaton.Expeditions
                 float scale = slot.scale.Step(isSelected ? selectedScale : 1, cardFrequency, cardDamping, dt);
 
                 float angle = fan.Roll(visibleIndex);
-                float spinRoll = isSelected && preparation.Active ? preparation.SpinX * -28 : 0;
-                Quaternion targetRotation = Quaternion.Euler(-charge * chargeTilt, charge * 10, -angle + spinRoll);
+                Quaternion targetRotation = Quaternion.Euler(-charge * chargeTilt, charge * 10, -angle);
                 slot.rotation = Quaternion.Slerp(slot.rotation, targetRotation, Ease.Damp(16, dt));
 
                 var t = slot.view.transform;

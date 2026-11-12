@@ -46,7 +46,15 @@ namespace Hakaton.Trading.Tests
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Trading/Prefabs/TradingHUD.prefab").GetComponent<Hakaton.Trading.Unity.TradingHud>();
             Assert.That(hud.shopLayout, Is.Not.Null);
-            Assert.That(hud.reticleDot.sprite.name, Is.EqualTo("CrosshairX"));
+            // The aim point is a small white square, an even whole number of screen pixels.
+            Assert.That(hud.reticleDot.sprite.name, Is.EqualTo("px_white"));
+            Assert.That(hud.reticleIdle, Is.EqualTo(Color.white));
+            Assert.That(hud.reticleFocused, Is.EqualTo(Color.white));
+            Assert.That(hud.reticleDot.rectTransform.pivot, Is.EqualTo(new Vector2(.5f, .5f)));
+            var square = hud.reticleDot.GetComponent<Hakaton.Feel.PixelSquare>();
+            Assert.That(square != null, "Sized to an even whole number of screen pixels");
+            Assert.That(square.layout, Is.SameAs(hud.shopLayout));
+            Assert.That(Hakaton.Feel.PixelSquare.SidePixels(1080 / 414f, square.pixelsPerStep), Is.EqualTo(6), "6 px at 1080p");
             Assert.That(hud.selectedItemPanel.GetComponent<Image>().sprite.name, Is.EqualTo("ItemDescriptionPaper"));
             Assert.That(hud.selectedItemPanel.localEulerAngles.z, Is.EqualTo(12).Within(.01f));
             Assert.That(hud.selectedItemTitle.transform.IsChildOf(hud.selectedItemPanel), Is.True);

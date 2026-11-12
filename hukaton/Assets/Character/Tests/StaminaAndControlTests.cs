@@ -73,6 +73,36 @@ namespace Hakaton.Character.Tests
         }
 
         [Test]
+        public void ResizeFillsTheNewMaximumAndEndsExhaustion()
+        {
+            var state = Full();
+            state.Tick(6, true);
+            Assert.That(state.Exhausted, Is.True);
+            state.Resize(120);
+            Assert.That((state.Capacity, state.Value, state.Exhausted, state.CanSprint), Is.EqualTo((120f, 120f, false, true)));
+            Assert.That(state.Normalized, Is.EqualTo(1).Within(1e-6f));
+            // Six seconds of sprint now, at the same drain.
+            state.Tick(5.9f, true);
+            Assert.That(state.Exhausted, Is.False);
+            state.Tick(.2f, true);
+            Assert.That(state.Exhausted, Is.True);
+            // Recovery threshold follows the new maximum: 25% of 120 = 30.
+            state.Tick(1 + 28f / 25, false);
+            Assert.That(state.CanSprint, Is.False);
+            state.Tick(.2f, false);
+            Assert.That(state.CanSprint, Is.True);
+        }
+
+        [Test]
+        public void ResizeRejectsAnInvalidMaximum()
+        {
+            var state = Full();
+            Assert.Throws<ArgumentOutOfRangeException>(() => state.Resize(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => state.Resize(float.NaN));
+            Assert.That(state.Capacity, Is.EqualTo(100));
+        }
+
+        [Test]
         public void IndependentModalOwnersCannotReleaseOneAnother()
         {
             var previousLock = Cursor.lockState;

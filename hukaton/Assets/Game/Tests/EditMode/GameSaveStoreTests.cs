@@ -224,6 +224,50 @@ namespace Hakaton.Game.Tests
             Assert.That(restored.Workshop.Current.Deck.Hand.Single(card => card.Id == bought.Id).Level, Is.EqualTo(2));
         }
 
+        [Test]
+        public void DrownLectureFlagRoundTripsAndOlderSavesHearItOnceMore()
+        {
+            var domains = new Domains();
+            var captured = domains.Capture();
+            Assert.That(captured.drownLectureGiven, Is.False, "A new game has not heard the goblin about deep water.");
+            captured.drownLectureGiven = true;
+            Save(captured);
+            Assert.That(GameSaveStore.Load(path, domains.Validate, out var loaded, out var warning), Is.True, warning);
+            Assert.That(loaded.drownLectureGiven, Is.True);
+
+            // A save written before the flag existed reads it as false: the lecture comes once more.
+            var older = JsonUtility.FromJson<GameSave>("{\"version\":1,\"coins\":0,\"goalCelebrated\":true}");
+            Assert.That(older.goalCelebrated, Is.True);
+            Assert.That(older.drownLectureGiven, Is.False);
+        }
+
+        /// <summary>«Выносливость» is the player's own section; saves from before it load as nothing bought.</summary>
+        [Test]
+        public void StaminaLevelRoundTripsAndOlderSavesHaveNoneBought()
+        {
+            var domains = new Domains();
+            var bought = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450, 800, 1250, 1800 });
+            domains.Wallet.Credit(650);
+            Assert.That(domains.Wallet.TrySpend(bought.Price), Is.True);
+            bought.Raise();
+            Assert.That(domains.Wallet.TrySpend(bought.Price), Is.True);
+            bought.Raise();
+            var captured = domains.Capture();
+            captured.player = new PlayerSave { staminaLevel = bought.Level };
+            Save(captured);
+
+            Assert.That(GameSaveStore.Load(path, domains.Validate, out var loaded, out var warning), Is.True, warning);
+            Assert.That((loaded.coins, loaded.StaminaLevel), Is.EqualTo((0, 2)));
+            var restored = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450, 800, 1250, 1800 });
+            restored.Restore(loaded.StaminaLevel);
+            Assert.That((restored.Level, restored.Seconds, restored.Price), Is.EqualTo((2, 7f, 800)));
+
+            // A save written before the section existed: version 1 still, nothing bought.
+            var older = JsonUtility.FromJson<GameSave>("{\"version\":1,\"coins\":0,\"goalCelebrated\":true}");
+            Assert.That((older.version, older.StaminaLevel), Is.EqualTo((1, 0)));
+            Assert.That(new GameSave().StaminaLevel, Is.Zero);
+        }
+
         static void SellAtReferencePrice(TradingSession shop, int slot)
         {
             Assert.That(shop.Open(), Is.True);

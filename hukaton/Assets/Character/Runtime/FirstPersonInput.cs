@@ -17,7 +17,7 @@ namespace Hakaton.Character
         readonly HashSet<Object> sprintOwners = new HashSet<Object>();
         public bool LookBlocked => lookOwners.Count > 0;
         public bool SprintBlocked => sprintOwners.Count > 0;
-        /// <summary>Shift doubles as the spin modifier while a throw is prepared; the thrower blocks sprint meanwhile.</summary>
+        /// <summary>Lets a system that needs Shift for itself suppress sprint while it holds the block.</summary>
         public void SetSprintBlocked(Object owner, bool blocked)
         {
             if (!owner) return;
