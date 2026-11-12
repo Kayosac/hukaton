@@ -15,7 +15,7 @@ namespace Hakaton.Expeditions
     /// <summary>
     /// Sparse expedition HUD (2026-11-10 UI handoff, 736 × 368 reference layout): spinning glossy hearts and the
     /// wallet top left with the effect badges under them, the paper X at the aim point with the charge ring and the
-    /// three-part spin arrow, the tilted "stock/total" counter beside the hand, pickup rows top right (hold I for every
+    /// three-part spin arrow, the tilted "stock/total" counter in the bottom-right corner (clear of the widest fan), pickup rows top right (hold I for every
     /// carried find in the same rows) and one contextual hint bottom left. Nothing about an item is shown on hover.
     /// </summary>
     public sealed class ExpeditionHud : MonoBehaviour
@@ -58,7 +58,7 @@ namespace Hakaton.Expeditions
         public Color spinColour = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
 
         [Header("Card counter")]
-        [Tooltip("'Stock/Total' beside the hand: cards still to draw / copies taken on this outing.")]
+        [Tooltip("'Stock/Total' in the bottom-right corner, clear of the widest hand fan: cards still to draw / copies taken on this outing.")]
         public TMP_Text cardCounter;
 
         [Header("Pickups")]

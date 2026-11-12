@@ -17,7 +17,7 @@ namespace Hakaton.Expeditions
 
     /// <summary>
     /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
-    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select from the one shared hand, R discards the hand (a new one is drawn),
+    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand, R discards the hand (a new one is drawn),
     /// E picks up. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
@@ -37,6 +37,12 @@ namespace Hakaton.Expeditions
         public event Action<CardCopy> Thrown;
         public event Action SelectionChanged;
         public bool HasThrown { get; private set; }
+
+        // Keys for the hand's cards in order: 1–9, then 0 for the tenth (the numpad mirrors them).
+        static readonly Key[] CardKeys =
+            { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0 };
+        static readonly Key[] NumpadCardKeys =
+            { Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9, Key.Numpad0 };
 
         int selectedId = int.MinValue, selectedIndex;
         float returnReadyAt, nextDiscard;
@@ -76,11 +82,8 @@ namespace Hakaton.Expeditions
             {
                 if (keys.rKey.wasPressedThisFrame) Discard();
                 if (keys.eKey.wasPressedThisFrame) world.TryPickUpFocused();
-                if (keys.digit1Key.wasPressedThisFrame) Select(0);
-                if (keys.digit2Key.wasPressedThisFrame) Select(1);
-                if (keys.digit3Key.wasPressedThisFrame) Select(2);
-                if (keys.digit4Key.wasPressedThisFrame) Select(3);
-                if (keys.digit5Key.wasPressedThisFrame) Select(4);
+                for (int i = 0; i < CardKeys.Length; i++)
+                    if (keys[CardKeys[i]].wasPressedThisFrame || keys[NumpadCardKeys[i]].wasPressedThisFrame) { Select(i); break; }
             }
             float wheel = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(wheel) > .1f && !Preparation.Active) Step(wheel > 0 ? -1 : 1);

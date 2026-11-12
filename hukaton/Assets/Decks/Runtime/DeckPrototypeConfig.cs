@@ -37,11 +37,12 @@ namespace Hakaton.Decks.Unity
         public int deckLimit = 12;
         [Tooltip("Further deck limits bought on the PC, in order (board: up to about 50).")]
         public DeckLimitStep[] deckLimitSteps = Array.Empty<DeckLimitStep>();
-        [Range(1, 5)]
+        [Tooltip("Cards in the hand at the start and after every bought step. The outing fan shows up to 20 (Expedition CardFanLayout.MaxCards); keys 1–9 and 0 select the first ten.")]
+        [Range(1, 20)]
         public int initialHand = 3, maximumHand = 5;
         [Range(1, 3)]
         public int maximumCardLevel = 3;
-        [Tooltip("Hand +1 costs this, times the step (board: 3 → 4 for 200, 4 → 5 for 400).")]
+        [Tooltip("Hand +1 costs this, times the step: 3 → 4 for 200, 4 → 5 for 400 … 9 → 10 for 1400.")]
         [Min(0)]
         public int handUpgradePrice = 200;
         [Min(0)]

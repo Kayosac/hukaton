@@ -108,5 +108,23 @@ namespace Hakaton.Decks.Tests
             Assert.That(limits.Zip(limits.Skip(1), (a, b) => b > a).All(up => up), Is.True);
             Assert.That(config.deckLimitSteps.All(s => s.price > 0), Is.True);
         }
+
+        /// <summary>Playtest: the hand grows from 3 to 10 cards, every step 200 dearer (200, 400 … 1400).</summary>
+        [Test]
+        public void HandGrowsToTenCardsAtRisingPrices()
+        {
+            var config = Catalogue();
+            Assert.That((config.initialHand, config.maximumHand, config.handUpgradePrice), Is.EqualTo((3, 10, 200)));
+            var workshop = config.CreateWorkshop(new Hakaton.Economy.CoinWallet(10000));
+            var prices = new List<int>();
+            while (workshop.HandSize < workshop.Rules.MaxHand)
+            {
+                prices.Add(workshop.HandPrice);
+                Assert.That(workshop.ImproveHand(), Is.Null);
+            }
+            Assert.That(prices, Is.EqualTo(new[] { 200, 400, 600, 800, 1000, 1200, 1400 }));
+            Assert.That((workshop.HandSize, workshop.Coins), Is.EqualTo((10, 10000 - 5600)));
+            Assert.That(workshop.ImproveHand(), Is.Not.Null, "Ten is the maximum.");
+        }
     }
 }
