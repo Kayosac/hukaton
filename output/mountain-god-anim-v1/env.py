@@ -50,10 +50,17 @@ def rocks():
 
 
 def flat_mat(name, rgb):
+    """A flat colour that Workbench's texture mode shows: a 4 x 4 image of it."""
     m = bpy.data.materials.new(name)
     m.diffuse_color = (*rgb, 1)
     m.use_nodes = True
-    m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*rgb, 1)
+    nt = m.node_tree
+    img = bpy.data.images.new(name, 4, 4)
+    img.pixels = [*rgb, 1.0] * 16
+    t = nt.nodes.new("ShaderNodeTexImage")
+    t.image = img
+    nt.links.new(t.outputs["Color"], nt.nodes["Principled BSDF"].inputs["Base Color"])
+    nt.nodes.active = t
     return m
 
 

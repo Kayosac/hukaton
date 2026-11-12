@@ -1,27 +1,41 @@
-# MG01: god animation v1 (draft for review)
+# MG01: god animation (draft v2 for review)
 
-The god's five beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks
-under his support hands. Previews: `MG01_first_person.mp4` (from the lip, then riding the finger), `MG01_wide.mp4`.
+The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
+his support hands. Previews: `MG01_first_person.mp4` (from the lip, then riding the finger), `MG01_body.mp4` (the
+body up close until the finger waits at the lip), `MG01_wide.mp4`.
+
+## v2 (after the first review)
+
+- He sits deep at first (pelvis 70 m below the model's pose, hunched) and really stands up on his support arms when he
+  sees the player (126 m up, a push-off dip and a heavy settle). The support arms' IK now reaches to their roots.
+- He lets go of himself first: both C hands slide down off the thighs (C01 down and out to the left, C02 down and out
+  to the right, where it then hangs and drifts with the body).
+- His two ordinary legs (L01, L02) drop and straighten under him, hip first and knee after, swinging past and back;
+  then they hang and sway. The torso sags under their weight with a bounce.
+- Only then C01 swings forward, in front of the legs, and lays the index finger under the lip.
+- The wrist never folds back: on the way the hand trails the arm (low IK orientation weight); at the lip and at the
+  face the target is lined up with the forearm, and the index finger bends at its knuckle to point where it must.
 
 ## Clips (30 fps)
 
 | Clip | Length | Loop | What happens |
 |---|---|---|---|
-| Idle | 12 s | yes | Breathing (6 s), small arms and feet sway; S hands pinned to their rocks, C hands on the thighs. |
-| Notice | 3 s | no | Rises 22 m with a settle, head turns toward the lip. |
-| AlertIdle | 12 s | yes | Held up, watching the lip, livelier sway. |
-| Reach | 9 s | no | Anticipation, C01 lets go of the thigh; pelvis and legs drop 35 m and bounce (the cradle is gone); torso leans 12 deg after the arm; the arm arcs out left and over, the index straightens, the other fingers curl; the fingertip lands under the lip. |
-| ReachHold | 12 s | yes | Waits at the lip, free fingers twitch. |
+| Idle | 12 s | yes | Sits deep, breathing (6 s), small arms and the raised legs sway; S hands on their rocks, C hands on the thighs. |
+| Notice | 3.6 s | no | Pushes off and stands up on the support arms, head turns to the lip. |
+| AlertIdle | 12 s | yes | Stands, watching the lip. |
+| Reach | 11 s | no | Lets go (hands down), legs drop straight, torso sags and bounces, then leans 13 deg as C01 swings to the lip. |
+| ReachHold | 12 s | yes | Waits at the lip; free fingers twitch, the legs and C02 hang and sway. |
 | Lift | 12 s | no | Carries the finger up to the face (end point to be tuned in tests). |
 | Talk | 12 s | yes | Nods and tilts, small arms gesture, the hand holds steady. |
 
-Dock: the index fingertip's end tucks 5 m under the lip edge, the finger's top 1 m below the platform (miss 0.04 m).
+Dock: the index fingertip's end tucks 5 m under the lip edge, the finger's top 1 m below the platform. IK misses
+(support hands on their rocks, C hands on their targets) stay under 0.3 m in every clip (`clips.json`).
 
 ## Rig changes
 
 - C01 and the small arms A01–A04 are cut free from the body at their roots (faces bridging limbs removed, holes capped);
   stray cross-limb weights cleaned.
-- `hat_00` and `beard_00` now hang from `head_00` (they were on the neck), so nods carry them.
+- `hat_00` and `beard_00` hang from `head_00` (they were on the neck), so nods carry them.
 - Hat and beard are springs at runtime (`GodSpringBones.cs`, same model as `springs.py` in the preview).
 
 ## Rocks under the support hands

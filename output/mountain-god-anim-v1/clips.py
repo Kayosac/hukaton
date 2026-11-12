@@ -1,6 +1,12 @@
 """MG01 clips: Idle, Notice, AlertIdle, Reach, ReachHold, Lift, Talk — procedural keys over IK (support hands pinned to
-their rocks, C02 holding its thigh, C01 driven through T_C01), baked frame by frame into plain bone keys.
-usage: python3 clips.py <out dir> [--preview]"""
+their rocks; C01 and C02 driven through world targets that start on the thighs), baked frame by frame into plain bone
+keys.
+
+The story: he sits deep in his own hands (C01 under thigh L01 is the cradle, C02 hugs L02's knee); seeing the player he
+stands up on his support arms; to reach he first lets go of himself — both hands slide down off the thighs — his two
+ordinary legs drop and straighten under him, the torso sags with the weight and bounces; then C01 swings forward,
+clear of the legs, and lays its index finger under the lip.
+usage: python3 clips.py <out dir>"""
 import sys, os, math, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bpy
@@ -15,40 +21,67 @@ T = G.rig(arm)
 vl = bpy.context.view_layer
 FPS = G.FPS
 PB = arm.pose.bones
+IK = {b: next(c for c in PB[b].constraints if c.type == 'IK') for b in ("C01_wrist_00", "C02_wrist_00")}
 
 
 def wtail(b): return arm.matrix_world @ PB[b].tail
 def whead(b): return arm.matrix_world @ PB[b].head
 
 
-# ------------------------------------------------------------------ finger poses (computed once in rest)
-def uncurl(b, along):
-    """Local rotation that turns bone b to point along `along` (world), in the current pose."""
+def turn_to(b, vec_fn, along):
+    """Local rotation that turns the world vector vec_fn() (measured on bone b's posed chain) to `along`."""
     vl.update()
-    cur = (wtail(b) - whead(b)).normalized()
-    q = cur.rotation_difference(along)
+    q = vec_fn().normalized().rotation_difference(along.normalized())
     mw = (arm.matrix_world @ PB[b].matrix).to_quaternion()
     return mw.inverted() @ q @ mw
 
 
+def qpow(q, t):
+    """q to the power t (t > 1 overshoots)."""
+    axis, ang = q.to_axis_angle()
+    return Quaternion(axis, ang * t)
+
+
+# ------------------------------------------------------------------ finger poses (computed once in rest)
 FINGERS = {f: [f"C01_{f}_0{i}" for i in range(3)] for f in ("f0", "f1", "f2", "f3", "thumb")}
 STRAIGHT = {}
 d0 = (wtail("C01_f0_00") - whead("C01_f0_00")).normalized()
 for b in FINGERS["f0"][1:]:
-    STRAIGHT[b] = uncurl(b, d0)
+    STRAIGHT[b] = turn_to(b, lambda b=b: wtail(b) - whead(b), d0)
     PB[b].rotation_quaternion = STRAIGHT[b]
 vl.update()
-# curl the others a bit more: the opposite of straightening each segment along its finger's base, 45 %
 CURL = {}
 for f in ("f1", "f2", "f3", "thumb"):
     base = (wtail(FINGERS[f][0]) - whead(FINGERS[f][0])).normalized()
     for b in FINGERS[f][1:]:
-        CURL[b] = uncurl(b, base).inverted()
+        CURL[b] = turn_to(b, lambda b=b: wtail(b) - whead(b), base).inverted()
 tip_rest = wtail("C01_f0_02")
 wrist_rest = G.tail_matrix(arm, "C01_wrist_00")
 f_rest = (tip_rest - whead("C01_f0_00")).normalized()
+FINGER_LEN = (tip_rest - whead("C01_f0_00")).length
 w_rest = (whead("C01_wrist_00") - wtail("C01_wrist_00")).normalized()
 for b in STRAIGHT:
+    PB[b].rotation_quaternion = Quaternion()
+vl.update()
+
+# ------------------------------------------------------------------ legs L01, L02 dropping straight (computed in rest)
+# Straight down under the hip, a little forward and out; L02 is long, so it keeps a soft knee and swings out more
+# (its foot stays well above the rock under S03).
+LEG_DIR = {"L01": Vector((.3, -.32, -1)), "L02": Vector((.42, -.22, -1))}
+KNEE_BEND = {"L01": 4.0, "L02": 14.0}
+LEGS = {}
+for L, d in LEG_DIR.items():
+    hip, knee, foot = L + "_hip", L + "_knee", L + "_foot_00"
+    LEGS[hip] = turn_to(hip, lambda: whead(knee) - whead(hip), d)
+    PB[hip].rotation_quaternion = LEGS[hip]
+    vl.update()
+    side = d.cross(Vector((1, 0, 0))).normalized()
+    shin = Quaternion(side, math.radians(-KNEE_BEND[L])) @ d.normalized()
+    LEGS[knee] = turn_to(knee, lambda: whead(foot) - whead(knee), shin)
+    PB[knee].rotation_quaternion = LEGS[knee]
+    vl.update()
+    print("leg", L, "foot at", [round(c, 2) for c in wtail(L + "_foot_01")])
+for b in LEGS:
     PB[b].rotation_quaternion = Quaternion()
 vl.update()
 
@@ -66,23 +99,8 @@ def hand_matrix(tip, fdir, wdir):
     return Matrix.Translation(pos) @ (R @ wrist_rest.to_quaternion()).to_matrix().to_4x4()
 
 
-# Dock: the fingertip's end a little under the platform's lip, the finger's top 1 m under it, pointing at the lip.
-DOCK_TIP = G.LIP + Vector((0, -.05, -.01 - G.FINGER_R))
-M_DOCK = hand_matrix(DOCK_TIP, Vector((0, -1, 0)), Vector((0, 1, .6)))
-# Where the player stands on the finger: 8 m back from its end, on top.
 SPOT_BACK = .08
 HEAD = (whead("head_00") + wtail("head_00")) * .5
-FACE_SPOT = Vector((HEAD.x - .1, HEAD.y - 3.2, HEAD.z - .2))  # in front of the face (tests will tune it)
-FACE_TIP = FACE_SPOT + Vector((SPOT_BACK, 0, -G.FINGER_R))
-M_FACE = hand_matrix(FACE_TIP, Vector((1, 0, 0)), Vector((-1, .5, .5)))
-
-
-def spot(m_target):
-    """The player's spot for a C01 target matrix (top of the finger, 8 m from its end)."""
-    R = m_target.to_quaternion() @ wrist_rest.to_quaternion().inverted()
-    tip = m_target.translation + R @ (tip_rest - wrist_rest.translation)
-    fdir = R @ f_rest
-    return tip - fdir * SPOT_BACK + Vector((0, 0, G.FINGER_R))
 
 
 def mlerp(a, b, t):
@@ -105,29 +123,38 @@ class Pose:
         self.lean = 0.0         # whole torso forward (deg): pelvis 0.33, spine 0.42, chest 0.25
         self.roll = 0.0         # torso toward C01's side (deg)
         self.breath = 0.0       # -1..1
+        self.breath_amp = 1.0
         self.look = None        # world point the head turns to
         self.look_w = 0.0
         self.c01 = 0.0          # 0: on the thigh, 1: on `hand`
-        self.hand = None        # C01 target matrix when free
+        self.hand = None
+        self.c01_orient = 1.0   # how strictly the wrist follows the target's rotation (low: the hand trails the arm)
+        self.c02 = 0.0
+        self.hand2 = None
+        self.c02_orient = 1.0
         self.fingers = 0.0      # 0 rest, 1 pointing
         self.sway = 0.0         # time for the small arms' sway (s)
         self.sway_amp = 1.0
-        self.nod = 0.0          # head nod (deg)
-        self.tilt = 0.0         # head tilt (deg)
-        self.wiggle = 0.0       # other fingers of C01 moving (0..1)
+        self.nod = 0.0
+        self.tilt = 0.0
+        self.wiggle = 0.0
+        self.leg_hip = 0.0      # 0 folded (rest), 1 hanging straight; > 1 swings past
+        self.leg_knee = 0.0
+        self.leg_swing = 0.0    # pendulum sway of the hanging legs (deg)
+        self.point_dir = None   # world direction the index finger is bent toward at its knuckle (the wrist stays
+        self.point_w = 0.0      # in line with the forearm; the finger does the aiming)
 
 
 def apply(p):
     for pb in PB:
         pb.rotation_quaternion = Quaternion()
         pb.location = (0, 0, 0)
-    b = p.breath
-    G.move(arm, "Pelvis", (0, 0, p.rise + .018 * b))
+    b = p.breath * p.breath_amp
+    G.move(arm, "Pelvis", (0, 0, p.rise + .03 * b))
     G.set_rot(arm, "Pelvis", (X, p.lean * .33), (Y, -p.roll * .4))
-    G.set_rot(arm, "Spine", (X, p.lean * .42 - .5 * b), (Y, -p.roll * .35))
-    G.set_rot(arm, "Chest", (X, p.lean * .25 - .9 * b), (Y, -p.roll * .25))
-    G.set_rot(arm, "Neck", (X, .45 * b))
-    # small arms and legs: slow sway, each its own phase (loop-safe: whole cycles in 12 s)
+    G.set_rot(arm, "Spine", (X, p.lean * .42 - .8 * b), (Y, -p.roll * .35))
+    G.set_rot(arm, "Chest", (X, p.lean * .25 - 1.4 * b), (Y, -p.roll * .25))
+    G.set_rot(arm, "Neck", (X, .7 * b))
     w = 2 * math.pi / 12.0
     s = p.sway
     a = p.sway_amp
@@ -140,125 +167,189 @@ def apply(p):
                 bn = f"{n}_{f}_0{k}"
                 if bn in PB:
                     G.set_rot(arm, bn, (X, a * 4 * math.sin(2 * w * s + ph + k * .6 + int(f[1]) * .4)))
-    for i, n in enumerate(("L02", "L03", "L04")):
+    for i, n in enumerate(("L03", "L04")):
         G.set_rot(arm, n + "_foot_00", (X, 2.5 * math.sin(w * s + i * 2.1)))
-    # C01 fingers: index straightens, the rest curl in; the free fingers wiggle a little while waiting
+        G.set_rot(arm, n + "_knee", (X, 1.2 * math.sin(w * s + i * 1.3 + .8)))
+    # the two ordinary legs: folded in the cradle, or dropped and hanging, swinging a little
+    for i, L in enumerate(("L01", "L02")):
+        hip, knee = L + "_hip", L + "_knee"
+        sw = p.leg_swing * math.sin(w * 2 * s + i * 1.9)
+        PB[hip].rotation_quaternion = G.rot(arm, hip, X, sw) @ qpow(LEGS[hip], p.leg_hip)
+        PB[knee].rotation_quaternion = G.rot(arm, knee, X, .6 * sw) @ qpow(LEGS[knee], p.leg_knee)
     for bn, q in STRAIGHT.items():
         PB[bn].rotation_quaternion = Quaternion().slerp(q, p.fingers)
     for bn, q in CURL.items():
         extra = .12 * p.wiggle * math.sin(2 * w * s * 3 + hash(bn) % 7)
         PB[bn].rotation_quaternion = Quaternion().slerp(q, max(0.0, p.fingers * .45 + extra))
     vl.update()
-    # head: look and talk
     if p.look is not None and p.look_w > 0:
         for bn, share in (("Neck", .4), ("head_00", .6)):
             vl.update()
             cur = (arm.matrix_world @ PB[bn].matrix).to_quaternion()
-            fwd = cur @ Vector((0, 0, 1))  # bone z: roughly the face's forward for this rig? use world -Y instead
-            hpos = whead(bn)
-            want = (p.look - hpos).normalized()
-            q = Vector((0, -1, 0)).rotation_difference(want)
-            q = Quaternion().slerp(q, p.look_w * share)
+            want = (p.look - whead(bn)).normalized()
+            q = Quaternion().slerp(Vector((0, -1, 0)).rotation_difference(want), p.look_w * share)
             PB[bn].rotation_quaternion = cur.inverted() @ q @ cur @ PB[bn].rotation_quaternion
     if p.nod or p.tilt:
         vl.update()
         q = G.rot(arm, "head_00", X, p.nod) @ G.rot(arm, "head_00", Y, p.tilt)
         PB["head_00"].rotation_quaternion = q @ PB["head_00"].rotation_quaternion
     vl.update()
-    # C01: from the thigh (an empty riding it) to its own target
-    m_th = T["C01_thigh"].matrix_world.copy()
-    T["C01"].matrix_world = m_th if p.c01 <= 0 or p.hand is None else mlerp(m_th, p.hand, min(1.0, p.c01))
+    # the hands: from the thigh helpers (riding the thighs) to their own targets
+    for key, c, hand, orient, bone in (("C01", p.c01, p.hand, p.c01_orient, "C01_wrist_00"),
+                                       ("C02", p.c02, p.hand2, p.c02_orient, "C02_wrist_00")):
+        m_th = T[key + "_thigh"].matrix_world.copy()
+        T[key].matrix_world = m_th if c <= 0 or hand is None else mlerp(m_th, hand, min(1.0, c))
+        IK[bone].orient_weight = max(.02, min(1.0, orient))
     vl.update()
+    if p.point_dir is not None and p.point_w > 0:
+        q = turn_to("C01_f0_00", lambda: wtail("C01_f0_02") - whead("C01_f0_00"), p.point_dir)
+        PB["C01_f0_00"].rotation_quaternion = Quaternion().slerp(q, min(1.0, p.point_w))
+        vl.update()
 
 
 # ------------------------------------------------------------------ clips
-BREATH = 6.0  # s
+BREATH = 6.0
 
 
 def breath(t):
     return math.sin(2 * math.pi * t / BREATH)
 
 
-ALERT = dict(rise=.22, lean=-1.5)
-REACH_END = dict(rise=-.35, lean=12.0, roll=2.5)
+SIT = dict(rise=-.7, lean=5.0)      # deep in the cradle, hunched
+STAND = dict(rise=.56, lean=-2.5)   # up on the support arms, chest out
+SAG = .38                            # after letting go: the legs' weight pulls him down
+REACH_END = dict(rise=.05, lean=13.0, roll=2.5)
+HANG = Vector((0, 0, 0))
 
 
 def idle(t):
-    p = Pose(); p.breath = breath(t); p.sway = t
+    p = Pose(); p.breath = breath(t); p.breath_amp = 1.2; p.sway = t
+    p.rise = SIT["rise"]; p.lean = SIT["lean"]
     return p
+
+
+NOTICE_LEN = 3.6
 
 
 def notice(t):
     p = Pose(); p.breath = breath(t); p.sway = t
-    u = settle(t / 2.4, overshoot=.1)
-    p.rise = ALERT["rise"] * u; p.lean = ALERT["lean"] * u
-    p.look = DOCK_TIP; p.look_w = .55 * smooth(t / 1.6)
+    # a short dip to push off, then up with a heavy settle
+    dip = .07 * (smooth(t / .35) - smooth((t - .35) / .4))
+    u = settle((t - .3) / 2.6, overshoot=.07, wobbles=1.5)
+    p.rise = SIT["rise"] + (STAND["rise"] - SIT["rise"]) * u - dip
+    p.lean = SIT["lean"] + (STAND["lean"] - SIT["lean"]) * smoother((t - .2) / 2.4)
+    p.look = DOCK_TIP; p.look_w = .55 * smooth((t - .4) / 1.6)
     p.sway_amp = 1 + .4 * smooth(t / 2)
     return p
 
 
 def alert_idle(t):
-    p = Pose(); p.breath = breath(t); p.sway = t + 3.0
-    p.rise = ALERT["rise"]; p.lean = ALERT["lean"]; p.look = DOCK_TIP; p.look_w = .55; p.sway_amp = 1.4
+    p = Pose(); p.breath = breath(t); p.sway = t + NOTICE_LEN
+    p.rise = STAND["rise"]; p.lean = STAND["lean"]; p.look = DOCK_TIP; p.look_w = .55; p.sway_amp = 1.4
     return p
 
 
-REACH_LEN = 9.0
+REACH_LEN = 11.0
+_start = {}
+
+
+def let_go_targets():
+    """Release points (world), from the hands' grips at the start of the reach: C01 slides down and out to the left,
+    clear of the leg that is about to drop; C02 slides down and out to the right."""
+    m1 = T["C01_thigh"].matrix_world.copy()
+    m2 = T["C02_thigh"].matrix_world.copy()
+    r1 = Matrix.Translation(m1.translation + Vector((-2.4, -1.2, -1.2))) @ (Quaternion((0, 1, 0), math.radians(-14)) @ m1.to_quaternion()).to_matrix().to_4x4()
+    r2 = Matrix.Translation(m2.translation + Vector((1.5, -.5, -1.9))) @ (Quaternion((0, 1, 0), math.radians(18)) @ m2.to_quaternion()).to_matrix().to_4x4()
+    pel = arm.matrix_world @ PB["Pelvis"].matrix
+    return m1, r1, pel.inverted() @ r2
+
+
+def c02_hang(rel2, t, amp=1.0):
+    """C02 after letting go: hangs from the body (moves with the pelvis), drifting a little."""
+    pel = arm.matrix_world @ PB["Pelvis"].matrix
+    m = pel @ rel2
+    d = Vector((.08 * math.sin(t * .9), .06 * math.sin(t * .7 + 1), .05 * math.sin(t * 1.1 + 2))) * amp
+    return Matrix.Translation(m.translation + d) @ m.to_quaternion().to_matrix().to_4x4()
 
 
 def reach(t):
-    p = Pose(); p.breath = breath(t) * .6; p.sway = t + 6.0; p.sway_amp = 1.2
-    # anticipation: the palm lifts off the thigh, the chest pulls back
-    a = smooth(t / 1.2) - smooth((t - 1.2) / 1.0)
-    # the arm: unwinds out to the left, comes in from above, settles at the lip with a small overshoot
-    u = settle((t - 1.0) / 6.6, overshoot=.035, wobbles=1.3)
-    # losing the cradle: pelvis and legs drop and bounce, the torso leans after the arm
-    drop = settle((t - 1.6) / 2.6, overshoot=.18, wobbles=1.8)
-    lean = smoother((t - 1.3) / 5.5)
-    p.rise = ALERT["rise"] * (1 - smooth((t - 1.4) / 1.2)) + REACH_END["rise"] * drop
-    p.lean = ALERT["lean"] * (1 - lean) + REACH_END["lean"] * lean - 2.0 * a
-    p.roll = REACH_END["roll"] * lean
-    p.c01 = min(1.0, smooth(t / .8) * 1.0)
-    vl.update()
-    p.hand = reach_path(u, a)
-    p.fingers = smooth((t - 3.0) / 4.0)
-    p.look = DOCK_TIP + Vector((0, 2.0 * (1 - smooth((t - 2) / 5)), 1.5 * (1 - smooth((t - 2) / 5)))); p.look_w = .6
+    p = Pose(); p.breath = breath(t) * .6; p.sway = t + 20.0; p.sway_amp = 1.2
+    m1, r1, rel2 = _start["m1"], _start["r1"], _start["rel2"]
+    # 1. letting go: a short squeeze-and-lift, then both hands slide down off the thighs
+    lift = .05 * (smooth(t / .4) - smooth((t - .4) / .5))
+    down = smoother((t - .3) / 1.1)
+    # 2. the legs drop and straighten (hip first, the knee follows), swinging past and back
+    p.leg_hip = settle((t - 1.0) / 1.5, overshoot=.16, wobbles=1.8)
+    p.leg_knee = settle((t - 1.25) / 1.45, overshoot=.22, wobbles=1.9)
+    p.leg_swing = 1.6 * smooth((t - 3) / 2)
+    # 3. the torso sags under the weight and bounces, then leans and lowers into the reach
+    sag = settle((t - 1.15) / 1.9, overshoot=.3, wobbles=1.7)
+    lean_in = smoother((t - 3.0) / 6.2)
+    p.rise = STAND["rise"] + lift + (SAG - STAND["rise"]) * sag + (REACH_END["rise"] - SAG) * lean_in
+    p.lean = STAND["lean"] + (REACH_END["lean"] - STAND["lean"]) * lean_in - 1.5 * smooth(t / .4) + 1.5 * smooth((t - .4) / .6)
+    p.roll = REACH_END["roll"] * lean_in
+    # C02: let go, hang
+    p.c02 = down
+    p.hand2 = c02_hang(rel2, t, smooth((t - 1.5) / 2))
+    p.c02_orient = 1.0 - .85 * smooth((t - 1.0) / 1.5)
+    # C01: down off the thigh, then forward and up in a wide arc in front of the legs, landing under the lip
+    u = settle((t - 2.6) / 7.2, overshoot=.012, wobbles=1.3)
+    p.c01 = 1.0
+    if t < 2.6:
+        p.hand = mlerp(m1, r1, down)
+    else:
+        p.hand = reach_path(r1, u)
+    p.c01_orient = 1.0 - (1.0 - TRAVEL_ORIENT) * smooth((t - 1.6) / .9) + (HAND_ORIENT - TRAVEL_ORIENT) * smooth((u - .6) / .4)
+    p.fingers = smooth((t - 4.5) / 4.0)
+    p.point_dir = DOCK_DIR; p.point_w = smooth((u - .55) / .45)
+    p.look = DOCK_TIP + Vector((0, 2.0 * (1 - smooth((t - 3) / 5)), 1.5 * (1 - smooth((t - 3) / 5)))); p.look_w = .6
     return p
 
 
-_reach_start = {}
-
-
-def reach_path(u, a):
-    m0 = _reach_start["m"]
-    p0 = m0.translation + Vector((0, 0, .5 * a))
+def reach_path(r1, u):
+    p0 = r1.translation
     p3 = M_DOCK.translation
-    p1 = p0 + Vector((-3.2, -3.5, 2.2))
-    p2 = p3 + Vector((-.6, 3.8, 3.4))
-    pos = bezier(p0, p1, p2, p3, min(max(u, 0), 1.05)) if u <= 1 else p3 + (p3 - bezier(p0, p1, p2, p3, .985)) * (u - 1) * 30
-    rot = m0.to_quaternion().slerp(M_DOCK.to_quaternion(), smoother(min(1.0, max(0.0, u * 1.15))))
+    p1 = p0 + Vector((-1.6, -4.2, 2.0))
+    p2 = p3 + Vector((-1.4, 4.6, 2.8))
+    uu = min(max(u, 0.0), 1.0)
+    pos = bezier(p0, p1, p2, p3, uu)
+    if u > 1:
+        pos = p3 + (p3 - bezier(p0, p1, p2, p3, .985)) * (u - 1) * 30
+    rot = r1.to_quaternion().slerp(M_DOCK.to_quaternion(), smoother(min(1.0, max(0.0, u * 1.1))))
     return Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
 
 
+def hold_base(p):
+    p.leg_hip = 1; p.leg_knee = 1; p.leg_swing = 1.6
+    p.c02 = 1; p.hand2 = c02_hang(_start["rel2"], p.sway); p.c02_orient = .15
+    return p
+
+
 def reach_hold(t):
-    p = Pose(); p.breath = breath(t) * .7; p.sway = t + 15.0; p.sway_amp = 1.1
+    p = Pose(); p.breath = breath(t) * .7; p.sway = t + 31.0; p.sway_amp = 1.1
+    hold_base(p)
     p.rise = REACH_END["rise"]; p.lean = REACH_END["lean"]; p.roll = REACH_END["roll"]
-    p.c01 = 1; p.hand = M_DOCK; p.fingers = 1; p.wiggle = 1
+    p.c01 = 1; p.hand = M_DOCK; p.fingers = 1; p.wiggle = 1; p.c01_orient = HAND_ORIENT
+    p.point_dir = DOCK_DIR; p.point_w = 1
     p.look = DOCK_TIP; p.look_w = .6
     return p
 
 
 LIFT_LEN = 12.0
+LIFT_RISE, LIFT_LEAN = .3, 2.0
 
 
 def lift(t):
-    p = Pose(); p.breath = breath(t) * .7; p.sway = t + 23.0; p.sway_amp = 1.0
+    p = Pose(); p.breath = breath(t) * .7; p.sway = t + 43.0; p.sway_amp = 1.0
+    hold_base(p)
     u = settle(t / 10.5, overshoot=.02, wobbles=1.2)
     up = smooth(t / 3.0)
-    p.rise = REACH_END["rise"] + (.05 - REACH_END["rise"]) * smoother(t / 9)
-    p.lean = REACH_END["lean"] + (2.0 - REACH_END["lean"]) * smoother((t - 1) / 9)
+    p.rise = REACH_END["rise"] + (LIFT_RISE - REACH_END["rise"]) * smoother(t / 9)
+    p.lean = REACH_END["lean"] + (LIFT_LEAN - REACH_END["lean"]) * smoother((t - 1) / 9)
     p.roll = REACH_END["roll"] * (1 - smoother(t / 9))
     p.c01 = 1; p.fingers = 1
+    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(u / .25) - smooth((u - .7) / .3))
+    p.point_w = 1; p.point_dir = DOCK_DIR.slerp(FACE_DIR, smoother(min(1.0, max(0.0, u))))
     p0, p3 = M_DOCK.translation, M_FACE.translation
     p1 = p0 + Vector((0, 0, 4.0))
     p2 = p3 + Vector((-4.0, -3.0, -.5))
@@ -266,23 +357,107 @@ def lift(t):
     pos = bezier(p0, p1, p2, p3, uu) + Vector((0, 0, .05 * math.sin(math.pi * up)))
     rot = M_DOCK.to_quaternion().slerp(M_FACE.to_quaternion(), smoother(uu))
     p.hand = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-    p.look = spot(p.hand); p.look_w = .7
+    p.look = spot_of(DOCK_TIP, DOCK_DIR).lerp(spot_of(FACE_TIP, FACE_DIR), smoother(min(1.0, max(0.0, u)))); p.look_w = .7
     return p
 
 
 def talk(t):
-    p = Pose(); p.breath = breath(t); p.sway = t + 35.0; p.sway_amp = 1.6
-    p.rise = .05; p.lean = 2.0; p.c01 = 1; p.fingers = 1
+    p = Pose(); p.breath = breath(t); p.sway = t + 55.0; p.sway_amp = 1.6
+    hold_base(p)
+    p.rise = LIFT_RISE; p.lean = LIFT_LEAN; p.c01 = 1; p.fingers = 1; p.c01_orient = HAND_ORIENT
+    p.point_dir = FACE_DIR; p.point_w = 1
     bob = .003 * breath(t)
     p.hand = Matrix.Translation(M_FACE.translation + Vector((0, 0, bob))) @ M_FACE.to_quaternion().to_matrix().to_4x4()
-    p.look = spot(M_FACE); p.look_w = .75
+    p.look = spot_of(FACE_TIP, FACE_DIR); p.look_w = .75
     w = 2 * math.pi / 12.0
     p.nod = 3.2 * math.sin(3 * w * t) * (.6 + .4 * math.sin(w * t)) + 1.5 * math.sin(5 * w * t + 1)
     p.tilt = 2.5 * math.sin(w * t + .5) + 1.2 * math.sin(4 * w * t)
     return p
 
 
-CLIPS = [("Idle", 12.0, idle, True), ("Notice", 3.0, notice, False), ("AlertIdle", 12.0, alert_idle, True),
+# ------------------------------------------------------------------ dock and face targets
+# The wrist follows the forearm (low orientation weight on C01's IK: the hand trails the arm and never folds back);
+# the index finger bends at its knuckle to point where it must. The target is placed so the knuckle sits one finger
+# length behind the wanted fingertip.
+DOCK_TIP = G.LIP + Vector((0, -.05, -.01 - G.FINGER_R))
+DOCK_DIR = Vector((0, -1, 0))
+FACE_SPOT = Vector((HEAD.x - .1, HEAD.y - 3.2, HEAD.z - .2))
+FACE_DIR = Vector((1, 0, 0))
+FACE_TIP = FACE_SPOT + FACE_DIR * SPOT_BACK + Vector((0, 0, -G.FINGER_R))
+HAND_ORIENT = 1.0  # at the dock and the face the wrist target is lined up with the forearm (see fit_target)
+TRAVEL_ORIENT = .04  # on the way: the hand trails the arm
+M_DOCK = hand_matrix(DOCK_TIP, DOCK_DIR, Vector((0, 1, .6)))
+M_FACE = hand_matrix(FACE_TIP, FACE_DIR, Vector((-1, .5, .5)))
+
+
+def fit_target(m, tip, fdir, pose_fn, rounds=6):
+    """Target for C01 so that the knuckle lands one finger length behind `tip` and the wrist continues the forearm:
+    solve, turn the target's rotation so the palm lines up with the forearm, move it so the knuckle lands, repeat.
+    pose_fn(m) -> Pose (with c01_orient as the clip uses it)."""
+    want = tip - fdir.normalized() * FINGER_LEN
+    for _ in range(rounds):
+        for _ in range(6):
+            apply(pose_fn(m))
+            err = want - whead("C01_f0_00")
+            if err.length < 5e-4:
+                break
+            m = Matrix.Translation(m.translation + err) @ m.to_quaternion().to_matrix().to_4x4()
+        fa = (wtail("C01_seg07") - whead("C01_seg07")).normalized()
+        wd = (wtail("C01_wrist_00") - whead("C01_wrist_00")).normalized()
+        qw = (arm.matrix_world @ PB["C01_wrist_00"].matrix).to_quaternion()
+        q = Quaternion().slerp(wd.rotation_difference(fa), .85) @ qw
+        m = Matrix.Translation(m.translation) @ q.to_matrix().to_4x4()
+    for _ in range(8):
+        apply(pose_fn(m))
+        err = want - whead("C01_f0_00")
+        if err.length < 5e-4:
+            break
+        m = Matrix.Translation(m.translation + err) @ m.to_quaternion().to_matrix().to_4x4()
+    return m
+
+
+def spot_of(tip, fdir):
+    return tip - fdir.normalized() * SPOT_BACK + Vector((0, 0, G.FINGER_R))
+
+
+def spot(m_target):
+    """The player's spot: on the dock or in front of the face, by which target it is nearer."""
+    return spot_of(DOCK_TIP, DOCK_DIR) if (m_target.translation - M_DOCK.translation).length < (m_target.translation - M_FACE.translation).length \
+        else spot_of(FACE_TIP, FACE_DIR)
+
+
+def start_reach():
+    """Set the release targets from the AlertIdle pose (the reach starts there)."""
+    apply(alert_idle(0.0))
+    _start["m1"], _start["r1"], _start["rel2"] = let_go_targets()
+
+
+def wrist_bend():
+    """Angle between C01's forearm (seg07) and palm (wrist) bones, degrees."""
+    a = (wtail("C01_seg07") - whead("C01_seg07")).normalized()
+    b = (wtail("C01_wrist_00") - whead("C01_wrist_00")).normalized()
+    return math.degrees(a.angle(b))
+
+
+def fit_dock():
+    global M_DOCK, M_FACE
+    def hold(m):
+        global M_DOCK
+        M_DOCK = m
+        return reach_hold(0)
+    M_DOCK = fit_target(M_DOCK, DOCK_TIP, DOCK_DIR, hold)
+    apply(reach_hold(0))
+    print(f"dock: tip miss {(wtail('C01_f0_02') - DOCK_TIP).length:.4f}, wrist bend {wrist_bend():.1f} deg")
+    def face(m):
+        global M_FACE
+        M_FACE = m
+        return talk(0)
+    M_FACE = fit_target(M_FACE, FACE_TIP, FACE_DIR, face)
+    apply(talk(0))
+    print(f"face: tip miss {(wtail('C01_f0_02') - FACE_TIP).length:.4f}, wrist bend {wrist_bend():.1f} deg")
+
+
+CLIPS = [("Idle", 12.0, idle, True), ("Notice", NOTICE_LEN, notice, False), ("AlertIdle", 12.0, alert_idle, True),
          ("Reach", REACH_LEN, reach, False), ("ReachHold", 12.0, reach_hold, True), ("Lift", LIFT_LEN, lift, False),
          ("Talk", 12.0, talk, True)]
 
@@ -292,11 +467,7 @@ def bake(name, length, fn):
     frames = int(round(length * FPS))
     keys = {pb.name: [] for pb in PB}
     for f in range(frames + 1):
-        t = f / FPS
-        if name == "Reach" and f == 0:
-            apply(alert_idle(0.0))
-            _reach_start["m"] = T["C01_thigh"].matrix_world.copy()
-        apply(fn(t))
+        apply(fn(f / FPS))
         for pb in PB:
             m = arm.convert_space(pose_bone=pb, matrix=pb.matrix, from_space="POSE", to_space="LOCAL")
             keys[pb.name].append(m.copy())
@@ -325,23 +496,34 @@ def write_action(act, keys, frames):
     arm.animation_data.action = None
 
 
+def check(name, fn, length):
+    """Worst IK misses over a clip (S hands on their rocks, C hands on their targets), units."""
+    worst = {}
+    for f in range(0, int(length * FPS) + 1, 5):
+        apply(fn(f / FPS))
+        for s in ("S01", "S02", "S03", "C01", "C02"):
+            d = (wtail(s + "_wrist_00") - T[s].matrix_world.translation).length
+            worst[s] = max(worst.get(s, 0), d)
+    return {k: round(v, 3) for k, v in worst.items()}
+
+
 if __name__ == "__main__":
+    start_reach()
+    fit_dock()
     report = {}
     baked = {}
     for name, length, fn, loop in CLIPS:
-        act, keys, frames = bake(name, length, fn)
-        baked[name] = (act, keys, frames)
-        tipd = None
-        report[name] = dict(seconds=length, frames=frames + 1, loop=loop)
-        print("baked", name, frames + 1, "frames")
-    # positions to report
-    apply(reach_hold(0)); report["dock_tip"] = list(wtail("C01_f0_02")); report["dock_spot"] = list(spot(M_DOCK))
-    apply(talk(0)); report["face_spot"] = list(spot(M_FACE)); report["face_tip"] = list(wtail("C01_f0_02")); report["head"] = list(HEAD)
+        if name == "Reach":
+            start_reach()
+        report[name] = dict(seconds=length, frames=int(round(length * FPS)) + 1, loop=loop, worst_ik_miss=check(name, fn, length))
+        baked[name] = bake(name, length, fn)
+        print("baked", name, report[name])
+    apply(reach_hold(0)); report["dock_tip"] = list(wtail("C01_f0_02")); report["dock_spot"] = list(spot_of(DOCK_TIP, DOCK_DIR))
+    report["dock_wrist_bend_deg"] = wrist_bend()
+    apply(talk(0)); report["face_spot"] = list(spot_of(FACE_TIP, FACE_DIR)); report["head"] = list(HEAD)
+    report["face_wrist_bend_deg"] = wrist_bend()
     report["dock_miss"] = (Vector(report["dock_tip"]) - DOCK_TIP).length
     json.dump(report, open(os.path.join(OUT, "clips.json"), "w"), indent=1)
-    import pickle
-    pickle.dump({n: ([[list(r) for r in m] for m in []], fr) for n, (a, k, fr) in baked.items()}, open(os.path.join(OUT, "frames.pkl"), "wb"))
-    # mute IK, write the actions
     for pb in PB:
         for c in pb.constraints:
             c.mute = True

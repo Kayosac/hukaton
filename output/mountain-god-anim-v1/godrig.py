@@ -190,14 +190,17 @@ def ik(arm, bone, target, chain, rotation=True):
 
 
 def rig(arm):
-    """IK targets: S hands on their rocks (world, fixed); C02 holds thigh L02; C01 holds thigh L01 through T_C01,
-    which the clips animate (world) from the thigh to the lip and to the face."""
+    """IK targets: S hands on their rocks (world, fixed; the chains reach to the arm roots so the god can stand up
+    tall); C01 and C02 hold thighs L01 and L02 through world targets that the clips drive: from the thigh helpers
+    (riding the thighs) to wherever the hands go."""
     t = {}
-    for s, chain in (("S01", 4), ("S02", 4), ("S03", 5)):
+    for s, chain in (("S01", 5), ("S02", 5), ("S03", 6)):
         t[s] = empty("T_" + s, tail_matrix(arm, s + "_wrist_00"))
         ik(arm, s + "_wrist_00", t[s], chain)
-    t["C02"] = empty("T_C02", parent=arm, bone="L02_seg01")
-    t["C02"].matrix_world = tail_matrix(arm, "C02_wrist_00")
+    # Where C02's palm sits on thigh L02 (riding it), and the target the clips drive (world): it lets go too.
+    t["C02_thigh"] = empty("T_C02_thigh", parent=arm, bone="L02_seg01")
+    t["C02_thigh"].matrix_world = tail_matrix(arm, "C02_wrist_00")
+    t["C02"] = empty("T_C02", tail_matrix(arm, "C02_wrist_00"))
     ik(arm, "C02_wrist_00", t["C02"], 7)
     # Where C01's palm sits on thigh L01: an empty riding the thigh, read every frame to drive T_C01.
     t["C01_thigh"] = empty("T_C01_thigh", parent=arm, bone="L01_seg01")
