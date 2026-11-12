@@ -20,6 +20,8 @@ namespace Hakaton.WorldAssembly
         public int District = 8;
 
         public float PlateauHeight = 6f;
+        /// <summary>Rain fronts and thunderstorms (<see cref="WorldWeather"/>).</summary>
+        public WeatherRules Weather = new WeatherRules();
         public float CanyonDepth = 5f;
 
         /// <summary>

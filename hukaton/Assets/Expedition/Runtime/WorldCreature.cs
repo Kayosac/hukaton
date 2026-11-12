@@ -763,6 +763,14 @@ namespace Hakaton.Expeditions
             provokedUntil = Time.time + 8;
         }
 
+        /// <summary>Water puts the fire out at once (the endless world's rain): the flames fade. True when it was burning.</summary>
+        public bool Douse()
+        {
+            if (!Burning) return false;
+            burnUntil = 0;
+            return true;
+        }
+
         /// <summary>Visible height of the creature (the drawing), m: what an ice shell has to cover.</summary>
         public float BodyHeight => TopHeight;
         /// <summary>

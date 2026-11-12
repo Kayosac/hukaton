@@ -727,6 +727,7 @@ namespace Hakaton.WorldAssembly.Unity
                     var aside = centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (2.6f + .8f * lap);
                     if (NavMesh.SamplePosition(aside, out var spot, 2f, NavMesh.AllAreas)) centre = spot.position + Vector3.up * .15f;
                 }
+                var taken = new List<Vector3>();
                 for (int m = 0; m < spawn.Count; m++, k++)
                 {
                     bool remembered = false;
@@ -737,13 +738,8 @@ namespace Hakaton.WorldAssembly.Unity
                         if (!state.alive) continue;
                     }
                     if (!prefab) continue;
-                    var at = centre;
-                    if (m > 0)
-                    {
-                        float a = turn + m * 2.4f;
-                        var around = at + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (1.4f + .45f * m);
-                        if (NavMesh.SamplePosition(around, out var hit, 1.6f, NavMesh.AllAreas)) at = hit.position + Vector3.up * .15f;
-                    }
+                    var at = Roomy(centre, taken, turn + m * 2.4f, m > 0 ? 1.4f + .45f * m : 0) ?? centre;
+                    taken.Add(at);
                     var creature = Instantiate(prefab, at, socket.rotation, entry.view.transform);
                     creature.world = world;
                     creature.spawnPoints = null;
@@ -753,6 +749,32 @@ namespace Hakaton.WorldAssembly.Unity
                     world.creatures.Add(creature);
                 }
             }
+        }
+
+        static readonly Collider[] spawnHits = new Collider[8];
+
+        /// <summary>
+        /// A spot for one of a group on the navigation round <paramref name="centre"/> where its body has room: no other
+        /// of the group within a metre, nothing solid (a low bough, a rock) where it stands — else a body pushed out of
+        /// another flies up and lands in a tree. Null when none is found.
+        /// </summary>
+        static Vector3? Roomy(Vector3 centre, List<Vector3> taken, float angle, float radius)
+        {
+            for (int k = 0; k < 14; k++)
+            {
+                float a = angle + k * .9f, r = radius + (k > 0 ? .5f + k * .2f : 0);
+                var probe = centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * r;
+                if (!NavMesh.SamplePosition(probe, out var hit, 1.6f, NavMesh.AllAreas)) continue;
+                var at = hit.position + Vector3.up * .15f;
+                bool apart = true;
+                foreach (var other in taken) if ((other - at).sqrMagnitude < 1) { apart = false; break; }
+                if (!apart) continue;
+                int n = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f, .35f, spawnHits, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                bool clear = true;
+                for (int i = 0; i < n; i++) if (!spawnHits[i].attachedRigidbody || spawnHits[i].attachedRigidbody.isKinematic) { clear = false; break; }
+                if (clear) return at;
+            }
+            return null;
         }
 
         void Unload(ChunkCoord coord, bool remember)
