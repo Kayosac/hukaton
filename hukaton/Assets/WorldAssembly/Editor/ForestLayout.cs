@@ -12,7 +12,9 @@ namespace Hakaton.WorldAssembly.EditorTools
     public sealed class ForestLayout
     {
         public const float EdgeHalf = TileTerrain.Corridor;
-        public const float GladeRadius = 4.8f, HeartRadius = 5.8f, TrunkRadius = 2.1f, NookRadius = 2.7f;
+        public const float GladeRadius = 4.8f, TrunkRadius = 2.1f, NookRadius = 2.7f;
+        /// <summary>The ring round the great tree: room for its roots, which flare out half again as far as its trunk, and a lane outside them.</summary>
+        public const float HeartRadius = 6.6f;
         /// <summary>Straight run of a lane in from its edge, m.</summary>
         const float Lead = 2.6f;
 

@@ -478,7 +478,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Structures/FA_ST12_Bench", 19, 18, 160);
             Lookouts.Add((V(19.6f, 17.4f), 600));
             TreeRing(c, 14.2f, 12, .5f);
-            Finds = new[] { V(20.6f, 20.6f), V(5.2f, 26.6f) };
+            Finds = new[] { V(17.6f, 18.6f), V(5.2f, 26.6f) };
             Creatures = new[] { V(21.6f, 17.8f), V(8.4f, 9.4f) };
             Grass = 22; Ferns = 4; Bushes = 8;
         }
@@ -678,7 +678,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Trails.Add(new[] { V(1, 15.4f), V(16, 16.6f), V(31, 15.6f) });
             Trails.Add(new[] { V(16.4f, 1), V(15.6f, 16), V(16.4f, 31) });
             TreeRing(V(16, 16), 14.8f, 10, .7f);
-            Finds = new[] { V(9.8f, 24.6f), V(26, 26.6f) };
+            Finds = new[] { V(9f, 26f), V(26, 26.6f) };
             Creatures = new[] { V(11.4f, 21.4f), V(21, 10.4f) };
             Grass = 22; Bushes = 7; Trees = 3;
         }
@@ -842,7 +842,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Boardwalks.Add((new[] { V(23.6f, 23.6f), V(23.6f, 29.4f) }, .3f));
             PutScaled("Structures/FA_ST04_Post", 17.4f, 21, 0, new Vector3(1, 1.6f, 1));
             Put("Props/FA_PR01_LanternHanging", 17.4f, 21, 0, 1, 2);
-            Put("Special/FA_SP10_BoardedShed", 12.6f, 3.4f, 180, .9f);
+            Put("Special/FA_SP10_BoardedShed", 12.8f, 5.4f, 180, .9f);
             foreach (var at in new[] { V(4.2f, 12.6f), V(3.2f, 2.6f), V(20.4f, 13.8f), V(28.6f, 18.4f), V(13, 27.6f), V(27.6f, 28.6f) })
                 Put("Trees/FA_TR10_DeadBare", at.x, at.y, at.x * 37, .8f + at.y % 3 * .15f);
             Put("Trees/FA_TR11_Snapped", 3.6f, 20, 40);

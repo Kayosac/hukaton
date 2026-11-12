@@ -43,6 +43,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             materials.Clear();
             prefabs.Clear();
+            // Collision copies are made anew with the chunks that use them.
+            collisionCopies.Clear();
+            AssetDatabase.DeleteAsset(CollisionPath);
             Directory.CreateDirectory(Root);
             RiverMaterial();
             var catalogue = AssetDatabase.LoadAssetAtPath<ChunkCatalog>(CataloguePath);
@@ -514,6 +517,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform)
                     && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
                     && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
+                // What stays put is hit as drawn, not by its hull.
+                if (!loose) foreach (var c in colliders) if (c is MeshCollider mesh && mesh.convex) mesh.convex = false;
                 if (loose)
                 {
                     // Set a hair above the ground, so it settles instead of springing out of it.
@@ -605,6 +610,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 // Its own collider is the heart's middle (the barrier leaves the trunk out): woken, it leaves the place open.
                 great = Place(trees, "Trees/FA_TR14_KnottyGiant", t, f.Hub, Rnd(0, 360), Vector3.one * (ForestLayout.TrunkRadius / 1.45f));
+                if (great) TurnClear(great, t, f);
                 trunks.Add((f.Hub, ForestLayout.TrunkRadius));
             }
             foreach (var p in points)
@@ -618,18 +624,23 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (depth < radius + .3f || EdgeRoom(p) < radius + .4f) continue;
                     if (trunks.Any(q => Vector2.Distance(q.at, p) < q.radius + radius + 1.6f)) continue;
                     if (f.InLog(p, radius + .3f)) continue;
-                    var tree = Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale);
+                    // Its roots and low boughs are solid as drawn: they keep out of the lanes (a little over the edge is roots).
+                    var tree = Fit(Place(trees, "Trees/" + asset, t, p, Rnd(0, 360), Vector3.one * scale), t, f.WallDepth, .35f);
                     if (!tree) continue;
-                    trunks.Add((p, radius));
-                    owners.Add((tree, p, radius));
+                    var stands = tree.transform.localPosition;
+                    var at = new Vector2(stands.x + 8, stands.z + 8);
+                    radius *= tree.transform.localScale.x / scale;
+                    trunks.Add((at, radius));
+                    owners.Add((tree, at, radius));
                     // Moss and fungus on the big ones.
                     if (radius > 1.4f && rng.NextDouble() < .7)
                     {
                         float a = Rnd(0, Mathf.PI * 2);
-                        var side = p + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius * .85f;
+                        var side = at + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius * .85f;
                         var fungus = Place(trees, "Plants/FA_VG16_ShelfFungusGroup", null, Vector2.zero, -a * Mathf.Rad2Deg + 90, Vector3.one * Rnd(1.2f, 1.7f));
                         if (fungus) fungus.transform.localPosition = new Vector3(side.x - 8, GroundY(t, side) + Rnd(.9f, 2.2f), side.y - 8);
-                        Bare(fungus);
+                        // Solid as it looks; out of the lane, or not at all.
+                        fungus = Fit(fungus, t, f.WallDepth);
                         // Goes with its tree when the tree walks off.
                         if (fungus) fungus.transform.SetParent(tree.transform, true);
                     }
@@ -675,7 +686,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 else if (sticks < 4 && depth > .2f && depth < 1.4f && logs.All(q => Vector2.Distance(q, p) > 1.6f))
                 {
-                    Bare(Place(dead, "Deadwood/" + (rng.NextDouble() < .5 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f)));
+                    Own(Fit(Place(dead, "Deadwood/" + (rng.NextDouble() < .5 ? "FA_DW10_SticksLarge" : "FA_DW11_BranchForked"), t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f)), t, f.WallDepth), p);
                     logs.Add(p);
                     sticks++;
                 }
@@ -769,7 +780,6 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var face = f.Hub + toward * (ForestLayout.TrunkRadius - .1f);
                 var mask = Place(shrine, "Markers/FA_MK15_WoodMask", null, Vector2.zero, Mathf.Atan2(toward.x, toward.y) * Mathf.Rad2Deg, Vector3.one * 1.8f);
                 if (mask) mask.transform.localPosition = new Vector3(face.x - 8, GroundY(t, face) + 1.4f, face.y - 8);
-                Bare(mask);
                 // The mask and the charms belong to the great tree: they go with it when it wakes.
                 if (mask && great) mask.transform.SetParent(great.transform, true);
                 for (int k = 0; k < 4; k++)
@@ -826,22 +836,82 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// in their caps, and a broad cap at the top with the lookout. The whole stair belongs to the tree: woken, it takes
         /// its fungi with it.
         /// </summary>
-        static void GreatStair(Transform tree, Transform root, TileTerrain t, ForestLayout f)
+        // Wide enough that a walker keeps a clear strip round the bend, not a thread the navigation loses.
+        // Under the crown, not into it: a walker stands on the lookout with the leaves over his head.
+        const float StairRadius = 3.2f, StairRise = 6.4f, StairSweepDeg = 290f, StairWidth = 2f;
+        const int StairSteps = 26;
+
+        /// <summary>Where the great tree's stair starts round its trunk: its foot faces the first way in, a little to the side.</summary>
+        static float StairStart(ForestLayout f)
         {
-            // Wide enough that a walker keeps a clear strip round the bend, not a thread the navigation loses.
-            const float radius = 3.2f, rise = 7f, sweepDeg = 290f, width = 2f;
-            const int steps = 26;
-            var stair = new GameObject("Stair").transform;
-            stair.SetParent(root, false);
-            // Its foot faces the first way in, a little to the side.
-            float a0 = 0;
             for (int s = 0; s < 4; s++)
                 if (f.Open[s])
                 {
                     var d = ForestLayout.Middle[s] - f.Hub;
-                    a0 = Mathf.Atan2(d.y, d.x) + 50 * Mathf.Deg2Rad;
-                    break;
+                    return Mathf.Atan2(d.y, d.x) + 50 * Mathf.Deg2Rad;
                 }
+            return 0;
+        }
+
+        /// <summary>
+        /// The great tree is solid as drawn — its roots, boughs and crown — so it is turned until the way up its stair
+        /// and the lookout at the top keep a walker's room clear of it (tried every 5°; the clearest wins).
+        /// </summary>
+        static void TurnClear(GameObject tree, TileTerrain t, ForestLayout f)
+        {
+            var chunk = tree.transform;
+            while (chunk.parent) chunk = chunk.parent;
+            float a0 = StairStart(f), sweep = StairSweepDeg * Mathf.Deg2Rad;
+            float h0 = GroundY(t, f.Hub + new Vector2(Mathf.Cos(a0), Mathf.Sin(a0)) * StairRadius) - .05f;
+            var way = new List<Vector3>();
+            for (int k = 0; k < StairSteps; k++)
+            {
+                float a = a0 + sweep * (k + .5f) / StairSteps, floor = h0 + StairRise * (k + .5f) / StairSteps;
+                // The foot of the stair is stepped onto from outside, over the roots by the trunk.
+                foreach (float r in k < 2 ? new[] { StairRadius, StairRadius + .5f } : new[] { StairRadius - .5f, StairRadius, StairRadius + .5f })
+                    way.Add(new Vector3(f.Hub.x + Mathf.Cos(a) * r - 8, floor, f.Hub.y + Mathf.Sin(a) * r - 8));
+            }
+            float top = a0 + sweep + .3f;
+            for (int k = -1; k <= 1; k++)
+                way.Add(new Vector3(f.Hub.x + Mathf.Cos(top + k * .15f) * (StairRadius + .2f) - 8, h0 + StairRise, f.Hub.y + Mathf.Sin(top + k * .15f) * (StairRadius + .2f) - 8));
+            float bestYaw = 0;
+            int best = int.MaxValue;
+            for (int k = 0; k < 72 && best > 0; k++)
+            {
+                tree.transform.localRotation = Quaternion.Euler(0, k * 5, 0);
+                Physics.SyncTransforms();
+                int hits = 0;
+                foreach (var w in way)
+                {
+                    var feet = chunk.TransformPoint(w);
+                    int n = Physics.OverlapCapsuleNonAlloc(feet + Vector3.up * .45f, feet + Vector3.up * 1.6f, .32f, touchHits, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                    for (int i = 0; i < n; i++)
+                        if (touchHits[i].transform.IsChildOf(tree.transform)) { hits++; break; }
+                }
+                if (hits < best) { best = hits; bestYaw = k * 5; }
+            }
+            tree.transform.localRotation = Quaternion.Euler(0, bestYaw, 0);
+            Physics.SyncTransforms();
+            if (best == 0) return;
+            var where = new List<string>();
+            for (int i = 0; i < way.Count; i++)
+            {
+                var feet = chunk.TransformPoint(way[i]);
+                int steps = way.Count - 3;
+                int n = Physics.OverlapCapsuleNonAlloc(feet + Vector3.up * .45f, feet + Vector3.up * 1.6f, .32f, touchHits, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                for (int j = 0; j < n; j++)
+                    if (touchHits[j].transform.IsChildOf(tree.transform)) { where.Add($"{(i < steps ? "step " + (i + 2) / 3 : "top")} ({touchHits[j].name})"); break; }
+            }
+            Debug.LogWarning($"[World] {chunk.name}: the great tree still stands in its stair's way at {best} of {way.Count} places: {string.Join(", ", where)}");
+        }
+
+        static void GreatStair(Transform tree, Transform root, TileTerrain t, ForestLayout f)
+        {
+            const float radius = StairRadius, rise = StairRise, sweepDeg = StairSweepDeg, width = StairWidth;
+            const int steps = StairSteps;
+            var stair = new GameObject("Stair").transform;
+            stair.SetParent(root, false);
+            float a0 = StairStart(f);
             float sweep = sweepDeg * Mathf.Deg2Rad;
             Vector2 At(float a, float r) => f.Hub + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
             float h0 = GroundY(t, At(a0, radius)) - .05f;
@@ -868,8 +938,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     var cap = Place(stair, "Plants/FA_VG15_ShelfFungus", null, Vector2.zero, Mathf.Atan2(inward.x, inward.y) * Mathf.Rad2Deg, new Vector3(5.5f, 3.6f, 6f));
                     if (cap)
                     {
+                        // Solid as drawn too: the shelf over the edge of the step holds a rope and a foot.
                         cap.transform.localPosition = new Vector3(bark.x - 8, (ha + hb) / 2 - .33f, bark.y - 8);
-                        foreach (var c in cap.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
                     }
                 }
             }
@@ -888,14 +958,12 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 var bark = At(top, ForestLayout.TrunkRadius - .1f);
                 group.transform.localPosition = new Vector3(bark.x - 8, h0 + rise - .5f, bark.y - 8);
-                foreach (var c in group.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
             }
             var lantern = Place(stair, "Props/FA_PR02_LanternGround", null, Vector2.zero, 0, Vector3.one);
             if (lantern)
             {
                 var spot = At(top + .25f, radius + .9f);
                 lantern.transform.localPosition = new Vector3(spot.x - 8, h0 + rise, spot.y - 8);
-                foreach (var c in lantern.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
             }
             var lookout = new GameObject("Lookout");
             lookout.transform.SetParent(stair, false);
@@ -919,9 +987,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             log.name = "Hollow trunk";
             // Sunk so the hollow's floor is the ground: inside, the walk is on the lane itself.
             log.transform.localPosition = new Vector3(f.LogAt.x - 8, low - .97f, f.LogAt.y - 8);
-            foreach (var c in log.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
-            foreach (var filter in log.GetComponentsInChildren<MeshFilter>())
-                filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+            // Its drawn shape is its collider (Shape): inside it is open, its walls are solid.
         }
 
         /// <summary>
@@ -1057,7 +1123,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     go.transform.localPosition = new Vector3(at.x, TileTerrain.WaterLevel, at.z);
                 }
                 if (prop.Lift != 0) go.transform.position += Vector3.up * prop.Lift;
-                if (prop.NoCollider) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+                // Decoration is still solid if it looks solid (a stone circle, a ruined wall): only soft things stay soft.
             }
             // Same stones in every part of a landmark: each part keeps those standing on it.
             var stones = new System.Random(scene.Id.GetHashCode());
@@ -1373,7 +1439,6 @@ namespace Hakaton.WorldAssembly.EditorTools
                 // Set into the face: a little behind the surface, at the height of the spot.
                 var at = p - outward * .5f;
                 rock.transform.localPosition = new Vector3(at.x - 8, t.Height(p) - 1.2f * s, at.y - 8);
-                foreach (var c in rock.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
                 // Scree below it.
                 var foot = p + outward * 1.6f;
                 if (!t.IsSaddle && t.Height(foot) < Plateau * .25f && !t.OnRamp(foot) && !NearLink(foot, 1.6f) && t.WaterDistance(foot) > .5f && rng.NextDouble() < .6)
@@ -1539,6 +1604,16 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// the wall (<paramref name="depth"/> below 0) at body height, it moves deeper into the wall, then shrinks;
         /// failing that it goes. Returns the piece, or null.
         /// </summary>
+        static readonly Collider[] touchHits = new Collider[32];
+
+        /// <summary>Is <paramref name="c"/>'s surface within <paramref name="radius"/> of a point?</summary>
+        static bool Touches(Collider c, Vector3 point, float radius)
+        {
+            int n = Physics.OverlapSphereNonAlloc(point, radius, touchHits, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++) if (touchHits[i] == c) return true;
+            return false;
+        }
+
         static GameObject Fit(GameObject go, TileTerrain t, Func<Vector2, float> depth, float allowance = .15f)
         {
             if (!go) return null;
@@ -1551,7 +1626,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Physics.SyncTransforms();
                 foreach (var c in go.GetComponentsInChildren<Collider>())
                 {
-                    if (c.isTrigger || (c is MeshCollider mc && !mc.convex)) continue;
+                    if (c.isTrigger) continue;
+                    // A hollow mesh (a rock, a trunk as drawn) has no inside to test: its surface near the point counts.
+                    bool hollow = c is MeshCollider mc && !mc.convex;
                     var b = c.bounds;
                     for (float x = b.min.x; x <= b.max.x + .01f; x += .25f)
                         for (float z = b.min.z; z <= b.max.z + .01f; z += .25f)
@@ -1559,10 +1636,11 @@ namespace Hakaton.WorldAssembly.EditorTools
                             var p = Canon(new Vector3(x, 0, z));
                             if (depth(p) >= -allowance) continue;
                             float y = GroundAt(p);
-                            for (int k = 0; k < 3; k++)
+                            for (int k = 0; k < 4; k++)
                             {
-                                var q = new Vector3(x, y + .4f + k * .65f, z);
-                                if ((c.ClosestPoint(q) - q).sqrMagnitude < .0025f) return true;
+                                var q = new Vector3(x, y + .35f + k * .45f, z);
+                                if (q.y < b.min.y - .15f || q.y > b.max.y + .15f) continue;
+                                if (hollow ? Touches(c, q, .13f) : (c.ClosestPoint(q) - q).sqrMagnitude < .0025f) return true;
                             }
                         }
                 }
@@ -1678,7 +1756,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             go.transform.localPosition = new Vector3(p.x - 8, 0, p.y - 8);
             go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = scale;
-            if (t == null) return go;
+            if (t == null) { Shape(go, asset); return go; }
             // Chunk-local: the parent may be a nested group at the chunk origin.
             var chunk = parent;
             while (chunk.parent) chunk = chunk.parent;
@@ -1703,7 +1781,87 @@ namespace Hakaton.WorldAssembly.EditorTools
                 go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, GroundY(t, p) - .06f, p.y - 8));
             }
             else go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, low - .04f, p.y - 8));
+            // Set by the prefab's own colliders (its trunk, its footprint); from here on it is hit where it is drawn.
+            Shape(go, asset);
             return go;
+        }
+
+        // ---------- what you see is what you hit ----------
+
+        /// <summary>Readable copies of the ForestArt meshes (their models are not readable): the colliders of the chunks.</summary>
+        const string CollisionPath = "Assets/WorldAssembly/Collision meshes.asset";
+        static readonly Dictionary<Mesh, Mesh> collisionCopies = new Dictionary<Mesh, Mesh>();
+
+        /// <summary>
+        /// Everything solid is hit exactly where it is drawn (Kayospace: colliders as close as can be to what the player
+        /// sees — a rope holds on a branch, a card stops on a rock's edge, nothing stands in the air): each of its meshes
+        /// is its own collider, crowns and branches too, no boxes or capsules standing in for them. Light loose things
+        /// get the convex hull of each part, so they can have a body. Soft things (<see cref="ChunkLooks.Soft"/>: grass,
+        /// ferns, leaves, bushes, ivy, moss, cobwebs, cloth, decals) are walked through as they look: no collider.
+        /// </summary>
+        static void Shape(GameObject go, string asset)
+        {
+            if (!go || asset.StartsWith("VFX/")) return;
+            foreach (var c in go.GetComponentsInChildren<Collider>(true))
+                if (!c.isTrigger) Object.DestroyImmediate(c);
+            if (ChunkLooks.Soft(asset)) return;
+            bool convex = LooseMass.ContainsKey(asset.Substring(asset.LastIndexOf('/') + 1));
+            foreach (var filter in go.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!filter.sharedMesh || !filter.GetComponent<MeshRenderer>()) continue;
+                var collider = filter.gameObject.AddComponent<MeshCollider>();
+                collider.sharedMesh = CollisionCopy(filter.sharedMesh);
+                collider.convex = convex;
+            }
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>A closed shape: every edge (its seams welded) shared by two faces.</summary>
+        static bool Closed(Vector3[] vertices, List<int> triangles)
+        {
+            var id = new int[vertices.Length];
+            var welded = new Dictionary<Vector3Int, int>();
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var key = Vector3Int.RoundToInt(vertices[i] * 1000);
+                if (!welded.TryGetValue(key, out int k)) welded[key] = k = welded.Count;
+                id[i] = k;
+            }
+            var edges = new Dictionary<(int, int), int>();
+            for (int i = 0; i + 2 < triangles.Count; i += 3)
+                for (int e = 0; e < 3; e++)
+                {
+                    int a = id[triangles[i + e]], b = id[triangles[i + (e + 1) % 3]];
+                    var edge = a < b ? (a, b) : (b, a);
+                    edges.TryGetValue(edge, out int count);
+                    edges[edge] = count + 1;
+                }
+            return edges.Values.All(count => count % 2 == 0);
+        }
+
+        /// <summary>A readable copy of a mesh's shape (all its parts as one), shared by every chunk that uses it.</summary>
+        static Mesh CollisionCopy(Mesh source)
+        {
+            if (collisionCopies.TryGetValue(source, out var copy) && copy) return copy;
+            copy = new Mesh { name = source.name + " collision", indexFormat = source.vertexCount > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
+            copy.vertices = source.vertices;
+            var triangles = new List<int>();
+            for (int s = 0; s < source.subMeshCount; s++) triangles.AddRange(source.GetTriangles(s));
+            // An open shape (leaf sheets of a crown, a moss cap on a rock) is drawn from both sides: it is hit from both
+            // sides too, so nothing passes through it from behind (casts and rays see front faces only).
+            if (!Closed(copy.vertices, triangles))
+                for (int i = 0, n = triangles.Count; i + 2 < n; i += 3)
+                {
+                    triangles.Add(triangles[i]);
+                    triangles.Add(triangles[i + 2]);
+                    triangles.Add(triangles[i + 1]);
+                }
+            copy.triangles = triangles.ToArray();
+            copy.RecalculateBounds();
+            if (!AssetDatabase.LoadAssetAtPath<Mesh>(CollisionPath)) AssetDatabase.CreateAsset(copy, CollisionPath);
+            else AssetDatabase.AddObjectToAsset(copy, CollisionPath);
+            collisionCopies[source] = copy;
+            return copy;
         }
 
         /// <summary>Lying things follow the ground; standing ones (trees, posts, walls, houses, signs) stay upright.</summary>
@@ -1876,6 +2034,15 @@ namespace Hakaton.WorldAssembly.EditorTools
             var bounds = new Bounds(new Vector3(0, 2, 0), new Vector3(16, 24, 16));
             NavMeshBuilder.CollectSources(bounds, ~(1 << 4), NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
             foreach (var c in triggers) c.enabled = true;
+            // Tree crowns are solid as drawn, but nobody walks over them: no navigation up there (where a crown hangs
+            // low, the ground under it is still too low to stand on).
+            for (int i = 0; i < sources.Count; i++)
+                if (sources[i].component is Collider c && c.name.EndsWith("_Crown"))
+                {
+                    var source = sources[i];
+                    source.area = 1;
+                    sources[i] = source;
+                }
             // Water is not walkable for creatures: one box per run of deep cells along each row, so dry ground inside
             // a river's bend stays walkable.
             if (t.Wet)

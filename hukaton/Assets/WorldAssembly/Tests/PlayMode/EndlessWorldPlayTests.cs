@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Hakaton.Decks.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Expeditions.Cards;
@@ -229,11 +230,14 @@ namespace Hakaton.WorldAssembly.Tests
             foreach (var c in group)
             {
                 bool found = NavMesh.SamplePosition(c.transform.position, out var nearest, 6, NavMesh.AllAreas);
-                Debug.Log($"[World] {c.name} at {c.transform.position} (chunk local {c.transform.position - centre}), navigation {(found ? (nearest.position - c.transform.position).ToString() : "none")}, state {c.State}");
+                var on = Physics.RaycastAll(c.transform.position + Vector3.up * .5f, Vector3.down, 6, ~(1 << 4), QueryTriggerInteraction.Ignore)
+                    .Where(h => !h.collider.transform.IsChildOf(c.transform)).OrderBy(h => h.distance).Select(h => $"{h.collider.transform.parent?.name}/{h.collider.name}").FirstOrDefault();
+                Debug.Log($"[World] {c.name} at {c.transform.position} (chunk local {c.transform.position - centre}), navigation {(found ? (nearest.position - c.transform.position).ToString() : "none")}, state {c.State}, on {on}");
             }
             foreach (var c in group)
-                // Bodies push each other a little as a group lands: within reach of the navigation, not off in a wall.
-                Assert.That(NavMesh.SamplePosition(c.transform.position, out _, 1.5f, NavMesh.AllAreas), Is.True, $"{c.name} at {c.transform.position - centre} stands on the navigation");
+                // Bodies push each other a little as a group lands, and pumpkins hop: within reach of the navigation (a hop
+                // above it at most), not off in a wall or up in a tree.
+                Assert.That(NavMesh.SamplePosition(c.transform.position, out _, 2.5f, NavMesh.AllAreas), Is.True, $"{c.name} at {c.transform.position - centre} stands on the navigation");
             float spread = group.SelectMany(a => group.Where(b => b != a).Select(b => Vector3.Distance(a.transform.position, b.transform.position))).Min();
             Assert.That(spread, Is.GreaterThan(.5f), "not on one spot");
 
@@ -931,6 +935,316 @@ namespace Hakaton.WorldAssembly.Tests
             yield return null;
             yield return null;
             Assert.That(rain.Clouds, Is.EqualTo(0), "no clouds left after the outing");
+        }
+
+        // ---------- what you see is what you hit: the rope and the fire ----------
+
+        static readonly Dictionary<string, System.Func<Collider, bool>> RopeKinds = new Dictionary<string, System.Func<Collider, bool>>
+        {
+            ["branch"] = c => c.name.EndsWith("_Bark") && c.transform.parent && c.transform.parent.name.StartsWith("FA_TR"),
+            ["crown"] = c => c.name.EndsWith("_Crown"),
+            ["rock"] = c => c.name.StartsWith("RK"),
+            ["wood"] = c => c.name.StartsWith("DW"),
+            ["building"] = c => c.name.StartsWith("ST") || c.name.StartsWith("SP"),
+        };
+
+        /// <summary>Inside a closed shape: its surface is above the point, and nothing of it seen looking up from inside.</summary>
+        static bool Inside(Vector3 point) => InsideOf(point) != null;
+
+        static readonly Dictionary<Mesh, bool> closedMeshes = new Dictionary<Mesh, bool>();
+
+        /// <summary>A closed shape (every edge shared by two faces, seams welded): only those have an inside.</summary>
+        static bool Closed(Mesh mesh)
+        {
+            if (closedMeshes.TryGetValue(mesh, out bool closed)) return closed;
+            var v = mesh.vertices;
+            var t = mesh.triangles;
+            var id = new int[v.Length];
+            var welded = new Dictionary<Vector3Int, int>();
+            for (int i = 0; i < v.Length; i++)
+            {
+                var key = Vector3Int.RoundToInt(v[i] * 1000);
+                if (!welded.TryGetValue(key, out int k)) welded[key] = k = welded.Count;
+                id[i] = k;
+            }
+            var edges = new Dictionary<(int, int), int>();
+            for (int i = 0; i + 2 < t.Length; i += 3)
+                for (int e = 0; e < 3; e++)
+                {
+                    int a = id[t[i + e]], b = id[t[i + (e + 1) % 3]];
+                    var edge = a < b ? (a, b) : (b, a);
+                    edges.TryGetValue(edge, out int n);
+                    edges[edge] = n + 1;
+                }
+            closed = edges.Values.All(n => n % 2 == 0);
+            closedMeshes[mesh] = closed;
+            return closed;
+        }
+
+        /// <summary>A piece of cord between two of its points passes through a drawn sheet (an open shape, from either side).</summary>
+        static Collider Crossed(Vector3 a, Vector3 b)
+        {
+            bool backfaces = Physics.queriesHitBackfaces;
+            Physics.queriesHitBackfaces = true;
+            try
+            {
+                foreach (var hit in Physics.RaycastAll(a, b - a, Vector3.Distance(a, b), CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore))
+                    if (hit.collider is MeshCollider mesh && !mesh.convex && !Closed(mesh.sharedMesh)) return hit.collider;
+                return null;
+            }
+            finally { Physics.queriesHitBackfaces = backfaces; }
+        }
+
+        static Collider InsideOf(Vector3 point)
+        {
+            foreach (var c in Physics.OverlapSphere(point, 4, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore))
+            {
+                if (!c.bounds.Contains(point) || c is CharacterController) continue;
+                if (!(c is MeshCollider mesh) || mesh.convex) { if ((c.ClosestPoint(point) - point).sqrMagnitude < 1e-6f) return c; continue; }
+                if (!Closed(mesh.sharedMesh)) continue;
+                var top = new Vector3(point.x, c.bounds.max.y + 1, point.z);
+                if (top.y <= point.y) continue;
+                if (!c.Raycast(new Ray(top, Vector3.down), out var down, top.y - point.y)) continue;
+                if (!c.Raycast(new Ray(point, Vector3.up), out _, top.y - point.y)) return c;
+            }
+            return null;
+        }
+
+        ChunkPlan NearestPlan(System.Func<ChunkPlan, bool> wanted, int reach = 25)
+        {
+            ChunkPlan best = null;
+            for (int x = -reach; x <= reach; x++)
+                for (int y = -reach; y <= reach; y++)
+                {
+                    var p = streamer.Map.Chunk(x, y);
+                    if (!wanted(p)) continue;
+                    if (best == null || x * x + y * y < best.Coord.X * best.Coord.X + best.Coord.Y * best.Coord.Y) best = p;
+                }
+            return best;
+        }
+
+        IEnumerator Visit(ChunkPlan plan)
+        {
+            float size = streamer.Map.Rules.ChunkSize;
+            var centre = streamer.root.position + new Vector3(plan.Coord.X * size, plan.BaseLevel * streamer.Map.Rules.PlateauHeight + 3, plan.Coord.Y * size);
+            world.motor.Teleport(centre, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(plan.Coord), 20);
+            for (int f = 0; f < 40; f++) yield return null;
+        }
+
+        ChunkView LoadedView(ChunkCoord c) => Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None).FirstOrDefault(v => streamer.CoordAt(v.transform.position).Equals(c));
+
+        /// <summary>
+        /// A card thrown from 3 m off a point of the drawn surface of <paramref name="target"/>, as the player throws: the
+        /// sweep of the card's own radius. Returns whether it struck that surface there (not something else first).
+        /// </summary>
+        bool Throw(Collider target, System.Func<Vector3, Vector3, bool> surface, System.Random rng, out RaycastHit hit, out Vector3 eye)
+        {
+            hit = default;
+            eye = default;
+            var mesh = ((MeshCollider)target).sharedMesh;
+            var v = mesh.vertices;
+            var t = mesh.triangles;
+            var m = target.transform.localToWorldMatrix;
+            for (int attempt = 0; attempt < 60; attempt++)
+            {
+                int k = rng.Next(t.Length / 3) * 3;
+                Vector3 a = m.MultiplyPoint3x4(v[t[k]]), b = m.MultiplyPoint3x4(v[t[k + 1]]), c = m.MultiplyPoint3x4(v[t[k + 2]]);
+                var normal = Vector3.Cross(b - a, c - a);
+                if (normal.sqrMagnitude < 1e-6f) continue;
+                normal.Normalize();
+                var point = (a + b + c) / 3;
+                if (!surface(point, normal)) continue;
+                eye = point + normal * 3 + Vector3.up * .4f;
+                if (Physics.CheckSphere(eye, .4f, CardFlight.CollisionMask, QueryTriggerInteraction.Ignore) || Inside(eye)) continue;
+                var direction = (point - eye).normalized;
+                if (!CardFlight.Sweep(eye, point + direction * .6f, world.settings.cardRadius, out hit)) continue;
+                if (hit.collider == target && Vector3.Distance(hit.point, point) < .35f) return true;
+            }
+            return false;
+        }
+
+        [UnityTest, Timeout(900000)]
+        public IEnumerator TheRopeHoldsOnWhatYouSeeAllOverTheWorld()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var rope = world.workshop.config.Find("rope");
+            Assert.That(rope, Is.Not.Null, "the rope card");
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var places = new List<ChunkPlan>
+            {
+                NearestPlan(p => p.Forest && !p.MazeHeart),
+                NearestPlan(p => p.Shape.Kind == ShapeKind.Cliff),
+                NearestPlan(p => (p.Shape.Kind == ShapeKind.Plain || p.Shape.Kind == ShapeKind.PlateauTop) && (p.Variant.Id == "camp" || p.Variant.Id == "farm" || p.Variant.Id == "ruins")),
+                NearestPlan(p => (p.Shape.Kind == ShapeKind.Plain || p.Shape.Kind == ShapeKind.PlateauTop) && (p.Variant.Id == "boulders" || p.Variant.Id == "grove")),
+                NearestPlan(p => p.Shape.Kind == ShapeKind.Maze && !p.Forest),
+            };
+            var held = new Dictionary<string, int>();
+            var failures = new List<string>();
+            int hung = 0, photos = 0;
+            var rng = new System.Random(7);
+            var hangOn = typeof(RopeLine).GetMethod("Grab", BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var place in places.Where(p => p != null))
+            {
+                yield return Visit(place);
+                var view = LoadedView(place.Coord);
+                if (!view) { failures.Add($"{place}: did not load"); continue; }
+                var ground = view.transform.Find("Ground");
+                var solids = view.GetComponentsInChildren<MeshCollider>().Where(c => c.enabled && !c.isTrigger && !c.convex && c.gameObject.layer != 4 && (!ground || !c.transform.IsChildOf(ground))).ToList();
+                foreach (var kind in RopeKinds)
+                {
+                    var candidates = solids.Where(kind.Value).OrderBy(_ => rng.Next()).Take(6).ToList();
+                    int here = 0;
+                    foreach (var target in candidates)
+                    {
+                        if (here >= 2) break;
+                        float baseY = target.transform.parent ? target.transform.parent.position.y : target.bounds.min.y;
+                        // Branches: high up and away from the trunk's axis; elsewhere any face that looks out or up.
+                        System.Func<Vector3, Vector3, bool> surface = kind.Key == "branch"
+                            ? (p, n) => p.y - baseY > 2.4f && Vector2.Distance(new Vector2(p.x, p.z), new Vector2(target.transform.position.x, target.transform.position.z)) > 1.2f * target.transform.lossyScale.x && n.y > -.3f
+                            : (System.Func<Vector3, Vector3, bool>)((p, n) => n.y > -.2f && p.y - baseY > .4f);
+                        if (!Throw(target, surface, rng, out var hit, out var eye)) continue;
+                        world.ApplyImpact(null, rope, hit.collider, hit.point, hit.normal, (hit.point - eye).normalized * 18, eye);
+                        var line = RopeLine.All.LastOrDefault();
+                        string what = $"{kind.Key} {target.transform.parent?.name}/{target.name} in {place}";
+                        if (!line || !line.Attached || line.Anchor != hit.collider) { failures.Add($"{what}: the rope did not hold where the card struck"); continue; }
+                        yield return new WaitForSeconds(2f);
+                        if (!line || !line.Attached) { failures.Add($"{what}: the rope let go"); continue; }
+                        for (int i = 1; i < line.PointCount; i++)
+                        {
+                            var into = InsideOf(line.Point(i)) ?? (i + 1 < line.PointCount ? Crossed(line.Point(i), line.Point(i + 1)) : null);
+                            if (into) { failures.Add($"{what}: piece {i} of {line.PointCount} of the cord went into {into.transform.parent?.name}/{into.name} at {line.Point(i)}"); break; }
+                        }
+                        held.TryGetValue(kind.Key, out int count);
+                        held[kind.Key] = count + 1;
+                        if (photos < 4 && (kind.Key == "branch" || kind.Key == "rock" || kind.Key == "crown"))
+                        {
+                            photos++;
+                            yield return Shot(dir, $"play-rope-{photos}-{kind.Key}", eye + Vector3.up * .5f, Vector3.Lerp(line.AnchorPoint, line.EndPoint, .4f), world.motor.transform.position + Vector3.up * 1.6f);
+                        }
+                        // Hang on it, where the hands reach the cord from the ground below its end.
+                        if (Physics.Raycast(line.EndPoint + Vector3.up * .3f, Vector3.down, out var under, 6, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore))
+                        {
+                            var feet = under.point + Vector3.up * .05f;
+                            var controller = world.motor.characterController;
+                            bool room = !Physics.CheckCapsule(feet + Vector3.up * (controller.radius + .1f), feet + Vector3.up * (controller.height - controller.radius), controller.radius - .02f, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore);
+                            if (room)
+                            {
+                                world.motor.Teleport(feet, Quaternion.identity);
+                                yield return null;
+                                hangOn.Invoke(line, new object[] { line.Length * .7f });
+                                if (RopeLine.Holding(world.motor) == line)
+                                {
+                                    yield return new WaitForSeconds(2.5f);
+                                    var body = world.motor.transform.position;
+                                    bool stillOn = RopeLine.Holding(world.motor) == line;
+                                    if (Inside(body + Vector3.up * .9f)) failures.Add($"{what}: hanging, the body went into something at {body}");
+                                    else if (stillOn && Vector3.Distance(line.AnchorPoint, body) > line.Length + 2.5f) failures.Add($"{what}: hanging {Vector3.Distance(line.AnchorPoint, body):0.0} m off a {line.Length:0.0} m rope");
+                                    else hung++;
+                                    RopeLine.ReleasePlayer(world.motor);
+                                    yield return new WaitForSeconds(1f);
+                                    if (Inside(world.motor.transform.position + Vector3.up * .9f)) failures.Add($"{what}: let go, the body stuck in something");
+                                }
+                            }
+                        }
+                        line.Detach();
+                        here++;
+                    }
+                }
+            }
+            Debug.Log($"[World] rope: held on {string.Join(", ", held.Select(h => $"{h.Key} ×{h.Value}"))}; hung {hung} times; {failures.Count} failures\n" + string.Join("\n", failures));
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+            foreach (var kind in new[] { "branch", "crown", "rock", "wood" })
+                Assert.That(held.ContainsKey(kind), Is.True, $"a rope held on a {kind}");
+            Assert.That(hung, Is.GreaterThanOrEqualTo(3), "the player hung on ropes");
+        }
+
+        [UnityTest, Timeout(600000)]
+        public IEnumerator FireTakesWhatBurnsAndOpensOnlyWhatItHits()
+        {
+            // Dry weather for this: rain puts fire out.
+            var rain = streamer.GetComponent<WorldRain>();
+            if (rain) rain.enabled = false;
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var fire = world.workshop.config.Find("fire");
+            Assert.That(fire, Is.Not.Null, "the fire card");
+            var rng = new System.Random(3);
+
+            // Everything that burns catches when a card of fire is thrown at it the way the player throws.
+            var tried = new Dictionary<string, (int lit, int thrown)>();
+            foreach (var place in new[]
+                     {
+                         NearestPlan(p => (p.Shape.Kind == ShapeKind.Plain || p.Shape.Kind == ShapeKind.PlateauTop) && (p.Variant.Id == "camp" || p.Variant.Id == "farm")),
+                         NearestPlan(p => (p.Shape.Kind == ShapeKind.Plain || p.Shape.Kind == ShapeKind.PlateauTop) && p.Variant.Id == "grove"),
+                         NearestPlan(p => p.Forest && !p.MazeHeart),
+                     }.Where(p => p != null))
+            {
+                yield return Visit(place);
+                var view = LoadedView(place.Coord);
+                if (!view) continue;
+                foreach (var group in view.burnables.Where(b => b && b.isActiveAndEnabled).GroupBy(b => b.name).ToList())
+                {
+                    var b = group.OrderBy(_ => rng.Next()).First();
+                    tried.TryGetValue(group.Key, out var st);
+                    if (st.thrown >= 2) continue;
+                    var look = b.Bounds;
+                    bool thrown = false;
+                    for (int k = 0; k < 8 && !thrown; k++)
+                    {
+                        float a = k * Mathf.PI / 4;
+                        var eye = look.center + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (look.extents.magnitude + 3) + Vector3.up * 1.5f;
+                        if (Physics.CheckSphere(eye, .3f, CardFlight.CollisionMask, QueryTriggerInteraction.Ignore) || Inside(eye)) continue;
+                        var aim = look.center;
+                        if (!CardFlight.Sweep(eye, aim + (aim - eye).normalized * 2, world.settings.cardRadius, out var hit)) continue;
+                        // Struck it, or the ground or whatever it stands in right by it (grass has nothing to strike).
+                        if (Vector3.Distance(hit.point, look.ClosestPoint(hit.point)) > .3f) continue;
+                        world.ApplyImpact(null, fire, hit.collider, hit.point, hit.normal, (aim - eye).normalized * 18, eye);
+                        thrown = true;
+                    }
+                    if (!thrown) continue;
+                    yield return null;
+                    bool lit = streamer.fire.Touched(b);
+                    tried[group.Key] = (st.lit + (lit ? 1 : 0), st.thrown + 1);
+                }
+            }
+            Debug.Log("[World] fire: " + string.Join(", ", tried.Select(x => $"{x.Key} {x.Value.lit}/{x.Value.thrown}")));
+            Assert.That(tried.Count, Is.GreaterThanOrEqualTo(5), "fire thrown at grass, bushes, trees, wood");
+            var cold = tried.Where(x => x.Value.lit < x.Value.thrown).Select(x => $"{x.Key} {x.Value.lit}/{x.Value.thrown}").ToList();
+            Assert.That(cold, Is.Empty, "did not catch: " + string.Join(", ", cold));
+
+            // Fire on the wall of a forest cell chars it and opens nothing; fire on the deadfall opens the alcove, with no word about it.
+            var hoard = NearestPlan(p => p.Variant.Id == TileShapes.ForestDeadfall);
+            Assert.That(hoard, Is.Not.Null, "a deadfall within 400 m");
+            yield return Visit(hoard);
+            var cell = LoadedView(hoard.Coord);
+            var deadfall = cell.obstacles.First(o => o && o.name == "Deadfall");
+            var wall = cell.GetComponentsInChildren<Collider>().Where(c => c.name.EndsWith("_Thicket") && !c.GetComponentInParent<WorldObstacle>())
+                .OrderByDescending(c => Vector3.Distance(c.bounds.center, deadfall.transform.position)).FirstOrDefault();
+            Assert.That(wall, Is.Not.Null, "thorns in the forest wall");
+            var resolvedBefore = Object.FindObjectsByType<WorldObstacle>(FindObjectsSortMode.None).Where(o => o.Resolved).ToList();
+            var wallEye = wall.bounds.center + Vector3.up * 3 + (deadfall.transform.position - wall.bounds.center).normalized * 2;
+            world.ApplyImpact(null, fire, wall, wall.ClosestPointOnBounds(wallEye), Vector3.up, (wall.bounds.center - wallEye).normalized * 18, wallEye);
+            yield return new WaitForSeconds(.5f);
+            var opened = Object.FindObjectsByType<WorldObstacle>(FindObjectsSortMode.None).Where(o => o.Resolved && !resolvedBefore.Contains(o)).ToList();
+            Assert.That(opened, Is.Empty, "fire on a wall thicket opened " + string.Join(", ", opened.Select(o => o.name)));
+            Assert.That(deadfall.Resolved, Is.False, "the deadfall stands");
+            var front = deadfall.transform.position - deadfall.transform.forward * 3 + Vector3.up * 1.4f;
+            Assert.That(CardFlight.Sweep(front, deadfall.transform.position + Vector3.up * .8f, world.settings.cardRadius, out var onPile), Is.True, "the deadfall is in front");
+            world.ApplyImpact(null, fire, onPile.collider, onPile.point, onPile.normal, (onPile.point - front).normalized * 18, front);
+            Assert.That(deadfall.Resolved, Is.True, "fire takes the deadfall");
+            Assert.That(world.Notice ?? "", Does.Not.Contain("выгорел"), "no word that the way is open");
+            yield return new WaitForSeconds(2f);
+            var controller = world.motor.characterController;
+            foreach (float across in new[] { -.8f, 0, .8f })
+            {
+                var at = deadfall.transform.position + deadfall.transform.right * across;
+                Assert.That(Physics.Raycast(at + Vector3.up * 3, Vector3.down, out var floor, 6, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore), Is.True);
+                var feet = floor.point + Vector3.up * .3f;
+                var blocking = Physics.OverlapCapsule(feet + Vector3.up * controller.radius, feet + Vector3.up * (controller.height - controller.radius), controller.radius - .02f, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore)
+                    .Where(c => c.transform.IsChildOf(cell.transform) && c.name != "Ground").Select(c => c.name).ToList();
+                Assert.That(blocking, Is.Empty, $"burnt, the alcove's mouth is open ({across:0.0} m across)");
+            }
         }
 
         /// <summary>The nearest ground round <paramref name="near"/> with nothing standing within 4 m up to 10 m high.</summary>
