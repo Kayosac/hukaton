@@ -81,18 +81,26 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
-        public void TheAllysBodyAndMarksFitTheThreeMetreTree()
+        public void TheAllysBodyIsPlayerSizedUnderTheThreeMetreDrawing()
         {
             var ally = Ally;
             var capsule = ally.GetComponent<CapsuleCollider>();
             Assert.That(capsule, Is.Not.Null);
             Assert.That(capsule.center.y - capsule.height / 2, Is.InRange(-.01f, .05f), "Stands on its roots.");
-            Assert.That(capsule.center.y + capsule.height / 2, Is.InRange(2.6f, 3f), "Up into the crown, not above it.");
+            // Playtest: it must get wherever the player gets (player: r 0.28, h 1.8); the 3 m drawing stays as it was.
+            Assert.That(capsule.center.y + capsule.height / 2, Is.InRange(1.7f, 1.85f), "As tall as the player's body.");
+            Assert.That(capsule.radius, Is.InRange(.25f, .32f), "As thin as the player's body.");
+            Assert.That(capsule.excludeLayers.value & (1 << 4), Is.Not.Zero, "Falls into water like the player, never walks on it.");
             var agent = ally.navigator;
-            Assert.That(agent.height, Is.InRange(2.6f, 3f));
-            Assert.That(agent.radius, Is.EqualTo(capsule.radius).Within(1e-4f));
-            Assert.That(capsule.radius, Is.LessThanOrEqualTo(NavMesh.GetSettingsByID(agent.agentTypeID).agentRadius + 1e-3f),
+            var settings = NavMesh.GetSettingsByID(agent.agentTypeID);
+            Assert.That(agent.radius, Is.EqualTo(settings.agentRadius).Within(1e-4f), "Plans with the radius the mesh was baked for.");
+            Assert.That(agent.height, Is.EqualTo(settings.agentHeight).Within(1e-4f));
+            Assert.That(capsule.radius, Is.LessThanOrEqualTo(settings.agentRadius + 1e-3f),
                 "The body fits the walkable corridors baked for the agent.");
+            Assert.That(agent.autoTraverseOffMeshLink, Is.False, "Links between chunks are crossed by the body, by hand.");
+            Assert.That(ally.burrowVfx, Is.Not.Null, "Leaves where it burrows.");
+            Assert.That(ally.awakenVfx, Is.Not.Null, "The uprooting burst where it comes up.");
+            Assert.That(ally.ledgeHop, Is.GreaterThanOrEqualTo(1.2f), "Hops up anything the player's jump reaches.");
             float lowestPip = float.MaxValue;
             foreach (var pip in ally.overhead.pips) lowestPip = Mathf.Min(lowestPip, pip.transform.localPosition.y);
             Assert.That(ally.overhead.transform.localPosition.y + lowestPip, Is.GreaterThan(3.1f), "Health pips sit above the crown.");

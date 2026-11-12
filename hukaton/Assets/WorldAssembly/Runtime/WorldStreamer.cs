@@ -833,6 +833,8 @@ namespace Hakaton.WorldAssembly.Unity
             foreach (Transform child in world.spawnedObjects)
             {
                 if (!child.gameObject.activeSelf || child.GetComponent<VfxBurst>()) continue;
+                // Allies (awakened trees) go with the player, even while under the ground: never left behind in a chunk.
+                if (child.GetComponent<ICombatant>() is ICombatant fighter && fighter.Faction == Faction.Player) continue;
                 var p = child.position;
                 if (Mathf.Abs(p.x - Origin.x - coord.X * Size) > half || Mathf.Abs(p.z - Origin.z - coord.Y * Size) > half) continue;
                 child.gameObject.SetActive(false);

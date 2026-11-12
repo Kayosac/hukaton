@@ -2,13 +2,14 @@ using UnityEngine;
 
 namespace Hakaton.Expeditions.Cards
 {
-    public enum TreeAllyPose { Awakening, Idle, Walk, Windup, Strike, Recover, Dying }
+    /// <summary>Burrow: the tree sinks into the ground to come up behind the player (the awakening run backwards).</summary>
+    public enum TreeAllyPose { Awakening, Idle, Walk, Windup, Strike, Recover, Dying, Burrow }
 
     /// <summary>What the awakened tree is doing this frame, for its look.</summary>
     public struct TreeAllyLookState
     {
         public TreeAllyPose Pose;
-        /// <summary>0 → 1 through the timed poses (awakening, wind-up, strike, recovery, dying).</summary>
+        /// <summary>0 → 1 through the timed poses (awakening, wind-up, strike, recovery, dying, burrowing: 1 = under the ground).</summary>
         public float Progress;
         /// <summary>Planar speed, m/s, and the gait phase in radians (a step every π).</summary>
         public float Speed, GaitPhase;
