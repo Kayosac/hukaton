@@ -108,6 +108,24 @@ namespace Hakaton.Expeditions
         public WorldCreature[] prologueCreatures = new WorldCreature[0];
         /// <summary>The creatures of the place the player is in: the cave's during the prologue, the valley's otherwise.</summary>
         public IReadOnlyList<WorldCreature> ActiveCreatures => InPrologue ? (IReadOnlyList<WorldCreature>)prologueCreatures : creatures;
+        /// <summary>The player's side (cards, hazards, allies) hit, knocked down or froze a creature (at most every quarter second per creature).</summary>
+        public event Action<WorldCreature> CreatureAttackedByPlayer;
+
+        /// <summary>
+        /// The player's side attacked <paramref name="victim"/> (<paramref name="by"/>: null for cards and hazards, or an
+        /// ally): every creature around may notice it and stand up for its kin (<see cref="WorldCreature.WitnessKinAttacked"/>).
+        /// </summary>
+        public void ReportPlayerAttack(WorldCreature victim, ICombatant by)
+        {
+            if (!victim) return;
+            var around = ActiveCreatures;
+            for (int i = 0; i < around.Count; i++)
+            {
+                var witness = around[i];
+                if (witness && witness != victim) witness.WitnessKinAttacked(victim, by);
+            }
+            CreatureAttackedByPlayer?.Invoke(victim);
+        }
 
         void Awake() { workshop.Departed += BeginOuting; }
         void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }

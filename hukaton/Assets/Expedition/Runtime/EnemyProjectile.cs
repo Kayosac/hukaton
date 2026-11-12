@@ -249,8 +249,9 @@ namespace Hakaton.Expeditions
             {
                 if (!creature.Alive) return;
                 if (slow) creature.ApplyMoveSpeedScale(profile.slowScale, profile.slowSeconds);
-                if (profile.freezeSeconds > 0) creature.Freeze(profile.freezeSeconds);
-                if (profile.stunSeconds > 0) creature.Stagger(profile.stunSeconds, point);
+                // The shooter's doing, not the player's: no grudge against the player, no cry to kin.
+                if (profile.freezeSeconds > 0) creature.Freeze(profile.freezeSeconds, shooter);
+                if (profile.stunSeconds > 0) creature.Stagger(profile.stunSeconds, point, shooter);
             }
             else if (ReferenceEquals(victim, world.Player) && world.motor)
             {

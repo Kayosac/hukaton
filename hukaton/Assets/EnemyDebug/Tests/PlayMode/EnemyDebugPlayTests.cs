@@ -337,6 +337,110 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(EnemyProjectile.Active.Contains(second), Is.False);
             LogAssert.NoUnexpectedReceived();
         }
+
+        // ---------------- standing up for kin ----------------
+
+        static readonly CreatureState[] CalmStates = { CreatureState.Idle, CreatureState.Wander, CreatureState.Graze, CreatureState.Investigate };
+        static bool IsCalm(WorldCreature creature) => CalmStates.Contains(creature.State);
+
+        /// <summary>
+        /// A live witness at its preview, looking ahead, and a live victim <paramref name="apart"/> metres in front of it;
+        /// the player 9 m beyond the victim, out of everybody's way.
+        /// </summary>
+        (WorldCreature victim, WorldCreature witness) KinScene(EnemyDebugPreview victimKind, EnemyDebugPreview witnessKind, float apart)
+        {
+            var witness = sandbox.Spawn(witnessKind);
+            Vector3 ahead = witness.transform.forward; ahead.y = 0;
+            ahead = ahead.sqrMagnitude > .01f ? ahead.normalized : Vector3.back;
+            var victim = sandbox.Spawn(victimKind);
+            victim.Resume(victim.maximumHealth, witness.Position + ahead * apart);
+            sandbox.motor.view.Guide(null);
+            sandbox.motor.Teleport(witness.Position + ahead * (apart + 9) + Vector3.up * .05f, Quaternion.LookRotation(-ahead));
+            return (victim, witness);
+        }
+
+        IEnumerator StaysCalm(WorldCreature creature, float seconds, string why)
+        {
+            float until = Time.time + seconds;
+            while (Time.time < until)
+            {
+                Assert.That(IsCalm(creature), Is.True, why + ": it stays calm, not " + creature.State);
+                Assert.That(creature.AlarmedForKin, Is.False, why);
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PeacefulKinTurnOnThePlayerWhenTheySeeHimHitKnockDownOrFreezeOneOfThem()
+        {
+            var rooster = sandbox.Previews.First(p => p.source.name == "Rooster baseball");
+            Assert.That(rooster.source.StandsUpForKin, Is.True, "a peaceful rooster can fight back");
+            var attacks = new (string what, System.Action<WorldCreature> attack)[]
+            {
+                ("a hit", c => c.Damage(1, Vector3.zero, c.Centre, 0)),
+                ("a knock-down", c => c.Stagger(.6f, c.Position)),
+                ("a freeze", c => c.Freeze(1)),
+            };
+            foreach (var (what, attack) in attacks)
+            {
+                var (victim, witness) = KinScene(rooster, rooster, 5);
+                yield return Wait(.15f);
+                Assert.That(IsCalm(witness), Is.True, what + ": peaceful before");
+                int reports = 0;
+                System.Action<WorldCreature> count = attacked => { if (attacked == victim) reports++; };
+                sandbox.world.CreatureAttackedByPlayer += count;
+                attack(victim);
+                sandbox.world.CreatureAttackedByPlayer -= count;
+                Assert.That(reports, Is.EqualTo(1), what + " is reported once");
+                Assert.That(witness.AlarmedForKin, Is.True, what + ": the rooster 5 m away sees it");
+                Assert.That(IsCalm(witness), Is.True, what + ": it turns after a short start, not at once");
+                float until = Time.time + 1.5f;
+                while (Time.time < until && IsCalm(witness)) yield return null;
+                Assert.That(IsCalm(witness), Is.False, what + ": it turns on the player");
+                Assert.That(witness.AlarmedForKin, Is.False);
+                Assert.That(witness.Target, Is.SameAs(sandbox.world.Player), what + ": the player is the one it goes for");
+                sandbox.ClearLive(); yield return null;
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator KinStayCalmWhenFarAwayWhenAnotherKindIsHitOrWhenACreatureDidIt()
+        {
+            var rooster = sandbox.Previews.First(p => p.source.name == "Rooster baseball");
+            var leshy = sandbox.Previews.First(p => p.source.name == "Teen leshy skater");
+
+            // 20 m away: beyond the kin witness range.
+            var (victim, witness) = KinScene(rooster, rooster, 20);
+            yield return Wait(.15f);
+            victim.Damage(1, Vector3.zero, victim.Centre, 0);
+            yield return StaysCalm(witness, 1.5f, "20 m away");
+            sandbox.ClearLive(); yield return null;
+
+            // Another kind hit right in front of it.
+            (victim, witness) = KinScene(leshy, rooster, 5);
+            yield return Wait(.15f);
+            victim.Damage(1, Vector3.zero, victim.Centre, 0);
+            yield return StaysCalm(witness, 1.5f, "a leshy is no kin of a rooster");
+            sandbox.ClearLive(); yield return null;
+
+            // A creature's stray hit on its kin: not the player's doing, nobody turns on the player.
+            var dog = sandbox.Spawn(sandbox.Previews.First(p => p.source.name == "Goblin dog"));
+            dog.Freeze(30);
+            (victim, witness) = KinScene(rooster, rooster, 5);
+            yield return Wait(.15f);
+            int reports = 0;
+            System.Action<WorldCreature> count = _ => reports++;
+            sandbox.world.CreatureAttackedByPlayer += count;
+            victim.TakeDamage(new DamageInfo(1, Vector3.zero, victim.Centre, dog.Centre, DamageKind.Hit, dog));
+            victim.Stagger(.3f, victim.Position, dog);
+            sandbox.world.CreatureAttackedByPlayer -= count;
+            Assert.That(reports, Is.Zero, "a creature's hit is no attack by the player");
+            yield return StaysCalm(witness, 1.5f, "a creature hit its kin");
+            Assert.That(victim.Target, Is.SameAs(sandbox.world.Player));
+            Assert.That(IsCalm(victim), Is.True, "a stray hit from a creature does not turn a peaceful one on the player");
+            LogAssert.NoUnexpectedReceived();
+        }
     }
 }
 
