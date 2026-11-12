@@ -1157,6 +1157,7 @@ RectTransform:
   m_Children:
   - {fileID: 5291123429811158125}
   - {fileID: 507051186013590784}
+  - {fileID: 676094196357870621}
   m_Father: {fileID: 2874366907419307106}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1164,6 +1165,81 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1472, y: 1104}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &4751029978787571434
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8369455858606655545}
+  - component: {fileID: 3332072100021546224}
+  - component: {fileID: 8725852498109117831}
+  m_Layer: 5
+  m_Name: Cross
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &8369455858606655545
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4751029978787571434}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 676094196357870621}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 92, y: 97}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &3332072100021546224
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4751029978787571434}
+  m_CullTransparentMesh: 1
+--- !u!114 &8725852498109117831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4751029978787571434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 2100000, guid: 5c49349f3b16b46ccbbf9ad967f68de2, type: 2}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: -966001459, guid: a8ad7da5a8ead499c837878edecde67e, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &4760336038717593084
 GameObject:
   m_ObjectHideFlags: 0
@@ -1550,6 +1626,8 @@ GameObject:
   - component: {fileID: 8116200848774360306}
   - component: {fileID: 1086690949524508372}
   - component: {fileID: 6845884640066149409}
+  - component: {fileID: 3082734302278688102}
+  - component: {fileID: 2319081669078745783}
   m_Layer: 5
   m_Name: Card
   m_TagString: Untagged
@@ -1605,6 +1683,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d3c470ad2d9f4ad695f5271d42cdf8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.OutingMapCard
+  canvas: {fileID: 3082734302278688102}
   visibility: {fileID: 1086690949524508372}
   title: {fileID: 8686487018015676421}
   preview: {fileID: 5497512660153374461}
@@ -1612,6 +1691,48 @@ MonoBehaviour:
   goButton: {fileID: 4791073675771646588}
   stayButton: {fileID: 1422312383725113586}
   showSeconds: 0.12
+  hideSeconds: 0.1
+  rise: 24
+--- !u!223 &3082734302278688102
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6480212957637156425}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
+--- !u!114 &2319081669078745783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6480212957637156425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &6698171198356532148
 GameObject:
   m_ObjectHideFlags: 0
@@ -1742,8 +1863,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87af8d1f0f3a24001903842da9057681, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.OutingMap
+  canvas: {fileID: 6415156714238259477}
   visibility: {fileID: 5111234511693459191}
   sheet: {fileID: 7580241979477815827}
+  paper: {fileID: 9000847095609341402}
   field: {fileID: 507051186013590784}
   routes: {fileID: 2366584391444460856}
   points: {fileID: 3559571631395880619}
@@ -1752,6 +1875,7 @@ MonoBehaviour:
   dashSprites:
   - {fileID: 490617972, guid: 6b0a1fa3ca5004f6688e8d44316c63ee, type: 3}
   - {fileID: 55962555, guid: 6b0a1fa3ca5004f6688e8d44316c63ee, type: 3}
+  closeButton: {fileID: 8586620234961826731}
   card: {fileID: 6845884640066149409}
   control: {fileID: 0}
   sites:
@@ -1769,11 +1893,18 @@ MonoBehaviour:
     parentId: old-apiary
     unlock: 1
     home: {x: 0.2, y: 0.3}
+  pixelMaterial: {fileID: 2100000, guid: 5c49349f3b16b46ccbbf9ad967f68de2, type: 2}
+  pixelSize: 4
+  openPixelSize: 40
   screenFill: 0.94
-  dashSpacing: 30
-  dashSize: {x: 22, y: 16}
-  routeTrim: 74
+  dashSpacing: 46
+  dashSize: {x: 42, y: 60}
+  routeTrim: 100
   revealSeconds: 0.9
+  openSeconds: 0.45
+  closeSeconds: 0.25
+  openScale: 0.88
+  openTilt: -4
 --- !u!1 &6756084628741848170
 GameObject:
   m_ObjectHideFlags: 0
@@ -2006,6 +2137,144 @@ MonoBehaviour:
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 8
   axis: 0
+--- !u!1 &7907767452212950074
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 676094196357870621}
+  - component: {fileID: 8465099715421635686}
+  - component: {fileID: 6039440929065835581}
+  - component: {fileID: 8586620234961826731}
+  - component: {fileID: 5667793020109683492}
+  m_Layer: 5
+  m_Name: Close
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &676094196357870621
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7907767452212950074}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8369455858606655545}
+  m_Father: {fileID: 7580241979477815827}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -196, y: -138}
+  m_SizeDelta: {x: 104, y: 104}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &8465099715421635686
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7907767452212950074}
+  m_CullTransparentMesh: 1
+--- !u!114 &6039440929065835581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7907767452212950074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &8586620234961826731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7907767452212950074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+  m_Navigation:
+    m_Mode: 0
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 0
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 8725852498109117831}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5667793020109683492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7907767452212950074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02a3f7317c68f450c836c15037454a66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Game::Hakaton.Game.OutingMapPress
+  target: {fileID: 8369455858606655545}
+  hoverScale: 1.12
+  pressScale: 0.9
+  sharpness: 18
 --- !u!1 &8008307374546231520
 GameObject:
   m_ObjectHideFlags: 0

@@ -34,7 +34,7 @@ namespace Hakaton.Game
             public float aspect, minStep, maxStep, clearance;
 
             public static Rules Default(float aspect) => new Rules
-            { bounds = new Rect(.1f, .12f, .8f, .76f), aspect = aspect, minStep = .3f, maxStep = .4f, clearance = .26f };
+            { bounds = new Rect(.1f, .12f, .8f, .76f), aspect = aspect, minStep = .4f, maxStep = .52f, clearance = .34f };
         }
 
         public static Vector2 PlaceNear(Vector2 parent, IReadOnlyList<Vector2> taken, int seed, Rules rules)

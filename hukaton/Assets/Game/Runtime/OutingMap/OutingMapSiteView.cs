@@ -14,7 +14,6 @@ namespace Hakaton.Game
     {
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int SeedId = Shader.PropertyToID("_Seed");
-        static readonly int SpriteUvRectId = Shader.PropertyToID("_SpriteUVRect");
 
         public Image icon;
         public Image ring;
@@ -30,29 +29,24 @@ namespace Hakaton.Game
 
         public string Id { get; private set; }
         public bool IsNew { get; private set; }
+        /// <summary>This icon's own copy of the map's pixel material (its blink and its atlas cell).</summary>
+        public Material PixelMaterial => ownMaterial;
         Action<OutingMapSiteView> clicked;
         bool hovered, selected;
         float appearAt = -1, noiseSeed;
         Material ownMaterial;
 
-        public void Bind(string id, Sprite sprite, bool isNew, float appearDelay, Action<OutingMapSiteView> onClick)
+        /// <param name="pixelMaterial">The map's pixel material, already framed on this sprite's atlas cell; the view owns it.</param>
+        public void Bind(string id, Sprite sprite, bool isNew, float appearDelay, Action<OutingMapSiteView> onClick, Material pixelMaterial)
         {
             Id = id;
             clicked = onClick;
             if (icon) icon.sprite = sprite;
             noiseSeed = UnityEngine.Random.value * 100;
-            // Each icon gets its own copy of the material: its own blink, its own motion phase, and its cell of the
-            // icon atlas (the sprite material breathes around the drawing's own feet, as on the creatures).
-            if (icon && icon.material && icon.material != Graphic.defaultGraphicMaterial)
+            ownMaterial = pixelMaterial;
+            if (icon && ownMaterial)
             {
-                ownMaterial = new Material(icon.material) { name = icon.material.name + " (" + id + ")" };
                 ownMaterial.SetFloat(SeedId, noiseSeed);
-                if (sprite && sprite.texture)
-                {
-                    var r = sprite.textureRect;
-                    float w = sprite.texture.width, h = sprite.texture.height;
-                    ownMaterial.SetVector(SpriteUvRectId, new Vector4(r.x / w, r.y / h, r.width / w, r.height / h));
-                }
                 icon.material = ownMaterial;
             }
             SetNew(isNew);

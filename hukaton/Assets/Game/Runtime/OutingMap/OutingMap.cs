@@ -18,7 +18,9 @@ namespace Hakaton.Game
     /// <summary>
     /// The map at the door. Shows the opened outing points on the charcoal parchment; a new point grows a short step
     /// away from the one it comes from, joined to it by a dashed route, and burns and blinks until clicked. Clicking a
-    /// point opens its card: name, a small view, «Идти» / «Остаться». Escape or the right button steps back.
+    /// point opens its card: name, a small view, «Идти» / «Остаться». Escape, the right button or the cross steps back.
+    /// Everything on the parchment is drawn with the creatures' hand-drawn sprite material at a coarse pixel grid tied to
+    /// the parchment (so it looks the same at any resolution); opening sharpens the pixels from big blocks.
     /// </summary>
     public sealed class OutingMap : MonoBehaviour
     {
@@ -36,10 +38,17 @@ namespace Hakaton.Game
             public Vector2 home = new Vector2(.2f, .3f);
         }
 
+        static readonly int PixelsPerUnitId = Shader.PropertyToID("_PixelsPerUnit");
+        static readonly int MaxRefineId = Shader.PropertyToID("_MaxRefine");
+        static readonly int SpriteUvRectId = Shader.PropertyToID("_SpriteUVRect");
+
         [Header("Authored parts")]
+        [Tooltip("Switched off while the map is closed: nothing is drawn or raycast then.")]
+        public Canvas canvas;
         public CanvasGroup visibility;
         [Tooltip("The parchment at its native size; scaled uniformly to fit the screen.")]
         public RectTransform sheet;
+        public Image paper;
         [Tooltip("The drawable part of the parchment: points are placed in it, 0..1 both ways.")]
         public RectTransform field;
         public RectTransform routes;
@@ -48,10 +57,18 @@ namespace Hakaton.Game
         public Image dashPrefab;
         [Tooltip("Dash drawings, used in turn along a route.")]
         public Sprite[] dashSprites;
+        public Button closeButton;
         public OutingMapCard card;
         public PlayerControlGate control;
         [Header("Points")]
         public Site[] sites;
+        [Header("Pixels")]
+        [Tooltip("The creatures' hand-drawn sprite material. The map draws with a runtime copy at its own grid.")]
+        public Material pixelMaterial;
+        [Tooltip("Size of one map pixel in parchment units (the parchment is 1472 wide).")]
+        [Min(.5f)] public float pixelSize = 4;
+        [Tooltip("Pixel size the map opens from (and closes to).")]
+        [Min(1)] public float openPixelSize = 40;
         [Header("Look")]
         [Range(.5f, 1)] public float screenFill = .94f;
         [Min(1)] public float dashSpacing = 30;
@@ -60,19 +77,44 @@ namespace Hakaton.Game
         [Min(0)] public float routeTrim = 74;
         [Tooltip("A new route draws itself dash by dash over this time, then its point appears.")]
         [Min(0)] public float revealSeconds = .9f;
+        [Header("Open / close")]
+        [Min(.01f)] public float openSeconds = .45f;
+        [Min(.01f)] public float closeSeconds = .25f;
+        [Tooltip("Scale the parchment grows from; it settles at 1 with a small overshoot.")]
+        [Range(.5f, 1)] public float openScale = .88f;
+        [Tooltip("Turn (degrees) the parchment straightens from.")]
+        public float openTilt = -4;
 
         public bool IsOpen { get; private set; }
         public event Action Changed;
 
         OutingMapSave state = NewState();
-        readonly List<OutingMapSiteView> views = new List<OutingMapSiteView>();
-        readonly List<(Image dash, float at)> dashes = new List<(Image, float)>();
+        readonly Dictionary<string, OutingMapSiteView> views = new Dictionary<string, OutingMapSiteView>();
+        readonly List<Image> pendingDashes = new List<Image>();
+        readonly List<float> pendingAt = new List<float>();
+        readonly List<Material> pixelMaterials = new List<Material>();
+        Material shared;
         Action<OutingPlace> chosen;
         Func<OutingPlace, string> nameOf;
         OutingMapSiteView selected;
         int openedFrame;
+        // 0 closed .. 1 open; animated towards target.
+        float shown, shownFrom, animStart;
+        bool opening;
+        float appliedPixel = -1, appliedScale = -1;
 
-        void Awake() { Show(false); }
+        void Awake()
+        {
+            if (closeButton) closeButton.onClick.AddListener(Close);
+            Show(0);
+            if (canvas) canvas.enabled = false;
+            if (points) points.gameObject.SetActive(false);
+        }
+
+        void OnDestroy()
+        {
+            foreach (var m in pixelMaterials) if (m) Destroy(m);
+        }
 
         static OutingMapSave NewState() => new OutingMapSave { seed = Environment.TickCount };
 
@@ -86,9 +128,14 @@ namespace Hakaton.Game
             state = save != null ? JsonUtility.FromJson<OutingMapSave>(JsonUtility.ToJson(save)) : NewState();
             state.sites ??= new List<OutingMapSiteSave>();
             state.sites.RemoveAll(s => s == null || Definition(s.id) == null);
+            ClearDrawing();
         }
 
-        public OutingMapSiteSave Opened(string id) => state.sites.FirstOrDefault(s => s.id == id);
+        public OutingMapSiteSave Opened(string id)
+        {
+            foreach (var s in state.sites) if (s.id == id) return s;
+            return null;
+        }
         public IReadOnlyList<OutingMapSiteSave> OpenedSites => state.sites;
         Site Definition(string id) => sites?.FirstOrDefault(s => s.id == id);
 
@@ -133,76 +180,121 @@ namespace Hakaton.Game
         public void Open(Func<Site, bool> unlocked, Func<OutingPlace, string> placeName, Action<OutingPlace> onChosen)
         {
             if (IsOpen) return;
-            var fresh = Grow(unlocked);
+            Grow(unlocked);
             if (state.sites.Count == 0) return;
             chosen = onChosen;
             nameOf = placeName;
             IsOpen = true;
             openedFrame = Time.frameCount;
             if (control) control.SetBlocked(this, true);
-            Show(true);
+            if (canvas) canvas.enabled = true;
+            if (points) points.gameObject.SetActive(true);
+            Animate(true);
+            EnsureMaterials();
             Fit();
-            Draw(fresh);
+            // Points drawn on an earlier look stay as they were; the new ones draw in once the parchment has opened.
+            DrawMissing(openSeconds);
+            if (visibility) { visibility.interactable = true; visibility.blocksRaycasts = true; }
         }
 
+        /// <summary>Closes the map at once for input; the parchment folds away by itself.</summary>
         public void Close()
         {
             if (!IsOpen) return;
             IsOpen = false;
             chosen = null;
             if (card) card.Close();
-            Clear();
-            Show(false);
+            if (selected) { selected.SetSelected(false); selected = null; }
+            if (visibility) visibility.blocksRaycasts = false;
             if (control) control.SetBlocked(this, false);
+            Animate(false);
         }
 
-        void Draw(List<string> fresh)
+        void Animate(bool open)
         {
-            Clear();
+            opening = open;
+            shownFrom = shown;
+            animStart = Time.unscaledTime;
+        }
+
+        void EnsureMaterials()
+        {
+            if (shared || !pixelMaterial) return;
+            shared = PixelCopy(null, "map");
+            if (paper) paper.material = shared;
+            if (closeButton && closeButton.targetGraphic is Image cross) cross.material = PixelCopy(cross.sprite, "cross");
+        }
+
+        /// <summary>A copy of the creature material at the map's grid; for an atlas sprite, framed on its own cell.</summary>
+        Material PixelCopy(Sprite sprite, string label)
+        {
+            var m = new Material(pixelMaterial) { name = pixelMaterial.name + " (" + label + ")" };
+            m.SetFloat(MaxRefineId, 0);
+            if (sprite && sprite.texture)
+            {
+                var r = sprite.textureRect;
+                float w = sprite.texture.width, h = sprite.texture.height;
+                m.SetVector(SpriteUvRectId, new Vector4(r.x / w, r.y / h, r.width / w, r.height / h));
+            }
+            pixelMaterials.Add(m);
+            appliedPixel = -1;
+            return m;
+        }
+
+        void DrawMissing(float delay)
+        {
             float now = Time.unscaledTime;
             var size = field.rect.size;
             Vector2 Local(OutingMapSiteSave s) => new Vector2((s.x - .5f) * size.x, (s.y - .5f) * size.y);
             int order = 0;
             foreach (var opened in state.sites)
             {
+                if (views.ContainsKey(opened.id)) continue;
                 var site = Definition(opened.id);
-                bool isFresh = fresh.Contains(opened.id);
-                float appear = 0;
+                // Only a point the player has not looked at yet draws itself in; the rest are just there.
+                bool reveal = !opened.seen;
+                float start = reveal ? delay + order * revealSeconds : 0;
+                float appear = start;
                 var parent = string.IsNullOrEmpty(site.parentId) ? null : Opened(site.parentId);
                 if (parent != null)
                 {
                     var path = OutingMapLayout.DashPoints(Local(parent), Local(opened), dashSpacing, routeTrim,
                         OutingMapLayout.SeedFor(state.seed, site.id + "/route"));
-                    float start = isFresh ? order * revealSeconds : 0;
                     for (int i = 0; i < path.Count; i++)
                     {
                         var dash = Instantiate(dashPrefab, routes);
                         if (dashSprites != null && dashSprites.Length > 0) dash.sprite = dashSprites[i % dashSprites.Length];
+                        dash.material = shared;
                         var r = dash.rectTransform;
                         r.anchoredPosition = path[i];
                         r.sizeDelta = dashSize;
                         var next = i + 1 < path.Count ? path[i + 1] : path[i] + (path[i] - path[Mathf.Max(0, i - 1)]);
                         var d = next - path[i];
                         r.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
-                        float at = isFresh ? now + start + revealSeconds * i / Mathf.Max(1, path.Count) : 0;
-                        dash.enabled = !isFresh;
-                        dashes.Add((dash, at));
+                        if (reveal)
+                        {
+                            dash.enabled = false;
+                            pendingDashes.Add(dash);
+                            pendingAt.Add(now + start + revealSeconds * i / Mathf.Max(1, path.Count));
+                        }
                     }
-                    if (isFresh) appear = start + revealSeconds;
+                    if (reveal) appear = start + revealSeconds;
                 }
-                if (isFresh) order++;
+                if (reveal) order++;
                 var view = Instantiate(sitePrefab, points);
                 ((RectTransform)view.transform).anchoredPosition = Local(opened);
-                view.Bind(opened.id, site.icon, !opened.seen, appear, Pick);
-                views.Add(view);
+                if (view.ring) view.ring.material = shared;
+                view.Bind(opened.id, site.icon, !opened.seen, appear, Pick, PixelCopy(site.icon, opened.id));
+                views[opened.id] = view;
             }
         }
 
-        void Clear()
+        void ClearDrawing()
         {
-            foreach (var v in views) if (v) Destroy(v.gameObject);
-            foreach (var d in dashes) if (d.dash) Destroy(d.dash.gameObject);
-            views.Clear(); dashes.Clear();
+            foreach (var v in views.Values) if (v) { pixelMaterials.Remove(v.PixelMaterial); Destroy(v.gameObject); }
+            views.Clear();
+            if (routes) foreach (Transform dash in routes) Destroy(dash.gameObject);
+            pendingDashes.Clear(); pendingAt.Clear();
             selected = null;
         }
 
@@ -217,7 +309,7 @@ namespace Hakaton.Game
             selected = view;
             view.SetSelected(true);
             if (!card) { Go(site.place); return; }
-            card.Open(nameOf != null ? nameOf(site.place) : site.id, site.preview, () => Go(site.place), StepBack);
+            card.Open(nameOf != null ? nameOf(site.place) : site.id, site.preview, () => Go(site.place), Close);
         }
 
         void Go(OutingPlace place)
@@ -227,16 +319,34 @@ namespace Hakaton.Game
             callback?.Invoke(place);
         }
 
-        /// <summary>«Остаться»: the player stays in the shop.</summary>
-        void StepBack() => Close();
-
         void Update()
         {
-            if (!IsOpen) return;
-            Fit();
+            bool animating = opening ? shown < 1 : shown > 0;
+            if (!IsOpen && !animating) return;
             float now = Time.unscaledTime;
-            foreach (var (dash, at) in dashes) if (dash && !dash.enabled && now >= at) dash.enabled = true;
-            if (Time.frameCount == openedFrame) return; // The key that opened the door must not answer here.
+            if (animating)
+            {
+                float duration = opening ? openSeconds : closeSeconds;
+                float k = Mathf.Clamp01((now - animStart) / duration);
+                shown = opening ? Mathf.Lerp(shownFrom, 1, k) : Mathf.Lerp(shownFrom, 0, k);
+                Show(shown);
+                if (!opening && shown <= 0)
+                {
+                    // Folded away: nothing is drawn, raycast or updated until the door is opened again.
+                    if (canvas) canvas.enabled = false;
+                    if (points) points.gameObject.SetActive(false);
+                }
+            }
+            if (!canvas || !canvas.enabled) return;
+            Fit();
+            ApplyPixels();
+            for (int i = pendingDashes.Count - 1; i >= 0; i--)
+            {
+                if (now < pendingAt[i]) continue;
+                if (pendingDashes[i]) pendingDashes[i].enabled = true;
+                pendingDashes.RemoveAt(i); pendingAt.RemoveAt(i);
+            }
+            if (!IsOpen || Time.frameCount == openedFrame) return; // The key that opened the door must not answer here.
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             bool back = keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame;
@@ -255,23 +365,37 @@ namespace Hakaton.Game
 
         void OnDisable() { if (IsOpen) Close(); }
 
-        /// <summary>The parchment keeps its proportions and fills the screen's shorter side.</summary>
+        static float EaseOutBack(float t) { const float c = 1.6f; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; }
+        static float EaseOutCubic(float t) { t = 1 - t; return 1 - t * t * t; }
+
+        /// <summary>The parchment keeps its proportions and fills the screen's shorter side; the open/close pose on top.</summary>
         void Fit()
         {
             if (!sheet || !(sheet.parent is RectTransform area)) return;
             var room = area.rect.size * screenFill;
             var native = sheet.rect.size;
             if (native.x <= 0 || native.y <= 0) return;
-            float scale = Mathf.Min(room.x / native.x, room.y / native.y);
+            float fit = Mathf.Min(room.x / native.x, room.y / native.y);
+            float pose = opening ? EaseOutBack(shown) : EaseOutCubic(shown);
+            float scale = fit * Mathf.LerpUnclamped(openScale, 1, pose);
             sheet.localScale = new Vector3(scale, scale, 1);
+            sheet.localRotation = Quaternion.Euler(0, 0, Mathf.LerpUnclamped(openTilt, 0, pose));
         }
 
-        void Show(bool visible)
+        /// <summary>One map pixel = <see cref="pixelSize"/> parchment units on screen; opening resolves from big blocks.</summary>
+        void ApplyPixels()
         {
-            if (!visibility) return;
-            visibility.alpha = visible ? 1 : 0;
-            visibility.interactable = visible;
-            visibility.blocksRaycasts = visible;
+            float units = Mathf.Lerp(openPixelSize, pixelSize, EaseOutCubic(shown));
+            float worldPerUnit = Mathf.Abs(sheet.lossyScale.x);
+            if (Mathf.Approximately(units, appliedPixel) && Mathf.Approximately(worldPerUnit, appliedScale)) return;
+            appliedPixel = units; appliedScale = worldPerUnit;
+            float ppu = 1f / Mathf.Max(units * worldPerUnit, 1e-4f);
+            foreach (var m in pixelMaterials) if (m) m.SetFloat(PixelsPerUnitId, ppu);
+        }
+
+        void Show(float amount)
+        {
+            if (visibility) visibility.alpha = Mathf.Clamp01(amount * 1.4f);
         }
     }
 }
