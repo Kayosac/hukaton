@@ -28,6 +28,47 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
+        public void RevenueGoalCheatPreservesTheLiveDealAndEconomyAndPersists()
+        {
+            var wallet = new CoinWallet(75);
+            var session = Create(wallet);
+            session.SeedInventory(Tusk, 2);
+            session.PlaceItem(0, 0);
+            session.Open();
+            var customer = session.CurrentCustomer;
+            var deal = session.CurrentDeal;
+            var stock = session.Slots[0];
+            var inventory = session.Inventory.ToArray();
+            float clock = session.RemainingSeconds;
+            int changes = 0;
+            session.Changed += () => changes++;
+
+            Assert.That(session.CompleteRevenueGoal(1000), Is.True);
+            Assert.That(session.GrossRevenue, Is.EqualTo(1000));
+            Assert.That(changes, Is.EqualTo(1));
+            Assert.That(session.Gold, Is.EqualTo(75));
+            Assert.That(session.SalesCount, Is.Zero);
+            Assert.That(session.SettlementSequence, Is.Zero);
+            Assert.That(session.IsOpen, Is.True);
+            Assert.That(session.CurrentCustomer, Is.SameAs(customer));
+            Assert.That(session.CurrentDeal, Is.SameAs(deal));
+            Assert.That(session.Slots[0], Is.SameAs(stock));
+            Assert.That(session.Inventory, Is.EqualTo(inventory));
+            Assert.That(session.RemainingSeconds, Is.EqualTo(clock));
+            Assert.That(session.CompleteRevenueGoal(1000), Is.False);
+            Assert.That(session.CompleteRevenueGoal(500), Is.False);
+            Assert.That(session.CompleteRevenueGoal(-1), Is.False);
+            Assert.That(session.GrossRevenue, Is.EqualTo(1000));
+            Assert.That(changes, Is.EqualTo(1), "Repeated clicks never reduce progress or create extra changes.");
+
+            var restored = Create(wallet);
+            Assert.That(restored.TryRestore(session.Save()), Is.True);
+            Assert.That(restored.GrossRevenue, Is.EqualTo(1000));
+            Assert.That(restored.Gold, Is.EqualTo(75));
+            Assert.That(restored.SalesCount, Is.Zero);
+        }
+
+        [Test]
         public void RevenueCountsSalesAndSurvivesSpendingWithoutChangingSharedWalletOnRestore()
         {
             var wallet = new CoinWallet();

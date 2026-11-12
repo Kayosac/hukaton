@@ -187,6 +187,71 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void PeacefulAndTimidCreaturesComeThriceOver()
+        {
+            int calm = 0, fierce = 0;
+            for (int seed = 1; seed <= 10; seed++)
+            {
+                var map = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    var p = map.Chunk(c);
+                    foreach (var group in p.Spawns.GroupBy(s => (s.Creature, s.Count)))
+                    {
+                        if (CreatureThemes.IsCalm(group.Key.Creature))
+                        {
+                            Assert.That(group.Count() % 3, Is.Zero, $"seed {seed}: {p} holds {group.Key.Creature}×{group.Key.Count} in {group.Count()} groups");
+                            calm += group.Count() * group.Key.Count;
+                        }
+                        else fierce += group.Count() * group.Key.Count;
+                    }
+                }
+            }
+            UnityEngine.Debug.Log($"[World] creatures in 10 worlds: {calm} calm, {fierce} others");
+            Assert.Greater(calm, 0);
+        }
+
+        [Test]
+        public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts()
+        {
+            int chunks = 0, brawlsNear = 0;
+            var kinds = new Dictionary<string, int>();
+            for (int seed = 1; seed <= 20; seed++)
+            {
+                var map = new WorldMap(seed);
+                var again = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    var p = map.Chunk(c);
+                    chunks++;
+                    Assert.AreEqual(p.Event, again.Chunk(c).Event, $"seed {seed}: the event of {p} depends on the seed and the chunk only");
+                    if (p.Event == null) continue;
+                    kinds[p.Event] = kinds.TryGetValue(p.Event, out var n) ? n + 1 : 1;
+                    Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: an event at the start {p}");
+                    if (p.Event == WorldEvents.Brawl)
+                    {
+                        Assert.IsTrue(WorldEvents.FitsBrawl(p), $"seed {seed}: no room for a brawl {p}");
+                        Assert.IsEmpty(p.Spawns, $"seed {seed}: beasts besides the brawl's packs {p}");
+                    }
+                    else
+                    {
+                        Assert.Greater(p.Ring, 0, $"seed {seed}: a {p.Event} in ring 0 {p}");
+                        Assert.IsTrue(WorldEvents.FitsOddity(p), $"seed {seed}: no place for {p.Event} on {p}");
+                    }
+                    if (p.Event == WorldEvents.Brawl && p.Ring == 0) brawlsNear++;
+                }
+            }
+            Assert.Greater(brawlsNear, 0, "brawls near the start too");
+            int Count(string kind) => kinds.TryGetValue(kind, out var n) ? n : 0;
+            int oddities = Count(WorldEvents.Payphone) + Count(WorldEvents.Television);
+            UnityEngine.Debug.Log($"[World] small events on {chunks} chunks: {string.Join(", ", kinds.Select(k => $"{k.Key} {k.Value}"))}");
+            Assert.That(oddities, Is.InRange(chunks / 500, chunks / 100), "payphones and televisions: about one chunk in two hundred");
+            Assert.Greater(Count(WorldEvents.Payphone), 0);
+            Assert.Greater(Count(WorldEvents.Television), 0);
+            Assert.That(Count(WorldEvents.Brawl), Is.InRange(chunks / 60, chunks / 15), "brawls");
+        }
+
+        [Test]
         public void GiantForestsGrowAwayFromTheStartWithAHeartAndAGlade()
         {
             int worlds = 0, forests = 0, biggest = 0, deadfall = 0, hollow = 0;

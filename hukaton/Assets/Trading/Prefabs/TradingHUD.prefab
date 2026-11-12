@@ -5684,7 +5684,16 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1289398702435488959, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4489524533628317730}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2118163533532661727}
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4565709196755525687}
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3521105813333695151}
   m_SourcePrefab: {fileID: 100100000, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
 --- !u!224 &659934307610846302 stripped
 RectTransform:
@@ -5696,12 +5705,105 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2467387234191793662, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
   m_PrefabInstance: {fileID: 1786894997027074273}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 8914469413150127590}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!1 &8914469413150127590 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+  m_PrefabInstance: {fileID: 1786894997027074273}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2118163533532661727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8914469413150127590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ace8ced0e81c847968cdca0aeda757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Febucci.TextAnimatorForUnity.TMP.Runtime::Febucci.TextAnimatorForUnity.TextMeshPro.TextAnimator_TMP
+  localSettings:
+    isResettingTimeOnNewText: 1
+    defaultEffectsMode: 0
+    timeScale: 1
+    defaultBehaviorTags: []
+    defaultAppearanceTags:
+    - incr
+    defaultDisappearanceTags: []
+    isAnimatingBehaviors: 1
+    isAnimatingAppearances: 1
+    isAnimatingDisappearances: 1
+    useDynamicScaling: 1
+    referenceFontSize: 12
+  sharedSettings: {fileID: 0}
+  animationLoop: 0
+  databaseEffects: {fileID: 0}
+  styleSheet: {fileID: 0}
+--- !u!114 &4565709196755525687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8914469413150127590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac6b0a2b8ddbab342ad54b5409ccffec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Febucci.TextAnimatorForUnity.Runtime::Febucci.TextAnimatorForUnity.TypewriterComponent
+  timingsScriptableBase: {fileID: 11400000, guid: f9029dd0173d57a45ab78e2ad79be0b8, type: 2}
+  actionsDatabase: {fileID: 0}
+  localSettings:
+    useTypeWriter: 1
+    startTypewriterMode: 3
+    hideAppearancesOnSkip: 0
+    hideDisappearancesOnSkip: 0
+    triggerEventsOnSkip: 0
+    resetTypingSpeedAtStartup: 1
+    disappearanceOrientation: 0
+    triggerShowedAfterEffectsEnd: 0
+    triggerDisappearedAfterEffectsEnd: 0
+  sharedSettings: {fileID: 11400000, guid: e5ebec8b825794584aa9434d686fed6f, type: 2}
+  onTextShowed:
+    m_PersistentCalls:
+      m_Calls: []
+  onTypewriterStart:
+    m_PersistentCalls:
+      m_Calls: []
+  onTextDisappeared:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterVisible:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterWaitStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterWaitFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  onMessage:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &3521105813333695151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8914469413150127590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00f51229df4a84b7daba58264763c410, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.DialogueUI::Hakaton.DialogueUI.TypedLine
+  typewriter: {fileID: 4565709196755525687}
 --- !u!1001 &2997351410888826680
 PrefabInstance:
   m_ObjectHideFlags: 0

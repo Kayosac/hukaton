@@ -12,6 +12,10 @@ namespace Hakaton.Expeditions.Tests
         public Vector3 position;
         public float radius = 2, height = .5f;
         public int ignitions;
+        /// <summary>The point the last ignition was handed.</summary>
+        public Vector3 ignitedAt;
+        /// <summary>Called on every ignition (e.g. to start a nested one).</summary>
+        public System.Action onIgnite;
 
         public CardZoneKind Kind => kind;
         public Bounds Bounds => new Bounds(position + Vector3.up * height * .5f, new Vector3(radius * 2, height, radius * 2));
@@ -25,6 +29,8 @@ namespace Hakaton.Expeditions.Tests
         public bool Ignite(IgnitionSource source, Vector3 point)
         {
             ignitions++;
+            ignitedAt = point;
+            onIgnite?.Invoke();
             return true;
         }
     }

@@ -258,7 +258,7 @@ namespace Hakaton.Tutorial
                 case CaveStage.Talk:
                 case CaveStage.GoHome when handOverOpen:
                     var keyboard = Keyboard.current;
-                    if (keyboard != null && keyboard.eKey.wasPressedThisFrame) continueRequested = true;
+                    if (keyboard != null && keyboard.eKey.wasPressedThisFrame && !bubble.SkipTyping()) continueRequested = true;
                     break;
             }
         }
@@ -580,7 +580,7 @@ namespace Hakaton.Tutorial
         /// <summary>Closes the line on screen, as E does.</summary>
         public void Continue()
         {
-            if (Stage == CaveStage.Talk || Stage == CaveStage.GoHome && handOverOpen) continueRequested = true;
+            if ((Stage == CaveStage.Talk || Stage == CaveStage.GoHome && handOverOpen) && !bubble.SkipTyping()) continueRequested = true;
         }
 
         IEnumerator Leave()

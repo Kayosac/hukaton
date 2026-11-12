@@ -21,7 +21,7 @@ namespace Hakaton.Expeditions
     /// (<see cref="CreatureSpriteView"/>) that is squashed, hopped and tinted procedurally.
     /// Every attack is telegraphed: the aggression drawing, a crouch, sound and a red "!!" before the direction locks.
     /// </summary>
-    public sealed partial class WorldCreature : MonoBehaviour, ICombatant
+    public sealed partial class WorldCreature : MonoBehaviour, ICombatant, IFreezable
     {
         [Header("Identity")]
         public ExpeditionWorld world;
@@ -86,6 +86,13 @@ namespace Hakaton.Expeditions
         public ParticleSystem stepDust;
         [Min(0)] public int stepDustCount = 2;
         public Color dustColour = new Color(.86f, .78f, .64f);
+        [Header("Fire")]
+        [Tooltip("Optional: makes this creature vulnerable to fire (longer burning, more fire damage, flames on the body, sets things alight by touch). Empty: fire works as usual, except a burn that started in tar (see the tar puddle's Tarred Fire).")]
+        public FireVulnerability fireVulnerability;
+        [Tooltip("Size of the Retro Arsenal flames on this body while it burns vulnerably (its own fire vulnerability, or set alight in tar), per metre of its visible height. The FireTorch flame is about half a metre at scale one.")]
+        [Min(0)] public float flamesSize = 1;
+        [Tooltip("Height of those flames above the feet, as a share of the visible height: low enough to leave the face clear.")]
+        [Range(0, 1)] public float flamesHeight = .25f;
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
@@ -108,7 +115,12 @@ namespace Hakaton.Expeditions
         TimedModifier moveSpeedScale;
         Vector3 noisePoint;
         float investigateUntil;
+        // Lure card: drawn to the noise even from a fight; deaf to that noise again once hurt while listening.
+        bool lured;
+        float lureDeafUntil;
         ICombatant attackTarget;
+        CreatureFire fire;
+        CreatureFire Fire => fire ??= new CreatureFire(this);
 
         Vector3 PlayerPosition => world.motor.transform.position;
         Vector3 ToPlayer { get { var v = PlayerPosition - body.position; v.y = 0; return v; } }
@@ -119,6 +131,23 @@ namespace Hakaton.Expeditions
         Vector3 ToTarget { get { var v = TargetPosition - body.position; v.y = 0; return v; } }
         float TargetDistance => ToTarget.magnitude;
         bool Provoked => Time.time < provokedUntil;
+        /// <summary>Alight: a fire hit set it burning and the burn has not run out (ice puts it out).</summary>
+        public bool Burning => Alive && State != CreatureState.Frozen && Time.time < burnUntil;
+        /// <summary>Seconds of burning left; zero when not burning.</summary>
+        public float BurnSecondsLeft => Burning ? burnUntil - Time.time : 0;
+        /// <summary>
+        /// Radius of the physical body in metres: its capsule (sized with the creature), or a quarter of the height
+        /// without one. What a burning body touches; <see cref="BodyRadius"/> is the wider visible half-width (ice shell).
+        /// </summary>
+        public float CapsuleRadius
+        {
+            get
+            {
+                if (!capsule) return TopHeight * .25f;
+                Vector3 scale = capsule.transform.lossyScale;
+                return capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+            }
+        }
         /// <summary>Visible height of the drawing: eyes, marks and effects scale with the creature.</summary>
         float TopHeight => view ? view.height * Size : 1;
         /// <summary>The creature's size in the world: the size field times any scale of the root.</summary>
@@ -162,6 +191,8 @@ namespace Hakaton.Expeditions
         }
 #endif
 
+        void OnDisable() => fire?.PutOut(0);
+
         void Awake()
         {
             ApplySize();
@@ -188,11 +219,13 @@ namespace Hakaton.Expeditions
             float roll = random != null ? (float)random.NextDouble() : Random.value;
             spawnSize = Mathf.Lerp(Mathf.Min(spawnSizeRange.x, spawnSizeRange.y), Mathf.Max(spawnSizeRange.x, spawnSizeRange.y), roll);
             ApplySize();
+            IceEncasement.Remove(this);
             frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
             attackTarget = null;
-            investigateUntil = 0;
+            investigateUntil = lureDeafUntil = 0;
+            lured = false;
             ResetRanged();
             body.isKinematic = false;
             body.detectCollisions = true;
@@ -211,6 +244,7 @@ namespace Hakaton.Expeditions
             pose = CreaturePose.Default;
             if (view) view.Present(pose, transform.forward, Vector3.zero, Vector2.one, 0);
             Tint(Color.white, 0);
+            Fire.Reset();
             OutingReset?.Invoke();
         }
 
@@ -241,7 +275,10 @@ namespace Hakaton.Expeditions
             if (Time.time < stunnedUntil) { if (State != CreatureState.Stunned) Enter(CreatureState.Stunned); Halt(); return; }
             if (State == CreatureState.Stunned) Recover(.2f);
 
+            if (lured && State != CreatureState.Investigate) lured = false;
             if (Brawling) ThinkBrawl();
+            // Lured: walks to the noise and listens, deaf to the player, until the noise ends or it is hurt.
+            else if (lured) ThinkIdle(false);
             else switch (temperament)
             {
                 case Temperament.Timid: ThinkTimid(); break;
@@ -638,9 +675,37 @@ namespace Hakaton.Expeditions
 
         // ---------------- reactions ----------------
 
+        /// <summary>The vulnerable burn in force: the trait, or tar it was set alight in (null: an ordinary burn).</summary>
+        public FireVulnerabilitySettings FireVulnerable => Fire.Active;
+
+        /// <summary>
+        /// Fire hits on a fire-vulnerable creature, or on one set alight while in tar, burn longer and hurt more
+        /// (see <see cref="CreatureFire"/>). Tar fire under it counts: the tar is where it stands when it catches.
+        /// </summary>
+        void ScaleFireHit(ref int amount, ref float burnSeconds)
+        {
+            if (burnSeconds <= 0) return;
+            var trait = fireVulnerability ? fireVulnerability.settings : null;
+            var tar = trait == null ? CreatureFire.TarredAt(world, Position) : null;
+            Fire.Hit(ref amount, ref burnSeconds, trait, tar, Burning);
+        }
+
+        /// <summary>
+        /// A hit. <paramref name="burnSeconds"/> above zero makes it a fire hit: it sets the creature alight for that
+        /// long (a fire-vulnerable creature takes more of it, see <see cref="FireVulnerability"/>).
+        /// </summary>
         public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds)
+            => Damage(amount, impulse, point, burnSeconds, burnSeconds > 0 ? DamageKind.Fire : DamageKind.Hit);
+
+        /// <summary>
+        /// Every hit on the creature ends here. Encased in ice (<see cref="IceEncasement"/>): a physical hit shatters
+        /// the shell and lands twice as hard, fire melts it, a killing blow of any kind breaks it.
+        /// </summary>
+        public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds, DamageKind kind)
         {
             if (!Alive) return;
+            ScaleFireHit(ref amount, ref burnSeconds);
+            amount = IceEncasement.ResolveHit(this, amount, kind, impulse, point, Health);
             Health = Mathf.Max(0, Health - amount);
             if (amount > 0)
             {
@@ -651,9 +716,11 @@ namespace Hakaton.Expeditions
                 if (overhead) overhead.ShowHealth(Health, maximumHealth);
             }
             if (impulse.sqrMagnitude > 0) CardPhysics.Push(body, impulse);
-            if (burnSeconds > 0) burnUntil = Time.time + burnSeconds;
+            // A short flame does not cut a longer burn short.
+            if (burnSeconds > 0) burnUntil = Mathf.Max(burnUntil, Time.time + burnSeconds);
             provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
+            if (lured) { lured = false; lureDeafUntil = investigateUntil; }
             if (Health == 0) StartCoroutine(Die(impulse));
             else if (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat)
                 Enter(temperament == Temperament.Timid ? CreatureState.Flee : CreatureState.Chase);
@@ -680,10 +747,29 @@ namespace Hakaton.Expeditions
         public void Freeze(float seconds)
         {
             if (!Alive) return;
-            frozenUntil = Time.time + seconds;
-            provokedUntil = Time.time + 8 + seconds;
+            // Never shortens a longer freeze (an ice shell holds until it melts or shatters).
+            frozenUntil = Mathf.Max(frozenUntil, Time.time + seconds);
+            provokedUntil = Mathf.Max(provokedUntil, Time.time + 8 + Mathf.Min(seconds, 60));
+            // Ice puts the fire out.
+            burnUntil = 0;
             Enter(CreatureState.Frozen);
         }
+
+        /// <summary>Ends any freeze at once: the ice shell melted or shattered. It comes out angry.</summary>
+        public void Thaw()
+        {
+            if (frozenUntil <= Time.time) return;
+            frozenUntil = 0;
+            provokedUntil = Time.time + 8;
+        }
+
+        /// <summary>Visible height of the creature (the drawing), m: what an ice shell has to cover.</summary>
+        public float BodyHeight => TopHeight;
+        /// <summary>
+        /// How far the creature reaches from its feet axis, m: the radius the camera-facing drawing sweeps (the ice
+        /// shell has to hide it from every side), or the body if that is wider.
+        /// </summary>
+        public float BodyRadius => Mathf.Max(capsule ? capsule.radius * transform.lossyScale.x : .3f, view ? view.ReachPerHeight * TopHeight : TopHeight * .5f);
 
         // ---------------- card hooks (tmp/new-cards/API.md) ----------------
 
@@ -709,14 +795,33 @@ namespace Hakaton.Expeditions
 
         /// <summary>
         /// Lure: a calm creature (idle, wandering, grazing) walks over to a noise at <paramref name="point"/> and stays
-        /// for <paramref name="seconds"/>. Ignored when it is alert, fleeing or attacking, or the point is outside its
-        /// territory. Seeing the player still interrupts it as usual. Returns true when it goes.
+        /// for <paramref name="seconds"/>; seeing the player interrupts it as usual. Ignored when it is alert, fleeing
+        /// or attacking, unless <paramref name="distract"/> (the Lure card): then any creature leaves the fight for the
+        /// noise and stays deaf to the player until the noise ends or the creature is hurt — after a hit it ignores
+        /// that noise. Frozen, knocked-down and brawling creatures never go. A point outside its territory is ignored,
+        /// unless <paramref name="pull"/>: then the creature is drawn out and its home moves to the noise, so it stays,
+        /// wanders and fights there instead of running back. Returns true when it goes.
         /// </summary>
-        public bool Investigate(Vector3 point, float seconds)
+        public bool Investigate(Vector3 point, float seconds, bool pull = false, bool distract = false)
         {
-            if (!world || !world.Running || !Alive || !IsCalm || seconds <= 0 || !InTerritory(point)) return false;
+            if (!world || !world.Running || !Alive || seconds <= 0) return false;
+            if (distract)
+            {
+                if (Brawling || Time.time < lureDeafUntil || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
+            }
+            else if (!IsCalm) return false;
+            if (!InTerritory(point))
+            {
+                if (!pull) return false;
+                home = SnapToGround(point);
+            }
             noisePoint = point;
             investigateUntil = Time.time + seconds;
+            if (distract)
+            {
+                lured = true;
+                provokedUntil = provokeTimer = 0;
+            }
             if (State != CreatureState.Investigate) Enter(CreatureState.Investigate);
             return true;
         }
@@ -745,7 +850,7 @@ namespace Hakaton.Expeditions
             var by = damage.Instigator;
             bool fromAlly = Combat.IsAlive(by) && !ReferenceEquals(by, world.Player) && by.Faction != Faction;
             hurtBy = by;
-            Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0);
+            Damage(damage.Amount, damage.Impulse, damage.Point, damage.Kind == DamageKind.Fire ? 1.6f : 0, damage.Kind);
             hurtBy = null;
             if (fromAlly && Alive) { SetTarget(by); lastSeen = by.Position; }
             return true;
@@ -855,6 +960,7 @@ namespace Hakaton.Expeditions
         {
             if (appliedSize != CurrentSize) ApplySize();
             if (flying) UpdateShadow();
+            Fire.Tick();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
@@ -874,7 +980,7 @@ namespace Hakaton.Expeditions
             float sq = squash.Step(1, 7, .35f, dt);
             float targetCrouch = State == CreatureState.Windup ? 1 : State == CreatureState.Aim ? .6f : State == CreatureState.Threat ? .45f : 0;
             crouch = Mathf.MoveTowards(crouch, targetCrouch, dt * (State == CreatureState.Windup ? 3 : 5));
-            // Frozen: the drawing and its squash stay exactly as the ice caught them.
+            // Frozen: the drawing and its squash stay exactly as the ice caught them (it only keeps facing the player).
             if (!frozen)
             {
                 pose = PoseForState();
@@ -886,6 +992,8 @@ namespace Hakaton.Expeditions
                 view.Present(pose, transform.forward, Vector3.up * hop + tremble + FlightSway(),
                     new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
+            // Frozen, the drawing still turns to the player: never seen flat from the side, in a shell or not.
+            else view.FaceViewer();
             // Colour: red flash on hit, icy while frozen, flickering orange while burning.
             if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);

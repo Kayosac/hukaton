@@ -4,9 +4,9 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Манок» (воздух, ранг 1/5). A noise source (<see cref="LureNoise"/>) at the point of impact sounds for 6 s
-    /// (upgraded 10 s). Calm creatures within 10 m go to check it but never leave their territory; creatures already
-    /// attacking are not distracted.
+    /// «Манок» (воздух, ранг 1/5). A noise source (<see cref="LureNoise"/>) at the point of impact sounds for
+    /// 6 / 12 / 20 s. Every creature within 20 / 40 / 70 m (levels I / II / III) — aggressive and attacking ones too —
+    /// leaves what it does and comes to it, even from outside its territory, and settles there.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
     public sealed class LureEffect : CardEffect, ICardStatLine
@@ -14,8 +14,8 @@ namespace Hakaton.Expeditions.Cards
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Sound duration, s (board: 6 → 10).")]
         public LevelFloat duration = new LevelFloat(6, 12, 20);
-        [Tooltip("Calm creatures within this radius come to check the noise, m (same on both levels).")]
-        [Min(0)] public float radius = 10;
+        [Tooltip("Calm creatures within this radius come to check the noise, m (board: 20 → 40 → 70).")]
+        public LevelFloat radius = new LevelFloat(20, 40, 70);
 
         [Header("Placement")]
         public LureNoise noisePrefab;
@@ -33,15 +33,16 @@ namespace Hakaton.Expeditions.Cards
             }
             if (!CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var ground, out _)) ground = c.Point;
             var noise = c.World.SpawnForOuting(noisePrefab, ground, Quaternion.identity);
-            if (noise) noise.Setup(c.At(duration), radius);
+            if (noise) noise.Setup(c.At(duration), c.At(radius));
             Feedback(c, noise);
         }
 
         public bool TryGetStat(out string label, out LevelFloat values, out string unit)
         {
-            label = "Звук";
-            values = duration;
-            unit = " с";
+            // The radius is what grows most with the level, so the PC shows it.
+            label = "Радиус";
+            values = radius;
+            unit = " м";
             return true;
         }
     }

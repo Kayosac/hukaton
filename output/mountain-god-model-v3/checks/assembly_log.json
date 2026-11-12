@@ -1,0 +1,243 @@
+{
+ "hand_fixes": {
+  "C01": [
+   "C01: palm moved 1.27 m to cup the body from below (layout palm floated -0.58 m off it); fingers re-wrapped around the held part (layout tips used for length only)",
+   "C01: finger block slid +1.42 m along the held part (knuckles were inside the body)"
+  ],
+  "C02": [
+   "C02: palm moved 0.38 m to cup the body from below (layout palm floated 0.23 m off it); fingers re-wrapped around the held part (layout tips used for length only)",
+   "C02: finger block slid +1.31 m along the held part (knuckles were inside the body)"
+  ]
+ },
+ "hands": "hands.py",
+ "head": "head.py",
+ "fragments": {
+  "F01": {
+   "group": "CORE",
+   "pos": [
+    -0.38,
+    -1.01,
+    12.81
+   ]
+  },
+  "F02": {
+   "group": "C01",
+   "pos": [
+    -6.39,
+    2.17,
+    10.79
+   ]
+  },
+  "F03": {
+   "group": "C01",
+   "pos": [
+    -2.54,
+    -0.94,
+    8.87
+   ]
+  },
+  "F04": {
+   "group": "C02",
+   "pos": [
+    7.48,
+    1.48,
+    10.96
+   ]
+  },
+  "F05": {
+   "group": "S03",
+   "pos": [
+    6.7,
+    1.25,
+    4.23
+   ]
+  },
+  "F06": {
+   "group": "S02",
+   "pos": [
+    0.31,
+    -3.86,
+    4.37
+   ]
+  }
+ },
+ "branches": {
+  "B01": {
+   "host": "C01",
+   "method": "ray"
+  },
+  "B02": {
+   "host": "C01",
+   "method": "nearest"
+  },
+  "B03": {
+   "host": "C02",
+   "method": "ray"
+  },
+  "B04": {
+   "host": "S01",
+   "method": "ray"
+  }
+ },
+ "pre_union_tris": 6232,
+ "organic": {
+  "voxel_faces": 1370506,
+  "mid_faces": 564359,
+  "weights_s": 10.9,
+  "eyelid_verts": 6166,
+  "decimated_tris": 37292,
+  "organic_s": 674.9,
+  "sharp_edges": 1749,
+  "sharp_by_kind": {
+   "finger": 333,
+   "hand": 96,
+   "limb": 357,
+   "claw": 83,
+   "frag": 146,
+   "branch": 327,
+   "cradle_finger": 122,
+   "beard": 70,
+   "hat": 177,
+   "feature": 16,
+   "head": 22
+  },
+  "face_kinds": {
+   "finger": 1244,
+   "limb": 32887,
+   "hand": 2054,
+   "claw": 132,
+   "frag": 347,
+   "cradle_finger": 503,
+   "beard": 76,
+   "head": 78,
+   "feature": 17,
+   "hat": 246,
+   "branch": 508
+  }
+ },
+ "union_s": 675.05,
+ "groups_fixed_verts": 437,
+ "group_islands_fixed": 64,
+ "body": {
+  "tris": 38248,
+  "faces": 37560,
+  "verts": 19102,
+  "nonmanifold_edges": 0,
+  "components": 1,
+  "component_sizes": [
+   37560
+  ]
+ },
+ "eyes": {
+  "E01": {
+   "group": "S01",
+   "miss": null,
+   "snapped": null
+  },
+  "E02": {
+   "group": "S02",
+   "miss": null,
+   "snapped": null
+  },
+  "E03": {
+   "group": "S03",
+   "miss": null,
+   "snapped": null
+  },
+  "E04": {
+   "group": "A01",
+   "miss": null,
+   "snapped": null
+  },
+  "E05": {
+   "group": "A02",
+   "miss": null,
+   "snapped": null
+  },
+  "E06": {
+   "group": "C01",
+   "miss": null,
+   "snapped": null
+  },
+  "E07": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E08": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E09": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  },
+  "E10": {
+   "group": "CORE",
+   "miss": null,
+   "snapped": null
+  }
+ },
+ "uv": {
+  "px_per_m": 41.7,
+  "pack_eff": 0.342,
+  "islands": 3587,
+  "density_p5": 0.94,
+  "density_p95": 1.06,
+  "aniso_mean": 1.09,
+  "aniso_p95": 1.3,
+  "flipped_tris": 1,
+  "area_m2": 825.2,
+  "tris": 38248,
+  "time_s": 29.67,
+  "charts": "developable",
+  "charts_split": 57,
+  "charts_still_bad": 0,
+  "ngons_triangulated": 143,
+  "margin_px": 8,
+  "method": "MINIMUM_STRETCH"
+ },
+ "uv_s": 29.7,
+ "paint": {
+  "px_per_m": 41.7,
+  "coverage": 0.342,
+  "overlap_texels": 13,
+  "misses": [],
+  "times": {
+   "raster": 0.54,
+   "ao": 14.32,
+   "base": 0.47,
+   "decals": 0.61,
+   "write": 0.99
+  }
+ },
+ "paint_s": 17.9,
+ "cloth_removed_bits_verts": 22,
+ "cloth_tris": 240,
+ "leaves_tris": 90,
+ "pivot_offset": [
+  -0.288,
+  2.463,
+  0.0
+ ],
+ "split_touching_edges_final": 0,
+ "removed_sliver_faces": 0,
+ "body_final": {
+  "tris": 38248,
+  "faces": 38092,
+  "verts": 19102,
+  "nonmanifold_edges": 0,
+  "components": 1,
+  "component_sizes": [
+   38092
+  ]
+ },
+ "total_tris_lod0": 38578,
+ "total_s": 723.6,
+ "fbx": {
+  "path": "out/v3c/MG01.fbx",
+  "bytes": 1598540
+ }
+}

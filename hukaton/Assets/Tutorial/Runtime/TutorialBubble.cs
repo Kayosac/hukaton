@@ -14,6 +14,9 @@ namespace Hakaton.Tutorial
 
         public bool Visible => group && group.alpha > 0;
 
+        /// <summary>A press while the line is still typing only finishes the line.</summary>
+        public bool SkipTyping() => bubble && bubble.SkipTyping();
+
         public void Say(string line, bool waitForPlayer)
         {
             bubble.SetText(line);
@@ -24,6 +27,7 @@ namespace Hakaton.Tutorial
         public void Hide()
         {
             if (group) group.alpha = 0;
+            if (bubble) bubble.ForgetLine();
         }
 
         void Awake() => Hide();

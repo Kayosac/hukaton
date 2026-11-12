@@ -18,5 +18,7 @@ namespace Hakaton.Expeditions
         public VfxBurst stunned;
         [Tooltip("Drops falling from a wet body (WetStatus); held while it stays wet.")]
         public VfxBurst wetDrips;
+        [Tooltip("The ice shell a wet creature hit by Ice is encased in (IceEncasement): meshes, shards, effects.")]
+        public IceShellKit iceShell;
     }
 }

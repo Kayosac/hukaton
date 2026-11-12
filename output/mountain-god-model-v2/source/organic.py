@@ -1,0 +1,218 @@
+"""Organic body: voxel union of all body shells -> fillets at every junction + soft organic smoothing ->
+detail-weighted decimation to the triangle budget -> crisp hat and twig stems unioned back in.
+No hard boolean creases at limb roots, wrists, ankles or finger roots, so nothing reads as a break.
+"""
+import math, time
+import bpy, bmesh
+from mathutils import Vector as V
+from mathutils.bvhtree import BVHTree
+import core, bl
+
+VOXEL = 0.03          # m (working scale) - small enough for the thin claw fingers
+MID_FACES = 260000    # intermediate density for the smoothing pass
+TARGET_TRIS = 19000   # body after hat + stems are unioned back in
+
+
+def shell_kind(s):
+    n = s.name
+    if s.mat in ('hat', 'branch'):
+        return 'crisp'
+    if n.startswith(('BEARD', 'HEAD_nose', 'HEAD_ear')) or '_nose' in n or '_brow' in n or '_cheek' in n or '_chin' in n:
+        return 'feature'
+    if n.startswith('HEAD'):
+        return 'head'
+    if '_f' in n[-3:] or 'thumb' in n or 'toe' in n or 'claw' in n:
+        return 'finger'
+    if 'palm' in n or 'foot' in n or 'wrist' in n or 'heel' in n:
+        return 'hand'
+    return 'limb'
+
+
+# (smooth strength, decimation detail weight)
+KIND = {'limb': (1.0, 0.12), 'hand': (0.6, 0.55), 'finger': (0.45, 0.8), 'cradle_finger': (0.8, 0.6), 'claw': (0.0, 1.0),
+        'frag': (0.35, 0.8), 'head': (0.35, 0.9), 'feature': (0.08, 1.0)}
+
+
+def shell_radius(s):
+    xs = [v.x for v in s.verts]; ys = [v.y for v in s.verts]; zs = [v.z for v in s.verts]
+    d = sorted((max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs)))
+    return max(0.05, d[0] * 0.5)   # half of the thinnest extent ~ local radius
+
+
+def organic_body(shells, name='MG01_Body', log=None):
+    log = log if log is not None else {}
+    t0 = time.time()
+    soft = [s for s in shells if shell_kind(s) != 'crisp']
+    crisp = [s for s in shells if shell_kind(s) == 'crisp']
+    ob = bl.shells_to_object(name, soft)
+    bpy.context.view_layer.objects.active = ob
+    for o in bpy.context.selected_objects:
+        o.select_set(False)
+    ob.select_set(True)
+    m = ob.modifiers.new('vox', 'REMESH')
+    m.mode = 'VOXEL'; m.voxel_size = VOXEL; m.adaptivity = 0.0; m.use_smooth_shade = False
+    bpy.ops.object.modifier_apply(modifier=m.name)
+
+    log['voxel_faces'] = len(ob.data.polygons)
+    boxes = []
+    for s in soft:
+        if (s.group or '') in ('A03', 'A04') and s.name != s.group:
+            xs = [p.x for p in s.verts]; ys = [p.y for p in s.verts]; zs = [p.z for p in s.verts]
+            boxes.append((min(xs) - 0.1, max(xs) + 0.1, min(ys) - 0.1, max(ys) + 0.1, min(zs) - 0.1, max(zs) + 0.1))
+    vg_p = ob.vertex_groups.new(name='_protect')
+    prot = [v.index for v in ob.data.vertices
+            if any(b[0] <= v.co.x <= b[1] and b[2] <= v.co.y <= b[3] and b[4] <= v.co.z <= b[5] for b in boxes)]
+    if prot:
+        vg_p.add(prot, 1.0, 'REPLACE')
+    d = ob.modifiers.new('mid', 'DECIMATE')
+    d.decimate_type = 'COLLAPSE'; d.ratio = min(1.0, MID_FACES / max(1, len(ob.data.polygons)))
+    # (no vertex-group protection here: it blew up memory on the 1.3M-face voxel mesh)
+    bpy.ops.object.modifier_apply(modifier=d.name)
+
+    log['mid_faces'] = len(ob.data.polygons)
+    t1 = time.time()
+
+    # --- per-vertex junction / smoothing / detail weights from the source shells
+    vs, ps, owner = [], [], []
+    rad, kinds = [], []
+    for si, s in enumerate(soft):
+        off = len(vs)
+        vs += [tuple(p) for p in s.verts]
+        for f in s.faces:
+            ps.append([i + off for i in f]); owner.append(si)
+        k = shell_kind(s)
+        if k == 'finger' and ((s.group or '') in ('C01', 'C02') or (s.group or '').startswith('L')):
+            k = 'cradle_finger'   # long fingers wrapped around a thigh, and toes: rounder, no notches
+        if (s.group or '') in ('A03', 'A04') and s.name != s.group:
+            k = 'claw'            # thin claw hands: no smoothing, full detail
+        if s.name[:2] == 'F0' and s.name[2:3].isdigit():
+            k = 'frag'            # face fragments: soften the wedges so they melt in
+        rad.append(shell_radius(s)); kinds.append(k)
+    tree = BVHTree.FromPolygons(vs, ps)
+    me = ob.data
+    vg_s = ob.vertex_groups.new(name='_smooth')
+    vg_d = ob.vertex_groups.new(name='_detail')
+    vg_r = ob.vertex_groups.new(name='_round')
+    RMAX = 1.0
+    for v in me.vertices:
+        hits = tree.find_nearest_range(v.co, RMAX)
+        best = {}
+        for co, nrm, fi, dist in hits:
+            s = owner[fi]
+            if s not in best or dist < best[s]:
+                best[s] = dist
+        if not best:
+            hit = tree.find_nearest(v.co)
+            best = {owner[hit[2]]: hit[3]} if hit[0] is not None else {0: 0.0}
+        order = sorted(best.items(), key=lambda kv: kv[1])
+        s1, d1 = order[0]
+        sm, dt = KIND[kinds[s1]]
+        junc = 0.0
+        if len(order) > 1:
+            s2, d2 = order[1]
+            R = min(RMAX, 0.75 * min(rad[s1], rad[s2]) + 0.06)
+            junc = max(0.0, 1.0 - d2 / R) if d2 < R else 0.0
+            # fillet strength follows the finer of the two parts (finger roots stay tighter)
+            junc *= 0.7 if 'finger' in (kinds[s1], kinds[s2]) else 1.0
+        if kinds[s1] == 'claw':
+            junc = min(junc, 0.3)
+        if kinds[s1] == 'cradle_finger':
+            vg_r.add([v.index], 1.0 if len(order) < 2 or kinds[order[1][0]] == 'cradle_finger' or order[1][1] > 0.25 else 0.5, 'REPLACE')
+        vg_s.add([v.index], min(1.0, max(sm * 0.45, junc)), 'REPLACE')
+        vg_d.add([v.index], min(1.0, dt + 0.9 * junc), 'REPLACE')
+
+    log['weights_s'] = round(time.time() - t1, 1)
+
+    # --- fillets + organic softening (volume preserving)
+    ls = ob.modifiers.new('fillet', 'LAPLACIANSMOOTH')
+    ls.vertex_group = '_smooth'; ls.iterations = 24; ls.lambda_factor = 0.9; ls.lambda_border = 0.0
+    ls.use_volume_preserve = True; ls.use_normalized = True
+    bpy.ops.object.modifier_apply(modifier=ls.name)
+    # boxy wrapped fingers and toes: many more iterations so the square phalanges become round fingers
+    rr = ob.modifiers.new('round', 'LAPLACIANSMOOTH')
+    rr.vertex_group = '_round'; rr.iterations = 90; rr.lambda_factor = 1.0; rr.lambda_border = 0.0
+    rr.use_volume_preserve = True; rr.use_normalized = True
+    bpy.ops.object.modifier_apply(modifier=rr.name)
+    sm2 = ob.modifiers.new('soft', 'SMOOTH')
+    sm2.vertex_group = '_smooth'; sm2.factor = 0.5; sm2.iterations = 6
+    bpy.ops.object.modifier_apply(modifier=sm2.name)
+
+    # --- detail-weighted decimation to the budget (irregular low-poly facets like the canon)
+    crisp_tris = core.shells_tri_count(crisp)
+    target = max(4000, TARGET_TRIS - int(crisp_tris * 1.4))
+    tris = sum(len(p.vertices) - 2 for p in me.polygons)
+    dm = ob.modifiers.new('budget', 'DECIMATE')
+    dm.decimate_type = 'COLLAPSE'; dm.use_collapse_triangulate = True
+    dm.vertex_group = '_detail'; dm.vertex_group_factor = 6.0
+    dm.ratio = target / tris
+    bpy.ops.object.modifier_apply(modifier=dm.name)
+
+    log['decimated_tris'] = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+
+    # --- crisp hat + twig stems back in (exact boolean union keeps their hard planes)
+    if crisp:
+        cob = bl.shells_to_object(name + '_crisp', crisp)
+        # self-union the crisp parts first (hat cone+brim, stem forks) so the final union sees clean shells
+        bpy.context.view_layer.objects.active = cob
+        for o in bpy.context.selected_objects:
+            o.select_set(False)
+        cob.select_set(True)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.intersect_boolean(operation='UNION', use_swap=False, use_self=True, solver='EXACT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        mod = ob.modifiers.new('crisp', 'BOOLEAN')
+        mod.operation = 'UNION'; mod.solver = 'EXACT'; mod.object = cob
+        try:
+            mod.material_mode = 'TRANSFER'
+        except Exception:
+            pass
+        bpy.context.view_layer.objects.active = ob
+        for o in bpy.context.selected_objects:
+            o.select_set(False)
+        ob.select_set(True)
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+        # material slots of the crisp parts
+        for ms in cob.data.materials:
+            if ms.name not in [x.name for x in ob.data.materials if x]:
+                ob.data.materials.append(ms)
+        bpy.data.objects.remove(cob)
+    for g in ('_smooth', '_detail', '_protect', '_round'):
+        if g in ob.vertex_groups:
+            ob.vertex_groups.remove(ob.vertex_groups[g])
+    # every face flat (low-poly facets), outward normals
+    for p in ob.data.polygons:
+        p.use_smooth = False
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    bmesh.ops.dissolve_degenerate(bm, edges=bm.edges, dist=1e-5)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data); bm.free()
+    log['organic_s'] = round(time.time() - t0, 1)
+    return ob
+
+
+def assign_regions(ob, shells):
+    """Voxel remesh drops face materials: re-derive the paint region (body / beard) per face from the
+    nearest source shell. Hat and twig faces keep the slots transferred by the boolean."""
+    soft = [s for s in shells if shell_kind(s) != 'crisp']
+    vs, ps, owner = [], [], []
+    for si, s in enumerate(soft):
+        off = len(vs)
+        vs += [tuple(p) for p in s.verts]
+        for f in s.faces:
+            ps.append([i + off for i in f]); owner.append(si)
+    tree = BVHTree.FromPolygons(vs, ps)
+    names = [m.name if m else '' for m in ob.data.materials]
+    def slot(key):
+        mname = 'PRE_' + key
+        if mname not in names:
+            ob.data.materials.append(bl.preview_material(key))
+            names.append(mname)
+        return names.index(mname)
+    body_i, beard_i = slot('body'), slot('beard')
+    keep = {i for i, n in enumerate(names) if n in ('PRE_hat', 'PRE_branch')}
+    for p in ob.data.polygons:
+        if p.material_index in keep:
+            continue
+        hit = tree.find_nearest(p.center)
+        p.material_index = beard_i if hit[0] is not None and soft[owner[hit[2]]].mat == 'beard' else body_i

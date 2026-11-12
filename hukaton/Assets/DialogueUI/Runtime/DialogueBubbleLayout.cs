@@ -28,9 +28,18 @@ namespace Hakaton.DialogueUI
         public void SetText(string value)
         {
             if (!dialogue) return;
-            dialogue.text = value ?? string.Empty;
+            TypedLine.Say(dialogue, value ?? string.Empty);
             RefreshLayout();
         }
+
+        /// <summary>Call when the bubble is hidden: the same line shown again is typed again.</summary>
+        public void ForgetLine() => TypedLine.Forget(dialogue);
+
+        /// <summary>Letters of the line are still being typed.</summary>
+        public bool IsTyping => dialogue && dialogue.TryGetComponent(out TypedLine typed) && typed.IsTyping;
+
+        /// <summary>Prints the rest of the line at once; true if it was still typing (the press is spent on that).</summary>
+        public bool SkipTyping() => dialogue && dialogue.TryGetComponent(out TypedLine typed) && typed.Skip();
 
         void OnEnable() => dirty = true;
         void OnValidate()

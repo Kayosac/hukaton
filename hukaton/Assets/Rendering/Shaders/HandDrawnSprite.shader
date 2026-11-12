@@ -8,6 +8,11 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         [Header(Crisp Pixels)]
         _PixelsPerUnit ("Pixels Per World Unit", Float) = 500
         _AlphaCutoff ("Hard Alpha Cutoff", Range(0.01,1)) = 0.5
+        // Close up the world grid would turn into huge blocks (the shop counter, an item held in hand),
+        // so a cell never grows past this size on screen: it splits in two, four... (nested in the world grid).
+        _MaxCellPixels ("Max Cell On Screen (px of a 1080-line view)", Range(0.5,16)) = 3
+        // Two splits = 4x the world grid: customers (2x) and loot drawings (4x) are authored at those densities.
+        _MaxRefine ("Max Close-up Splits (powers of two)", Range(0,6)) = 2
         [Header(Hand Drawn Motion)]
         _Motion ("Motion Amount", Range(0,2)) = 1
         _AnimationFPS ("Drawing Frames Per Second", Range(1,30)) = 8
@@ -18,6 +23,10 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         _Anchor ("Foot Anchor (texture Y)", Range(0,0.5)) = 0.08
         _Seed ("Motion Phase", Float) = 0
         [HideInInspector] _RendererColor ("Renderer Color", Color) = (1,1,1,1)
+        // Depth: coverage is binary, so the drawing writes depth and ice shells drawn after it are hidden behind it.
+        // Off for plates that carry text on top (speech bubbles).
+        [Header(Depth)]
+        [ToggleUI] _ZWrite ("Write Depth", Float) = 1
     }
 
     SubShader
@@ -29,7 +38,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             "PreviewType"="Plane"
         }
         Cull Off
-        ZWrite Off
+        // Hard pixels: what survives the alpha cutoff is solid, so it may write depth (see _ZWrite).
+        ZWrite [_ZWrite]
         Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
 
         HLSLINCLUDE
@@ -43,7 +53,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         CBUFFER_START(UnityPerMaterial)
             half4 _Color;
             float4 _SpriteUVRect;
-            float _PixelsPerUnit, _AlphaCutoff, _Motion, _AnimationFPS;
+            float _PixelsPerUnit, _AlphaCutoff, _MaxCellPixels, _MaxRefine, _Motion, _AnimationFPS;
             float _Speed, _Sway, _Breath, _Boil, _Anchor, _Seed;
         CBUFFER_END
 
@@ -61,6 +71,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             float2 uv : TEXCOORD0;
             float3 positionRelativeWS : TEXCOORD1;
             float fogFactor : TEXCOORD2;
+            float refine : TEXCOORD3;
             half4 color : COLOR;
             UNITY_VERTEX_OUTPUT_STEREO
         };
@@ -82,6 +93,13 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             output.positionRelativeWS = positionWS - viewOriginWS;
             // Scene fog (Lighting > Environment) by view depth, like the rest of the world.
             output.fogFactor = ComputeFogFactorZ0ToFar(max(0.0, -TransformWorldToView(positionWS).z));
+            // Close-up split, one factor for the whole drawing (from its pivot, so no seam can cross it):
+            // a world cell's height on screen in pixels of a 1080-line view (angular, so any resolution looks alike),
+            // halved until it is at most _MaxCellPixels. Far away nothing changes: the world grid holds.
+            float pivotW = max(TransformWorldToHClip(TransformObjectToWorld(float3(0, 0, 0))).w, 1e-4);
+            float cellPixels = 540.0 * abs(UNITY_MATRIX_P._m11) / (pivotW * max(_PixelsPerUnit, 0.001));
+            float splits = ceil(log2(max(cellPixels / max(_MaxCellPixels, 0.01), 1.0)) - 1e-4);
+            output.refine = exp2(clamp(splits, 0.0, max(_MaxRefine, 0.0)));
             output.color = input.color * _Color * unity_SpriteColor;
             return output;
         }
@@ -109,7 +127,9 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             float2 rectSize = max(_SpriteUVRect.zw, float2(0.00001, 0.00001));
             // Quantize BEFORE animation: deformation cannot bend or blur the pixel grid.
             float2 localUV = (input.uv - _SpriteUVRect.xy) / rectSize;
-            float2 cell = WorldPixelCell(localUV, input.positionRelativeWS);
+            // World grid, split by a power of two close up: the finer grid keeps every world-grid line.
+            float2 worldCell = WorldPixelCell(localUV, input.positionRelativeWS);
+            float2 cell = worldCell / max(input.refine, 1.0);
             float2 uv = (floor(localUV / cell) + 0.5) * cell;
             float t = floor(_Time.y * max(_AnimationFPS, 1.0)) / max(_AnimationFPS, 1.0);
             float phase = t * _Speed * 2.0 + _Seed;
@@ -118,14 +138,14 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
 
             // Inverse warp around the feet. Full Rect sprites keep the moving outline intact.
             uv.y = _Anchor + (uv.y - _Anchor) / (1.0 + sin(phase) * _Breath * _Motion);
-            uv.x -= sin(phase * 0.73) * _Sway * cell.x * weight * _Motion;
+            uv.x -= sin(phase * 0.73) * _Sway * worldCell.x * weight * _Motion;
             uv.x = 0.5 + (uv.x - 0.5) / (1.0 - sin(phase) * _Breath * 0.4 * _Motion * height);
 
             // Low-frequency coherent wobble, held for each drawing frame (no random flicker).
             float2 wobble = float2(
                 sin(uv.y * 23.0 + phase * 1.71) + sin(uv.x * 17.0 - phase * 1.13),
                 sin(uv.x * 21.0 + phase * 1.37) + sin(uv.y * 13.0 - phase * 1.91));
-            uv += wobble * 0.5 * cell * _Boil * height * _Motion;
+            uv += wobble * 0.5 * worldCell * _Boil * height * _Motion;
 
             // Reject outside the source; clamping alone would smear opaque edge texels.
             clip(min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)));

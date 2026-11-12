@@ -110,6 +110,14 @@ namespace Hakaton.Game
             return granted;
         }
 
+        public bool CompleteActiveGoal()
+        {
+            bool completed = game.CompleteActiveGoal();
+            status = completed ? "Цель выполнена. Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal + "."
+                : "Нет активной цели. Цель выручки доступна после обучения.";
+            return completed;
+        }
+
         public int StockDisplayRandomly()
         {
             var trade = game.trade;
@@ -126,8 +134,6 @@ namespace Hakaton.Game
             var world = game.expedition;
             if (!world.Running || definition == null) { status = "Карты выдаются только во время вылазки."; return null; }
             var trip = world.workshop.Model.Current;
-            int handLimit = world.hand.slots.Length;
-            if (trip.Deck.Hand.Count >= handLimit) { status = "Рука уже полна (" + handLimit + " карт)."; return null; }
             int maxLevel = world.workshop.config.maximumCardLevel;
             var card = trip.GrantToHand(definition.ToSpec(), Mathf.Clamp(level, 1, maxLevel));
             if (card == null) { status = "Не удалось выдать карту."; return null; }
@@ -180,6 +186,12 @@ namespace Hakaton.Game
             if (GUILayout.Button("Все карты + прокачки", button)) UnlockCollection();
             GUI.enabled = game.Ready;
             if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
+            GUI.enabled = true;
+            GUILayout.Space(8);
+
+            GUILayout.Label("Цель", title);
+            GUI.enabled = game.CanCompleteActiveGoal;
+            if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
             GUI.enabled = true;
             GUILayout.Space(8);
 

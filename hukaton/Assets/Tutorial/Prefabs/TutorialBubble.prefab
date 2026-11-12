@@ -239,6 +239,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4605085675678799980}
     m_Modifications:
+    - target: {fileID: 682774156889013095, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: -120
+      objectReference: {fileID: 0}
+    - target: {fileID: 975066078706297277, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      propertyPath: padding.w
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 975066078706297277, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      propertyPath: minimumHeight
+      value: 152
+      objectReference: {fileID: 0}
     - target: {fileID: 1077890406309660478, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
       propertyPath: m_Name
       value: StitchedLinenDialogue
@@ -273,7 +285,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1289398702435488959, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 180
+      value: 152
       objectReference: {fileID: 0}
     - target: {fileID: 1289398702435488959, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
       propertyPath: m_LocalPosition.x
@@ -323,10 +335,27 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5242602808079999857, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      propertyPath: m_Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5242602808079999857, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: f9bbac60a0bd49b2b1358a9c5c5f4dc9, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 859654023099787881}
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3687810981665236256}
+    - targetCorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8301241163591207094}
   m_SourcePrefab: {fileID: 100100000, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
 --- !u!114 &591605269103708766 stripped
 MonoBehaviour:
@@ -344,3 +373,96 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1289398702435488959, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
   m_PrefabInstance: {fileID: 413747003692901347}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7405942598904456932 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7168285002509927687, guid: d7d6029f7c0ca4648b4328f397e94906, type: 3}
+  m_PrefabInstance: {fileID: 413747003692901347}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &859654023099787881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7405942598904456932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ace8ced0e81c847968cdca0aeda757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Febucci.TextAnimatorForUnity.TMP.Runtime::Febucci.TextAnimatorForUnity.TextMeshPro.TextAnimator_TMP
+  localSettings:
+    isResettingTimeOnNewText: 1
+    defaultEffectsMode: 0
+    timeScale: 1
+    defaultBehaviorTags: []
+    defaultAppearanceTags:
+    - incr
+    defaultDisappearanceTags: []
+    isAnimatingBehaviors: 1
+    isAnimatingAppearances: 1
+    isAnimatingDisappearances: 1
+    useDynamicScaling: 1
+    referenceFontSize: 12
+  sharedSettings: {fileID: 0}
+  animationLoop: 0
+  databaseEffects: {fileID: 0}
+  styleSheet: {fileID: 0}
+--- !u!114 &3687810981665236256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7405942598904456932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac6b0a2b8ddbab342ad54b5409ccffec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Febucci.TextAnimatorForUnity.Runtime::Febucci.TextAnimatorForUnity.TypewriterComponent
+  timingsScriptableBase: {fileID: 11400000, guid: f9029dd0173d57a45ab78e2ad79be0b8, type: 2}
+  actionsDatabase: {fileID: 0}
+  localSettings:
+    useTypeWriter: 1
+    startTypewriterMode: 3
+    hideAppearancesOnSkip: 0
+    hideDisappearancesOnSkip: 0
+    triggerEventsOnSkip: 0
+    resetTypingSpeedAtStartup: 1
+    disappearanceOrientation: 0
+    triggerShowedAfterEffectsEnd: 0
+    triggerDisappearedAfterEffectsEnd: 0
+  sharedSettings: {fileID: 11400000, guid: e5ebec8b825794584aa9434d686fed6f, type: 2}
+  onTextShowed:
+    m_PersistentCalls:
+      m_Calls: []
+  onTypewriterStart:
+    m_PersistentCalls:
+      m_Calls: []
+  onTextDisappeared:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterVisible:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterWaitStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  onCharacterWaitFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  onMessage:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &8301241163591207094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7405942598904456932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00f51229df4a84b7daba58264763c410, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.DialogueUI::Hakaton.DialogueUI.TypedLine
+  typewriter: {fileID: 3687810981665236256}

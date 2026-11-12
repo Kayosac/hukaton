@@ -5,10 +5,10 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// The noise source left by «Манок» (prefab <c>Assets/Game/Prefabs/Cards/Lure/Lure.prefab</c>): chirps at the point
-    /// of impact for 6 s (upgraded 10 s). Every call it asks the calm creatures within hearing (10 m) to come and check
-    /// (<see cref="WorldCreature.Investigate"/>): only idle, wandering or grazing ones go, and only when the noise is in
-    /// their own territory; creatures already alert or attacking ignore it. A creature that calms down while the noise
-    /// still sounds comes too. A small ring on the ground and a sound wave at each chirp mark it.
+    /// of impact for 6 / 12 / 20 s. Every call it draws every creature within hearing (20 / 40 / 70 m), whatever its
+    /// temperament and even mid-fight (<see cref="WorldCreature.Investigate"/>): out of its territory, to the noise,
+    /// deaf to the player while it sounds. A creature hurt while listening ignores this noise afterwards. A small ring on
+    /// the ground and a sound wave at each chirp mark it.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LureNoise : CardZoneBehaviour
@@ -30,7 +30,7 @@ namespace Hakaton.Expeditions.Cards
         public Color pulseTint = new Color(1f, .9f, .45f);
         [Min(0)] public float fadeSeconds = .8f;
 
-        float until, hearing = 10, nextChirp, nextCall, endedAt = -1;
+        float until, hearing = 20, nextChirp, nextCall, endedAt = -1;
         int called;
 
         public override CardZoneKind Kind => CardZoneKind.Lure;
@@ -84,8 +84,8 @@ namespace Hakaton.Expeditions.Cards
             {
                 if (!creature || !creature.isActiveAndEnabled || !creature.Alive) continue;
                 if (Vector3.Distance(creature.Position, here) > hearing) continue;
-                // WorldCreature decides: calm only, the noise inside its territory, attackers ignore it.
-                if (creature.Investigate(here, remaining)) called++;
+                // Every creature, aggressive and attacking ones too; the card pulls them out of their territory.
+                if (creature.Investigate(here, remaining, pull: true, distract: true)) called++;
             }
         }
     }
