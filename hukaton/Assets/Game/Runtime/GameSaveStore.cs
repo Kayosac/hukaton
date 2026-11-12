@@ -22,6 +22,8 @@ namespace Hakaton.Game
         public Hakaton.Tutorial.TutorialSave tutorial;
         /// <summary>The player's own improvements («Выносливость»). Missing in older saves: nothing bought yet.</summary>
         public PlayerSave player;
+        /// <summary>The outing map: opened points, where they were drawn, which are still new. Null in old saves.</summary>
+        public OutingMapSave map;
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;

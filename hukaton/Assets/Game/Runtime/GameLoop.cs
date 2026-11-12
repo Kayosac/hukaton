@@ -37,8 +37,8 @@ namespace Hakaton.Game
         public ShopTutorial tutorial;
         [Tooltip("A new game opens in the cave prologue; the shop tutorial follows it. Empty: straight to the shop.")]
         public CaveTutorial cave;
-        [Tooltip("The question at the door: the ready-made location or a new endless world. Empty: straight to the endless world.")]
-        public OutingChoice outingChoice;
+        [Tooltip("The map at the door: opened outing points, a card with «Идти» / «Остаться». Empty: straight to the endless world.")]
+        public OutingMap outingMap;
         [Tooltip("The goblin's word in the shop after the first drowning (once per save). Empty: just the notice.")]
         public GoblinLecture lecture;
         [TextArea] public string[] drownLecture =
@@ -75,7 +75,7 @@ namespace Hakaton.Game
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
         public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
-        /// <summary>The door asks "ready-made location or endless world" only after the revenue goal.</summary>
+        /// <summary>Map points marked «after the revenue goal» (the endless world) appear only once it is reached.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
         public string LastNotice { get; private set; }
@@ -121,6 +121,7 @@ namespace Hakaton.Game
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
             workshop.Model.Changed += MarkDirty;
+            if (outingMap) outingMap.Changed += MarkDirty;
             cardShop.Visits.Changed += MarkDirty;
             tutorial.Changed += MarkDirty;
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
@@ -163,6 +164,7 @@ namespace Hakaton.Game
         void OnDestroy()
         {
             if (trade) trade.ExpeditionRequested -= TryDepartFromDoor;
+            if (outingMap) outingMap.Changed -= MarkDirty;
             if (workshop) workshop.OutingCompleted -= CompleteOuting;
             if (trade?.Session != null) trade.Session.Changed -= MarkDirty;
             if (workshop?.Model != null) workshop.Model.Changed -= MarkDirty;
@@ -234,22 +236,25 @@ namespace Hakaton.Game
         {
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
-            // The choice of place opens only once the shop has made its revenue goal; before that every outing goes to the
-            // ready-made location (the old apiary).
-            if (outingChoice && expedition.HasPlaceChoice && PlaceChoiceUnlocked)
+            // The door opens the map. Before the revenue goal it holds only the ready-made location (the old apiary);
+            // the endless world grows next to it once the goal is reached.
+            if (outingMap)
             {
-                outingChoice.Open(expedition.readyWorld.placeName, place =>
+                outingMap.Open(MapSiteUnlocked, expedition.PlaceName, place =>
                 {
                     if (departing) return;
                     if (!CanDepartNow(out var refusal)) { if (refusal != null) Notify(refusal); return; }
                     expedition.NextPlace = place;
                     StartCoroutine(DepartWithTransition());
                 });
-                return;
+                if (outingMap.IsOpen) return;
             }
             expedition.NextPlace = !PlaceChoiceUnlocked && expedition.readyWorld ? OutingPlace.Ready : OutingPlace.Endless;
             StartCoroutine(DepartWithTransition());
         }
+
+        bool MapSiteUnlocked(OutingMap.Site site) => expedition.HasPlace(site.place)
+            && (site.unlock == OutingMapUnlock.Always || site.unlock == OutingMapUnlock.RevenueGoal && PlaceChoiceUnlocked);
 
         bool CanDepartNow(out string error)
         {
@@ -439,7 +444,8 @@ namespace Hakaton.Game
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
-            player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 }
+            player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
+            map = outingMap ? outingMap.Save() : null
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
@@ -457,6 +463,7 @@ namespace Hakaton.Game
             if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
+            if (outingMap) outingMap.Restore(save.map);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
