@@ -66,6 +66,7 @@ namespace Hakaton.Expeditions.Cards
         static readonly int TintId = Shader.PropertyToID("_Tint");
 
         float until, born, endedAt = -1, phase;
+        Vector3 drift;
         MaterialPropertyBlock block;
 
         public override CardZoneKind Kind => CardZoneKind.Fog;
@@ -99,6 +100,17 @@ namespace Hakaton.Expeditions.Cards
             Animate();
         }
 
+        /// <summary>
+        /// Blown away (Сквозняк): the fog drifts off with <paramref name="velocity"/> and thins out within
+        /// <paramref name="seconds"/>, then fades as usual while still drifting.
+        /// </summary>
+        public void Disperse(Vector3 velocity, float seconds)
+        {
+            if (!Active) return;
+            drift = velocity;
+            until = Mathf.Min(until, Time.time + Mathf.Max(0, seconds));
+        }
+
         public bool BlocksVision(Vector3 from, Vector3 to)
         {
             if (!Active) return false;
@@ -110,6 +122,7 @@ namespace Hakaton.Expeditions.Cards
         void Update()
         {
             if (!World) return;
+            if (drift.sqrMagnitude > 0) transform.position += drift * Time.deltaTime;
             if (Active && Time.time >= until)
             {
                 endedAt = Time.time;

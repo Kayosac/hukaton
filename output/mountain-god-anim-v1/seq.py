@@ -18,7 +18,7 @@ sc, cam = env.scene((640, 360))
 PB = arm.pose.bones
 W = arm.matrix_world
 FPS = 30
-SEQ = [("Idle", 2.5), ("Notice", 3.0), ("AlertIdle", 1.5), ("Reach", 9.0), ("ReachHold", 2.5), ("Lift", 12.0), ("Talk", 7.0)]
+SEQ = [("Idle", 2.5), ("Notice", 3.6), ("AlertIdle", 1.5), ("Reach", 11.0), ("ReachHold", 2.5), ("Lift", 16.0), ("Talk", 7.0)]
 FADE = .4
 acts = {n: bpy.data.actions["MG01_" + n] for n, _ in SEQ}
 
@@ -73,18 +73,22 @@ for i in range(int(TOTAL * FPS)):
     if i % EVERY:
         continue
     views = [("wide", (Vector((-24, -31, 13)), Vector((0, -5, 7)), 48))]
-    if n in ("Idle", "Notice", "AlertIdle", "Reach", "ReachHold"):
-        u = 0.0 if n in ("Idle", "Notice", "AlertIdle") else 1.0 if n == "ReachHold" else min(1.0, max(0.0, (t - s - 2) / 5))
+    if n in ("Idle", "Notice", "AlertIdle", "Reach", "ReachHold") and not os.environ.get("NOPLAYER"):
+        u = 0.0 if n in ("Idle", "Notice", "AlertIdle") else 1.0 if n == "ReachHold" else min(1.0, max(0.0, (t - s - 3) / 5))
         u = u * u * (3 - 2 * u)
         views.append(("player", (env.LIP + Vector((0, -.03, .017)), Vector((.6, 2, 10.5)).lerp(Vector((.3, 0, 6.5)), u), 70)))
+    if n in ("Idle", "Notice", "AlertIdle", "Reach", "ReachHold"):
+        views.append(("body", (Vector((3, -20, 5.5)), Vector((1.3, 1, 7.6)), 50)))
     if n in ("Lift", "Talk"):
         tip = PB["C01_f0_02"]
         tw, hw = W @ tip.tail, W @ tip.head
         fd = (tw - hw).normalized()
         spot = tw - fd * .08 + Vector((0, 0, .2))
-        tgt = HEAD + Vector((0, 0, -.4))
+        body = Vector((1.0, 2.5, 7.0))
+        wv = 1.0 if n == "Talk" else min(1.0, max(0.0, (t - s - 8.0) / 4.5))
+        tgt = body.lerp(HEAD + Vector((0, 0, -.4)), wv * wv * (3 - 2 * wv))
         look_c = tgt if look_c is None else look_c.lerp(tgt, .15)
-        views.append(("rider", (spot + Vector((0, 0, .017)), look_c, 65)))
+        views.append(("rider", (spot + Vector((0, 0, .017)), look_c, 72)))
     for v, (eye, tgt, fov) in views:
         env.look(cam, eye, tgt, fov)
         sc.render.filepath = os.path.join(OUT, f"{v}_{frame:04d}.png")

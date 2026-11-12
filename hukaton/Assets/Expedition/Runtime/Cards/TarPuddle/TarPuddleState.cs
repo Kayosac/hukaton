@@ -27,14 +27,15 @@ namespace Hakaton.Expeditions.Cards
         public bool Gone => Phase == TarPhase.BurntOut || Phase == TarPhase.Washed;
         public float BurnRemaining => Burns ? Mathf.Max(0, BurnSeconds - BurnElapsed) : 0;
         /// <summary>0 when lit, 1 when burnt out.</summary>
-        public float BurnProgress => Burns ? (BurnSeconds > 0 ? Mathf.Clamp01(BurnElapsed / BurnSeconds) : 1) : Phase == TarPhase.BurntOut ? 1 : 0;
+        public float BurnProgress => Burns ? (BurnSeconds > 0 ? Mathf.Clamp01(BurnElapsed / BurnSeconds) : 1) : Phase == TarPhase.BurntOut ? 1
+            : Phase == TarPhase.Tar && BurnSeconds > 0 ? Mathf.Clamp01(BurnElapsed / BurnSeconds) : 0;
 
         /// <summary>Lights unlit tar; true when it caught fire now. Burning, burnt or washed tar ignores it.</summary>
         public bool Ignite()
         {
             if (Phase != TarPhase.Tar) return false;
+            // Fresh tar starts from zero; tar whose fire was blown out (Сквозняк) burns only what is left of its time.
             Phase = TarPhase.Burning;
-            BurnElapsed = 0;
             return true;
         }
 
@@ -45,6 +46,17 @@ namespace Hakaton.Expeditions.Cards
             BurnElapsed += Mathf.Max(0, seconds);
             if (BurnElapsed < BurnSeconds) return false;
             Phase = TarPhase.BurntOut;
+            return true;
+        }
+
+        /// <summary>
+        /// Wind (Сквозняк) blows the fire out: the puddle is unlit tar again (slows, can be lit again, burning on from the
+        /// time it already burnt). True when it was burning.
+        /// </summary>
+        public bool Extinguish()
+        {
+            if (Phase != TarPhase.Burning) return false;
+            Phase = TarPhase.Tar;
             return true;
         }
 
