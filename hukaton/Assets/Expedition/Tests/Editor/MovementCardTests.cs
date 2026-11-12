@@ -263,6 +263,9 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(mushroom.capDiameter, Is.EqualTo(1.6f));
             Assert.That(mushroom.mushroomPrefab, Is.Not.Null);
             Assert.That(mushroom.mushroomPrefab.capCollider, Is.Not.Null);
+            Assert.That(mushroom.maxSlope, Is.EqualTo(48), "Playtest: floors up to the player's slope limit, steeper grows a wall shelf.");
+            Assert.That(mushroom.shelfPrefab, Is.Not.Null);
+            Assert.That(mushroom.shelfPrefab.capCollider, Is.Not.Null);
 
             var updraft = AssetDatabase.LoadAssetAtPath<UpdraftEffect>(folder + "Updraft.asset");
             Assert.That((updraft.height.i, updraft.height.ii, updraft.height.iii), Is.EqualTo((6f, 10f, 15f)));
