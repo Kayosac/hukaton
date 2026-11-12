@@ -46,6 +46,9 @@ namespace Hakaton.Game
         public Canvas shopHud;
         public Canvas progressCanvas;
         public TMP_Text objectiveLabel, resultLabel;
+        [Tooltip("The goals list on the shop HUD (title and the revenue goal with their shadows). A completed goal leaves the "
+            + "list; the revenue goal is the only one, so the whole block hides once it is reached.")]
+        public GameObject goalsBlock;
         [Header("Presentation")]
         public ScreenFade fade;
         public SfxPlayer sfx;
@@ -54,7 +57,7 @@ namespace Hakaton.Game
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
-        [Min(1)] public int revenueGoal = 1000;
+        [Min(1)] public int revenueGoal = 666;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
@@ -91,7 +94,7 @@ namespace Hakaton.Game
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
                 || !services || !services.cardShop || !tutorial || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
-                || !objectiveLabel || !resultLabel
+                || !objectiveLabel || !resultLabel || !goalsBlock
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
             trade.ExpeditionRequested += TryDepartFromDoor;
@@ -181,19 +184,23 @@ namespace Hakaton.Game
         void RefreshProgress()
         {
             if (!Ready) return;
-            if (!progressCanvas || !objectiveLabel || !resultLabel || trade.Session == null)
+            if (!progressCanvas || !objectiveLabel || !resultLabel || !goalsBlock || trade.Session == null)
             {
                 if (!progressHudLost)
                 {
                     progressHudLost = true;
                     Debug.LogError("GameLoop: Progress HUD was destroyed at runtime (canvas=" + (bool)progressCanvas
-                        + ", objective=" + (bool)objectiveLabel + ", result=" + (bool)resultLabel
+                        + ", objective=" + (bool)objectiveLabel + ", goals=" + (bool)goalsBlock + ", result=" + (bool)resultLabel
                         + ", session=" + (trade.Session != null) + "). The revenue HUD is skipped; the game keeps running.", this);
                 }
                 return;
             }
             progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
-            objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
+            // A completed goal leaves the list. The revenue goal is the only one, so its title goes too (the block, not the
+            // labels: their shadows mirror activeSelf). An older save below the goal lists it again.
+            bool goalListed = !GoalReached;
+            if (goalsBlock.activeSelf != goalListed) goalsBlock.SetActive(goalListed);
+            if (goalListed) objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
         public void Notify(string message, float seconds = 5)
@@ -405,6 +412,7 @@ namespace Hakaton.Game
             goalCelebrated = save.goalCelebrated;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
+            RefreshProgress(); // The goals list follows the restored revenue at once.
             return true;
         }
         public bool SaveNow()

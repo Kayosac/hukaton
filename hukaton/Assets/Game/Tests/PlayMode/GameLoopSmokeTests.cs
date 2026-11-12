@@ -111,14 +111,17 @@ namespace Hakaton.Game.Tests
             int coins = game.wallet.Wallet.Balance;
             int sales = game.trade.Session.SalesCount;
             var stock = game.trade.Session.Inventory.Select(item => item.Id).ToArray();
+            var beforeGoal = game.Capture();
 
             menu.SetOpen(true);
             yield return null;
+            Assert.That(game.goalsBlock.activeSelf, Is.True, "The unfinished revenue goal is listed.");
+            Assert.That(game.objectiveLabel.text, Does.Contain("/" + game.revenueGoal));
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.GoalReached, Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
             Assert.That(game.CanCompleteActiveGoal, Is.False);
-            Assert.That(game.objectiveLabel.text, Does.Contain(game.revenueGoal + "/" + game.revenueGoal));
+            Assert.That(game.goalsBlock.activeSelf, Is.False, "A completed goal leaves the list.");
             Assert.That(menu.CompleteActiveGoal(), Is.False);
             Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(coins));
             Assert.That(game.trade.Session.SalesCount, Is.EqualTo(sales));
@@ -131,6 +134,11 @@ namespace Hakaton.Game.Tests
             Assert.That(game.Restore(save), Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
             Assert.That(game.CanCompleteActiveGoal, Is.False);
+            Assert.That(game.goalsBlock.activeSelf, Is.False);
+            // An older save below the goal lists it again.
+            Assert.That(game.Restore(beforeGoal), Is.True);
+            Assert.That(game.GoalReached, Is.False);
+            Assert.That(game.goalsBlock.activeSelf, Is.True);
             menu.SetOpen(false);
             LogAssert.NoUnexpectedReceived();
         }
