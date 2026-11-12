@@ -8,7 +8,7 @@ namespace Hakaton.GodMountains
     /// where the clip puts it, damped, held at the bone's length from its head and nudged by a slow wind; the bone then
     /// turns from its animated direction toward that point. Bones are listed parents first: a child is read after its
     /// parent has swung, so it follows the swing. Stiffness comes from a natural period, so the feel does not depend on
-    /// the god's scale. Same model as the Blender preview (output/mountain-god-anim-v1/anim/springs.py).
+    /// the god's scale. Same model as the Blender preview (output/mountain-god-anim-v1/springs.py).
     /// </summary>
     [DisallowMultipleComponent, DefaultExecutionOrder(500)]
     public sealed class GodSpringBones : MonoBehaviour
