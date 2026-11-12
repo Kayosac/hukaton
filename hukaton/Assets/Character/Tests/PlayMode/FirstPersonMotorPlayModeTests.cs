@@ -194,6 +194,77 @@ namespace Hakaton.Character.Tests.PlayMode
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator PushingIntoANarrowWedgeHoldsStillWithoutSideToSideBouncing()
+        {
+            // Two walls meet 50° apart straight ahead, slightly off-centre: the player slides along one into the V.
+            var start = motor.transform.position;
+            var apex = start + new Vector3(.12f, 0, 2.4f);
+            const float halfAngle = 25;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float radians = halfAngle * Mathf.Deg2Rad;
+                var along = new Vector3(side * Mathf.Sin(radians), 0, -Mathf.Cos(radians));
+                var outward = new Vector3(side * Mathf.Cos(radians), 0, Mathf.Sin(radians));
+                // Each wall's inner face runs through the apex; the slab lies on its outer side.
+                Box(side < 0 ? "Wedge left" : "Wedge right", apex + along * 2 + outward * .1f + Vector3.up * 1.2f,
+                    new Vector3(.2f, 2.5f, 4), Quaternion.LookRotation(along));
+            }
+            Keys(Key.W);
+            yield return Advance(1.6f);
+            Assert.That(motor.transform.position.z - start.z, Is.GreaterThan(1),
+                "The player must have walked into the wedge before the measurement.");
+            float minX = float.PositiveInfinity, maxX = float.NegativeInfinity, maxSideways = 0, maxSpeed = 0;
+            float end = Time.time + 1;
+            while (Time.time < end)
+            {
+                var position = motor.transform.position;
+                minX = Mathf.Min(minX, position.x);
+                maxX = Mathf.Max(maxX, position.x);
+                maxSideways = Mathf.Max(maxSideways, Mathf.Abs(motor.PlanarVelocity.x));
+                maxSpeed = Mathf.Max(maxSpeed, motor.PlanarVelocity.magnitude);
+                yield return null;
+            }
+            Assert.That(maxX - minX, Is.LessThan(.02f), "Held against two walls, the body must not be shoved from side to side.");
+            Assert.That(maxSideways, Is.LessThan(.3f), "Corrections out of the walls must never become sideways speed.");
+            Assert.That(maxSpeed, Is.LessThan(motor.walkSpeed * .25f), "Pushing into a dead end is not running.");
+            Keys();
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator RunningDiagonallyIntoAWallSlidesAlongIt()
+        {
+            var start = motor.transform.position;
+            // A long wall a step to the right; W+D drives into it at 45°.
+            Box("Side wall", start + new Vector3(.8f, 1.2f, 3), new Vector3(.2f, 2.5f, 12), Quaternion.identity);
+            Keys(Key.W, Key.D);
+            yield return Advance(.8f);
+            float wallFace = start.x + .7f;
+            Assert.That(motor.transform.position.x, Is.GreaterThan(wallFace - motor.characterController.radius - .1f),
+                "The player must be pressed against the wall.");
+            float slideStart = motor.transform.position.z, slideStartTime = Time.time;
+            yield return Advance(.6f);
+            float slideSpeed = (motor.transform.position.z - slideStart) / (Time.time - slideStartTime);
+            Assert.That(slideSpeed, Is.GreaterThan(motor.walkSpeed * .6f), "The part of the run along the wall is kept.");
+            Assert.That(motor.transform.position.x, Is.LessThan(wallFace), "The wall is never passed.");
+            Assert.That(motor.PlanarVelocity.x, Is.LessThan(.35f), "No speed is kept pointing into the wall.");
+            Assert.That(motor.PlanarVelocity.z, Is.GreaterThan(motor.walkSpeed * .6f));
+            Keys();
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        void Box(string name, Vector3 center, Vector3 size, Quaternion rotation)
+        {
+            // Disposable test geometry inside the fixture, removed with it.
+            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = name;
+            box.transform.SetParent(fixtureRoot.transform);
+            box.transform.SetPositionAndRotation(center, rotation);
+            box.transform.localScale = size;
+            Physics.SyncTransforms();
+        }
+
         void Keys(params Key[] keys) => heldKeys = new KeyboardState(keys);
 
         void QueueHeldKeysForPlayerUpdate()

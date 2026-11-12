@@ -117,6 +117,32 @@ namespace Hakaton.ShopBlockout.Tests
             Assert.That(lift.hatchHinge.localScale, Is.EqualTo(Vector3.one));
         }
 
+        [Test]
+        public void GoblinIsAnUprightCapsuleSolidOnlyWhileHangingStillAndTheRopeNeverBlocks()
+        {
+            var capsule = lift.bodyCollider as CapsuleCollider;
+            Assert.That(capsule, Is.Not.Null, "An upright capsule is the same from every side of the turning billboard.");
+            Assert.That(capsule.transform, Is.EqualTo(lift.goblinRoot));
+            Assert.That(capsule.direction, Is.EqualTo(1));
+            Assert.That(lift.goblinRoot.GetComponent<BoxCollider>(), Is.Null, "No turning box that sweeps into the player.");
+            lift.Summon();
+            lift.Advance(lift.hatchSeconds + lift.lowerSeconds * .5f);
+            Assert.That(lift.State, Is.EqualTo(GoblinLiftState.Lowering));
+            Assert.That(capsule.isTrigger, Is.True, "Coming down he passes through whoever stands below.");
+            lift.Advance(10);
+            Assert.That(lift.IsDeployed, Is.True);
+            Assert.That(capsule.isTrigger, Is.False, "Hanging still he is as solid as he looks.");
+            Assert.That(lift.Raise(), Is.True);
+            lift.Advance(.05f);
+            Assert.That(capsule.isTrigger, Is.True);
+
+            var rope = fixture.transform.Find("Pull rope interaction");
+            Assert.That(rope, Is.Not.Null);
+            Assert.That(rope.GetComponent<ShopInteractionTarget>().kind, Is.EqualTo(ShopServiceKind.GoblinRope));
+            foreach (var collider in rope.GetComponents<Collider>())
+                Assert.That(collider.isTrigger, Is.True, "The dangling handle is aimed at, never walked into.");
+        }
+
         void AssertCablesAttached()
         {
             for(int i=0;i<2;i++)

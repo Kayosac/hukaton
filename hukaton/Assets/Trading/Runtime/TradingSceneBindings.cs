@@ -14,6 +14,9 @@ namespace Hakaton.Trading.Unity
         public PlayerControlGate Control;
         public PlayerStamina Stamina;
         public Transform CounterPose;
+        [Tooltip("Every shift, however it ends, leaves the shopkeeper standing at CounterPose, wherever the shift was opened " +
+                 "(the move happens behind the blink of the counter view).")]
+        public bool returnToCounterOnClose = true;
         [Header("Compact shop presentation (optional for the original test scene)")]
         public TradingShopView ShopView;
         public Transform DealItemAnchor;

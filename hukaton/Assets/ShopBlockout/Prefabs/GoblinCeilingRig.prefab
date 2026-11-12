@@ -9,8 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 799098698707560619}
-  - component: {fileID: 3127280589625361439}
   - component: {fileID: 2162356916287879118}
+  - component: {fileID: 5423301536377381577}
   m_Layer: 0
   m_Name: Card goblin
   m_TagString: Untagged
@@ -36,27 +36,6 @@ Transform:
   - {fileID: 7276868036949518241}
   m_Father: {fileID: 3541334999889263134}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &3127280589625361439
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3136394707815269698}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.26725608, y: 0.35, z: 0.2}
-  m_Center: {x: 0, y: 0.175, z: 0}
 --- !u!114 &2162356916287879118
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71,6 +50,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.ShopInteractionTarget
   kind: 2
   reach: 2.2
+--- !u!136 &5423301536377381577
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3136394707815269698}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.13362804
+  m_Height: 0.35
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.175, z: 0}
 --- !u!1 &3652335230895637189
 GameObject:
   m_ObjectHideFlags: 0
@@ -320,6 +322,7 @@ MonoBehaviour:
   openHatchEuler: {x: 95, y: 0, z: 0}
   startDeployed: 0
   table: {fileID: 6250566167865895784}
+  bodyCollider: {fileID: 5423301536377381577}
   hatchSeconds: 0.36
   hatchMotion:
     serializedVersion: 2
@@ -504,7 +507,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

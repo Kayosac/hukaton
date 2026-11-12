@@ -58,6 +58,11 @@ namespace Hakaton.Character
         Vector3 externalPlanar;
         Collider frameGround;
         readonly TimedModifier[] modifiers = new TimedModifier[4];
+        // Horizontal normals of the walls (anything too steep to walk on) the capsule touched during this frame's move.
+        const int MaxWallContacts = 8;
+        readonly Vector3[] wallNormals = new Vector3[MaxWallContacts];
+        int wallContacts;
+        bool collectingWalls;
 
         /// <summary>World velocity the body carries into the next frame (walking + pushes + vertical). Zero vertical while standing.</summary>
         public Vector3 Velocity => PlanarVelocity + externalPlanar + Vector3.up * (IsGrounded && verticalSpeed < 0 ? 0 : verticalSpeed);
@@ -228,8 +233,10 @@ namespace Hakaton.Character
             var before = transform.position;
             externalPlanar = Vector3.MoveTowards(externalPlanar, Vector3.zero, (grounded ? 12 : 2) * dt);
             frameGround = null;
-            float intendedPlanar = (PlanarVelocity + externalPlanar).magnitude;
+            wallContacts = 0;
+            collectingWalls = true;
             CollisionFlags collisions = characterController.Move((PlanarVelocity + externalPlanar + Vector3.up * verticalSpeed) * dt);
+            collectingWalls = false;
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             IsGrounded = (collisions & CollisionFlags.Below) != 0 && verticalSpeed <= 0;
             GroundCollider = IsGrounded ? frameGround : null;
@@ -243,12 +250,7 @@ namespace Hakaton.Character
                 if (landed) Landed?.Invoke(impactSpeed);
             }
             Vector3 actual = (transform.position - before) / dt;
-            var actualPlanar = new Vector3(actual.x, 0, actual.z);
-            // Collisions only ever take speed away. When the controller pushes the capsule out of a corner or off a step
-            // edge, that push is a one-frame correction, not running speed: without this cap it was carried on as tens
-            // of metres per second and flung the player across the level.
-            if (actualPlanar.magnitude > intendedPlanar + .5f) actualPlanar = actualPlanar.normalized * intendedPlanar;
-            PlanarVelocity = actualPlanar - externalPlanar;
+            RemoveBlockedVelocity(new Vector3(actual.x, 0, actual.z));
             // Running into a wall does not spend stamina or drive running feedback.
             IsSprinting = IsSprinting && PlanarVelocity.sqrMagnitude > .25f;
             stamina.Tick(dt, IsSprinting);
@@ -257,6 +259,44 @@ namespace Hakaton.Character
         void OnControllerColliderHit(ControllerColliderHit hit)
         {
             if (hit.normal.y > .5f) frameGround = hit.collider;
+            // Walls: everything too steep to walk on (a ceiling has no horizontal part worth keeping).
+            if (!collectingWalls || wallContacts >= MaxWallContacts
+                || hit.normal.y >= Mathf.Cos(characterController.slopeLimit * Mathf.Deg2Rad)) return;
+            var planar = new Vector3(hit.normal.x, 0, hit.normal.z);
+            float length = planar.magnitude;
+            if (length > .2f) wallNormals[wallContacts++] = planar / length;
+        }
+
+        /// <summary>
+        /// Velocity stays what the player and pushes asked for; a wall only takes away the part that drove into it, and
+        /// only as far as the capsule did not get through (a climbed step or a wall reached mid-frame keeps its speed).
+        /// The capsule's displacement is never turned back into velocity: the controller pushing it out of a corner or a
+        /// narrow gap is a one-frame correction, and carrying it on bounced the body from wall to wall.
+        /// </summary>
+        void RemoveBlockedVelocity(Vector3 actualPlanar)
+        {
+            if (wallContacts == 0) return;
+            Vector3 allowed = PlanarVelocity + externalPlanar, push = externalPlanar;
+            // Twice round: sliding off one wall can still drive into the other one of a corner.
+            for (int pass = 0; pass < 2; pass++)
+                for (int i = 0; i < wallContacts; i++)
+                {
+                    Vector3 normal = wallNormals[i];
+                    float limit = Mathf.Max(0, -Vector3.Dot(actualPlanar, normal));
+                    float into = -Vector3.Dot(allowed, normal);
+                    if (into > limit) allowed += normal * (into - limit);
+                    float pushInto = -Vector3.Dot(push, normal);
+                    if (pushInto > limit) push += normal * (pushInto - limit);
+                }
+            // Still driving into a wall that stopped it: the capsule sits in a crease between two walls and stays put.
+            for (int i = 0; i < wallContacts; i++)
+                if (-Vector3.Dot(actualPlanar, wallNormals[i]) < .01f && -Vector3.Dot(allowed, wallNormals[i]) > .01f)
+                {
+                    allowed = push = Vector3.zero;
+                    break;
+                }
+            externalPlanar = push;
+            PlanarVelocity = allowed - push;
         }
 
         /// <summary>Full pose reset (departure, back home): stops all motion and takes control from any external owner.</summary>

@@ -33,6 +33,10 @@ namespace Hakaton.ShopBlockout
         public bool startDeployed;
         [Tooltip("His card table: the overlay the player buys from once he is down.")]
         public Hakaton.Backroom.GoblinCardShop table;
+        [Tooltip("The goblin's own collider (an upright capsule, the same from every side of the billboard). The aim always " +
+                 "finds it; bodies are stopped only while he hangs still. On the way down or up — and after arriving, until " +
+                 "the player has stepped out from under him — it lets them through, so he never lands on or shoves anyone.")]
+        public Collider bodyCollider;
 
         [Header("Timing and weight")]
         [Min(.01f)]
@@ -192,6 +196,43 @@ namespace Hakaton.ShopBlockout
                 : 0;
             pullHandle.localPosition = handleRestPosition + Vector3.down * (pull * handlePullDistance);
             UpdateCables();
+            UpdateBodyCollider();
+        }
+
+        static readonly Collider[] Overlapping = new Collider[8];
+
+        void UpdateBodyCollider()
+        {
+            if (!bodyCollider) return;
+            // Once solid he stays solid until he moves again; he turns solid only when nobody stands inside him.
+            bool solid = State == GoblinLiftState.Deployed && (!bodyCollider.isTrigger || !OverlapsWalkingBody());
+            if (bodyCollider.isTrigger == solid) bodyCollider.isTrigger = !solid;
+        }
+
+        /// <summary>A walking character (CharacterController) is inside the space the goblin occupies.</summary>
+        bool OverlapsWalkingBody()
+        {
+            if (!bodyCollider.enabled || !bodyCollider.gameObject.activeInHierarchy) return false;
+            int count;
+            if (bodyCollider is CapsuleCollider capsule && capsule.direction == 1)
+            {
+                Transform body = capsule.transform;
+                Vector3 scale = body.lossyScale;
+                float radius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                float half = Mathf.Max(0, capsule.height * .5f * Mathf.Abs(scale.y) - radius);
+                Vector3 center = body.TransformPoint(capsule.center), axis = body.up * half;
+                count = Physics.OverlapCapsuleNonAlloc(center - axis, center + axis, radius, Overlapping, Physics.AllLayers,
+                    QueryTriggerInteraction.Ignore);
+            }
+            else
+            {
+                Bounds bounds = bodyCollider.bounds;
+                count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, Overlapping, Quaternion.identity, Physics.AllLayers,
+                    QueryTriggerInteraction.Ignore);
+            }
+            for (int i = 0; i < count; i++)
+                if (Overlapping[i] is CharacterController) return true;
+            return false;
         }
 
         void UpdateCables()
