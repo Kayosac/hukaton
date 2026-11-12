@@ -17,6 +17,8 @@ namespace Hakaton.Expeditions.Cards
         public ParticleSystem[] streams;
         [Min(0)] public float streaksPerSquareMetre = 1.2f;
         [Min(.1f)] public float streakHeight = 1.8f;
+        [Tooltip("Size of a streak particle: its trail is this wide, m.")]
+        [Min(.01f)] public float streakSize = .45f;
         [Tooltip("Streaks are born in this share of the strip from its start and fly on to its end.")]
         [Range(.1f, 1)] public float bornShare = .6f;
         [Tooltip("Speed of a streak along the wind (the Wind system's velocity), m/s: sets their lifetime.")]
@@ -284,6 +286,7 @@ namespace Hakaton.Expeditions.Cards
                 main.loop = false;
                 main.startLifetime = new ParticleSystem.MinMaxCurve(flight * .6f, flight);
                 main.startColor = new ParticleSystem.MinMaxGradient(colour, Color.white);
+                main.startSize = new ParticleSystem.MinMaxCurve(streakSize * .6f, streakSize);
                 var shape = stream.shape;
                 shape.enabled = true;
                 shape.shapeType = ParticleSystemShapeType.Box;

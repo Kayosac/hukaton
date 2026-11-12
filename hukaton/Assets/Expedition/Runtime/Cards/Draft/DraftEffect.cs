@@ -24,10 +24,10 @@ namespace Hakaton.Expeditions.Cards
         [Header("Strip")]
         [Tooltip("The strip starts this far behind the impact, so a creature hit directly is inside it, m.")]
         [Min(0)] public float startBehind = .75f;
-        [Tooltip("The strip reaches this far below the ground under the impact, m.")]
-        [Min(0)] public float below = 1.5f;
+        [Tooltip("The strip reaches this far below the ground under the impact (downhill slopes), m.")]
+        [Min(0)] public float below = 8;
         [Tooltip("…and this high above it (a rain cloud hangs about 4.2 m up), m.")]
-        [Min(.5f)] public float above = 5;
+        [Min(.5f)] public float above = 6;
         [Tooltip("How often the gust acts while it blows, s.")]
         [Min(.02f)] public float tickSeconds = .15f;
 
