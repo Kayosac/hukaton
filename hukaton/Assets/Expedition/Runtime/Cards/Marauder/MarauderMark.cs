@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions.Cards
 
         [Header("Look")]
         [Tooltip("Gap between the top of the creature's drawing and the middle of the mark, m.")]
-        public float lift = .4f;
+        public float lift = .3f;
         [Tooltip("Without a drawing: height of the mark above the creature's feet, m.")]
         public float fallbackHeight = 2.2f;
         [Tooltip("Closer than this the mark shrinks with distance, so it never swallows the screen, m.")]
@@ -147,10 +147,16 @@ namespace Hakaton.Expeditions.Cards
         {
             if (!creature) return;
             float t = Time.time + phase;
-            // Just above the top of the drawing (the "!!" marks of small beasts sit much higher).
-            Vector3 at = creature.view
-                ? creature.Position + Vector3.up * (creature.view.height * creature.Size + lift)
-                : creature.Position + Vector3.up * fallbackHeight;
+            // Just above the top of the drawing (the "!!" marks of small beasts sit much higher): the drawing's
+            // canvas, or its nominal height when that is taller.
+            Vector3 at = creature.Position + Vector3.up * fallbackHeight;
+            if (creature.view)
+            {
+                float top = creature.Position.y + creature.view.height * creature.Size;
+                var drawing = creature.view.spriteRenderer;
+                if (drawing && drawing.sprite) top = Mathf.Max(top, drawing.bounds.max.y);
+                at = new Vector3(creature.Position.x, top + lift, creature.Position.z);
+            }
             at += Vector3.up * Mathf.Sin(t * bobSpeed * Mathf.PI * 2) * bobHeight;
             transform.position = at;
             var viewer = world && world.viewCamera ? world.viewCamera : Camera.main;
