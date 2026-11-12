@@ -213,18 +213,40 @@ def kill_and_tear(rng):
 
 # ---------------------------------------------------------------- the end glitch, frame by frame with the picture
 def glitch(x, rng):
-    """Breaks the sound on the frames of glitch_plan.PLAN and cuts it dead at CUT."""
+    """Breaks the sound on the frames of glitch_plan.PLAN, melts it from MELT and cuts it dead at CUT (a bar line)."""
     y = x.copy()
     slot = SR // glitch_plan.FPS
-    for f, kind in glitch_plan.PLAN:
+    t0, t1 = glitch_plan.MELT / glitch_plan.FPS, CUT
+    a, b = int(round(t0 * SR)), int(round(t1 * SR))
+    n = b - a
+    s = np.arange(n) / n                                              # melt strength 0..1
+    tt = np.arange(n) / SR
+    wob = (0.004 + 0.11 * s ** 1.6) * np.sin(2 * np.pi * (2.2 + 3.0 * s) * tt) \
+        + 0.03 * s ** 2 * np.sin(2 * np.pi * 9.7 * tt)                   # the pitch wobbles wider and faster
+    sag = -0.45 * np.clip((s - 0.8) / 0.2, 0, 1) ** 2                    # and sags in the last moment
+    d = np.cumsum(wob + sag) / SR
+    d -= d[-1] * s                                                    # still lands on the bar line
+    pos = np.clip(a + (tt + d) * SR, 0, len(x) - 1)
+    seg = np.stack([np.interp(pos, np.arange(len(x)), x[:, c]) for c in range(2)], 1)
+    dull = np.stack([filt(seg[:, c], "lp", 1100) for c in range(2)], 1)
+    crushed = np.stack([bitcrush(seg[:, c], 5000, 6) for c in range(2)], 1)
+    w1, w2 = (0.75 * s ** 2)[:, None], (0.6 * s ** 1.5)[:, None]
+    y[a:b] = seg * (1 - w1 - w2 * (1 - w1)) + dull * w1 + crushed * w2 * (1 - w1)
+    for f, kind, x_ in glitch_plan.PLAN:
+        if kind == "melt":
+            continue
         a = int(round(f / glitch_plan.FPS * SR)); b = a + slot
         seg = y[a:b].copy()
-        if kind == "light":
+        if kind == "tick":
+            seg[: int(0.004 * SR)] *= 0.1
+            for _ in range(rng.integers(2, 6)):
+                i = int(rng.integers(0, slot - 20))
+                seg[i:i + 12] += rng.standard_normal((12, 1)) * (0.06 + 0.12 * x_)
+        elif kind == "light":
             seg = np.stack([bitcrush(seg[:, c], 9000, 7) for c in range(2)], 1)
         elif kind == "bands":
             half = seg[: slot // 2]
-            seg = np.concatenate([half, half])[:slot]
-            seg = np.stack([bitcrush(seg[:, c], 6000, 6) for c in range(2)], 1)
+            seg = np.stack([bitcrush(np.concatenate([half, half])[:slot][:, c], 6000, 6) for c in range(2)], 1)
         elif kind == "freeze":
             seg = y[a - slot:a].copy()
         elif kind == "blocks":
@@ -233,10 +255,10 @@ def glitch(x, rng):
         elif kind == "dark":
             seg *= 0.0
             seg[:40] += 0.3 * np.linspace(1, 0, 40)[:, None]
-        elif kind in ("heavy", "shred"):
-            n = slot // (6 if kind == "heavy" else 12)
-            piece = seg[:n]
-            seg = np.concatenate([piece * (0.9 ** k) for k in range(slot // n + 1)])[:slot]
+        else:                                                         # heavy, shred
+            k = slot // (6 if kind == "heavy" else 12)
+            piece = seg[:k]
+            seg = np.concatenate([piece * (0.9 ** j) for j in range(slot // k + 1)])[:slot]
             seg = np.stack([bitcrush(seg[:, c], 2500 if kind == "heavy" else 1800, 4) for c in range(2)], 1)
             seg += stereo(static_burst(rng, (slot + 2) / SR)[:slot]) * (0.35 if kind == "heavy" else 0.5)
         y[a:b] = seg

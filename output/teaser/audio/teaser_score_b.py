@@ -7,9 +7,9 @@ chords falling Em → C → B, the mouth is a rising drum roll that stutters and
 dog (black: its death cry, the fang torn out, then the knock of the fang on the counter); the question
 waits over a sub hum and a speeding heartbeat. v4: no drop on the logo. The heartbeat slows, the music box sighs
 the motif while the logo turns out of the dark (its last note on the glint), and the theme comes in for good —
-choir, kalimba, the 5/8 pulse, the flute singing the motif over Em F Em C B7 Em F — until the picture glitches and
-everything is cut dead (glitch_plan.py). Effects and the glitch are in teaser_common.
-Run: python3 teaser_score_b.py  ->  PENUS-Teaser-22s-v5-audio.wav (48 kHz stereo, about -14 LUFS)
+choir, kalimba, the 5/8 pulse, the flute singing the motif over Em F | Em C B7 Em | F Em C B7 — and is cut dead on
+the bar line where Em would come back, while the picture glitches more and more and finally melts (glitch_plan.py). Effects and the glitch are in teaser_common.
+Run: python3 teaser_score_b.py  ->  PENUS-Teaser-25s-v6-audio.wav (48 kHz stereo, about -14 LUFS)
 """
 from teaser_common import *  # noqa: F401,F403
 
@@ -123,13 +123,17 @@ for t, m in ((15.15, 88), (15.45, 89), (15.75, 88), (16.36, 83)):    # the sigh 
 for m, p in ((100, -0.4), (107, 0.35), (95, 0.1)):
     theme.add(fm_bell(hz(m, -15), 1.2, rng), 16.36, pan=p, gain=0.3)
 
-BARS = [(15.0, "Em"), (16.0, "F"), (17.0, "Em"), (18.0, "C"), (19.0, "B7"), (20.0, "Em"), (21.0, "F")]
+BARS = [(15.0, "Em"), (16.0, "F"), (17.0, "Em"), (18.0, "C"), (19.0, "B7"), (20.0, "Em"),
+        (21.0, "F"), (22.0, "Em"), (23.0, "C"), (24.0, "B7")]                   # cut dead on the bar line at 25.0
 CHORDS = {"Em": [40, 47, 52, 55, 59], "F": [41, 48, 53, 57, 64], "C": [36, 43, 48, 52, 59], "B7": [35, 42, 47, 51, 57]}
 for k, (t0, name) in enumerate(BARS):
     notes = CHORDS[name]
     lift = k / (len(BARS) - 1)                                       # everything grows towards the cut
     ch = stereo(choir([v + 12 for v in notes[2:]], 1.05, rng))
     theme.add(np.stack([filt(ch[:, c], "lp", 2400) for c in range(2)], 1), t0 - (0.25 if k else 0.0), gain=0.75 + 0.35 * lift)
+    if t0 >= 21.0:                                                   # the choir opens up an octave for the second phrase
+        hi = stereo(choir([v + 24 for v in notes[2:4]], 1.05, rng))
+        theme.add(np.stack([filt(hi[:, c], "lp", 3200) for c in range(2)], 1), t0 - 0.25, gain=0.35 + 0.3 * lift)
     if t0 >= 16.0:                                                   # kalimba in eighths
         tones = [notes[2], notes[3], notes[4], notes[3], notes[4] + 5 if name != "B7" else notes[4] + 6]
         for i in range(5):
@@ -149,13 +153,18 @@ for k, (t0, name) in enumerate(BARS):
         tdrums.add(woodblock(rng, 900 + rng.uniform(-30, 30)), t0 + 0.4, pan=-0.35, gain=0.25)
     if t0 >= 19.0:
         tdrums.add(gated_snare(rng), t0 + 0.4, pan=0.05, gain=0.45 + 0.25 * lift)
+    if t0 >= 22.0:                                                   # sixteenth hats push the last bars
+        for i in range(10):
+            tdrums.add(hat(rng, 0.012), t0 + i * 0.1 + 0.05, pan=-0.4, gain=0.08 + 0.06 * lift)
 flute = [(17.0, 0.58, 76), (17.6, 0.38, 77), (18.0, 0.58, 76), (18.6, 0.38, 71), (19.0, 0.38, 72), (19.4, 0.18, 71),
-         (19.6, 0.38, 69), (20.0, 0.58, 71), (20.6, 0.38, 67), (21.0, 0.38, 77), (21.4, 0.6, 76)]
+         (19.6, 0.38, 69), (20.0, 0.58, 71), (20.6, 0.38, 67),
+         (21.0, 0.38, 77), (21.4, 0.58, 76), (22.0, 0.58, 79), (22.6, 0.38, 77), (23.0, 0.58, 76), (23.6, 0.38, 72),
+         (24.0, 0.38, 71), (24.4, 0.18, 69), (24.6, 0.4, 75)]                       # ends on D#, the bar before Em
 for st_, x in legato([(t, d, m - 0.25) for t, d, m in flute], rng, kind="flute", glide=0.07, vib_cents=22, vib_rate=4.6):
     theme.add(x, st_, pan=-0.1, gain=0.95)
 for st_, x in legato([(t, d, m - 12) for t, d, m in flute if t >= 19.0], rng, kind="saw", glide=0.05, vib_cents=8, vib_rate=5.5):
     theme.add(filt(x, "lp", 2600), st_, pan=0.12, gain=0.32)
-for at, dur in ((17.0, 0.9), (21.0, 1.1)):                          # reverse swells into the pulse and the last bar
+for at, dur in ((17.0, 0.9), (21.0, 1.1), (25.0, 1.4)):             # reverse swells into the pulse, the second phrase, the cut
     x = reverse(crash(rng, dur)); tdrums.add(x, at - len(x) / SR + 0.01, pan=0.15, gain=0.55)
 
 theme_x = theme.x + tdrums.x + 0.8 * tbox.x
@@ -167,5 +176,5 @@ theme_x = wow(theme_x, 15.0, CUT, cents=7)
 dream = effects(rng)
 dream = wow(mix_music + quiet_x + dream, 0.0, 15.0, cents=12)
 mix = glitch(dream + theme_x + tape_hiss(rng), rng)
-out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-22s-v5-audio.wav"), rms_db=-17.2)
-print("B v5 ok, peak", float(np.max(np.abs(out))), "samples", len(out))
+out = master_write(mix, os.path.join(HERE, "PENUS-Teaser-25s-v6-audio.wav"), rms_db=-17.2)
+print("B v6 ok, peak", float(np.max(np.abs(out))), "samples", len(out))
