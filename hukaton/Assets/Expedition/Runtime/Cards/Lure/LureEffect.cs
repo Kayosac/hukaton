@@ -9,7 +9,7 @@ namespace Hakaton.Expeditions.Cards
     /// leaves what it does and comes to it, even from outside its territory, and settles there.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class LureEffect : CardEffect, ICardStatLine
+    public sealed class LureEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Sound duration, s (board: 6 → 10).")]
@@ -45,5 +45,13 @@ namespace Hakaton.Expeditions.Cards
             unit = " м";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius.At(level);
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => true;
     }
 }

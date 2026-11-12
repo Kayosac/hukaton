@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Hakaton.Expeditions
 {
-    public sealed class FreezeEffect : CardEffect
+    public sealed class FreezeEffect : CardEffect, ICardArea
     {
         [Tooltip("A dry creature freezes for the card's power in seconds. A WET creature is encased in ice instead: frozen until fire melts it or a physical hit shatters it.")]
         [Min(1)] public float wetMultiplier = 2;
@@ -41,5 +41,15 @@ namespace Hakaton.Expeditions
         }
 
         float WaterRadiusScale(int level) => level <= 1 ? waterRadiusByLevel.x : level == 2 ? waterRadiusByLevel.y : waterRadiusByLevel.z;
+
+        // An area only on water: elsewhere Ice freezes the one creature it hits.
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = definition.effectRadius * WaterRadiusScale(level);
+            var obstacle = target ? target.GetComponentInParent<WorldObstacle>() : null;
+            return obstacle && obstacle.kind == ObstacleKind.Lake;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }

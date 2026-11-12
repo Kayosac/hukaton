@@ -10,7 +10,7 @@ namespace Hakaton.Expeditions.Cards
     /// stands the column on the ground below the contact, so it lifts what was hit.
     /// See <see cref="UpdraftColumn"/>. Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class UpdraftEffect : CardEffect, ICardStatLine
+    public sealed class UpdraftEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Column height, m (board: 6 → 8).")]
@@ -64,5 +64,13 @@ namespace Hakaton.Expeditions.Cards
             unit = " м";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => true;
     }
 }

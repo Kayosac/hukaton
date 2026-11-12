@@ -222,6 +222,21 @@ namespace Hakaton.Expeditions.Cards
             return true;
         }
 
+        /// <summary>
+        /// Wind (Сквозняк) blows the fire out: the puddle stays as unlit tar (slows again) and can be lit again. True
+        /// when it was burning.
+        /// </summary>
+        public bool Extinguish()
+        {
+            if (!World || !state.Extinguish()) return false;
+            if (fire) fire.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            if (fireLight) fireLight.enabled = false;
+            if (bubbles) bubbles.Play(true);
+            if (World.sfx) World.sfx.StopLoop(this);
+            World.Spawn(burnOutPuff, transform.position + Vector3.up * .2f, Quaternion.identity, Color.white, Mathf.Max(.7f, radius * .55f));
+            return true;
+        }
+
         public bool Wash(ICardZone rain)
         {
             if (!World || !state.Wash()) return false;

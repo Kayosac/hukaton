@@ -1,0 +1,3 @@
+- S01 (seed 521): tip bone-end height over the rock (m) [7.5, 6.7, 6.9, 6.2, 7.8]; rock under the palm centre 64.7 m, palm underside 65.7 m; parts 14
+- S02 (seed 532): tip bone-end height over the rock (m) [7.0, 7.4, 7.5, 7.2, 7.5]; rock under the palm centre 72.9 m, palm underside 74.3 m; parts 18
+- S03 (seed 533): tip bone-end height over the rock (m) [7.9, 8.0, 7.4, 8.4, 8.2]; rock under the palm centre 66.5 m, palm underside 68.0 m; parts 19

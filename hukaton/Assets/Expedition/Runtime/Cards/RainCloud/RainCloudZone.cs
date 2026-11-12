@@ -23,7 +23,7 @@ namespace Hakaton.Expeditions.Cards
     /// touching the rain is removed whole (DECISIONS.md) and never comes back. The rain does no damage and heals nobody.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class RainCloudZone : CardZoneBehaviour
+    public sealed class RainCloudZone : CardZoneBehaviour, ICardAreaOutline
     {
         [Header("Rain")]
         [Tooltip("Cloud height above the ground under the impact, m.")]
@@ -174,6 +174,14 @@ namespace Hakaton.Expeditions.Cards
             var breathe = new Vector3(1 + Mathf.Sin(t * .23f) * sway, 1 + Mathf.Sin(t * .31f + 1) * sway * 1.5f, 1 + Mathf.Sin(t * .19f + 2) * sway);
             cloud.localScale = Vector3.Scale(cloudScale, breathe) * Mathf.Lerp(.3f, 1, grow) * shrink;
             cloud.localRotation = Quaternion.Euler(0, (Time.time + phase) * 4f, 0);
+        }
+
+        /// <summary>Outlined on the ground while it works (<see cref="CardAreaDisplay"/>).</summary>
+        public bool TryGetOutline(out Vector3 centre, out float radius)
+        {
+            centre = transform.position;
+            radius = this.radius;
+            return Raining;
         }
     }
 }

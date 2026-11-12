@@ -41,6 +41,9 @@ namespace Hakaton.Expeditions
         /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
         public IThrowRules rules;
         public event Action<CardCopy> Thrown;
+        /// <summary>Every throw of any thrower, right after <see cref="Thrown"/>. Static so card effect assets (Эхо
+        /// remembers the last card thrown) can listen without a scene reference.</summary>
+        public static event Action<CardThrower, CardCopy> AnyThrown;
         public event Action SelectionChanged;
         public bool HasThrown { get; private set; }
 
@@ -175,6 +178,7 @@ namespace Hakaton.Expeditions
             world.Play(world.cues ? world.cues.cardThrow : null, null, .7f + .3f * charge, Mathf.Lerp(.95f, 1.12f, charge));
             HasThrown = true;
             Thrown?.Invoke(card);
+            AnyThrown?.Invoke(this, card);
             return projectile;
         }
 

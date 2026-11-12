@@ -11,7 +11,7 @@ namespace Hakaton.Expeditions.Cards
     /// not picked up.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class AttractionEffect : CardEffect, ICardStatLine
+    public sealed class AttractionEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Impulse I toward the centre (board: 6 → 8).")]
@@ -75,5 +75,13 @@ namespace Hakaton.Expeditions.Cards
             unit = "";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }

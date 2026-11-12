@@ -27,7 +27,18 @@ namespace Hakaton.Decks.Unity
         Updraft = 22,
         TreeAwakening = 23,
         Swap = 24,
-        Teleport = 25
+        Teleport = 25,
+        // Second catalogue (12.11.2026): ten cards drawn for the analysis «новые карты».
+        Discord = 26,
+        Scarecrow = 27,
+        CrookedMirror = 28,
+        Draft = 29,
+        StickyHour = 30,
+        Gilding = 31,
+        MerchantNose = 32,
+        Marauder = 33,
+        Echo = 34,
+        Bubble = 35
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]

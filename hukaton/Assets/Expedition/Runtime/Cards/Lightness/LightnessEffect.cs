@@ -14,7 +14,7 @@ namespace Hakaton.Expeditions.Cards
     /// together without multiplying any bonus. The player gets a HUD badge; other bodies a light aura while it lasts.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class LightnessEffect : CardEffect, ICardStatLine
+    public sealed class LightnessEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Duration, s (board: 6 → 9).")]
@@ -105,5 +105,13 @@ namespace Hakaton.Expeditions.Cards
             unit = " с";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }
