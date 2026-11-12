@@ -1,0 +1,22 @@
+- A01 Wall A: parts 17, tris 7286, size 12.37 × 4.45 × 13.61
+- A01 Wall B: parts 20, tris 8024, size 13.02 × 4.59 × 13.93
+- A01 Wall C: parts 18, tris 6404, size 7.86 × 4.54 × 13.74
+- A01 Cliff: parts 18, tris 7498, size 16.95 × 6.45 × 18.76
+- A02 Ledge rim: parts 7, tris 2696, size 10.13 × 7.12 × 3.88
+- A03 Overhang: parts 11, tris 4392, size 6.51 × 13.05 × 10.11
+- A04 Summit: parts 15, tris 6724, size 23.78 × 18.47 × 6.66
+- A04 Root: parts 2, tris 1120, size 118.46 × 79.71 × 468.89
+- A05 Boulder A: parts 4, tris 1490, size 3.17 × 2.32 × 1.92
+- A05 Boulder B: parts 4, tris 1492, size 3.10 × 2.32 × 1.69
+- A05 Boulder C: parts 4, tris 1482, size 3.16 × 2.33 × 1.99
+- A06 Slab A: parts 3, tris 560, size 3.79 × 2.24 × 0.62
+- A06 Slab B: parts 3, tris 578, size 3.80 × 2.22 × 0.60
+- Roof slab A: parts 1, tris 308, size 4.10 × 2.56 × 1.01
+- Roof slab B: parts 1, tris 308, size 4.12 × 2.53 × 1.08
+- A09 Massif A: parts 12, tris 5586, size 576.30 × 471.21 × 311.48
+- A09 Massif B: parts 8, tris 3864, size 578.45 × 482.65 × 303.46
+- A09 Massif C: parts 12, tris 5170, size 587.55 × 459.90 × 294.62
+- G01 Stone frame: parts 3, tris 712, size 2.78 × 0.71 × 3.05
+- G03 Hollow ring: parts 22, tris 10134, size 10.72 × 12.02 × 15.50
+- A07 Shrub: parts 1, tris 308, size 1.77 × 1.16 × 1.52
+- A08 Rosette: parts 1, tris 20, size 0.79 × 0.83 × 0.53
