@@ -1,6 +1,7 @@
 """Shared setup for MG01's animation: open the test rig, clean it, add IK (support hands pinned to their rocks,
 cradle hands holding the thighs, C01 free for the reach), helpers to pose bones about armature axes."""
 import math
+import os
 import bpy
 from mathutils import Vector, Quaternion, Matrix
 
@@ -9,7 +10,10 @@ FPS = 30
 # The lip of the summit platform, in the god's own coordinates (Blender, 1 unit = 100 m): the scene places the god at
 # (42.4, -400, 1666.3) turned 180°, scale 100; the lip is at (42.4, 13.2, 62.3) in the level.
 LIP = Vector((0.0, -16.04, 4.132))
-FINGER_R = .14  # radius of C01's index finger near its tip, after smoothing (units)
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
+REBUILT = os.path.join(OUT, "MG01_Body_rebuilt.npz")  # rebuild/run.sh: the new skin (rest), its UVs and weights
+REBUILT_TEX = os.path.join(OUT, "T_MG01_BodyAnim_BaseColor.png")  # its colour, baked from the old skin
+FINGER_R = .165  # radius of C01's index finger near its tip, rebuilt skin (units)
 
 
 def setup():
@@ -31,8 +35,14 @@ def setup():
         pb.rotation_quaternion = (1, 0, 0, 0)
         pb.location = (0, 0, 0)
         pb.scale = (1, 1, 1)
-    separate_limbs(bpy.data.objects["MG01_Body"], arm)
-    smooth_body(bpy.data.objects["MG01_Body"])
+    body = bpy.data.objects["MG01_Body"]
+    if os.path.exists(REBUILT):
+        # the skin rebuilt whole (rebuild/run.sh): torn where limbs come apart, every opening healed into smooth skin
+        separate_limbs(body, arm, fill=False)
+        use_rebuilt(body)
+    else:
+        separate_limbs(body, arm)
+        smooth_body(body)
     # the hat and the beard hang from the head (they came parented to the neck): nods and tilts carry them
     bpy.context.view_layer.objects.active = arm
     for o in bpy.context.view_layer.objects:
@@ -68,7 +78,7 @@ def root_bone(arm, limb):
     return limb + "_seg00" if limb + "_seg00" in arm.data.bones else limb + "_hip"
 
 
-def separate_limbs(body, arm, keep_root=2.6):
+def separate_limbs(body, arm, keep_root=2.6, fill=True):
     """The body is one fused mesh: C01's palm grows into thigh L01, C02 hugs L02's knee and lies on its own shoulder,
     the small arms touch the head and C02, the ordinary legs touch each other and the belly. Where a free limb (both C
     arms, A01-A04, the dropping legs L01 and L02) is fused to anything but its own root, the skin is split along face
@@ -95,6 +105,8 @@ def separate_limbs(body, arm, keep_root=2.6):
 
     bm = bmesh.new()
     bm.from_mesh(me)
+    bm.verts.layers.int.new("fill")  # before any vertex is held: adding a layer later re-wraps the vertices
+    bm.verts.layers.int.new("fillno")
     bm.verts.ensure_lookup_table()
     part = {}
     for f in bm.faces:
@@ -156,23 +168,34 @@ def separate_limbs(body, arm, keep_root=2.6):
         torn = {e for e in bm.edges if len(e.link_faces) == 2 and tear(*e.link_faces)}
     bmesh.ops.split_edges(bm, edges=list(torn))
     ripped = rip_incompatible(bm, part, tear)
+    wires = [e for e in bm.edges if not e.link_faces]
+    if wires:
+        bmesh.ops.delete(bm, geom=wires, context="EDGES")
     if ripped:
         print("separate_limbs: corners still shared by parts that move apart, ripped:", ripped)
-    # each vertex now sits on one side: its faces' part (limb, and the bone most of those faces follow)
-    side, sdom = {}, {}
+    # each vertex now sits on one side: its faces' part (limb, and the bone most of those faces follow); kept in a
+    # vertex layer, since the fills below re-wrap the vertices
+    codes = []
+    code_of = {}
+    pl = bm.verts.layers.int.new("part")
     for v in bm.verts:
         c = Counter(part[f][:2] for f in v.link_faces if f in part)
-        (side[v], sdom[v]) = c.most_common(1)[0][0] if c else ("CORE", "")
-    caps = cap_openings(bm, side, sdom)
+        key = c.most_common(1)[0][0] if c else ("CORE", "")
+        if key not in code_of:
+            code_of[key] = len(codes)
+            codes.append(key)
+        v[pl] = code_of[key]
+    caps = fill_openings(bm) if fill else 0
     bm.verts.index_update()
-    global CAP_IDX
-    CAP_IDX = {c.index for c in CAP_CENTERS}
-    vside = [side[v] for v in bm.verts]
-    vsdom = [sdom[v] for v in bm.verts]
+    pl = bm.verts.layers.int["part"]
+    vside = [codes[v[pl]][0] for v in bm.verts]
+    vsdom = [codes[v[pl]][1] for v in bm.verts]
     bm.to_mesh(me)
     bm.free()
     me.update()
-    print("separate_limbs: tore", len(torn), "edges, capped", caps, "openings")
+    print("separate_limbs: tore", len(torn), "edges, filled", caps, "openings")
+    if fill:
+        fair_fills(body)
 
     # Weights: each side follows its own bones. A free limb's skin follows only its limb, and inside the limb only
     # bones near the vertex's own (a hand never follows its shoulder); the rest never follows a free limb, except right
@@ -180,6 +203,9 @@ def separate_limbs(body, arm, keep_root=2.6):
     # the bone a vertex's faces follow decides (not the vertex's own heaviest weight: a fused corner can be heavier
     # on the part it was torn from)
     dom2 = vsdom
+    # for the rebuild: each vertex's side, its bone, and whether it is a free limb's skin at its root joint
+    separate_limbs.sides = (list(vside), list(vsdom), [vside[i] in FREE and vsdom[i] in root_set[vside[i]] and
+                            (W @ me.vertices[i].co - roots[vside[i]]).length <= reach[vside[i]] for i in range(len(vside))])
     def drop(v, g):
         own = vside[v.index]
         p = body.matrix_world @ v.co
@@ -226,11 +252,62 @@ def separate_limbs(body, arm, keep_root=2.6):
 
     allb = set(b.name for b in bones)
     fixed = clean_weights(body, allb, drop, refill)
+    if fill:
+        fixed += fill_weights(body)
     for name in ("MG01_Cloth", "MG01_Leaves"):
         ob = bpy.data.objects[name]
         fixed += clean_weights(ob, allb, lambda v, g, ob=ob: g.startswith(FREE) and
                                not (g in root_set[g[:3]] and (ob.matrix_world @ v.co - roots[g[:3]]).length <= reach[g[:3]]), refill)
     print("separate_limbs: weights cleaned on", fixed, "vertices")
+
+
+def use_rebuilt(body, max_influences=4):
+    """Swap the body's mesh for the rebuilt skin: smooth, closed, with its own UVs, material (M_MG01_BodyAnim, baked
+    colour) and weights (at most four bones a vertex, as Unity skins)."""
+    import numpy as np
+    z = np.load(REBUILT)
+    RV, RF, UV, WR = z["RV"], z["RF"], z["UV"], z["WR"]
+    bones = [str(b) for b in z["bones"]]
+    me = bpy.data.meshes.new("MG01_Body")
+    me.from_pydata(RV.tolist(), [], RF.tolist())
+    me.update()
+    uv = me.uv_layers.new(name="UVMap")
+    uv.data.foreach_set("uv", UV.ravel())
+    me.polygons.foreach_set("use_smooth", [True] * len(me.polygons))
+    mat = bpy.data.materials.get("M_MG01_BodyAnim") or bpy.data.materials.new("M_MG01_BodyAnim")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    tn = next((n for n in nt.nodes if n.type == "TEX_IMAGE"), None) or nt.nodes.new("ShaderNodeTexImage")
+    tn.image = bpy.data.images.load(REBUILT_TEX, check_existing=True)
+    nt.links.new(tn.outputs["Color"], nt.nodes["Principled BSDF"].inputs["Base Color"])
+    nt.nodes.active = tn
+    me.materials.append(mat)
+    old = body.data
+    body.data = me
+    bpy.data.meshes.remove(old)
+    me.name = "MG01_Body"
+    for vg in list(body.vertex_groups):
+        body.vertex_groups.remove(vg)
+    import bmesh
+    top = np.argsort(-WR, axis=1)[:, :max_influences]
+    w = np.take_along_axis(WR, top, 1)
+    w[w < .01] = 0
+    w /= w.sum(1, keepdims=True)
+    used = sorted(set(top[w > 0].tolist()))
+    gidx = {b: body.vertex_groups.new(name=bones[b]).index for b in used}
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    dl = bm.verts.layers.deform.verify()
+    bm.verts.ensure_lookup_table()
+    for v, bs, ws in zip(bm.verts, top.tolist(), w.tolist()):
+        d = v[dl]
+        for b, x in zip(bs, ws):
+            if x > 0:
+                d[gidx[b]] = x
+    bm.to_mesh(me)
+    bm.free()
+    groups = gidx
+    print("use_rebuilt:", len(RV), "verts,", len(RF), "faces,", len(groups), "bones")
 
 
 def smooth_body(body, levels=1):
@@ -298,62 +375,255 @@ def rip_incompatible(bm, part, tear):
     return n
 
 
-def cap_openings(bm, side, sdom):
-    """Close every opening: one fan per rim, wound against each rim edge's own face (so the cap faces out like its
-    neighbours), its middle pushed out into a low dome. The middle vertex takes the rim's averaged weights."""
-    import bmesh
-    deform = bm.verts.layers.deform.active
-    rim = [e for e in bm.edges if e.is_boundary]
-    adj = {}
-    for e in rim:
-        for v in e.verts:
-            adj.setdefault(v, []).append(e)
-    seen, groups = set(), []
-    for e0 in rim:
-        if e0 in seen:
-            continue
-        comp, stack = [], [e0]
-        while stack:
-            e = stack.pop()
-            if e in seen:
+def boundary_cycles(bm):
+    """Every opening's rim as a list of vertices, walked against its faces' winding (a fill made in that order faces
+    outward like its neighbours)."""
+    nxt = {}
+    for e in bm.edges:
+        if e.is_boundary:
+            l = next(l for l in e.link_faces[0].loops if l.edge == e)
+            nxt.setdefault(l.link_loop_next.vert, []).append(l.vert)
+    used, cycles = set(), []
+    for start in list(nxt):
+        for first in nxt[start]:
+            if (start, first) in used:
                 continue
-            seen.add(e)
-            comp.append(e)
-            for v in e.verts:
-                stack.extend(x for x in adj[v] if x not in seen)
-        groups.append(comp)
-    for comp in groups:
-        verts = list({v for e in comp for v in e.verts})
-        mid = sum((v.co for v in verts), verts[0].co * 0) / len(verts)
-        c = bm.verts.new(mid)
-        CAP_CENTERS.append(c)
-        side[c] = Counter_most(side[v] for v in verts)
-        sdom[c] = Counter_most(sdom[v] for v in verts)
-        if deform:
-            acc = {}
-            for v in verts:
-                for g, w in v[deform].items():
-                    acc[g] = acc.get(g, 0) + w / len(verts)
-            for g, w in acc.items():
-                c[deform][g] = w
-        faces = []
-        for e in comp:
-            f0 = e.link_faces[0]
-            lp = next(l for l in f0.loops if l.edge == e)
-            a, b = lp.vert, lp.link_loop_next.vert
+            cyc, cur, nv, ok = [start], start, first, True
+            while True:
+                used.add((cur, nv))
+                if nv is start:
+                    break
+                cyc.append(nv)
+                cand = [x for x in nxt.get(nv, []) if (nv, x) not in used]
+                if not cand or len(cyc) > 20000:
+                    ok = False
+                    break
+                cur, nv = nv, cand[0]
+            if ok and len(cyc) >= 3:
+                cycles.append(cyc)
+    return cycles
+
+
+FILLS = []  # (centre, outward normal, radius) of every filled opening, for checks
+
+
+def fill_openings(bm):
+    """Rebuild the skin where a limb came away: every opening is filled with real surface, not a lid. Rings of new
+    vertices step in from the rim to its middle about one face apart, joined into triangles wound like the faces
+    around them; `fair_fills` then bends all of it into a smooth continuation of the skin around. New vertices take
+    their part and weights from the rim (inverse distance)."""
+    import math
+    from collections import Counter
+    mark = bm.verts.layers.int["fill"]
+    pl = bm.verts.layers.int["part"]
+    fno = bm.verts.layers.int["fillno"]
+    deform = bm.verts.layers.deform.active
+    filled = failed = 0
+    simple = []
+    for cyc in boundary_cycles(bm):
+        # a rim passing twice through one corner is two rims touching there: fill each on its own
+        stack = [cyc]
+        while stack:
+            cy = stack.pop()
+            seen = {}
+            for i, v in enumerate(cy):
+                if v in seen:
+                    j = seen[v]
+                    stack += [cy[j:i], cy[i:] + cy[:j]]
+                    break
+                seen[v] = i
+            else:
+                if len(cy) >= 3:
+                    simple.append(cy)
+    for cyc in simple:
+        if len(set(cyc)) != len(cyc):
+            failed += 1
+            continue
+        pts = [v.co.copy() for v in cyc]
+        c = sum(pts, pts[0] * 0) / len(pts)
+        n = len(cyc)
+        seg = [(pts[(i + 1) % n] - pts[i]).length for i in range(n)]
+        per = sum(seg)
+        L = per / n
+        R = max((p - c).length for p in pts)
+        k = max(0, min(14, math.ceil(R / max(L, 1e-6)) - 1))
+        rim_code = Counter(v[pl] for v in cyc).most_common(1)[0][0]
+        rim_info = [(v.co.copy(), dict(v[deform].items()) if deform else {}) for v in cyc]
+        # arc-length parameter of every rim corner; inner rings sample the rim shrunk toward its middle, with fewer
+        # corners as they shrink, so the triangles stay about even (no fan of slivers into a pole)
+        par = [0.0]
+        for i in range(n - 1):
+            par.append(par[-1] + seg[i] / per)
+
+        def rim_at(sv):
+            sv %= 1.0
+            i = max(j for j in range(n) if par[j] <= sv + 1e-12)
+            j = (i + 1) % n
+            span = seg[i] / per
+            f = 0.0 if span <= 0 else (sv - par[i]) / span
+            return pts[i].lerp(pts[j], min(1.0, max(0.0, f)))
+        rings = [(list(cyc), list(par))]
+        new = []
+        for j in range(1, k + 1):
+            t = j / (k + 1)
+            m = max(3, round(n * (1 - t)))
+            ps = [(q + .5 * (j % 2)) / m for q in range(m)]
+            ring = [bm.verts.new(rim_at(sv).lerp(c, t)) for sv in ps]
+            new += ring
+            rings.append((ring, ps))
+        mid = bm.verts.new(c)
+        new.append(mid)
+
+        def face(tri):
             try:
-                faces.append(bm.faces.new((b, a, c)))
+                bm.faces.new(tri)
             except ValueError:
                 pass
-        if not faces:
+        for (A, pa), (B, pb) in zip(rings[:-1], rings[1:]):
+            # zip two rings by parameter: always advance the side whose next corner comes first
+            ia = ib = 0
+            na, nb = len(A), len(B)
+            a0 = min(range(na), key=lambda q: pa[q])
+            b0 = min(range(nb), key=lambda q: (pb[q] - pa[a0]) % 1.0)
+            while ia < na or ib < nb:
+                ca, cb = A[(a0 + ia) % na], B[(b0 + ib) % nb]
+                sa = pa[(a0 + ia + 1) % na] + (1.0 if a0 + ia + 1 >= na else 0.0)
+                sb = pb[(b0 + ib + 1) % nb] + (1.0 if b0 + ib + 1 >= nb else 0.0)
+                if ib >= nb or (ia < na and sa <= sb):
+                    face((ca, A[(a0 + ia + 1) % na], cb))
+                    ia += 1
+                else:
+                    face((ca, B[(b0 + ib + 1) % nb], cb))
+                    ib += 1
+        last = rings[-1][0]
+        for i in range(len(last)):
+            face((last[i], last[(i + 1) % len(last)], mid))
+        for v in cyc:
+            v[mark] = 3
+            v[fno] = filled + 1
+        FILLS.append((c.copy(), (sum(((pts[i] - c).cross(pts[(i + 1) % n] - c) for i in range(n)), c * 0)).normalized(), R))
+        for v in new:
+            v[mark] = 1
+            v[fno] = filled + 1
+            v[pl] = rim_code
+            if deform:
+                near = sorted(rim_info, key=lambda r: (r[0] - v.co).length)[:6]
+                acc, tot = {}, 0.0
+                for co, ws in near:
+                    kk = 1.0 / max((co - v.co).length, 1e-4) ** 2
+                    tot += kk
+                    for g, wt in ws.items():
+                        acc[g] = acc.get(g, 0) + wt * kk
+                for g, wt in acc.items():
+                    v[deform][g] = wt / tot
+        filled += 1
+    if failed:
+        print("fill_openings: rims passing twice through a corner, not filled:", failed)
+    return filled
+
+
+def _in_poly(q, poly):
+    inside = False
+    for i in range(len(poly)):
+        a, b = poly[i - 1], poly[i]
+        if (a.y > q.y) != (b.y > q.y):
+            x = a.x + (q.y - a.y) * (b.x - a.x) / (b.y - a.y)
+            if x > q.x:
+                inside = not inside
+    return inside
+
+
+def _seg_dist(q, a, b):
+    ab = b - a
+    t = max(0.0, min(1.0, (q - a).dot(ab) / max(ab.length_squared, 1e-12)))
+    return (q - (a + ab * t)).length
+
+
+def fill_weights(body, near=6):
+    """New skin follows its rim as the rim finally follows its bones (after the cleaning): inverse-distance weights
+    from the nearest rim corners of the same opening, so a fill never pulls toward a bone its rim has let go of."""
+    me = body.data
+    fill = me.attributes["fill"].data
+    fno = me.attributes["fillno"].data
+    rims = {}
+    for v in me.vertices:
+        if fill[v.index].value == 3:
+            rims.setdefault(fno[v.index].value, []).append(v)
+    gname = {vg.index: vg for vg in body.vertex_groups}
+    n = 0
+    for v in me.vertices:
+        if fill[v.index].value != 1:
             continue
-        for f in faces:
-            f.normal_update()
-        n = sum((f.normal for f in faces), faces[0].normal * 0)
-        if n.length > 1e-9:
-            r = sum((v.co - mid).length for v in verts) / len(verts)
-            c.co = mid + n.normalized() * r * .35
-    return len(groups)
+        rim = rims.get(fno[v.index].value)
+        if not rim:
+            continue
+        rs = sorted(rim, key=lambda r: (r.co - v.co).length)[:near]
+        acc, tot = {}, 0.0
+        for r in rs:
+            k = 1.0 / max((r.co - v.co).length, 1e-4) ** 2
+            tot += k
+            for g in r.groups:
+                acc[g.group] = acc.get(g.group, 0) + g.weight * k
+        for g in list(v.groups):
+            gname[g.group].remove([v.index])
+        for gi, w in acc.items():
+            if w / tot > 1e-4:
+                gname[gi].add([v.index], w / tot, "REPLACE")
+        n += 1
+    return n
+
+
+def fair_fills(body, rings=0):
+    """Shape the filled skin into the fairest surface that meets the skin around it with the same slope: the new
+    vertices, the rim and `rings` rings of old skin around it move, two more rings stay put and set the slope, and the
+    moving vertices solve the thin-plate (bi-Laplacian) equation. The seam melts away instead of showing a lid."""
+    import numpy as np
+    import scipy.sparse as sp
+    import scipy.sparse.linalg as spla
+    me = body.data
+    n = len(me.vertices)
+    fill = me.attributes["fill"].data
+    flag = np.array([fill[i].value for i in range(n)])
+    nbr = [[] for _ in range(n)]
+    for e in me.edges:
+        a, b = e.vertices
+        nbr[a].append(b)
+        nbr[b].append(a)
+    free = set(np.nonzero((flag == 1) | (flag == 3))[0].tolist())
+    for _ in range(rings):
+        free |= {j for i in list(free) for j in nbr[i] if flag[j] != 1}
+    if not free:
+        return
+    # the Laplacian over the free vertices and two rings around them
+    region = set(free)
+    for _ in range(2):
+        region |= {j for i in list(region) for j in nbr[i]}
+    idx = {v: k for k, v in enumerate(sorted(region))}
+    rows, cols, vals = [], [], []
+    for v, k in idx.items():
+        ns = [j for j in nbr[v] if j in idx]
+        if not ns:
+            continue
+        rows.append(k); cols.append(k); vals.append(1.0)
+        for j in ns:
+            rows.append(k); cols.append(idx[j]); vals.append(-1.0 / len(ns))
+    m = len(idx)
+    Lap = sp.csr_matrix((vals, (rows, cols)), shape=(m, m))
+    L2 = (Lap @ Lap).tocsr()
+    fk = np.array([idx[v] for v in sorted(free)])
+    mask = np.zeros(m, bool)
+    mask[fk] = True
+    X = np.array([me.vertices[v].co[:] for v in sorted(region)])
+    A = L2[fk][:, mask]
+    B = L2[fk][:, ~mask]
+    rhs = -B @ X[~mask]
+    sol = np.column_stack([spla.spsolve(A.tocsc(), rhs[:, c]) for c in range(3)])
+    order = sorted(region)
+    free_sorted = [order[k] for k in np.nonzero(mask)[0]]
+    for v, co in zip(free_sorted, sol):
+        me.vertices[v].co = co
+    me.update()
+    print("fair_fills: shaped", int((flag == 1).sum()), "new vertices and", len(free) - int((flag == 1).sum()), "around them")
 
 
 CAP_CENTERS = []

@@ -38,7 +38,7 @@ namespace Hakaton.GodMountains.EditorTools
         {
             { "hat_01", 1.513f }, { "beard_00", 2.062f }, { "C01_f0_02", .376f },
         };
-        static readonly (string bone, float radius)[] Finger = { ("C01_f0_00", .24f), ("C01_f0_01", .17f), ("C01_f0_02", .14f) };
+        static readonly (string bone, float radius)[] Finger = { ("C01_f0_00", .24f), ("C01_f0_01", .20f), ("C01_f0_02", .165f) };
 
         static StringBuilder log;
 
@@ -47,6 +47,7 @@ namespace Hakaton.GodMountains.EditorTools
             log = new StringBuilder();
             try
             {
+                AnimSkinMaterial();
                 var model = ImportGod();
                 var rocks = ImportRocks();
                 var controller = BuildController();
@@ -65,6 +66,32 @@ namespace Hakaton.GodMountains.EditorTools
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (!m) log.AppendLine("ERROR missing material " + path);
             return m;
+        }
+
+        // The animated god's skin was rebuilt whole (gm-art/god/anim/rebuild): its own UVs and a baked colour map, smooth
+        // (bilinear) rather than the static model's pixel-crisp atlas. Material: a copy of M_MG01_Body with that map.
+        static void AnimSkinMaterial()
+        {
+            string tex = GodDir + "/Textures/T_MG01_BodyAnim_BaseColor.png";
+            var ti = (TextureImporter)AssetImporter.GetAtPath(tex);
+            if (ti == null) throw new Exception("no texture " + tex);
+            ti.sRGBTexture = true;
+            ti.mipmapEnabled = true;
+            ti.filterMode = FilterMode.Bilinear;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.maxTextureSize = 2048;
+            ti.textureCompression = TextureImporterCompression.CompressedHQ;
+            ti.SaveAndReimport();
+            string mat = GodDir + "/Materials/M_MG01_BodyAnim.mat";
+            if (!AssetDatabase.LoadAssetAtPath<Material>(mat))
+                AssetDatabase.CopyAsset(GodDir + "/Materials/M_MG01_Body.mat", mat);
+            var m = AssetDatabase.LoadAssetAtPath<Material>(mat);
+            var t = AssetDatabase.LoadAssetAtPath<Texture2D>(tex);
+            m.SetTexture("_BaseMap", t);
+            m.SetTexture("_MainTex", t);
+            EditorUtility.SetDirty(m);
+            AssetDatabase.SaveAssets();
+            log.AppendLine("skin material " + mat + " <- " + tex);
         }
 
         static GameObject ImportGod()
@@ -88,7 +115,7 @@ namespace Hakaton.GodMountains.EditorTools
             mi.animationCompression = ModelImporterAnimationCompression.Off;
             mi.resampleCurves = true;
             mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
-            foreach (var n in new[] { "Body", "Cloth", "Leaves" })
+            foreach (var n in new[] { "Body", "BodyAnim", "Cloth", "Leaves" })
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_MG01_" + n), Mat(GodDir + "/Materials/M_MG01_" + n + ".mat"));
             mi.clipAnimations = new ModelImporterClipAnimation[0];
             mi.SaveAndReimport();

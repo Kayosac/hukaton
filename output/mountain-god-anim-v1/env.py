@@ -25,7 +25,7 @@ def textures():
     tex = {"Body": "T_MG01_Body_BaseColor.png", "Cloth": "T_MG01_Cloth_BaseColor.png", "Leaves": "T_MG01_Leaves_BaseColor.png"}
     for m in bpy.data.materials:
         key = next((k for k in tex if "MG01_" + k in m.name), None)
-        if not key or not m.node_tree:
+        if not key or not m.node_tree or "BodyAnim" in m.name:
             continue
         t = next((n for n in m.node_tree.nodes if n.type == 'TEX_IMAGE'), None)
         t.image = bpy.data.images.load(U + "textures/" + tex[key], check_existing=True)

@@ -70,7 +70,51 @@ public static class GodCheck
         Log("look " + target);
     }
 
+    public static string MeshInfo()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var r in Object.FindObjectsByType<SkinnedMeshRenderer>(FindObjectsSortMode.None))
+            if (r.transform.IsChildOf(Enc.god.transform))
+                sb.Append(r.name + " verts " + r.sharedMesh.vertexCount + " tris " + r.sharedMesh.triangles.Length / 3 + " mat " +
+                          string.Join(",", r.sharedMaterials.Select(m => m ? m.name + ":" + (m.mainTexture ? m.mainTexture.name : "-") : "null")) +
+                          " quality " + r.quality + "; ");
+        File.AppendAllText("Logs/bridge/god-check.txt", "meshinfo: " + sb + "\n");
+        return sb.ToString();
+    }
+
+    /// <summary>The god's skin as drawn now (world space) to Logs/bridge/god_body.obj.</summary>
+    public static string DumpBody()
+    {
+        var r = Enc.god.GetComponentsInChildren<SkinnedMeshRenderer>().First(x => x.name == "MG01_Body");
+        var m = new Mesh(); r.BakeMesh(m, true);
+        var sb = new System.Text.StringBuilder();
+        var tr = r.transform;
+        foreach (var v in m.vertices) { var w = tr.TransformPoint(v); sb.Append("v ").Append(w.x.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(' ').Append(w.y.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(' ').Append(w.z.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append('\n'); }
+        var t = m.triangles;
+        for (int i = 0; i < t.Length; i += 3) sb.Append("f ").Append(t[i] + 1).Append(' ').Append(t[i + 1] + 1).Append(' ').Append(t[i + 2] + 1).Append('\n');
+        File.WriteAllText("Logs/bridge/god_body.obj", sb.ToString());
+        Log("dump body " + m.vertexCount);
+        return "dumped " + m.vertexCount;
+    }
+
     public static void Free() { Enc.view.Guide(null); Log("free"); }
+
+    /// <summary>A look camera over the game view: "bone dx,dy,dz" puts it at the bone plus the offset (metres), aimed at
+    /// the bone; "off" removes it.</summary>
+    public static void Cam(string arg)
+    {
+        var old = GameObject.Find("GodCheckCam");
+        if (arg == "off") { if (old) Object.Destroy(old); Log("cam off"); return; }
+        var parts = arg.Split(' ');
+        var bone = Enc.god.GetComponentsInChildren<Transform>().First(t => t.name == parts[0]);
+        var o = parts[1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        var go = old ? old : new GameObject("GodCheckCam");
+        var cam = go.GetComponent<Camera>() ? go.GetComponent<Camera>() : go.AddComponent<Camera>();
+        cam.depth = 100; cam.nearClipPlane = .5f; cam.farClipPlane = 20000; cam.fieldOfView = parts.Length > 2 ? float.Parse(parts[2]) : 50;
+        go.transform.position = bone.position + new Vector3(o[0], o[1], o[2]);
+        go.transform.LookAt(bone.position);
+        Log("cam " + arg);
+    }
 
     static void Log(string tag)
     {

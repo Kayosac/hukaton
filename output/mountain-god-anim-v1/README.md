@@ -1,8 +1,29 @@
-# MG01: god animation (v4)
+# MG01: god animation (v5)
 
 The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
 his support hands. Previews: `MG01_rider.mp4` (riding the finger: the pull and the talk), `MG01_body.mp4` (the body up
 close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp4` is the v2 view from the lip.
+
+## v5 (after the review of v4: the caps looked like patches)
+
+The v4 caps over the torn places showed in the game as fans with a seam on the chest and patched folds on the palm.
+v5 does not cap anything: the whole skin is rebuilt (`rebuild/`, see `rebuild/README.md`).
+
+- The split skin is posed apart as in the clips (hands off the thighs and the chest, legs down, the beard and arm A03
+  slid away); skins that face each other closely but are not one skin are pushed apart; a screened Poisson surface
+  through it is one closed smooth skin with every torn place healed; it comes back to rest through the inverse pose,
+  and healed sheets that came back crumpled are faired. 240 k triangles, no open edges.
+- Its own UVs (xatlas, about 2000 charts) and a colour map baked from the old skin (`T_MG01_BodyAnim_BaseColor.png`,
+  2048, bilinear in Unity; material `M_MG01_BodyAnim`, a copy of `M_MG01_Body` with that map).
+- Weights from the nearest old skin, at most four bones a vertex; the beard and hat springs carry only skin that was
+  theirs (a healed place on the chest under the beard swung with it and tore open into a dark pocket in Unity). Faces
+  whose corners follow different limbs (they would stretch into curtains when the limbs part): C01 55, C02 54, L01 77 —
+  the weight seams the old skin already had at the root joints.
+- The finger is a little thicker than in v4 (top 16.5 m above the bone at the tip): the dock and the Unity capsules
+  (0.24 / 0.20 / 0.165) follow it.
+- Checked in Blender (back faces culled) at the waiting pose, in the pull and in the talk, and in Unity Play from the
+  edge to the talk: the chest under the C02 hand, the C01 palm and the thigh it held are smooth skin. The baked skin
+  checked against the drawn one: `GodCheck.DumpBody` writes the skin as Unity draws it.
 
 ## v4 (after the review in Unity: holes, torn limbs, a faceted hand)
 
@@ -78,10 +99,11 @@ at god coordinates x 100: in Unity they take the god group's position and 180 de
 
 ## Files
 
-- `godrig.py` — rig setup (limb separation, weights, IK targets), helpers.
+- `godrig.py` — rig setup (limb separation, weights, IK targets; the rebuilt skin when `out/MG01_Body_rebuilt.npz` exists), helpers.
+- `rebuild/` — the v5 skin rebuild (`run.sh`, steps in `rebuild/README.md`).
 - `clips.py` — the clips; `export_anim.py` — FBX with the takes for Unity.
 - `springs.py`, `GodSpringBones.cs` — hat and beard springs.
 - `hand_rocks.py`, `probe2.py` (hand contact data) — the rocks.
 - `env.py`, `seq.py`, `stamp.py` — preview renders; `qa2.py`, `qa3.py` — QA renders as Unity draws them (back faces
-  culled) at every second of every clip; `topo2.py`, `diag2.py` — mesh and stretch checks.
+  culled) at every second of every clip; `topo2.py`, `diag2.py` — mesh and stretch checks; `qa5.py` — close-ups of the healed places through the clips.
 - `unity/GodEncounterBuilder.cs`, `unity/GodCheck.cs` — the one-off scene builder and the Play check (not in Assets).
