@@ -96,9 +96,12 @@ namespace Hakaton.Game
             string error = model.UnlockAllCards(out int added);
             if (error != null) { status = error; return false; }
             if (game.workshop.EmbeddedOpen) game.workshop.RefreshWorkshop();
+            var shop = game.trade.Session;
+            shop.MaximizeShift();
             game.SaveNow();
             status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
-                + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit + ".";
+                + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit
+                + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с.";
             return true;
         }
 

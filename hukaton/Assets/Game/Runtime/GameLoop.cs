@@ -97,6 +97,8 @@ namespace Hakaton.Game
                 || !objectiveLabel || !resultLabel || !goalsBlock
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
+            // The PC sells the shop's shift upgrade («Время смены»); the session is built at runtime, so it is handed over here.
+            if (services.computer) services.computer.Shop = trade.Session;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;

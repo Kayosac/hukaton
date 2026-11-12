@@ -50,6 +50,10 @@ namespace Hakaton.Trading
         public int MinPatience { get; set; } = 3;
         public int MaxPatience { get; set; } = 5;
         public float CounterStepRatio { get; set; } = .08f;
+        /// <summary>Seconds each shift upgrade (bought on the PC, «Время смены») adds to the base shift, in order.</summary>
+        public float[] ShiftUpgradeSeconds { get; set; } = Array.Empty<float>();
+        /// <summary>Price of each shift upgrade: one per entry of <see cref="ShiftUpgradeSeconds"/>.</summary>
+        public int[] ShiftUpgradePrices { get; set; } = Array.Empty<int>();
 
         internal TradeSettings ValidatedCopy()
         {
@@ -64,7 +68,17 @@ namespace Hakaton.Trading
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue
                 || !Positive(CounterStepRatio))
                 throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid trade tuning.");
-            return (TradeSettings)MemberwiseClone();
+            var upgradeSeconds = ShiftUpgradeSeconds ?? Array.Empty<float>();
+            var upgradePrices = ShiftUpgradePrices ?? Array.Empty<int>();
+            float longestShift = ShiftSeconds;
+            foreach (float seconds in upgradeSeconds) longestShift = Positive(seconds) ? longestShift + seconds : float.NaN;
+            if (upgradeSeconds.Length != upgradePrices.Length || !Positive(longestShift)
+                || Array.Exists(upgradePrices, price => price < 0))
+                throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid shift upgrades.");
+            var copy = (TradeSettings)MemberwiseClone();
+            copy.ShiftUpgradeSeconds = (float[])upgradeSeconds.Clone();
+            copy.ShiftUpgradePrices = (int[])upgradePrices.Clone();
+            return copy;
         }
 
         private static bool Positive(float value) => value > 0 && !float.IsNaN(value) && !float.IsInfinity(value);
@@ -78,6 +92,8 @@ namespace Hakaton.Trading
         public float remainingSeconds;
         public long grossRevenue, nextItemId, nextExpeditionId;
         public int salesCount;
+        /// <summary>Shift upgrades bought; saves older than the upgrade load as 0 (the base shift).</summary>
+        public int shiftLevel;
         public List<TradingItemSave> items = new List<TradingItemSave>();
     }
 

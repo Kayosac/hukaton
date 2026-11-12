@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Hakaton.Decks;
+using Hakaton.Trading;
 
 namespace Hakaton.Computer
 {
@@ -24,7 +25,6 @@ namespace Hakaton.Computer
         /// <summary>Said after a successful purchase.</summary>
         public abstract string Bought { get; }
 
-        /// <summary>The PC's improvements over the deck workshop: hand size, then the deck limit.</summary>
         /// <summary>"4 карты", "5 карт": Russian plural for a card count.</summary>
         public static string Cards(int n)
         {
@@ -36,7 +36,21 @@ namespace Hakaton.Computer
         // The pixel font has no arrow: » reads as one.
         const string Arrow = " » ";
 
-        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model) => new PcUpgradeTrack[] { new HandTrack(model), new DeckTrack(model) };
+        /// <summary>"30 с": a whole number of seconds.</summary>
+        public static string Seconds(float seconds) => Whole(seconds) + " с";
+
+        static string Whole(float seconds) => ((int)Math.Round(seconds)).ToString();
+
+        /// <summary>
+        /// The PC's improvements: hand size and the deck limit (deck workshop), then the shift length when the shop is
+        /// given and has upgrades to sell.
+        /// </summary>
+        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null)
+        {
+            var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
+            if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
+            return tracks;
+        }
 
         sealed class HandTrack : PcUpgradeTrack
         {
@@ -70,6 +84,19 @@ namespace Hakaton.Computer
             public override int Price => model.DeckLimitPrice;
             public override string Buy() => model.ImproveDeckLimit();
             public override string Bought => $"Колода вмещает {Cards(model.DeckLimit)}, коллекция — {model.CollectionLimit}.";
+        }
+
+        sealed class ShiftTrack : PcUpgradeTrack
+        {
+            readonly TradingSession shop;
+            public ShiftTrack(TradingSession shop) => this.shop = shop;
+            public override string Title => "Время смены";
+            public override int Step => shop.ShiftLevel;
+            public override int Steps => shop.ShiftSteps;
+            public override string Values => Maxed ? Seconds(shop.ShiftLength) : Whole(shop.ShiftLength) + Arrow + Seconds(shop.NextShiftLength);
+            public override int Price => shop.ShiftPrice;
+            public override string Buy() => shop.ImproveShift();
+            public override string Bought => $"Смена длится {Seconds(shop.ShiftLength)}.";
         }
     }
 }

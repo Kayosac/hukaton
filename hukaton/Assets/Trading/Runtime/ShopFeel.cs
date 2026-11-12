@@ -25,6 +25,8 @@ namespace Hakaton.Trading.Unity
         [Tooltip("Sales at or above this price use the big coin cascade.")]
         [Min(1)] public int bigSale = 100;
         public Color walletFlash = new Color(1f, .84f, .45f);
+        [Tooltip("The clock ticks audibly over the last this many seconds of a shift (the shift starts at 30 s).")]
+        [Min(0)] public float tickingSeconds = 5;
 
         long seenCustomer;
         int seenSettlement, seenDeparture, seenRevision = -1, lastTick = -1, displayedGold;
@@ -141,8 +143,8 @@ namespace Hakaton.Trading.Unity
                 }
             }
 
-            // Last ten seconds of a shift tick audibly.
-            if (session.IsOpen && session.RemainingSeconds > 0 && session.RemainingSeconds <= 10)
+            // The last seconds of a shift tick audibly.
+            if (session.IsOpen && session.RemainingSeconds > 0 && session.RemainingSeconds <= tickingSeconds)
             {
                 int second = Mathf.CeilToInt(session.RemainingSeconds);
                 if (second != lastTick) { lastTick = second; sfx.Play(cues.clockTick, null, second <= 3 ? 1 : .6f); }

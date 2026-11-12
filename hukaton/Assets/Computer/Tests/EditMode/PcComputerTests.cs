@@ -71,6 +71,31 @@ namespace Hakaton.Computer.Tests
 
         [TestCase(1, "1 карта"), TestCase(4, "4 карты"), TestCase(5, "5 карт"), TestCase(12, "12 карт"), TestCase(22, "22 карты")]
         public void CardCountsReadNaturally(int n, string expected) => Assert.That(PcUpgradeTrack.Cards(n), Is.EqualTo(expected));
+
+        /// <summary>Playtest: «Время смены» on the PC, paid from the wallet the cards and the shop share.</summary>
+        [Test]
+        public void ShiftIsTheThirdTrackAndSpendsTheSharedWallet()
+        {
+            var wallet = new Hakaton.Economy.CoinWallet(500);
+            var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
+                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+            var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
+                ShiftSeconds = 30, ShiftUpgradeSeconds = new[] { 10f, 10f }, ShiftUpgradePrices = new[] { 150, 250 } }, 1, wallet);
+            Assert.That(PcUpgradeTrack.For(w).Count, Is.EqualTo(2), "Without the shop only the deck workshop's tracks.");
+            Assert.That(PcUpgradeTrack.For(w, new Hakaton.Trading.TradingSession()).Count, Is.EqualTo(2), "A shop without upgrades adds no track.");
+
+            var tracks = PcUpgradeTrack.For(w, shop);
+            Assert.That(tracks.Count, Is.EqualTo(3));
+            var shift = tracks[2];
+            Assert.That((shift.Title, shift.Step, shift.Steps, shift.Price, shift.Values), Is.EqualTo(("Время смены", 0, 2, 150, "30 » 40 с")));
+            Assert.That(shift.Buy(), Is.Null);
+            Assert.That((shift.Step, shift.Price, shift.Values, shift.Bought), Is.EqualTo((1, 250, "40 » 50 с", "Смена длится 40 с.")));
+            Assert.That((wallet.Balance, w.Coins, shop.Gold), Is.EqualTo((350, 350, 350)));
+            Assert.That(shift.Buy(), Is.Null);
+            Assert.That((shift.Maxed, shift.Values, wallet.Balance), Is.EqualTo((true, "50 с", 100)));
+            Assert.That(shift.Buy(), Is.Not.Null, "Nothing left to buy.");
+            Assert.That(wallet.Balance, Is.EqualTo(100));
+        }
     }
 
     public sealed class CrtScreenMathTests

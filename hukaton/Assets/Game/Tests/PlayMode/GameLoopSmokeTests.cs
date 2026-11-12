@@ -70,6 +70,7 @@ namespace Hakaton.Game.Tests
             Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Select(c => c.Id)));
             Assert.That(model.HandSize, Is.EqualTo(model.Rules.MaxHand));
             Assert.That(model.DeckAtMaximum, Is.True);
+            Assert.That(game.trade.Session.ShiftAtMaximum, Is.True, "The cheat also maxes the shift length.");
             Assert.That(model.Owned.Count, Is.LessThanOrEqualTo(model.CollectionLimit));
             Assert.That(model.Selected().Select(c => c.Id), Is.EqualTo(selected));
             int count = model.Owned.Count;
@@ -84,6 +85,7 @@ namespace Hakaton.Game.Tests
             Assert.That(save.coins, Is.EqualTo(initialCoins + 2000));
             Assert.That(game.Restore(save), Is.True);
             Assert.That((model.Owned.Count, model.HandSize, model.DeckAtMaximum), Is.EqualTo((count, model.Rules.MaxHand, true)));
+            Assert.That(game.trade.Session.ShiftLevel, Is.EqualTo(game.trade.Session.ShiftSteps), "The bought shift survives the save.");
 
             menu.SetOpen(true);
             Assert.That(game.player.control.HasModalOwner, Is.True);

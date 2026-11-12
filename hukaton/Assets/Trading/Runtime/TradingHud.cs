@@ -199,7 +199,7 @@ namespace Hakaton.Trading.Unity
             shiftClock.SetActive(session.IsOpen);
             if (!session.IsOpen) return;
             bool ended = session.RemainingSeconds <= 0;
-            clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.Settings.ShiftSeconds);
+            clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
             clockClose.gameObject.SetActive(!ended);
             clockClose.interactable = !controller.ViewTransitioning;
             clockBody.alpha = ended ? endedClockAlpha : 1;

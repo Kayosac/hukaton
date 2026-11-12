@@ -2,6 +2,7 @@ using System;
 using Hakaton.Character;
 using Hakaton.Decks.Unity;
 using Hakaton.Feel;
+using Hakaton.Trading;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -62,6 +63,11 @@ namespace Hakaton.Computer
         /// <summary>The desktop is up and takes input.</summary>
         public bool Running => phase == Phase.Running;
         public event Action Closed;
+        /// <summary>
+        /// The shop, for the «Время смены» improvement. The session is built when the game starts, so the game hands it
+        /// over (not serialized); without it the improvements window shows only the deck workshop's tracks.
+        /// </summary>
+        public TradingSession Shop { get; set; }
 
         void Awake()
         {

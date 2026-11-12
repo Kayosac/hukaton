@@ -45,6 +45,56 @@ namespace Hakaton.Trading
             get { int count = 0; foreach (var item in slots) if (item != null) count++; return count; }
         }
 
+        // ---------- shift length («Время смены» on the PC) ----------
+
+        /// <summary>Shift upgrades bought so far (0: the base shift).</summary>
+        public int ShiftLevel { get; private set; }
+        /// <summary>Shift upgrades there are to buy in total.</summary>
+        public int ShiftSteps => Settings.ShiftUpgradeSeconds.Length;
+        public bool ShiftAtMaximum => ShiftLevel >= ShiftSteps;
+        /// <summary>A full shift now: the base length plus every bought upgrade.</summary>
+        public float ShiftLength => ShiftLengthAt(ShiftLevel);
+        /// <summary>A full shift after the next upgrade (the current length once maxed).</summary>
+        public float NextShiftLength => ShiftLengthAt(Math.Min(ShiftLevel + 1, ShiftSteps));
+        /// <summary>Price of the next upgrade; 0 once maxed.</summary>
+        public int ShiftPrice => ShiftAtMaximum ? 0 : Settings.ShiftUpgradePrices[ShiftLevel];
+
+        public float ShiftLengthAt(int level)
+        {
+            float seconds = Settings.ShiftSeconds;
+            for (int i = 0; i < level && i < ShiftSteps; i++) seconds += Settings.ShiftUpgradeSeconds[i];
+            return seconds;
+        }
+
+        /// <summary>
+        /// Buys the next shift upgrade with the shared wallet (the PC), only between outings with the shop closed. Time
+        /// still left in the current shift grows by the bought seconds; a finished shift waits for fresh loot as before.
+        /// Returns an error to show, or null.
+        /// </summary>
+        public string ImproveShift()
+        {
+            if (ExpeditionId != 0) return "Сначала вернитесь в лавку.";
+            if (IsOpen) return "Сначала закройте лавку.";
+            if (ShiftAtMaximum) return "Смена уже максимальной длины.";
+            if (!wallet.TrySpend(ShiftPrice)) return "Не хватает монет.";
+            float added = Settings.ShiftUpgradeSeconds[ShiftLevel];
+            ShiftLevel++;
+            if (RemainingSeconds > 0) RemainingSeconds = Math.Min(ShiftLength, RemainingSeconds + added);
+            Touch();
+            return null;
+        }
+
+        /// <summary>Debug/cheat helper: every shift upgrade for free; time left in the shift grows the same way.</summary>
+        public bool MaximizeShift()
+        {
+            if (ShiftAtMaximum) return false;
+            float added = ShiftLengthAt(ShiftSteps) - ShiftLength;
+            ShiftLevel = ShiftSteps;
+            if (RemainingSeconds > 0) RemainingSeconds = Math.Min(ShiftLength, RemainingSeconds + added);
+            Touch();
+            return true;
+        }
+
         public TradingSession(TradeSettings settings = null, int seed = 1, CoinWallet wallet = null)
         {
             Settings = (settings ?? new TradeSettings()).ValidatedCopy();
@@ -53,7 +103,7 @@ namespace Hakaton.Trading
             slots = new ItemInstance[Settings.SlotCount];
             Inventory = new ReadOnlyCollection<ItemInstance>(inventory);
             Slots = Array.AsReadOnly(slots);
-            RemainingSeconds = Settings.ShiftSeconds;
+            RemainingSeconds = ShiftLength;
         }
 
         public void SeedInventory(ItemDefinition definition, int count = 1)
@@ -298,7 +348,7 @@ namespace Hakaton.Trading
             if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId) return false;
             bool freshLoot = expeditionLoot.Count > 0;
             inventory.AddRange(expeditionLoot); expeditionLoot.Clear(); ExpeditionId = 0;
-            if (freshLoot) RemainingSeconds = Settings.ShiftSeconds;
+            if (freshLoot) RemainingSeconds = ShiftLength;
             LastMessage = freshLoot ? "Новая добыча доставлена. Время торговли восстановлено."
                 : "Вернулись без новой добычи. Остаток времени не изменился.";
             Touch();
@@ -341,7 +391,7 @@ namespace Hakaton.Trading
         {
             var save = new TradingSave {
                 remainingSeconds = RemainingSeconds, grossRevenue = GrossRevenue, salesCount = SalesCount,
-                nextItemId = nextItemId, nextExpeditionId = nextExpeditionId
+                nextItemId = nextItemId, nextExpeditionId = nextExpeditionId, shiftLevel = ShiftLevel
             };
             foreach (var item in inventory)
                 save.items.Add(new TradingItemSave { instanceId = item.Id, definitionId = item.Definition.Id });
@@ -351,13 +401,17 @@ namespace Hakaton.Trading
             return save;
         }
 
+        /// <summary>
+        /// A save may hold more time than a shift lasts now (an older, longer shift; fewer upgrades in the settings):
+        /// that is not damage, the restore clamps it. More bought upgrades than there are clamp to the maximum too.
+        /// </summary>
         public bool CanRestore(TradingSave save)
         {
             if (save == null || save.version != 1 || save.items == null || save.salesCount < 0
                 || save.grossRevenue < save.salesCount || save.nextItemId < 0 || save.nextItemId == long.MaxValue
                 || save.nextExpeditionId < 0 || save.nextExpeditionId == long.MaxValue
                 || float.IsNaN(save.remainingSeconds) || float.IsInfinity(save.remainingSeconds)
-                || save.remainingSeconds < 0 || save.remainingSeconds > Settings.ShiftSeconds) return false;
+                || save.remainingSeconds < 0 || save.shiftLevel < 0) return false;
             var ids = new HashSet<long>();
             var occupied = new HashSet<int>();
             foreach (var entry in save.items)
@@ -384,7 +438,9 @@ namespace Hakaton.Trading
             inventory.Clear(); inventory.AddRange(restoredInventory);
             Array.Copy(restoredSlots, slots, slots.Length);
             expeditionLoot.Clear();
-            RemainingSeconds = save.remainingSeconds; GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;
+            ShiftLevel = Math.Min(save.shiftLevel, ShiftSteps);
+            RemainingSeconds = Math.Min(save.remainingSeconds, ShiftLength);
+            GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;
             nextItemId = save.nextItemId; nextExpeditionId = save.nextExpeditionId;
             CurrentCustomer = null; CurrentDeal = null; LastSoldItem = null; LastDeparture = null;
             SettlementSequence = DepartureSequence = LastSalePrice = 0;

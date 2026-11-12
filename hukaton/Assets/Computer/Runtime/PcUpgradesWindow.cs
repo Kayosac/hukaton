@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace Hakaton.Computer
 {
-    /// <summary>«Прокачка»: one segmented button per improvement (<see cref="PcUpgradeTrack.For"/>).</summary>
+    /// <summary>
+    /// «Прокачка»: one segmented button per improvement (<see cref="PcUpgradeTrack.For"/>), in a scroll view: three rows
+    /// show at once, more scroll with the wheel or the XP scrollbar.
+    /// </summary>
     public sealed class PcUpgradesWindow : MonoBehaviour
     {
         public PcComputer computer;
@@ -28,7 +31,7 @@ namespace Hakaton.Computer
         void Build()
         {
             if (rows.Count > 0) return;
-            foreach (var track in PcUpgradeTrack.For(computer.workshop.Model))
+            foreach (var track in PcUpgradeTrack.For(computer.workshop.Model, computer.Shop))
             {
                 var row = Instantiate(rowPrefab, rowsRoot);
                 row.gameObject.SetActive(true);

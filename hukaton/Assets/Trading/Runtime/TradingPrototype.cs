@@ -13,7 +13,14 @@ namespace Hakaton.Trading.Unity
     public sealed class TradingPrototype : MonoBehaviour
     {
         [Header("Temporary prototype balance")]
-        [Min(1)] public float shiftSeconds = 120;
+        [Tooltip("A full shift before any upgrade, seconds.")]
+        [Min(1)] public float shiftSeconds = 30;
+        [Tooltip("Shift upgrades bought on the PC («Время смены»), in order: seconds added to the shift and their price.")]
+        public ShiftStep[] shiftSteps =
+        {
+            new ShiftStep(10, 150), new ShiftStep(10, 250), new ShiftStep(10, 400), new ShiftStep(10, 600), new ShiftStep(10, 850),
+            new ShiftStep(10, 1150), new ShiftStep(10, 1500), new ShiftStep(10, 1900), new ShiftStep(10, 2350),
+        };
         public int randomSeed = 42;
         [Range(.67f, .99f)] public float minOpeningRatio = .7f;
         [Range(.67f, .99f)] public float maxOpeningRatio = .9f;
@@ -31,6 +38,16 @@ namespace Hakaton.Trading.Unity
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
         [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
         [Min(0)] public float reactionBeat = .38f;
+
+        /// <summary>One shift upgrade: the seconds it adds to every shift and its price.</summary>
+        [System.Serializable]
+        public sealed class ShiftStep
+        {
+            [Min(1)] public float seconds = 10;
+            [Min(0)] public int price;
+            public ShiftStep() { }
+            public ShiftStep(float seconds, int price) { this.seconds = seconds; this.price = price; }
+        }
 
         public TradingSession Session { get; private set; }
         [Header("Scene references — assign in the authored scene")]
@@ -111,6 +128,8 @@ namespace Hakaton.Trading.Unity
             heldItem = World.HeldItem;
             Session = new TradingSession(new TradeSettings {
                 SlotCount = 6, ShiftSeconds = shiftSeconds,
+                ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
+                ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
                 MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
                 MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
                 MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
