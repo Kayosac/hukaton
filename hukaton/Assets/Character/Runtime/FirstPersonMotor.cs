@@ -228,6 +228,7 @@ namespace Hakaton.Character
             var before = transform.position;
             externalPlanar = Vector3.MoveTowards(externalPlanar, Vector3.zero, (grounded ? 12 : 2) * dt);
             frameGround = null;
+            float intendedPlanar = (PlanarVelocity + externalPlanar).magnitude;
             CollisionFlags collisions = characterController.Move((PlanarVelocity + externalPlanar + Vector3.up * verticalSpeed) * dt);
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             IsGrounded = (collisions & CollisionFlags.Below) != 0 && verticalSpeed <= 0;
@@ -242,7 +243,12 @@ namespace Hakaton.Character
                 if (landed) Landed?.Invoke(impactSpeed);
             }
             Vector3 actual = (transform.position - before) / dt;
-            PlanarVelocity = new Vector3(actual.x, 0, actual.z) - externalPlanar;
+            var actualPlanar = new Vector3(actual.x, 0, actual.z);
+            // Collisions only ever take speed away. When the controller pushes the capsule out of a corner or off a step
+            // edge, that push is a one-frame correction, not running speed: without this cap it was carried on as tens
+            // of metres per second and flung the player across the level.
+            if (actualPlanar.magnitude > intendedPlanar + .5f) actualPlanar = actualPlanar.normalized * intendedPlanar;
+            PlanarVelocity = actualPlanar - externalPlanar;
             // Running into a wall does not spend stamina or drive running feedback.
             IsSprinting = IsSprinting && PlanarVelocity.sqrMagnitude > .25f;
             stamina.Tick(dt, IsSprinting);
