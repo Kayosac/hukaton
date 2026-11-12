@@ -61,5 +61,12 @@ namespace Hakaton.Expeditions
             target.Clear();
             foreach (var item in source) if (item) target.Add(item);
         }
+
+        /// <summary>Selected, shows the location's threat bands (kept on the departure point) around the start.</summary>
+        void OnDrawGizmosSelected()
+        {
+            var bands = departure ? departure.GetComponent<OutingThreatBands>() : null;
+            if (bands) bands.DrawGizmos();
+        }
     }
 }
