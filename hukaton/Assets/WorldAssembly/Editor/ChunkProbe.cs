@@ -120,6 +120,43 @@ namespace Hakaton.WorldAssembly.EditorTools
             return text.ToString();
         }
 
+        /// <summary>Loose things (a body that rolls) set into something solid deeper than <paramref name="arg"/> m (default 0.1): they would be stuck.</summary>
+        public static string Stuck(string arg)
+        {
+            float limit = string.IsNullOrEmpty(arg) ? .1f : float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+            var catalogue = AssetDatabase.LoadAssetAtPath<ChunkCatalog>("Assets/WorldAssembly/Chunk catalogue.asset");
+            var text = new StringBuilder();
+            int props = 0, stuck = 0;
+            foreach (var e in catalogue.entries)
+            {
+                if (!e.prefab) continue;
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(e.prefab.gameObject);
+                go.transform.position = new Vector3(54000, 0, 54000);
+                Physics.SyncTransforms();
+                try
+                {
+                    foreach (var prop in go.GetComponentsInChildren<Rigidbody>())
+                    {
+                        props++;
+                        float worst = 0;
+                        string with = "";
+                        foreach (var mine in prop.GetComponentsInChildren<Collider>())
+                            foreach (var other in Physics.OverlapBox(mine.bounds.center, mine.bounds.extents, Quaternion.identity, ~(1 << 4), QueryTriggerInteraction.Ignore))
+                            {
+                                if (other.transform.IsChildOf(prop.transform) || other.attachedRigidbody == prop) continue;
+                                if (Physics.ComputePenetration(mine, mine.transform.position, mine.transform.rotation, other, other.transform.position, other.transform.rotation, out _, out float depth) && depth > worst)
+                                { worst = depth; with = Path(other.transform, go.transform); }
+                            }
+                        if (worst <= limit) continue;
+                        stuck++;
+                        text.Append($"\n{e.shape}/{e.variant}: {Path(prop.transform, go.transform)} {worst:0.00} m into {with}");
+                    }
+                }
+                finally { Object.DestroyImmediate(go); }
+            }
+            return $"loose things: {props}, set into something deeper than {limit} m: {stuck}" + text;
+        }
+
         static string Path(Transform t, Transform root)
         {
             var names = new System.Collections.Generic.List<string>();

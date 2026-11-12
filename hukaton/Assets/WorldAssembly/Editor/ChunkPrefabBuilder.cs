@@ -476,6 +476,28 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["FA_SP04_Beehive"] = (BurnStyle.Ash, 3.6f), ["FA_SP09_Scarecrow"] = (BurnStyle.Ash, 4f),
         };
 
+        /// <summary>
+        /// The trees' old upright capsules (local centre, radius, height), from before the bark itself became their
+        /// collider: they still measure a tree's footprint when it is placed (<see cref="Footprint"/>).
+        /// </summary>
+        static readonly Dictionary<string, (Vector3 centre, float radius, float height)[]> TreeCapsules = new Dictionary<string, (Vector3, float, float)[]>
+        {
+            ["FA_TR01_ThickCrooked"] = new[] { (new Vector3(-.35f, 1.9f, .15f), .95f, 3.9f) },
+            ["FA_TR02_TallNarrow"] = new[] { (new Vector3(.28f, 2.6f, 0), .36f, 5.2f) },
+            ["FA_TR03_DoubleFork"] = new[] { (new Vector3(-.15f, 1.6f, .05f), .65f, 3.2f) },
+            ["FA_TR04_Leaning"] = new[] { (new Vector3(-.25f, 1.4f, .03f), .6f, 2.8f), (new Vector3(-1, 3.5f, 0), .45f, 2f) },
+            ["FA_TR05_Zigzag"] = new[] { (new Vector3(.45f, 1.4f, .03f), .6f, 2.8f), (new Vector3(0, 3.8f, 0), .5f, 2.4f) },
+            ["FA_TR06_Hollow"] = new[] { (new Vector3(0, 1.8f, 0), .95f, 3.6f) },
+            ["FA_TR07_YoungStraight"] = new[] { (new Vector3(.02f, 1.3f, 0), .18f, 2.6f) },
+            ["FA_TR08_YoungBow"] = new[] { (new Vector3(-.1f, 1.2f, 0), .2f, 2.4f) },
+            ["FA_TR09_YoungFork"] = new[] { (new Vector3(0, .9f, 0), .18f, 1.8f) },
+            ["FA_TR10_DeadBare"] = new[] { (new Vector3(-.05f, 2.4f, .02f), .5f, 4.8f) },
+            ["FA_TR11_Snapped"] = new[] { (new Vector3(.05f, 1.8f, 0), .5f, 3.6f) },
+            ["FA_TR12_Split"] = new[] { (new Vector3(0, 1.5f, 0), .6f, 3f), (new Vector3(0, 3.2f, 0), .55f, 1.6f) },
+            ["FA_TR13_Arch"] = new[] { (new Vector3(-1.9f, 1.3f, 0), .62f, 2.6f), (new Vector3(1.92f, 1.3f, 0), .62f, 2.6f) },
+            ["FA_TR14_KnottyGiant"] = new[] { (new Vector3(-.3f, 2.2f, .1f), 1.45f, 4.4f), (new Vector3(.2f, 5.6f, -.05f), 1f, 3.4f) },
+        };
+
         /// <summary>Loose things the player and cards push about, with their mass at scale 1 (the Old Apiary's bodies).</summary>
         static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
         {
@@ -517,6 +539,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform)
                     && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
                     && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
+                // A body set into a rock, a trunk or a shed as they are drawn would stick there or jump out of it: it
+                // is eased out; one that cannot be stays put.
+                if (loose) loose = EaseOut(go, colliders);
                 // What stays put is hit as drawn, not by its hull.
                 if (!loose) foreach (var c in colliders) if (c is MeshCollider mesh && mesh.convex) mesh.convex = false;
                 if (loose)
@@ -536,6 +561,34 @@ namespace Hakaton.WorldAssembly.EditorTools
             view.burnables = burnables.ToArray();
             view.trees = trees.ToArray();
             view.props = props.ToArray();
+        }
+
+        static readonly Collider[] easeHits = new Collider[32];
+
+        /// <summary>Moves a loose thing out of whatever solid it is set into (the ground too); false when it stays in deeper than 3 cm.</summary>
+        static bool EaseOut(GameObject go, Collider[] own)
+        {
+            for (int pass = 0; pass < 6; pass++)
+            {
+                Physics.SyncTransforms();
+                Vector3 push = Vector3.zero;
+                float deepest = 0;
+                foreach (var mine in own)
+                {
+                    var b = mine.bounds;
+                    int n = Physics.OverlapBoxNonAlloc(b.center, b.extents + Vector3.one * .02f, easeHits, Quaternion.identity, ~(1 << 4), QueryTriggerInteraction.Ignore);
+                    for (int i = 0; i < n; i++)
+                    {
+                        var other = easeHits[i];
+                        if (other.transform.IsChildOf(go.transform) || other.isTrigger) continue;
+                        if (!Physics.ComputePenetration(mine, mine.transform.position, mine.transform.rotation, other, other.transform.position, other.transform.rotation, out var away, out float depth)) continue;
+                        if (depth > deepest) { deepest = depth; push = away * (depth + .02f); }
+                    }
+                }
+                if (deepest <= .03f) return true;
+                go.transform.position += push;
+            }
+            return false;
         }
 
         static bool InWall(Transform t)
@@ -1762,7 +1815,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             while (chunk.parent) chunk = chunk.parent;
             go.transform.position = chunk.TransformPoint(new Vector3(p.x - 8, 0, p.y - 8));
             Physics.SyncTransforms();
-            float radius = Footprint(go);
+            float radius = Footprint(go, asset);
             float low = GroundY(t, p), high = low;
             for (int k = 0; k < 8 && radius > .05f; k++)
             {
@@ -1884,8 +1937,28 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>Radius of what stands on the ground: the colliders' footprint, else a little of the renderers'.</summary>
-        static float Footprint(GameObject go)
+        static float Footprint(GameObject go, string asset)
         {
+            string id = asset.Substring(asset.LastIndexOf('/') + 1);
+            if (asset.StartsWith("Trees/") && TreeCapsules.TryGetValue(id, out var capsules))
+            {
+                // A tree is measured by its old upright capsules, not its bark (wider, with the branches): it stands
+                // where and how deep it always did, and the slopes keep their trees.
+                var tr = go.transform;
+                Vector3 scale = tr.lossyScale;
+                float across = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                Bounds? all = null;
+                foreach (var (centre, r, height) in capsules)
+                {
+                    float half = Mathf.Max(0, height * Mathf.Abs(scale.y) * .5f - r * across);
+                    Vector3 mid = tr.TransformPoint(centre);
+                    var box = new Bounds(mid + tr.up * half, Vector3.zero);
+                    box.Encapsulate(mid - tr.up * half);
+                    box.Expand(r * across * 2);
+                    if (all == null) all = box; else { var x = all.Value; x.Encapsulate(box); all = x; }
+                }
+                return Mathf.Clamp(Mathf.Min(all.Value.extents.x, all.Value.extents.z) * .85f, .1f, 2.2f);
+            }
             var colliders = go.GetComponentsInChildren<Collider>();
             Bounds? b = null;
             foreach (var c in colliders) { if (b == null) b = c.bounds; else { var x = b.Value; x.Encapsulate(c.bounds); b = x; } }

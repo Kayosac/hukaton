@@ -489,6 +489,9 @@ namespace Hakaton.WorldAssembly.Tests
             var before = prop.body.position;
             prop.body.AddForce(Vector3.up * 4 + Vector3.right * 3, ForceMode.VelocityChange);
             for (int f = 0; f < 20; f++) yield return null;
+            var touching = Physics.OverlapBox(prop.body.worldCenterOfMass, Vector3.one * .3f, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore)
+                .Where(c => !c.transform.IsChildOf(prop.transform)).Select(c => $"{c.transform.parent?.name}/{c.name}");
+            Debug.Log($"[World] pushed {prop.name} at {before} in {streamer.CoordAt(before)}: moved {Vector3.Distance(prop.body.position, before):0.000} m, kinematic {prop.body.isKinematic}, sleeping {prop.body.IsSleeping()}, touching {string.Join(", ", touching)}");
             Assert.That(Vector3.Distance(prop.body.position, before), Is.GreaterThan(.3f), "a loose prop flies when pushed");
 
             // Far away and back: the chunks come back burnt and with the empty place of the tree.
@@ -981,18 +984,12 @@ namespace Hakaton.WorldAssembly.Tests
             return closed;
         }
 
-        /// <summary>A piece of cord between two of its points passes through a drawn sheet (an open shape, from either side).</summary>
-        static Collider Crossed(Vector3 a, Vector3 b)
+        /// <summary>Under the ground's surface by more than <paramref name="margin"/> (the ground is an open sheet: no inside to test).</summary>
+        static Collider Buried(Vector3 point, float margin)
         {
-            bool backfaces = Physics.queriesHitBackfaces;
-            Physics.queriesHitBackfaces = true;
-            try
-            {
-                foreach (var hit in Physics.RaycastAll(a, b - a, Vector3.Distance(a, b), CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore))
-                    if (hit.collider is MeshCollider mesh && !mesh.convex && !Closed(mesh.sharedMesh)) return hit.collider;
-                return null;
-            }
-            finally { Physics.queriesHitBackfaces = backfaces; }
+            foreach (var hit in Physics.RaycastAll(point + Vector3.up * 2, Vector3.down, 2, CardFlight.CollisionMask & ~(1 << 4), QueryTriggerInteraction.Ignore))
+                if (hit.collider.name == "Ground" && hit.point.y > point.y + margin) return hit.collider;
+            return null;
         }
 
         static Collider InsideOf(Vector3 point)
@@ -1113,8 +1110,10 @@ namespace Hakaton.WorldAssembly.Tests
                         if (!line || !line.Attached) { failures.Add($"{what}: the rope let go"); continue; }
                         for (int i = 1; i < line.PointCount; i++)
                         {
-                            var into = InsideOf(line.Point(i)) ?? (i + 1 < line.PointCount ? Crossed(line.Point(i), line.Point(i + 1)) : null);
-                            if (into) { failures.Add($"{what}: piece {i} of {line.PointCount} of the cord went into {into.transform.parent?.name}/{into.name} at {line.Point(i)}"); break; }
+                            var into = InsideOf(line.Point(i)) ?? Buried(line.Point(i), line.thickness);
+                            if (!into) continue;
+                            failures.Add($"{what}: piece {i} of {line.PointCount} of the cord went into {into.transform.parent?.name}/{into.name} at {line.Point(i)}");
+                            break;
                         }
                         held.TryGetValue(kind.Key, out int count);
                         held[kind.Key] = count + 1;

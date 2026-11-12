@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1136797420630571504}
-  - component: {fileID: 915079789194361499}
   m_Layer: 0
   m_Name: FA_TR11_Snapped
   m_TagString: Untagged
@@ -34,29 +33,6 @@ Transform:
   - {fileID: 28715923342033341}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &915079789194361499
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 159851812402461947}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 3.6
-  m_Direction: 1
-  m_Center: {x: 0.05, y: 1.8, z: 0}
 --- !u!1 &550281154108699232
 GameObject:
   m_ObjectHideFlags: 0
@@ -68,6 +44,7 @@ GameObject:
   - component: {fileID: 272271086856883127}
   - component: {fileID: 391206697138789888}
   - component: {fileID: 738836768076864500}
+  - component: {fileID: 7079047779344053006}
   m_Layer: 0
   m_Name: TR11_Bark
   m_TagString: Untagged
@@ -147,6 +124,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &7079047779344053006
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 550281154108699232}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5665566658046928297, guid: c48be2d7934722a8983cccdf9e7bf12a, type: 3}
 --- !u!1 &566436874955548741
 GameObject:
   m_ObjectHideFlags: 0
@@ -158,6 +157,7 @@ GameObject:
   - component: {fileID: 28715923342033341}
   - component: {fileID: 457861875381020271}
   - component: {fileID: 599215508041720729}
+  - component: {fileID: 3246724279916616634}
   m_Layer: 0
   m_Name: TR11_Parts
   m_TagString: Untagged
@@ -237,3 +237,25 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &3246724279916616634
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 566436874955548741}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -3586489298114829241, guid: c48be2d7934722a8983cccdf9e7bf12a, type: 3}

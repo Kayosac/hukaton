@@ -181,6 +181,10 @@ def process(entry, out_dir):
         new_ppu = n_h * ppu / h; f = new_ppu / ppu
         res, fixed, edge = resample_cell(cells[0], (0, 0, w, h), (n_w, n_h), olum)
         px, py = pivot_of(s)
+        if entry.get('pivot_at_visible_bottom'):
+            # Loot stands on the visible bottom of its drawing (LootSpritePlacementTests): snap to the first opaque row.
+            rows = np.nonzero((res[..., 3] >= 128).any(axis=1))[0]
+            py = (n_h - 1 - rows.max()) / n_h
         results[0] = dict(img=res, w=n_w, h=n_h, pivot=(px, py)); stats[0] = dict(outline_fixed=fixed, edge=edge)
     else:
         def run(groups):
@@ -191,6 +195,8 @@ def process(entry, out_dir):
                 m = 1.0 / f
                 L, R, U, D = (max(e[k] for e in E) + m for k in range(4))
                 nl, nr, nu, nd = (math.ceil(v * f) for v in (L, R, U, D))
+                # Characters stand on their pivot: the frame ends exactly on the feet line (nothing is drawn below it).
+                if entry.get('ground_at_pivot'): nd = 0
                 for i, (pxs, pys) in zip(idx, P):
                     box = (pxs - nl / f, pys - nu / f, pxs + nr / f, pys + nd / f)
                     res, fixed, edge = resample_cell(cells[i], box, (nl + nr, nu + nd), olum)

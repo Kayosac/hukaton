@@ -773,8 +773,11 @@ namespace Hakaton.Expeditions
 
         /// <summary>Visible height of the creature (the drawing), m: what an ice shell has to cover.</summary>
         public float BodyHeight => TopHeight;
-        /// <summary>Half the width the ice shell has to cover, m.</summary>
-        public float BodyRadius => Mathf.Max(capsule ? capsule.radius * transform.lossyScale.x : .3f, TopHeight * .32f);
+        /// <summary>
+        /// How far the creature reaches from its feet axis, m: the radius the camera-facing drawing sweeps (the ice
+        /// shell has to hide it from every side), or the body if that is wider.
+        /// </summary>
+        public float BodyRadius => Mathf.Max(capsule ? capsule.radius * transform.lossyScale.x : .3f, view ? view.ReachPerHeight * TopHeight : TopHeight * .5f);
 
         // ---------------- card hooks (tmp/new-cards/API.md) ----------------
 
@@ -985,7 +988,7 @@ namespace Hakaton.Expeditions
             float sq = squash.Step(1, 7, .35f, dt);
             float targetCrouch = State == CreatureState.Windup ? 1 : State == CreatureState.Aim ? .6f : State == CreatureState.Threat ? .45f : 0;
             crouch = Mathf.MoveTowards(crouch, targetCrouch, dt * (State == CreatureState.Windup ? 3 : 5));
-            // Frozen: the drawing and its squash stay exactly as the ice caught them.
+            // Frozen: the drawing and its squash stay exactly as the ice caught them (it only keeps facing the player).
             if (!frozen)
             {
                 pose = PoseForState();
@@ -997,6 +1000,8 @@ namespace Hakaton.Expeditions
                 view.Present(pose, transform.forward, Vector3.up * hop + tremble + FlightSway(),
                     new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
+            // Frozen, the drawing still turns to the player: never seen flat from the side, in a shell or not.
+            else view.FaceViewer();
             // Colour: red flash on hit, icy while frozen, flickering orange while burning.
             if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);

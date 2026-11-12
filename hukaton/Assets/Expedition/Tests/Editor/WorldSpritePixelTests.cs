@@ -24,6 +24,8 @@ namespace Hakaton.Expeditions.Tests
             material = Own(new Material(shader));
             material.SetFloat("_PixelsPerUnit", 16);
             material.SetFloat("_Motion", 0);
+            // These checks measure the world grid itself; the close-up split has its own tests below.
+            material.SetFloat("_MaxRefine", 0);
         }
 
         [TearDown]
@@ -288,6 +290,90 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(near.Count, Is.EqualTo(16), "Near row runs: " + string.Join(",", near));
             Assert.That(far.Count, Is.EqualTo(16), "Far row runs: " + string.Join(",", far));
             Assert.That(near.Sum(), Is.EqualTo(far.Sum() * 2).Within(2));
+        }
+
+        // A 1/16 m cell seen through the 45-degree test view is 81.5 / distance px of a 1080-line view.
+        [TestCase(4f, 16)] // 20 px: under the 25 px limit, the world grid holds.
+        [TestCase(2f, 32)] // 41 px: split once.
+        [TestCase(1f, 64)] // 81 px: split twice.
+        public void CloseUpSplitsTheWorldGridByPowersOfTwo(float distance, int cells)
+        {
+            material.SetFloat("_MaxRefine", 4);
+            material.SetFloat("_MaxCellPixels", 25);
+            var renderer = Drawing();
+            var image = Render(renderer, distance: distance);
+            var across = Runs(image);
+            var down = Runs(image, vertical: true);
+            // Near 1 m the 1 m drawing overflows the 256 px view: count only the cells inside it.
+            int visible = distance < 2 ? across.Count : cells;
+            Assert.That(across.Count, Is.EqualTo(visible), "Row runs: " + string.Join(",", across));
+            Assert.That(down.Count, Is.EqualTo(across.Count), "The whole drawing is on one grid.");
+            if (distance >= 2) Assert.That(across.Max() - across.Min(), Is.LessThanOrEqualTo(1), "Equal cells: " + string.Join(",", across));
+            else Assert.That(across.Where((run, i) => i > 0 && i < across.Count - 1).All(run => System.Math.Abs(run - across[1]) <= 1), Is.True);
+        }
+
+        [Test]
+        public void CloseUpSplitKeepsEveryWorldGridLine()
+        {
+            material.SetFloat("_MaxCellPixels", 25);
+            var renderer = Drawing();
+            material.SetFloat("_MaxRefine", 0);
+            var world = Runs(Render(renderer, distance: 2));
+            material.SetFloat("_MaxRefine", 4);
+            var split = Runs(Render(renderer, distance: 2));
+            Assert.That(world.Count, Is.EqualTo(16));
+            Assert.That(split.Count, Is.EqualTo(32));
+            for (int i = 0; i < world.Count; i++)
+                Assert.That(split[2 * i] + split[2 * i + 1], Is.EqualTo(world[i]).Within(1), "World cell " + i);
+        }
+
+        [Test]
+        public void TheSharedMaterialSplitsCloseUpCells()
+        {
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            // Two splits: the finest close-up cell is 4x the world grid, the density loot drawings are authored at.
+            Assert.That(shared.GetFloat("_MaxRefine"), Is.EqualTo(2));
+            Assert.That(shared.GetFloat("_MaxCellPixels"), Is.InRange(1.5f, 4f));
+        }
+
+        [Test]
+        public void CustomersAndLootDrawingsKeepOneDensityEach()
+        {
+            // All customers are about one height and all loot drawings one size, so each kind has one texel density:
+            // customers 2x the world grid (one texel per cell at the counter), loot 4x (one per cell on the counter).
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            float grid = shared.GetFloat("_PixelsPerUnit");
+            var customer = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShopBlockout/Prefabs/ShopCustomer.prefab");
+            var actor = customer.GetComponentInChildren<Hakaton.Character.SpriteNpcActor>(true);
+            Assert.That(actor, Is.Not.Null);
+            var step = customer.GetComponentsInChildren<Transform>(true).First(t => t.name == "Foot anchored step").localScale.y;
+            float defaultBody = actor.defaultAppearance.bodyScale;
+            int customers = 0, loot = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:NpcAppearance"))
+            {
+                var appearance = AssetDatabase.LoadAssetAtPath<Hakaton.Character.NpcAppearance>(AssetDatabase.GUIDToAssetPath(guid));
+                float scale = step * appearance.bodyScale / defaultBody;
+                foreach (var sprite in new[] { appearance.neutral, appearance.back, appearance.displeased, appearance.happy, appearance.angry })
+                {
+                    if (!sprite) continue;
+                    Assert.That(sprite.pixelsPerUnit / scale, Is.EqualTo(grid * 2).Within(grid * .01f), sprite.name);
+                    Assert.That(sprite.pivot.y, Is.EqualTo(0).Within(.01f), sprite.name + ": the frame ends on the feet line.");
+                    customers++;
+                }
+            }
+            foreach (var guid in AssetDatabase.FindAssets("t:LootItem"))
+            {
+                var item = new SerializedObject(AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid)));
+                var icon = item.FindProperty("icon").objectReferenceValue as Sprite;
+                if (!icon) continue;
+                float texelsPerMetre = icon.rect.height / item.FindProperty("iconHeight").floatValue;
+                Assert.That(texelsPerMetre, Is.EqualTo(grid * 4).Within(grid * .01f), icon.name);
+                Assert.That(icon.texture.width, Is.LessThanOrEqualTo(2048));
+                loot++;
+            }
+            Assert.That(customers, Is.GreaterThan(40));
+            Assert.That(loot, Is.GreaterThan(20));
+            Assert.That(grid * Mathf.Pow(2, shared.GetFloat("_MaxRefine")), Is.EqualTo(grid * 4));
         }
 
         [Test]

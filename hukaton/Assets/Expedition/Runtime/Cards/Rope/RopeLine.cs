@@ -21,8 +21,10 @@ namespace Hakaton.Expeditions.Cards
     public sealed class RopeLine : MonoBehaviour, IOutingSpawned, IExternalMotorControl, ICardZone
     {
         [Header("Authored parts")]
-        [Tooltip("Visual pieces, one per simulated link, each authored for segmentMeshLength along local Z. Their count limits the length.")]
+        [Tooltip("Pieces of cord, one per simulated link, each authored for segmentMeshLength along local Z (renderers off): their meshes are bent into the cord. Their count limits the length.")]
         public Transform[] segments;
+        [Tooltip("The whole cord as one mesh: the pieces' meshes bent along a smooth curve through the simulated points, so the joints never open.")]
+        public MeshFilter cord;
         [Min(.01f)] public float segmentMeshLength = .3f;
         [Tooltip("Knot at the anchor.")]
         public Transform knot;
@@ -47,8 +49,14 @@ namespace Hakaton.Expeditions.Cards
         [Range(0, 1)] public float airDamping = .015f;
         [Range(0, 1)] public float groundFriction = .5f;
         [Min(0)] public float gravity = 9.81f;
-        [Tooltip("Visual pieces overlap a little so the rope reads as one cord.")]
+        [Tooltip("Each piece reaches a little over its neighbours along the curve, so the cord reads as one.")]
         [Min(1)] public float segmentOverlap = 1.12f;
+        [Tooltip("The cord's twist along its length, degrees per link (a gentle spiral; the pieces' facets meet).")]
+        public float twistPerLink = 47;
+        [Tooltip("Points two apart keep at least this share of a link between them: the cord bends into tight loops but never folds flat on itself, so slack lies in loops instead of a clump or an accordion.")]
+        [Range(0, 1.5f)] public float minimumBendShare = .6f;
+        [Tooltip("Neighbouring points keep at least this share of a link apart (with the bend rule: slack lies in loops, never collapses into clumps).")]
+        [Range(0, .9f)] public float minimumLinkShare = .3f;
 
         [Header("Climbing and swinging")]
         [Tooltip("The hands stop this far below the anchor (along the cord).")]
@@ -57,7 +65,7 @@ namespace Hakaton.Expeditions.Cards
         public float handsBelowTop = .2f;
         [Tooltip("Visual only: the held cord runs to the hands this far in front of the body and this far below the grip, not through the camera.")]
         public float handsForward = .4f, handsDown = .5f;
-        [Tooltip("Visual only: pieces of a held rope this close to the camera are hidden.")]
+        [Tooltip("Visual only: pieces of a held rope this close to the camera are not drawn.")]
         [Min(0)] public float cameraClearance = .45f;
         [Tooltip("Swinging push from the movement keys, m/s² (real units).")]
         [Min(0)] public float pumpAcceleration = 5;
@@ -156,7 +164,21 @@ namespace Hakaton.Expeditions.Cards
         Vector3[] contactNormal = Array.Empty<Vector3>(), restProbe = Array.Empty<Vector3>();
         static readonly Collider[] Nearby = new Collider[8];
         bool[] contact = Array.Empty<bool>();
-        Renderer[] pieceRenderers = Array.Empty<Renderer>();
+        // The cord's mesh: each link's piece (vertices, normals, uvs) and its twist; rebuilt while the rope moves.
+        Mesh cordMesh;
+        Mesh[] linkMesh = Array.Empty<Mesh>();
+        /// <summary>The pieces' own vertices and normals, read once per mesh (Mesh.vertices copies on every call).</summary>
+        static readonly Dictionary<Mesh, (Vector3[] vertices, Vector3[] normals)> PieceShapes = new Dictionary<Mesh, (Vector3[], Vector3[])>();
+        readonly List<Vector3> cordVertices = new List<Vector3>(), cordNormals = new List<Vector3>();
+        readonly List<Vector2> cordUv = new List<Vector2>();
+        readonly List<int> cordTriangles = new List<int>();
+        Vector3[] tangents = Array.Empty<Vector3>();
+        Quaternion[] frames = Array.Empty<Quaternion>();
+        // The cord's frame at the anchor, carried from frame to frame (never rebuilt from a fixed axis: that flips it).
+        Quaternion anchorFrame;
+        Vector3 anchorTangent;
+        bool anchorFrameSet;
+        bool drawnAsleep;
         int collisionMask;
 
         FirstPersonMotor motor;
@@ -258,20 +280,27 @@ namespace Hakaton.Expeditions.Cards
             Vector3 layStep = lay.sqrMagnitude > 0 ? lay * (linkLength * .9f) : Vector3.down * .012f + n * .002f;
             for (int i = 0; i < count; i++)
             {
-                Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], positions[i - 1] + layStep, out _);
-                // Laid along a top whose ground rises ahead, a piece could end up under it: keep it on the surface.
-                if (i > 0 && lay.sqrMagnitude > 0) laid = OnSurface(laid, n);
+                // A hanging bundle leans a few millimetres a different way at each link, so a cord under an overhang
+                // (straight down along the normal) does not start as a perfectly straight stack that balances.
+                Vector3 lean = lay.sqrMagnitude > 0 ? Vector3.zero : Quaternion.AngleAxis(i * 137.5f, Vector3.up) * Vector3.forward * .003f;
+                Vector3 laid = i == 0 ? anchor : Sweep(positions[i - 1], positions[i - 1] + layStep + lean, out _);
+                if (i > 0 && lay.sqrMagnitude > 0)
+                {
+                    // Laid along a top whose ground rises ahead, a piece could end up under it: keep it on the surface.
+                    laid = OnSurface(laid, n);
+                    // Past the edge of a top there is nothing to lie on: the rest hangs from there instead of being
+                    // laid out over the drop and falling.
+                    if (!Physics.SphereCast(laid, thickness, -n, out _, thickness * 3, collisionMask, QueryTriggerInteraction.Ignore))
+                    {
+                        lay = Vector3.zero;
+                        layStep = Vector3.down * .012f + n * .002f;
+                    }
+                }
                 positions[i] = previous[i] = safe[i] = clear[i] = restProbe[i] = laid;
                 contactNormal[i] = Vector3.zero;
                 contact[i] = false;
             }
-            pieceRenderers = new Renderer[pieces];
-            for (int i = 0; i < pieces; i++)
-                if (segments[i])
-                {
-                    segments[i].gameObject.SetActive(i < links);
-                    pieceRenderers[i] = segments[i].GetComponent<Renderer>();
-                }
+            BuildCord(links);
             lastAnchor = anchor;
             transform.position = anchor;
             Attached = true;
@@ -613,6 +642,7 @@ namespace Hakaton.Expeditions.Cards
                 if (contact[i]) { StopBouncing(i, surface); contactNormal[i] = surface; }
             }
             for (int k = 0; k < iterations; k++)
+            {
                 for (int i = 0; i + 1 < count; i++)
                 {
                     Vector3 offset = positions[i + 1] - positions[i];
@@ -624,6 +654,8 @@ namespace Hakaton.Expeditions.Cards
                     positions[i] += correction * wa;
                     positions[i + 1] -= correction * wb;
                 }
+                Unfold(pinned);
+            }
             for (int i = 0; i < count; i++)
             {
                 if (Fixed(i, pinned)) continue;
@@ -713,6 +745,39 @@ namespace Hakaton.Expeditions.Cards
             if (!Physics.Raycast(point + up * probe, -up, out var hit, probe + thickness, collisionMask, QueryTriggerInteraction.Ignore))
                 return point;
             return Vector3.Dot(point - hit.point, hit.normal) < thickness + skin ? hit.point + hit.normal * (thickness + skin) : point;
+        }
+
+        /// <summary>
+        /// Neighbours keep at least <see cref="minimumLinkShare"/> of a link apart and points two apart at least
+        /// <see cref="minimumBendShare"/>: the cord can bend into a tight loop but neither collapse into a clump nor fold
+        /// flat on itself (an accordion that balances and falls asleep). Coincident points part sideways, each its own way.
+        /// </summary>
+        void Unfold(int pinned)
+        {
+            KeepApart(1, linkLength * minimumLinkShare, pinned);
+            KeepApart(2, linkLength * minimumBendShare, pinned);
+        }
+
+        /// <summary>Points <paramref name="gap"/> apart along the cord stay at least <paramref name="shortest"/> apart.</summary>
+        void KeepApart(int gap, float shortest, int pinned)
+        {
+            if (shortest <= 0) return;
+            for (int i = 0; i + gap < count; i++)
+            {
+                Vector3 offset = positions[i + gap] - positions[i];
+                float distance = offset.magnitude;
+                if (distance >= shortest) continue;
+                float wa = Fixed(i, pinned) ? 0 : 1, wb = Fixed(i + gap, pinned) ? 0 : 1;
+                if (wa + wb <= 0) continue;
+                if (distance < 1e-6f)
+                {
+                    offset = Quaternion.AngleAxis(i * 137.5f, Vector3.up) * Vector3.forward * 1e-3f;
+                    distance = 1e-3f;
+                }
+                Vector3 correction = offset * ((distance - shortest) / distance / (wa + wb));
+                positions[i] += correction * wa;
+                positions[i + gap] -= correction * wb;
+            }
         }
 
         bool Fixed(int index, int pinned) => (index == 0 && Attached) || index == pinned;
@@ -852,31 +917,51 @@ namespace Hakaton.Expeditions.Cards
 
         // ---------- visual ----------
 
+        /// <summary>Gathers the links' piece meshes into one index buffer for <see cref="cord"/> (the vertices follow every frame).</summary>
+        void BuildCord(int links)
+        {
+            linkMesh = new Mesh[links];
+            tangents = new Vector3[count];
+            frames = new Quaternion[count];
+            cordVertices.Clear();
+            cordNormals.Clear();
+            cordUv.Clear();
+            cordTriangles.Clear();
+            for (int i = 0; i < links; i++)
+            {
+                var filter = i < segments.Length && segments[i] ? segments[i].GetComponent<MeshFilter>() : null;
+                var mesh = filter ? filter.sharedMesh : null;
+                linkMesh[i] = mesh;
+                if (!mesh) continue;
+                int start = cordVertices.Count;
+                cordVertices.AddRange(mesh.vertices);
+                cordNormals.AddRange(mesh.normals);
+                cordUv.AddRange(mesh.uv);
+                foreach (int index in mesh.triangles) cordTriangles.Add(start + index);
+            }
+            if (!cord) return;
+            if (!cordMesh)
+            {
+                cordMesh = new Mesh { name = "Rope cord" };
+                cordMesh.MarkDynamic();
+                cord.sharedMesh = cordMesh;
+            }
+            cordMesh.Clear();
+            cordMesh.SetVertices(cordVertices);
+            cordMesh.SetNormals(cordNormals);
+            if (cordUv.Count == cordVertices.Count) cordMesh.SetUVs(0, cordUv);
+            cordMesh.SetTriangles(cordTriangles, 0);
+            drawnAsleep = false;
+            anchorFrameSet = false;
+        }
+
         void UpdateVisual()
         {
-            if (count == 0 || segments == null) return;
+            if (count == 0) return;
             float fade = detached ? Mathf.Clamp01((detachedLinger - (Time.time - detachedAt)) / .5f) : 1;
-            int links = count - 1;
-            Vector3 eye = holding && world && world.viewCamera ? world.viewCamera.transform.position : new Vector3(1e6f, 1e6f, 1e6f);
-            for (int i = 0; i < links && i < segments.Length; i++)
-            {
-                var piece = segments[i];
-                if (!piece) continue;
-                Vector3 a = positions[i], b = positions[i + 1], offset = b - a;
-                float distance = offset.magnitude;
-                piece.position = (a + b) * .5f;
-                if (i < pieceRenderers.Length && pieceRenderers[i])
-                    pieceRenderers[i].enabled = (piece.position - eye).sqrMagnitude > cameraClearance * cameraClearance;
-                if (distance > 1e-4f)
-                {
-                    Vector3 along = offset / distance;
-                    Vector3 up = Mathf.Abs(along.y) > .95f ? Vector3.forward : Vector3.up;
-                    piece.rotation = Quaternion.LookRotation(along, up) * Quaternion.Euler(0, 0, i * 47f);
-                }
-                // A stretched link (the cord pulled between two held points) is capped: long thin pieces, never blades.
-                float stretch = Mathf.Clamp(distance / segmentMeshLength, .25f, 2.5f) * segmentOverlap;
-                piece.localScale = new Vector3(fade, fade, stretch * Mathf.Max(.05f, fade));
-            }
+            bool still = sleeping && !holding && !detached;
+            if (!still || !drawnAsleep) BendCord(fade);
+            drawnAsleep = still;
             if (knot)
             {
                 knot.position = positions[0];
@@ -891,8 +976,87 @@ namespace Hakaton.Expeditions.Cards
             }
         }
 
+        /// <summary>
+        /// Bends every link's piece along a smooth curve (Catmull–Rom) through the simulated points, with a frame carried
+        /// along the cord without twisting (parallel transport): neighbouring pieces meet on the curve whatever the
+        /// angle between the links, so a bend over an edge or round a trunk shows no gaps or breaks.
+        /// </summary>
+        void BendCord(float fade)
+        {
+            if (!cordMesh || linkMesh.Length == 0) return;
+            for (int k = 0; k < count; k++)
+            {
+                Vector3 t = positions[Mathf.Min(count - 1, k + 1)] - positions[Mathf.Max(0, k - 1)];
+                tangents[k] = t.sqrMagnitude > 1e-10f ? t.normalized : k > 0 ? tangents[k - 1] : Vector3.down;
+            }
+            if (!anchorFrameSet)
+            {
+                anchorFrame = Quaternion.LookRotation(tangents[0], Mathf.Abs(tangents[0].y) > .95f ? Vector3.forward : Vector3.up);
+                anchorFrameSet = true;
+            }
+            else anchorFrame = Quaternion.FromToRotation(anchorTangent, tangents[0]) * anchorFrame;
+            anchorTangent = tangents[0];
+            frames[0] = anchorFrame;
+            for (int k = 1; k < count; k++) frames[k] = Quaternion.FromToRotation(tangents[k - 1], tangents[k]) * frames[k - 1];
+
+            Vector3 eye = holding && world && world.viewCamera ? world.viewCamera.transform.position : new Vector3(1e6f, 1e6f, 1e6f);
+            var toLocal = transform.worldToLocalMatrix;
+            float half = segmentMeshLength * .5f;
+            int v = 0;
+            for (int i = 0; i < linkMesh.Length; i++)
+            {
+                var mesh = linkMesh[i];
+                if (!mesh) continue;
+                var (source, normals) = Shape(mesh);
+                // Where the points crowd together the piece keeps its length and overlaps its neighbours instead of
+                // being squashed into a clump of shingles (at most twice its link).
+                float chord = (positions[Mathf.Min(count - 1, i + 1)] - positions[i]).magnitude / Mathf.Max(1e-4f, linkLength);
+                float reach = .5f * segmentOverlap / Mathf.Clamp(chord, .5f, 1);
+                for (int j = 0; j < source.Length; j++, v++)
+                {
+                    Vector3 p = source[j];
+                    float u = Mathf.Clamp(i + .5f + p.z / half * reach, 0, count - 1);
+                    // The twist runs on along the cord, so where two pieces meet their facets meet too.
+                    var twist = Quaternion.AngleAxis(u * twistPerLink, Vector3.forward);
+                    var frame = FrameAt(u) * twist;
+                    Vector3 at = CurveAt(u);
+                    // A held cord thins out towards the camera instead of passing through it.
+                    float near = holding ? Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.12f, cameraClearance + .35f, (at - eye).magnitude)) : 1;
+                    float width = fade * near;
+                    cordVertices[v] = toLocal.MultiplyPoint3x4(at + frame * new Vector3(p.x * width, p.y * width, 0));
+                    if (j < normals.Length) cordNormals[v] = toLocal.MultiplyVector(frame * normals[j]);
+                }
+            }
+            cordMesh.SetVertices(cordVertices);
+            cordMesh.SetNormals(cordNormals);
+            cordMesh.RecalculateBounds();
+        }
+
+        static (Vector3[] vertices, Vector3[] normals) Shape(Mesh mesh)
+        {
+            if (!PieceShapes.TryGetValue(mesh, out var shape)) PieceShapes[mesh] = shape = (mesh.vertices, mesh.normals);
+            return shape;
+        }
+
+        /// <summary>The point at <paramref name="u"/> along the cord (0 = anchor, 1 = next point...), on a Catmull–Rom curve.</summary>
+        Vector3 CurveAt(float u)
+        {
+            int k = Mathf.Clamp(Mathf.FloorToInt(u), 0, count - 2);
+            float t = u - k;
+            Vector3 p0 = positions[Mathf.Max(0, k - 1)], p1 = positions[k], p2 = positions[k + 1], p3 = positions[Mathf.Min(count - 1, k + 2)];
+            float t2 = t * t, t3 = t2 * t;
+            return .5f * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3);
+        }
+
+        Quaternion FrameAt(float u)
+        {
+            int k = Mathf.Clamp(Mathf.FloorToInt(u), 0, count - 2);
+            return Quaternion.Slerp(frames[k], frames[k + 1], u - k);
+        }
+
         void OnDestroy()
         {
+            if (cordMesh) Destroy(cordMesh);
             Active.Remove(this);
             if (holding && motor && ReferenceEquals(motor.ExternalOwner, this))
             {
