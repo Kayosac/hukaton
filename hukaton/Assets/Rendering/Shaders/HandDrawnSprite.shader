@@ -11,7 +11,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         // Close up the world grid would turn into huge blocks (the shop counter, an item held in hand),
         // so a cell never grows past this size on screen: it splits in two, four... (nested in the world grid).
         _MaxCellPixels ("Max Cell On Screen (px of a 1080-line view)", Range(0.5,16)) = 3
-        _MaxRefine ("Max Close-up Splits (powers of two)", Range(0,6)) = 4
+        // Two splits = 4x the world grid: customers (2x) and loot drawings (4x) are authored at those densities.
+        _MaxRefine ("Max Close-up Splits (powers of two)", Range(0,6)) = 2
         [Header(Hand Drawn Motion)]
         _Motion ("Motion Amount", Range(0,2)) = 1
         _AnimationFPS ("Drawing Frames Per Second", Range(1,30)) = 8

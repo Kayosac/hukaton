@@ -331,8 +331,48 @@ namespace Hakaton.Expeditions.Tests
         public void TheSharedMaterialSplitsCloseUpCells()
         {
             var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
-            Assert.That(shared.GetFloat("_MaxRefine"), Is.GreaterThanOrEqualTo(3), "The shop counter and held items need the split.");
+            // Two splits: the finest close-up cell is 4x the world grid, the density loot drawings are authored at.
+            Assert.That(shared.GetFloat("_MaxRefine"), Is.EqualTo(2));
             Assert.That(shared.GetFloat("_MaxCellPixels"), Is.InRange(1.5f, 4f));
+        }
+
+        [Test]
+        public void CustomersAndLootDrawingsKeepOneDensityEach()
+        {
+            // All customers are about one height and all loot drawings one size, so each kind has one texel density:
+            // customers 2x the world grid (one texel per cell at the counter), loot 4x (one per cell on the counter).
+            var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
+            float grid = shared.GetFloat("_PixelsPerUnit");
+            var customer = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShopBlockout/Prefabs/ShopCustomer.prefab");
+            var actor = customer.GetComponentInChildren<Hakaton.Character.SpriteNpcActor>(true);
+            Assert.That(actor, Is.Not.Null);
+            var step = customer.GetComponentsInChildren<Transform>(true).First(t => t.name == "Foot anchored step").localScale.y;
+            float defaultBody = actor.defaultAppearance.bodyScale;
+            int customers = 0, loot = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:NpcAppearance"))
+            {
+                var appearance = AssetDatabase.LoadAssetAtPath<Hakaton.Character.NpcAppearance>(AssetDatabase.GUIDToAssetPath(guid));
+                float scale = step * appearance.bodyScale / defaultBody;
+                foreach (var sprite in new[] { appearance.neutral, appearance.back, appearance.displeased, appearance.happy, appearance.angry })
+                {
+                    if (!sprite) continue;
+                    Assert.That(sprite.pixelsPerUnit / scale, Is.EqualTo(grid * 2).Within(grid * .01f), sprite.name);
+                    customers++;
+                }
+            }
+            foreach (var guid in AssetDatabase.FindAssets("t:LootItem"))
+            {
+                var item = new SerializedObject(AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid)));
+                var icon = item.FindProperty("icon").objectReferenceValue as Sprite;
+                if (!icon) continue;
+                float texelsPerMetre = icon.rect.height / item.FindProperty("iconHeight").floatValue;
+                Assert.That(texelsPerMetre, Is.EqualTo(grid * 4).Within(grid * .01f), icon.name);
+                Assert.That(icon.texture.width, Is.LessThanOrEqualTo(2048));
+                loot++;
+            }
+            Assert.That(customers, Is.GreaterThan(40));
+            Assert.That(loot, Is.GreaterThan(20));
+            Assert.That(grid * Mathf.Pow(2, shared.GetFloat("_MaxRefine")), Is.EqualTo(grid * 4));
         }
 
         [Test]
