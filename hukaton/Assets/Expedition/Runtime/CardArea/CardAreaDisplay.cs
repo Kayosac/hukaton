@@ -146,14 +146,12 @@ namespace Hakaton.Expeditions
         {
             var preparation = thrower.Preparation;
             thrower.ComputeLaunch(preparation.Charge, out var position, out var velocity);
-            var spin = new Vector2(preparation.SpinX, preparation.SpinY);
-            var clock = default(CardFlight.Clock);
             var settings = world.settings;
             int steps = Mathf.CeilToInt(simulateSeconds / simulateStep);
             for (int i = 0; i < steps; i++)
             {
                 Vector3 next = position, nextVelocity = velocity;
-                CardFlight.Advance(ref next, ref nextVelocity, ref clock, spin, settings, simulateStep);
+                CardFlight.Advance(ref next, ref nextVelocity, settings, simulateStep);
                 if (CardFlight.Sweep(position, next, settings.cardRadius, out hit)) return true;
                 position = next;
                 velocity = nextVelocity;

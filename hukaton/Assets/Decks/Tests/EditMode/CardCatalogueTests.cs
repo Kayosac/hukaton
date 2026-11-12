@@ -87,9 +87,9 @@ namespace Hakaton.Decks.Tests
             Assert.That(config.Find("heavy_strike").power.ToArray(), Is.EqualTo(new[] { 2, 3, 4 }), "Heavy strike damage.");
         }
 
-        /// <summary>Playtest 12.11.2026: the goblin's dummy («Пустышка») lives apart from the 22, costs 25 and does nothing.</summary>
+        /// <summary>Playtest 12.11.2026: the goblin's dummy («Пустышка») lives apart from the ordinary cards, costs 25 and does nothing.</summary>
         [Test]
-        public void TheDummyStandsApartFromTheTwentyTwo()
+        public void TheDummyStandsApartFromTheOrdinaryCards()
         {
             var config = Catalogue();
             var dummy = config.dummyCard;
@@ -98,7 +98,7 @@ namespace Hakaton.Decks.Tests
             Assert.That(config.cards.Select(c => c.id), Has.No.Member(dummy.id));
             Assert.That(config.Find(dummy.id), Is.SameAs(dummy), "Saves and views resolve it.");
             Assert.That((dummy.dummy, dummy.upgradable, dummy.purchasePrice, dummy.rank), Is.EqualTo((true, false, 50, 1)));
-            Assert.That(dummy.artwork, Is.Not.Null, "Placeholder art until the user's own.");
+            Assert.That(dummy.artwork, Is.Not.Null, "Its own face (Decks/Art/blank.png).");
             Assert.That(dummy.effectAsset, Is.Not.Null, "A no-op effect, should it ever be thrown.");
             Assert.That(string.IsNullOrWhiteSpace(dummy.displayName) || string.IsNullOrWhiteSpace(dummy.description), Is.False);
             Assert.That(config.dummyChance, Is.EqualTo(.1f).Within(.0001f));
@@ -106,7 +106,7 @@ namespace Hakaton.Decks.Tests
             var spec = workshop.Spec(dummy.id);
             Assert.That(spec, Is.Not.Null, "In the workshop's catalogue, so a save holding it loads.");
             Assert.That((spec.Dummy, spec.Mergeable, spec.BlindPrice), Is.EqualTo((true, false, 25)));
-            Assert.That(workshop.Catalog.Count(s => !s.Dummy), Is.EqualTo(22));
+            Assert.That(workshop.Catalog.Count(s => !s.Dummy), Is.EqualTo(config.cards.Length), "The dummy is the only extra in the catalogue.");
             Assert.That(workshop.Owned.Any(c => c.Spec.Dummy), Is.False);
         }
 
