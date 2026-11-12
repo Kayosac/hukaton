@@ -73,6 +73,8 @@ namespace Hakaton.Game
         [Min(1)] public float openPixelSize = 40;
         [Header("Look")]
         [Range(.5f, 1)] public float screenFill = .94f;
+        [Tooltip("Room kept free on each side of the parchment (parchment units): the close cross sits there, outside the map.")]
+        [Min(0)] public float sideRoom = 160;
         [Min(1)] public float dashSpacing = 30;
         public Vector2 dashSize = new Vector2(22, 16);
         [Tooltip("Routes stop this far (field pixels) from the icons.")]
@@ -359,7 +361,7 @@ namespace Hakaton.Game
             var room = area.rect.size * screenFill;
             var native = sheet.rect.size;
             if (native.x <= 0 || native.y <= 0) return;
-            float fit = Mathf.Min(room.x / native.x, room.y / native.y);
+            float fit = Mathf.Min(room.x / (native.x + 2 * sideRoom), room.y / native.y);
             float pose = opening ? EaseOutBack(shown) : EaseOutCubic(shown);
             float scale = fit * Mathf.LerpUnclamped(openScale, 1, pose);
             sheet.localScale = new Vector3(scale, scale, 1);
