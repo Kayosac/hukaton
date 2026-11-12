@@ -129,11 +129,12 @@ namespace Hakaton.Expeditions.Tests
         public void EveryCardHasAnEffectAndNewCardsHaveTheirOwnStubs()
         {
             var config = AssetDatabase.LoadAssetAtPath<DeckPrototypeConfig>("Assets/Game/Data/Cards.asset");
-            Assert.That(config.cards.Length, Is.EqualTo(22));
+            Assert.That(config.cards.Length, Is.GreaterThanOrEqualTo(22), "The board's 22 and every card added since.");
             Assert.That(config.cards.All(c => c.effectAsset is CardEffect), Is.True, "Every card can be thrown.");
+            Assert.That(config.cards.Count(c => (int)c.action < 10), Is.EqualTo(6), "The six original cards.");
             var newEffects = config.cards.Where(c => (int)c.action >= 10).Select(c => c.effectAsset).ToArray();
-            Assert.That(newEffects.Length, Is.EqualTo(16));
-            Assert.That(newEffects.Select(e => e.GetType()).Distinct().Count(), Is.EqualTo(16), "One effect class per new card.");
+            Assert.That(newEffects.Length, Is.EqualTo(config.cards.Length - 6));
+            Assert.That(newEffects.Select(e => e.GetType()).Distinct().Count(), Is.EqualTo(newEffects.Length), "One effect class per new card.");
             Assert.That(newEffects.All(e => e.GetType().Namespace == "Hakaton.Expeditions.Cards"), Is.True);
             foreach (var definition in config.cards.Where(c => (int)c.action >= 10))
             {

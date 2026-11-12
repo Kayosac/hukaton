@@ -52,13 +52,14 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void CatalogueHasTwentyTwoCompleteCardTypes()
+        public void EveryCatalogueCardIsComplete()
         {
             var config = Catalogue();
             Assert.That(config, Is.Not.Null);
-            Assert.That(config.cards.Length, Is.EqualTo(22));
-            Assert.That(config.cards.Select(c => c.id).Distinct().Count(), Is.EqualTo(22), "Card ids are unique.");
-            Assert.That(config.cards.Select(c => (int)c.action).Distinct().Count(), Is.EqualTo(22), "Each card has its own action.");
+            // The board's 22 and every card added since (the catalogue keeps growing).
+            Assert.That(config.cards.Length, Is.GreaterThanOrEqualTo(22));
+            Assert.That(config.cards.Select(c => c.id).Distinct().Count(), Is.EqualTo(config.cards.Length), "Card ids are unique.");
+            Assert.That(config.cards.Select(c => (int)c.action).Distinct().Count(), Is.EqualTo(config.cards.Length), "Each card has its own action.");
             foreach (var card in config.cards)
             {
                 Assert.That(card.artwork, Is.Not.Null, card.id + " has artwork");
