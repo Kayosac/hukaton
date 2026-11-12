@@ -49,7 +49,9 @@ def setup():
 
 
 FREE = ("C01", "C02", "A01", "A02", "A03", "A04", "L01", "L02")
-FAR_HOPS = 3  # bones further apart than this in the skeleton never share a face or a vertex inside a free limb
+FAR_HOPS = 5  # bones further apart than this in the skeleton never share a face or a vertex inside a free limb (a hand
+# lying on its own shoulder); closer ones are a joint (the small arms' short wrists put the fingers 4 bones from the
+# elbow), which must stay sewn
 
 
 def root_bone(arm, limb):
@@ -100,6 +102,7 @@ def separate_limbs(body, arm, keep_root=2.6):
         elif any(limb[v.index] == n and dom[v.index] not in root_set[n] for v in f.verts):
             cut.append(f)  # near the root, but it is the hand or the thigh lying on the torso, not the joint itself
     # inside a free limb: a hand lying on its own shoulder (C02's fingers rest on its upper arm) is fused too
+    far_cut = {}
     for f in bm.faces:
         if f in cut:
             continue
@@ -108,13 +111,14 @@ def separate_limbs(body, arm, keep_root=2.6):
             ds = [dom[v.index] for v in f.verts if dom[v.index]]
             if any(hops(a, b) > FAR_HOPS for a in ds for b in ds):
                 cut.append(f)
+                far_cut[next(iter(s))] = far_cut.get(next(iter(s)), 0) + 1
     limb_of = {v: limb[v.index] for v in bm.verts}
     bmesh.ops.delete(bm, geom=cut, context="FACES")
     capped = cap_holes(bm, limb_of)
     bm.to_mesh(me)
     bm.free()
     me.update()
-    print("separate_limbs: cut", len(cut), "faces, capped", capped, "openings")
+    print("separate_limbs: cut", len(cut), "faces, capped", capped, "openings; inside limbs", far_cut)
     # Deleting faces drops their loose vertices: indices moved, so read the limbs again.
     limb = []
     for v in me.vertices:

@@ -22,6 +22,10 @@ namespace Hakaton.Backroom
         public TMP_Text badge;
         public TMP_Text levelMark;
         public CanvasGroup group;
+        [Tooltip("Reads the pointer: an invisible image on this still slot, never on the moving body (a card that " +
+                 "lifts and grows under the pointer would slide out from under it at the edge and bob in and out). " +
+                 "While the card is up, its top edge reaches up after the lifted card.")]
+        public Graphic hitArea;
         [Tooltip("How far the card rises under the pointer.")]
         public float hoverLift = 26;
         [Tooltip("Overlapping cards (the goblin's fan): the one under the pointer comes to the front, like a card " +
@@ -46,12 +50,20 @@ namespace Hakaton.Backroom
 
         int restingIndex = -1;
 
+        /// <summary>How much bigger the card is under the pointer.</summary>
+        const float HoverScale = 1.08f;
+        /// <summary>Room the hit area keeps over the lifted card's top edge (its overshoot and shiver).</summary>
+        const float ReachMargin = 6;
+        /// <summary>Seconds after leaving within which coming back does not pop the card again.</summary>
+        const float PopAgainAfter = .15f;
+        float leftAt = float.NegativeInfinity;
+
         void Awake() => home = body.anchoredPosition;
 
         /// <summary>Puts the card back on the table: face down or up, with a staggered deal from below.</summary>
         public void Deal(Sprite art, bool up, float delay, int level = 1)
         {
-            Lower();
+            EndHover();
             gameObject.SetActive(true);
             face.sprite = art;
             Hakaton.Decks.Unity.CardLevelPresentation.SetMark(levelMark, level);
@@ -75,8 +87,7 @@ namespace Hakaton.Backroom
 
         public void Hide()
         {
-            Lower();
-            Hovering = false;
+            EndHover();
             gameObject.SetActive(false);
         }
 
@@ -159,7 +170,7 @@ namespace Hakaton.Backroom
             }
             if (guarded)
             {
-                Hovering = false;
+                EndHover();
                 group.blocksRaycasts = false;
             }
         }
@@ -167,14 +178,49 @@ namespace Hakaton.Backroom
         /// <summary>
         /// Reads the pointer from the card's still slot instead of the moving card: a card that lifts, grows and
         /// shivers under the pointer would otherwise slide out from under it at the edge and flicker in and out.
+        /// The goblin's table has its <see cref="hitArea"/> authored in the prefab; the brazier's list makes it
+        /// here for the cards it lays. Safe to call again.
         /// </summary>
         public void UseStillHitArea()
         {
-            if (GetComponent<Graphic>()) return;
             foreach (var graphic in body.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
-            var hit = gameObject.AddComponent<Image>();
-            hit.color = new Color(0, 0, 0, 0);
-            hit.raycastTarget = true;
+            if (!hitArea) hitArea = GetComponent<Graphic>();
+            if (!hitArea)
+            {
+                var image = gameObject.AddComponent<Image>();
+                image.color = new Color(0, 0, 0, 0);
+                hitArea = image;
+            }
+            hitArea.raycastTarget = true;
+            ReachUp(Hovering);
+        }
+
+        /// <summary>
+        /// While the card is up, the still slot reaches up to the lifted card's top edge, so the pointer can follow
+        /// the card it lifted. Coming in still needs the slot itself (the reach is only there while hovered), so a
+        /// pointer resting anywhere can never make the card bob: in at the slot, out only past the lifted card.
+        /// </summary>
+        void ReachUp(bool up)
+        {
+            if (!hitArea) return;
+            float reach = 0;
+            if (up)
+            {
+                float height = ((RectTransform)transform).rect.height;
+                reach = Mathf.Max(0, hoverLift + height * .5f * (HoverScale - 1) + ReachMargin);
+            }
+            var padding = hitArea.raycastPadding;
+            // Padding is (left, bottom, right, top); a negative value grows the area.
+            padding.w = -reach;
+            hitArea.raycastPadding = padding;
+        }
+
+        /// <summary>Not under the pointer any more (left, put away, dealt again, flown off, guarded): back to its place.</summary>
+        void EndHover()
+        {
+            Hovering = false;
+            ReachUp(false);
+            Lower();
         }
 
         public void SetBadge(string text)
@@ -205,7 +251,7 @@ namespace Hakaton.Backroom
             flying = true;
             scale.Kick(5);
             group.blocksRaycasts = false;
-            Hovering = false;
+            EndHover();
         }
 
         /// <summary>Thrown at a point of the card's own parent space (the brazier's fire on screen): arcs in, spins, shrinks.</summary>
@@ -218,22 +264,26 @@ namespace Hakaton.Backroom
 
         public void OnPointerEnter(PointerEventData e)
         {
+            // Only a fresh arrival pops the card: coming straight back over the edge must not bounce it again.
+            bool fresh = !Hovering && Time.unscaledTime - leftAt > PopAgainAfter;
             Hovering = true;
+            ReachUp(true);
             if (raiseOnHover && restingIndex < 0)
             {
                 restingIndex = transform.GetSiblingIndex();
                 transform.SetAsLastSibling();
             }
-            scale.Kick(2.5f);
+            if (fresh) scale.Kick(2.5f);
             Hovered?.Invoke(this);
         }
 
         public void OnPointerExit(PointerEventData e)
         {
             bool was = Hovering;
-            Hovering = false;
-            Lower();
-            if (was) Unhovered?.Invoke(this);
+            EndHover();
+            if (!was) return;
+            leftAt = Time.unscaledTime;
+            Unhovered?.Invoke(this);
         }
 
         void Lower()
@@ -249,7 +299,7 @@ namespace Hakaton.Backroom
             float dt = Time.unscaledDeltaTime;
             if (dealDelay > 0) { dealDelay -= dt; Present(); return; }
             lift.Step(flying ? 34 : Hovering ? hoverLift : 0, 9, .55f, dt);
-            scale.Step(Hovering ? 1.08f : 1, 11, .45f, dt);
+            scale.Step(Hovering ? HoverScale : 1, 11, .45f, dt);
             shake.Step(0, 18, .25f, dt);
             fear = Mathf.MoveTowards(fear, trembleOnHover && Hovering && !flying ? 1 : 0, dt * 6);
             flip.Step(flipTarget, 14, .7f, dt);

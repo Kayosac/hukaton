@@ -52,13 +52,14 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void CatalogueHasTwentyTwoCompleteCardTypes()
+        public void EveryCatalogueCardIsComplete()
         {
             var config = Catalogue();
             Assert.That(config, Is.Not.Null);
-            Assert.That(config.cards.Length, Is.EqualTo(22));
-            Assert.That(config.cards.Select(c => c.id).Distinct().Count(), Is.EqualTo(22), "Card ids are unique.");
-            Assert.That(config.cards.Select(c => (int)c.action).Distinct().Count(), Is.EqualTo(22), "Each card has its own action.");
+            // The board's 22 and every card added since (the catalogue keeps growing).
+            Assert.That(config.cards.Length, Is.GreaterThanOrEqualTo(22));
+            Assert.That(config.cards.Select(c => c.id).Distinct().Count(), Is.EqualTo(config.cards.Length), "Card ids are unique.");
+            Assert.That(config.cards.Select(c => (int)c.action).Distinct().Count(), Is.EqualTo(config.cards.Length), "Each card has its own action.");
             foreach (var card in config.cards)
             {
                 Assert.That(card.artwork, Is.Not.Null, card.id + " has artwork");
@@ -87,6 +88,29 @@ namespace Hakaton.Decks.Tests
             Assert.That(config.Find("heavy_strike").power.ToArray(), Is.EqualTo(new[] { 2, 3, 4 }), "Heavy strike damage.");
         }
 
+        /// <summary>Playtest 12.11.2026: the goblin's dummy («Пустышка») lives apart from the ordinary cards, costs 25 and does nothing.</summary>
+        [Test]
+        public void TheDummyStandsApartFromTheOrdinaryCards()
+        {
+            var config = Catalogue();
+            var dummy = config.dummyCard;
+            Assert.That(dummy, Is.Not.Null, "Cards.asset assigns the dummy card.");
+            Assert.That(config.cards, Has.No.Member(dummy));
+            Assert.That(config.cards.Select(c => c.id), Has.No.Member(dummy.id));
+            Assert.That(config.Find(dummy.id), Is.SameAs(dummy), "Saves and views resolve it.");
+            Assert.That((dummy.dummy, dummy.upgradable, dummy.purchasePrice, dummy.rank), Is.EqualTo((true, false, 50, 1)));
+            Assert.That(dummy.artwork, Is.Not.Null, "Its own face (Decks/Art/blank.png).");
+            Assert.That(dummy.effectAsset, Is.Not.Null, "A no-op effect, should it ever be thrown.");
+            Assert.That(string.IsNullOrWhiteSpace(dummy.displayName) || string.IsNullOrWhiteSpace(dummy.description), Is.False);
+            Assert.That(config.dummyChance, Is.EqualTo(.1f).Within(.0001f));
+            var workshop = config.CreateWorkshop(new Hakaton.Economy.CoinWallet(0));
+            var spec = workshop.Spec(dummy.id);
+            Assert.That(spec, Is.Not.Null, "In the workshop's catalogue, so a save holding it loads.");
+            Assert.That((spec.Dummy, spec.Mergeable, spec.BlindPrice), Is.EqualTo((true, false, 25)));
+            Assert.That(workshop.Catalog.Count(s => !s.Dummy), Is.EqualTo(config.cards.Length), "The dummy is the only extra in the catalogue.");
+            Assert.That(workshop.Owned.Any(c => c.Spec.Dummy), Is.False);
+        }
+
         [Test]
         public void NewGameStartsWithTheCavesThreeProtectedCards()
         {
@@ -107,6 +131,24 @@ namespace Hakaton.Decks.Tests
             Assert.That(limits.Last(), Is.EqualTo(50));
             Assert.That(limits.Zip(limits.Skip(1), (a, b) => b > a).All(up => up), Is.True);
             Assert.That(config.deckLimitSteps.All(s => s.price > 0), Is.True);
+        }
+
+        /// <summary>Playtest: the hand grows from 3 to 10 cards, every step 200 dearer (200, 400 … 1400).</summary>
+        [Test]
+        public void HandGrowsToTenCardsAtRisingPrices()
+        {
+            var config = Catalogue();
+            Assert.That((config.initialHand, config.maximumHand, config.handUpgradePrice), Is.EqualTo((3, 10, 200)));
+            var workshop = config.CreateWorkshop(new Hakaton.Economy.CoinWallet(10000));
+            var prices = new List<int>();
+            while (workshop.HandSize < workshop.Rules.MaxHand)
+            {
+                prices.Add(workshop.HandPrice);
+                Assert.That(workshop.ImproveHand(), Is.Null);
+            }
+            Assert.That(prices, Is.EqualTo(new[] { 200, 400, 600, 800, 1000, 1200, 1400 }));
+            Assert.That((workshop.HandSize, workshop.Coins), Is.EqualTo((10, 10000 - 5600)));
+            Assert.That(workshop.ImproveHand(), Is.Not.Null, "Ten is the maximum.");
         }
     }
 }

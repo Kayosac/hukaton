@@ -10,15 +10,22 @@ namespace Hakaton.Expeditions
     /// First-person viewmodel of the hand: a wide, close fan of large cards centred under the crosshair
     /// (bottoms cut by the screen edge, like Shroom &amp; Gloom), spring-driven; it sways with the
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
-    /// The draw pile is not drawn: the HUD counts it beside the hand. Oversized cheat hands scroll through the
-    /// authored slots around the selected card; every copy remains selectable without expanding the fan off screen.
+    /// The draw pile is not drawn: the HUD counts it in the bottom-right corner. The whole hand is shown at once, up to
+    /// <see cref="CardFanLayout.MaxCards"/> cards: bigger hands flatten and squeeze the fan to the screen
+    /// (<see cref="CardFanLayout"/>), and a hand bigger than the authored slots clones the slot template (pooled).
+    /// Oversized cheat hands scroll a window of that size around the selected card; every copy stays selectable.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class CardHandView : MonoBehaviour
     {
+        /// <summary>Card height over width.</summary>
+        public const float CardAspect = 1.5f;
+
         public ExpeditionWorld world;
-        [Tooltip("Authored visible card slots (children). Larger hands scroll through these slots with selection.")]
+        [Tooltip("Authored visible card slots (children). A bigger hand clones the slot template; past CardFanLayout.MaxCards the fan scrolls with the selection.")]
         public CardView[] slots;
+        [Tooltip("Cloned once per missing slot (and kept) when a hand outgrows the authored slots, up to CardFanLayout.MaxCards. Empty: the authored slots are all there is.")]
+        public CardView slotTemplate;
         [Tooltip("Up to three authored backs showing what is left in the draw pile.")]
         [FormerlySerializedAs("explorationBack")]
         public Texture cardBack;
@@ -28,6 +35,12 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float radius = 1.1f;
         [Min(0)] public float degreesPerCard = 6.25f;
         [Min(.01f)] public float cardWidth = .18f;
+        [Tooltip("Bigger hands flatten the arc: the outermost card sinks at most this far below the top of the arc (metres).")]
+        [Min(0)] public float maxSink = .02f;
+        [Tooltip("Bigger hands squeeze together so the outermost card's outer edge stays within this share of the half-screen width at the card depth (the bottom corners stay free for the HUD counter).")]
+        [Range(.2f, 1)] public float screenShare = .74f;
+        [Tooltip("Vertical field of view the fan is fitted to: the camera's resting FOV (the sprint widening is left out, so the fan does not breathe).")]
+        [Range(10, 120)] public float fitFieldOfView = 75;
         [Tooltip("How far unselected cards sink below the fan arc.")]
         public float restDrop = .04f;
         public float selectedLift = .08f, selectedToward = .04f;
@@ -187,7 +200,9 @@ namespace Hakaton.Expeditions
             var trip = world.workshop.Model.Current;
             if (trip == null) return;
             var hand = trip.Deck.Hand;
-            int count = Mathf.Min(hand.Count, active.Count);
+            int count = Mathf.Min(hand.Count, CardFanLayout.MaxCards);
+            Grow(count);
+            count = Mathf.Min(count, active.Count);
             var selected = world.thrower.Selected;
             int selectedIndex = selected == null ? 0 : IndexOf(hand, selected.Id);
             int start = Mathf.Clamp(selectedIndex - count / 2, 0, hand.Count - count);
@@ -205,6 +220,7 @@ namespace Hakaton.Expeditions
                 if (fresh || !lastIds.Contains(slot.copyId)) { slot.view.Hide(); slot.copyId = int.MinValue; }
 
             Texture back = cardBack;
+            var fan = Fan(count);
             int dealt = 0;
             for (int i = 0; i < count; i++)
             {
@@ -216,7 +232,7 @@ namespace Hakaton.Expeditions
                 slot.view.Show(world.Artwork(card), back, card.Level);
                 slot.view.SetGlow(0, returnGlow);
                 // New cards rise from below the screen, staggered like a quick deal.
-                Vector3 target = Target(i, count, false, 0, card.IsReturn);
+                Vector3 target = Target(fan, i, false, 0, card.IsReturn);
                 slot.position.Snap(target + Vector3.down * .32f);
                 slot.scale.Snap(.85f);
                 slot.rotation = Quaternion.Euler(0, 0, -30);
@@ -246,12 +262,14 @@ namespace Hakaton.Expeditions
             Vector3 swayTarget = Vector3.ClampMagnitude(lookVelocity * swayPerDegreePerSecond, maxSway);
             sway.Step(swayTarget, swayFrequency, swayDamping, dt);
 
-            float speed = world.motor.IsGrounded ? world.motor.PlanarVelocity.magnitude : 0;
+            bool onFoot = world.motor.GroundedForFeedback;
+            float speed = onFoot ? world.motor.PlanarVelocity.magnitude : 0;
             bobPhase += dt * Mathf.Lerp(0, 9, Mathf.Clamp01(speed / 6f));
             Vector3 bob = new Vector3(Mathf.Sin(bobPhase * .5f) * bobAmplitude, -Mathf.Abs(Mathf.Sin(bobPhase)) * bobAmplitude, 0)
                 * Mathf.Clamp01(speed / 3f);
-            float airborne = world.motor.IsGrounded ? 0 : Mathf.Clamp(world.motor.VerticalSpeed * -.004f, -.03f, .03f);
+            float airborne = onFoot ? 0 : Mathf.Clamp(world.motor.VerticalSpeed * -.004f, -.03f, .03f);
             Vector3 common = sway.Value + bob + Vector3.up * airborne;
+            var fan = Fan(lastIds.Count);
 
             for (int i = 0; i < active.Count; i++)
             {
@@ -264,20 +282,19 @@ namespace Hakaton.Expeditions
                 int visibleIndex = index - firstVisible;
                 bool isSelected = selected != null && selected.Id == card.Id;
                 float charge = isSelected && preparation.Active ? preparation.Charge : 0;
-                Vector3 target = Target(visibleIndex, lastIds.Count, isSelected, charge, card.IsReturn) + common;
+                Vector3 target = Target(fan, visibleIndex, isSelected, charge, card.IsReturn) + common;
                 if (charge > .97f) target += Random.insideUnitSphere * chargeTremble;
                 slot.position.Step(target, cardFrequency, cardDamping, dt);
                 float scale = slot.scale.Step(isSelected ? selectedScale : 1, cardFrequency, cardDamping, dt);
 
-                float angle = Angle(visibleIndex, lastIds.Count);
-                float spinRoll = isSelected && preparation.Active ? preparation.SpinX * -28 : 0;
-                Quaternion targetRotation = Quaternion.Euler(-charge * chargeTilt, charge * 10, -angle + spinRoll);
+                float angle = fan.Roll(visibleIndex);
+                Quaternion targetRotation = Quaternion.Euler(-charge * chargeTilt, charge * 10, -angle);
                 slot.rotation = Quaternion.Slerp(slot.rotation, targetRotation, Ease.Damp(16, dt));
 
                 var t = slot.view.transform;
                 t.localPosition = slot.position.Value;
                 t.localRotation = slot.rotation;
-                t.localScale = new Vector3(cardWidth, cardWidth * 1.5f, 1) * scale;
+                t.localScale = new Vector3(cardWidth, cardWidth * CardAspect, 1) * scale;
                 slot.view.SetOrder(isSelected ? 50 : 10 + visibleIndex);
 
                 float glow = card.IsReturn ? .55f + Mathf.Sin(Time.time * 6) * .3f : isSelected ? .18f + charge * .5f : 0;
@@ -286,12 +303,20 @@ namespace Hakaton.Expeditions
 
         }
 
-        float Angle(int index, int count) => (index - (count - 1) * .5f) * degreesPerCard;
+        /// <summary>The fan for this many cards on a view of this aspect (width / height).</summary>
+        public CardFanLayout Fan(int count, float aspect) => CardFanLayout.Solve(count, radius, degreesPerCard,
+            new Vector2(cardWidth, cardWidth * CardAspect), pivot.z, maxSink, screenShare, fitFieldOfView, aspect);
 
-        Vector3 Target(int index, int count, bool isSelected, float charge, bool isReturn)
+        CardFanLayout Fan(int count) => Fan(count, world && world.viewCamera ? world.viewCamera.aspect : 16f / 9f);
+
+        /// <summary>
+        /// Camera-space centre of the card at <paramref name="index"/> in the fan: on the arc whose top is
+        /// <see cref="radius"/> above <see cref="pivot"/>, raised when selected (or the return card), sunk otherwise.
+        /// </summary>
+        public Vector3 Target(CardFanLayout fan, int index, bool isSelected, float charge, bool isReturn)
         {
-            float angle = Angle(index, count) * Mathf.Deg2Rad;
-            Vector3 position = pivot + new Vector3(Mathf.Sin(angle) * radius, Mathf.Cos(angle) * radius, -index * .001f);
+            Vector2 offset = fan.Offset(index);
+            Vector3 position = pivot + new Vector3(offset.x, radius + offset.y, -index * .001f);
             if (isSelected || isReturn)
             {
                 position += new Vector3(0, selectedLift, -selectedToward);
@@ -299,6 +324,19 @@ namespace Hakaton.Expeditions
             }
             else position += Vector3.down * restDrop;
             return position;
+        }
+
+        /// <summary>A hand bigger than the slots so far clones the template once per missing card; the clones stay pooled.</summary>
+        void Grow(int count)
+        {
+            if (!slotTemplate) return;
+            while (active.Count < count)
+            {
+                var view = Instantiate(slotTemplate, transform, false);
+                view.name = "Card slot " + (active.Count + 1) + " (pooled)";
+                view.Hide();
+                active.Add(new Slot { view = view });
+            }
         }
 
         Slot Find(int id) { foreach (var slot in active) if (slot.copyId == id) return slot; return null; }

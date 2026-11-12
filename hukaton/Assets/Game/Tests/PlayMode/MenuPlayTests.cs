@@ -136,6 +136,11 @@ namespace Hakaton.Game.Tests
         public IEnumerator SettingsApplyAtOnce()
         {
             float master = GameSettings.Master, sensitivity = GameSettings.Sensitivity;
+            bool showFps = GameSettings.ShowFps;
+            var counter = Object.FindAnyObjectByType<FpsCounter>();
+            Assert.That(counter && counter.canvas && counter.label && counter.readout, Is.True, "The saved scene carries the wired FPS counter.");
+            Assert.That(counter.clearOf && counter.clearOfLayout, Is.True, "It knows the shop's shift clock it sits under.");
+            Assert.That(main.settings.showFps, Is.Not.Null, "The settings window has the «Счётчик FPS» box.");
             try
             {
                 GameSettings.Master = .37f;
@@ -144,11 +149,34 @@ namespace Hakaton.Game.Tests
                 Assert.That(game.player.view.sensitivityScale, Is.EqualTo(2).Within(.001f));
                 GameSettings.Sensitivity = 99;
                 Assert.That(GameSettings.Sensitivity, Is.EqualTo(GameSettings.MaxSensitivity));
+
+                GameSettings.ShowFps = false;
+                Assert.That(counter.canvas.enabled, Is.False, "Off: the readout is hidden.");
+                Assert.That(counter.isActiveAndEnabled, Is.True, "The counter itself stays active to hear the setting.");
+                main.settings.showFps.SetIsOnWithoutNotify(false);
+                main.settings.showFps.isOn = true;
+                Assert.That(GameSettings.ShowFps, Is.True, "The box writes the setting.");
+                Assert.That(counter.canvas.enabled, Is.True, "Ticking «Счётчик FPS» shows the readout at once.");
+                Assert.That(counter.canvas.renderMode, Is.EqualTo(RenderMode.ScreenSpaceOverlay));
+                Assert.That(counter.canvas.sortingOrder, Is.GreaterThan(main.canvas.sortingOrder).And.GreaterThan(pause.canvas.sortingOrder),
+                    "Above the menus.");
+                yield return new WaitForSecondsRealtime(counter.refreshSeconds + .2f);
+                Assert.That(counter.label.text, Does.Match(@"^\d+ FPS$"), "Real frames counted in real time, under the paused menu too.");
+                // In screen pixels from the top: the clock hangs from the top of the shop HUD's layout, the readout from
+                // the top of its own (whole-number) one.
+                var screen = new Vector2(Screen.width, Screen.height);
+                var clock = counter.clearOf;
+                float clockBottom = (-clock.anchoredPosition.y + clock.rect.height * clock.pivot.y) * counter.clearOfLayout.ScaleFor(screen);
+                float readoutTop = -counter.readout.anchoredPosition.y * counter.layout.ScaleFor(screen);
+                Assert.That(readoutTop, Is.GreaterThan(clockBottom), "The readout sits below the shift clock's footprint.");
+                main.settings.showFps.isOn = false;
+                Assert.That(GameSettings.ShowFps || counter.canvas.enabled, Is.False, "Unticking hides it again.");
             }
             finally
             {
                 GameSettings.Master = master;
                 GameSettings.Sensitivity = sensitivity;
+                GameSettings.ShowFps = showFps;
             }
             yield return null;
         }

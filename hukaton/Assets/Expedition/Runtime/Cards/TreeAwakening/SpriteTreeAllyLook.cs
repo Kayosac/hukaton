@@ -10,7 +10,8 @@ namespace Hakaton.Expeditions.Cards
     /// the 0.8 s wind-up: the aggression drawing (the only moment its red «!» shows) crouching and trembling; the strike:
     /// the attack drawing's sweep with a lunge toward the target; a hit: the taking-damage drawing with a red flash;
     /// death: the death drawing (front or back) knocked down, then it sinks and fades. On awakening the drawing climbs out
-    /// of the ground with a shudder. Only presents the state: gameplay, colliders and sizes stay on <see cref="TreeAlly"/>.
+    /// of the ground with a shudder; burrowing (to come up behind the player) is the same run backwards, down out of sight.
+    /// Only presents the state: gameplay, colliders and sizes stay on <see cref="TreeAlly"/>.
     /// </summary>
     public sealed class SpriteTreeAllyLook : TreeAllyLook
     {
@@ -25,6 +26,9 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("How deep under the ground the drawing starts, m (the crown shows first).")]
         [Min(0)] public float awakenDepth = 2.3f;
         [Min(0)] public float awakenShake = .06f;
+        [Header("Burrowing")]
+        [Tooltip("How deep the drawing sinks when the tree burrows, m (all of its 3 m, so nothing sticks out).")]
+        [Min(0)] public float burrowDepth = 3.3f;
         [Header("Attack")]
         [Tooltip("Wind-up crouch: share of the height the drawing squats by.")]
         [Range(0, .3f)] public float windupCrouch = .1f;
@@ -106,6 +110,19 @@ namespace Hakaton.Expeditions.Cards
                     offset += Shake(now, awakenShake * (1 - p) + .01f);
                     scale.y *= 1 + .08f * (1 - p);
                     roll = Mathf.Sin(now * 31) * 3 * (1 - p);
+                    break;
+                }
+                case TreeAllyPose.Burrow:
+                {
+                    // Dives back under the ground (the awakening run backwards): a shudder and a little rise, then down
+                    // roots first, the crown last; gone at the end.
+                    float p = s.Progress;
+                    float sink = p * p * (2.7f * p - 1.7f);
+                    offset.y = -burrowDepth * sink;
+                    offset += Shake(now, awakenShake * (1 - p * .5f) + .01f);
+                    scale.y *= 1 + .08f * p;
+                    roll = Mathf.Sin(now * 31) * 3 * (1 - p);
+                    alpha = 1 - Mathf.Clamp01((p - .8f) / .2f);
                     break;
                 }
                 case TreeAllyPose.Windup:

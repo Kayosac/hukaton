@@ -14,8 +14,8 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// Sparse expedition HUD (2026-11-10 UI handoff, 736 × 368 reference layout): spinning glossy hearts and the
-    /// wallet top left with the effect badges under them, the paper X at the aim point with the charge ring and the
-    /// three-part spin arrow, the tilted "stock/total" counter beside the hand, pickup rows top right (hold I for every
+    /// wallet top left with the effect badges under them, a small white square at the aim point with the charge ring,
+    /// the tilted "stock/total" counter in the bottom-right corner (clear of the widest fan), pickup rows top right (hold I for every
     /// carried find in the same rows) and one contextual hint bottom left. Nothing about an item is shown on hover.
     /// </summary>
     public sealed class ExpeditionHud : MonoBehaviour
@@ -38,27 +38,13 @@ namespace Hakaton.Expeditions
         public RectTransform statusRow;
 
         [Header("Reticle")]
+        [Tooltip("Small white square at the aim point, an even whole number of screen pixels (PixelSquare).")]
         public Image reticle;
         public Image chargeRing;
-        public Color reticleColour = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
-
-        [Header("Spin arrow")]
-        [Tooltip("Rotates to the spin's direction around the aim point.")]
-        public RectTransform spinPointer;
-        [Tooltip("Fixed tail and head; only the shaft between them stretches.")]
-        public Image spinTail, spinShaft, spinHead;
-        [Tooltip("Faint circle at full spin strength, shown while Shift steers the spin.")]
-        public Image spinLimit;
-        [Tooltip("Arrow height (layout units); tail and head keep their drawn proportions.")]
-        [Min(1)] public float spinArrowHeight = 8;
-        [Tooltip("Shaft width at the weakest and the strongest spin (layout units).")]
-        public Vector2 spinShaftRange = new Vector2(1.5f, 25.6f);
-        [Tooltip("The arrow starts outside the charge ring (layout units).")]
-        [Min(0)] public float spinArrowGap = 15.333f;
-        public Color spinColour = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+        public Color reticleColour = Color.white;
 
         [Header("Card counter")]
-        [Tooltip("'Stock/Total' beside the hand: cards still to draw / copies taken on this outing.")]
+        [Tooltip("'Stock/Total' in the bottom-right corner, clear of the widest hand fan: cards still to draw / copies taken on this outing.")]
         public TMP_Text cardCounter;
 
         [Header("Pickups")]
@@ -72,13 +58,13 @@ namespace Hakaton.Expeditions
         [Min(1)] public int pickupRows = 4;
 
         [Header("Text")]
-        [Tooltip("The one contextual hint, bottom left: 'E — подобрать', 'Shift + мышь — подкрутка'…")]
+        [Tooltip("The one contextual hint, bottom left: 'E — подобрать', 'ПКМ — отмена'…")]
         public TMP_Text context;
         public TMP_Text notice, cardLabel;
 
         [Header("Stamina")]
-        public GameObject staminaPanel;
-        public Image staminaFill;
+        [Tooltip("The arc of pips around the aim, under it (Stamina pips prefab); shows itself only while stamina matters.")]
+        public Hakaton.Character.StaminaPips staminaPips;
 
         [Header("Overlays")]
         public Image vignette;
@@ -182,12 +168,7 @@ namespace Hakaton.Expeditions
             UpdateReticle(dt);
             UpdateTexts(dt);
             UpdateVignette(dt);
-            if (staminaPanel)
-            {
-                float stamina = world.motor.stamina.Normalized;
-                staminaPanel.SetActive(stamina < .99f);
-                if (staminaFill) staminaFill.fillAmount = stamina;
-            }
+            if (staminaPips) staminaPips.Present(world.motor.stamina, true, dt);
         }
 
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
@@ -236,56 +217,7 @@ namespace Hakaton.Expeditions
                 lastThrowCharge = preparation.Active ? preparation.Charge : 0;
                 chargeRing.rectTransform.localScale = Vector3.one * scale;
             }
-            UpdateSpinArrow(preparation);
             if (reticle) reticle.color = reticleColour;
-        }
-
-        float TailWidth => 44f / 128f * spinArrowHeight;
-        float HeadWidth => 115f / 128f * spinArrowHeight;
-        float Overlap => .25f * spinArrowHeight / 8f;
-
-        /// <summary>
-        /// The spin as an arrow from the aim point: one root turns to the spin's direction, the drawn tail and head keep
-        /// their size and only the shaft between them stretches with the spin's strength.
-        /// </summary>
-        void UpdateSpinArrow(ThrowPreparation preparation)
-        {
-            if (!spinPointer) return;
-            var spin = preparation.Active ? new Vector2(preparation.SpinX, preparation.SpinY) : Vector2.zero;
-            float amount = Mathf.Clamp01(spin.magnitude);
-            bool show = amount > .02f;
-            if (spinPointer.gameObject.activeSelf != show) spinPointer.gameObject.SetActive(show);
-            float h = spinArrowHeight, tail = TailWidth, head = HeadWidth, o = Overlap;
-            if (show)
-            {
-                spinPointer.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(spin.y, spin.x) * Mathf.Rad2Deg);
-                float shaft = Mathf.Lerp(spinShaftRange.x, spinShaftRange.y, amount);
-                Place(spinTail, spinArrowGap, tail, h);
-                Place(spinShaft, spinArrowGap + tail - o, shaft, h);
-                Place(spinHead, spinArrowGap + tail + shaft - 2 * o, head, h);
-                Color colour = spinColour;
-                colour.a = preparation.Steering ? 1 : .55f + .45f * amount;
-                spinTail.color = spinShaft.color = spinHead.color = colour;
-            }
-            if (spinLimit)
-            {
-                bool steering = preparation.Active && preparation.Steering;
-                spinLimit.enabled = steering;
-                if (steering)
-                {
-                    // Reaches the tip of the head at full strength.
-                    float diameter = 2 * (spinArrowGap + tail + spinShaftRange.y + head - 2 * o);
-                    spinLimit.rectTransform.sizeDelta = new Vector2(diameter, diameter);
-                    spinLimit.color = new Color(1, 1, 1, .18f);
-                }
-            }
-        }
-
-        static void Place(Image part, float x, float width, float height)
-        {
-            var r = part.rectTransform;
-            r.anchoredPosition = new Vector2(x, 0);
-            r.sizeDelta = new Vector2(width, height);
         }
 
         void UpdateTexts(float dt)
@@ -300,7 +232,7 @@ namespace Hakaton.Expeditions
             string hint = "";
             if (world.FocusedLoot) hint = "E — подобрать";
             else if (world.FocusedInteractable != null) hint = world.FocusedInteractable.Prompt;
-            else if (preparation.Active) hint = "Shift + мышь — подкрутка";
+            else if (preparation.Active) hint = "ПКМ — отмена";
             else if (world.CardPrompt != null) hint = world.CardPrompt;
             else if (card != null && card.IsReturn) hint = world.thrower.ReturnReady ? "ЛКМ — домой" : "";
             else if (!hintedDiscard && trip != null && trip.PlayedCount >= 2 && trip.Deck.StockCount > 0)

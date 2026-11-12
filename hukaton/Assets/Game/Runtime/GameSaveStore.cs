@@ -12,14 +12,28 @@ namespace Hakaton.Game
         public int version = 1;
         public int coins;
         public bool goalCelebrated;
+        /// <summary>The goblin's word after the first drowning was heard to the end. False in older saves: it comes once more.</summary>
+        public bool drownLectureGiven;
         public WorkshopSave cards;
         public TradingSave shop;
         /// <summary>The goblin card dealer: his current ten, its reveal, purchases and when he may come again. Null in old saves.</summary>
         public GoblinSave goblin;
         /// <summary>The shop tutorial's progress. Null in saves made before it: the tutorial counts as done.</summary>
         public Hakaton.Tutorial.TutorialSave tutorial;
+        /// <summary>The player's own improvements («Выносливость»). Missing in older saves: nothing bought yet.</summary>
+        public PlayerSave player;
         /// <summary>The outing map: opened points, where they were drawn, which are still new. Null in old saves.</summary>
         public OutingMapSave map;
+
+        /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
+        public int StaminaLevel => player != null ? player.staminaLevel : 0;
+    }
+
+    [Serializable]
+    public sealed class PlayerSave
+    {
+        /// <summary>«Выносливость» steps bought on the PC: each adds a second of sprint (one pip).</summary>
+        public int staminaLevel;
     }
 
     /// <summary>One safe-shop snapshot for the entire economy; physical outings are not resumed halfway.</summary>

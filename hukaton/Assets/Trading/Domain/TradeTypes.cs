@@ -25,12 +25,15 @@ namespace Hakaton.Trading
         public long CustomerId { get; }
         public CustomerOutcome Outcome { get; }
         public int Sequence { get; }
+        /// <summary>The visitor was the bulk buyer («Скупщик»): he takes a refusal calmly.</summary>
+        public bool BulkBuyer { get; }
 
-        internal CustomerDeparture(long customerId, CustomerOutcome outcome, int sequence)
+        internal CustomerDeparture(long customerId, CustomerOutcome outcome, int sequence, bool bulkBuyer = false)
         {
             CustomerId = customerId;
             Outcome = outcome;
             Sequence = sequence;
+            BulkBuyer = bulkBuyer;
         }
     }
 
@@ -50,6 +53,23 @@ namespace Hakaton.Trading
         public int MinPatience { get; set; } = 3;
         public int MaxPatience { get; set; } = 5;
         public float CounterStepRatio { get; set; } = .08f;
+        /// <summary>Seconds each shift upgrade (bought on the PC, «Время смены») adds to the base shift, in order.</summary>
+        public float[] ShiftUpgradeSeconds { get; set; } = Array.Empty<float>();
+        /// <summary>Price of each shift upgrade: one per entry of <see cref="ShiftUpgradeSeconds"/>.</summary>
+        public int[] ShiftUpgradePrices { get; set; } = Array.Empty<int>();
+        /// <summary>
+        /// Chance (0..1) that a generated visitor is the rare bulk buyer («Скупщик»), before upgrades. He comes only once
+        /// the session unlocks him (<see cref="TradingSession.BulkBuyerUnlockRevenue"/>), at most once a shift.
+        /// </summary>
+        public float BulkBuyerChance { get; set; } = .05f;
+        /// <summary>Chance each bulk buyer upgrade (bought on the PC, «Скупщик») adds, in order.</summary>
+        public float[] BulkBuyerUpgradeChances { get; set; } = Array.Empty<float>();
+        /// <summary>Price of each bulk buyer upgrade: one per entry of <see cref="BulkBuyerUpgradeChances"/>.</summary>
+        public int[] BulkBuyerUpgradePrices { get; set; } = Array.Empty<int>();
+        /// <summary>The bulk buyer comes for a display with at least this many items.</summary>
+        public int BulkBuyerMinDisplay { get; set; } = 3;
+        /// <summary>Share of each item's recommended price the bulk buyer pays (at least one coin an item).</summary>
+        public float BulkBuyerPriceRatio { get; set; } = .75f;
 
         internal TradeSettings ValidatedCopy()
         {
@@ -64,7 +84,28 @@ namespace Hakaton.Trading
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue
                 || !Positive(CounterStepRatio))
                 throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid trade tuning.");
-            return (TradeSettings)MemberwiseClone();
+            var upgradeSeconds = ShiftUpgradeSeconds ?? Array.Empty<float>();
+            var upgradePrices = ShiftUpgradePrices ?? Array.Empty<int>();
+            float longestShift = ShiftSeconds;
+            foreach (float seconds in upgradeSeconds) longestShift = Positive(seconds) ? longestShift + seconds : float.NaN;
+            if (upgradeSeconds.Length != upgradePrices.Length || !Positive(longestShift)
+                || Array.Exists(upgradePrices, price => price < 0))
+                throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid shift upgrades.");
+            var buyerChances = BulkBuyerUpgradeChances ?? Array.Empty<float>();
+            var buyerPrices = BulkBuyerUpgradePrices ?? Array.Empty<int>();
+            float highestChance = BulkBuyerChance;
+            foreach (float chance in buyerChances) highestChance = Positive(chance) ? highestChance + chance : float.NaN;
+            if (float.IsNaN(BulkBuyerChance) || BulkBuyerChance < 0 || BulkBuyerChance > 1
+                || float.IsNaN(highestChance) || highestChance > 1.0001f
+                || buyerChances.Length != buyerPrices.Length || Array.Exists(buyerPrices, price => price < 0)
+                || BulkBuyerMinDisplay < 1 || !Positive(BulkBuyerPriceRatio) || BulkBuyerPriceRatio > 1)
+                throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid bulk buyer tuning.");
+            var copy = (TradeSettings)MemberwiseClone();
+            copy.ShiftUpgradeSeconds = (float[])upgradeSeconds.Clone();
+            copy.ShiftUpgradePrices = (int[])upgradePrices.Clone();
+            copy.BulkBuyerUpgradeChances = (float[])buyerChances.Clone();
+            copy.BulkBuyerUpgradePrices = (int[])buyerPrices.Clone();
+            return copy;
         }
 
         private static bool Positive(float value) => value > 0 && !float.IsNaN(value) && !float.IsInfinity(value);
@@ -78,6 +119,14 @@ namespace Hakaton.Trading
         public float remainingSeconds;
         public long grossRevenue, nextItemId, nextExpeditionId;
         public int salesCount;
+        /// <summary>Shift upgrades bought; saves older than the upgrade load as 0 (the base shift).</summary>
+        public int shiftLevel;
+        /// <summary>Bulk buyer («Скупщик») chance upgrades bought; older saves load as 0 (the base chance).</summary>
+        public int bulkBuyerLevel;
+        /// <summary>The player has met the bulk buyer: he no longer explains himself, and the PC sells his upgrade.</summary>
+        public bool bulkBuyerMet;
+        /// <summary>The bulk buyer has already come during the current shift.</summary>
+        public bool bulkBuyerThisShift;
         public List<TradingItemSave> items = new List<TradingItemSave>();
     }
 
@@ -127,7 +176,7 @@ namespace Hakaton.Trading
     public sealed class CustomerTerms
     {
         public string Name { get; set; } = "Посетитель";
-        public string RequestedCategory { get; set; }
+        /// <summary>The display slot whose item the visitor asks for; it must hold an item when he arrives.</summary>
         public int RequestedSlot { get; set; } = -1;
         public bool AsksPrice { get; set; } = true;
         public float OpeningRatio { get; set; } = .8f;
@@ -135,6 +184,11 @@ namespace Hakaton.Trading
         public int Patience { get; set; } = 4;
         /// <summary>Exact, staged answers instead of patience and chance (the tutorial's two lessons).</summary>
         public ScriptedHaggle Script { get; set; }
+        /// <summary>
+        /// The rare bulk buyer («Скупщик»): he names no item and never haggles, he offers to take the whole display at a
+        /// discount. The item and haggle terms above are ignored for him.
+        /// </summary>
+        public bool BulkBuyer { get; set; }
     }
 
     /// <summary>
@@ -160,20 +214,33 @@ namespace Hakaton.Trading
     {
         public long Id { get; }
         public string Name { get; }
-        public string RequestedCategory { get; }
         public int RequestedSlot { get; }
         public bool AsksPrice { get; }
         public int MaxPrice { get; }
         public int InitialPatience { get; }
         public ScriptedHaggle Script { get; }
         internal float OpeningRatio { get; }
+        /// <summary>The bulk buyer («Скупщик»): no deal, one offer for the whole display.</summary>
+        public bool IsBulkBuyer { get; }
+        /// <summary>What the bulk buyer pays for the whole display, fixed when he walks in; 0 for other visitors.</summary>
+        public int BulkPrice { get; internal set; }
+        /// <summary>Items on the display when the bulk buyer walked in (all of them go); 0 for other visitors.</summary>
+        public int BulkCount { get; internal set; }
+        /// <summary>The bulk buyer meets the player for the first time and explains himself before the offer.</summary>
+        public bool FirstMeeting { get; internal set; }
+        /// <summary>
+        /// The bulk buyer's speech in order, read on with a press: on a first meeting who he is and how he trades, then the
+        /// offer; later only the offer. The last line is always the offer. Empty for other visitors.
+        /// </summary>
+        public IReadOnlyList<string> Lines { get; internal set; } = Array.Empty<string>();
 
         internal Customer(long id, CustomerTerms terms)
         {
-            Id = id; Name = terms.Name; RequestedCategory = terms.RequestedCategory;
-            RequestedSlot = terms.RequestedSlot; AsksPrice = terms.AsksPrice;
+            Id = id; Name = terms.Name;
+            IsBulkBuyer = terms.BulkBuyer;
+            RequestedSlot = terms.BulkBuyer ? -1 : terms.RequestedSlot; AsksPrice = terms.AsksPrice;
             MaxPrice = terms.MaxPrice; InitialPatience = terms.Patience; OpeningRatio = terms.OpeningRatio;
-            Script = terms.Script;
+            Script = terms.BulkBuyer ? null : terms.Script;
         }
     }
 
@@ -211,7 +278,9 @@ namespace Hakaton.Trading
             B = customer.AsksPrice ? R : Math.Max(1, Math.Min(R - 1, RoundMoney(R * customer.OpeningRatio)));
             N = customer.AsksPrice ? (int?)null : B;
             Patience = customer.InitialPatience; MaxPrice = customer.MaxPrice;
-            Reaction = customer.AsksPrice ? "Сколько стоит?" : $"Дам {B} монет. Договорились?";
+            // The visitor names the item himself; the name leads the line as is (no Russian case endings needed).
+            Reaction = customer.AsksPrice ? $"{item.Definition.Name} — сколько стоит?"
+                : $"{item.Definition.Name} — дам {B} монет. Договорились?";
             Comfort = customer.AsksPrice ? R : B;
         }
 

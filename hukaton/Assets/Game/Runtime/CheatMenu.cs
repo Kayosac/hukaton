@@ -96,9 +96,33 @@ namespace Hakaton.Game
             string error = model.UnlockAllCards(out int added);
             if (error != null) { status = error; return false; }
             if (game.workshop.EmbeddedOpen) game.workshop.RefreshWorkshop();
+            var shop = game.trade.Session;
+            shop.MaximizeShift();
+            // The bulk buyer's chance too; his PC track still stays hidden until he has been met.
+            shop.MaximizeBulkBuyer();
+            // «Выносливость» too: every pip of sprint.
+            var stamina = game.player.stamina ? game.player.stamina.Upgrade : null;
+            stamina?.Maximize();
             game.SaveNow();
             status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
-                + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit + ".";
+                + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit
+                + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с"
+                + ", скупщик: " + Mathf.RoundToInt(shop.BulkBuyerChance * 100) + "%"
+                + (stamina != null ? ", бег: " + Mathf.RoundToInt(stamina.Seconds) + " с." : ".");
+            return true;
+        }
+
+        /// <summary>
+        /// The next visitor the shop generates is the bulk buyer («Скупщик»), whatever his chance, the revenue goal or an
+        /// earlier visit this shift; he still needs goods on the display and stays away during the tutorial.
+        /// </summary>
+        public bool NextVisitorIsBulkBuyer()
+        {
+            if (!game.Ready || game.Phase != GamePhase.Shop) { status = "Скупщик приходит только в лавку."; return false; }
+            var shop = game.trade.Session;
+            shop.ForceBulkBuyerNext = true;
+            status = shop.IsOpen ? "Следующий посетитель — скупщик."
+                : "Откройте лавку: первым придёт скупщик (нужен хотя бы один товар на витрине).";
             return true;
         }
 
@@ -116,6 +140,15 @@ namespace Hakaton.Game
             status = completed ? "Цель выполнена. Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal + "."
                 : "Нет активной цели. Цель выручки доступна после обучения.";
             return completed;
+        }
+
+        /// <summary>The goblin's word about deep water comes again after the next drowning.</summary>
+        public bool ResetDrownLecture()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.ForgetDrownLecture();
+            status = "Гоблин снова встретит в лавке после того, как утонете.";
+            return true;
         }
 
         public int StockDisplayRandomly()
@@ -192,6 +225,8 @@ namespace Hakaton.Game
             GUILayout.Label("Цель", title);
             GUI.enabled = game.CanCompleteActiveGoal;
             if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
+            GUI.enabled = game.Ready && game.DrownLectureGiven;
+            if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
             GUI.enabled = true;
             GUILayout.Space(8);
 
@@ -210,6 +245,8 @@ namespace Hakaton.Game
             GUILayout.Label("Лавка", title);
             GUI.enabled = game.Phase == GamePhase.Shop && !game.trade.Session.IsOpen;
             if (GUILayout.Button("Случайные товары на все пустые слоты", button)) StockDisplayRandomly();
+            GUI.enabled = game.Phase == GamePhase.Shop;
+            if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
             GUI.enabled = true;
             GUILayout.Space(8);
 

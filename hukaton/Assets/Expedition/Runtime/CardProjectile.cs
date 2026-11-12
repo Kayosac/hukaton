@@ -8,7 +8,7 @@ namespace Hakaton.Expeditions
     /// <summary>
     /// A thrown card. Kinematic: it follows <see cref="CardFlight"/> exactly (same as the preview) and sweeps a
     /// small sphere for its first contact. Visually it leaves the hand pose, flattens out and spins like a
-    /// real thrown playing card, banking with its curve.
+    /// real thrown playing card, with a slight wobble.
     /// </summary>
     public sealed class CardProjectile : MonoBehaviour
     {
@@ -16,8 +16,6 @@ namespace Hakaton.Expeditions
         public TrailRenderer trail;
         [Tooltip("Spin around the card's own normal, degrees per second.")]
         public float spinSpeed = 1600;
-        [Tooltip("Bank angle at full curve, degrees.")]
-        public float bankAngle = 35;
         [Min(0)] public float handBlendSeconds = .1f;
         [Min(.01f)] public float worldCardWidth = .24f;
 
@@ -25,9 +23,7 @@ namespace Hakaton.Expeditions
         CardCopy card;
         CardDefinition definition;
         Vector3 velocity;
-        Vector2 spin;
-        float age, spinAngle;
-        CardFlight.Clock clock;
+        float age, spinAngle, twirl;
         Vector3 launchPosition;
         bool resolved;
         Pose? handPose;
@@ -43,17 +39,17 @@ namespace Hakaton.Expeditions
         public CardCopy Card => card;
         public Vector3 Velocity => velocity;
 
-        public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, Vector2 curvature, Pose? fromHand)
+        public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, Pose? fromHand)
         {
             world = owner;
             card = copy;
             definition = copy.IsReturn ? null : owner.workshop.config.Find(copy.Spec.Id);
             velocity = initialVelocity;
             launchPosition = transform.position;
-            spin = curvature;
-            clock = default;
             handPose = fromHand;
             spinAngle = Random.Range(0, 360f);
+            // Each throw twirls one way or the other.
+            twirl = Random.value < .5f ? -1 : 1;
             if (source) view.CopyFrom(source);
             else view.Show(owner.Artwork(copy), owner.hand ? owner.hand.cardBack : null, copy.Level);
             Color accent = owner.Accent(copy);
@@ -71,8 +67,7 @@ namespace Hakaton.Expeditions
             if (resolved || !world) return;
             if (!world.Running) { Destroy(gameObject); return; }
             Vector3 position = transform.position, next = position, nextVelocity = velocity;
-            var nextClock = clock;
-            CardFlight.Advance(ref next, ref nextVelocity, ref nextClock, spin, world.settings, Time.fixedDeltaTime);
+            CardFlight.Advance(ref next, ref nextVelocity, world.settings, Time.fixedDeltaTime);
             if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
             {
                 transform.position = hit.point;
@@ -81,7 +76,6 @@ namespace Hakaton.Expeditions
             }
             transform.position = next;
             velocity = nextVelocity;
-            clock = nextClock;
         }
 
         void Update()
@@ -96,14 +90,14 @@ namespace Hakaton.Expeditions
 
         void UpdateVisual(float dt)
         {
-            spinAngle += spinSpeed * dt * (spin.x >= 0 ? 1 : -1);
+            spinAngle += spinSpeed * dt * twirl;
             Vector3 direction = velocity.sqrMagnitude > .001f ? velocity.normalized : transform.forward;
             Vector3 side = Vector3.Cross(Vector3.up, direction);
             if (side.sqrMagnitude < .001f) side = Vector3.right;
             Vector3 up = Vector3.Cross(direction, side.normalized);
-            // Banks into a sideways curve; up/down spin keeps the card flat.
-            up = Quaternion.AngleAxis(-spin.x * bankAngle + Mathf.Sin(age * 23) * 4, direction) * up;
-            // The quad's normal (local Z) points along the banked up axis: the card flies flat, spinning in its plane.
+            // A slight wobble around the flight direction; otherwise the card flies flat.
+            up = Quaternion.AngleAxis(Mathf.Sin(age * 23) * 4, direction) * up;
+            // The quad's normal (local Z) points along that up axis: the card flies flat, spinning in its plane.
             Quaternion flat = Quaternion.LookRotation(up, direction) * Quaternion.Euler(0, 0, spinAngle);
             Vector3 position = transform.position;
             Quaternion rotation = flat;

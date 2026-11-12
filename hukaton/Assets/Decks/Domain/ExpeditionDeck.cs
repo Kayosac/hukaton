@@ -116,6 +116,11 @@ namespace Hakaton.Decks
         public bool Completed { get; private set; }
         public int PlayedCount { get; private set; }
         public int DiscardedCount { get; private set; }
+        /// <summary>
+        /// Dummies the deck shed as this outing began: never in it, gone from the collection for good. Only for the
+        /// presentation (the hand flings them away as it is dealt).
+        /// </summary>
+        public IReadOnlyList<CardCopy> Dummies { get; internal set; } = Array.Empty<CardCopy>();
         public event Action<CardCopy> CardReleased;
 
         public Expedition(IEnumerable<CardCopy> cards, int handSize, int seed, bool prologue = false)

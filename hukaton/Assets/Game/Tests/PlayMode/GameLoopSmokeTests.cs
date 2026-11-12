@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Hakaton.Computer;
 using Hakaton.Expeditions;
+using Hakaton.Trading.Unity;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -67,9 +68,14 @@ namespace Hakaton.Game.Tests
             var selected = model.Selected().Select(c => c.Id).ToArray();
             long revenue = game.trade.Session.GrossRevenue;
             Assert.That(menu.UnlockCollection(), Is.True);
-            Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Select(c => c.Id)));
+            // The goblin's dummy is in the catalogue (saves must load it) but is never unlocked.
+            Assert.That(model.Owned.Select(c => c.Spec.Id).Distinct(), Is.EquivalentTo(model.Catalog.Where(c => !c.Dummy).Select(c => c.Id)));
             Assert.That(model.HandSize, Is.EqualTo(model.Rules.MaxHand));
             Assert.That(model.DeckAtMaximum, Is.True);
+            Assert.That(game.trade.Session.ShiftAtMaximum, Is.True, "The cheat also maxes the shift length.");
+            Assert.That(game.trade.Session.BulkBuyerAtMaximum, Is.True, "The cheat also maxes the bulk buyer's chance.");
+            Assert.That(game.player.stamina.Upgrade.Maxed, Is.True, "And «Выносливость».");
+            Assert.That(game.player.stamina.Value, Is.EqualTo(game.player.stamina.Upgrade.Capacity), "Bought stamina comes full.");
             Assert.That(model.Owned.Count, Is.LessThanOrEqualTo(model.CollectionLimit));
             Assert.That(model.Selected().Select(c => c.Id), Is.EqualTo(selected));
             int count = model.Owned.Count;
@@ -84,6 +90,10 @@ namespace Hakaton.Game.Tests
             Assert.That(save.coins, Is.EqualTo(initialCoins + 2000));
             Assert.That(game.Restore(save), Is.True);
             Assert.That((model.Owned.Count, model.HandSize, model.DeckAtMaximum), Is.EqualTo((count, model.Rules.MaxHand, true)));
+            Assert.That(game.trade.Session.ShiftLevel, Is.EqualTo(game.trade.Session.ShiftSteps), "The bought shift survives the save.");
+            Assert.That(game.trade.Session.BulkBuyerLevel, Is.EqualTo(game.trade.Session.BulkBuyerSteps), "So does the bulk buyer's chance.");
+            Assert.That(save.StaminaLevel, Is.EqualTo(game.player.stamina.Upgrade.Steps), "And the bought stamina.");
+            Assert.That(game.player.stamina.Capacity, Is.EqualTo(game.player.stamina.Upgrade.Capacity));
 
             menu.SetOpen(true);
             Assert.That(game.player.control.HasModalOwner, Is.True);
@@ -111,14 +121,17 @@ namespace Hakaton.Game.Tests
             int coins = game.wallet.Wallet.Balance;
             int sales = game.trade.Session.SalesCount;
             var stock = game.trade.Session.Inventory.Select(item => item.Id).ToArray();
+            var beforeGoal = game.Capture();
 
             menu.SetOpen(true);
             yield return null;
+            Assert.That(game.goalsBlock.activeSelf, Is.True, "The unfinished revenue goal is listed.");
+            Assert.That(game.objectiveLabel.text, Does.Contain("/" + game.revenueGoal));
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.GoalReached, Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
             Assert.That(game.CanCompleteActiveGoal, Is.False);
-            Assert.That(game.objectiveLabel.text, Does.Contain(game.revenueGoal + "/" + game.revenueGoal));
+            Assert.That(game.goalsBlock.activeSelf, Is.False, "A completed goal leaves the list.");
             Assert.That(menu.CompleteActiveGoal(), Is.False);
             Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(coins));
             Assert.That(game.trade.Session.SalesCount, Is.EqualTo(sales));
@@ -131,6 +144,11 @@ namespace Hakaton.Game.Tests
             Assert.That(game.Restore(save), Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
             Assert.That(game.CanCompleteActiveGoal, Is.False);
+            Assert.That(game.goalsBlock.activeSelf, Is.False);
+            // An older save below the goal lists it again.
+            Assert.That(game.Restore(beforeGoal), Is.True);
+            Assert.That(game.GoalReached, Is.False);
+            Assert.That(game.goalsBlock.activeSelf, Is.True);
             menu.SetOpen(false);
             LogAssert.NoUnexpectedReceived();
         }
@@ -212,7 +230,7 @@ namespace Hakaton.Game.Tests
             thrower.Select(0);
             Assert.That(thrower.Selected, Is.Not.Null, "The hand is dealt on departure.");
             thrower.Preparation.Begin();
-            thrower.Preparation.Tick(world.settings.chargeSeconds * .6f, false, 0, 0, world.settings.chargeSeconds, world.settings.gesturePixels);
+            thrower.Preparation.Tick(world.settings.chargeSeconds * .6f, world.settings.chargeSeconds);
             Assert.That(thrower.Release(), Is.Not.Null, "Releasing a prepared throw launches a card.");
             yield return new WaitForSeconds(1);
 
@@ -266,6 +284,73 @@ namespace Hakaton.Game.Tests
             pc.CloseImmediately();
             Assert.That(music.isPlaying, Is.False);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator EveryShiftEndsWithTheShopkeeperBehindTheCounter()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            game.SkipTutorial();
+            Assert.That(game.Phase, Is.EqualTo(GamePhase.Shop));
+            var trade = Object.FindAnyObjectByType<TradingPrototype>();
+            Assert.That(trade, Is.Not.Null);
+            var world = trade.World;
+            var session = trade.Session;
+            Assert.That(world.returnToCounterOnClose, Is.True, "Shifts end behind the counter unless the scene says otherwise.");
+            Assert.That(world.ShopView, Is.Not.Null, "The game scene trades from camera A.");
+            session.StockEmptySlotsRandomly();
+            Assert.That(session.DisplayCount, Is.GreaterThan(0));
+            Assert.That(session.RemainingSeconds, Is.GreaterThan(0));
+            // The customer side, left of the counter: the shift is started somewhere else.
+            Vector3 elsewhere = world.CounterPosition + new Vector3(-1.1f, 0, 1.5f);
+            yield return null;
+            var shelfColliders = world.SoldItemsRoot.GetComponentsInChildren<Collider>();
+            Assert.That(shelfColliders.Length, Is.GreaterThan(0), "Goods on the display can be aimed at.");
+            foreach (var collider in shelfColliders)
+                Assert.That(collider.isTrigger, Is.True, "Goods turn to the camera; only a trigger may turn with them: " + collider.name);
+
+            // Closed by hand: E, the clock's cross and the tutorial all close through the same path.
+            world.Movement.Teleport(elsewhere, Quaternion.Euler(0, 180, 0));
+            yield return null;
+            Assert.That(session.Open(), Is.True);
+            yield return WaitForCounterView(trade);
+            AssertBehindCounter(world, "Opening the shop puts the shopkeeper behind the counter.");
+            world.Movement.TeleportKeepingVelocity(elsewhere);
+            trade.CloseShopNow();
+            yield return WaitForCounterView(trade);
+            Assert.That(session.IsOpen, Is.False);
+            Assert.That(world.ShopView.modal.Active, Is.False, "The player's own view is back after the blink.");
+            AssertBehindCounter(world, "Closing the shop leaves the shopkeeper behind the counter.");
+
+            // The clock runs out: the shift ends with the visitor at the counter.
+            world.Movement.Teleport(elsewhere, Quaternion.Euler(0, 180, 0));
+            yield return null;
+            Assert.That(session.Open(), Is.True);
+            yield return WaitForCounterView(trade);
+            world.Movement.TeleportKeepingVelocity(elsewhere);
+            Assert.That(session.CurrentCustomer, Is.Not.Null);
+            session.Tick(session.RemainingSeconds + 1);
+            Assert.That(session.Refuse(session.CurrentCustomer.Id), Is.True);
+            Assert.That(session.IsOpen, Is.False, "With no time left the shift ends with this visitor.");
+            yield return WaitForCounterView(trade);
+            Assert.That(world.ShopView.modal.Active, Is.False);
+            AssertBehindCounter(world, "However the shift ends, the shopkeeper is behind the counter.");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        static IEnumerator WaitForCounterView(TradingPrototype trade)
+        {
+            yield return null; // the shop notices the change in its next update
+            yield return WaitFor(() => !trade.ViewTransitioning, 3);
+        }
+
+        static void AssertBehindCounter(TradingSceneBindings world, string message)
+        {
+            Vector3 offset = world.Movement.transform.position - world.CounterPosition;
+            offset.y = 0;
+            Assert.That(offset.magnitude, Is.LessThan(.05f), message);
+            float yaw = Mathf.DeltaAngle(world.Movement.transform.eulerAngles.y, world.CounterRotation.eulerAngles.y);
+            Assert.That(Mathf.Abs(yaw), Is.LessThan(1f), message);
         }
 
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)

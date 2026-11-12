@@ -229,7 +229,7 @@ namespace Hakaton.Computer.Tests
         }
 
         [Test]
-        public void TutorialIsANestedReusablePrefabWithSixDistinctAuthoredTabs()
+        public void TutorialIsANestedReusablePrefabWithSevenDistinctAuthoredTabs()
         {
             Inspect(PcPath, prefab =>
             {
@@ -238,7 +238,11 @@ namespace Hakaton.Computer.Tests
                 Assert.That(app.window, Is.Not.Null);
                 Assert.That(app.window.group, Is.Not.Null);
                 Assert.That(app.window.closeButton, Is.Not.Null);
-                Assert.That(app.tabs, Has.Length.EqualTo(6));
+                Assert.That(app.tabs, Has.Length.EqualTo(7));
+                Assert.That(app.tabs.Select(t => t.title).ToArray(), Is.EqualTo(new[]
+                {
+                    "Начало", "Карты", "Вылазка", "Стихии", "Возврат", "Торговля", "Развитие",
+                }), "«Стихии» follows «Вылазка»");
                 foreach (var tab in app.tabs)
                 {
                     Assert.That(tab, Is.Not.Null);
@@ -252,6 +256,40 @@ namespace Hakaton.Computer.Tests
                 Assert.That(app.tabs.Select(t => t.button).Distinct().Count(), Is.EqualTo(app.tabs.Length));
                 Assert.That(app.tabs.Count(t => t.page.activeSelf), Is.EqualTo(1));
                 Assert.That(app.tabs[app.SelectedTab].page.activeSelf, Is.True);
+            });
+        }
+
+        [Test]
+        public void TabsAreSlicedButtonsAtRealSizeInPageOrderInsideTheStrip()
+        {
+            Inspect(TutorialPath, prefab =>
+            {
+                var app = App(prefab);
+                var strip = app.tabs[0].button.transform.parent as RectTransform;
+                Assert.That(strip, Is.Not.Null);
+                float previousRight = 0f;
+                foreach (var tab in app.tabs)
+                {
+                    var rect = (RectTransform)tab.button.transform;
+                    Assert.That(rect.parent, Is.SameAs(strip), tab.title);
+                    Assert.That(rect.localScale, Is.EqualTo(Vector3.one), tab.title + ": a 9-slice tab is resized, never scaled");
+                    Assert.That(tab.tabImage.type, Is.EqualTo(Image.Type.Sliced), tab.title);
+                    Assert.That(rect.anchorMin, Is.EqualTo(new Vector2(0f, 1f)), tab.title);
+                    Assert.That(rect.anchorMax, Is.EqualTo(new Vector2(0f, 1f)), tab.title);
+                    float left = rect.anchoredPosition.x - rect.pivot.x * rect.sizeDelta.x;
+                    float right = left + rect.sizeDelta.x;
+                    Assert.That(left, Is.GreaterThanOrEqualTo(previousRight), tab.title + ": tabs follow the page order without overlapping");
+                    Assert.That(right, Is.LessThanOrEqualTo(strip.rect.width), tab.title + ": tab must fit the strip");
+                    previousRight = right;
+
+                    var label = tab.button.GetComponentInChildren<TMP_Text>(true);
+                    Assert.That(label, Is.Not.Null, tab.title);
+                    Assert.That(label.text, Is.EqualTo(tab.title));
+                    var labelRect = label.rectTransform;
+                    Assert.That(labelRect.anchoredPosition.x, Is.GreaterThanOrEqualTo(0f), tab.title);
+                    Assert.That(labelRect.anchoredPosition.x + labelRect.sizeDelta.x, Is.LessThanOrEqualTo(rect.sizeDelta.x),
+                        tab.title + ": label must stay inside its tab");
+                }
             });
         }
 

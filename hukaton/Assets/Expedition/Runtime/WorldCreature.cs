@@ -10,7 +10,7 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// Timid flees, Territorial guards its home, Aggressive attacks on sight, Peaceful minds its own business
-    /// and only fights back when hurt, calming down once nobody has hit it for a while.
+    /// and only fights back when hurt or when it sees its kin attacked, calming down once nobody has hit it for a while.
     /// </summary>
     public enum Temperament { Timid, Territorial, Aggressive, Peaceful }
     public enum CreatureState { Idle, Wander, Graze, Alert, Flee, Threat, Chase, Search, Return, Windup, Strike, Recover, Reposition, Frozen, Stunned, Dying, Investigate, Aim, Shoot }
@@ -229,6 +229,7 @@ namespace Hakaton.Expeditions
             attackTarget = null;
             investigateUntil = lureDeafUntil = 0;
             lured = false;
+            ResetKin();
             ResetRanged();
             body.isKinematic = false;
             body.detectCollisions = true;
@@ -277,6 +278,8 @@ namespace Hakaton.Expeditions
             if (State == CreatureState.Frozen) Recover(.35f);
             if (Time.time < stunnedUntil) { if (State != CreatureState.Stunned) Enter(CreatureState.Stunned); Halt(); return; }
             if (State == CreatureState.Stunned) Recover(.2f);
+            // It saw the player's side attack its kin (WorldCreature.Kin.cs): the start is over, it turns on the attacker.
+            if (kinAlarmed && Time.time >= kinAlarmAt) RiseForKin();
 
             if (lured && State != CreatureState.Investigate) lured = false;
             if (Brawling) ThinkBrawl();
@@ -305,10 +308,12 @@ namespace Hakaton.Expeditions
             else unseen += dt;
         }
 
+        /// <summary>Eyes at the creature's own height: a small one loses you behind a low rock.</summary>
+        Vector3 Eye => body.position + Vector3.up * Mathf.Max(.15f, TopHeight * .8f);
+
         bool CanSeeTarget()
         {
-            // Eyes at the creature's own height: a small one loses you behind a low rock.
-            Vector3 eye = body.position + Vector3.up * Mathf.Max(.15f, TopHeight * .8f);
+            Vector3 eye = Eye;
             var seen = Target;
             bool player = ReferenceEquals(seen, world.Player);
             Vector3 target = TargetPosition + Vector3.up * 1.2f;
@@ -317,7 +322,7 @@ namespace Hakaton.Expeditions
             if (distance > sightRange) return false;
             bool calm = IsCalm;
             bool loud = player && world.motor.IsSprinting && distance < hearingRange * 2;
-            if (calm && distance > hearingRange && !loud && Vector3.Dot(transform.forward, to / distance) < -.25f) return false;
+            if (calm && distance > hearingRange && !loud && Vector3.Dot(transform.forward, to / distance) < BehindDot) return false;
             // Card zones (fog) hide the target.
             if (world.IsVisionBlocked(eye, target)) return false;
             // The player rig is on Ignore Raycast: anything hit means the view is blocked. An ally may be hit itself.
@@ -474,7 +479,10 @@ namespace Hakaton.Expeditions
             ThinkHostile();
         }
 
-        /// <summary>Ignores the player until hurt (or frozen, knocked down), then hunts like an aggressive one.</summary>
+        /// <summary>
+        /// Ignores the player until hurt (or frozen, knocked down) or until it notices the player attack its kin
+        /// (WorldCreature.Kin.cs), then hunts like an aggressive one.
+        /// </summary>
         void ThinkPeaceful()
         {
             if (IsCalm)
@@ -721,21 +729,39 @@ namespace Hakaton.Expeditions
             if (impulse.sqrMagnitude > 0) CardPhysics.Push(body, impulse);
             // A short flame does not cut a longer burn short.
             if (burnSeconds > 0) burnUntil = Mathf.Max(burnUntil, Time.time + burnSeconds);
-            provokedUntil = Time.time + 8;
+            var source = SourceOf(hurtBy);
+            bool provoking = Provokes(source);
+            if (provoking) provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
             if (lured) { lured = false; lureDeafUntil = investigateUntil; }
             if (Health == 0) StartCoroutine(Die(impulse));
-            else if (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat)
+            // A peaceful one shrugs off a creature's stray shot; the others bristle at any hit.
+            else if ((provoking || temperament != Temperament.Peaceful) && (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat))
                 Enter(temperament == Temperament.Timid ? CreatureState.Flee : CreatureState.Chase);
             ReportHurt(amount, impulse);
+            if (source == BrawlHurtSource.Player) CryForKin(hurtBy);
         }
 
-        /// <summary>Knocked off its feet: interrupts any attack (board: «сбивание с ног прерывает атаку»).</summary>
-        public void Stagger(float seconds, Vector3 from)
+        /// <summary>
+        /// A hit, knock-down or freeze from this source turns the creature on the player: anything but a creature's
+        /// strike or stray shot (a crash still counts, as before). A brawler stays wound up whoever hit it.
+        /// </summary>
+        bool Provokes(BrawlHurtSource source) => source != BrawlHurtSource.Creature || Brawling;
+
+        /// <summary>Knocked off its feet by the player's cards: interrupts any attack (board: «сбивание с ног прерывает атаку»).</summary>
+        public void Stagger(float seconds, Vector3 from) => Stagger(seconds, from, null);
+
+        /// <summary>
+        /// Knocked off its feet: interrupts any attack. <paramref name="by"/> is who did it, as in <see cref="DamageInfo.Instigator"/>:
+        /// null for the player's cards, a creature for its shot (no grudge against the player then).
+        /// </summary>
+        public void Stagger(float seconds, Vector3 from, ICombatant by)
         {
             if (!Alive) return;
+            var source = SourceOf(by);
             stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
-            provokedUntil = Time.time + 8;
+            if (Provokes(source)) provokedUntil = Time.time + 8;
+            if (source == BrawlHurtSource.Player) CryForKin(by);
             squash.Kick(-5);
             // Stars circle the head for as long as the creature stays knocked out.
             if (!stunStars) stunStars = world.Spawn(world.vfx ? world.vfx.stunned : null, transform.position, Quaternion.identity, Color.white, stunStarsScale);
@@ -746,16 +772,24 @@ namespace Hakaton.Expeditions
             }
         }
 
-        /// <summary>Full freeze: interrupts the attack; physics still applies.</summary>
-        public void Freeze(float seconds)
+        /// <summary>Full freeze by the player's cards: interrupts the attack; physics still applies.</summary>
+        public void Freeze(float seconds) => Freeze(seconds, null);
+
+        /// <summary>
+        /// Full freeze: interrupts the attack; physics still applies. <paramref name="by"/> is who did it, as in
+        /// <see cref="DamageInfo.Instigator"/>: null for the player's cards, a creature for its shot (no grudge against the player then).
+        /// </summary>
+        public void Freeze(float seconds, ICombatant by)
         {
             if (!Alive) return;
+            var source = SourceOf(by);
             // Never shortens a longer freeze (an ice shell holds until it melts or shatters).
             frozenUntil = Mathf.Max(frozenUntil, Time.time + seconds);
-            provokedUntil = Mathf.Max(provokedUntil, Time.time + 8 + Mathf.Min(seconds, 60));
+            if (Provokes(source)) provokedUntil = Mathf.Max(provokedUntil, Time.time + 8 + Mathf.Min(seconds, 60));
             // Ice puts the fire out.
             burnUntil = 0;
             Enter(CreatureState.Frozen);
+            if (source == BrawlHurtSource.Player) CryForKin(by);
         }
 
         /// <summary>Ends any freeze at once: the ice shell melted or shattered. It comes out angry.</summary>
@@ -851,6 +885,7 @@ namespace Hakaton.Expeditions
             {
                 lured = true;
                 provokedUntil = provokeTimer = 0;
+                CancelKinAlarm();
             }
             if (State != CreatureState.Investigate) Enter(CreatureState.Investigate);
             return true;
@@ -955,7 +990,10 @@ namespace Hakaton.Expeditions
             if (crashed && Alive)
             {
                 // Charging into rock: dazed — the opening the board's "use the predator's dash" example describes.
+                // Its own doing: no cry to its kin.
+                hurtByCrash = true;
                 Stagger(1.3f, collision.GetContact(0).point);
+                hurtByCrash = false;
                 if (world.feel && PlayerDistance < 12) world.feel.AddTrauma(.25f);
             }
         }

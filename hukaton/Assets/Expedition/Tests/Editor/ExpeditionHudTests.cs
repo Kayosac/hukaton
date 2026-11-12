@@ -45,19 +45,22 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
-        public void SpinArrowIsTailShaftAndHeadAroundTheAimPoint()
+        public void ReticleIsAWhitePixelSquareInsideTheChargeRing()
         {
             var hud = Hud;
-            Assert.That(new[] { hud.spinTail, hud.spinShaft, hud.spinHead }.Select(i => i.sprite.name),
-                Is.EqualTo(new[] { "ArrowTail", "ArrowShaft", "ArrowHead" }));
-            foreach (var part in new[] { hud.spinTail, hud.spinShaft, hud.spinHead })
-            {
-                Assert.That(part.transform.parent, Is.EqualTo(hud.spinPointer));
-                Assert.That(part.rectTransform.pivot, Is.EqualTo(new Vector2(0, .5f)));
-                Assert.That(part.transform.localScale, Is.EqualTo(Vector3.one));
-            }
-            Assert.That(hud.spinShaft.transform.GetSiblingIndex(), Is.LessThan(hud.spinHead.transform.GetSiblingIndex()));
-            Assert.That(hud.reticle.sprite.name, Is.EqualTo("CrosshairX"));
+            Assert.That(hud.reticle.sprite.name, Is.EqualTo("px_white"));
+            Assert.That(hud.reticleColour, Is.EqualTo(Color.white));
+            Assert.That(hud.reticle.rectTransform.pivot, Is.EqualTo(new Vector2(.5f, .5f)));
+            var square = hud.reticle.GetComponent<PixelSquare>();
+            Assert.That(square != null, "Sized to an even whole number of screen pixels");
+            Assert.That(square.layout, Is.SameAs(hud.layout));
+            Assert.That(PixelSquare.SidePixels(1080 / 414f, square.pixelsPerStep), Is.EqualTo(6), "6 px at 1080p");
+            Assert.That(PixelSquare.SidePixels(.6f, square.pixelsPerStep), Is.EqualTo(2), "Never below 2 px");
+            Assert.That(PixelSquare.SidePixels(1440 / 414f, square.pixelsPerStep) % 2, Is.Zero, "Always even");
+            Assert.That(hud.chargeRing, Is.Not.Null);
+            var aim = hud.reticle.transform.parent;
+            Assert.That(aim.Find("Spin pointer"), Is.Null, "The spin mechanic is gone, and its arrow with it");
+            Assert.That(aim.Find("Spin limit"), Is.Null);
         }
 
         [TestCase("Assets/Game/Prefabs/Cards/MoonGravity/Moon gravity badge.prefab", "EffectMoon")]

@@ -1,0 +1,303 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e1c4ed456c147849430d1e49dd4ca58, type: 3}
+  m_Name: PcMergeFx
+  m_EditorClassIdentifier: Hakaton.Computer::Hakaton.Computer.PcMergeFx
+  levels:
+  - label: II
+    resultLevel: 2
+    flySeconds: 0.2
+    grindSeconds: 0.42
+    holdSeconds: 0.06
+    revealSeconds: 0.5
+    anticipationPixels: 6
+    overshoot: 1.5
+    arcPixels: 8
+    overlapPixels: 12
+    tiltDegrees: 4
+    windUpSwell: 0.1
+    jitterPixels: {x: 1, y: 2}
+    glowPulseHz: 10
+    grindFlash: 0.45
+    spotlight: 0.65
+    spotlightColour: {r: 0.078, g: 0.047, b: 0.031, a: 1}
+    spotlightInSeconds: 0.15
+    spotlightOutSeconds: 0.3
+    impactSquash: {x: 1.12, y: 0.9}
+    cardFlashFadeSeconds: 0.1
+    windowShakePixels: 3
+    windowShakeSeconds: 0.25
+    swell: 4
+    markHopPixels: 6
+    flipFrequency: 12
+    grindWobble: 0.04
+    grindNoise: 0.03
+    impactWobble: 0.1
+    impactFlash: 0.08
+    crtFlashSeconds: 0.07
+    crtFadeSeconds: 0.25
+    bursts:
+    - prefab: {fileID: 1453644156769209027, guid: 68df00303d9fc44f6bd145f7a8bf2b56, type: 3}
+      beat: 0
+      delay: 0.05
+      offset: {x: 0, y: 0}
+      rotation: {x: -90, y: 0, z: 0}
+      scale: 0.9
+      accent: 0.6
+      speed: 2.2
+      clearOnImpact: 1
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 428887586027961507, guid: 4b69a646725a1466db73bc60ea7d69c2, type: 3}
+      beat: 1
+      delay: 0
+      offset: {x: -46, y: 62}
+      rotation: {x: 0, y: 0, z: 35}
+      scale: 0.3
+      accent: 0.7
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 1
+      hold: 1
+    - prefab: {fileID: 428887586027961507, guid: 4b69a646725a1466db73bc60ea7d69c2, type: 3}
+      beat: 1
+      delay: 0.03
+      offset: {x: 46, y: 62}
+      rotation: {x: 0, y: 0, z: -35}
+      scale: 0.3
+      accent: 0.7
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 1
+      hold: 1
+    - prefab: {fileID: 3393973061659341912, guid: bc924b5c1356e4df0a20d5687c31dad5, type: 3}
+      beat: 2
+      delay: 0
+      offset: {x: 0, y: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 0.9
+      accent: 0.3
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 8279554034308906799, guid: 307a425869952436db179a71d48dceb5, type: 3}
+      beat: 2
+      delay: 0.02
+      offset: {x: 0, y: 0}
+      rotation: {x: -90, y: 0, z: 0}
+      scale: 0.4
+      accent: 0.2
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 2778135322309562013, guid: cdb02ed48bf3040708fd8f9846de3ac5, type: 3}
+      beat: 3
+      delay: 0.04
+      offset: {x: 0, y: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 1.1
+      accent: 0.5
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    cues:
+    - cue: {fileID: 11400000, guid: 44a69d2df48cb4ae284a0c5728830ebc, type: 2}
+      beat: 0
+      delay: 0
+      volume: 0.45
+      pitch: 1.25
+    - cue: {fileID: 11400000, guid: 0ea29fc8b5bec4f1d82f53c23546d322, type: 2}
+      beat: 1
+      delay: 0
+      volume: 0.7
+      pitch: 1
+    - cue: {fileID: 11400000, guid: 84f7856fb3e8d49c2840cdc3f1731e95, type: 2}
+      beat: 2
+      delay: 0
+      volume: 1
+      pitch: 0.9
+    - cue: {fileID: 11400000, guid: 0f1bf280ca2a3488194b833eae52461e, type: 2}
+      beat: 2
+      delay: 0
+      volume: 0.35
+      pitch: 1.3
+    - cue: {fileID: 11400000, guid: 3f8a3dc2461c747279c623212fc31964, type: 2}
+      beat: 3
+      delay: 0
+      volume: 0.8
+      pitch: 1
+  - label: III
+    resultLevel: 3
+    flySeconds: 0.24
+    grindSeconds: 0.6
+    holdSeconds: 0.08
+    revealSeconds: 0.58
+    anticipationPixels: 8
+    overshoot: 1.8
+    arcPixels: 12
+    overlapPixels: 14
+    tiltDegrees: 6
+    windUpSwell: 0.14
+    jitterPixels: {x: 1, y: 3}
+    glowPulseHz: 14
+    grindFlash: 0.55
+    spotlight: 0.72
+    spotlightColour: {r: 0.078, g: 0.047, b: 0.031, a: 1}
+    spotlightInSeconds: 0.15
+    spotlightOutSeconds: 0.35
+    impactSquash: {x: 1.18, y: 0.86}
+    cardFlashFadeSeconds: 0.12
+    windowShakePixels: 4
+    windowShakeSeconds: 0.32
+    swell: 6
+    markHopPixels: 9
+    flipFrequency: 11
+    grindWobble: 0.07
+    grindNoise: 0.05
+    impactWobble: 0.18
+    impactFlash: 0.12
+    crtFlashSeconds: 0.08
+    crtFadeSeconds: 0.32
+    bursts:
+    - prefab: {fileID: 2125952048379651943, guid: 73bfe6631feae42a1bc4ebe7d6f2f3b0, type: 3}
+      beat: 0
+      delay: 0.05
+      offset: {x: 0, y: 0}
+      rotation: {x: -90, y: 0, z: 0}
+      scale: 1.1
+      accent: 0
+      speed: 2
+      clearOnImpact: 1
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 428887586027961507, guid: 4b69a646725a1466db73bc60ea7d69c2, type: 3}
+      beat: 1
+      delay: 0
+      offset: {x: -48, y: 64}
+      rotation: {x: 0, y: 0, z: 40.25}
+      scale: 0.38
+      accent: 0.7
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 1
+      hold: 1
+    - prefab: {fileID: 428887586027961507, guid: 4b69a646725a1466db73bc60ea7d69c2, type: 3}
+      beat: 1
+      delay: 0.03
+      offset: {x: 48, y: 64}
+      rotation: {x: 0, y: 0, z: -40.25}
+      scale: 0.38
+      accent: 0.7
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 1
+      hold: 1
+    - prefab: {fileID: 3393973061659341912, guid: bc924b5c1356e4df0a20d5687c31dad5, type: 3}
+      beat: 2
+      delay: 0
+      offset: {x: 0, y: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 1.2
+      accent: 0.25
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 7894522165553701578, guid: 499b3c74db84143798b6681087dbcdd9, type: 3}
+      beat: 2
+      delay: 0.02
+      offset: {x: 0, y: 0}
+      rotation: {x: -90, y: 0, z: 0}
+      scale: 0.6
+      accent: 0
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 4242546911151008032, guid: 08ceeca717d2941e4b589d4c287e4301, type: 3}
+      beat: 3
+      delay: 0
+      offset: {x: 0, y: -70}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 0.85
+      accent: 0.2
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 4069425367736378376, guid: c26cca2622eea4051a3d173fb9537c60, type: 3}
+      beat: 3
+      delay: 0.08
+      offset: {x: 0, y: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 0.8
+      accent: 0
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 1928027298773462477, guid: a40eec57afc6340eb948aebd448ce9b8, type: 3}
+      beat: 3
+      delay: 0.05
+      offset: {x: 0, y: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 0.45
+      accent: 0
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    - prefab: {fileID: 2778135322309562013, guid: cdb02ed48bf3040708fd8f9846de3ac5, type: 3}
+      beat: 3
+      delay: 0.22
+      offset: {x: 0, y: 20}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: 1.3
+      accent: 0.5
+      speed: 1
+      clearOnImpact: 0
+      stopOnImpact: 0
+      hold: 0
+    cues:
+    - cue: {fileID: 11400000, guid: 44a69d2df48cb4ae284a0c5728830ebc, type: 2}
+      beat: 0
+      delay: 0
+      volume: 0.55
+      pitch: 1.1
+    - cue: {fileID: 11400000, guid: 0ea29fc8b5bec4f1d82f53c23546d322, type: 2}
+      beat: 1
+      delay: 0
+      volume: 0.85
+      pitch: 0.85
+    - cue: {fileID: 11400000, guid: 0f1bf280ca2a3488194b833eae52461e, type: 2}
+      beat: 2
+      delay: 0
+      volume: 0.7
+      pitch: 1.05
+    - cue: {fileID: 11400000, guid: 84f7856fb3e8d49c2840cdc3f1731e95, type: 2}
+      beat: 2
+      delay: 0
+      volume: 1
+      pitch: 0.8
+    - cue: {fileID: 11400000, guid: 3f8a3dc2461c747279c623212fc31964, type: 2}
+      beat: 3
+      delay: 0
+      volume: 0.85
+      pitch: 0.95
+    - cue: {fileID: 11400000, guid: c21ec2d397f84451096a15f37560d5ab, type: 2}
+      beat: 3
+      delay: 0.06
+      volume: 0.7
+      pitch: 1

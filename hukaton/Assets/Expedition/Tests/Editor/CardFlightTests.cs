@@ -18,12 +18,11 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void SplittingTheSameTimeIntoFramesGivesTheSamePath()
         {
-            CardFlight.Clock t_wholePosition = default, t_framePosition = default;
             Vector3 wholePosition = Vector3.zero, wholeVelocity = new Vector3(1, 6, 14);
-            CardFlight.Advance(ref wholePosition, ref wholeVelocity, ref t_wholePosition, new Vector2(.6f, .3f), settings, 1f);
+            CardFlight.Advance(ref wholePosition, ref wholeVelocity, settings, 1f);
 
             Vector3 framePosition = Vector3.zero, frameVelocity = new Vector3(1, 6, 14);
-            for (int frame = 0; frame < 4; frame++) CardFlight.Advance(ref framePosition, ref frameVelocity, ref t_framePosition, new Vector2(.6f, .3f), settings, .25f);
+            for (int frame = 0; frame < 4; frame++) CardFlight.Advance(ref framePosition, ref frameVelocity, settings, .25f);
 
             Assert.That(Vector3.Distance(wholePosition, framePosition), Is.LessThan(1e-4f),
                 "The preview samples the path differently from the projectile; both must land in the same place.");
@@ -33,96 +32,20 @@ namespace Hakaton.Expeditions.Tests
         [Test]
         public void GravityPullsTheCardDownAsDesigned()
         {
-            CardFlight.Clock t_position = default;
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 5, 10);
-            CardFlight.Advance(ref position, ref velocity, ref t_position, Vector2.zero, settings, 1f);
+            CardFlight.Advance(ref position, ref velocity, settings, 1f);
             float expected = 5 - .5f * settings.cardGravity;
             Assert.That(position.y, Is.EqualTo(expected).Within(.06f));
             Assert.That(velocity.y, Is.EqualTo(5 - settings.cardGravity).Within(1e-3f));
-            Assert.That(position.z, Is.EqualTo(10).Within(1e-3f), "Without spin nothing slows the card horizontally.");
+            Assert.That(position.z, Is.EqualTo(10).Within(1e-3f), "Nothing slows the card horizontally.");
         }
 
         [Test]
-        public void WithoutSpinTheCardStaysInItsThrowPlane()
+        public void TheCardStaysInItsThrowPlane()
         {
-            CardFlight.Clock t_position = default;
             Vector3 position = Vector3.zero, velocity = new Vector3(0, 4, 12);
-            CardFlight.Advance(ref position, ref velocity, ref t_position, Vector2.zero, settings, 1.5f);
+            CardFlight.Advance(ref position, ref velocity, settings, 1.5f);
             Assert.That(position.x, Is.EqualTo(0).Within(1e-5f));
-        }
-
-        [Test]
-        public void SpinCurvesTheCardToEitherSideSymmetrically()
-        {
-            CardFlight.Clock t_right = default, t_left = default;
-            Vector3 right = Vector3.zero, rightVelocity = new Vector3(0, 3, 12);
-            Vector3 left = Vector3.zero, leftVelocity = new Vector3(0, 3, 12);
-            CardFlight.Advance(ref right, ref rightVelocity, ref t_right, Vector2.right, settings, .8f);
-            CardFlight.Advance(ref left, ref leftVelocity, ref t_left, Vector2.left, settings, .8f);
-            Assert.That(right.x, Is.GreaterThan(.5f), "Positive spin curves to the thrower's right.");
-            Assert.That(left.x, Is.EqualTo(-right.x).Within(1e-4f));
-            Assert.That(left.y, Is.EqualTo(right.y).Within(1e-4f), "Sideways spin never changes the drop.");
-        }
-
-        [Test]
-        public void UpSpinFloatsTheCardAndDownSpinDipsItWithoutSideDrift()
-        {
-            CardFlight.Clock t_still = default, t_up = default, t_down = default;
-            Vector3 still = Vector3.zero, stillVelocity = new Vector3(0, 3, 12);
-            Vector3 up = Vector3.zero, upVelocity = new Vector3(0, 3, 12);
-            Vector3 down = Vector3.zero, downVelocity = new Vector3(0, 3, 12);
-            CardFlight.Advance(ref still, ref stillVelocity, ref t_still, Vector2.zero, settings, .8f);
-            CardFlight.Advance(ref up, ref upVelocity, ref t_up, Vector2.up, settings, .8f);
-            CardFlight.Advance(ref down, ref downVelocity, ref t_down, Vector2.down, settings, .8f);
-            Assert.That(up.y, Is.GreaterThan(still.y + .5f));
-            Assert.That(down.y, Is.LessThan(still.y - .5f));
-            Assert.That(up.x, Is.EqualTo(0).Within(1e-5f));
-            Assert.That(down.x, Is.EqualTo(0).Within(1e-5f));
-        }
-
-        [TestCase(0f, 0f, 18f)]
-        [TestCase(0f, 8f, 16f)]
-        [TestCase(0f, 18f, .01f)]
-        public void FullUpSpinClimbsThenFallsFasterAndFaster(float x, float y, float z)
-        {
-            Vector3 position = Vector3.zero, velocity = new Vector3(x, y, z);
-            var time = default(CardFlight.Clock);
-            float previousFall = 0, highest = 0;
-            bool fell = false;
-            for (int second = 0; second < 10; second++)
-            {
-                CardFlight.Advance(ref position, ref velocity, ref time, Vector2.up, settings, 1f);
-                highest = Mathf.Max(highest, position.y);
-                if (velocity.y < -1f)
-                {
-                    if (fell) Assert.That(-velocity.y, Is.GreaterThan(previousFall + 5f), "Past the top the card falls with growing speed, never hangs.");
-                    fell = true;
-                    previousFall = -velocity.y;
-                }
-            }
-            Assert.That(fell, "Up-spin can't keep a card climbing forever.");
-            Assert.That(position.y, Is.LessThan(highest - 10), "It comes back down.");
-        }
-
-        [Test]
-        public void UpSpinStillClimbsOffTheHand()
-        {
-            Vector3 position = Vector3.zero, velocity = new Vector3(0, 0, 18);
-            var time = default(CardFlight.Clock);
-            CardFlight.Advance(ref position, ref velocity, ref time, Vector2.up, settings, settings.liftHoldSeconds);
-            Assert.That(velocity.y, Is.GreaterThan(0), "A flat throw with full up-spin rises at first.");
-        }
-
-        [Test]
-        public void DiagonalSpinCurvesBothWays()
-        {
-            CardFlight.Clock t_position = default, t_flat = default;
-            Vector3 position = Vector3.zero, velocity = new Vector3(0, 3, 12);
-            Vector3 flat = Vector3.zero, flatVelocity = new Vector3(0, 3, 12);
-            CardFlight.Advance(ref position, ref velocity, ref t_position, new Vector2(-.7f, .7f), settings, .8f);
-            CardFlight.Advance(ref flat, ref flatVelocity, ref t_flat, Vector2.zero, settings, .8f);
-            Assert.That(position.x, Is.LessThan(-.3f), "Left component curves left.");
-            Assert.That(position.y, Is.GreaterThan(flat.y + .3f), "Up component lifts.");
         }
 
         [Test]

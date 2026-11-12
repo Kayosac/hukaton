@@ -39,6 +39,13 @@ namespace Hakaton.Game
         public CaveTutorial cave;
         [Tooltip("The map at the door: opened outing points, a card with «Идти» / «Остаться». Empty: straight to the endless world.")]
         public OutingMap outingMap;
+        [Tooltip("The goblin's word in the shop after the first drowning (once per save). Empty: just the notice.")]
+        public GoblinLecture lecture;
+        [TextArea] public string[] drownLecture =
+        {
+            "Когда-нибудь ты научишься плавать, но не сегодня.",
+            "Больше так не рискуй."
+        };
         public FirstPersonMotor player;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
@@ -46,6 +53,9 @@ namespace Hakaton.Game
         public Canvas shopHud;
         public Canvas progressCanvas;
         public TMP_Text objectiveLabel, resultLabel;
+        [Tooltip("The goals list on the shop HUD (title and the revenue goal with their shadows). A completed goal leaves the "
+            + "list; the revenue goal is the only one, so the whole block hides once it is reached.")]
+        public GameObject goalsBlock;
         [Header("Presentation")]
         public ScreenFade fade;
         public SfxPlayer sfx;
@@ -54,7 +64,7 @@ namespace Hakaton.Game
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
-        [Min(1)] public int revenueGoal = 1000;
+        [Min(1)] public int revenueGoal = 666;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
@@ -78,7 +88,13 @@ namespace Hakaton.Game
         public bool InCave => cave && cave.Active;
         /// <summary>Leaving now loses something: the cave run or the current outing (the shop is saved as it is).</summary>
         public bool LeavingLosesProgress => Ready && (InCave || Phase == GamePhase.Expedition);
-        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver;
+        /// <summary>The goblin is in the shop with his word about deep water.</summary>
+        public bool LectureActive => lecture && lecture.Active;
+        /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
+        public bool DrownLectureGiven => drownLectureGiven;
+        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven;
+        // The return notice waits until the goblin has had his say.
+        string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
         static NewGameStart? pendingStart;
         GoblinCardShop cardShop => services.cardShop;
@@ -91,9 +107,16 @@ namespace Hakaton.Game
         {
             if (!trade || trade.Session == null || !workshop || workshop.Model == null || !expedition || !wallet
                 || !services || !services.cardShop || !tutorial || !player || !shopGeometry || !expeditionGeometry || !shopHud || !progressCanvas
-                || !objectiveLabel || !resultLabel
+                || !objectiveLabel || !resultLabel || !goalsBlock
                 || trade.walletHost != wallet || workshop.walletHost != wallet)
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
+            // The PC sells the shop's shift upgrade («Время смены»); the session is built at runtime, so it is handed over here.
+            if (services.computer) services.computer.Shop = trade.Session;
+            // «Выносливость» on the PC: the player's own upgrade, handed over the same way.
+            if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
+            // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
+            // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
+            trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
@@ -101,6 +124,8 @@ namespace Hakaton.Game
             if (outingMap) outingMap.Changed += MarkDirty;
             cardShop.Visits.Changed += MarkDirty;
             tutorial.Changed += MarkDirty;
+            if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
+            if (lecture) lecture.Finished += OnLectureFinished;
             restoring = true;
             string warning = null;
             bool loaded = false;
@@ -145,6 +170,8 @@ namespace Hakaton.Game
             if (workshop?.Model != null) workshop.Model.Changed -= MarkDirty;
             if (services && cardShop) cardShop.Visits.Changed -= MarkDirty;
             if (tutorial) tutorial.Changed -= MarkDirty;
+            if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
+            if (lecture) lecture.Finished -= OnLectureFinished;
         }
         void OnApplicationQuit() { SaveNow(); }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
@@ -158,7 +185,7 @@ namespace Hakaton.Game
             if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
-                if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen)
+                if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen && !LectureActive)
                 {
                     goalCelebrated = true; dirty = true;
                     if (sfx) sfx.Play(goalCue);
@@ -183,19 +210,23 @@ namespace Hakaton.Game
         void RefreshProgress()
         {
             if (!Ready) return;
-            if (!progressCanvas || !objectiveLabel || !resultLabel || trade.Session == null)
+            if (!progressCanvas || !objectiveLabel || !resultLabel || !goalsBlock || trade.Session == null)
             {
                 if (!progressHudLost)
                 {
                     progressHudLost = true;
                     Debug.LogError("GameLoop: Progress HUD was destroyed at runtime (canvas=" + (bool)progressCanvas
-                        + ", objective=" + (bool)objectiveLabel + ", result=" + (bool)resultLabel
+                        + ", objective=" + (bool)objectiveLabel + ", goals=" + (bool)goalsBlock + ", result=" + (bool)resultLabel
                         + ", session=" + (trade.Session != null) + "). The revenue HUD is skipped; the game keeps running.", this);
                 }
                 return;
             }
             progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
-            objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
+            // A completed goal leaves the list. The revenue goal is the only one, so its title goes too (the block, not the
+            // labels: their shadows mirror activeSelf). An older save below the goal lists it again.
+            bool goalListed = !GoalReached;
+            if (goalsBlock.activeSelf != goalListed) goalsBlock.SetActive(goalListed);
+            if (goalListed) objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
         public void Notify(string message, float seconds = 5)
@@ -287,10 +318,30 @@ namespace Hakaton.Game
             restoring = false;
             cardShop.Visits.OutingReturned();
             int kept = delivery.Sum(x => x.count);
-            Notify(defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
+            string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
-                : "Вы вернулись без добычи. Остаток смены сохранён.", 8);
+                : "Вы вернулись без добычи. Остаток смены сохранён.";
+            // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;
+            // the notice comes once he is gone.
+            if (defeated && expedition.LastOutingDrowned && !drownLectureGiven && !tutorial.Active && lecture && lecture.Play(drownLecture))
+            { noticeAfterLecture = notice; Notify(string.Empty, 0); }
+            else Notify(notice, 8);
             dirty = true;
+        }
+
+        void OnLectureFinished()
+        {
+            drownLectureGiven = true;
+            dirty = true;
+            if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);
+            noticeAfterLecture = null;
+        }
+
+        /// <summary>Cheats: the next drowning brings the goblin's word again.</summary>
+        public void ForgetDrownLecture()
+        {
+            drownLectureGiven = false;
+            MarkDirty();
         }
         /// <summary>The prologue runs in the expedition phase: nothing is saved there, quitting starts the cave again.</summary>
         void EnterCave()
@@ -391,13 +442,15 @@ namespace Hakaton.Game
             else trade.World.HeldItem.SetActive(false);
         }
         public GameSave Capture() => new GameSave {
-            coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated,
+            coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
+            player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
-            && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop);
+            && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
+            && (save.player == null || save.player.staminaLevel >= 0);
         public bool Restore(GameSave save)
         {
             if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.Session.ExpeditionId != 0
@@ -408,10 +461,14 @@ namespace Hakaton.Game
             wallet.Wallet.TryRestoreBalance(save.coins);
             if (save.goblin != null) cardShop.Visits.TryRestore(save.goblin, id => workshop.Model.Spec(id) != null);
             if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
+            // Resizes the stamina to the bought steps and fills it (older saves: none bought).
+            if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
             if (outingMap) outingMap.Restore(save.map);
             goalCelebrated = save.goalCelebrated;
+            drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
+            RefreshProgress(); // The goals list follows the restored revenue at once.
             return true;
         }
         public bool SaveNow()

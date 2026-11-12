@@ -1,0 +1,35 @@
+{
+  "asset": "Гриб-полка (трутовик) для карты «Гриб-батут»",
+  "date": "2026-11-12",
+  "status": "generated, awaiting user approval of the look (no Unity tests run yet)",
+  "request": "Плейтест: если кидаешь гриб в стену — вырастает шляпка, приросшая к стене, ей тоже можно пользоваться.",
+  "design": {
+    "shape": "lopsided lobed half-disc with a small bite, level plateau of rolled growth zones stepping down to the margin, 4 thin tan growth rings, ruffled cream lip drooping more on one side, 7 flat irregular cream spot plates like the floor mushroom's spots, tan underside with faceted radial gill ridges, back edge sunk 0.15 m into the wall, tips thinning into the wall",
+    "palette": "the floor trampoline's own materials: Trampoline cap (top), Trampoline gills (underside, rings), Trampoline spots (lip, spots)",
+    "unity_space": "x along the wall, y up, z out of the wall; origin = where the card hit the wall (hinge)",
+    "size_m": {"width": 1.85, "reach_out_of_wall": 0.97, "sunk": 0.15, "top": "0.06-0.08 over the hinge", "underside_at_wall": -0.37}
+  },
+  "unity_assets": {
+    "visual_mesh": "hukaton/Assets/Game/Prefabs/Cards/MushroomTrampoline/Mushroom shelf.asset (2966 vertices, 3177 triangles; submeshes top 1536 / underside+rings 1086 / lip+spots 555)",
+    "collider_mesh": "hukaton/Assets/Game/Prefabs/Cards/MushroomTrampoline/Mushroom shelf collider.asset (convex hull of the visible body, 126 vertices, 248 triangles, closed; spot plates of 1-1.5 cm stay outside it)",
+    "prefab": "hukaton/Assets/Game/Prefabs/Cards/MushroomTrampoline/Mushroom shelf.prefab — written by the temporary authoring script, not by this folder"
+  },
+  "sources": {
+    "generator": "make_shelf.py (Unity assets + .blend + FBX/OBJ + previews), shelf_geometry.py (the model), unity_mesh.py (Unity Mesh YAML writer; re-encodes the 4 existing mushroom meshes byte-identically: python3 unity_mesh.py --selftest <asset>...)",
+    "blend": "mushroom_shelf.blend (bpy 5.3; shelf, collider wire, wall, floor mushroom from its Unity meshes, 1.8 m player capsule, cameras)",
+    "exports": ["mushroom_shelf.fbx", "mushroom_shelf.obj", "mushroom_shelf.mtl"]
+  },
+  "previews": [
+    "previews/01_shelf_three_quarter.png",
+    "previews/02_shelf_side_profile.png",
+    "previews/03_shelf_underside.png",
+    "previews/04_shelf_with_floor_mushroom_and_player.png",
+    "previews/05_collider_wire_overlay.png",
+    "previews/06_shelf_top_plan.png"
+  ],
+  "checks": {
+    "winding_vs_normals": "mean 10.7°, 99th percentile 30.8° between face and vertex normals (auto-smooth crease: top 50°, gills 22°, lip 45°)",
+    "collider": "closed, convex, 248 ≤ 255 triangles, landing-area normal.y ≥ 0.999, visible body outside the hull by at most 1.1 cm",
+    "unity_import": "not verified yet (needs the editor bridge)"
+  }
+}

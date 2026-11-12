@@ -78,6 +78,8 @@ namespace Hakaton.Expeditions
         public IReadOnlyList<LootSave> Pickups => pickups.AsReadOnly();
         public int LootValue { get; private set; }
         public bool Returning { get; private set; }
+        /// <summary>The last outing ended in deep water (not the prologue's dips); read by the shop on the way home.</summary>
+        public bool LastOutingDrowned { get; private set; }
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
         public int Impacts { get; private set; }
         public WorldLoot FocusedLoot { get; private set; }
@@ -112,6 +114,24 @@ namespace Hakaton.Expeditions
         public WorldCreature[] prologueCreatures = new WorldCreature[0];
         /// <summary>The creatures of the place the player is in: the cave's during the prologue, the valley's otherwise.</summary>
         public IReadOnlyList<WorldCreature> ActiveCreatures => InPrologue ? (IReadOnlyList<WorldCreature>)prologueCreatures : creatures;
+        /// <summary>The player's side (cards, hazards, allies) hit, knocked down or froze a creature (at most every quarter second per creature).</summary>
+        public event Action<WorldCreature> CreatureAttackedByPlayer;
+
+        /// <summary>
+        /// The player's side attacked <paramref name="victim"/> (<paramref name="by"/>: null for cards and hazards, or an
+        /// ally): every creature around may notice it and stand up for its kin (<see cref="WorldCreature.WitnessKinAttacked"/>).
+        /// </summary>
+        public void ReportPlayerAttack(WorldCreature victim, ICombatant by)
+        {
+            if (!victim) return;
+            var around = ActiveCreatures;
+            for (int i = 0; i < around.Count; i++)
+            {
+                var witness = around[i];
+                if (witness && witness != victim) witness.WitnessKinAttacked(victim, by);
+            }
+            CreatureAttackedByPlayer?.Invoke(victim);
+        }
 
         void Awake() { workshop.Departed += BeginOuting; }
         void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
@@ -120,6 +140,7 @@ namespace Hakaton.Expeditions
         {
             InPrologue = false;
             Returning = false;
+            LastOutingDrowned = false;
             Impacts = 0;
             LootValue = 0;
             Coins = 0;
@@ -147,6 +168,7 @@ namespace Hakaton.Expeditions
             hud.canvas.enabled = true;
             hud.BeginOuting();
             hand.Deal();
+            ShedDummies();
             if (time) time.ResetTime();
             if (sfx && cues) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
         }
@@ -271,10 +293,10 @@ namespace Hakaton.Expeditions
             return definition ? definition.accent : Color.white;
         }
 
-        public CardProjectile Launch(CardCopy card, Vector3 position, Vector3 velocity, Vector2 spin, CardView source, Pose? handPose)
+        public CardProjectile Launch(CardCopy card, Vector3 position, Vector3 velocity, CardView source, Pose? handPose)
         {
             var projectile = Instantiate(projectilePrefab, position, Quaternion.LookRotation(velocity.normalized), spawnedObjects);
-            projectile.Launch(this, card, source, velocity, spin, handPose);
+            projectile.Launch(this, card, source, velocity, handPose);
             return projectile;
         }
 
@@ -381,6 +403,7 @@ namespace Hakaton.Expeditions
         {
             InPrologue = true;
             Returning = false;
+            LastOutingDrowned = false;
             Impacts = 0;
             LootValue = 0;
             Coins = 0;
@@ -427,6 +450,7 @@ namespace Hakaton.Expeditions
             if (!defeated && !workshop.Model.Current.ReturnHome()) return;
             if (defeated) workshop.Model.Current.Defeat();
             Returning = true;
+            LastOutingDrowned = drowned && !InPrologue;
             thrower.Cancel();
             // Drowning keeps the mouse: the player can still look around while sinking; the body is held by Sink.
             if (!drowned) control.SetBlocked(this, true);

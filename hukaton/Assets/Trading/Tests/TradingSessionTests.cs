@@ -247,33 +247,18 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void CategoryRequestRejectsWrongItemAndCanContinueAtZero()
+        public void VisitorMustAskForAnItemOnDisplay()
         {
-            var session = Stocked(1);
-            session.RemoveItem(1); session.PlaceItem(0, 1); // Herb from inventory.
+            var session = new TradingSession();
+            session.SeedInventory(Horn, 2); session.PlaceItem(0, 0);
             session.Open(); session.Refuse(session.CurrentCustomer.Id);
-            session.AdvanceCustomer(new CustomerTerms { RequestedCategory = "Растения", MaxPrice = 100 });
-            long customer = session.CurrentCustomer.Id;
-            session.Tick(2);
-            Assert.That(session.SelectItem(0, customer), Is.False);
-            Assert.That(session.SelectItem(1, customer), Is.True);
-            var deal = session.CurrentDeal;
-            Assert.That(session.Offer(deal.Id, deal.Revision, 0), Is.True);
-            Assert.That(session.Gold, Is.EqualTo(40));
-            Assert.That(session.IsOpen, Is.False);
-        }
-
-        [Test]
-        public void MissingCategoryCanBeRefusedWithoutLosingGoods()
-        {
-            var session = Stocked();
-            session.Open(); session.Refuse(session.CurrentCustomer.Id);
-            session.AdvanceCustomer(new CustomerTerms { RequestedCategory = "Руды", MaxPrice = 100 });
+            // No item named, an empty slot, a slot outside the display: such a visitor never arrives.
+            Assert.Throws<ArgumentException>(() => session.AdvanceCustomer(new CustomerTerms { MaxPrice = 130 }));
+            Assert.Throws<ArgumentException>(() => session.AdvanceCustomer(new CustomerTerms { RequestedSlot = 3, MaxPrice = 130 }));
+            Assert.Throws<ArgumentException>(() => session.AdvanceCustomer(new CustomerTerms { RequestedSlot = 6, MaxPrice = 130 }));
+            Assert.That(session.CurrentCustomer, Is.Null);
             Assert.That(session.CurrentDeal, Is.Null);
-            for (int i = 0; i < 6; i++) Assert.That(session.SelectItem(i, session.CurrentCustomer.Id), Is.False);
-            Assert.That(session.Refuse(session.CurrentCustomer.Id), Is.True);
-            Assert.That(session.TotalStockCount, Is.EqualTo(8));
-            Assert.That(session.Gold, Is.Zero);
+            Assert.That(session.TotalStockCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -373,14 +358,13 @@ namespace Hakaton.Trading.Tests
             for (int i = 0; i < 50; i++)
             {
                 var customer = session.CurrentCustomer;
-                if (session.CurrentDeal == null) session.SelectItem(0, customer.Id);
                 Assert.That(customer.MaxPrice, Is.GreaterThanOrEqualTo(session.CurrentDeal.N ?? session.CurrentDeal.R));
                 session.Refuse(customer.Id); session.AdvanceCustomer();
             }
         }
 
         [Test]
-        public void OneCoinGoodsAlwaysStartWithPriceQuestionEvenInMixedCategory()
+        public void OneCoinGoodsAlwaysStartWithPriceQuestion()
         {
             var session = new TradingSession();
             session.SeedInventory(Horn);
@@ -389,7 +373,6 @@ namespace Hakaton.Trading.Tests
             for (int i = 0; i < 100; i++)
             {
                 var customer = session.CurrentCustomer;
-                if (session.CurrentDeal == null) session.SelectItem(1, customer.Id);
                 if (session.CurrentDeal.R == 1)
                 {
                     Assert.That(customer.AsksPrice, Is.True);
@@ -408,15 +391,10 @@ namespace Hakaton.Trading.Tests
                 if (!session.IsOpen) session.Open();
                 if (session.CurrentCustomer == null) session.AdvanceCustomer();
                 var customer = session.CurrentCustomer;
-                if (session.CurrentDeal == null)
-                    for (int slot = 0; slot < session.Slots.Count && session.CurrentDeal == null; slot++)
-                        session.SelectItem(slot, customer.Id);
                 var deal = session.CurrentDeal;
-                if (deal != null)
-                {
-                    Assert.That(deal.MaxPrice, Is.GreaterThanOrEqualTo(deal.N ?? deal.R));
-                    Assert.That(deal.B, Is.LessThanOrEqualTo(deal.R));
-                }
+                Assert.That(deal, Is.Not.Null);
+                Assert.That(deal.MaxPrice, Is.GreaterThanOrEqualTo(deal.N ?? deal.R));
+                Assert.That(deal.B, Is.LessThanOrEqualTo(deal.R));
                 session.Refuse(customer.Id);
                 session.Tick(.1f);
             }
@@ -536,12 +514,10 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void ClosingCategoryConversationRecordsShopClosedWithoutRequiringDeal()
+        public void ClosingMidConversationRecordsShopClosedOnce()
         {
             var session = Stocked();
-            session.Open(); session.Refuse(session.CurrentCustomer.Id);
-            session.AdvanceCustomer(new CustomerTerms { RequestedCategory = "Руды", MaxPrice = 100 });
-            Assert.That(session.CurrentDeal, Is.Null);
+            Visitor(session);
             long customerId = session.CurrentCustomer.Id;
             int departures = session.DepartureSequence;
             session.Close();
@@ -632,35 +608,57 @@ namespace Hakaton.Trading.Tests
         [Test]
         public void HigherAsksDrawHigherOrEqualCounters()
         {
-            int Counter(int option)
+            int Counter(int option, int seed)
             {
-                var session = Stocked(presetCosts: true, seed: 7);
+                var session = Stocked(presetCosts: true, seed: seed);
                 var deal = Visitor(session, ceiling: 300, patience: 5);
                 // Same seed, same rolls: if both asks drew a counter, the bolder ask must not draw a lower one.
                 session.Offer(deal.Id, deal.Revision, option);
                 return session.CurrentDeal == deal ? deal.N ?? -1 : -1;
             }
-            int modest = Counter(2), bold = Counter(4);
-            if (modest > 0 && bold > 0) Assert.That(bold, Is.GreaterThanOrEqualTo(modest));
+            // Several seeds, so the comparison never depends on one particular sequence of rolls.
+            int compared = 0;
+            for (int seed = 1; seed <= 20; seed++)
+            {
+                int modest = Counter(2, seed), bold = Counter(4, seed);
+                if (modest <= 0 || bold <= 0) continue;
+                compared++;
+                Assert.That(bold, Is.GreaterThanOrEqualTo(modest), "seed " + seed);
+            }
+            Assert.That(compared, Is.GreaterThan(0), "no seed drew a counter for both asks");
         }
 
         [Test]
-        public void CategoryVisitorsOnlyAskForCategoriesOnDisplay()
+        public void EveryGeneratedVisitorNamesAnItemOnDisplayAndBargainsAtOnce()
         {
             var session = new TradingSession(new TradeSettings(), 3);
-            session.SeedInventory(Horn, 3);
+            session.SeedInventory(Horn, 2);
             session.SeedInventory(Herb, 3);
-            // Only horns are displayed; herbs stay in stock.
-            for (int i = 0; i < 3; i++) Assert.That(session.PlaceItem(0, i), Is.True);
+            // Two horns and one herb on display, gaps between them; the rest of the herbs stay in stock.
+            Assert.That(session.PlaceItem(0, 1), Is.True);
+            Assert.That(session.PlaceItem(0, 3), Is.True);
+            Assert.That(session.PlaceItem(0, 4), Is.True);
             Assert.That(session.Open(), Is.True);
-            for (int visit = 0; visit < 60 && session.IsOpen; visit++)
+            bool asked = false, offered = false;
+            for (int visit = 0; visit < 60; visit++)
             {
                 var customer = session.CurrentCustomer;
-                if (customer == null) { session.AdvanceCustomer(); continue; }
-                if (customer.RequestedSlot < 0) Assert.That(customer.RequestedCategory, Is.EqualTo("Трофеи"));
+                var deal = session.CurrentDeal;
+                Assert.That(customer, Is.Not.Null);
+                Assert.That(deal, Is.Not.Null, "the deal starts as the visitor arrives");
+                Assert.That(session.Slots[customer.RequestedSlot], Is.Not.Null);
+                Assert.That(deal.SlotIndex, Is.EqualTo(customer.RequestedSlot));
+                Assert.That(deal.Item, Is.SameAs(session.Slots[deal.SlotIndex]));
+                // The visitor's first line names the item he wants.
+                Assert.That(deal.Reaction.StartsWith(deal.Item.Definition.Name + " — "), Is.True, deal.Reaction);
+                Assert.That(session.LastMessage, Is.EqualTo(deal.Reaction));
+                if (customer.AsksPrice) { asked = true; Assert.That(deal.N, Is.Null); }
+                else { offered = true; Assert.That(deal.Reaction.Contains(deal.B.ToString()), Is.True, deal.Reaction); }
                 session.Refuse(customer.Id);
-                session.AdvanceCustomer();
+                Assert.That(session.AdvanceCustomer(), Is.True);
             }
+            Assert.That(asked && offered, Is.True, "both kinds of opening lines occur");
+            Assert.That(session.TotalStockCount, Is.EqualTo(5));
         }
     }
 }

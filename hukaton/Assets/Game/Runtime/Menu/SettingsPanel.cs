@@ -8,8 +8,8 @@ using UnityEngine.UI;
 namespace Hakaton.Game
 {
     /// <summary>
-    /// The settings window shared by both menus: overall volume, music, effects, mouse sensitivity. Every change applies
-    /// at once and is kept apart from the save slot; «Назад» returns to whichever menu opened it.
+    /// The settings window shared by both menus: overall volume, music, effects, mouse sensitivity and the «Счётчик FPS»
+    /// box. Every change applies at once and is kept apart from the save slot; «Назад» returns to whichever menu opened it.
     /// </summary>
     public sealed class SettingsPanel : MonoBehaviour
     {
@@ -19,6 +19,8 @@ namespace Hakaton.Game
         [Tooltip("Tenths: 2–30 is 0.2×–3.0×.")]
         public Slider sensitivity;
         public TMP_Text masterValue, musicValue, effectsValue, sensitivityValue;
+        [Tooltip("«Счётчик FPS»: the frame-rate readout in the top-right corner (FpsCounter in the scene).")]
+        public Toggle showFps;
         public StitchedLinenButton backButton;
 
         public bool IsOpen { get; private set; }
@@ -34,6 +36,7 @@ namespace Hakaton.Game
             music.onValueChanged.AddListener(v => { GameSettings.Music = v / 100; Refresh(); });
             effects.onValueChanged.AddListener(v => { GameSettings.Effects = v / 100; Refresh(); });
             sensitivity.onValueChanged.AddListener(v => { GameSettings.Sensitivity = v / 10; Refresh(); });
+            if (showFps) showFps.onValueChanged.AddListener(on => GameSettings.ShowFps = on);
             backButton.onClick.AddListener(Back);
             MenuView.Show(visibility, false);
         }
@@ -52,6 +55,7 @@ namespace Hakaton.Game
             music.SetValueWithoutNotify(Mathf.Round(GameSettings.Music * 100));
             effects.SetValueWithoutNotify(Mathf.Round(GameSettings.Effects * 100));
             sensitivity.SetValueWithoutNotify(Mathf.Round(GameSettings.Sensitivity * 10));
+            if (showFps) showFps.SetIsOnWithoutNotify(GameSettings.ShowFps);
             Refresh();
             IsOpen = true;
             MenuView.Show(visibility, true);

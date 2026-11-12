@@ -16,8 +16,8 @@ namespace Hakaton.Expeditions
     }
 
     /// <summary>
-    /// Expedition input and the throw itself. Hold LMB to charge; while charging, hold Shift and move the mouse
-    /// to steer the spin in any direction (the HUD draws it as an arrow), release LMB to throw. RMB cancels. Wheel / 1–5 select from the one shared hand, R discards the hand (a new one is drawn),
+    /// Expedition input and the throw itself. Hold LMB to charge, release LMB to throw; Shift stays a plain sprint,
+    /// also while charging. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand, R discards the hand (a new one is drawn),
     /// E picks up. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
@@ -26,10 +26,16 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
         public FirstPersonInput input;
         public PlayerControlGate control;
-        [Tooltip("Dotted preview of the first moments of flight.")]
+        [Tooltip("Solid glowing preview of the first moments of flight (material Fx Aim trajectory: thin white core, halo in the card's colour).")]
         public LineRenderer trajectory;
         [Tooltip("Camera-space point where a card physically leaves the hand.")]
         public Transform launchSocket;
+        [Tooltip("Width of the preview on screen with its glow, pixels at 1080 lines; the bright core is about a fifth of it. Scales with the window height, constant at any distance.")]
+        [Min(.5f)] public float previewWidthPixels = 12;
+        [Tooltip("Screen length of one line segment, pixels at 1080 lines: the path is cut into pieces of this length so the width stays exact along it.")]
+        [Min(1)] public float previewDashPixels = 12;
+        [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
+        [Min(0)] public float previewStartOffset = .25f;
 
         public ThrowPreparation Preparation { get; } = new ThrowPreparation();
         /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
@@ -41,11 +47,24 @@ namespace Hakaton.Expeditions
         public event Action SelectionChanged;
         public bool HasThrown { get; private set; }
 
+        // Keys for the hand's cards in order: 1–9, then 0 for the tenth (the numpad mirrors them).
+        static readonly Key[] CardKeys =
+            { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0 };
+        static readonly Key[] NumpadCardKeys =
+            { Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9, Key.Numpad0 };
+
         int selectedId = int.MinValue, selectedIndex;
         float returnReadyAt, nextDiscard;
         bool returnWasInHand, fullChargeCued;
         readonly Vector3[] previewPoints = new Vector3[64];
         readonly Gradient previewGradient = new Gradient();
+        readonly GradientColorKey[] previewColours = new GradientColorKey[2];
+        readonly GradientAlphaKey[] previewAlphas = { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) };
+        // The preview as drawn: one vertex per piece, a fixed screen length apart.
+        const int MaxDashPoints = 256, WidthKeys = 24;
+        readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
+        readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
+        readonly AnimationCurve widthCurve = new AnimationCurve();
 
         public CardCopy Selected
         {
@@ -79,11 +98,8 @@ namespace Hakaton.Expeditions
             {
                 if (keys.rKey.wasPressedThisFrame) Discard();
                 if (keys.eKey.wasPressedThisFrame) world.TryPickUpFocused();
-                if (keys.digit1Key.wasPressedThisFrame) Select(0);
-                if (keys.digit2Key.wasPressedThisFrame) Select(1);
-                if (keys.digit3Key.wasPressedThisFrame) Select(2);
-                if (keys.digit4Key.wasPressedThisFrame) Select(3);
-                if (keys.digit5Key.wasPressedThisFrame) Select(4);
+                for (int i = 0; i < CardKeys.Length; i++)
+                    if (keys[CardKeys[i]].wasPressedThisFrame || keys[NumpadCardKeys[i]].wasPressedThisFrame) { Select(i); break; }
             }
             float wheel = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(wheel) > .1f && !Preparation.Active) Step(wheel > 0 ? -1 : 1);
@@ -91,10 +107,7 @@ namespace Hakaton.Expeditions
             if (mouse.leftButton.wasPressedThisFrame) Begin();
             if (Preparation.Active)
             {
-                bool modifier = keys != null && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed);
-                input.SetLookBlocked(this, modifier);
-                Vector2 delta = mouse.delta.ReadValue();
-                Preparation.Tick(Time.deltaTime, modifier, delta.x, delta.y, world.settings.chargeSeconds, world.settings.gesturePixels);
+                Preparation.Tick(Time.deltaTime, world.settings.chargeSeconds);
                 ChargeFeedback();
                 if (mouse.leftButton.wasReleasedThisFrame) Release();
             }
@@ -129,7 +142,6 @@ namespace Hakaton.Expeditions
                 return;
             }
             Preparation.Begin();
-            input.SetSprintBlocked(this, true);
             fullChargeCued = false;
             world.Play(world.cues ? world.cues.charge : null, null, .6f);
         }
@@ -148,12 +160,11 @@ namespace Hakaton.Expeditions
             var card = Selected;
             if (!Preparation.Active || !world.Running || card == null || card.IsReturn) return null;
             float charge = Preparation.Charge;
-            var spin = new Vector2(Preparation.SpinX, Preparation.SpinY);
             ComputeLaunch(charge, out var origin, out var velocity);
             Cancel();
             if (world.workshop.Model.Current.Release(card.Id) == null) return null;
             world.hand.Take(card.Id, out var handPose, out var handView);
-            var projectile = world.Launch(card, origin, velocity, spin, handView, handView ? handPose : (Pose?)null);
+            var projectile = world.Launch(card, origin, velocity, handView, handView ? handPose : (Pose?)null);
 
             // The socket can sit inside a wall when hugging geometry: resolve at the wall immediately.
             var eye = world.viewCamera.transform.position;
@@ -161,7 +172,7 @@ namespace Hakaton.Expeditions
 
             if (world.feel)
             {
-                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), -20 * spin.x));
+                world.feel.Kick(new Vector3(-30 - 40 * charge, UnityEngine.Random.Range(-8f, 8f), UnityEngine.Random.Range(-4f, 4f)));
                 world.feel.PunchFov(10 + 25 * charge);
             }
             world.Play(world.cues ? world.cues.cardThrow : null, null, .7f + .3f * charge, Mathf.Lerp(.95f, 1.12f, charge));
@@ -188,7 +199,6 @@ namespace Hakaton.Expeditions
         public void Cancel()
         {
             Preparation.Cancel();
-            if (input) { input.SetLookBlocked(this, false); input.SetSprintBlocked(this, false); }
             if (trajectory) trajectory.enabled = false;
         }
 
@@ -268,17 +278,15 @@ namespace Hakaton.Expeditions
             trajectory.enabled = show;
             if (!show) return;
             ComputeLaunch(Preparation.Charge, out var position, out var velocity);
-            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge)
-                + world.settings.spinPreviewSeconds * Preparation.SpinAmount;
+            float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge);
             int count = Mathf.Clamp(Mathf.CeilToInt(seconds / (1f / 50f)), 2, previewPoints.Length);
             float step = seconds / (count - 1);
             previewPoints[0] = position;
             int used = 1;
-            var clock = default(CardFlight.Clock);
             for (int i = 1; i < count; i++)
             {
                 Vector3 next = position, nextVelocity = velocity;
-                CardFlight.Advance(ref next, ref nextVelocity, ref clock, new Vector2(Preparation.SpinX, Preparation.SpinY), world.settings, step);
+                CardFlight.Advance(ref next, ref nextVelocity, world.settings, step);
                 if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
                 {
                     previewPoints[used++] = hit.point;
@@ -288,14 +296,122 @@ namespace Hakaton.Expeditions
                 velocity = nextVelocity;
                 previewPoints[used++] = position;
             }
-            trajectory.positionCount = used;
-            for (int i = 0; i < used; i++) trajectory.SetPosition(i, previewPoints[i]);
-            // Faint by the hand, strongest where the path bends: the far end is where a spin shows.
-            Color accent = world.Accent(card);
-            previewGradient.SetKeys(
-                new[] { new GradientColorKey(accent, 0), new GradientColorKey(accent, 1) },
-                new[] { new GradientAlphaKey(.15f, 0), new GradientAlphaKey(.85f, .3f), new GradientAlphaKey(.75f, 1) });
+            var view = world.viewCamera;
+            used = TrimStart(used, previewStartOffset);
+            int dashes = view ? LayOutDashes(view, used) : 0;
+            if (dashes < 2) { trajectory.enabled = false; return; }
+            trajectory.positionCount = dashes;
+            for (int i = 0; i < dashes; i++) trajectory.SetPosition(i, dashPoints[i]);
+            UpdatePreviewWidth(view, dashes);
+            // The halo glows in the card's accent (the core is white in the shader), barely softer by the hand.
+            Color core = world.Accent(card);
+            previewColours[0] = new GradientColorKey(core, 0);
+            previewColours[1] = new GradientColorKey(core, 1);
+            previewGradient.SetKeys(previewColours, previewAlphas);
             trajectory.colorGradient = previewGradient;
+        }
+
+        /// <summary>Drops the first <paramref name="offset"/> metres of the sampled path (at most half of it) in place.</summary>
+        int TrimStart(int count, float offset)
+        {
+            float total = 0;
+            for (int i = 1; i < count; i++) total += Vector3.Distance(previewPoints[i - 1], previewPoints[i]);
+            float skip = Mathf.Min(offset, total * .5f);
+            if (skip <= 0) return count;
+            float walked = 0;
+            for (int first = 1; first < count; first++)
+            {
+                float segment = Vector3.Distance(previewPoints[first - 1], previewPoints[first]);
+                if (walked + segment < skip) { walked += segment; continue; }
+                Vector3 start = Vector3.Lerp(previewPoints[first - 1], previewPoints[first], segment > 1e-6f ? (skip - walked) / segment : 1);
+                // Reads stay ahead of writes (first >= 1), so the shift is safe in place.
+                int kept = 0;
+                previewPoints[kept++] = start;
+                for (int i = first; i < count; i++) previewPoints[kept++] = previewPoints[i];
+                return kept;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Re-cuts the sampled path into pieces of equal SCREEN length (<see cref="previewDashPixels"/> at 1080 lines),
+        /// so the width keys and the line's shading stay even on screen near the hand and far away.
+        /// Points are placed perspective-correctly on the world path; the end of the path closes the last dash.
+        /// </summary>
+        int LayOutDashes(Camera view, int count)
+        {
+            float aspect = view.aspect, near = view.nearClipPlane;
+            // Screen lengths in units of the view height.
+            float period = previewDashPixels / 1080f;
+            Vector3 a = previewPoints[0], va = view.WorldToViewportPoint(a);
+            if (va.z < near) return 0;
+            int dashes = 0;
+            dashPoints[dashes++] = a;
+            float carry = 0;
+            for (int i = 1; i < count; i++)
+            {
+                Vector3 b = previewPoints[i], vb = view.WorldToViewportPoint(b);
+                if (vb.z < near) break;
+                float length = Vector2.Distance(new Vector2(va.x * aspect, va.y), new Vector2(vb.x * aspect, vb.y));
+                float next = period - carry;
+                while (next <= length && dashes < MaxDashPoints - 1)
+                {
+                    float f = next / length;
+                    // Screen fraction → world fraction along a perspective-projected segment.
+                    float t = f * va.z / ((1 - f) * vb.z + f * va.z);
+                    dashPoints[dashes++] = Vector3.LerpUnclamped(a, b, t);
+                    next += period;
+                }
+                carry = length - (next - period);
+                a = b;
+                va = vb;
+                if (dashes >= MaxDashPoints - 1) break;
+            }
+            // A tail shorter than a quarter dash would squeeze a whole dash into a sliver: end on the last dash instead.
+            if (carry > period * .25f) dashPoints[dashes++] = a;
+            return dashes;
+        }
+
+        /// <summary>
+        /// Width so every point of the line is <see cref="previewWidthPixels"/> (at 1080 lines) wide on screen:
+        /// proportional to its depth in front of the camera. The curve is keyed along the line's length.
+        /// </summary>
+        void UpdatePreviewWidth(Camera view, int count)
+        {
+            var eye = view.transform;
+            Vector3 origin = eye.position, forward = eye.forward;
+            float perMetreOfDepth = previewWidthPixels / 1080f * 2 * Mathf.Tan(view.fieldOfView * .5f * Mathf.Deg2Rad);
+            float total = 0;
+            for (int i = 1; i < count; i++) total += Vector3.Distance(dashPoints[i - 1], dashPoints[i]);
+            // Walk the polyline once, sampling the depth at evenly spaced fractions of its length.
+            int segment = 1;
+            float walked = 0, segmentLength = count > 1 ? Vector3.Distance(dashPoints[0], dashPoints[1]) : 0;
+            for (int k = 0; k < WidthKeys; k++)
+            {
+                float time = k / (WidthKeys - 1f), target = time * total;
+                while (segment < count - 1 && walked + segmentLength < target)
+                {
+                    walked += segmentLength;
+                    segment++;
+                    segmentLength = Vector3.Distance(dashPoints[segment - 1], dashPoints[segment]);
+                }
+                float along = segmentLength > 1e-6f ? Mathf.Clamp01((target - walked) / segmentLength) : 1;
+                Vector3 point = Vector3.Lerp(dashPoints[segment - 1], dashPoints[segment], along);
+                float depth = Mathf.Max(view.nearClipPlane, Vector3.Dot(point - origin, forward));
+                widthKeys[k] = new Keyframe(time, perMetreOfDepth * depth);
+            }
+            // Straight lines between the keys.
+            float step = 1f / (WidthKeys - 1);
+            for (int k = 0; k < WidthKeys; k++)
+            {
+                float slopeIn = k > 0 ? (widthKeys[k].value - widthKeys[k - 1].value) / step : 0;
+                float slopeOut = k < WidthKeys - 1 ? (widthKeys[k + 1].value - widthKeys[k].value) / step : slopeIn;
+                widthKeys[k].inTangent = k > 0 ? slopeIn : slopeOut;
+                widthKeys[k].outTangent = slopeOut;
+            }
+            widthCurve.keys = widthKeys;
+            trajectory.widthMultiplier = 1;
+            trajectory.widthCurve = widthCurve;
         }
 
         void OnDisable() => Cancel();

@@ -71,6 +71,109 @@ namespace Hakaton.Computer.Tests
 
         [TestCase(1, "1 карта"), TestCase(4, "4 карты"), TestCase(5, "5 карт"), TestCase(12, "12 карт"), TestCase(22, "22 карты")]
         public void CardCountsReadNaturally(int n, string expected) => Assert.That(PcUpgradeTrack.Cards(n), Is.EqualTo(expected));
+
+        /// <summary>Playtest: «Время смены» on the PC, paid from the wallet the cards and the shop share.</summary>
+        [Test]
+        public void ShiftIsTheThirdTrackAndSpendsTheSharedWallet()
+        {
+            var wallet = new Hakaton.Economy.CoinWallet(500);
+            var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
+                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+            var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
+                ShiftSeconds = 30, ShiftUpgradeSeconds = new[] { 10f, 10f }, ShiftUpgradePrices = new[] { 150, 250 } }, 1, wallet);
+            Assert.That(PcUpgradeTrack.For(w).Count, Is.EqualTo(2), "Without the shop only the deck workshop's tracks.");
+            Assert.That(PcUpgradeTrack.For(w, new Hakaton.Trading.TradingSession()).Count, Is.EqualTo(2), "A shop without upgrades adds no track.");
+
+            var tracks = PcUpgradeTrack.For(w, shop);
+            Assert.That(tracks.Count, Is.EqualTo(3));
+            var shift = tracks[2];
+            Assert.That((shift.Title, shift.Step, shift.Steps, shift.Price, shift.Values), Is.EqualTo(("Время смены", 0, 2, 150, "30 » 40 с")));
+            Assert.That(shift.Buy(), Is.Null);
+            Assert.That((shift.Step, shift.Price, shift.Values, shift.Bought), Is.EqualTo((1, 250, "40 » 50 с", "Смена длится 40 с.")));
+            Assert.That((wallet.Balance, w.Coins, shop.Gold), Is.EqualTo((350, 350, 350)));
+            Assert.That(shift.Buy(), Is.Null);
+            Assert.That((shift.Maxed, shift.Values, wallet.Balance), Is.EqualTo((true, "50 с", 100)));
+            Assert.That(shift.Buy(), Is.Not.Null, "Nothing left to buy.");
+            Assert.That(wallet.Balance, Is.EqualTo(100));
+        }
+
+        /// <summary>Playtest: «Скупщик» raises the bulk buyer's chance, and shows only once he has been met (a surprise until then).</summary>
+        [Test]
+        public void BulkBuyerTrackAppearsOnceHeHasBeenMet()
+        {
+            var wallet = new Hakaton.Economy.CoinWallet(12000);
+            var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
+                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+            var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
+                ShiftUpgradeSeconds = new[] { 10f }, ShiftUpgradePrices = new[] { 150 },
+                BulkBuyerChance = .05f, BulkBuyerUpgradeChances = new[] { .05f, .05f, .05f, .05f, .05f },
+                BulkBuyerUpgradePrices = new[] { 500, 1000, 2000, 3000, 5000 } }, 1, wallet);
+            shop.SeedInventory(new Hakaton.Trading.ItemDefinition("horn", "Рог", "Трофеи", 100), 3);
+            for (int i = 0; i < 3; i++) Assert.That(shop.PlaceItem(0, i), Is.True);
+            Assert.That(PcUpgradeTrack.For(w, shop).Select(t => t.Title), Has.No.Member("Скупщик"), "Not before he has come.");
+
+            shop.ForceBulkBuyerNext = true;
+            Assert.That(shop.Open(), Is.True);
+            Assert.That(shop.Refuse(shop.CurrentCustomer.Id), Is.True);
+            shop.Close();
+            var tracks = PcUpgradeTrack.For(w, shop);
+            Assert.That(tracks.Select(t => t.Title), Is.EqualTo(new[] { "Размер руки", "Размер колоды", "Время смены", "Скупщик" }));
+            var buyer = tracks[3];
+            Assert.That((buyer.Step, buyer.Steps, buyer.Price, buyer.Values), Is.EqualTo((0, 5, 500, "5% » 10%")));
+            Assert.That(buyer.Buy(), Is.Null);
+            Assert.That((buyer.Step, buyer.Price, buyer.Values, buyer.Bought), Is.EqualTo((1, 1000, "10% » 15%", "Скупщик заходит чаще: 10%.")));
+            for (int i = 0; i < 4; i++) Assert.That(buyer.Buy(), Is.Null);
+            Assert.That((buyer.Maxed, buyer.Values, wallet.Balance), Is.EqualTo((true, "30%", 500)));
+            Assert.That(buyer.Buy(), Is.Not.Null, "Nothing left to buy.");
+        }
+
+        /// <summary>Playtest: «Выносливость» — +1 s of sprint (one more pip) per step, 5 » 10 s, after «Время смены».</summary>
+        [Test]
+        public void StaminaFollowsTheShiftAndSpendsTheSharedWallet()
+        {
+            var wallet = new Hakaton.Economy.CoinWallet(5000);
+            var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
+                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+            var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
+                ShiftUpgradeSeconds = new[] { 10f }, ShiftUpgradePrices = new[] { 150 } }, 1, wallet);
+            var stamina = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450, 800, 1250, 1800 });
+            int changes = 0;
+            stamina.Changed += () => changes++;
+
+            Assert.That(PcUpgradeTrack.For(w, shop).Select(t => t.Title), Has.No.Member("Выносливость"), "Not without the player's stamina.");
+            var tracks = PcUpgradeTrack.For(w, shop, stamina);
+            Assert.That(tracks.Select(t => t.Title), Is.EqualTo(new[] { "Размер руки", "Размер колоды", "Время смены", "Выносливость" }));
+            Assert.That(PcUpgradeTrack.For(w, null, stamina).Select(t => t.Title),
+                Is.EqualTo(new[] { "Размер руки", "Размер колоды", "Выносливость" }));
+            var run = tracks[3];
+            Assert.That((run.Step, run.Steps, run.Price, run.Values), Is.EqualTo((0, 5, 200, "5 » 6 с")));
+            Assert.That(run.Buy(), Is.Null);
+            Assert.That((run.Step, run.Price, run.Values, run.Bought), Is.EqualTo((1, 450, "6 » 7 с", "Бег без передышки: 6 с.")));
+            Assert.That((wallet.Balance, w.Coins, shop.Gold, changes), Is.EqualTo((4800, 4800, 4800, 1)));
+            for (int i = 0; i < 4; i++) Assert.That(run.Buy(), Is.Null);
+            Assert.That((run.Maxed, run.Values, run.Price, wallet.Balance), Is.EqualTo((true, "10 с", 0, 5000 - 4500)));
+            Assert.That(stamina.Capacity, Is.EqualTo(200).Within(1e-3f));
+            Assert.That(run.Buy(), Is.Not.Null, "Nothing left to buy.");
+            Assert.That((wallet.Balance, changes), Is.EqualTo((500, 5)));
+        }
+
+        [Test]
+        public void StaminaIsNotBoughtWithoutCoinsOrAwayFromTheShop()
+        {
+            var wallet = new Hakaton.Economy.CoinWallet(199);
+            var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
+                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+            var stamina = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450 });
+            var run = PcUpgradeTrack.For(w, null, stamina).Single(t => t.Title == "Выносливость");
+            Assert.That(run.Buy(), Is.EqualTo("Не хватает монет."));
+            Assert.That((stamina.Level, wallet.Balance), Is.EqualTo((0, 199)));
+
+            wallet.Credit(1);
+            Assert.That(w.DepartPrologue(), Is.Null);
+            Assert.That(w.IsAway, Is.True);
+            Assert.That(run.Buy(), Is.EqualTo("Сначала вернитесь в лавку."));
+            Assert.That((stamina.Level, wallet.Balance), Is.EqualTo((0, 200)));
+        }
     }
 
     public sealed class CrtScreenMathTests

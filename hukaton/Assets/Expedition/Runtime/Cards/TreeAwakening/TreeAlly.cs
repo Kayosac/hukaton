@@ -7,21 +7,23 @@ using UnityEngine.AI;
 
 namespace Hakaton.Expeditions.Cards
 {
-    public enum TreeAllyState { Awakening, Follow, Wait, Engage, Attack, Dying }
+    public enum TreeAllyState { Awakening, Follow, Wait, Engage, Attack, Dying, Burrow }
 
     /// <summary>
     /// An awakened tree: an ally of the player (<see cref="Faction.Player"/>) until the end of the outing or its death.
-    /// Walks after the player along the NavMesh (no teleport: with no path it waits at the last reachable point),
-    /// helps against creatures that attack the player or the squad and against the one the player hurt, never hunts
+    /// Goes wherever the player can go (TreeAlly.Pathing.cs): a player-sized body that steps, hops up ledges and drops
+    /// down them, walks the NavMesh where it can and the player's own trail where it cannot. Where it truly cannot
+    /// follow (rope, teleport, updraft, card-only passages, stuck, far behind) it burrows and comes up behind the
+    /// player (owner, playtest; this replaced the old "no teleport, wait at the last reachable point").
+    /// Helps against creatures that attack the player or the squad and against the one the player hurt, never hunts
     /// peaceful creatures. Branch strike: wind-up, one hit at most per strike and only on a real contact.
     /// Creatures turn on it when it is closer than their target or when it hits them. Its Rigidbody mass is the board's
     /// μ, so impulses push it like any body; tar slows it (<see cref="IMoveSpeedScalable"/>); rain wets it
     /// (<see cref="WetStatus"/> on <see cref="Root"/>) and lightning, burning tar and creatures hurt it through
-    /// <see cref="TakeDamage"/>. Locomotion is copied from <see cref="WorldCreature"/>: the agent plans, the body moves.
-    /// The look is a swappable child (<see cref="TreeAllyLook"/>).
+    /// <see cref="TakeDamage"/>. The agent plans, the body moves. The look is a swappable child (<see cref="TreeAllyLook"/>).
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class TreeAlly : MonoBehaviour, ICombatant, IHealable, IMoveSpeedScalable, IOutingSpawned
+    public sealed partial class TreeAlly : MonoBehaviour, ICombatant, IHealable, IMoveSpeedScalable, IOutingSpawned
     {
         [Header("Authored parts")]
         public Rigidbody body;
@@ -101,6 +103,7 @@ namespace Hakaton.Expeditions.Cards
         Quaternion facing;
         bool hasDestination, dying, swung;
         float stateTime, nextThink, nextPath, hurtUntil, gaitPhase, fade, deathProgress, awakenedAt;
+        int followedFrame = -10;
         readonly Dictionary<WorldCreature, int> lastHealth = new Dictionary<WorldCreature, int>();
         readonly Dictionary<WorldCreature, float> hurtAt = new Dictionary<WorldCreature, float>();
         readonly Dictionary<WorldCreature, float> hitAt = new Dictionary<WorldCreature, float>();
@@ -110,7 +113,8 @@ namespace Hakaton.Expeditions.Cards
         // ---------------- ICombatant ----------------
 
         public Faction Faction => Faction.Player;
-        public bool Alive => Health > 0 && !dying;
+        /// <summary>Standing and fighting: not dead, not dying and not under the ground.</summary>
+        public bool Alive => Health > 0 && !dying && burrowPhase == BurrowPhase.None;
         public Vector3 Position => body ? body.position : transform.position;
         public Vector3 Centre => Position + Vector3.up * Height * .5f;
         public Transform Root => transform;
@@ -127,6 +131,7 @@ namespace Hakaton.Expeditions.Cards
             facing = transform.rotation;
             cycle = new TreeAttackCycle(attackCycle, windup, strikeWindow);
             moveSpeedScale.Clear();
+            SetUpPathing();
         }
 
         public void OnSpawned(ExpeditionWorld owner) => world = owner;
@@ -150,11 +155,18 @@ namespace Hakaton.Expeditions.Cards
             Origin = origin;
             body.position = position;
             transform.position = position;
-            navigator.enabled = true;
+            // The agent only where the mesh is right under the roots (off it the tree follows the player's trail and
+            // turns the agent on once it stands on the mesh).
             navigator.updatePosition = false;
             navigator.updateRotation = false;
-            if (navigator.isOnNavMesh) navigator.Warp(position);
+            if (MeshUnder(position, out var meshPoint))
+            {
+                navigator.enabled = true;
+                if (navigator.isOnNavMesh) navigator.Warp(meshPoint);
+            }
             awakenedAt = Time.time;
+            ResetPathing(awakenedAt);
+            Route = navigator.enabled && navigator.isOnNavMesh ? TreeAllyRoute.NavMesh : TreeAllyRoute.Trail;
             Enter(TreeAllyState.Awakening);
             if (world)
             {
@@ -184,14 +196,21 @@ namespace Hakaton.Expeditions.Cards
 
         void Update()
         {
-            if (!Running || !Alive) return;
+            if (!Running || dying || Health <= 0) return;
             float now = Time.time;
             stateTime += Time.deltaTime;
-            if (transform.position.y < world.settings.killHeight) { Kill(); return; }
+            // The player's trail is recorded all the time (also while awakening or under the ground).
+            RecordTrail();
+            if (burrowPhase != BurrowPhase.None) { TickBurrow(now); return; }
+            // Out of the world or in deep water: under the ground and up again beside the player.
+            if (transform.position.y < world.settings.killHeight) { StartBurrow(BurrowReason.Fell); return; }
+            CheckWater(now);
+            if (inDeepWater) { StartBurrow(BurrowReason.Water); return; }
 
             if (State == TreeAllyState.Awakening)
             {
                 Halt();
+                progressAt = now;
                 if (stateTime >= awakenSeconds) Enter(TreeAllyState.Follow);
                 return;
             }
@@ -214,6 +233,7 @@ namespace Hakaton.Expeditions.Cards
 
             if (foe && foe.Alive) ThinkEngage(now);
             else ThinkFollow();
+            if (burrowPhase == BurrowPhase.None) ConsiderBurrow(now);
         }
 
         void ThinkAttack(float now, TreeAttackPhase phase)
@@ -265,22 +285,25 @@ namespace Hakaton.Expeditions.Cards
 
         void ThinkFollow()
         {
+            float now = Time.time;
+            // Back from a fight (or anything else that kept it from following) off the mesh: join the trail where it is now.
+            if (followedFrame != Time.frameCount - 1 && Route == TreeAllyRoute.Trail) Reanchor();
+            followedFrame = Time.frameCount;
             Vector3 player = PlayerPosition;
-            float distance = Flat(player - Position).magnitude;
-            if (distance <= followDistance)
+            Vector3 to = player - Position;
+            float distance = Flat(to).magnitude;
+            // Close by, and not on another level the trail leads to: it stands and watches the player.
+            if (distance <= followDistance && Mathf.Abs(to.y) < burrowRules.levelDifference && !jumping)
             {
                 Halt();
+                progressAt = now;
                 if (State != TreeAllyState.Follow) Enter(TreeAllyState.Follow);
-                if (distance > .5f) Face(player - Position);
+                if (distance > .5f) Face(to);
                 return;
             }
-            Go(player, distance > catchUpDistance ? catchUpSpeed : walkSpeed);
-            // No walkable way on: it stands at the closest point it could reach until the player comes back.
-            bool stuck = navigator.enabled && navigator.isOnNavMesh && !navigator.pathPending
-                && (navigator.pathStatus == NavMeshPathStatus.PathPartial || navigator.pathStatus == NavMeshPathStatus.PathInvalid || !hasDestination)
-                && navigator.remainingDistance < .6f;
-            if (stuck) { Halt(); Face(player - Position); }
-            var next = stuck ? TreeAllyState.Wait : TreeAllyState.Follow;
+            FollowPlayer(player, distance > catchUpDistance ? catchUpSpeed : walkSpeed);
+            // Not getting on (it burrows when that lasts): it shows by waiting.
+            var next = Route == TreeAllyRoute.Trail && now - progressAt > 1 ? TreeAllyState.Wait : TreeAllyState.Follow;
             if (State != next) Enter(next);
         }
 
@@ -370,12 +393,12 @@ namespace Hakaton.Expeditions.Cards
 
         // ---------------- movement ----------------
 
+        /// <summary>Toward a foe: along the mesh when the tree walks it, otherwise straight while the ground holds.</summary>
         void Go(Vector3 point, float speed)
         {
-            if (!navigator.enabled || !navigator.isOnNavMesh)
+            if (Route != TreeAllyRoute.NavMesh || !navigator.enabled || !navigator.isOnNavMesh || navigator.isOnOffMeshLink)
             {
-                desired = Flat(point - Position).normalized * speed;
-                Face(desired);
+                GoStraight(point, speed);
                 return;
             }
             navigator.speed = speed;
@@ -408,13 +431,12 @@ namespace Hakaton.Expeditions.Cards
 
         void FixedUpdate()
         {
-            if (!Running || dying) return;
-            if (navigator.enabled && navigator.isOnNavMesh) navigator.nextPosition = body.position;
+            // Dying or under the ground the body is kinematic and does nothing.
+            if (!Running || dying || body.isKinematic) return;
+            // The agent follows the body; never while it stands on a link (the tree crosses links by hand).
+            if (navigator.enabled && navigator.isOnNavMesh && !navigator.isOnOffMeshLink) navigator.nextPosition = body.position;
             float dt = Time.fixedDeltaTime;
-            Vector3 velocity = body.linearVelocity;
-            Vector3 planar = new Vector3(velocity.x, 0, velocity.z);
-            planar = Vector3.MoveTowards(planar, desired * MoveSpeedScale, acceleration * dt);
-            body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
+            StepBody(dt);
             body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnRate * dt));
             if (cycle.Advance(Time.time) == TreeAttackPhase.Strike) CheckStrikeContact();
         }
@@ -483,13 +505,6 @@ namespace Hakaton.Expeditions.Cards
         public bool WithinHealReach(Vector3 point, float radius)
             => HealRules.Reaches(point, radius, Position, Height, navigator ? navigator.radius : .5f);
 
-        void Kill()
-        {
-            if (!Alive) return;
-            Health = 0;
-            StartCoroutine(Die());
-        }
-
         IEnumerator Die()
         {
             dying = true;
@@ -545,6 +560,12 @@ namespace Hakaton.Expeditions.Cards
                 Hurt = hurtSeconds > 0 ? Mathf.Clamp01((hurtUntil - now) / hurtSeconds) : 0,
             };
             if (dying) { state.Pose = TreeAllyPose.Dying; state.Progress = deathProgress; state.Fade = fade; }
+            else if (burrowPhase != BurrowPhase.None)
+            {
+                // Sinking into the ground; under it the drawing stays down and unseen.
+                state.Pose = TreeAllyPose.Burrow;
+                state.Progress = burrowPhase == BurrowPhase.Underground ? 1 : Mathf.Clamp01((now - burrowStarted) / burrowSeconds);
+            }
             else if (State == TreeAllyState.Awakening) { state.Pose = TreeAllyPose.Awakening; state.Progress = awakenSeconds > 0 ? Mathf.Clamp01((now - awakenedAt) / awakenSeconds) : 1; }
             else
             {

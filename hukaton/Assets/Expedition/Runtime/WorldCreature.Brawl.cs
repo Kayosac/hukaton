@@ -240,13 +240,20 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>
+        /// Who is behind the hit, knock-down or freeze being applied now: a crash (<see cref="hurtByCrash"/>), the player's
+        /// side (<paramref name="by"/> null: cards and hazards; or an ally) or a creature. The referee, the grudge against
+        /// the player and the cry to kin all go by it.
+        /// </summary>
+        BrawlHurtSource SourceOf(ICombatant by)
+            => hurtByCrash ? BrawlHurtSource.Other
+            : by == null || by.Faction == Faction.Player ? BrawlHurtSource.Player
+            : BrawlHurtSource.Creature;
+
         void ReportHurt(int amount, Vector3 impulse)
         {
             if (Referee == null) return;
-            var source = hurtByCrash ? BrawlHurtSource.Other
-                : hurtBy == null ? BrawlHurtSource.Player
-                : hurtBy.Faction == Faction.Player ? BrawlHurtSource.Player
-                : BrawlHurtSource.Creature;
+            var source = SourceOf(hurtBy);
             if (amount <= 0 && source != BrawlHurtSource.Player) return;
             Referee.CreatureHurt(this, source, hurtBy, impulse);
         }

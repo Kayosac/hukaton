@@ -5,9 +5,11 @@ namespace Hakaton.Character
     /// <summary>Frame-rate independent stamina budget, isolated for balance tests.</summary>
     public sealed class StaminaState
     {
-        readonly float capacity, drain, recovery, delay, recoveryThreshold;
-        float sinceSpend;
+        readonly float drain, recovery, delay, recoveryThreshold;
+        float capacity, sinceSpend;
         public float Value { get; private set; }
+        /// <summary>The current maximum (grows with the PC's «Выносливость»).</summary>
+        public float Capacity => capacity;
         public float Normalized => Value / capacity;
         public bool Exhausted { get; private set; }
         public bool CanSprint => !Exhausted && Value > 0;
@@ -21,6 +23,19 @@ namespace Hakaton.Character
             this.capacity = capacity; this.drain = drain; this.recovery = recovery;
             this.delay = delay; this.recoveryThreshold = recoveryThreshold;
             Value = capacity;
+            sinceSpend = delay;
+        }
+
+        /// <summary>
+        /// A new maximum (a bought «Выносливость» step, or a loaded save): the budget is full afterwards and any
+        /// exhaustion is over, so a purchase is felt at once.
+        /// </summary>
+        public void Resize(float newCapacity)
+        {
+            if (!Finite(newCapacity) || newCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(newCapacity));
+            capacity = newCapacity;
+            Value = capacity;
+            Exhausted = false;
             sinceSpend = delay;
         }
 

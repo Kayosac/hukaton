@@ -13,7 +13,14 @@ namespace Hakaton.Trading.Unity
     public sealed class TradingPrototype : MonoBehaviour
     {
         [Header("Temporary prototype balance")]
-        [Min(1)] public float shiftSeconds = 120;
+        [Tooltip("A full shift before any upgrade, seconds.")]
+        [Min(1)] public float shiftSeconds = 30;
+        [Tooltip("Shift upgrades bought on the PC («Время смены»), in order: seconds added to the shift and their price.")]
+        public ShiftStep[] shiftSteps =
+        {
+            new ShiftStep(10, 150), new ShiftStep(10, 250), new ShiftStep(10, 400), new ShiftStep(10, 600), new ShiftStep(10, 850),
+            new ShiftStep(10, 1150), new ShiftStep(10, 1500), new ShiftStep(10, 1900), new ShiftStep(10, 2350),
+        };
         public int randomSeed = 42;
         [Range(.67f, .99f)] public float minOpeningRatio = .7f;
         [Range(.67f, .99f)] public float maxOpeningRatio = .9f;
@@ -31,6 +38,43 @@ namespace Hakaton.Trading.Unity
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
         [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
         [Min(0)] public float reactionBeat = .38f;
+
+        [Header("Bulk buyer («Скупщик»)")]
+        [Tooltip("Chance in percent that a visitor is the bulk buyer: only after the first revenue goal, at most once a shift, " +
+                 "with enough goods on display, never in the tutorial.")]
+        [Range(0, 100)] public float bulkBuyerChance = 5;
+        [Tooltip("Upgrades bought on the PC («Скупщик», shown once the player has met him): percent added to the chance and their price.")]
+        public BulkBuyerStep[] bulkBuyerSteps =
+        {
+            new BulkBuyerStep(5, 500), new BulkBuyerStep(5, 1000), new BulkBuyerStep(5, 2000), new BulkBuyerStep(5, 3000),
+            new BulkBuyerStep(5, 5000),
+        };
+        [Tooltip("He comes only for a display with at least this many items.")]
+        [Min(1)] public int bulkBuyerMinDisplay = 3;
+        [Tooltip("Share of each item's base price he pays (at least one coin an item).")]
+        [Range(.01f, 1)] public float bulkBuyerPriceRatio = .75f;
+        [Tooltip("Seconds between the items flying off the display to him.")]
+        [Min(0)] public float bulkTransferStagger = .07f;
+
+        /// <summary>One bulk buyer upgrade: the percent it adds to his chance and its price.</summary>
+        [System.Serializable]
+        public sealed class BulkBuyerStep
+        {
+            [Range(0, 100)] public float percent = 5;
+            [Min(0)] public int price;
+            public BulkBuyerStep() { }
+            public BulkBuyerStep(float percent, int price) { this.percent = percent; this.price = price; }
+        }
+
+        /// <summary>One shift upgrade: the seconds it adds to every shift and its price.</summary>
+        [System.Serializable]
+        public sealed class ShiftStep
+        {
+            [Min(1)] public float seconds = 10;
+            [Min(0)] public int price;
+            public ShiftStep() { }
+            public ShiftStep(float seconds, int price) { this.seconds = seconds; this.price = price; }
+        }
 
         public TradingSession Session { get; private set; }
         [Header("Scene references — assign in the authored scene")]
@@ -50,19 +94,9 @@ namespace Hakaton.Trading.Unity
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
         /// <summary>False during the short beat after an offer while the visitor considers it.</summary>
         public bool ReactionRevealed => Time.unscaledTime >= revealAt;
+        /// <summary>The open shop is seen from the authored counter view (camera A).</summary>
         public bool UsesDisplayView => World && World.ShopView;
-        public bool SelectingFromDisplay => UsesDisplayView && World.ShopView.Selecting;
         public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
-        public bool HasMatchingStock
-        {
-            get
-            {
-                if (Session?.CurrentCustomer == null) return false;
-                foreach (var item in Session.Slots)
-                    if (item != null && item.Definition.Category == Session.CurrentCustomer.RequestedCategory) return true;
-                return false;
-            }
-        }
         public string CustomerName => World.Customers.VisitorName;
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
@@ -93,11 +127,43 @@ namespace Hakaton.Trading.Unity
         public ItemInstance FocusedItem { get; private set; }
         public bool GameplayActive => World != null && World.Control != null && World.Control.GameplayActive && Session != null && !Session.IsOpen
             && Session.ExpeditionId == 0;
-        public float StaminaFraction => World.Stamina.Normalized;
-        public bool ShowStamina => World.Stamina.Normalized < .995f;
+        /// <summary>The shopkeeper's stamina, for the arc of pips under the aim.</summary>
+        public PlayerStamina Stamina => World ? World.Stamina : null;
         public float ContextProgress => pressedSlot >= 0 ? Mathf.Clamp01((Time.unscaledTime - pressStarted) / holdThreshold) : 0;
         int lastSettlement;
         int presentedDealSlot = -1;
+        long bulkLineCustomer;
+        int bulkLine;
+
+        /// <summary>The line of the bulk buyer's speech on screen (<see cref="Customer.Lines"/>; the last one is his offer).</summary>
+        public int BulkLine
+        {
+            get
+            {
+                var customer = Session?.CurrentCustomer;
+                return customer != null && customer.IsBulkBuyer && customer.Id == bulkLineCustomer ? bulkLine : 0;
+            }
+        }
+
+        /// <summary>The bulk buyer at the counter has said everything but his offer: a press reads on.</summary>
+        public bool BulkBuyerExplaining
+        {
+            get
+            {
+                var customer = Session?.CurrentCustomer;
+                return customer != null && customer.IsBulkBuyer && BulkLine < customer.Lines.Count - 1;
+            }
+        }
+
+        /// <summary>The bulk buyer's offer is on screen: sell everything (green) or refuse (red).</summary>
+        public bool BulkOfferShown
+        {
+            get
+            {
+                var customer = Session?.CurrentCustomer;
+                return customer != null && customer.IsBulkBuyer && !BulkBuyerExplaining;
+            }
+        }
         Coroutine[] itemMotion;
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
@@ -121,12 +187,18 @@ namespace Hakaton.Trading.Unity
             heldItem = World.HeldItem;
             Session = new TradingSession(new TradeSettings {
                 SlotCount = 6, ShiftSeconds = shiftSeconds,
+                ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
+                ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
                 MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
                 MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
                 MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
                 AsksPriceProbability = asksPriceProbability,
                 UsePresetPatienceCosts = usePresetPatienceCosts,
-                MinPatience = minPatience, MaxPatience = maxPatience
+                MinPatience = minPatience, MaxPatience = maxPatience,
+                BulkBuyerChance = bulkBuyerChance / 100f,
+                BulkBuyerUpgradeChances = System.Array.ConvertAll(bulkBuyerSteps, step => step.percent / 100f),
+                BulkBuyerUpgradePrices = System.Array.ConvertAll(bulkBuyerSteps, step => step.price),
+                BulkBuyerMinDisplay = bulkBuyerMinDisplay, BulkBuyerPriceRatio = bulkBuyerPriceRatio
             }, randomSeed, walletHost ? walletHost.Wallet : null);
             RegisterCatalogue();
             displayed = new GameObject[6];
@@ -155,15 +227,15 @@ namespace Hakaton.Trading.Unity
             if (Session.IsOpen)
             {
                 ClearFocus();
-                if (SelectingFromDisplay && !ViewTransitioning) UpdateDisplaySelection();
                 if (keyboard != null)
                 {
                     // Escape at the counter opens the pause menu; E closes the shop.
-                    if (keyboard.escapeKey.wasPressedThisFrame && !GamePause.EscapeConsumed && SelectingFromDisplay) World.ShopView.ReturnToCounter();
-                    else if (keyboard.eKey.wasPressedThisFrame)
+                    if (keyboard.eKey.wasPressedThisFrame)
                     {
+                        // E reads on through the bulk buyer's explanation, as it does through the goblins' lines.
+                        if (BulkBuyerExplaining && CustomerReady) ReadOnBulkBuyer();
                         // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
-                        if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
+                        else if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
                         else CloseShop();
                     }
                     HaggleHotkeys(keyboard);
@@ -195,6 +267,19 @@ namespace Hakaton.Trading.Unity
             var customer = Session.CurrentCustomer;
             if (customer == null) return;
             if (keyboard.backspaceKey.wasPressedThisFrame) { RefuseCustomer(customer.Id); return; }
+            if (customer.IsBulkBuyer)
+            {
+                bool confirm = keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame;
+                if (BulkBuyerExplaining)
+                {
+                    // Space, Enter or a click read on (E is handled with the shop keys).
+                    var mouse = Mouse.current;
+                    if (confirm || mouse != null && mouse.leftButton.wasPressedThisFrame) ReadOnBulkBuyer();
+                }
+                // Space or Enter on the offer sells; while it is still typing the press only finishes it.
+                else if (confirm && ActionsReady && !hud.SkipSpeechTyping()) SellToBulkBuyer(customer.Id);
+                return;
+            }
             if (deal == null) return;
             var digits = new[] { keyboard.digit1Key, keyboard.digit2Key, keyboard.digit3Key, keyboard.digit4Key, keyboard.digit5Key };
             for (int i = 0; i < digits.Length; i++)
@@ -208,10 +293,13 @@ namespace Hakaton.Trading.Unity
             World.Control.AllowPause(this, true);
             World.Control.SetBlocked(this, Session.IsOpen);
             if (Session.IsOpen == previousOpen) return;
-            ResetPlacement();
-            if (Session.IsOpen && !World.ShopView) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
-            if (World.ShopView) World.ShopView.Sync();
             previousOpen = Session.IsOpen;
+            ResetPlacement();
+            // The view first: entering it holds the current camera pose until the blink is black, so the body is moved
+            // only behind the blink. Every way a shift ends (time, last sale, empty display, E, the clock's cross, the
+            // tutorial, the bulk buyer) passes here and leaves the shopkeeper behind the counter.
+            if (World.ShopView) World.ShopView.Sync();
+            if (Session.IsOpen || World.returnToCounterOnClose) World.Movement.Teleport(World.CounterPosition, World.CounterRotation);
         }
 
         void ClearFocus()
@@ -288,39 +376,15 @@ namespace Hakaton.Trading.Unity
             }
         }
 
-        void UpdateDisplaySelection()
-        {
-            var mouse = Mouse.current;
-            if (mouse == null || !ActionsReady || Session.CurrentDeal != null || hud.ContainsBlockingPanel(mouse.position.ReadValue())) return;
-            // The view camera may render into a low-resolution World Resolution texture, so its pixel
-            // space is not the screen's. Viewport coordinates are the same in both cases.
-            Vector2 pointer = mouse.position.ReadValue();
-            var ray = World.ViewCamera.ViewportPointToRay(new Vector3(pointer.x / Screen.width, pointer.y / Screen.height));
-            if (!Physics.Raycast(ray, out var hit, 4, ~(1 << 2), QueryTriggerInteraction.Collide)) return;
-            for (int i = 0; i < displayed.Length; i++)
-            {
-                var item = Session.Slots[i];
-                if (item == null || item.Definition.Category != Session.CurrentCustomer.RequestedCategory) continue;
-                bool overItem = displayed[i] && hit.collider.transform.IsChildOf(displayed[i].transform);
-                if (!overItem && hit.collider != World.SlotColliders[i]) continue;
-                hoveredSlot = i;
-                // The paper card names the goods and their base price, as when stocking.
-                FocusedItem = item;
-                ContextPrompt = "ЛКМ  Предложить";
-                ContextDetail = string.Empty;
-                if (mouse.leftButton.wasPressedThisFrame) SelectCustomerItem(i, Session.CurrentCustomer.Id);
-                break;
-            }
-        }
-
         void UpdatePlacement()
         {
             var mouse = Mouse.current;
             if (mouse == null || !GameplayActive || World.Control.CapturedThisFrame) return;
             if (pressedSlot >= 0 && hoveredSlot != pressedSlot) ResetPlacement();
+            // The wheel steps between kinds of goods, not between single copies.
             float scroll = mouse.scroll.ReadValue().y;
             if (scroll != 0 && Session.Inventory.Count > 0)
-                selectedInventory = (selectedInventory + (scroll > 0 ? -1 : 1) + Session.Inventory.Count) % Session.Inventory.Count;
+                selectedInventory = StockSelection.StepKind(Session.Inventory, selectedInventory, scroll > 0 ? -1 : 1);
             if (mouse.leftButton.wasPressedThisFrame && hoveredSlot >= 0 && Session.ExpeditionId == 0)
             {
                 pressedSlot = hoveredSlot;
@@ -354,11 +418,12 @@ namespace Hakaton.Trading.Unity
         void Place(int slot)
         {
             ClampSelection();
+            string placedId = Session.Inventory.Count > 0 ? Session.Inventory[selectedInventory].Definition.Id : null;
             if (Session.PlaceItem(selectedInventory, slot))
             {
+                // The same goods stay in hand while copies remain; then the next kind, so holding fills the shelf.
+                selectedInventory = StockSelection.AfterPlacing(Session.Inventory, selectedInventory, placedId);
                 ItemPlaced?.Invoke(slot);
-                // After the selected item, continue in inventory order.
-                selectedInventory = Session.Inventory.Count == 0 ? 0 : selectedInventory % Session.Inventory.Count;
                 RefreshWorld();
                 if (displayed[slot] != null) StartCoroutine(Snap(displayed[slot].transform));
             }
@@ -433,6 +498,11 @@ namespace Hakaton.Trading.Unity
         {
             if (Session.SettlementSequence == lastSettlement) return;
             lastSettlement = Session.SettlementSequence;
+            if (Session.LastSaleBulk)
+            {
+                ObserveBulkSale();
+                return;
+            }
             Notify($"Продано: {Session.LastSoldItem.Definition.Name} за {Session.LastSalePrice} монет.");
             for (int i = 0; i < 6; i++)
                 if (displayed[i] != null && displayedIds[i] == Session.LastSoldItem.Id)
@@ -443,6 +513,25 @@ namespace Hakaton.Trading.Unity
                     StartCoroutine(Transfer(item));
                     break;
                 }
+        }
+
+        /// <summary>The bulk buyer took the whole display: every item flies to him, one after another.</summary>
+        void ObserveBulkSale()
+        {
+            var sold = Session.LastSoldItems;
+            Notify(TradingSession.BulkSaleNotice(sold.Count, Session.LastSalePrice));
+            int order = 0;
+            for (int i = 0; i < 6; i++)
+            {
+                if (displayed[i] == null) continue;
+                bool taken = false;
+                foreach (var item in sold) if (item.Id == displayedIds[i]) { taken = true; break; }
+                if (!taken) continue;
+                var shown = displayed[i]; displayed[i] = null; displayedIds[i] = 0;
+                if (itemMotion[i] != null) { StopCoroutine(itemMotion[i]); itemMotion[i] = null; }
+                var collider = shown.GetComponent<Collider>(); if (collider != null) collider.enabled = false;
+                StartCoroutine(Transfer(shown, order++ * bulkTransferStagger));
+            }
         }
 
         void RefreshWorld()
@@ -507,7 +596,10 @@ namespace Hakaton.Trading.Unity
             return made;
         }
 
-        /// <summary>Models without a collider and drawings get a box around their renderers.</summary>
+        /// <summary>
+        /// Models without a collider and drawings get a box around their renderers. It is a trigger: the aim finds
+        /// triggers, while a solid box would turn with a drawing that faces the camera and shove the player.
+        /// </summary>
         static void EnsureCollider(GameObject item)
         {
             if (item.GetComponentInChildren<Collider>()) return;
@@ -516,6 +608,7 @@ namespace Hakaton.Trading.Unity
             Bounds bounds = renderers[0].bounds;
             foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
             var box = item.AddComponent<BoxCollider>();
+            box.isTrigger = true;
             var root = item.transform;
             box.center = root.InverseTransformPoint(bounds.center);
             Vector3 scale = root.lossyScale;
@@ -544,6 +637,8 @@ namespace Hakaton.Trading.Unity
         {
             Vector3 start = item.position;
             Quaternion rotation = item.rotation;
+            // Nothing in flight can be aimed at or bumped into; the item collides again where it lands.
+            SetCollidersEnabled(item, false);
             const float duration = .24f;
             for (float t = 0; t < duration && item; t += Time.deltaTime)
             {
@@ -552,7 +647,14 @@ namespace Hakaton.Trading.Unity
                 item.rotation = Quaternion.Slerp(rotation, destination.rotation, f);
                 yield return null;
             }
-            if (item) item.SetPositionAndRotation(destination.position, destination.rotation);
+            if (!item) yield break;
+            item.SetPositionAndRotation(destination.position, destination.rotation);
+            SetCollidersEnabled(item, true);
+        }
+
+        static void SetCollidersEnabled(Transform item, bool on)
+        {
+            foreach (var collider in item.GetComponentsInChildren<Collider>(true)) collider.enabled = on;
         }
 
         LootItem Item(string id)
@@ -613,8 +715,10 @@ namespace Hakaton.Trading.Unity
             }
             if (item != null) { item.position = end; item.localScale = scale; }
         }
-        IEnumerator Transfer(GameObject item)
+        IEnumerator Transfer(GameObject item, float delay = 0)
         {
+            if (delay > 0) yield return new WaitForSeconds(delay);
+            if (!item) yield break;
             var start = item.transform.position;
             for (float t = 0; t < .35f; t += Time.deltaTime)
             {
@@ -633,20 +737,12 @@ namespace Hakaton.Trading.Unity
         public void CycleInventory(int direction)
         {
             if (Session == null || Session.IsOpen || Session.Inventory.Count == 0) return;
-            selectedInventory = (selectedInventory + direction + Session.Inventory.Count) % Session.Inventory.Count;
-        }
-
-        public void SelectCustomerItem(int slotIndex, long customerId)
-        {
-            if (!ActionsReady || Session.CurrentCustomer == null) return;
-            if (Session.SelectItem(slotIndex, customerId)) actionReadyAt = Time.unscaledTime + .3f;
-            World.Customers.Sync(Session);
-            if (World.ShopView && Session.CurrentDeal != null) World.ShopView.ReturnToCounter();
+            selectedInventory = StockSelection.StepKind(Session.Inventory, selectedInventory, direction);
         }
 
         public void OfferPrice(long dealId, int revision, int optionIndex)
         {
-            if (!ActionsReady || SelectingFromDisplay) return;
+            if (!ActionsReady) return;
             int salesBefore = Session.SettlementSequence;
             if (!Session.Offer(dealId, revision, optionIndex)) return;
             if (Session.CurrentCustomer == null && Session.SettlementSequence == salesBefore)
@@ -662,7 +758,28 @@ namespace Hakaton.Trading.Unity
 
         public void AcceptPrice(long dealId, int revision)
         {
-            if (!ActionsReady || SelectingFromDisplay || !Session.Accept(dealId, revision)) return;
+            if (!ActionsReady || !Session.Accept(dealId, revision)) return;
+            actionReadyAt = Time.unscaledTime + .4f;
+            ObserveSale();
+            World.Customers.Sync(Session);
+        }
+
+        /// <summary>The next line of the bulk buyer's explanation; a press while the line is still typing only finishes it.</summary>
+        void ReadOnBulkBuyer()
+        {
+            if (!ActionsReady || !BulkBuyerExplaining) return;
+            if (hud.SkipSpeechTyping()) return;
+            var customer = Session.CurrentCustomer;
+            if (customer.Id != bulkLineCustomer) { bulkLineCustomer = customer.Id; bulkLine = 0; }
+            bulkLine++;
+            // The offer is a decision about the whole display: a moment's pause so a reading press never sells by accident.
+            actionReadyAt = Time.unscaledTime + (BulkOfferShown ? .45f : .12f);
+        }
+
+        /// <summary>The green answer to the bulk buyer: he takes the whole display for his offer.</summary>
+        public void SellToBulkBuyer(long customerId)
+        {
+            if (!ActionsReady || !BulkOfferShown || !Session.AcceptBulkOffer(customerId)) return;
             actionReadyAt = Time.unscaledTime + .4f;
             ObserveSale();
             World.Customers.Sync(Session);

@@ -16,7 +16,9 @@ namespace Hakaton.Backroom
     /// «Гоблин-торговец»): ten cards in a row, face down at half price or all turned up at full price, chosen with the
     /// mouse; player movement is blocked. On the first visit he talks first (four lines), then the table opens.
     /// A bought card is brought up to the eyes (<see cref="CardInspect"/>): the table steps aside, the left button held
-    /// turns the card, a click anywhere sends it off into the bag and the table comes back.
+    /// turns the card. A click, E, Space or Enter at any moment (on its way up, held, or on its way out) puts it away at
+    /// once and snaps the table back; Esc or the right button sends it off into the bag with the spin.
+    /// A dummy («Пустышка») is mocked when it shows its face: at the flip at the eyes when bought blind, at once face up.
     /// The rules live in <see cref="GoblinOffer"/> / <see cref="GoblinVisits"/>; this is the presentation.
     /// </summary>
     public sealed class GoblinCardShop : MonoBehaviour
@@ -69,6 +71,9 @@ namespace Hakaton.Backroom
             "Можешь брать хоть несколько. Можешь ничего. Но первый вариант мне нравится больше."
         };
         [TextArea] public string[] boughtLines = { "Сюрприз!", "Хороший выбор. Наверное.", "Бери, пока тёплая.", "Ни капли не жалею." };
+        [Tooltip("He mocks the buyer of a dummy, instead of the bought line: when it turns over at the eyes (bought blind) " +
+                 "or at once (bought face up).")]
+        [TextArea] public string[] dummyLines = { "Извини, партнёр.", "Ничего личного.", "Бизнес есть бизнес." };
         [TextArea] public string[] poorLines = { "Монет маловато, партнёр.", "В долг не торгую. Пока." };
         [TextArea] public string fullLine = "Коллекция трещит по швам. Сожги что-нибудь в жаровне.";
         [TextArea] public string revealLine = "Любуйся. Теперь каждая по полной.";
@@ -103,8 +108,18 @@ namespace Hakaton.Backroom
         float asideAlpha = 1;
         /// <summary>Seconds the table takes to fade off the bought card that takes the table card's place.</summary>
         const float HandOver = .12f;
+        /// <summary>Seconds the table takes to come back once the card is put away: as usual, and after a skip.</summary>
+        const float ComeBack = .25f, QuickComeBack = .06f;
+        float comeBack = ComeBack;
         /// <summary>Mouse travel, in pixels, after which a press turns the card instead of sending it away.</summary>
         const float DragSlop = 6;
+        /// <summary>
+        /// The skipping click's release must not buy the card under the pointer once the table is back (as the PC's
+        /// merge show does); the frame of a skip guards the buttons against the same key or click.
+        /// </summary>
+        bool swallowRelease;
+        int skippedFrame = -10;
+        bool JustSkipped => swallowRelease || Time.frameCount <= skippedFrame + 1;
         bool Talking => Visits.IntroductionRead < introduction.Length;
         float lineUntil;
         int lineSeed, talkEndedFrame = -1;
@@ -126,8 +141,8 @@ namespace Hakaton.Backroom
                 var group = stepAside[i].GetComponent<CanvasGroup>();
                 asideGroups[i] = group ? group : stepAside[i].gameObject.AddComponent<CanvasGroup>();
             }
-            revealButton.onClick.AddListener(RevealAll);
-            leaveButton.onClick.AddListener(Close);
+            revealButton.onClick.AddListener(() => { if (!JustSkipped) RevealAll(); });
+            leaveButton.onClick.AddListener(() => { if (!JustSkipped) Close(); });
             SetVisible(false);
         }
 
@@ -137,7 +152,7 @@ namespace Hakaton.Backroom
         public bool TryCall(int seed)
         {
             if (!workshop || !Visits.CanCall) return false;
-            return Visits.Call(Model.Catalog, new System.Random(seed));
+            return Visits.Call(Model.Catalog, new System.Random(seed), workshop.config ? workshop.config.dummyChance : 0);
         }
 
         /// <summary>He is down: lay out the table (the current ten).</summary>
@@ -175,9 +190,11 @@ namespace Hakaton.Backroom
 
         void Update()
         {
-            if (!IsOpen) return;
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
+            // Swallowed until the skipping press is let go (its release frame included).
+            if (swallowRelease && (mouse == null || !mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)) swallowRelease = false;
+            if (!IsOpen) return;
             if (Talking)
             {
                 bool next = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
@@ -257,7 +274,7 @@ namespace Hakaton.Backroom
 
         void OnCardClicked(OfferCardView view)
         {
-            if (Time.frameCount > talkEndedFrame + 1) Choose(view.Slot);
+            if (Time.frameCount > talkEndedFrame + 1 && !JustSkipped) Choose(view.Slot);
         }
 
         /// <summary>Buys the card in this place at its current price. False when refused or not possible now.</summary>
@@ -280,7 +297,9 @@ namespace Hakaton.Backroom
             }
             Play(buySound);
             Play(laughVoice);
-            if (!LiftUp(view, copy, blind))
+            bool dummy = copy.Spec.Dummy;
+            bool lifted = LiftUp(view, copy, blind);
+            if (!lifted)
             {
                 if (blind)
                 {
@@ -291,7 +310,9 @@ namespace Hakaton.Backroom
                 // A blind buy holds face up for a moment: the surprise is the point.
                 view.FlyAway(blind ? .7f : .15f);
             }
-            Say(offer.AnyLeft ? Pick(boughtLines) : emptyLine);
+            // A dummy bought blind is mocked when it turns over at the eyes (LiftUp); any other dummy right now.
+            if (dummy) { if (!(lifted && blind)) Mock(false); }
+            else Say(offer.AnyLeft ? Pick(boughtLines) : emptyLine);
             Visits.Touch();
             Bought?.Invoke(copy);
             Refresh();
@@ -356,11 +377,14 @@ namespace Hakaton.Backroom
             float width = edge.magnitude / Mathf.Max(1, Screen.width);
             float roll = Mathf.Atan2(edge.y, edge.x) * Mathf.Rad2Deg;
             var back = view.back ? view.back.texture : null;
+            // A dummy bought blind: he waits for it to show its face, then mocks the buyer.
+            bool mock = blind && copy.Spec.Dummy;
             inspected = CardInspect.Launch(inspectCardPrefab, art.texture, back, copy.Level, camera, screen, width, roll, blind,
-                HandOver, () => Play(flipSound), OnInspectGone);
+                HandOver, () => { Play(flipSound); if (mock) Mock(true); }, OnInspectGone);
             if (!inspected) return false;
             inspecting = true;
             pressed = turning = false;
+            comeBack = ComeBack;
             // The table's card holds still and fades out with the table over the world card; then it is put away.
             view.group.blocksRaycasts = false;
             handingOver = view;
@@ -370,18 +394,26 @@ namespace Hakaton.Backroom
 
         void Inspect(Keyboard keyboard, Mouse mouse)
         {
-            if (!inspected || inspected.Leaving) return;
-            if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame
-                || keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
-                || mouse != null && mouse.rightButton.wasPressedThisFrame)
+            if (!inspected) return;
+            bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
+            bool key = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
+                || keyboard.enterKey.wasPressedThisFrame);
+            // Skipped: E / Space / Enter at any moment, a click while the card is still on its way up or already on its
+            // way out. Only a press that started after the purchase counts, so the buying click never skips.
+            if (key || click && (inspected.Leaving || !inspected.Arrived))
+            {
+                Skip(click);
+                return;
+            }
+            if (inspected.Leaving) return;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame)
             {
                 SendAway();
                 return;
             }
             if (mouse == null) return;
-            // Held: turns the card; a click without dragging (anywhere) sends it into the bag. Only a press that
-            // started after the purchase counts, so the buying click never sends the card straight off.
-            if (mouse.leftButton.wasPressedThisFrame)
+            // Held: turns the card; a click without dragging (anywhere) puts it away at once.
+            if (click)
             {
                 pressed = true;
                 turning = false;
@@ -396,8 +428,28 @@ namespace Hakaton.Backroom
             }
             pressed = false;
             if (turning) inspected.Release();
-            else SendAway();
+            else Skip(true);
             turning = false;
+        }
+
+        /// <summary>
+        /// A skip press: the card at the eyes is put away at once (a blind card still turns, the stow chime plays), the
+        /// goblin's line stops typing, the table snaps back after a very short fade. A click's release is swallowed so
+        /// it cannot buy the card under the pointer.
+        /// </summary>
+        void Skip(bool byMouse)
+        {
+            swallowRelease |= byMouse || pressed;
+            skippedFrame = Time.frameCount;
+            if (bubble) bubble.SkipTyping();
+            var card = inspected;
+            if (!card) return;
+            comeBack = QuickComeBack;
+            // Calls OnInspectGone before it returns: the table is no longer stepping aside.
+            card.Finish(() => Play(stowSound));
+            // The table's card is put away at once (as EndInspect does), not left to fade back in with the table.
+            if (handingOver) handingOver.Hide();
+            handingOver = null;
         }
 
         void SendAway()
@@ -432,7 +484,7 @@ namespace Hakaton.Backroom
         void StepAside()
         {
             float wanted = inspecting ? 0 : 1;
-            asideAlpha = Mathf.MoveTowards(asideAlpha, wanted, Time.unscaledDeltaTime * (wanted > 0 ? 4 : 1 / HandOver));
+            asideAlpha = Mathf.MoveTowards(asideAlpha, wanted, Time.unscaledDeltaTime / (wanted > 0 ? comeBack : HandOver));
             // The table's card stays until the table has faded over the world card taking its place.
             if (handingOver && asideAlpha <= 0) { handingOver.Hide(); handingOver = null; }
             ApplyAside();
@@ -471,7 +523,14 @@ namespace Hakaton.Backroom
             if (continueHint) continueHint.Show(false);
         }
 
-        string Pick(string[] lines) => lines.Length == 0 ? "" : lines[(lineSeed++ * 7 + DateTime.Now.Millisecond) % lines.Length];
+        string Pick(string[] lines) => lines == null || lines.Length == 0 ? "" : lines[(lineSeed++ * 7 + DateTime.Now.Millisecond) % lines.Length];
+
+        /// <summary>A dummy shows its face: he mocks the buyer; with a scoff at the flip at the eyes (<paramref name="scoff"/>), the sale's laugh being over.</summary>
+        void Mock(bool scoff)
+        {
+            Say(dummyLines != null && dummyLines.Length > 0 ? Pick(dummyLines) : Pick(boughtLines));
+            if (scoff) Play(scoffVoice ? scoffVoice : laughVoice);
+        }
 
         void Play(AudioClip clip)
         {

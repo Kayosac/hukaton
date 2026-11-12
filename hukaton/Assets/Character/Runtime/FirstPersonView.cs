@@ -31,6 +31,20 @@ namespace Hakaton.Character
         [Range(0, 12)] public float sprintFov = 5;
         [Range(0, .1f)] public float maxLandingDip = .045f;
         [Min(.1f)] public float motionResponse = 14;
+        [Header("Steps — the eye eases over a step instead of popping")]
+        [Tooltip("Seconds the eye takes to catch up after the body stepped up or down. 0 shows every step at once.")]
+        [Min(0)] public float stepSmoothTime = .08f;
+        [Tooltip("Largest height change (m) in one frame treated as a step, and largest eye offset. Bigger changes (falls, " +
+                 "teleports) are shown at once.")]
+        [Min(0)] public float maxStepSmoothing = .45f;
+        [Tooltip("The eye follows the slope under the feet exactly up to this angle (no lag on ramps); only what the body does " +
+                 "beyond it, like dropping off a step's edge, is eased.")]
+        [Range(0, 89)] public float stepSlopeAllowance = 35;
+        // Slack (rise per metre walked) on top of the slope under the feet, for rough ground.
+        const float StepSlopeTolerance = .05f;
+        float eyeStep, eyeStepVelocity;
+        Vector3 lastBody;
+        bool lastBodyOnGround, hasLastBody;
         float yaw, pitch, yawTarget, pitchTarget, yawVelocity, pitchVelocity;
         float baseFov, smoothedFov, phase, landing, landingVelocity;
         Quaternion roll = Quaternion.identity;
@@ -94,7 +108,7 @@ namespace Hakaton.Character
             if (!viewCamera || !motor) return;
             float dt = Time.deltaTime;
             if (dt <= 0) return;
-            bool walking = control.GameplayActive && motor.IsGrounded && motor.PlanarVelocity.sqrMagnitude > .09f;
+            bool walking = control.GameplayActive && motor.GroundedForFeedback && motor.PlanarVelocity.sqrMagnitude > .09f;
             float speedFactor = Mathf.Clamp01(motor.PlanarVelocity.magnitude / Mathf.Max(.1f, motor.walkSpeed));
             if (walking) phase += dt * (motor.IsSprinting ? sprintBobFrequency : walkBobFrequency)
                 * Mathf.Lerp(.35f, 1, speedFactor) * Mathf.PI * 2;
@@ -104,8 +118,13 @@ namespace Hakaton.Character
                 Mathf.Sin(phase) * bobAmplitude, 0) * gaitWeight;
             cameraOffset = Vector3.Lerp(cameraOffset, target, 1 - Mathf.Exp(-motionResponse * dt));
             landing = Mathf.SmoothDamp(landing, 0, ref landingVelocity, .16f, Mathf.Infinity, dt);
+            FollowSteps(dt);
             Vector3 feelPosition = feel ? feel.PositionOffset : Vector3.zero;
-            cameraTransform.localPosition = cameraBasePosition + cameraOffset + Vector3.down * landing * motionIntensity + feelPosition;
+            // The step offset is a world height: convert it into the (pitched) camera parent's space.
+            var cameraParent = cameraTransform.parent;
+            Vector3 stepPosition = cameraParent ? cameraParent.InverseTransformVector(Vector3.up * eyeStep) : Vector3.up * eyeStep;
+            cameraTransform.localPosition = cameraBasePosition + cameraOffset + Vector3.down * landing * motionIntensity + feelPosition
+                + stepPosition;
             float localLateral = yawRoot.InverseTransformDirection(motor.PlanarVelocity).x / Mathf.Max(.1f, motor.walkSpeed);
             float targetRoll = (control.GameplayActive ? -localLateral * strafeRoll * motionIntensity : 0)
                 - sway * bobRoll * gaitWeight;
@@ -116,12 +135,49 @@ namespace Hakaton.Character
             viewCamera.fieldOfView = smoothedFov + (feel ? feel.FovOffset : 0);
         }
 
+        /// <summary>
+        /// Steps lift or drop the body by a step's height within a frame or two. While it walks, the eye keeps its height
+        /// through such a change and then eases to the body (eyeStep, world metres). Only what goes beyond the slope under
+        /// the feet (<see cref="FirstPersonMotor.GroundNormal"/>, capped by <see cref="stepSlopeAllowance"/>) is eased, so
+        /// ramps are followed exactly; jumps, falls and teleports are shown as they are.
+        /// </summary>
+        void FollowSteps(float dt)
+        {
+            Vector3 body = motor.transform.position;
+            bool onGround = motor.GroundedForFeedback;
+            if (hasLastBody && onGround && lastBodyOnGround && stepSmoothTime > 0)
+            {
+                Vector3 delta = body - lastBody;
+                float run = new Vector2(delta.x, delta.z).magnitude;
+                if (Mathf.Abs(delta.y) <= maxStepSmoothing && run < 1)
+                {
+                    float slope = Mathf.Min(stepSlopeAllowance, Vector3.Angle(motor.GroundNormal, Vector3.up));
+                    float allowance = run * (Mathf.Tan(slope * Mathf.Deg2Rad) + StepSlopeTolerance);
+                    float excess = delta.y - Mathf.Clamp(delta.y, -allowance, allowance);
+                    eyeStep = Mathf.Clamp(eyeStep - excess, -maxStepSmoothing, maxStepSmoothing);
+                }
+            }
+            if (stepSmoothTime > 0) eyeStep = Mathf.SmoothDamp(eyeStep, 0, ref eyeStepVelocity, stepSmoothTime, Mathf.Infinity, dt);
+            else eyeStep = eyeStepVelocity = 0;
+            lastBody = body;
+            lastBodyOnGround = onGround;
+            hasLastBody = true;
+        }
+
+        /// <summary>Drops any step easing (teleports): the eye is at its authored height at once.</summary>
+        public void ClearStepSmoothing()
+        {
+            eyeStep = eyeStepVelocity = 0;
+            hasLastBody = false;
+        }
+
         public void ResetPose(Quaternion rotation)
         {
             yaw = yawTarget = rotation.eulerAngles.y;
             pitch = pitchTarget = Mathf.Clamp(SignedAngle(rotation.eulerAngles.x), -pitchLimit, pitchLimit);
             yawVelocity = pitchVelocity = landing = landingVelocity = phase = 0;
             cameraOffset = Vector3.zero;
+            ClearStepSmoothing();
             roll = Quaternion.identity;
             smoothedFov = baseFov;
             if (feel) feel.ResetFeel();

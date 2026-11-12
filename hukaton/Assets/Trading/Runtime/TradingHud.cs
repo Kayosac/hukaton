@@ -17,19 +17,20 @@ namespace Hakaton.Trading.Unity
     public sealed class TradingHud : MonoBehaviour
     {
         [Header("Compact exploration HUD")]
-        public RectTransform layoutRoot, selectedItemPanel, contextPanel, noticePanel, staminaPanel;
-        public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility, staminaVisibility;
+        public RectTransform layoutRoot, selectedItemPanel, contextPanel, noticePanel;
+        public CanvasGroup selectedVisibility, contextVisibility, noticeVisibility;
         public TMP_Text walletText, contextPrompt, contextDetail, noticeText;
         [Tooltip("Item card, first line: name and count (accent font).")]
         [FormerlySerializedAs("selectedItemText")] public TMP_Text selectedItemTitle;
         [Tooltip("Item card, second line: base price (body font).")]
         public TMP_Text selectedItemDetail;
-        public Image staminaFill, contextProgressFill, reticleDot;
+        public Image contextProgressFill, reticleDot;
         public GameObject reticle;
         [Tooltip("Magnification of the shop HUD layout (736 × 368 mockup units).")]
         public ReferenceUiScale shopLayout;
-        public Color reticleIdle = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
-        public Color reticleFocused = new Color32(0xE9, 0xD7, 0xA3, 0xFF);
+        [Tooltip("The aim point is a small white square, an even whole number of screen pixels (PixelSquare).")]
+        public Color reticleIdle = Color.white;
+        public Color reticleFocused = Color.white;
 
         [Header("Shift clock")]
         [Tooltip("Shown while the shop is open.")]
@@ -47,7 +48,7 @@ namespace Hakaton.Trading.Unity
         [Header("Conversation")]
         [Tooltip("Everything shown only while a visitor stands at the counter.")]
         public GameObject conversation;
-        [Tooltip("Positions the speech bubble: at the counter or, while picking goods, on the left.")]
+        [Tooltip("Positions the speech bubble at the counter.")]
         public RectTransform speechAnchor;
         [Tooltip("The bubble itself; hops when the visitor answers.")]
         public RectTransform speechBubble;
@@ -55,11 +56,15 @@ namespace Hakaton.Trading.Unity
         [Tooltip("Small red 'ПОСЛЕДНЕЕ' inside the bubble on a last offer.")]
         public GameObject lastOfferMark;
         public Vector2 speechAtCounter = new Vector2(410, -8);
-        public Vector2 speechAtDisplay = new Vector2(8, -40);
-        [Tooltip("Request: 'Выбрать с витрины' / 'К покупателю' and 'Отказать'.")]
-        public GameObject requestActions;
-        public StitchedLinenButton browseDisplay, backToCounter, refuseRequest;
-        public TMP_Text browseLabel;
+        [Tooltip("Offer group (green accept, red decline), centred along the bottom. Regular visitors name an item and " +
+                 "haggle at once, so it stays hidden for them; the bulk buyer («Скупщик») answers here: sell all, or refuse.")]
+        [FormerlySerializedAs("requestActions")] public GameObject offerActions;
+        [Tooltip("Green answer of the offer group.")]
+        [FormerlySerializedAs("browseDisplay")] public StitchedLinenButton acceptOffer;
+        [Tooltip("Red answer of the offer group.")]
+        [FormerlySerializedAs("refuseRequest")] public StitchedLinenButton declineOffer;
+        [Tooltip("Label of the green answer.")]
+        [FormerlySerializedAs("browseLabel")] public TMP_Text acceptOfferLabel;
         [Tooltip("Haggling: price row and the two small actions.")]
         public GameObject dealActions;
         public StitchedLinenButton[] priceButtons = new StitchedLinenButton[5];
@@ -83,29 +88,28 @@ namespace Hakaton.Trading.Unity
         [Min(0)] public float fadeSpeed = 8;
         [Min(4)] public float contextHeight = 12;
         [Min(4)] public float contextHeightWithDetail = 24;
-        [Tooltip("Reference units from the bottom for the prompt while picking goods during a conversation (above the buttons).")]
-        [Min(0)] public float displayContextBottom = 68;
         [Tooltip("Reference units the bubble hops when the visitor answers.")]
         [Min(0)] public float answerHop = 2;
-        public Color staminaColor = new Color(.76f, .81f, .69f);
-        public Color tiredColor = new Color(.88f, .48f, .32f);
+
+        [Header("Stamina")]
+        [Tooltip("The arc of pips around the aim, under it (Stamina pips prefab); shows itself only while stamina matters.")]
+        public Hakaton.Character.StaminaPips staminaPips;
 
         [Tooltip("Set when a ShopFeel animates the wallet counter.")]
         public bool feelDrivesWallet;
         TradingPrototype controller;
         long shownCustomerId, shownDealId;
         int shownDealRevision;
-        float displayedStamina = 1;
-        Vector2 contextRestPosition;
         TextPunch speechPunch;
         long revealedDealId;
         int revealedRevision = -1;
+        long bulkSpeaker;
+        int bulkLineShown = -1;
 
         public void Bind(TradingPrototype value)
         {
             if (controller != null) return;
             controller = value;
-            contextRestPosition = contextPanel.anchoredPosition;
             clockClose.onClick.AddListener(controller.ToggleShop);
             for (int i = 0; i < priceButtons.Length; i++)
             {
@@ -113,22 +117,12 @@ namespace Hakaton.Trading.Unity
                 priceButtons[i].onClick.AddListener(() => controller.OfferPrice(shownDealId, shownDealRevision, index));
             }
             accept.onClick.AddListener(() => controller.AcceptPrice(shownDealId, shownDealRevision));
-            refuseRequest.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
             refuseDeal.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
-            browseDisplay.onClick.AddListener(() => { if (controller.UsesDisplayView) controller.World.ShopView.BeginSelection(); });
-            backToCounter.onClick.AddListener(() => { if (controller.UsesDisplayView) controller.World.ShopView.ReturnToCounter(); });
-            selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = staminaVisibility.alpha = 0;
+            acceptOffer.onClick.AddListener(() => controller.SellToBulkBuyer(shownCustomerId));
+            declineOffer.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
+            selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = 0;
             speechPunch = new TextPunch(speechBubble);
             Refresh();
-        }
-
-        /// <summary>True over a visible conversation button: clicks there never pick goods from the display.</summary>
-        public bool ContainsBlockingPanel(Vector2 position)
-        {
-            if (!conversation.activeInHierarchy) return false;
-            foreach (var button in conversation.GetComponentsInChildren<Selectable>())
-                if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)button.transform, position)) return true;
-            return false;
         }
 
         void LateUpdate()
@@ -137,6 +131,9 @@ namespace Hakaton.Trading.Unity
             Refresh();
             speechPunch?.Update(Time.unscaledDeltaTime);
         }
+
+        /// <summary>Prints the rest of the visitor's line at once; true if it was still typing (the press is spent on that).</summary>
+        public bool SkipSpeechTyping() => speech && speech.TryGetComponent(out TypedLine typed) && typed.Skip();
 
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
         /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
@@ -150,7 +147,6 @@ namespace Hakaton.Trading.Unity
         {
             var session = controller.Session;
             bool exploring = !session.IsOpen;
-            bool selecting = controller.SelectingFromDisplay && !controller.ViewTransitioning;
             // ShopFeel animates the wallet when present; otherwise show the balance directly.
             if (!feelDrivesWallet) walletText.text = FormatMoney(session.Gold);
             RefreshClock(session);
@@ -158,12 +154,11 @@ namespace Hakaton.Trading.Unity
             reticleDot.color = string.IsNullOrEmpty(controller.ContextPrompt) ? reticleIdle : reticleFocused;
 
             // The card describes what the aim rests on: the stock about to be placed on a free slot (with how many
-            // are left), the item on the hovered slot, the goods hovered for a visitor, or the item being haggled over.
+            // are left), the item on the hovered slot, or the item the visitor asked for and is haggling over.
             var item = controller.FocusedItem;
             var deal = session.CurrentDeal;
-            bool haggling = session.IsOpen && deal != null && !selecting && controller.CustomerReady && !controller.ViewTransitioning;
-            bool showItem = haggling || (item != null && session.ExpeditionId == 0
-                && ((exploring && controller.GameplayActive) || selecting));
+            bool haggling = session.IsOpen && deal != null && controller.CustomerReady && !controller.ViewTransitioning;
+            bool showItem = haggling || (item != null && session.ExpeditionId == 0 && exploring && controller.GameplayActive);
             if (haggling)
             {
                 selectedItemTitle.text = deal.Item.Definition.Name;
@@ -181,8 +176,7 @@ namespace Hakaton.Trading.Unity
                 selectedItemDetail.text = $"Базовая цена: {item.Definition.RecommendedPrice}";
             }
             Fade(selectedVisibility, showItem);
-            contextPanel.anchoredPosition = selecting ? new Vector2(contextRestPosition.x, displayContextBottom) : contextRestPosition;
-            bool hasContext = ((exploring && controller.GameplayActive) || selecting) && !string.IsNullOrEmpty(controller.ContextPrompt);
+            bool hasContext = exploring && controller.GameplayActive && !string.IsNullOrEmpty(controller.ContextPrompt);
             if (hasContext)
             {
                 contextPrompt.text = controller.ContextPrompt;
@@ -196,13 +190,11 @@ namespace Hakaton.Trading.Unity
             noticeText.text = controller.Notice;
             Fade(noticeVisibility, !string.IsNullOrEmpty(controller.Notice));
 
-            displayedStamina = Mathf.Lerp(displayedStamina, controller.StaminaFraction, 1 - Mathf.Exp(-14 * Time.unscaledDeltaTime));
-            staminaFill.fillAmount = displayedStamina;
-            staminaFill.color = Color.Lerp(tiredColor, staminaColor, Mathf.InverseLerp(.12f, .4f, controller.StaminaFraction));
-            Fade(staminaVisibility, exploring && controller.ShowStamina);
+            // The arc under the aim, together with the aim itself; it shows only while the stamina is not full.
+            if (staminaPips) staminaPips.Present(controller.Stamina, exploring && controller.GameplayActive, Time.unscaledDeltaTime);
             bool talking = session.IsOpen && session.CurrentCustomer != null && controller.CustomerReady && !controller.ViewTransitioning;
             conversation.SetActive(talking);
-            if (talking) RefreshTrade(selecting);
+            if (talking) RefreshTrade();
         }
 
         /// <summary>
@@ -214,7 +206,7 @@ namespace Hakaton.Trading.Unity
             shiftClock.SetActive(session.IsOpen);
             if (!session.IsOpen) return;
             bool ended = session.RemainingSeconds <= 0;
-            clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.Settings.ShiftSeconds);
+            clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
             clockClose.gameObject.SetActive(!ended);
             clockClose.interactable = !controller.ViewTransitioning;
             clockBody.alpha = ended ? endedClockAlpha : 1;
@@ -226,7 +218,7 @@ namespace Hakaton.Trading.Unity
             group.alpha = Mathf.MoveTowards(group.alpha, visible ? 1 : 0, fadeSpeed * Time.unscaledDeltaTime);
         }
 
-        void RefreshTrade(bool selecting)
+        void RefreshTrade()
         {
             var session = controller.Session;
             var customer = session.CurrentCustomer;
@@ -236,21 +228,19 @@ namespace Hakaton.Trading.Unity
             shownDealId = deal == null ? 0 : deal.Id;
             shownDealRevision = deal == null ? 0 : deal.Revision;
             bool ready = controller.ActionsReady;
-            bool request = deal == null;
-            speechAnchor.anchoredPosition = request && selecting ? speechAtDisplay : speechAtCounter;
-            requestActions.SetActive(request);
-            dealActions.SetActive(!request);
-            if (request)
+            speechAnchor.anchoredPosition = speechAtCounter;
+            if (customer.IsBulkBuyer)
             {
-                TypedLine.Say(speech, $"Ищу: {customer.RequestedCategory}.");
+                RefreshBulkBuyer(customer, ready);
+                return;
+            }
+            // Every visitor names an item on the display himself and the haggle over it starts at once: the offer
+            // group never shows for him.
+            offerActions.SetActive(false);
+            dealActions.SetActive(deal != null);
+            if (deal == null)
+            {
                 lastOfferMark.SetActive(false);
-                bool display = controller.UsesDisplayView;
-                bool stock = controller.HasMatchingStock;
-                browseDisplay.gameObject.SetActive(display && !selecting);
-                backToCounter.gameObject.SetActive(display && selecting);
-                browseDisplay.interactable = ready && stock;
-                browseLabel.text = stock ? "Выбрать с витрины" : "Подходящего нет";
-                backToCounter.interactable = refuseRequest.interactable = ready;
                 return;
             }
 
@@ -282,6 +272,31 @@ namespace Hakaton.Trading.Unity
             accept.interactable = ready && offer;
             acceptKey.SetActive(offer);
             refuseDeal.interactable = ready;
+        }
+
+        /// <summary>
+        /// The bulk buyer: no haggle. His lines follow one another on the speech plate (a press reads on); with the last
+        /// one, his offer, the green «Продать всё за X» and the red «Отказать» appear.
+        /// </summary>
+        void RefreshBulkBuyer(Customer customer, bool ready)
+        {
+            dealActions.SetActive(false);
+            lastOfferMark.SetActive(false);
+            if (customer.Lines.Count == 0)
+            {
+                offerActions.SetActive(false);
+                return;
+            }
+            int line = Mathf.Clamp(controller.BulkLine, 0, customer.Lines.Count - 1);
+            if (customer.Id != bulkSpeaker) { bulkSpeaker = customer.Id; bulkLineShown = line; }
+            else if (line != bulkLineShown) { bulkLineShown = line; speechPunch.Hop(answerHop); }
+            TypedLine.Say(speech, customer.Lines[line]);
+            bool offer = controller.BulkOfferShown;
+            offerActions.SetActive(offer);
+            if (!offer) return;
+            acceptOfferLabel.text = $"Продать всё за {customer.BulkPrice}";
+            acceptOffer.interactable = ready;
+            declineOffer.interactable = ready;
         }
     }
 }

@@ -95,8 +95,11 @@ namespace Hakaton.Trading.Unity
                     if (!visitor.IsDeparting)
                     {
                         var result = session.LastDeparture;
-                        bool sold = result != null && result.CustomerId == pair.Value && result.Outcome == CustomerOutcome.Purchased;
-                        visitor.Leave(sold ? NpcExpression.Happy : NpcExpression.Angry);
+                        bool theirs = result != null && result.CustomerId == pair.Value;
+                        bool sold = theirs && result.Outcome == CustomerOutcome.Purchased;
+                        // The bulk buyer takes a refusal calmly: no anger, he just goes.
+                        bool calm = theirs && result.BulkBuyer;
+                        visitor.Leave(sold ? NpcExpression.Happy : calm ? NpcExpression.Neutral : NpcExpression.Angry);
                     }
                 }
                 else if (visitor.ReadyForTrade && !HoldExpression)
@@ -109,11 +112,13 @@ namespace Hakaton.Trading.Unity
                 var free = Idle();
                 if (!free || !roster) return;
                 bag ??= new VisitorBag(() => roster ? roster.visitors : null);
-                var appearance = bag.Peek();
+                // The bulk buyer has his own look (Visitor roster → Bulk Buyer) and is no part of the shuffled round.
+                var special = current.IsBulkBuyer ? roster.bulkBuyer : null;
+                var appearance = special ? special : bag.Peek();
                 if (appearance && free.BeginVisit(appearance))
                 {
                     presented[free] = current.Id;
-                    bag.Take(appearance);
+                    if (!special) bag.Take(appearance);
                 }
             }
         }

@@ -47,7 +47,6 @@ namespace Hakaton.Game
         bool CanOpen => game && game.Ready && control && control.PauseAllowed
             && !(mainMenu && mainMenu.IsOpen)
             && !(fade && (fade.Busy || fade.Amount > .01f))
-            && !(game.trade && game.trade.isActiveAndEnabled && game.trade.SelectingFromDisplay)
             && !game.trade.ViewTransitioning;
 
         void Update()
