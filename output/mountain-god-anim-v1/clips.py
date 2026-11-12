@@ -335,29 +335,57 @@ def reach_hold(t):
     return p
 
 
-LIFT_LEN = 12.0
+LIFT_LEN = 16.0
 LIFT_RISE, LIFT_LEAN = .3, 2.0
+# The pull: off the lip and down to the cloud sea, a long low sweep toward himself just over the clouds (the finger's
+# underside skims them, the player rides 50 m up, under the god's whole height), then up along his front to the face.
+# Fingertip waypoints (time s, position); FACE_TIP closes the list.
+LIFT_KEYS = [(0.0, None), (1.8, Vector((-.2, -14.0, 1.7))), (3.4, Vector((.0, -13.0, -.12))), (5.8, Vector((.6, -10.2, -.2))),
+             (8.0, Vector((1.3, -7.6, -.1))), (10.4, Vector((1.9, -5.6, 4.2))), (12.7, Vector((1.9, -3.4, 10.4))), (14.8, None)]
+
+
+def hermite_path(keys, t):
+    """C1 path through (time, point) keys, still at both ends."""
+    ts = [k for k, _ in keys]
+    ps = [p for _, p in keys]
+    t = min(max(t, ts[0]), ts[-1])
+    i = max(j for j in range(len(ts) - 1) if ts[j] <= t)
+    def vel(j):
+        if j == 0 or j == len(ts) - 1:
+            return Vector()
+        return ((ps[j + 1] - ps[j]) / (ts[j + 1] - ts[j]) + (ps[j] - ps[j - 1]) / (ts[j] - ts[j - 1])) * .5
+    h = ts[i + 1] - ts[i]
+    u = (t - ts[i]) / h
+    h00, h10, h01, h11 = 2 * u ** 3 - 3 * u ** 2 + 1, u ** 3 - 2 * u ** 2 + u, -2 * u ** 3 + 3 * u ** 2, u ** 3 - u ** 2
+    return ps[i] * h00 + vel(i) * (h10 * h) + ps[i + 1] * h01 + vel(i + 1) * (h11 * h)
+
+
+def lift_tip(t):
+    keys = [(k, p if p is not None else (DOCK_TIP if k == 0 else FACE_TIP)) for k, p in LIFT_KEYS]
+    return hermite_path(keys, t)
 
 
 def lift(t):
     p = Pose(); p.breath = breath(t) * .7; p.sway = t + 43.0; p.sway_amp = 1.0
     hold_base(p)
-    u = settle(t / 10.5, overshoot=.02, wobbles=1.2)
-    up = smooth(t / 3.0)
-    p.rise = REACH_END["rise"] + (LIFT_RISE - REACH_END["rise"]) * smoother(t / 9)
-    p.lean = REACH_END["lean"] + (LIFT_LEAN - REACH_END["lean"]) * smoother((t - 1) / 9)
-    p.roll = REACH_END["roll"] * (1 - smoother(t / 9))
+    end = LIFT_KEYS[-1][0]
+    f = min(1.0, t / end)
+    # he bends down after his hand to the clouds, then straightens as it climbs to his face
+    down, up = smooth(t / 4.0), smoother((t - 8.0) / (end - 8.0))
+    p.lean = REACH_END["lean"] + (18.0 - REACH_END["lean"]) * down + (LIFT_LEAN - 18.0) * up
+    p.rise = REACH_END["rise"] + (-.2 - REACH_END["rise"]) * down + (LIFT_RISE + .2) * up
+    p.roll = REACH_END["roll"] * (1 - up)
     p.c01 = 1; p.fingers = 1
-    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(u / .25) - smooth((u - .7) / .3))
-    p.point_w = 1; p.point_dir = DOCK_DIR.slerp(FACE_DIR, smoother(min(1.0, max(0.0, u))))
-    p0, p3 = M_DOCK.translation, M_FACE.translation
-    p1 = p0 + Vector((0, 0, 4.0))
-    p2 = p3 + Vector((-4.0, -3.0, -.5))
-    uu = min(max(u, 0), 1)
-    pos = bezier(p0, p1, p2, p3, uu) + Vector((0, 0, .05 * math.sin(math.pi * up)))
-    rot = M_DOCK.to_quaternion().slerp(M_FACE.to_quaternion(), smoother(uu))
+    p.point_w = 1
+    p.point_dir = DOCK_DIR.slerp(FACE_DIR, smooth((t - 1.0) / 7.0))
+    tip = lift_tip(t)
+    e_dock = M_DOCK.translation - (DOCK_TIP - DOCK_DIR * FINGER_LEN)
+    e_face = M_FACE.translation - (FACE_TIP - FACE_DIR * FINGER_LEN)
+    pos = tip - p.point_dir * FINGER_LEN + e_dock.lerp(e_face, smoother(f))
+    rot = M_DOCK.to_quaternion().slerp(M_FACE.to_quaternion(), smoother(f))
     p.hand = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-    p.look = spot_of(DOCK_TIP, DOCK_DIR).lerp(spot_of(FACE_TIP, FACE_DIR), smoother(min(1.0, max(0.0, u)))); p.look_w = .7
+    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(t / 1.5) - smooth((t - (end - 1.6)) / 1.6))
+    p.look = tip + Vector((0, 0, G.FINGER_R)); p.look_w = .7
     return p
 
 

@@ -1,8 +1,19 @@
-# MG01: god animation (draft v2 for review)
+# MG01: god animation (draft v3 for review)
 
 The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
-his support hands. Previews: `MG01_first_person.mp4` (from the lip, then riding the finger), `MG01_body.mp4` (the
-body up close until the finger waits at the lip), `MG01_wide.mp4`.
+his support hands. Previews: `MG01_rider.mp4` (riding the finger: the pull and the talk), `MG01_body.mp4` (the body up
+close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp4` is the v2 view from the lip.
+
+## v3 (after the second review)
+
+- The other cradle hand (C02) no longer drags a stretched mess: its fingers were fused to the belly, to thigh L02 and
+  to its own shoulder. Faces bridging two limbs, or bones far apart inside one free limb (C01, C02, A01–A04, the
+  dropping legs L01 and L02), are cut; each side of an opening is closed on its own; weights follow the same split.
+  Stretched edges at the waiting pose: 186 before, 30 now (left at the hip, knee and shoulder joints).
+- The pull: the hand goes off the lip down to the cloud sea, sweeps toward him low over the clouds (the player rides
+  about 50 m above them, under the god's whole height, past his support hand and its rock), then climbs along his front
+  to the face. He bends down after it and straightens as it rises. 16 s.
+- C01's wrist resists bending (IK stiffness), so when the long arm folds the elbow and the forearm take it.
 
 ## v2 (after the first review)
 
@@ -25,7 +36,7 @@ body up close until the finger waits at the lip), `MG01_wide.mp4`.
 | AlertIdle | 12 s | yes | Stands, watching the lip. |
 | Reach | 11 s | no | Lets go (hands down), legs drop straight, torso sags and bounces, then leans 13 deg as C01 swings to the lip. |
 | ReachHold | 12 s | yes | Waits at the lip; free fingers twitch, the legs and C02 hang and sway. |
-| Lift | 12 s | no | Carries the finger up to the face (end point to be tuned in tests). |
+| Lift | 16 s | no | Down to the clouds, a low sweep toward himself, then up along his front to the face. |
 | Talk | 12 s | yes | Nods and tilts, small arms gesture, the hand holds steady. |
 
 Dock: the index fingertip's end tucks 5 m under the lip edge, the finger's top 1 m below the platform. IK misses
