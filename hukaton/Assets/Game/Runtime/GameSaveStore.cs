@@ -18,6 +18,8 @@ namespace Hakaton.Game
         public GoblinSave goblin;
         /// <summary>The shop tutorial's progress. Null in saves made before it: the tutorial counts as done.</summary>
         public Hakaton.Tutorial.TutorialSave tutorial;
+        /// <summary>The outing map: opened points, where they were drawn, which are still new. Null in old saves.</summary>
+        public OutingMapSave map;
     }
 
     /// <summary>One safe-shop snapshot for the entire economy; physical outings are not resumed halfway.</summary>

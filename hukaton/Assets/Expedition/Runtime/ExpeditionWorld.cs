@@ -64,6 +64,10 @@ namespace Hakaton.Expeditions
         /// <summary>Chosen at the door before departing; read when the outing begins.</summary>
         public OutingPlace NextPlace { get; set; } = OutingPlace.Endless;
         public bool HasPlaceChoice => readyWorld && outingWorld is IOutingWorld;
+        /// <summary>The place exists in this scene (the outing map shows only those).</summary>
+        public bool HasPlace(OutingPlace place) => place == OutingPlace.Ready ? (bool)readyWorld : outingWorld is IOutingWorld;
+        /// <summary>The title of a place, as the map card and the arrival title show it.</summary>
+        public string PlaceName(OutingPlace place) => place == OutingPlace.Ready && readyWorld ? readyWorld.placeName : locationName;
         /// <summary>The title of the place the next outing goes to.</summary>
         public string NextLocationName => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld.placeName : locationName;
 
