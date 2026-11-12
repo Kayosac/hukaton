@@ -13,7 +13,7 @@ namespace Hakaton.Expeditions.Cards
     /// slowed. Registered as a card zone (Kind Updraft).
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class UpdraftColumn : CardZoneBehaviour
+    public sealed class UpdraftColumn : CardZoneBehaviour, ICardAreaOutline
     {
         [Header("Authored parts")]
         [Tooltip("Visual root, authored for the sizes below; scaled to the configured column.")]
@@ -189,6 +189,14 @@ namespace Hakaton.Expeditions.Cards
                 Gizmos.DrawLine(p + u, p + v);
                 Gizmos.DrawLine(p + u + Vector3.up * height, p + v + Vector3.up * height);
             }
+        }
+
+        /// <summary>Outlined on the ground while it works (<see cref="CardAreaDisplay"/>).</summary>
+        public bool TryGetOutline(out Vector3 centre, out float radius)
+        {
+            centre = transform.position;
+            radius = this.radius;
+            return !Ending;
         }
     }
 }

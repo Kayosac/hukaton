@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Hakaton.Expeditions
 {
-    public sealed class ImpulseEffect : CardEffect
+    public sealed class ImpulseEffect : CardEffect, ICardArea
     {
         [Range(0, 2)] public float creatureStagger = .55f;
 
@@ -36,5 +36,13 @@ namespace Hakaton.Expeditions
             }
             Feedback(c, meaningful);
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = definition.effectRadius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }

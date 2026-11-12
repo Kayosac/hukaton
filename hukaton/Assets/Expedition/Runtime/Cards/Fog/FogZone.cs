@@ -46,7 +46,7 @@ namespace Hakaton.Expeditions.Cards
     /// and fog all around from inside. It does not make anyone wet.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class FogZone : CardZoneBehaviour, IVisionBlocker
+    public sealed class FogZone : CardZoneBehaviour, IVisionBlocker, ICardAreaOutline
     {
         [Header("Fog")]
         [Tooltip("Sight lines shorter than this still see through (face to face inside the fog), m.")]
@@ -139,6 +139,14 @@ namespace Hakaton.Expeditions.Cards
                 block.SetColor(TintId, new Color(colour.r, colour.g, colour.b, colour.a * density * Mathf.Clamp01(grow * 1.5f) * fade));
                 domeRenderer.SetPropertyBlock(block);
             }
+        }
+
+        /// <summary>Outlined on the ground while it works (<see cref="CardAreaDisplay"/>).</summary>
+        public bool TryGetOutline(out Vector3 centre, out float radius)
+        {
+            centre = transform.position;
+            radius = this.radius;
+            return Active;
         }
     }
 }

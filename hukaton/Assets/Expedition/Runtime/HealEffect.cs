@@ -12,7 +12,7 @@ namespace Hakaton.Expeditions
     /// owner, 09.11 evening) gets the same number in its own health units (1 unit = ½ heart), up to its maximum, with
     /// the healing poof and sound on it.
     /// </summary>
-    public sealed class HealEffect : CardEffect
+    public sealed class HealEffect : CardEffect, ICardArea
     {
         [Tooltip("Size of the healing poof on a healed ally (× vfxScale).")]
         [Min(0)] public float allyVfxScale = 1.3f;
@@ -45,5 +45,13 @@ namespace Hakaton.Expeditions
             Reached.Clear();
             return healed;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = definition.effectRadius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }

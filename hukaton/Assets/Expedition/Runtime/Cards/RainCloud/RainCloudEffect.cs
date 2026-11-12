@@ -9,7 +9,7 @@ namespace Hakaton.Expeditions.Cards
     /// creatures, allies); wet lasts 30 s after the last contact. Rain does no damage and does not heal.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class RainCloudEffect : CardEffect, ICardStatLine
+    public sealed class RainCloudEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Cloud duration, s (same on every level).")]
@@ -47,5 +47,13 @@ namespace Hakaton.Expeditions.Cards
             unit = " м";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius.At(level);
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => true;
     }
 }

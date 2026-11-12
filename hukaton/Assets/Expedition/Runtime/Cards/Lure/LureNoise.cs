@@ -11,7 +11,7 @@ namespace Hakaton.Expeditions.Cards
     /// the ground and a sound wave at each chirp mark it.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class LureNoise : CardZoneBehaviour
+    public sealed class LureNoise : CardZoneBehaviour, ICardAreaOutline
     {
         [Header("Noise")]
         [Tooltip("Time between two chirps, s.")]
@@ -87,6 +87,14 @@ namespace Hakaton.Expeditions.Cards
                 // Every creature, aggressive and attacking ones too; the card pulls them out of their territory.
                 if (creature.Investigate(here, remaining, pull: true, distract: true)) called++;
             }
+        }
+
+        /// <summary>Outlined on the ground while it works (<see cref="CardAreaDisplay"/>).</summary>
+        public bool TryGetOutline(out Vector3 centre, out float radius)
+        {
+            centre = transform.position;
+            radius = hearing;
+            return Sounding;
         }
     }
 }

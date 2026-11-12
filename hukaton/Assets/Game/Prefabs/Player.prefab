@@ -803,6 +803,61 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!1 &8842833971063410219
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5426689917947748282}
+  - component: {fileID: 4255870959809591754}
+  m_Layer: 0
+  m_Name: Card area display
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5426689917947748282
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8842833971063410219}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3867151197516079692}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4255870959809591754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8842833971063410219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db2f2dcfe34b040c392a622ba42827eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.CardAreaDisplay
+  thrower: {fileID: 7853132577785921869}
+  ringPrefab: {fileID: 6091804571099956854, guid: 332d0b9606eed482d8a779396b2512bc, type: 3}
+  aimAlpha: 0.9
+  simulateSeconds: 6
+  simulateStep: 0.033333335
+  flashSeconds: 1
+  flashAlpha: 0.95
+  flashPop: 1.6
+  outlineAlpha: 0.6
+  outlineFadeSeconds: 0.5
+  fallbackTint: {r: 1, g: 0.95, b: 0.8, a: 1}
 --- !u!1001 &956016981191649739
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -925,6 +980,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4102381132090657671, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4790831981147067759}
+    - targetCorrespondingSourceObject: {fileID: 4102381132090657671, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5426689917947748282}
     - targetCorrespondingSourceObject: {fileID: 5909845228326150656, guid: 45b34487bf5c34ade853a2e476a9818b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3985083634227017624}

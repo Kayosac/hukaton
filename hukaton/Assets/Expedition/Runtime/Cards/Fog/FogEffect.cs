@@ -9,7 +9,7 @@ namespace Hakaton.Expeditions.Cards
     /// aggression: creatures search at the last known place. Fog does not make anyone wet.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class FogEffect : CardEffect, ICardStatLine
+    public sealed class FogEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Fog duration, s (board: 8 → 12).")]
@@ -44,5 +44,13 @@ namespace Hakaton.Expeditions.Cards
             unit = " с";
             return true;
         }
+
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius;
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => true;
     }
 }

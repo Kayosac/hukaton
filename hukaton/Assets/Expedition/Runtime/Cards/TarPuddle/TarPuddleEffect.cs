@@ -10,7 +10,7 @@ namespace Hakaton.Expeditions.Cards
     /// in the fire, no slowdown, then it burns out. Rain washes it away (burning or not). Overlapping puddles do not stack.
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md.
     /// </summary>
-    public sealed class TarPuddleEffect : CardEffect, ICardStatLine
+    public sealed class TarPuddleEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Puddle radius, m (board*: 2 → 3).")]
@@ -49,5 +49,14 @@ namespace Hakaton.Expeditions.Cards
             unit = " м";
             return true;
         }
+
+        // The puddle itself shows its edge for the rest of the outing: only the landing is flashed.
+        bool ICardArea.TryGetArea(CardDefinition definition, int level, Collider target, out float radius)
+        {
+            radius = this.radius.At(level);
+            return true;
+        }
+
+        bool ICardArea.LeavesOutlinedZone => false;
     }
 }
