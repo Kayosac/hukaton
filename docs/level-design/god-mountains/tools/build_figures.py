@@ -92,7 +92,7 @@ def offset_path(pts, w):
 # ---------------------------------------------------------------- plan
 def plan():
     S = 8.0
-    X0, X1, Y0, Y1 = -56, 104, -47, 108
+    X0, X1, Y0, Y1 = -56, 72, -44, 80
     OX, OY = 50, 120
     W = int(OX + (X1 - X0) * S + 500)
     H = int(OY + (Y1 - Y0) * S + 60)
@@ -105,28 +105,28 @@ def plan():
         return [P(x, y) for x, y in pts]
 
     g.text(OX, 44, "Горы бога · пеший маршрут игрока · план", 30, weight="bold")
-    g.text(OX, 76, "v1 · 12.11.2026 · предложение для блокинга · север сверху · координаты в метрах от точки появления", 16, fill="#5a5266")
+    g.text(OX, 76, "v2 · 12.11.2026 · маршрут на 30% короче, пройден контроллером · север сверху · координаты в метрах от точки появления", 16, fill="#5a5266")
     g.text(OX, 100, "Бог за северным краем плана: расстояние и масштаб задаются после сборки сцены с маршрутом", 16, fill="#5a5266")
 
     # background: whole frame = cloud abyss, north band = cloud sea
     g.add(f'<rect x="{OX}" y="{OY}" width="{(X1-X0)*S}" height="{(Y1-Y0)*S}" fill="url(#cloud)" stroke="#bdb5c8"/>')
-    g.add(poly(PL([(X0, 80), (X1, 80), (X1, Y1), (X0, Y1)]), SEA))
+    g.add(poly(PL([(X0, 67), (X1, 67), (X1, Y1), (X0, Y1)]), SEA))
     # ledge south edge (for the rock boundary)
-    ledge_ids = ["N24", "N25", "N26", "N27", "N28", "N29", "N30", "N31"]
+    ledge_ids = ["N21", "N22", "N23", "N24", "N25"]
     lpts = [(NODE[i]["x"], NODE[i]["y"], NODE[i]["width_m"] / 2) for i in ledge_ids]
     lleft, lright = offset_path(lpts, 0)
-    rock = [(-56, -47), (-14, -47), (-15, -22), (-17, 0), (-10, 24), (-4, 40), (0.5, 47.0), (2.0, 47.8)]
+    rock = [(-56, -44), (-22, -44), (-23, -16), (-21, 6), (-15, 16), (-9.5, 19.6), (-5.5, 21.4), (-4.2, 22.0)]
     rock += lright
-    rock += [(88, 53.2), (104, 53.5), (104, 70), (96, 84), (91, 82.5), (90.6, 96.4), (76.4, 96.4), (76, 82.6),
-             (60, 86), (40, 84), (20, 87), (0, 84.5), (-20, 86.5), (-40, 83.5), (-56, 80.5)]
+    rock += [(40.5, 23.4), (47, 20.6), (58, 21), (58, 38), (52, 47.5), (49.6, 48.1), (49.6, 62.6), (35.2, 62.6), (35.2, 48.1),
+             (25, 50), (10, 48.6), (-10, 49.5), (-30, 48), (-56, 49)]
     g.add(poly(PL(rock), ROCK, ROCK_EDGE, 2))
-    g.text(*P(-52, 74), "СКАЛЬНЫЙ МАССИВ И ХРЕБЕТ-ШИРМА", 15, fill="#efe9f3", weight="bold")
-    g.text(*P(-52, 70.6), "гребень на 25–45 м выше тропы; закрывает север", 13, fill="#e3dcea")
-    g.text(*P(30, 72), "ХРЕБЕТ-ШИРМА", 15, fill="#efe9f3", weight="bold")
-    g.text(*P(-50, 101), "ОБЛАЧНОЕ МОРЕ — далеко внизу; из него торчат вершины, в нём стоит бог", 15, fill="#4e4766", weight="bold")
-    g.text(*P(-6, 26), "БЕЛАЯ БЕЗДНА", 17, fill="#9a90aa", weight="bold")
-    g.text(*P(-6, 22.2), "облако прижато к южному склону;", 13, fill="#9a90aa")
-    g.text(*P(-6, 19.2), "видно 6–20 м, дальше белое", 13, fill="#9a90aa")
+    g.text(*P(-53, 44), "СКАЛЬНЫЙ МАССИВ И ХРЕБЕТ-ШИРМА", 15, fill="#efe9f3", weight="bold")
+    g.text(*P(-53, 40.6), "гребень на 20–30 м выше тропы; закрывает север", 13, fill="#e3dcea")
+    g.text(*P(16, 42), "ХРЕБЕТ-ШИРМА", 15, fill="#efe9f3", weight="bold")
+    g.text(*P(-53, 74), "ОБЛАЧНОЕ МОРЕ — далеко внизу; из него торчат вершины, в нём стоит бог", 15, fill="#4e4766", weight="bold")
+    g.text(*P(-2, 16), "БЕЛАЯ БЕЗДНА", 17, fill="#9a90aa", weight="bold")
+    g.text(*P(-2, 12.2), "облако прижато к южному склону;", 13, fill="#9a90aa")
+    g.text(*P(-2, 9.2), "видно 6–20 м, дальше белое", 13, fill="#9a90aa")
 
     # path channels
     def channel(ids, roof=False):
@@ -139,31 +139,31 @@ def plan():
     pocket = [(-38.6, -32.6), (-31.2, -33.2), (-30.4, -25.2), (-34.2, -23.4), (-35.9, -23.4), (-39.2, -25.8)]
     g.add(poly(PL(pocket), PATH, "#7b6c5f", 1))
     g.add(poly(PL(pocket), "url(#roof)"))
-    channel(["N01", "N02", "N03", "N04", "N05", "N06", "N07", "N08", "N09"], roof=True)
-    channel(["N09", "N10", "N11", "N12", "N13", "N14", "N15", "N16", "N17", "N18"])
-    channel(["N18", "N19", "N20", "N21", "N22"])
-    cx, cy = P(-3.8, 49.5)
+    channel(["N01", "N02", "N03", "N04", "N05", "N06"], roof=True)
+    channel(["N06", "N07", "N08", "N09", "N10", "N11", "N12", "N13", "N14", "N15"])
+    channel(["N15", "N16", "N17", "N18", "N19"])
+    cx, cy = P(-10.6, 23.8)
     g.add(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{3*S:.1f}" fill="{PATH}" stroke="#7b6c5f"/>')
-    g.add(poly(PL([(-0.6, 48.8), (3.2, 48.8), (3.2, 50.2), (-0.6, 50.2)]), PATH, "#7b6c5f", 1))
-    channel(["N24", "N25", "N26", "N27", "N28", "N29", "N30", "N31"])
-    channel(["N31", "N32", "N33", "N34", "N35", "N36"])
-    plat = [(77, 82.6), (90, 82.6), (90.4, 96), (76.6, 96)]
+    g.add(poly(PL([(-7.6, 23.1), (-3.8, 23.1), (-3.8, 24.5), (-7.6, 24.5)]), PATH, "#7b6c5f", 1))
+    channel(["N21", "N22", "N23", "N24", "N25"])
+    channel(["N25", "N26", "N27", "N28", "N29", "N30"])
+    plat = [(35.9, 48.9), (48.9, 48.9), (49.3, 62.3), (35.5, 62.3)]
     g.add(poly(PL(plat), PATH, "#7b6c5f", 1))
-    # stairs ticks between N19 and N20
-    a, b = NODE["N19"], NODE["N20"]
-    for k in range(1, 25):
-        t = k / 25
+    # stairs ticks between N16 and N17
+    a, b = NODE["N16"], NODE["N17"]
+    for k in range(1, 18):
+        t = k / 18
         x, y = a["x"] + (b["x"] - a["x"]) * t, a["y"] + (b["y"] - a["y"]) * t
         dx, dy = b["x"] - a["x"], b["y"] - a["y"]
         L = math.hypot(dx, dy)
         nx, ny = -dy / L * .7, dx / L * .7
         g.add(pline(PL([(x - nx, y - ny), (x + nx, y + ny)]), "#6b5c50", 1))
     # frame S5
-    fx, fy = P(0, 49.5)
+    fx, fy = P(-6.8, 23.8)
     g.add(f'<rect x="{fx-3:.1f}" y="{fy-0.9*S-4:.1f}" width="6" height="{1.8*S+8:.1f}" fill="#2d2836"/>')
     # lip boulders
-    for bx, by, r in [(78, 95.2, 1.3), (79.6, 96.2, 1.0), (88.9, 95.3, 1.3), (87.3, 96.3, 1.0),
-                      (76.9, 89, 1.2), (90.2, 88, 1.2), (77.2, 84.4, 1.0), (89.8, 84.2, 1.0)]:
+    for bx, by, r in [(36.9, 61.5, 1.3), (38.5, 62.5, 1.0), (47.8, 61.6, 1.3), (46.2, 62.6, 1.0),
+                      (35.8, 55.3, 1.2), (49.1, 54.3, 1.2), (36.1, 50.7, 1.0), (48.7, 50.5, 1.0)]:
         bx_, by_ = P(bx, by)
         g.add(f'<circle cx="{bx_:.1f}" cy="{by_:.1f}" r="{r*S:.1f}" fill="#857a8f" stroke="#4a4155"/>')
     # ledge rim boulders (outer, south side)
@@ -192,9 +192,9 @@ def plan():
         g.add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="#fff" stroke="{ZC[n["zone"]]}" stroke-width="1.6"/>')
 
     # node labels (selected)
-    lab = {"N00": (12, 18), "N09": (-46, 4), "N12": (8, 4), "N15": (8, 4), "N18": (-42, -6), "N19": (6, -8),
-           "N20": (8, 10), "N21": (8, 10), "N27": (-12, -12), "N31": (8, 20),
-           "N33": (-44, 4), "N36": (12, 4)}
+    lab = {"N00": (12, 18), "N06": (-46, 4), "N09": (8, 4), "N12": (8, 4), "N15": (-12, -12), "N16": (6, -8),
+           "N17": (8, 10), "N18": (8, 10), "N21": (-8, -10), "N23": (-12, -12), "N25": (8, 20),
+           "N27": (-44, 4), "N30": (12, 16)}
     for k, (dx, dy) in lab.items():
         x, y = P(NODE[k]["x"], NODE[k]["y"])
         g.text(x + dx, y + dy, k, 11, fill="#3a3346")
@@ -205,10 +205,10 @@ def plan():
     g.add(f'<line x1="{sx:.1f}" y1="{sy+6:.1f}" x2="{sx:.1f}" y2="{sy+20:.1f}" stroke="#fff" stroke-width="3" marker-end="url(#arrw)"/>')
 
     # zone badges
-    badges = {"Z0": (-50, -36), "Z1": (-27, -2), "Z2": (-15, 44), "Z3": (-6, 66), "Z4": (-8, 37),
-              "Z5": (8, 40), "Z6": (63, 68), "Z7": (56, 92)}
-    anchors = {"Z0": (-36, -29), "Z1": (-30.5, 0), "Z2": (-24, 45), "Z3": (-12, 58), "Z4": (-3.8, 46.8),
-               "Z5": (14, 47.5), "Z6": (80, 66), "Z7": (77, 91)}
+    badges = {"Z0": (-54, -34), "Z1": (-54, -10), "Z2": (-54, 22), "Z3": (-9, 37.5), "Z4": (-14, 2),
+              "Z5": (8, 31), "Z6": (52, 36), "Z7": (52, 70)}
+    anchors = {"Z0": (-36, -29), "Z1": (-31.5, -8), "Z2": (-33.5, 14), "Z3": (-17, 32), "Z4": (-10.6, 21.5),
+               "Z5": (13, 25.5), "Z6": (39.5, 36), "Z7": (44, 60)}
     for z, (bx, by) in badges.items():
         x, y = P(bx, by)
         ax, ay = P(*anchors[z])
@@ -232,28 +232,28 @@ def plan():
         g.text(x + 11, y + 18, cp["id"], 11, fill="#1f6e3c", weight="bold")
 
     # mouth, edge trigger, lip, dock
-    mx_, my_ = P(83.5, 82)
+    mx_, my_ = P(42.4, 48.3)
     g.add(f'<circle cx="{mx_:.1f}" cy="{my_:.1f}" r="7" fill="#2f7fb5" stroke="#fff" stroke-width="2"/>')
     g.text(mx_ - 14, my_ + 4, "M", 12, anchor="end", weight="bold", fill="#1d5a85")
-    e1, e2 = P(77, 93.5), P(90, 93.5)
+    e1, e2 = P(35.9, 59.8), P(48.9, 59.8)
     g.add(f'<line x1="{e1[0]:.1f}" y1="{e1[1]:.1f}" x2="{e2[0]:.1f}" y2="{e2[1]:.1f}" stroke="#d1343b" stroke-width="3" stroke-dasharray="7 5"/>')
     g.text(e2[0] + 6, e2[1] + 4, "E", 13, fill="#d1343b", weight="bold")
-    l1, l2 = P(80.5, 96), P(86.5, 96)
+    l1, l2 = P(39.4, 62.3), P(45.4, 62.3)
     g.add(f'<line x1="{l1[0]:.1f}" y1="{l1[1]:.1f}" x2="{l2[0]:.1f}" y2="{l2[1]:.1f}" stroke="#2d2836" stroke-width="5"/>')
-    dx_, dy_ = P(83.5, 96.5)
+    dx_, dy_ = P(42.4, 62.8)
     g.add(f'<circle cx="{dx_:.1f}" cy="{dy_-14:.1f}" r="8" fill="#ffffff" stroke="#2f7fb5" stroke-width="3"/>')
     g.text(dx_, dy_ - 10, "D", 11, anchor="middle", weight="bold", fill="#1d5a85")
 
     # view wedge from the mouth (horizontal FOV ~107 at 16:9, vertical 75)
     half = math.radians(53.7)
     Lw = 12
-    a_ = (83.5 + Lw * math.sin(-half), 82 + Lw * math.cos(half))
-    b_ = (83.5 + Lw * math.sin(half), 82 + Lw * math.cos(half))
-    g.add(poly(PL([(83.5, 82), a_, b_]), "#2f7fb5", extra='fill-opacity=".12"'))
-    gx, gy = P(83.5, 98.5)
+    a_ = (42.4 + Lw * math.sin(-half), 48.3 + Lw * math.cos(half))
+    b_ = (42.4 + Lw * math.sin(half), 48.3 + Lw * math.cos(half))
+    g.add(poly(PL([(42.4, 48.3), a_, b_]), "#2f7fb5", extra='fill-opacity=".12"'))
+    gx, gy = P(42.4, 65)
     g.add(f'<line x1="{gx:.1f}" y1="{gy:.1f}" x2="{gx:.1f}" y2="{OY+6:.1f}" stroke="#2f7fb5" stroke-width="4" marker-end="url(#arrb)"/>')
-    g.text(gx - 10, OY + 30, "к богу MG01 →", 15, anchor="end", fill="#1d5a85", weight="bold")
-    g.text(gx - 10, OY + 48, "в кадре с устья M", 13, anchor="end", fill="#1d5a85")
+    g.text(gx + 10, OY + 30, "к богу MG01", 15, anchor="start", fill="#1d5a85", weight="bold")
+    g.text(gx + 10, OY + 48, "в кадре с устья M", 13, anchor="start", fill="#1d5a85")
 
     # scale bar and north
     bx, by = OX + 20, OY + (Y1 - Y0) * S - 24
@@ -267,7 +267,7 @@ def plan():
     g.text(nx, ny + 48, "С", 16, anchor="middle", weight="bold")
 
     # inset: corner module x3
-    ix, iy, iw, ih = P(37.5, 36)[0], P(37.5, 36)[1], 520, 380
+    ix, iy, iw, ih = P(4, 4)[0], P(4, 4)[1], 520, 330
     g.add(f'<rect x="{ix:.1f}" y="{iy:.1f}" width="{iw}" height="{ih}" fill="#ffffff" stroke="#8a4fb0" stroke-width="2.5" rx="6"/>')
     g.text(ix + 16, iy + 28, "Модуль «Угол» (Z2) · ставится 3 раза подряд", 15, weight="bold", fill="#5e2f80")
     s2 = 16.0
@@ -276,24 +276,24 @@ def plan():
     def Q(x, y):
         return (ox2 + (x + 2.5) * s2, oy2 - y * s2)
 
-    mod = [(0, 0, .8), (0, 6, .8), (4, 8.5, .8), (5, 14, .8)]
+    mod = [(0, 0, .8), (0, 4, .8), (3, 6, .8), (3.5, 10, .8)]
     L, R = offset_path(mod, 0)
     wall_l = [(x - .2, y) for x, y in L]
     g.add(poly([Q(*p) for p in L + R[::-1]], PATH, "#7b6c5f", 1))
     g.add(pline([Q(*p) for p in L], ROCK_EDGE, 6))
     g.add(pline([Q(*p) for p in R], ROCK_EDGE, 6))
     g.add(pline([Q(x, y) for x, y, _ in mod], ZC["Z2"], 3, 'marker-end="url(#arr)"'))
-    items = [((-1.35, 7.1), "К", "ниша, ветреный куст A07, свет сверху"),
-             ((1.15, 3.0), "П", "плита A06 лежит у стены"),
-             ((-0.2, 9.2), "Т", "трещина «Г» (D02) на стене напротив входа"),
-             ((5.9, 10.6), "В", "валун A05 во внешнем углу")]
+    items = [((-1.35, 4.9), "К", "ниша, ветреный куст A07, свет сверху"),
+             ((1.15, 2.0), "П", "плита A06 лежит у стены"),
+             ((-0.2, 6.8), "Т", "трещина «Г» (D02) на стене напротив входа"),
+             ((4.6, 7.0), "В", "валун A05 во внешнем углу")]
     for (x, y), k, _ in items:
         qx, qy = Q(x, y)
         g.add(f'<circle cx="{qx:.1f}" cy="{qy:.1f}" r="10" fill="#fff" stroke="#5e2f80" stroke-width="2"/>')
         g.text(qx, qy + 4.5, k, 12, anchor="middle", weight="bold", fill="#5e2f80")
     tx = ix + 178
-    rows = ["Вход с юга, 6 м прямо, поворот направо,",
-            "выход на север. Длина 16,3 м, подъём 1 м.",
+    rows = ["Вход с юга, 4 м прямо, косой сдвиг",
+            "на 3 м вправо, 4 м на север.", "Длина 11,6 м, подъём 0,7 м.",
             "", "Ориентиры, одинаковые в углах 1 и 2:"]
     rows += [f"{k} — {t}" for _, k, t in items]
     rows += ["", "Угол 3 отличается только двумя вещами:",
@@ -316,8 +316,8 @@ def plan():
         hr = (f"пол {min(hs):g} м" if min(hs) == max(hs) else f"пол {min(hs):g}…{max(hs):g} м") if hs else ""
         g.text(px0 + 44, y + 34, hr, 12, fill="#6a6276")
         y += 58
-    g.text(px0, y + 4, f'Всего ≈ {DATA["total_length_m"]:.0f} м · ≈ 1 мин 05 с чистой ходьбы', 13, weight="bold")
-    g.text(px0, y + 22, "4 м/с; с осмотром ожидается 2–3 мин", 12, fill="#4a4356")
+    g.text(px0, y + 4, f'Всего ≈ {DATA["total_length_m"]:.0f} м · ≈ 45 с чистой ходьбы', 13, weight="bold")
+    g.text(px0, y + 22, "4 м/с; v2 на 30% короче первого (≈ 259 м); с осмотром 1,5–2 мин", 12, fill="#4a4356")
     y += 56
     g.text(px0, y, "Обозначения", 20, weight="bold")
     y += 26
@@ -352,23 +352,23 @@ def plan():
         "Север закрыт всегда: крышей (Z0–Z1),",
         "стенами и изгибами (Z2–Z4, Z6),",
         "хребтом-ширмой (Z5) и облаком.",
-        "Бог впервые виден из изгиба N35 —",
+        "Бог впервые виден из изгиба N29 —",
         "в проёме устья; целиком — в M.",
         "",
         "Невидимых коллайдеров нет: края держат",
         "видимые камни; падение в бездну —",
         "затемнение и возврат на ближний CP.",
         "",
-        "Высоты, ширины и длины — для блокинга;",
-        "уточняются ходьбой контроллера.",
+        "Высоты, ширины и длины проверены",
+        "ходьбой настоящего контроллера игрока.",
     ], 13, fill="#3a3346")
     return g.save("route-plan.svg")
 
 
 # ---------------------------------------------------------------- profile
 def profile():
-    sx = 5.0
-    Hmin, Hmax, sy = -2, 24, 16.0
+    sx = 7.0
+    Hmin, Hmax, sy = -2, 16, 18.0
     OX, OY = 120, 175
     total = DATA["total_length_m"]
     W = int(OX + total * sx + 80)
@@ -406,42 +406,43 @@ def profile():
         g.add(f'<line x1="{X(s0):.1f}" y1="{OY-6}" x2="{X(s0):.1f}" y2="{bottom:.1f}" stroke="{ZC[z]}" stroke-opacity=".5"/>')
 
     # grid
-    for h in range(0, 25, 4):
+    for h in range(0, 17, 4):
         g.add(f'<line x1="{OX}" y1="{Y(h):.1f}" x2="{X(total):.1f}" y2="{Y(h):.1f}" stroke="#d8d1de"/>')
         g.text(OX - 10, Y(h) + 4, f"{h} м", 12, anchor="end", fill="#6a6276")
     # cloud
-    s_frame = ch["N23"] + 3.8
-    g.add(poly([(X(s_frame), Y(Hmax)), (X(ch["N33"]), Y(Hmax)), (X(ch["N33"]), Y(Hmin)), (X(s_frame), Y(Hmin))],
+    s_frame = ch["N20"] + 3.8
+    g.add(poly([(X(s_frame), Y(Hmax)), (X(ch["N27"]), Y(Hmax)), (X(ch["N27"]), Y(Hmin)), (X(s_frame), Y(Hmin))],
                "#ffffff", extra='fill-opacity=".55"'))
-    g.text(X(150), Y(21.5), "ОБЛАКО на южном склоне", 14, fill="#8f86a0", weight="bold")
+    g.text(X(100), Y(14.5), "ОБЛАКО на южном склоне", 14, fill="#8f86a0", weight="bold")
     # ground fill
     pts = [(X(n["chainage_m"]), Y(n["h"])) for n in NODES]
     g.add(poly(pts + [(X(total), Y(Hmin)), (X(0), Y(Hmin))], ROCK, extra='fill-opacity=".85"'))
     g.add(pline(pts, "#2d2836", 3))
     # roof over Z0-Z1 and choke ceiling
-    g.add(poly([(X(0), Y(4.5)), (X(ch["N09"]), Y(3.2 + 4.5)), (X(ch["N09"]), Y(3.2 + 6)), (X(0), Y(6))], "url(#roof)"))
-    g.text(X(4), Y(7.4), "крыша из заклиненных плит 4,5–6 м над полом", 12, fill="#3a3244")
-    g.add(poly([(X(ch["N20"]), Y(1.2 + 2.1)), (X(ch["N21"]), Y(1.2 + 2.1)), (X(ch["N21"]), Y(1.2 + 3.3)),
-                (X(ch["N20"]), Y(1.2 + 3.3))], "url(#roof)"))
-    g.text((X(ch["N20"]) + X(ch["N21"])) / 2, Y(-0.6), "горловина: потолок 2,1 м", 11, fill="#ffffff", weight="bold", anchor="middle")
+    g.add(poly([(X(0), Y(4.5)), (X(ch["N06"]), Y(2.0 + 4.5)), (X(ch["N06"]), Y(2.0 + 6)), (X(0), Y(6))], "url(#roof)"))
+    g.text(X(2), Y(9.0), "крыша из заклиненных плит 4,5–6 м над полом", 12, fill="#3a3244")
+    c0, c1 = ch["N17"] + 1.2, ch["N18"] - 1.2
+    g.add(poly([(X(c0), Y(.5 + 2.1)), (X(c1), Y(.5 + 2.1)), (X(c1), Y(.5 + 3.3)),
+                (X(c0), Y(.5 + 3.3))], "url(#roof)"))
+    g.text((X(ch["N17"]) + X(ch["N18"])) / 2, Y(-0.4), "горловина: потолок 2,1 м над серединой", 11, fill="#ffffff", weight="bold", anchor="middle")
 
     for n in NODES:
         x, y = X(n["chainage_m"]), Y(n["h"])
         g.add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="#fff" stroke="#2d2836"/>')
-    for k in ["N09", "N18", "N20", "N24", "N27", "N31", "N33", "N36"]:
+    for k in ["N06", "N15", "N17", "N21", "N23", "N25", "N27", "N30"]:
         n = NODE[k]
         g.text(X(n["chainage_m"]), Y(n["h"]) + 18, k, 10, anchor="middle", fill="#f2edf6")
     # annotations on profile
-    ann = [("N19", "лестница вниз −5 м", -26), ("N22", "пандус +1,8 м", -40), ("N31", "поворот в хребет", -22),
-           ("N36", "устье M", -44), ("N38", "край E", -24)]
+    ann = [("N16", "лестница вниз −3,6 м", -26), ("N19", "пандус +1,4 м", -40), ("N25", "поворот в хребет", -22),
+           ("N30", "устье M", -44), ("N32", "край E", -24)]
     for k, t, dy in ann:
         n = NODE[k]
         x, y = X(n["chainage_m"]), Y(n["h"])
         g.add(f'<line x1="{x:.1f}" y1="{y-5:.1f}" x2="{x:.1f}" y2="{y+dy+4:.1f}" stroke="#2d2836" stroke-width="1"/>')
         g.text(x, y + dy, t, 12, anchor="middle", weight="bold")
     # beats on profile
-    bch = {"S1": 1, "S3": ch["N16"], "S4": (ch["N19"] + ch["N21"]) / 2, "S5": s_frame,
-           "S6": (ch["N27"] + ch["N29"]) / 2, "S7": ch["N34"]}
+    bch = {"S1": 1, "S3": ch["N13"], "S4": (ch["N16"] + ch["N18"]) / 2, "S5": s_frame,
+           "S6": (ch["N22"] + ch["N24"]) / 2, "S7": ch["N28"]}
     for k, c in bch.items():
         x = X(c)
         y = OY - 44
@@ -450,10 +451,10 @@ def profile():
         g.text(x, y + 4.5, k, 10, anchor="middle", weight="bold")
     g.add(f'<line x1="{X(0):.1f}" y1="{Y(Hmax)+12:.1f}" x2="{X(total):.1f}" y2="{Y(Hmax)+12:.1f}" stroke="#b39a2a" '
           f'stroke-width="2" stroke-dasharray="3 4"/>')
-    g.text(X(60), Y(Hmax) + 8, "S2 — дыхание горы слышно на всём пути", 12, fill="#7a6514", weight="bold")
+    g.text(X(40), Y(Hmax) + 8, "S2 — дыхание горы слышно на всём пути", 12, fill="#7a6514", weight="bold")
     for cp in MK["checkpoints"]:
-        c = {"CP1": ch["N24"], "CP2": ch["N27"], "CP3": ch["N36"] + 3}[cp["id"]]
-        h = {"CP1": 3.0, "CP2": 9.0, "CP3": 20.1}[cp["id"]]
+        c = {"CP1": ch["N21"], "CP2": ch["N23"], "CP3": ch["N30"] + 3}[cp["id"]]
+        h = cp["pos"][2]
         g.add(f'<rect x="{X(c)-6:.1f}" y="{Y(h)+26:.1f}" width="12" height="12" fill="#2e9e57" stroke="#fff"/>')
         g.text(X(c), Y(h) + 52, cp["id"], 11, fill="#ffffff", weight="bold", anchor="middle")
 
@@ -470,50 +471,51 @@ def profile():
     # bands
     y = Y(Hmin) + 40
     segs = {
-        "atm": [(0, ch["N22"], "#3f3a4c", "Нутро: тёмный холодный туман", "#fff"),
-                (ch["N22"], s_frame, "#7d7590", "порог", "#fff"),
-                (s_frame, ch["N33"], "#f7f5fa", "Облако: белое, всё тоньше к верху", "#4a4356"),
-                (ch["N33"], ch["N36"], "#b8aed0", "смена", "#2d2836"),
-                (ch["N36"], total, "#a99fc6", "Высота: ясно", "#fff")],
-        "vis": [(0, ch["N22"], "#e6e1ec", "стены ближе 6–8 м; туман ~15 м", "#2d2836"),
-                (ch["N22"], s_frame, "#e6e1ec", "", "#2d2836"),
-                (s_frame, ch["N31"], "#ffffff", "8 м у рамки → 22 м у конца полки", "#2d2836"),
-                (ch["N31"], ch["N36"], "#e6e1ec", "стены горла", "#2d2836"),
-                (ch["N36"], total, "#cfe3f2", "километры", "#1d5a85")],
-        "light": [(0, ch["N01"], "#3a3548", "", ""), (ch["N01"], ch["N22"], "#55506a", "", ""),
-                  (ch["N22"], s_frame, "#6e6884", "", ""), (s_frame, ch["N31"], "#f3f0f7", "", ""),
-                  (ch["N31"], ch["N35"], "#5e5872", "", ""), (ch["N35"], ch["N36"], "#e9e1f0", "", ""),
-                  (ch["N36"], total, "#efe0c8", "", "")],
+        "atm": [(0, ch["N19"], "#3f3a4c", "Нутро: тёмный холодный туман", "#fff"),
+                (ch["N19"], s_frame, "#7d7590", "порог", "#fff"),
+                (s_frame, ch["N27"], "#f7f5fa", "Облако: белое, всё тоньше к верху", "#4a4356"),
+                (ch["N27"], ch["N30"], "#b8aed0", "смена", "#2d2836"),
+                (ch["N30"], total, "#a99fc6", "Высота: ясно", "#fff")],
+        "vis": [(0, ch["N19"], "#e6e1ec", "стены ближе 6–8 м; туман ~15 м", "#2d2836"),
+                (ch["N19"], s_frame, "#e6e1ec", "", "#2d2836"),
+                (s_frame, ch["N25"], "#ffffff", "8 м у рамки → 22 м у конца полки", "#2d2836"),
+                (ch["N25"], ch["N30"], "#e6e1ec", "стены горла", "#2d2836"),
+                (ch["N30"], total, "#cfe3f2", "километры", "#1d5a85")],
+        "light": [(0, ch["N01"], "#3a3548", "", ""), (ch["N01"], ch["N19"], "#55506a", "", ""),
+                  (ch["N19"], s_frame, "#6e6884", "", ""), (s_frame, ch["N25"], "#f3f0f7", "", ""),
+                  (ch["N25"], ch["N29"], "#5e5872", "", ""), (ch["N29"], ch["N30"], "#e9e1f0", "", ""),
+                  (ch["N30"], total, "#efe0c8", "", "")],
         "sound": [(0, s_frame, "#efe8f3", "капли, шорох, эхо шагов", "#2d2836"),
-                  (s_frame, ch["N31"], "#ffffff", "глухо после рамки; ветер", "#2d2836"),
-                  (ch["N31"], ch["N34"], "#efe8f3", "ветер в щели", "#2d2836"),
-                  (ch["N34"], ch["N36"], "#2d2836", "тишина", "#fff"),
-                  (ch["N36"], total, "#cfe3f2", "простор", "#1d5a85")],
+                  (s_frame, ch["N25"], "#ffffff", "глухо после рамки; ветер", "#2d2836"),
+                  (ch["N25"], ch["N28"], "#efe8f3", "ветер в щели", "#2d2836"),
+                  (ch["N28"], ch["N30"], "#2d2836", "тишина", "#fff"),
+                  (ch["N30"], total, "#cfe3f2", "простор", "#1d5a85")],
         "ctrl": [(0, total, "#d9f0df", "ходьба и взгляд; бега нет; рука пустая; HUD скрыт — до линии края E, дальше ведёт сценарий", "#1f6e3c")],
     }
     for key, label, hb in bands:
         g.text(OX - 10, y + hb / 2 + 4, label, 12, anchor="end", weight="bold")
         if key == "breath":
             g.add(f'<rect x="{OX}" y="{y}" width="{total*sx:.1f}" height="{hb}" fill="#fff" stroke="#d8d1de"/>')
-            curve = [(0, .1), (50, .2), (93, .3), (95, 0), (100, 0), (102, .32), (110, .4), (121, .5), (s_frame - .5, .5),
-                     (s_frame, .2), (140, .55), (213, .75), (ch["N34"] - 1, .95), (ch["N34"], 0),
-                     (ch["N36"] - .5, 0), (ch["N36"], 1), (total, 1)]
+            hang = ch["N13"] + 1.5
+            curve = [(0, .1), (35, .2), (hang - 2, .3), (hang, 0), (hang + 4, 0), (hang + 6, .32), (ch["N16"], .4), (ch["N17"], .5), (s_frame - .5, .5),
+                     (s_frame, .2), (s_frame + 6, .55), (ch["N25"], .75), (ch["N28"] - 1, .95), (ch["N28"], 0),
+                     (ch["N30"] - .5, 0), (ch["N30"], 1), (total, 1)]
             g.add(pline([(X(c), y + hb - v * (hb - 8)) for c, v in curve], "#b88a12", 3))
-            g.text(X(97), y + hb - 6, "пауза под висящей плитой", 10, anchor="middle", fill="#7a6514")
-            g.text(X(ch["N36"]) - 4, y + 14, "вдох совпадает с грудью бога →", 10, anchor="end", fill="#7a6514")
+            g.text(X(hang + 2), y + hb - 6, "пауза под висящей плитой", 10, anchor="middle", fill="#7a6514")
+            g.text(X(ch["N30"]) - 4, y + 14, "вдох совпадает с грудью бога →", 10, anchor="end", fill="#7a6514")
         elif key == "light":
             for s0, s1, col, t, tc in segs[key]:
                 g.add(f'<rect x="{X(s0):.1f}" y="{y}" width="{(s1-s0)*sx:.1f}" height="{hb}" fill="{col}" stroke="#d8d1de"/>')
-            g.text(X(60), y + 20, "тускло, холодно, редкие лучи сверху", 11, fill="#fff")
-            g.text(X(170), y + 20, "яркий рассеянный белый", 11, fill="#4a4356")
-            g.text(X(ch["N36"]) + 4, y + 20, "солнце", 11, fill="#4a4356")
+            g.text(X(30), y + 20, "тускло, холодно, редкие лучи сверху", 11, fill="#fff")
+            g.text(X(s_frame + 10), y + 20, "яркий рассеянный белый", 11, fill="#4a4356")
+            g.text(X(ch["N30"]) + 4, y + 20, "солнце", 11, fill="#4a4356")
         else:
             for s0, s1, col, t, tc in segs[key]:
                 g.add(f'<rect x="{X(s0):.1f}" y="{y}" width="{max(0,(s1-s0))*sx:.1f}" height="{hb}" fill="{col}" stroke="#d8d1de"/>')
                 if t:
                     g.text(X((s0 + s1) / 2), y + hb / 2 + 4, t, 11, anchor="middle", fill=tc)
         y += hb + 10
-    g.text(OX, y + 26, "Смена тумана на «высоту» — только в изгибе N33, откуда не видно наружу. Пробный вариант звука и света; "
+    g.text(OX, y + 26, "Смена тумана на «высоту» — только в изгибе N27, откуда не видно наружу. Пробный вариант звука и света; "
                        "числа тумана — в LEVEL_DESIGN.md, глава 7.", 13, fill="#4a4356")
     return g.save("route-profile.svg")
 
@@ -530,47 +532,47 @@ def finale():
     BASE = OY + 30 * s
 
     def P(yn, h):  # yn = plan north coordinate, h = height
-        return (OX + (yn - 46) * s, OY - h * s)
+        return (OX + (yn - 12.3) * s, OY - (h + 7.3) * s)
 
     # sea of clouds band
-    g.add(f'<rect x="0" y="{P(0,-30)[1]:.1f}" width="{W}" height="{H-P(0,-30)[1]:.1f}" fill="url(#cloud)"/>')
-    g.add(f'<rect x="0" y="{P(0,-30)[1]-30:.1f}" width="{W}" height="30" fill="{SEA}"/>')
-    g.text(70, P(0, -30)[1] + 34, "облачное море далеко внизу (глубина обрыва — после сборки сцены)", 14, fill="#6a6280", weight="bold")
+    g.add(f'<rect x="0" y="{P(0,-37.3)[1]:.1f}" width="{W}" height="{H-P(0,-37.3)[1]:.1f}" fill="url(#cloud)"/>')
+    g.add(f'<rect x="0" y="{P(0,-37.3)[1]-30:.1f}" width="{W}" height="30" fill="{SEA}"/>')
+    g.text(70, P(0, -37.3)[1] + 34, "облачное море далеко внизу (глубина обрыва — после сборки сцены)", 14, fill="#6a6280", weight="bold")
     # grid
-    for yn in range(50, 101, 5):
+    for yn in range(15, 68, 5):
         x, _ = P(yn, 0)
-        g.add(f'<line x1="{x:.1f}" y1="{P(0,46)[1]:.1f}" x2="{x:.1f}" y2="{P(0,-26)[1]:.1f}" stroke="#e2dbe7"/>')
-        g.text(x, P(0, -28)[1], f"y {yn}", 10, anchor="middle", fill="#8a8296")
-    # ridge mass: south face at 54, crest ~45, north face at 82, promontory to 96
-    ridge = [P(48, -26), P(50, 3), P(53, 16.5), P(54.5, 30), P(60, 45), P(70, 47), P(78, 40), P(82, 26), P(82, 20),
-             P(96, 20.5), P(96.2, 14), P(94, 4), P(95.5, -10), P(93, -26)]
+        g.add(f'<line x1="{x:.1f}" y1="{P(0,38.7)[1]:.1f}" x2="{x:.1f}" y2="{P(0,-33.3)[1]:.1f}" stroke="#e2dbe7"/>')
+        g.text(x, P(0, -35.3)[1], f"y {yn}", 10, anchor="middle", fill="#8a8296")
+    # ridge mass: south face under the ledge end (y 26), crest ~40, north face at the mouth (y 48.3), promontory to the lip (62.3)
+    ridge = [P(14.3, -33.3), P(19.5, -8), P(23.2, 1.9), P(26.1, 10), P(26.6, 24), P(29, 37), P(36, 38.5), P(42, 30),
+             P(46.5, 21), P(48.3, 19.5), P(48.3, 12.7), P(62.3, 13.2), P(62.5, 6.7), P(60.3, -3.3), P(61.8, -17.3), P(59.3, -33.3)]
     g.add(poly(ridge, ROCK, ROCK_EDGE, 2))
     # gorge cut (dashed path inside ridge, seen as a slot)
-    gorge = [P(54, 16.5), P(62, 17.5), P(69, 18.5), P(75, 19.5), P(82, 20)]
+    gorge = [P(n["y"], n["h"]) for n in NODES if n["id"] in ("N25", "N26", "N27", "N28", "N29", "N30")]
     g.add(pline(gorge, "#3f8a62", 5, 'stroke-dasharray="10 6"'))
-    g.text(*P(55, 27), "Z6 Горло сквозь хребет:", 13, fill="#e8f4ec", weight="bold")
-    g.text(*P(55, 25), "наружу не видно до устья M", 13, fill="#e8f4ec")
+    for i, (t, wt) in enumerate([("Z6 Горло", "bold"), ("сквозь хребет:", "normal"), ("наружу не видно", "normal"), ("до устья M", "normal")]):
+        g.text(*P(28, 31.5 - 2 * i), t, 12, fill="#e8f4ec", weight=wt)
     # ledge south side
-    g.add(pline([P(46, 3), P(54, 16.5)], "#b88a12", 5))
-    g.text(*P(46.5, 8), "Z5 полка", 13, fill="#7a5c06", weight="bold", anchor="start")
+    g.add(pline([P(23.8, 1.9), P(26.1, 10)], "#b88a12", 5))
+    g.text(*P(13, 4), "Z5 полка", 13, fill="#7a5c06", weight="bold", anchor="start")
     # platform surface
-    g.add(pline([P(82, 20), P(96, 20.5)], "#2f7fb5", 6))
+    g.add(pline([P(48.3, 12.7), P(62.3, 13.2)], "#2f7fb5", 6))
     # player eye at mouth and at edge
-    for yn, h, lab in [(82, 20, "M"), (93.5, 20.4, "E")]:
+    for yn, h, lab in [(48.3, 12.7, "M"), (59.8, 13.1, "E")]:
         x, y = P(yn, h)
         g.add(f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x:.1f}" y2="{y-1.8*s:.1f}" stroke="#2d2836" stroke-width="3"/>')
         g.add(f'<circle cx="{x:.1f}" cy="{y-1.6*s:.1f}" r="4" fill="#2d2836"/>')
         g.text(x, y + 22, lab, 15, anchor="middle", weight="bold", fill="#d1343b" if lab == "E" else "#1d5a85")
-    ex, ey = P(93.5, 20.4)
+    ex, ey = P(59.8, 13.1)
     g.add(f'<line x1="{ex:.1f}" y1="{ey-60:.1f}" x2="{ex:.1f}" y2="{ey+8:.1f}" stroke="#d1343b" stroke-width="2.5" stroke-dasharray="6 4"/>')
-    lx, ly = P(96, 20.5)
+    lx, ly = P(62.3, 13.2)
     g.text(lx - 4, ly + 40, "кромка", 13, weight="bold", anchor="end")
-    dx, dy = P(96.6, 20.5)
+    dx, dy = P(62.9, 13.2)
     # palm docked (schematic)
-    palm = [P(96.2, 20.5), P(104, 20.2), P(116, 19.5), P(124, 17.5), P(126, 14), P(118, 13.5), P(104, 15), P(96.4, 18.8)]
+    palm = [P(62.5, 13.2), P(70.3, 12.9), P(82.3, 12.2), P(90.3, 10.2), P(92.3, 6.7), P(84.3, 6.2), P(70.3, 7.7), P(62.7, 11.5)]
     g.add(poly(palm, "#6f86c9", "#3c4f8a", 2, 'fill-opacity=".9"'))
-    g.text(*P(103, 11.2), "ладонь A02 у кромки (F2–F3)", 13, weight="bold", fill="#3c4f8a")
-    g.text(*P(103, 8.8), "зазор ≤ 0,3 м по высоте, ≤ 0,5 м вперёд", 12, fill="#3c4f8a")
+    g.text(*P(69.3, 3.9), "ладонь A02 у кромки (F2–F3)", 13, weight="bold", fill="#3c4f8a")
+    g.text(*P(69.3, 1.5), "зазор ≤ 0,3 м по высоте, ≤ 0,5 м вперёд", 12, fill="#3c4f8a")
     g.add(f'<circle cx="{dx:.1f}" cy="{dy-12:.1f}" r="8" fill="#fff" stroke="#2f7fb5" stroke-width="3"/>')
     g.text(dx, dy - 8, "D", 11, anchor="middle", weight="bold", fill="#1d5a85")
 
@@ -603,7 +605,7 @@ def finale():
     g.text(dx + 250, dy - 230, "F5 подъём на ладони, 15–20 с", 14, weight="bold", fill="#1d5a85")
     g.text(dx + 250, dy - 211, "взгляд свободен, ходьба закрыта", 12, fill="#1d5a85")
     # first sight line from M to god head (schematic)
-    mx, my = P(82, 21.6)
+    mx, my = P(48.3, 14.3)
     g.add(f'<line x1="{mx:.1f}" y1="{my:.1f}" x2="{gx-40}" y2="270" stroke="#2f7fb5" stroke-width="1.5" stroke-dasharray="4 5"/>')
     g.text(mx + 160, my - 110, "F0 первый взгляд с устья M", 13, fill="#1d5a85", weight="bold")
 
