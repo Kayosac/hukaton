@@ -55,6 +55,11 @@ namespace Hakaton.Expeditions
         public SfxCue breath;
         [Range(0, 1)] public float breathVolume = .7f;
 
+        [Header("Given away (Gilding card)")]
+        [Tooltip("Gilded, it gives itself away: the lid chatters open a crack this many degrees (a white «!»), then it hops off without biting.")]
+        [Range(0, 60)] public float revealGape = 22;
+        [Min(.1f)] public float revealSeconds = .7f;
+
         [Header("Bite")]
         [Tooltip("The warning before the bite, seconds (the player can step back).")]
         [Min(.1f)] public float warnSeconds = .6f;
@@ -125,7 +130,7 @@ namespace Hakaton.Expeditions
         float shiverUntil = -1, shiverStrength;
         Quaternion shiverBase;
         float nextTwitch, frozenUntil = -1, recoverAt, tilt;
-        bool registered;
+        bool registered, startled;
         MaterialPropertyBlock block;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly RaycastHit[] Hits = new RaycastHit[12];
@@ -202,6 +207,59 @@ namespace Hakaton.Expeditions
         {
             yield return new WaitForSeconds(Mathf.Max(0, seconds));
             Tint(false);
+        }
+
+        /// <summary>
+        /// Something gives it away (the Gilding card): it wakes, shows what it is — the lid chatters open a crack under a
+        /// white «!» — and hops off as after a hit, without biting; later it plays chest again, on guard. Caught catching
+        /// its breath it just runs again. False when it cannot react (frozen, dead, already busy).
+        /// </summary>
+        public bool Expose()
+        {
+            var world = World;
+            if (!Alive || Frozen || !world || !world.Running) return false;
+            if (mode == Mode.Recovering) { StartCoroutine(Flee()); return true; }
+            if (mode != Mode.Disguised) return false;
+            EndShiver();
+            alert = true;
+            StartCoroutine(Reveal());
+            return true;
+        }
+
+        IEnumerator Reveal()
+        {
+            var world = World;
+            mode = Mode.Warning;
+            if (world.sfx) world.sfx.StopLoop(this);
+            if (overhead) overhead.SetAlert(1);
+            world.Play(warnCue, Centre, .6f, 1.15f);
+            float time = 0;
+            while (time < revealSeconds)
+            {
+                time += Time.deltaTime;
+                float k = Mathf.Clamp01(time / revealSeconds);
+                lidAngle = Mathf.Abs(Mathf.Sin(time * 26)) * revealGape * (1 - k * .5f);
+                ApplyLid();
+                SetTongue(Mathf.Sin(k * Mathf.PI) * .25f);
+                yield return null;
+            }
+            SetTongue(0);
+            if (overhead) overhead.SetAlert(0);
+            StartCoroutine(Flee());
+        }
+
+        /// <summary>
+        /// A sudden light on it (the Merchant's nose card): one small shiver now, wherever the player is — the same rare,
+        /// subtle sway as its tell close up, the lid shut. Only while shut and disguised; false otherwise.
+        /// </summary>
+        public bool Startle()
+        {
+            if (!Alive || Frozen || mode != Mode.Disguised || shiverUntil >= 0) return false;
+            shiverBase = transform.rotation;
+            shiverUntil = Time.time + twitchSeconds;
+            shiverStrength = twitchAngle * Random.Range(.7f, 1.1f);
+            startled = true;
+            return true;
         }
 
         public void OnChestReset()
@@ -506,9 +564,10 @@ namespace Hakaton.Expeditions
             float distance = PlayerDistance();
             if (distance > tellDistance)
             {
-                EndShiver();
+                if (!startled) EndShiver();
                 if (world.sfx) world.sfx.StopLoop(this);
                 if (lidAngle != 0) { lidAngle = Mathf.MoveTowards(lidAngle, 0, Time.deltaTime * lidSpeed); ApplyLid(); }
+                if (startled) Sway();
                 return;
             }
             Breathe(world, 1);
@@ -520,6 +579,11 @@ namespace Hakaton.Expeditions
                 shiverStrength = twitchAngle * Random.Range(.7f, 1.1f);
                 ScheduleTwitch();
             }
+            Sway();
+        }
+
+        void Sway()
+        {
             if (shiverUntil < 0) return;
             float left = shiverUntil - Time.time;
             if (left <= 0) { EndShiver(); return; }
@@ -530,6 +594,7 @@ namespace Hakaton.Expeditions
 
         void EndShiver()
         {
+            startled = false;
             if (shiverUntil < 0) return;
             transform.rotation = shiverBase;
             shiverUntil = -1;

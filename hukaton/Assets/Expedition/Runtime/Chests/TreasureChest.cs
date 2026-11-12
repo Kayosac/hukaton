@@ -45,6 +45,12 @@ namespace Hakaton.Expeditions
         public IChestOccupant Occupant { get; private set; }
         /// <summary>Coins the last opening paid out (tests, debug).</summary>
         public int LastPayout { get; private set; }
+        /// <summary>The opening pays the tier's coins times this (the Gilding card, level II: ×1.5); 1 again after a reset.</summary>
+        public float CoinMultiplier { get; set; } = 1;
+
+        static readonly List<TreasureChest> all = new List<TreasureChest>();
+        /// <summary>Every chest enabled right now (the Merchant's nose card looks for chests around a point).</summary>
+        public static IReadOnlyList<TreasureChest> All => all;
 
         VfxBurst marker;
         bool focused;
@@ -67,11 +73,16 @@ namespace Hakaton.Expeditions
 
         void OnDisable()
         {
+            all.Remove(this);
             if (marker) Destroy(marker.gameObject);
             marker = null;
         }
 
-        void OnEnable() { if (recorded) ShowMarker(); }
+        void OnEnable()
+        {
+            if (!all.Contains(this)) all.Add(this);
+            if (recorded) ShowMarker();
+        }
 
         void Record()
         {
@@ -88,6 +99,7 @@ namespace Hakaton.Expeditions
             StopAllCoroutines();
             Opened = false;
             LastPayout = 0;
+            CoinMultiplier = 1;
             transform.localRotation = rest;
             transform.localScale = restScale;
             if (lid) lid.SetOpen(false, true);
@@ -108,6 +120,19 @@ namespace Hakaton.Expeditions
         }
 
         public void SetFocused(bool value) => focused = value;
+
+        /// <summary>
+        /// A shut chest becomes another tier (the Gilding card): its payout, opening show and idle marker follow at once.
+        /// The model is the caller's to change (ChestLook copies the richer prefab's).
+        /// </summary>
+        public void ChangeTier(ChestTier next)
+        {
+            if (Opened || !next || next == tier) return;
+            tier = next;
+            if (marker) Destroy(marker.gameObject);
+            marker = null;
+            ShowMarker();
+        }
 
         // IInteractable: E opens it (a mimic decides for itself through IChestOccupant).
         public bool CanInteract => Available;
@@ -183,7 +208,7 @@ namespace Hakaton.Expeditions
                 if (burst.prefab) StartCoroutine(PlayBurst(burst));
 
             while (lid && lid.Openness < tier.spewAtOpenness) yield return null;
-            yield return Payout(1, 1);
+            yield return Payout(CoinMultiplier, 1);
         }
 
         IEnumerator Payout(float coinMultiplier, int bonusRolls)
