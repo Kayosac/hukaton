@@ -56,7 +56,7 @@ namespace Hakaton.Trading.Unity
         public GameObject lastOfferMark;
         public Vector2 speechAtCounter = new Vector2(410, -8);
         [Tooltip("Offer group (green accept, red decline), centred along the bottom. Regular visitors name an item and " +
-                 "haggle at once, so it stays hidden for them; kept for a visitor who makes the shop an offer instead.")]
+                 "haggle at once, so it stays hidden for them; the bulk buyer («Скупщик») answers here: sell all, or refuse.")]
         [FormerlySerializedAs("requestActions")] public GameObject offerActions;
         [Tooltip("Green answer of the offer group.")]
         [FormerlySerializedAs("browseDisplay")] public StitchedLinenButton acceptOffer;
@@ -101,6 +101,8 @@ namespace Hakaton.Trading.Unity
         TextPunch speechPunch;
         long revealedDealId;
         int revealedRevision = -1;
+        long bulkSpeaker;
+        int bulkLineShown = -1;
 
         public void Bind(TradingPrototype value)
         {
@@ -114,6 +116,8 @@ namespace Hakaton.Trading.Unity
             }
             accept.onClick.AddListener(() => controller.AcceptPrice(shownDealId, shownDealRevision));
             refuseDeal.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
+            acceptOffer.onClick.AddListener(() => controller.SellToBulkBuyer(shownCustomerId));
+            declineOffer.onClick.AddListener(() => controller.RefuseCustomer(shownCustomerId));
             selectedVisibility.alpha = contextVisibility.alpha = noticeVisibility.alpha = staminaVisibility.alpha = 0;
             speechPunch = new TextPunch(speechBubble);
             Refresh();
@@ -125,6 +129,9 @@ namespace Hakaton.Trading.Unity
             Refresh();
             speechPunch?.Update(Time.unscaledDeltaTime);
         }
+
+        /// <summary>Prints the rest of the visitor's line at once; true if it was still typing (the press is spent on that).</summary>
+        public bool SkipSpeechTyping() => speech && speech.TryGetComponent(out TypedLine typed) && typed.Skip();
 
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
         /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
@@ -222,6 +229,11 @@ namespace Hakaton.Trading.Unity
             shownDealRevision = deal == null ? 0 : deal.Revision;
             bool ready = controller.ActionsReady;
             speechAnchor.anchoredPosition = speechAtCounter;
+            if (customer.IsBulkBuyer)
+            {
+                RefreshBulkBuyer(customer, ready);
+                return;
+            }
             // Every visitor names an item on the display himself and the haggle over it starts at once: the offer
             // group never shows for him.
             offerActions.SetActive(false);
@@ -260,6 +272,31 @@ namespace Hakaton.Trading.Unity
             accept.interactable = ready && offer;
             acceptKey.SetActive(offer);
             refuseDeal.interactable = ready;
+        }
+
+        /// <summary>
+        /// The bulk buyer: no haggle. His lines follow one another on the speech plate (a press reads on); with the last
+        /// one, his offer, the green «Продать всё за X» and the red «Отказать» appear.
+        /// </summary>
+        void RefreshBulkBuyer(Customer customer, bool ready)
+        {
+            dealActions.SetActive(false);
+            lastOfferMark.SetActive(false);
+            if (customer.Lines.Count == 0)
+            {
+                offerActions.SetActive(false);
+                return;
+            }
+            int line = Mathf.Clamp(controller.BulkLine, 0, customer.Lines.Count - 1);
+            if (customer.Id != bulkSpeaker) { bulkSpeaker = customer.Id; bulkLineShown = line; }
+            else if (line != bulkLineShown) { bulkLineShown = line; speechPunch.Hop(answerHop); }
+            TypedLine.Say(speech, customer.Lines[line]);
+            bool offer = controller.BulkOfferShown;
+            offerActions.SetActive(offer);
+            if (!offer) return;
+            acceptOfferLabel.text = $"Продать всё за {customer.BulkPrice}";
+            acceptOffer.interactable = ready;
+            declineOffer.interactable = ready;
         }
     }
 }

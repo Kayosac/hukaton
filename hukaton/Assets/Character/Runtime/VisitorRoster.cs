@@ -10,5 +10,8 @@ namespace Hakaton.Character
     public sealed class VisitorRoster : ScriptableObject
     {
         public NpcAppearance[] visitors;
+        [Tooltip("The rare bulk buyer («Скупщик»): never part of the shuffled round, he comes only when the shop sends for " +
+                 "him. Keep his appearance outside Content/NPCs (the roster test lists every NPC there as a regular visitor).")]
+        public NpcAppearance bulkBuyer;
     }
 }

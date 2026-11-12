@@ -28,10 +28,22 @@ namespace Hakaton.Computer
             window.SetStatus("Нажмите на улучшение, чтобы купить следующий уровень.");
         }
 
+        /// <summary>
+        /// Lays out one row per track. The list can grow between visits (the bulk buyer's track appears once he has been
+        /// met), so the rows are rebuilt whenever the tracks differ from the ones shown.
+        /// </summary>
         void Build()
         {
-            if (rows.Count > 0) return;
-            foreach (var track in PcUpgradeTrack.For(computer.workshop.Model, computer.Shop))
+            var tracks = PcUpgradeTrack.For(computer.workshop.Model, computer.Shop);
+            if (SameTracks(tracks)) return;
+            foreach (var old in rows)
+            {
+                old.Pressed -= OnPressed;
+                old.gameObject.SetActive(false);
+                Destroy(old.gameObject);
+            }
+            rows.Clear();
+            foreach (var track in tracks)
             {
                 var row = Instantiate(rowPrefab, rowsRoot);
                 row.gameObject.SetActive(true);
@@ -40,6 +52,14 @@ namespace Hakaton.Computer
                 row.Pressed += OnPressed;
                 rows.Add(row);
             }
+        }
+
+        bool SameTracks(IReadOnlyList<PcUpgradeTrack> tracks)
+        {
+            if (rows.Count != tracks.Count) return false;
+            for (int i = 0; i < rows.Count; i++)
+                if (rows[i].Track == null || rows[i].Track.Title != tracks[i].Title) return false;
+            return true;
         }
 
         public void Refresh()
@@ -75,7 +95,10 @@ namespace Hakaton.Computer
 
         void Update()
         {
-            if (window.IsOpen && computer.Running && Time.frameCount % 15 == 0) Refresh();
+            if (!window.IsOpen || !computer.Running || Time.frameCount % 15 != 0) return;
+            // A window left open between visits to the PC still picks up a track unlocked meanwhile.
+            Build();
+            Refresh();
         }
     }
 }

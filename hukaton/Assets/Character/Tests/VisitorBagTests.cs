@@ -99,5 +99,17 @@ namespace Hakaton.Character.Tests
             Assert.That(missing, Is.Empty, "Add these to " + RosterPath);
             Assert.That(roster.visitors.All(v => v && v.IsComplete), "every visitor needs all five sprites");
         }
+
+        /// <summary>Playtest: the rare bulk buyer («Скупщик») has his own look and never joins the shuffled round.</summary>
+        [Test]
+        public void TheBulkBuyerHasHisOwnCompleteLookOutsideTheRound()
+        {
+            var roster = AssetDatabase.LoadAssetAtPath<VisitorRoster>(RosterPath);
+            Assert.That(roster.bulkBuyer, Is.Not.Null, "Assign Bulk Buyer on " + RosterPath);
+            Assert.That(roster.bulkBuyer.IsComplete, Is.True, "the bulk buyer needs all five sprites");
+            Assert.That(roster.visitors, Has.No.Member(roster.bulkBuyer));
+            Assert.That(AssetDatabase.GetAssetPath(roster.bulkBuyer), Does.Not.StartWith("Assets/Content/NPCs/"),
+                "Content/NPCs holds the regular visitors only");
+        }
     }
 }

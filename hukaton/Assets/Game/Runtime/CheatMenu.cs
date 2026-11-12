@@ -98,10 +98,27 @@ namespace Hakaton.Game
             if (game.workshop.EmbeddedOpen) game.workshop.RefreshWorkshop();
             var shop = game.trade.Session;
             shop.MaximizeShift();
+            // The bulk buyer's chance too; his PC track still stays hidden until he has been met.
+            shop.MaximizeBulkBuyer();
             game.SaveNow();
             status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
                 + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit
-                + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с.";
+                + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с"
+                + ", скупщик: " + Mathf.RoundToInt(shop.BulkBuyerChance * 100) + "%.";
+            return true;
+        }
+
+        /// <summary>
+        /// The next visitor the shop generates is the bulk buyer («Скупщик»), whatever his chance, the revenue goal or an
+        /// earlier visit this shift; he still needs goods on the display and stays away during the tutorial.
+        /// </summary>
+        public bool NextVisitorIsBulkBuyer()
+        {
+            if (!game.Ready || game.Phase != GamePhase.Shop) { status = "Скупщик приходит только в лавку."; return false; }
+            var shop = game.trade.Session;
+            shop.ForceBulkBuyerNext = true;
+            status = shop.IsOpen ? "Следующий посетитель — скупщик."
+                : "Откройте лавку: первым придёт скупщик (нужен хотя бы один товар на витрине).";
             return true;
         }
 
@@ -213,6 +230,8 @@ namespace Hakaton.Game
             GUILayout.Label("Лавка", title);
             GUI.enabled = game.Phase == GamePhase.Shop && !game.trade.Session.IsOpen;
             if (GUILayout.Button("Случайные товары на все пустые слоты", button)) StockDisplayRandomly();
+            GUI.enabled = game.Phase == GamePhase.Shop;
+            if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
             GUI.enabled = true;
             GUILayout.Space(8);
 

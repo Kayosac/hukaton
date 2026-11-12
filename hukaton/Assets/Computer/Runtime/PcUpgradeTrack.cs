@@ -41,14 +41,19 @@ namespace Hakaton.Computer
 
         static string Whole(float seconds) => ((int)Math.Round(seconds)).ToString();
 
+        /// <summary>"15%": a chance (0..1) as whole percent.</summary>
+        public static string Percent(float chance) => ((int)Math.Round(chance * 100)) + "%";
+
         /// <summary>
         /// The PC's improvements: hand size and the deck limit (deck workshop), then the shift length when the shop is
-        /// given and has upgrades to sell.
+        /// given and has upgrades to sell, then the bulk buyer's chance — only once the player has met him (a surprise
+        /// until then).
         /// </summary>
         public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null)
         {
             var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
             if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
+            if (shop != null && shop.BulkBuyerMet && shop.BulkBuyerSteps > 0) tracks.Add(new BulkBuyerTrack(shop));
             return tracks;
         }
 
@@ -97,6 +102,20 @@ namespace Hakaton.Computer
             public override int Price => shop.ShiftPrice;
             public override string Buy() => shop.ImproveShift();
             public override string Bought => $"Смена длится {Seconds(shop.ShiftLength)}.";
+        }
+
+        sealed class BulkBuyerTrack : PcUpgradeTrack
+        {
+            readonly TradingSession shop;
+            public BulkBuyerTrack(TradingSession shop) => this.shop = shop;
+            public override string Title => "Скупщик";
+            public override int Step => shop.BulkBuyerLevel;
+            public override int Steps => shop.BulkBuyerSteps;
+            public override string Values => Maxed ? Percent(shop.BulkBuyerChance)
+                : Percent(shop.BulkBuyerChance) + Arrow + Percent(shop.NextBulkBuyerChance);
+            public override int Price => shop.BulkBuyerUpgradePrice;
+            public override string Buy() => shop.ImproveBulkBuyer();
+            public override string Bought => $"Скупщик заходит чаще: {Percent(shop.BulkBuyerChance)}.";
         }
     }
 }

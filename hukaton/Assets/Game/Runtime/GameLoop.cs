@@ -99,6 +99,9 @@ namespace Hakaton.Game
             { Debug.LogError("Hakaton scene references are incomplete. Assign GameLoop in the saved scene.", this); enabled = false; return; }
             // The PC sells the shop's shift upgrade («Время смены»); the session is built at runtime, so it is handed over here.
             if (services.computer) services.computer.Shop = trade.Session;
+            // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
+            // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
+            trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
