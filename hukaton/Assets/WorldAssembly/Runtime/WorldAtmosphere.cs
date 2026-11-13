@@ -60,6 +60,29 @@ namespace Hakaton.WorldAssembly.Unity
 
         readonly Dictionary<string, float> held = new Dictionary<string, float>();
 
+        /// <summary>
+        /// The forest and the swamp read apart (14.11): the forest's air is clear and cool teal far off, its light
+        /// warm; the swamp's is thick olive murk (rot and marsh gas, not green), its light dim and flat. These set
+        /// the moods over what the scene saved, so the two lands keep their looks wherever the moods were edited.
+        /// </summary>
+        void Retune()
+        {
+            void Set(string name, float fog, Color tint, float amount, float sunlight, float ambient)
+            {
+                var m = moods.Find(x => x.name == name);
+                if (m == null) moods.Add(m = new Mood(name, fog, tint, amount, sunlight, ambient));
+                m.fog = fog; m.tint = tint; m.tintAmount = amount; m.sun = sunlight; m.ambient = ambient;
+            }
+            Set(Swamp, 2.5f, new Color(.6f, .58f, .4f), .78f, .55f, .82f);
+            Set(Drowned, 1.25f, new Color(.4f, .4f, .28f), .5f, .7f, .85f);
+            Set(Moss, .78f, new Color(.66f, .65f, .48f), .3f, 1.1f, 1.08f);
+            Set(Reach, .88f, new Color(.64f, .64f, .5f), .25f, 1.05f, 1);
+            Set(Burnt, 1.15f, new Color(.55f, .5f, .45f), .55f, .85f, .92f);
+            Set(Mist, 5.5f, new Color(.78f, .76f, .64f), .8f, .85f, 1.05f);
+            // The deep forest: thicker, but its air stays cool and blue-green, never the swamp's olive.
+            Set(Forest, 1.45f, new Color(.36f, .52f, .52f), .35f, .72f, .8f);
+        }
+
         /// <summary>Holds a mood at <paramref name="k"/> from outside (SwampLife's fog banks) until it says otherwise.</summary>
         public void Hold(string mood, float k) => held[mood] = k;
 
@@ -117,6 +140,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (postProcess) postProcess.enabled = false;
             foreach (var mood in Later)
                 if (!moods.Exists(m => m.name == mood.name)) moods.Add(mood);
+            Retune();
             // The swamp's fog banks, fish, frogs and dragonflies go with the air too.
             if (!GetComponent<SwampLife>()) gameObject.AddComponent<SwampLife>();
         }

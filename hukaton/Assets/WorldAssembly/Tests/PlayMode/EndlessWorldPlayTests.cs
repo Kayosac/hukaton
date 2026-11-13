@@ -1600,6 +1600,78 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         /// <summary>
+        /// The air of the forest and of the swamp side by side (Logs/world-plans/air-&lt;tag&gt;-*.png, tag from the
+        /// environment variable AIR_TAG or "now"): the same spots each run — deep forest, the swamp's heart, and the
+        /// border looked at from both sides. A picture, run by name.
+        /// </summary>
+        [UnityTest, Explicit("pictures, run by name")]
+        public IEnumerator AirOfTheForestAndTheSwamp()
+        {
+            string tag = System.Environment.GetEnvironmentVariable("AIR_TAG");
+            if (string.IsNullOrEmpty(tag)) tag = File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "air-tag.txt")) ? File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "air-tag.txt")).Trim() : "now";
+            var map = streamer.Map;
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = map.Rules.ChunkSize, plateau = map.Rules.PlateauHeight;
+            Vector3 Ground(ChunkCoord c) => origin + new Vector3(c.X * size, map.Chunk(c).BaseLevel * plateau, c.Y * size);
+            // The swamp's heart, a forest plain as far out, and a forest plain beside the swamp looking into it.
+            ChunkCoord heart = default, forest = default, edge = default, into = default;
+            int best = -1;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
+                    int around = 0;
+                    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
+                    int score = around * 100 - (x * x + y * y);
+                    if (score > best) { best = score; heart = new ChunkCoord(x, y); }
+                }
+            float ring = Mathf.Sqrt(heart.X * heart.X + heart.Y * heart.Y);
+            int bestForest = int.MaxValue, bestEdge = int.MaxValue;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    var c = new ChunkCoord(x, y);
+                    var plan = map.Chunk(c);
+                    if (plan.Biome == Biome.Swamp || plan.Shape.Kind != ShapeKind.Plain || plan.BaseLevel != 0) continue;
+                    bool clear = true;
+                    for (int i = -3; i <= 3 && clear; i++) for (int j = -3; j <= 3 && clear; j++) clear = !map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j));
+                    int d = (int)(Mathf.Abs(Mathf.Sqrt(x * x + y * y) - ring) * 100);
+                    if (clear && d < bestForest) { bestForest = d; forest = c; }
+                    // Two chunks from the swamp, looking straight at it.
+                    foreach (var side in Sides.All)
+                    {
+                        var a1 = c.Step(side);
+                        var a2 = a1.Step(side);
+                        var a3 = a2.Step(side);
+                        if (map.Biomes.IsSwamp(a1) || !map.Biomes.IsSwamp(a2) || !map.Biomes.IsSwamp(a3)) continue;
+                        int e = (x - heart.X) * (x - heart.X) + (y - heart.Y) * (y - heart.Y);
+                        if (e < bestEdge) { bestEdge = e; edge = c; into = a3; }
+                    }
+                }
+            world.vitals.Immortal = true;
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            IEnumerator Look(string name, Vector3 from, Vector3 at)
+            {
+                world.motor.Teleport(from - Vector3.up * 1.6f, Quaternion.identity);
+                for (int f = 0; f < 200 && (streamer.CoordAt(from) is var c0) && !streamer.IsLoaded(c0); f++) yield return null;
+                // The air settles (WorldAtmosphere eases over seconds).
+                yield return new WaitForSeconds(6);
+                // Nothing in the way: the creatures step aside for the picture.
+                foreach (var cr in world.creatures) if (cr) cr.gameObject.SetActive(false);
+                yield return Shot(dir, $"air-{tag}-{name}", from, at);
+            }
+            var forestEye = Ground(forest) + new Vector3(-6, 3.4f, -6);
+            yield return Look("forest", forestEye, forestEye + new Vector3(1, -.12f, .6f) * 20);
+            var heartEye = Ground(heart) + new Vector3(0, 3.4f, 0);
+            yield return Look("swamp", heartEye, heartEye + new Vector3(1, -.12f, .6f) * 20);
+            var edgeEye = Ground(edge) + Vector3.up * 3.4f;
+            var intoEye = Ground(into) + Vector3.up * 3.4f;
+            yield return Look("edge-from-forest", edgeEye, new Vector3(intoEye.x, edgeEye.y - 2.5f, intoEye.z));
+            yield return Look("edge-from-swamp", intoEye, new Vector3(edgeEye.x, intoEye.y - 2.5f, edgeEye.z));
+            Debug.Log($"[World] air shots ({tag}): forest {forest}, swamp {heart}, edge {edge} -> {into}");
+        }
+
+        /// <summary>
         /// What the swamp costs to draw against the forest: batches, set-pass calls, triangles and shadow casters from
         /// the player's eyes, four ways round the heart of the nearest swamp and round a forest spot as far out
         /// (Logs/world-plans/render-cost.txt). A measurement, run by name.
