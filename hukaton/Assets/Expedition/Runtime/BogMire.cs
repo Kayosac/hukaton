@@ -101,6 +101,16 @@ namespace Hakaton.Expeditions
             if (active && input && input.JumpPressed && Time.time >= nextLunge) Lunge(world, motor, feet, depth);
         }
 
+        /// <summary>The player's lunge, as a jump in the mire does it (tests, other inputs). False when not held.</summary>
+        public bool LungeNow()
+        {
+            var world = Water ? Water.world : null;
+            if (!holding || !world || !world.motor) return false;
+            var feet = world.motor.transform.position;
+            Lunge(world, world.motor, feet, SunkDepth(feet));
+            return true;
+        }
+
         void Lunge(ExpeditionWorld world, FirstPersonMotor motor, Vector3 feet, float depth)
         {
             nextLunge = Time.time + lungeCooldown;

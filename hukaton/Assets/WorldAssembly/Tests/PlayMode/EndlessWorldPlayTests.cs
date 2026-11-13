@@ -1324,6 +1324,107 @@ namespace Hakaton.WorldAssembly.Tests
             if (resolution) resolution.enabled = true;
         }
 
+        /// <summary>
+        /// Rotten swamp pieces in the real world (Kayospace «Биом: Гнилая топь»): water wets whoever wades in it, a gas
+        /// vent set off by Fire throws the player and is spent, a bog swallows a creature pushed in and holds the player:
+        /// slow sinking, a lunge lifts, sunk to the head is drowned.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TheSwampWetsFlaresSwallowsAndDrownsSlowly()
+        {
+            // Water near the start with a shallow rim and a deep middle.
+            WorldObstacle lake = null;
+            Vector3 shallow = default, deep = default;
+            float shallowLevel = 0, deepLevel = 0, deepDepth = 0;
+            var start = world.motor.transform.position;
+            foreach (var o in world.obstacles.Where(o => o && o.kind == ObstacleKind.Lake && o.HasSurface)
+                         .OrderBy(o => Vector3.Distance(o.SurfaceBounds.center, start)))
+            {
+                var box = o.SurfaceBounds;
+                bool gotShallow = false, gotDeep = false;
+                for (float x = box.min.x; x <= box.max.x && !(gotShallow && gotDeep); x += .5f)
+                    for (float z = box.min.z; z <= box.max.z && !(gotShallow && gotDeep); z += .5f)
+                    {
+                        var p = new Vector3(x, box.max.y + 1, z);
+                        if (!o.SurfaceAt(p, out float level)) continue;
+                        float depth = o.DepthAt(new Vector3(x, level, z), level);
+                        if (!gotShallow && depth > .25f && depth < .6f) { shallow = new Vector3(x, level, z); shallowLevel = level; gotShallow = true; }
+                        // Deep, and well away from the next chunk's water (its own drowning would not be a bog).
+                        if (!gotDeep && depth > 1.45f && depth < 10 &&
+                            !world.obstacles.Any(other => other && other != o && other.kind == ObstacleKind.Lake && other.DistanceTo(new Vector3(x, level, z)) < 3))
+                        { deep = new Vector3(x, level, z); deepLevel = level; deepDepth = depth; gotDeep = true; }
+                    }
+                if (gotShallow && gotDeep) { lake = o; break; }
+            }
+            Assert.That(lake, Is.Not.Null, $"water with a shallow rim and a deep middle near the start ({world.obstacles.Count(o => o && o.kind == ObstacleKind.Lake)} lakes)");
+
+            // Wading wets the player.
+            Assert.That(WetStatus.IsWet(world.motor), Is.False, "dry at the start");
+            world.motor.Teleport(shallow + Vector3.up * .3f, Quaternion.identity);
+            yield return WaitFor(() => WetStatus.IsWet(world.motor), 3);
+            Assert.That(WetStatus.IsWet(world.motor), Is.True, "standing in water makes the player wet");
+            Assert.That(world.Running, Is.True, "shallow water does not drown");
+
+            // A gas vent by the player flares at a spark: the player is thrown up, the vent is spent. (Thrown off the
+            // start hill the player would fall hard: not what is tested here.)
+            world.vitals.Immortal = true;
+            world.motor.Teleport(start, Quaternion.identity);
+            for (int f = 0; f < 10; f++) yield return null;
+            var ventObject = new GameObject("Test gas vent");
+            ventObject.transform.position = world.motor.transform.position + world.motor.transform.forward * 1.5f;
+            var vent = ventObject.AddComponent<GasVent>();
+            vent.radius = 1.2f;
+            vent.height = 2.5f;
+            vent.OnSpawned(world);
+            Assert.That(vent.Full, Is.True, "a fresh vent is full of gas");
+            Assert.That(world.Ignite(null, vent.transform.position + Vector3.up * .5f, .5f, IgnitionSource.Fire), Is.GreaterThan(0), "Fire sets the gas off");
+            yield return null;
+            yield return null;
+            Assert.That(world.motor.Velocity.y, Is.GreaterThan(1), "the flash throws the player up");
+            Assert.That(vent.Full, Is.False, "the vent is spent");
+            Assert.That(world.Ignite(null, vent.transform.position + Vector3.up * .5f, .5f, IgnitionSource.Fire), Is.EqualTo(0), "a spent vent does not flare again");
+            Object.Destroy(ventObject);
+            yield return WaitFor(() => world.motor.IsGrounded, 4);
+            world.vitals.Immortal = false;
+            Assert.That(world.Running, Is.True, "still out after the flash");
+
+            // The water becomes a bog: a creature pushed in goes under.
+            var bog = lake.gameObject.AddComponent<BogMire>();
+            // A river is shallower than a real bog: the head goes under before the feet find the bed.
+            bog.drownDepth = Mathf.Min(bog.drownDepth, deepDepth - .4f);
+            var creature = world.creatures.Where(c => c && c.Alive && c.gameObject.activeInHierarchy)
+                .OrderBy(c => Vector3.Distance(c.Position, deep)).FirstOrDefault();
+            Assert.That(creature, Is.Not.Null, "a creature to push in");
+            creature.body.position = deep + Vector3.down * .5f;
+            creature.transform.position = creature.body.position;
+            yield return WaitFor(() => !creature.Alive, 2);
+            Assert.That(creature.Alive, Is.False, "the bog takes a creature pushed in");
+            yield return WaitFor(() => !creature.gameObject.activeSelf, bog.creatureSinkSeconds + 2);
+            Assert.That(creature.gameObject.activeSelf, Is.False, "it goes under");
+            Assert.That(world.Running, Is.True, "still out before stepping into the bog");
+
+            // The player: held, slowed, sinking slowly; a lunge lifts; at the head, drowned.
+            // Just under the surface, so nothing over the water (a bridge) catches the player first.
+            world.motor.Teleport(deep + Vector3.down * .1f, Quaternion.identity);
+            yield return WaitFor(() => bog.HoldingPlayer, 3);
+            var feet = world.motor.transform.position;
+            Assert.That(bog.HoldingPlayer, Is.True, $"the bog holds the player (running {world.Running}, feet {feet}, level {deepLevel}, in {lake.InWater(feet)}, external {world.motor.ExternallyControlled})");
+            yield return new WaitForSeconds(1.5f);
+            Assert.That(world.Running, Is.True, "the bog does not drown at once");
+            Assert.That(world.motor.MoveSpeedScale, Is.LessThan(.5f), "walking in the bog is slow");
+            float sunk = bog.SunkDepth(world.motor.transform.position);
+            Assert.That(sunk, Is.InRange(.05f, 1f), "sinking slowly");
+            Assert.That(bog.LungeNow(), Is.True, "a lunge");
+            yield return new WaitForSeconds(.2f);
+            Assert.That(bog.SunkDepth(world.motor.transform.position), Is.LessThan(sunk), "the lunge lifts the player");
+            // The lunge also carries towards the edge: back into the middle, and this time no struggling.
+            world.motor.Teleport(deep + Vector3.down * .1f, Quaternion.identity);
+            float stepIn = Time.time;
+            yield return WaitFor(() => !world.Running, 25);
+            Assert.That(world.Running, Is.False, $"sunk to the head, drowned (sunk {bog.SunkDepth(world.motor.transform.position):0.00} of {bog.drownDepth:0.00} m, held {bog.HoldingPlayer})");
+            Assert.That(Time.time - stepIn, Is.GreaterThan(3), "slowly, not at once");
+        }
+
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
         {
             float end = Time.realtimeSinceStartup + seconds;
