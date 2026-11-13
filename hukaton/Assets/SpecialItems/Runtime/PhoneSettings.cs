@@ -20,7 +20,7 @@ namespace Hakaton.SpecialItems
         Boost,
         /// <summary>Three goblins: the goblin calls and says something.</summary>
         Call,
-        /// <summary>Three skulls: a short curse (slow step, heavy gravity or a ringtone the creatures come running to).</summary>
+        /// <summary>Three skulls: the hearts drop to one at once.</summary>
         Curse,
         /// <summary>Three PENUS: the jackpot.</summary>
         Jackpot
@@ -86,12 +86,8 @@ namespace Hakaton.SpecialItems
         [Tooltip("Boost: seconds of endless stamina or of the fast run (one of the two, at random).")]
         [Min(1)] public float boostSeconds = 30;
         [Min(1)] public float fastRunMultiplier = 1.4f;
-        [Tooltip("Curse: seconds of the slow step, the heavy gravity or the ringtone (one of the three, at random).")]
-        [Min(1)] public float curseSeconds = 20;
-        [Range(.1f, 1)] public float slowStepMultiplier = .55f;
-        [Min(1)] public float heavyGravityMultiplier = 1.8f;
-        [Tooltip("The ringtone: creatures within this many metres come running to the player.")]
-        [Min(1)] public float ringtoneRadius = 30;
+        [Tooltip("Curse: the hearts drop to this many halves at once (2 = one heart). Never kills.")]
+        [Min(1)] public int curseKeepHalfHearts = 2;
 
         [Header("Timing")]
         [Tooltip("The reels stop by themselves this long after the lever if Tab is not pressed again.")]
