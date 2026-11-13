@@ -122,7 +122,7 @@ namespace Hakaton.Game
         public bool LectureActive => lecture && lecture.Active;
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
         public bool DrownLectureGiven => drownLectureGiven;
-        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet;
+        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet, godLectureRunning;
         // The return notice waits until the goblin has had his say.
         string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
@@ -144,10 +144,12 @@ namespace Hakaton.Game
             if (services.computer) services.computer.Shop = trade.Session;
             // «Выносливость» on the PC: the player's own upgrade, handed over the same way.
             if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
-            // Special items: the phone opens with the first revenue goal; the dealer sells them, the PC grows the battery.
+            // Special items: the phone and the player open after the god (once the goblin has had his word); the dealer sells them, the PC grows the battery.
             if (specialItems)
             {
-                specialItems.UnlockCheck = unlock => unlock == SpecialItemUnlock.Always || unlock == SpecialItemUnlock.FirstGoal && GoalReached;
+                specialItems.UnlockCheck = unlock => unlock == SpecialItemUnlock.Always || unlock == SpecialItemUnlock.FirstGoal && GoalReached
+                    // The goblin's word after the god ends with «у меня есть для тебя кое-что интересное»: the items open then.
+                    || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning;
                 cardShop.SpecialItems = specialItems;
                 if (services.computer) services.computer.SpecialItems = specialItems;
                 specialItems.Inventory.Changed += MarkDirty;
@@ -338,7 +340,7 @@ namespace Hakaton.Game
                 godMet = true;
                 if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
                 // the goblin is on the counter as the picture comes back: where were you, and empty-handed?
-                if (lecture && !(tutorial && tutorial.Active)) lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
+                if (lecture && !(tutorial && tutorial.Active)) godLectureRunning = lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
             }
             dirty = true;
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
@@ -426,6 +428,8 @@ namespace Hakaton.Game
 
         void OnLectureFinished()
         {
+            // The goblin's word after the god: the special items open now (UnlockCheck), not the drowning lecture.
+            if (godLectureRunning) { godLectureRunning = false; dirty = true; return; }
             drownLectureGiven = true;
             dirty = true;
             if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);

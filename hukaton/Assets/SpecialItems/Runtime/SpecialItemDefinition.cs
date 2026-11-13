@@ -7,10 +7,12 @@ namespace Hakaton.SpecialItems
     {
         /// <summary>From the start.</summary>
         Always,
-        /// <summary>Once the shop has made its first revenue goal (the phone).</summary>
+        /// <summary>Once the shop has made its first revenue goal.</summary>
         FirstGoal,
         /// <summary>Never by itself (a hidden condition the game opens some other way).</summary>
-        Hidden
+        Hidden,
+        /// <summary>Back from the god: once the goblin on the counter has had his word (the phone, the player).</summary>
+        AfterGod
     }
 
     /// <summary>How a special item sits with the cards while it is out.</summary>
@@ -33,7 +35,7 @@ namespace Hakaton.SpecialItems
         public string id = "phone";
         public string displayName = "Телефон";
         [Min(0)] public int price = 5000;
-        public SpecialItemUnlock unlock = SpecialItemUnlock.FirstGoal;
+        public SpecialItemUnlock unlock = SpecialItemUnlock.AfterGod;
         public SpecialItemUse use = SpecialItemUse.AlongsideCards;
         [Tooltip("Which side of the dealer's card row it lies on.")]
         public bool leftOfCards = true;
