@@ -92,6 +92,24 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(closest, Is.LessThan(start - 1.5f), "the tongue yanks the player in");
             Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(before + 3), "the slam takes one and a half hearts");
         }
+
+        [UnityTest]
+        public IEnumerator FlyAgaricStandsAndSpitsAFan()
+        {
+            var agaric = Spawn("Raging fly agaric");
+            Assert.That(agaric.fireVulnerability, Is.Not.Null, "it fears fire");
+            var start = agaric.Position;
+            yield return Stand(agaric, 8);
+            int most = 0;
+            float until = Time.time + 6;
+            while (Time.time < until && most < 3)
+            {
+                yield return null;
+                most = Mathf.Max(most, EnemyProjectile.Active.Count(p => p && p.Shooter == agaric));
+            }
+            Assert.That(most, Is.GreaterThanOrEqualTo(3), "a fan of three spits");
+            Assert.That(Vector3.Distance(agaric.Position, start), Is.LessThan(2), "rooted: it hardly moves");
+        }
     }
 }
 #endif
