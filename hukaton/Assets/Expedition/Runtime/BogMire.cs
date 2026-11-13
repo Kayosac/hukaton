@@ -25,7 +25,7 @@ namespace Hakaton.Expeditions
         [Tooltip("Walking speed in the mire (times the usual).")]
         [Range(.05f, 1)] public float moveScale = .3f;
         [Tooltip("A jump in the mire: upward speed at the surface (x) and when nearly drowned (y), m/s (design units).")]
-        public Vector2 lungeUp = new Vector2(5.5f, 3f);
+        public Vector2 lungeUp = new Vector2(3.4f, 2.4f);
         [Tooltip("…and towards the nearest edge, at the surface (x) and nearly drowned (y), m/s.")]
         public Vector2 lungeOut = new Vector2(3.5f, 2.2f);
         [Min(0)] public float lungeCooldown = .35f;
@@ -88,6 +88,8 @@ namespace Hakaton.Expeditions
             }
             // Slow, sinking: the fall through the mire is held to a crawl, whatever goes on above.
             motor.ApplyModifier(MotorModifier.MoveSpeed, moveScale, .2f);
+            // No jump of its own in the mire: a jump there is the lunge alone (both together threw the player sky-high).
+            motor.ApplyModifier(MotorModifier.JumpHeight, 0, .25f);
             motor.ApplyFallSpeedLimit(sinkSpeed, .2f);
             if (depth >= drownDepth)
             {

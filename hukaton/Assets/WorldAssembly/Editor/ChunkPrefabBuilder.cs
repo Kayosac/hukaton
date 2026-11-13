@@ -241,12 +241,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 mats[(int)Surface.Bank] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Humus] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Path] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
-                // The burnt swamp: its land is ash and char, its peat darker.
-                if (t.Zone == SwampZone.Burnt)
-                {
-                    mats[(int)Surface.Main] = SwampGround("SW_Ground_Ash", "T_Swamp_Peat", new Color(.42f, .4f, .38f));
-                    mats[(int)Surface.Humus] = SwampGround("SW_Ground_Char", "T_Swamp_Peat", new Color(.55f, .5f, .46f));
-                }
+                // The burnt swamp keeps the swamp's own ground: an ash ground of its own met the forest's moss and the
+                // swamp's peat at hard straight seams. Charred wood, ash on the water and smoke say it burnt.
             }
             return (mesh, mats);
         }
@@ -1550,20 +1546,28 @@ namespace Hakaton.WorldAssembly.EditorTools
             var beacon = new GameObject("Beacon").transform;
             beacon.SetParent(group, false);
             beacon.position = at;
-            // Scaled whole (the effects scale by their hierarchy): a column a few metres high.
-            void Flame(string asset, float scale, float lift)
+            // The fire's pixels keep the size every fire in the game has (a scaled effect turns into blobs): a column
+            // of a few flames at their own size, burning longer and rising faster; no smoke (marsh gas burns clean).
+            void Flame(string asset, Vector3 offset, float life, float speed)
             {
-                var fx = Place(beacon, asset, null, Vector2.zero, 0, Vector3.one * scale);
+                var fx = Place(beacon, asset, null, Vector2.zero, 0, Vector3.one);
                 if (!fx) return;
-                fx.transform.localPosition = Vector3.up * lift;
-                foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>())
+                fx.transform.localPosition = offset;
+                foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>(true))
                 {
+                    if (ps.name == "Smoke") { ps.gameObject.SetActive(false); continue; }
                     var main = ps.main;
-                    main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                    main.scalingMode = ParticleSystemScalingMode.Shape;
+                    main.startLifetimeMultiplier *= life;
+                    main.startSpeedMultiplier *= speed;
                 }
             }
-            Flame("VFX/Fire/FieldTall/FireFieldTallBlue", 5f, 0);
-            Flame("VFX/Fire/FieldTall/FireFieldTallGreen", 3.2f, .3f);
+            // A bed of flame on the mound, and tongues out of it rising high and fast: a column, not a campfire.
+            Flame("VFX/Fire/FieldTall/FireFieldTallGreen", Vector3.zero, 1.3f, 1.2f);
+            Flame("VFX/Fire/Torch/FireTorchBlue", new Vector3(0, .05f, 0), 1, 1);
+            // A second bed a little higher and narrower: a flame taller than a campfire, at the pixel size every
+            // fire in the game has.
+            Flame("VFX/Fire/Torch/FireTorchGreen", new Vector3(.15f, .35f, .1f), 1.3f, 1.4f);
             var light = new GameObject("Beacon light").AddComponent<Light>();
             light.transform.SetParent(beacon, false);
             light.transform.localPosition = Vector3.up * 2.4f;

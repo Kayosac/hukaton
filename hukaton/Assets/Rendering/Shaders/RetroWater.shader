@@ -95,6 +95,7 @@ Shader "Hukaton/Water/Retro Water"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
+            #include "Assets/WorldAssembly/Shaders/WorldGrade.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
             float _PixelsPerMeter, _ColorBitDepth, _Dither, _AnimFPS;
@@ -306,6 +307,9 @@ Shader "Hukaton/Water/Retro Water"
                 float NdotV = saturate(dot(N, V));
                 float fresnel = (0.02 + 0.98 * pow(1.0 - NdotV, 5.0)) * _Reflection * (1.0 - 0.6 * mire);
                 float3 reflection = GlossyEnvironmentReflection(reflect(-V, N), i.positionWS, _ReflectionRoughness, 1.0, screenUV);
+                // In thick air the sky the water mirrors is the fog, not the probe's clear blue: else far water, all
+                // reflection at its grazing angle, shows bright through the fog as a silhouette.
+                reflection = lerp(reflection, unity_FogColor.rgb, saturate(_WorldReflectFog));
                 color = lerp(color, reflection, saturate(fresnel));
                 float3 H = normalize(mainLight.direction + V);
                 color += mainLight.color * step(_GlintThreshold, saturate(dot(N, H))) * _Glint * shadow;
@@ -313,6 +317,8 @@ Shader "Hukaton/Water/Retro Water"
                 color = lerp(color, _FoamColor.rgb * lighting, foam * 0.9 * (1.0 - mire));
                 color = Quantize(color, i.positionCS.xy);
                 color = MixFog(color, i.fog);
+                // Drawn after the world's post-processing (World Resolution): take the place's grading as the world did.
+                color = WorldGrade(color);
                 return float4(color, 1.0);
             }
             ENDHLSL
