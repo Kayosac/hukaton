@@ -490,12 +490,20 @@ namespace Hakaton.SpecialItems
             World.Announce("Три сердца: здоровье полное", 2.5f);
         }
 
-        /// <summary>Three skulls: the hearts drop to one at once; never kills.</summary>
+        /// <summary>Three skulls: the hearts drop to one at once; with only that one left already, it is death.</summary>
         void Curse(PhoneSettings settings)
         {
             World.Play(curseSound);
-            if (World.vitals.DrainTo(settings.curseKeepHalfHearts)) World.Announce("Три черепа: осталось одно сердце", 3);
-            else World.Announce("Три черепа: брать нечего — сердце и так одно", 3);
+            var vitals = World.vitals;
+            if (vitals.DrainTo(settings.curseKeepHalfHearts))
+            {
+                World.Announce("Три черепа: осталось одно сердце", 3);
+                return;
+            }
+            if (vitals.Immortal || !vitals.Drain()) return;
+            World.Announce("Три черепа: последнее сердце забрали", 3);
+            if (World.feel) { World.feel.AddTrauma(.8f); World.feel.Kick(new Vector3(-150, 0, 120)); }
+            World.ReturnToShop(true);
         }
 
         /// <summary>The incoming call rings until the goblin answers.</summary>
