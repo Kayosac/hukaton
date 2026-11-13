@@ -41,6 +41,9 @@ namespace Hakaton.GodMountains
         public Transform lip;
         [Tooltip("Where a fall off the summit puts the player back (CP3).")]
         public Transform checkpoint;
+        [Tooltip("The safety wall on the lip (DynamicCollider): stays on until the finger lies under the lip and waits " +
+                 "for the jump, then switches off so the player can step out onto it.")]
+        public GameObject edgeWall;
 
         [Header("Player")]
         public FirstPersonMotor motor;
@@ -108,6 +111,7 @@ namespace Hakaton.GodMountains
             }
             body = motor.GetComponent<CharacterController>();
             if (bubble) bubble.Hide();
+            if (edgeWall) edgeWall.SetActive(true);
         }
 
         void Update()
@@ -181,6 +185,8 @@ namespace Hakaton.GodMountains
                 yield return null;
             }
             view.Guide(null);
+            // the finger is in place under the lip: only now the wall goes, the jump is free
+            if (edgeWall) edgeWall.SetActive(false);
             control.SetBlocked(this, false);
             Stage = GodStage.Waiting;
         }
