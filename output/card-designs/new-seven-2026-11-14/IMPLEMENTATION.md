@@ -82,13 +82,21 @@
   добавляет его с `ringPrefab` из Player.prefab. Команда `timescale` не держится: HitStop возвращает 1 после удара,
   поэтому кадр «до обвала» снимать командой `shot` в том же опросе, что и `invoke` (оба .cmd положить разом).
 
+- Карта с отложенным уроном по существу (найдено на Сглазе): объект-метка через `world.SpawnForOuting` (уберётся в конце
+  вылазки), каждый кадр догоняет `ICombatant.Position/Centre` цели (рост = 2 × (Centre.y − Position.y), учитывает
+  Кривое зеркало); цель умерла/уничтожена — `Combat.IsAlive(target) && target.Root` ложно, метка пропадает. Типа урона
+  «тьма» нет: взят `DamageKind.Other` (не колет ледяную глыбу ×2, как `Hit`). WorldCreature НЕ реализует ICardCreature
+  (только мимик) — проверять `is WorldCreature || is ICardCreature`. Живого зверя в EnemyDebug зонд создаёт сам
+  (Instantiate префаба + `world = …`, `ResetForOuting(null)`, `world.creatures.Add`); агрессивный сразу бежит на игрока —
+  для кадра его замораживать (`Freeze`). Две команды `shot` ближе ~0,3 с друг к другу — второй кадр теряется.
+
 ## Статус
 
 | Карта | Статус |
 |---|---|
 | Струя | готово (adb4640f0): WaterJetEffect, тесты WaterJetTests 7/7, вживую в EnemyDebug — checks/water_jet-*.png; таблица KayoSpace — за пользователем |
 | Камнепад | готово (a6122059b): RockfallEffect + зона RockfallZone, тесты RockfallTests 8/8, вживую в EnemyDebug — checks/rockfall-*.png; таблица KayoSpace — за пользователем |
-| Сглаз | — |
+| Сглаз | готово (efbc46f62): EvilEyeEffect + метка EvilEyeMark, тесты EvilEyeTests 9/9, вживую в EnemyDebug (две метки через Эхо на замороженном звере, взрыв, промах) — checks/evil_eye-*.png; таблица KayoSpace — за пользователем |
 | Вороньё | — |
 | Пороховая бочка | — |
 | Бумеранг | — |
