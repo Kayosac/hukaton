@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 4dd7744d7e44749e58bb3744d4fe68a2, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -1575,7 +1575,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7809565239031082535, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
   m_PrefabInstance: {fileID: 54777189}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 731200002}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c024a7ce2e08480d838c0e5f4ebe7e44, type: 3}
@@ -1591,7 +1591,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7379625630327108414, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
   m_PrefabInstance: {fileID: 54777189}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 731200002}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fcc0a6633702451aa12debae837a3ec9, type: 3}
@@ -1602,7 +1602,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3940150628600201822, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
   m_PrefabInstance: {fileID: 54777189}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 731200002}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb1fad557bf046028870101e7293ff65, type: 3}
@@ -21762,10 +21762,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2846282836311981597, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4279507748
@@ -21871,6 +21867,10 @@ PrefabInstance:
       value: "\u041F\u043B\u0430\u0448\u043A\u0430 \u0440\u0435\u043F\u043B\u0438\u043A
         \u0431\u043E\u0433\u0430"
       objectReference: {fileID: 0}
+    - target: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -21881,7 +21881,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6755094308140996584, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
   m_PrefabInstance: {fileID: 713992249}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 731200003}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb8052279888e46a2b84f78fdb92bd3b, type: 3}
@@ -22586,6 +22586,51 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 1233705128822085702, guid: 3b34944b74ca24f2f86cd38857ccbeba, type: 3}
   m_PrefabInstance: {fileID: 729736642}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &731200001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922056675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c1ce2d158f34b9e85a71436885d170c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodMountainsLevel
+  encounter: {fileID: 1873006900}
+  atmosphere: {fileID: 772319981}
+  spawn: {fileID: 597622700}
+  farClip: 12000
+  standalone:
+  - {fileID: 731200002}
+  - {fileID: 731200003}
+  sewOnLoad: 1
+  noShadows:
+  - {fileID: 1688863850}
+  smallPieceNoShadow: 1.5
+  farModels:
+  - full: {fileID: 919132149155446097, guid: 070a4fb3d450a418fb71b29001e4497d, type: 3}
+    far: {fileID: 919132149155446097, guid: cd1dc5e100bb45f3ba5730dbec8c0fa0, type: 3}
+  - full: {fileID: 919132149155446097, guid: 78a1f9b1cd9e1486baf7d7aca6185781, type: 3}
+    far: {fileID: 919132149155446097, guid: 7893b8ee52a14550aee66ef86839444e, type: 3}
+  - full: {fileID: 919132149155446097, guid: aabf697cd694149cfaad727295c856c9, type: 3}
+    far: {fileID: 919132149155446097, guid: 105a467d0339417282c75499f76a6097, type: 3}
+  nearPoints:
+  - {fileID: 583251383}
+  - {fileID: 423019883}
+  - {fileID: 242084329}
+  farFrom: 700
+--- !u!1 &731200002 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+  m_PrefabInstance: {fileID: 54777189}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &731200003 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
+  m_PrefabInstance: {fileID: 713992249}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &734605786
 GameObject:
@@ -61702,35 +61747,6 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 4681226017524391116, guid: de957229e973840f2a252fdb9e23c027, type: 3}
   m_PrefabInstance: {fileID: 6082274978300789209}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &731200001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1922056675}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c1ce2d158f34b9e85a71436885d170c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodMountainsLevel
-  encounter: {fileID: 1873006900}
-  atmosphere: {fileID: 772319981}
-  spawn: {fileID: 597622700}
-  farClip: 12000
-  standalone:
-  - {fileID: 731200002}
-  - {fileID: 731200003}
---- !u!1 &731200002 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
-  m_PrefabInstance: {fileID: 54777189}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &731200003 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
-  m_PrefabInstance: {fileID: 713992249}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
