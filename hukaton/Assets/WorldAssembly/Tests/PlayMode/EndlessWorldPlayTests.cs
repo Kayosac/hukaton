@@ -1650,6 +1650,14 @@ namespace Hakaton.WorldAssembly.Tests
                 }
             world.vitals.Immortal = true;
             string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            // "Logs/air-open.txt": r g b of the open forest's air to try (else the game's own).
+            var openFile = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "air-open.txt");
+            var open = WorldAtmosphere.OpenAir;
+            if (File.Exists(openFile))
+            {
+                var v = File.ReadAllText(openFile).Trim().Split(' ').Select(t => float.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                WorldAtmosphere.OpenAir = new Color(v[0], v[1], v[2]);
+            }
             IEnumerator Look(string name, Vector3 from, Vector3 at)
             {
                 world.motor.Teleport(from - Vector3.up * 1.6f, Quaternion.identity);
@@ -1668,6 +1676,7 @@ namespace Hakaton.WorldAssembly.Tests
             var intoEye = Ground(into) + Vector3.up * 3.4f;
             yield return Look("edge-from-forest", edgeEye, new Vector3(intoEye.x, edgeEye.y - 2.5f, intoEye.z));
             yield return Look("edge-from-swamp", intoEye, new Vector3(edgeEye.x, intoEye.y - 2.5f, edgeEye.z));
+            WorldAtmosphere.OpenAir = open;
             Debug.Log($"[World] air shots ({tag}): forest {forest}, swamp {heart}, edge {edge} -> {into}");
         }
 
