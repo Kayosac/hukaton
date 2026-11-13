@@ -110,6 +110,21 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(most, Is.GreaterThanOrEqualTo(3), "a fan of three spits");
             Assert.That(Vector3.Distance(agaric.Position, start), Is.LessThan(2), "rooted: it hardly moves");
         }
+
+        [UnityTest]
+        public IEnumerator MosquitoSwarmFliesInBitesAndFallsToOneHit()
+        {
+            var swarm = Spawn("Mosquito swarm");
+            Assert.That(swarm.flying, Is.True);
+            Assert.That(swarm.fireVulnerability, Is.Not.Null, "it fears fire");
+            yield return Stand(swarm, 8);
+            float until = Time.time + 6;
+            while (Time.time < until && sandbox.ReceivedDamage < 1) yield return null;
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(1), "it bites for half a heart");
+            swarm.Damage(1, Vector3.zero, swarm.Centre, 0);
+            yield return null;
+            Assert.That(swarm.Alive, Is.False, "one hit swats it");
+        }
     }
 }
 #endif
