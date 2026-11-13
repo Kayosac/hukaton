@@ -158,23 +158,6 @@ namespace Hakaton.GodMountains.Editor
                             UnityEngine.Object.DestroyImmediate(ball.GetComponent<Collider>());
                             spawned.Add(ball);
                         }
-                        else if (p.StartsWith("wind="))
-                        {
-                            // the shelf wind: streaks emitted the way the game does, then simulated for the given seconds
-                            var w = level.GetComponentInChildren<GodWind>(true);
-                            if (!w) { report.AppendLine(name + ": no GodWind"); continue; }
-                            var ps = w.Build();
-                            ps.Clear(true);
-                            Vector3 dir = w.Direction(metres, eye);
-                            float total = F(p.Substring(5));
-                            for (float t = 0; t < total; t += 1 / 30f)
-                            {
-                                if (UnityEngine.Random.value < .45f) w.Emit(eye, dir, 1.25f);
-                                ps.Simulate(1 / 30f, true, false, false);
-                            }
-                            report.AppendLine($"{name}: wind dir {dir.x:F2},{dir.y:F2},{dir.z:F2} particles {ps.particleCount}");
-                            spawned.Add(ps.gameObject);
-                        }
                         else if (p.StartsWith("effect="))
                         {
                             var e = p.Substring(7).Split('@');

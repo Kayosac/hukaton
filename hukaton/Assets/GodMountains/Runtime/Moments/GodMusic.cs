@@ -4,10 +4,12 @@ using UnityEngine.Audio;
 namespace Hakaton.GodMountains
 {
     /// <summary>
-    /// The music of the climb to the god: two stems of one 128 s loop, started on the same clock and never stopped, only
-    /// faded. «Air» comes in slowly from the round pocket on (the stone frame, the white shelf); «might» — brass, drums,
-    /// deep choir — joins when he rises in front of the player and carries the reach and the ride. While he speaks both
-    /// step back under his voice. In the silence of the throat (S7) the music is silent too.
+    /// The music of the climb to the god: two stems of one 128 s loop in D minor, started together on the same clock and
+    /// only ever faded. «Dread» — a low drone, dark closed pads, a lonely falling cello, a far bell — creeps in early in
+    /// the corners and is there in full by the round pocket: hopeless, close, no tune to hold on to. When the god comes
+    /// into sight «glory» rises over it on the same chords — strings, choir, harp, brass, timpani, the great drum — and
+    /// carries the reach, the ride and the talk, the dread sinking under it. The silence in the throat (S7) is silence
+    /// for the music too; under his voice both step back.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GodMusic : MonoBehaviour
@@ -15,28 +17,36 @@ namespace Hakaton.GodMountains
         public GodMoments hub;
         public GodSounds sounds;
         public AudioMixerGroup output;
-        public AudioClip air;
-        public AudioClip might;
+        public AudioClip dread;
+        public AudioClip glory;
 
-        [Tooltip("Along the route, m: «air» starts here (the round pocket) ...")]
-        public float fadeFrom = 90;
-        [Tooltip("... and is all there here (on the shelf).")]
-        public float fadeTo = 118;
-        [Range(0, 1)] public float airVolume = .32f;
-        [Range(0, 1)] public float mightVolume = .38f;
-        [Tooltip("Seconds for «might» to come in when he rises.")]
-        [Min(.1f)] public float mightIn = 5;
-        [Tooltip("Under his voice the music is this loud.")]
+        [Header("Dread")]
+        [Tooltip("Along the route, m: it starts creeping in here (the corners) ...")]
+        public float dreadFrom = 38;
+        [Tooltip("... and is all there here (the round pocket).")]
+        public float dreadFull = 95;
+        [Range(0, 1)] public float dreadVolume = .4f;
+        [Tooltip("Under the glory the dread keeps this share.")]
+        [Range(0, 1)] public float dreadUnderGlory = .45f;
+
+        [Header("Glory")]
+        [Tooltip("Along the route, m: past here he is in sight (the light mouth ahead).")]
+        public float gloryFrom = 168;
+        [Range(0, 1)] public float gloryVolume = .45f;
+        [Tooltip("Seconds for the glory to come in full.")]
+        [Min(.1f)] public float gloryIn = 9;
+
+        [Header("Voice")]
         [Range(0, 1)] public float underVoice = .45f;
 
-        AudioSource airSource, mightSource;
+        AudioSource dreadSource, glorySource;
         bool started;
-        float duck = 1;
+        float duck = 1, rise;
 
         void Start()
         {
-            airSource = Source("Музыка — воздух", air);
-            mightSource = Source("Музыка — сила", might);
+            dreadSource = Source("Музыка — безысходность", dread);
+            glorySource = Source("Музыка — величие", glory);
         }
 
         AudioSource Source(string label, AudioClip clip)
@@ -60,23 +70,25 @@ namespace Hakaton.GodMountains
             float m = hub.Progress;
             if (!started)
             {
-                if (m < fadeFrom) return;
+                if (m < dreadFrom) return;
                 started = true;
                 double at = AudioSettings.dspTime + .1;
-                if (airSource) airSource.PlayScheduled(at);
-                if (mightSource) mightSource.PlayScheduled(at);
+                if (dreadSource) dreadSource.PlayScheduled(at);
+                if (glorySource) glorySource.PlayScheduled(at);
             }
             var stage = hub.encounter ? hub.encounter.Stage : GodStage.Path;
-            bool risen = stage != GodStage.Path || (hub.encounter && hub.encounter.Noticed);
+            bool inSight = m >= gloryFrom || stage != GodStage.Path || (hub.encounter && hub.encounter.Noticed);
+            bool hush = hub.Silent;
+            if (inSight && !hush) rise = Mathf.MoveTowards(rise, 1, Time.deltaTime / gloryIn);
             duck = Mathf.MoveTowards(duck, sounds && sounds.Speaking ? underVoice : 1, Time.deltaTime * .8f);
 
-            float a = airVolume * Mathf.SmoothStep(0, 1, Mathf.InverseLerp(fadeFrom, fadeTo, m)) * duck;
-            float b = risen ? mightVolume * duck : 0;
-            // the silence in the throat (S7) is silence: the music drops out with the breath and comes back after
-            bool hush = hub.Silent;
-            if (hush) a = b = 0;
-            if (airSource) airSource.volume = Mathf.MoveTowards(airSource.volume, a, Time.deltaTime * (hush ? 4 : airVolume / 3));
-            if (mightSource) mightSource.volume = Mathf.MoveTowards(mightSource.volume, b, Time.deltaTime * (hush ? 4 : mightVolume / mightIn));
+            float d = dreadVolume * Mathf.SmoothStep(0, 1, Mathf.InverseLerp(dreadFrom, dreadFull, m))
+                      * Mathf.Lerp(1, dreadUnderGlory, rise) * duck;
+            float g = gloryVolume * Mathf.SmoothStep(0, 1, rise) * duck;
+            if (hush) d = g = 0;
+            float rate = hush ? 4 : .12f;
+            if (dreadSource) dreadSource.volume = Mathf.MoveTowards(dreadSource.volume, d, Time.deltaTime * rate);
+            if (glorySource) glorySource.volume = Mathf.MoveTowards(glorySource.volume, g, Time.deltaTime * (hush ? 4 : 1));
         }
     }
 }

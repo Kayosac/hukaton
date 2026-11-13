@@ -15,6 +15,8 @@ namespace Hakaton.GodMountains
         [Min(1)] public float reach = 22;
         public float bow = 18;
         [Min(.1f)] public float seconds = 3.2f;
+        [Tooltip("The leaves take the shrubs' colours (T_GM_Foliage): olive leaf and dusky purple.")]
+        public Color leafA = new Color(.5f, .5f, .34f), leafB = new Color(.36f, .31f, .33f);
 
         void Reset() => atMetres = 116;
 
@@ -42,7 +44,11 @@ namespace Hakaton.GodMountains
             foreach (var s in shrubs) rest.Add(s.rotation);
             var axis = Vector3.Cross(Vector3.up, along).normalized;
             for (int i = 0; i < shrubs.Count; i++)
-                Hub.Effect(Hub.leavesEffect, shrubs[i].position + Vector3.up * .6f, Quaternion.LookRotation(along), 2.4f, 4);
+            {
+                var fx = Hub.Effect(Hub.leavesEffect, shrubs[i].position + Vector3.up * .6f, Quaternion.LookRotation(along), 2.4f, 4);
+                if (fx) foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>(true))
+                    { var main = ps.main; main.startColor = new ParticleSystem.MinMaxGradient(leafA, leafB); }
+            }
             for (float t = 0; t < seconds; t += Time.deltaTime)
             {
                 float rise = seconds * .3f;

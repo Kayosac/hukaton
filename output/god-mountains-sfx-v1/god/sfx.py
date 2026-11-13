@@ -92,13 +92,12 @@ def lift():
     t = t_axis(D)
     v = smooth(t / 4.5) * (1 - smooth((t - 20.5) / 7.5))
     v = np.where(t > 28, 0, v)
-    # the air rushing past the rider, fluttering
-    flut = 1 + .35 * lp(rng.standard_normal(len(t)), 9) / .05
-    flut = np.clip(lp(flut, 12), .4, 1.8)
-    for c in range(2):
-        n = sweep_bp(white(D), lambda s: 500 + 1300 * float(np.interp(s, t[::441], v[::441])), q=.5)
-        b[:, c] += n * v ** 1.4 * flut * .28
-    b += widen(lp(brown(D), 160) * v * 1.0, 21)
+    # no hiss: the air the arm pushes is felt, not heard — a deep pressure that swells with the speed, slow low whooms
+    # as the hand sweeps round, the body's own hum under it
+    b += widen(lp(brown(D), 140, 2) * v * 1.2, 21)
+    wh = whoosh(D, v ** 1.2, lambda s: 70 + 90 * float(np.interp(s, t[::441], v[::441])) + 25 * np.sin(s * .9), q=.5)
+    b += widen(lp(wh, 260, 2), 13) * .8
+    b += widen(sub(D, [(0, 30), (8, 36), (16, 33), (24, 38), (D, 34)], [(0, 0), (3, .5), (14, .7), (26, .5), (29, 0), (D, 0)]), 9) * .6
     # the arm's weight in the joints: deep groans as the pull bends round
     for at, f0, f1, g in ((.3, 34, 46, .55), (6.0, 40, 32, .45), (12.5, 36, 44, .45), (18.2, 44, 34, .5), (23.8, 38, 30, .4)):
         L = 4.0
@@ -107,7 +106,6 @@ def lift():
         place(b, widen(grind(L, env_points(L, [(0, 0), (.8, .6), (2, .3), (L, 0)]), 70, 380), 7), at, .25)
     # lift-off and the settle at his face
     place(b, boom(6, 40, 20, drop=1.0, drive=2.0, click=.15), .2, .7)
-    place(b, sub(D, [(0, 24), (10, 28), (20, 26), (D, 24)], [(0, 0), (2, .5), (14, .7), (24, .5), (28, 0), (D, 0)]), 0, .5)
     place(b, boom(5, 34, 20, drop=.7, drive=1.6, click=.05), 27.4, .45)
     return b
 

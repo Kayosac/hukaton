@@ -12,21 +12,21 @@ namespace Hakaton.GodMountains
     public sealed class GodRoofStone : GodMoment
     {
         [Tooltip("Where along the route ahead it may happen (the spot must be in view), m.")]
-        public Vector2 ahead = new Vector2(3.5f, 10);
+        public Vector2 ahead = new Vector2(5, 12);
         [Tooltip("How high on the wall it may break away, m above the path.")]
-        public Vector2 height = new Vector2(2.5f, 6);
+        public Vector2 height = new Vector2(2.5f, 4.5f);
         [Min(.1f)] public float size = 1.1f;
-        [Min(0)] public float warning = .9f;
+        [Min(0)] public float warning = .25f;
         [Min(0)] public int hail = 6;
         [Min(0)] public int pieces = 5;
         [Range(0, 1)] public float shake = .4f;
 
-        void Reset() => atMetres = 17;
+        void Reset() => atMetres = 14;
 
         Vector3 spot, spotNormal;
 
         bool Locate(float progress, Vector3 eye, Vector3 forward) =>
-            Hub.VisibleSpot(progress, eye, forward, ahead, height, out spot, out spotNormal);
+            Hub.VisibleSpot(progress, eye, forward, ahead, height, out spot, out spotNormal, prefer: 9, cone: 24);
 
         // waits (up to a few metres further) until a spot on the walls ahead is in view
         protected override bool Ready => Hub.Progress > atMetres + 12 || Locate(Hub.Progress, Hub.Eye.position, Hub.Eye.forward);
@@ -53,7 +53,7 @@ namespace Hakaton.GodMountains
             yield return new WaitForSeconds(warning);
             var stone = Hub.Stone(at, size);
             if (!stone) yield break;
-            stone.linearVelocity = normal * 1.2f;
+            stone.linearVelocity = normal * 1.2f + Vector3.down * 3.5f;
             stone.angularVelocity = Random.insideUnitSphere * 3;
             for (int i = 0; i < hail; i++)
             {

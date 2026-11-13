@@ -1,7 +1,7 @@
 """Music for the god's mountain: D minor, 60 bpm, 16 chords of 8 s (128 s), loops seamlessly.
-Two stems on the same clock:
-  gm_music_air   — what fades in from the round pocket on: low drone, string pad, a soft choir line, a slow harp.
-  gm_music_might — what joins when he rises: low brass swells, timpani and a great drum, a deep unison choir.
+Two stems on the same clock and the same chords:
+  gm_music_dread — the climb: hopeless and close. A low drone, dark pads under a lid, a lonely cello falling, a far bell.
+  gm_music_glory — once he is in sight: string pad, a choir line, harp, brass swells, timpani, the great drum, deep choir.
 """
 import sys, os
 import numpy as np
@@ -89,8 +89,58 @@ def taiko(dur=4.0):
     return np.tanh((body * 1.4 + skin * .6) * 1.5)
 
 
+def bell(f, dur=9.0):
+    """A deep far bell: inharmonic partials, long."""
+    t = t_axis(dur)
+    x = sum(g * np.sin(2 * np.pi * f * k * t + rng.uniform(0, 6)) * np.exp(-t / (dur * d))
+            for k, g, d in ((1, 1, .45), (2.0, .5, .3), (2.76, .35, .2), (5.4, .15, .1), (8.9, .06, .05)))
+    return lp(x, 2500) * adsr(len(t), .004, 1.0)
+
+
+def cello(f, dur):
+    t = t_axis(dur)
+    v = 1 + .005 * np.sin(2 * np.pi * 4.8 * t) * smooth((t - .8) / 1.5)
+    ph = np.cumsum(f * v) / SR
+    x = 2 * (ph % 1) - 1
+    x = lp(x, 900, 2) + .3 * bp(x, 200, 600)
+    return x * adsr(len(t), 1.2, 1.6, 1.5)
+
+
+# the cello: one falling line over the loop, a note every second chord
+CELLO = {0: [(62, 0, 4), (60, 4, 4)], 2: [(58, 0, 8)], 4: [(57, 0, 4), (55, 4, 4)], 6: [(53, 0, 6), (52, 6, 2)],
+         8: [(53, 0, 8)], 10: [(55, 0, 4), (53, 4, 4)], 12: [(50, 0, 8)], 14: [(52, 0, 4), (49, 4, 4)]}
+
+
+def dread():
+    b = np.zeros((secs(L + 10), 2))
+    for i, (ch, top) in enumerate(PROG):
+        at = i * CH
+        bass, notes = ch[0], ch[1:]
+        T = CH + 4
+        # the drone breathes under everything
+        t = t_axis(T)
+        dr = np.sin(2 * np.pi * hz(bass) * t) + .5 * lp(supersaw(hz(bass + 12), T, voices=3, cut=260), 260)
+        place(b, widen(dr * adsr(len(t), 3.0, 3.5, 1.2), 23), at, .32)
+        # dark pad, low and closed; on the tonic a semitone rubs against it
+        for k, m in enumerate(notes[:3]):
+            s_ = supersaw(hz(m - 12), T, voices=5, cut=520) * adsr(len(t), 3.5, 3.5, 1.4)
+            place(b, pan(s_, -.5 + .5 * k), at, .13)
+        if ch is D:
+            place(b, widen(supersaw(hz(51), T, voices=3, cut=400) * adsr(len(t), 5, 3, 2), 31), at, .05)
+        for m, off, ln in CELLO.get(i, []):
+            place(b, pan(cello(hz(m - 12), ln + 1.5), .25), at + off, .17)
+        if i % 2 == 0:
+            place(b, widen(bell(hz(38)), 37), at + .5, .12)
+    return b
+
+
+def glory():
+    b = air() + might()
+    return b
+
+
 def air():
-    b = np.zeros((secs(L + 8), 2))
+    b = np.zeros((secs(L + 10), 2))
     t_all = 0
     for i, (ch, top) in enumerate(PROG):
         at = i * CH
@@ -114,7 +164,7 @@ def air():
 
 
 def might():
-    b = np.zeros((secs(L + 8), 2))
+    b = np.zeros((secs(L + 10), 2))
     for i, (ch, top) in enumerate(PROG):
         at = i * CH
         bass, notes = ch[0], ch[1:]
@@ -147,7 +197,7 @@ def finish(x, name):
     return x
 
 
-for name, fn in (("gm_music_air", air), ("gm_music_might", might)):
+for name, fn in (("gm_music_dread", dread), ("gm_music_glory", glory)):
     x = finish(fn(), name)
     write(f"/tmp/{name}.wav", x)
     import subprocess
