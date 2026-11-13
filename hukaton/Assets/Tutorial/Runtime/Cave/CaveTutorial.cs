@@ -257,8 +257,7 @@ namespace Hakaton.Tutorial
                     break;
                 case CaveStage.Talk:
                 case CaveStage.GoHome when handOverOpen:
-                    var keyboard = Keyboard.current;
-                    if (keyboard != null && keyboard.eKey.wasPressedThisFrame && !bubble.SkipTyping()) continueRequested = true;
+                    if (DialogueAdvance.Pressed && !bubble.SkipTyping()) continueRequested = true;
                     break;
             }
         }

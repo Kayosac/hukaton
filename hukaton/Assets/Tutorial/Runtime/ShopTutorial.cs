@@ -175,8 +175,7 @@ namespace Hakaton.Tutorial
                 if (Stage == ShopTutorialStage.Arrival && linesRead == lines.Length - 1) GiveStock();
                 return;
             }
-            var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.eKey.wasPressedThisFrame && !bubble.SkipTyping()) continueRequested = true;
+            if (DialogueAdvance.Pressed && !bubble.SkipTyping()) continueRequested = true;
             if (!continueRequested) return;
             continueRequested = false;
             linesRead++;
