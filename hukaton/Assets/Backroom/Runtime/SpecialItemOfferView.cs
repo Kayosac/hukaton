@@ -29,6 +29,9 @@ namespace Hakaton.Backroom
         [Tooltip("A new item blinks (its own picture) until the pointer first finds it.")]
         [Range(0, 1)] public float blinkMinimumAlpha = .35f;
         [Min(.1f)] public float blinkFrequency = 2.2f;
+        [Tooltip("The panel under the item: when it is bought it slides off to its own side.")]
+        public RectTransform panel;
+        public float panelExit = 220;
         [Header("Bought")]
         [Tooltip("Where it is held up when bought, in the table's space, and how much bigger it gets there.")]
         public Vector2 inspectAt = new Vector2(0, 40);
@@ -47,8 +50,18 @@ namespace Hakaton.Backroom
         bool hovering;
         float dealDelay;
         Coroutine flight;
+        Vector2 iconHome, panelHome;
+        Image panelImage;
+        int homeSibling = -1;
 
-        void Awake() { home = body.anchoredPosition; Hide(); }
+        void Awake()
+        {
+            home = body.anchoredPosition;
+            if (icon) iconHome = icon.rectTransform.anchoredPosition;
+            if (panel) { panelHome = panel.anchoredPosition; panelImage = panel.GetComponent<Image>(); }
+            homeSibling = transform.GetSiblingIndex();
+            Hide();
+        }
 
         public void Deal(SpecialItemDefinition item, bool isNew, float delay)
         {
@@ -70,6 +83,7 @@ namespace Hakaton.Backroom
         public void Hide()
         {
             if (flight != null) { StopCoroutine(flight); flight = null; }
+            ResetPose();
             Item = null;
             hovering = false;
             gameObject.SetActive(false);
@@ -77,7 +91,7 @@ namespace Hakaton.Backroom
 
         public void Refuse() => shake.Kick(80);
 
-        /// <summary>Bought: up to the middle, held a moment, then off into the bag. <paramref name="done"/> when gone.</summary>
+        /// <summary>Bought: the item (not its panel) up to the middle over the cards, held a moment, then off into the bag. <paramref name="done"/> when gone.</summary>
         public void Lift(Action done, Action stowed)
         {
             if (flight != null) StopCoroutine(flight);
@@ -99,40 +113,66 @@ namespace Hakaton.Backroom
             if (price) price.text = "";
             if (group) group.blocksRaycasts = false;
             if (icon) icon.color = Color.white;
-            var rect = (RectTransform)transform;
-            Vector2 from = rect.anchoredPosition, to = inspectAt;
+            var iconRect = icon.rectTransform;
+            float side = Mathf.Sign(((RectTransform)transform).anchoredPosition.x == 0 ? -1 : ((RectTransform)transform).anchoredPosition.x);
+            // Only the item flies to the middle, over the cards; its panel slides off to its own side.
+            transform.SetAsLastSibling();
+            Vector3 from = iconRect.position;
+            Vector3 to = transform.parent.TransformPoint(inspectAt);
             for (float t = 0; t < riseSeconds; t += Time.unscaledDeltaTime)
             {
                 float k = 1 - Mathf.Pow(1 - t / riseSeconds, 3);
-                rect.anchoredPosition = Vector2.LerpUnclamped(from, to, k);
-                body.localScale = Vector3.one * Mathf.Lerp(1, inspectScale, k);
+                iconRect.position = Vector3.LerpUnclamped(from, to, k);
+                iconRect.localScale = Vector3.one * Mathf.Lerp(1, inspectScale, k);
+                Panel(side, k);
                 yield return null;
             }
-            rect.anchoredPosition = to;
-            body.localScale = Vector3.one * inspectScale;
+            iconRect.position = to;
+            iconRect.localScale = Vector3.one * inspectScale;
+            Panel(side, 1);
             for (float t = 0; t < holdSeconds; t += Time.unscaledDeltaTime)
             {
-                body.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 9) * 3);
+                iconRect.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 9) * 3);
                 yield return null;
             }
-            body.localRotation = Quaternion.identity;
+            iconRect.localRotation = Quaternion.identity;
             stowed?.Invoke();
-            Vector2 away = to + new Vector2(-40, -520);
+            Vector3 away = to + transform.parent.TransformVector(new Vector3(-40, -520, 0));
             for (float t = 0; t < leaveSeconds; t += Time.unscaledDeltaTime)
             {
                 float k = t / leaveSeconds;
                 k *= k;
-                rect.anchoredPosition = Vector2.LerpUnclamped(to, away, k);
-                body.localScale = Vector3.one * Mathf.Lerp(inspectScale, .4f, k);
-                body.localRotation = Quaternion.Euler(0, 0, k * 220);
+                iconRect.position = Vector3.LerpUnclamped(to, away, k);
+                iconRect.localScale = Vector3.one * Mathf.Lerp(inspectScale, .4f, k);
+                iconRect.localRotation = Quaternion.Euler(0, 0, k * 220);
                 yield return null;
             }
-            rect.anchoredPosition = from;
-            body.localRotation = Quaternion.identity;
-            body.localScale = Vector3.one;
             flight = null;
             Hide();
             done?.Invoke();
+        }
+
+        /// <summary>The panel slides off towards its own side of the screen and fades (<paramref name="k"/> 0 … 1).</summary>
+        void Panel(float side, float k)
+        {
+            if (!panel) return;
+            panel.anchoredPosition = panelHome + new Vector2(side * panelExit * k, 0);
+            if (panelImage) panelImage.color = new Color(1, 1, 1, 1 - k);
+        }
+
+        /// <summary>Back to rest after a purchase: the icon in its place, the panel under it.</summary>
+        void ResetPose()
+        {
+            if (icon)
+            {
+                var iconRect = icon.rectTransform;
+                iconRect.anchoredPosition = iconHome;
+                iconRect.localScale = Vector3.one;
+                iconRect.localRotation = Quaternion.identity;
+            }
+            if (panel) panel.anchoredPosition = panelHome;
+            if (panelImage) panelImage.color = Color.white;
+            if (homeSibling >= 0 && transform.parent && homeSibling < transform.parent.childCount) transform.SetSiblingIndex(homeSibling);
         }
 
         void Update()
