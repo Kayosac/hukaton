@@ -87,7 +87,7 @@ namespace Hakaton.WorldAssembly
                 case "yard": return "ruins";
                 // The rotten swamp keeps the creatures of the places it is most like, and adds its own.
                 case "hummocks": return "swamp-hummocks";
-                case "breathing-bog": return "swamp-bog";
+                case "breathing-bog": case "eternal-flame": return "swamp-bog";
                 case "log-road": return "swamp-log-road";
                 case "sunken-hut": case "drowned-graveyard": return "swamp-ruins";
                 case "tar-pit": return "swamp-tar-pit";

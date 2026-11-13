@@ -95,6 +95,28 @@ namespace Hakaton.Decks
             return card;
         }
 
+        /// <summary>
+        /// Shuffles the order of the cards in the hand (the Shuffle debuff); nothing leaves or enters it. Always changes
+        /// the order when there are two or more cards. False when there is nothing to shuffle.
+        /// </summary>
+        internal bool ShuffleHand(Random random)
+        {
+            if (hand.Count < 2 || random == null) return false;
+            var before = hand.ToArray();
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                for (int i = hand.Count - 1; i > 0; i--)
+                {
+                    int j = random.Next(i + 1);
+                    (hand[i], hand[j]) = (hand[j], hand[i]);
+                }
+                for (int i = 0; i < hand.Count; i++) if (!ReferenceEquals(hand[i], before[i])) return true;
+            }
+            // Unlucky rolls: at least swap the first two.
+            (hand[0], hand[1]) = (hand[1], hand[0]);
+            return true;
+        }
+
         internal List<CardCopy> DiscardHand()
         {
             // The prologue's R restores the spells: only the instruction cards (not mergeable) leave.
@@ -143,6 +165,9 @@ namespace Hakaton.Decks
 
         /// <summary>The thrown card's attempt is over (hit, miss or gone): a card with uses left returns to the hand.</summary>
         public bool Settle(int id) => !Completed && Deck.Settle(id);
+
+        /// <summary>The Shuffle debuff: the hand's order is mixed up. False with fewer than two cards or after the end.</summary>
+        public bool ShuffleHand(Random random) => !Completed && Deck.ShuffleHand(random);
 
         public IReadOnlyList<CardCopy> DiscardHand()
         {

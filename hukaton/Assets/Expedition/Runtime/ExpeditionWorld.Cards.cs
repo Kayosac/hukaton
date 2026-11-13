@@ -14,7 +14,7 @@ namespace Hakaton.Expeditions
     {
         readonly List<GameObject> outingObjects = new List<GameObject>();
         readonly List<Action> outingRestores = new List<Action>();
-        readonly List<ICardStatus> statuses = new List<ICardStatus>();
+        readonly List<ICardStatus> bodyStatuses = new List<ICardStatus>();
 
         /// <summary>Card zones of this outing (tar, rain, fog, updraft…). Cleared when the outing ends.</summary>
         public CardZoneRegistry Zones { get; } = new CardZoneRegistry();
@@ -84,20 +84,21 @@ namespace Hakaton.Expeditions
         /// <summary>A status on a body (wet, light) to clear when the outing ends. Status components call this themselves.</summary>
         public void TrackStatus(ICardStatus status)
         {
-            if (status != null && !statuses.Contains(status)) statuses.Add(status);
+            if (status != null && !bodyStatuses.Contains(status)) bodyStatuses.Add(status);
         }
 
         /// <summary>Removes everything cards left in the world and every card modifier on the player.</summary>
         void ClearCardEffects()
         {
+            if (statuses) statuses.ClearAll();
             if (motor)
             {
                 motor.RevokeExternalControl();
                 motor.ClearModifiers();
             }
-            foreach (var status in statuses)
+            foreach (var status in bodyStatuses)
                 if (status != null && !(status is Object unityObject && !unityObject)) status.ClearStatus();
-            statuses.Clear();
+            bodyStatuses.Clear();
             foreach (var instance in outingObjects)
                 if (instance) Destroy(instance);
             outingObjects.Clear();

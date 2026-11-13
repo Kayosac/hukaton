@@ -53,14 +53,17 @@ namespace Hakaton.WorldAssembly.EditorTools
         public bool HasFalls => Shape.Kind == ShapeKind.Cliff && Variant == "falls";
         public const float FallsRadius = 1.4f, FallsBank = 2.2f, FallsDeep = .95f;
 
-        public TileTerrain(TileShape shape, string variant, float plateau, float canyonDepth, Biome biome = Biome.Forest)
+        /// <summary>The part of the swamp this chunk is built for (<see cref="SwampZone"/>).</summary>
+        public readonly SwampZone Zone;
+
+        public TileTerrain(TileShape shape, string variant, float plateau, float canyonDepth, Biome biome = Biome.Forest, SwampZone zone = SwampZone.Mire)
         {
-            Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
+            Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth; Zone = zone;
             // A swamp scene or landmark is swamp whatever is asked.
             if (TileShapes.IsSwampScene(variant)) biome = Biome.Swamp;
             if (shape.Kind == ShapeKind.Landmark) biome = Landmarks.Parse(shape.Id).kind.Biome;
             Biome = biome;
-            seed = (shape.Id + "/" + variant + (biome == Biome.Swamp ? "/swamp" : "")).GetHashCode();
+            seed = (shape.Id + "/" + variant + (biome == Biome.Swamp ? "/swamp" : "") + (zone != SwampZone.Mire ? "/" + zone : "")).GetHashCode();
             if (shape.Kind == ShapeKind.Plain || shape.Kind == ShapeKind.PlateauTop) Scene = ChunkScene.Get(variant);
             if (shape.Kind == ShapeKind.Maze && TileShapes.IsForest(variant)) Forest = new ForestLayout(shape.Mids, variant, seed);
             if (shape.Kind == ShapeKind.Landmark)
@@ -211,10 +214,20 @@ namespace Hakaton.WorldAssembly.EditorTools
                 // of it, bog windows and deep pools sunk into it.
                 float h = SwampBed * Wetness(p);
                 // Ragged islands of its own in every piece of swamp, so no two look alike: noise blobs out of the bed,
-                // kept off the edges (the neighbour's water meets it there).
+                // kept off the edges (the neighbour's water meets it there). The swamp's parts differ in how much land
+                // there is: the reach is open water, a little deeper; the moss fields are low flat land with channels.
                 var big = Big(p);
                 float blob = Noise(big, 4.6f, 71) * .65f + Noise(big, 2.1f, 72) * .35f;
-                h += Mathf.Max(0, blob - .28f) * 2.6f * Wetness(p) * EdgeFade(p, 2.2f) * (Scene != null && Scene.Size > Size ? EdgeFade(big, 2.2f, Scene.Size) : 1);
+                float inner = Wetness(p) * EdgeFade(p, 2.2f) * (Scene != null && Scene.Size > Size ? EdgeFade(big, 2.2f, Scene.Size) : 1);
+                var (islands, cap, deeper) = Zone switch
+                {
+                    SwampZone.Reach => (.68f, 1.6f, -.2f),
+                    SwampZone.Drowned => (.33f, 1.6f, 0f),
+                    SwampZone.Moss => (.1f, 1.12f, 0f),
+                    SwampZone.Burnt => (.26f, 1.5f, 0f),
+                    _ => (.28f, 3f, 0f),
+                };
+                h += (Mathf.Min(Mathf.Max(0, blob - islands) * 2.6f, cap) + deeper) * inner;
                 if (Scene != null)
                 {
                     h += Scene.Relief(this, p + Offset);

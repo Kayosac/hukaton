@@ -55,6 +55,8 @@ namespace Hakaton.Expeditions
         public bool dash;
         [Tooltip("Camera shake and a burst of dust when the strike lands: a heavy ground slam. Zero for bites and lunges.")]
         [Min(0)] public float strikeShake;
+        [Tooltip("Debuffs a strike that reaches the player puts on them (each with its own chance). Its projectiles carry their own (EnemyProjectileProfile).")]
+        public StatusInflict[] strikeStatuses = new StatusInflict[0];
         [Header("Senses")]
         public float sightRange = 15;
         [Tooltip("Within this distance the creature notices you even from behind.")]
@@ -105,6 +107,7 @@ namespace Hakaton.Expeditions
 
         Vector3 home, authoredHome, lastSeen, strikeDirection, desired, wanderTarget, fleeDirection;
         Quaternion homeRotation, authoredRotation, facing;
+        float markedUntil;
         float stateTime, nextSight, unseen, provokedUntil, frozenUntil, stunnedUntil, burnUntil, flashUntil, hurtUntil;
         float nextPath, nextThreatSound, provokeTimer, idleDuration, gaitPhase, crouch, nextDust;
         bool sees, hitThisStrike, dying;
@@ -222,7 +225,7 @@ namespace Hakaton.Expeditions
             spawnSize = Mathf.Lerp(Mathf.Min(spawnSizeRange.x, spawnSizeRange.y), Mathf.Max(spawnSizeRange.x, spawnSizeRange.y), roll);
             ApplySize();
             IceEncasement.Remove(this);
-            frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = 0;
+            frozenUntil = stunnedUntil = burnUntil = flashUntil = hurtUntil = provokedUntil = markedUntil = 0;
             unseen = provokeTimer = 0;
             moveSpeedScale.Clear();
             timeScale.Clear();
@@ -304,6 +307,8 @@ namespace Hakaton.Expeditions
         {
             // A brawler always knows where its rival is: the fight is a few metres across.
             if (Brawling) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
+            // The Mark debuff on the player: it knows where the player is, wherever that is.
+            if (Time.time < markedUntil && ReferenceEquals(Target, world.Player)) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
             if (Time.time >= nextSight)
             {
                 nextSight = Time.time + .12f;
@@ -714,6 +719,9 @@ namespace Hakaton.Expeditions
             Vector3 knockback = grabs ? Vector3.zero : followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
             victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this, followUp));
             if (grabs) { StartHold(); desired = Vector3.zero; }
+            // Debuffs land even during the protection after a previous hit (no leniency).
+            if (ReferenceEquals(victim, world.Player) && strikeStatuses != null && strikeStatuses.Length > 0)
+                StatusInflict.ApplyAll(strikeStatuses, world.statuses);
         }
 
         // ---------------- reactions ----------------
@@ -952,6 +960,24 @@ namespace Hakaton.Expeditions
         }
 
         public bool Investigating => State == CreatureState.Investigate;
+
+        /// <summary>
+        /// The Mark debuff: an aggressive or territorial creature knows where the player is for <paramref name="seconds"/>
+        /// and comes, even from outside its territory. Timid and peaceful ones ignore it, and so do brawling, lured,
+        /// frozen and knocked-down ones. Returns true when it answers.
+        /// </summary>
+        public bool MarkPlayer(float seconds)
+        {
+            if (!world || !world.Running || !Alive || seconds <= 0) return false;
+            if (temperament != Temperament.Aggressive && temperament != Temperament.Territorial) return false;
+            if (Brawling || Referee != null || lured || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
+            markedUntil = Mathf.Max(markedUntil, Time.time + seconds);
+            provokedUntil = Mathf.Max(provokedUntil, Time.time + seconds);
+            SetTarget(null);
+            lastSeen = world.Player.Position;
+            if (IsCalm || State == CreatureState.Threat || State == CreatureState.Return || State == CreatureState.Search) Aggro();
+            return true;
+        }
 
         /// <summary>Who the creature fights: the player, unless <see cref="SetTarget"/> chose another live fighter.</summary>
         public ICombatant Target => Combat.IsAlive(attackTarget) ? attackTarget : world.Player;

@@ -41,6 +41,9 @@ namespace Hakaton.WorldAssembly.Unity
         public Lookout[] lookouts = new Lookout[0];
         [Tooltip("Rotten swamp: gas vents (the streamer hands them the outing so Fire and Lightning find them).")]
         public GasVent[] gasVents = new GasVent[0];
+        [Tooltip("The deepest spot of the chunk's water (local, on its bed): where a sunken chest may lie.")]
+        public bool hasSunkenSpot;
+        public Vector3 sunkenSpot;
         [Tooltip("Rotten swamp: where natural tar pools lie (the streamer lays a tar puddle on each, World content → Tar puddle).")]
         public SwampTarSpot[] tarSpots = new SwampTarSpot[0];
         [Tooltip("Where a road runs inside this chunk when it has to (up a ramp): local points from one end to the other.")]

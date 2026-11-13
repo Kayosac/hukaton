@@ -325,6 +325,22 @@ namespace Hakaton.Game
                 foreach (var definition in world.workshop.config.cards.Where(c => c))
                     if (GUILayout.Button(definition.displayName, button)) GrantCard(definition, grantLevel);
             }
+            GUILayout.Space(8);
+
+            GUILayout.Label("Дебаффы на себя", title);
+            var statuses = world.statuses;
+            if (!world.Running || !statuses) GUILayout.Label("Доступно во время вылазки.", body);
+            else
+            {
+                GUILayout.Label("Бессмертие и Пузырь их не пропускают.", body);
+                foreach (var debuff in statuses.definitions.Where(d => d))
+                {
+                    string label = statuses.Has(debuff.kind) ? debuff.displayName + " (идёт)" : debuff.displayName;
+                    if (GUILayout.Button(label, button))
+                        status = statuses.Apply(debuff) ? "Дебафф: " + debuff.displayName : "Не наложился: " + debuff.displayName;
+                }
+                if (GUILayout.Button("Снять все дебаффы", button)) { statuses.ClearAll(); status = "Дебаффы сняты."; }
+            }
 
             GUILayout.EndScrollView();
             if (!string.IsNullOrEmpty(status)) GUILayout.Label(status, body);

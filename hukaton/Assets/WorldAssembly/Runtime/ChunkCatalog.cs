@@ -34,6 +34,13 @@ namespace Hakaton.WorldAssembly.Unity
         public ChunkView Find(string shape, string variant, string biome)
         {
             biome ??= "";
+            // A part of the swamp built on its own, else the swamp's mixed mire.
+            if (biome.StartsWith(Swamp + "-"))
+            {
+                foreach (var e in entries)
+                    if (e.shape == shape && e.variant == variant && e.biome == biome && e.prefab) return e.prefab;
+                biome = Swamp;
+            }
             var exact = FindExact(shape, variant, biome);
             if (exact) return exact;
             if (biome.Length > 0 && (exact = FindExact(shape, variant, ""))) return exact;
@@ -45,6 +52,10 @@ namespace Hakaton.WorldAssembly.Unity
         }
 
         public const string Swamp = "swamp";
+
+        /// <summary>The catalogue's land of a chunk: "" the forest, "swamp" the mixed mire, "swamp-reach" and so on for the swamp's parts.</summary>
+        public static string Land(Biome biome, SwampZone zone) =>
+            biome != Biome.Swamp ? "" : zone == SwampZone.Mire ? Swamp : Swamp + "-" + zone.ToString().ToLowerInvariant();
 
         public ChunkView FindExact(string shape, string variant, string biome = "")
         {

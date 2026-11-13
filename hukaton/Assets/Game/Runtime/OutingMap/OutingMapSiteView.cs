@@ -24,7 +24,7 @@ namespace Hakaton.Game
         [Tooltip("Icon scale at the dark and bright ends of a blink.")]
         public Vector2 breath = new Vector2(1f, 1.08f);
         [Header("Appearing")]
-        [Min(.01f)] public float popSeconds = .35f;
+        [Min(.01f)] public float popSeconds = .2f;
 
         public string Id { get; private set; }
         public bool IsNew { get; private set; }
@@ -46,6 +46,16 @@ namespace Hakaton.Game
             Refresh();
         }
 
+        /// <summary>Still waiting for its turn or popping in.</summary>
+        public bool Appearing => appearAt >= 0;
+
+        /// <summary>Skips the wait and the pop: the point simply stands on the map.</summary>
+        public void FinishAppearing()
+        {
+            appearAt = -1;
+            transform.localScale = Vector3.one;
+        }
+
         public void SetNew(bool isNew)
         {
             IsNew = isNew;
@@ -60,7 +70,7 @@ namespace Hakaton.Game
         public void OnPointerExit(PointerEventData eventData) { hovered = false; Refresh(); }
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData.button == PointerEventData.InputButton.Left && Time.unscaledTime >= appearAt) clicked?.Invoke(this);
+            if (eventData.button == PointerEventData.InputButton.Left && !Appearing) clicked?.Invoke(this);
         }
 
         void OnDisable() { hovered = false; }

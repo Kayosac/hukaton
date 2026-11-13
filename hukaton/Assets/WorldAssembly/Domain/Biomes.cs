@@ -7,6 +7,13 @@ namespace Hakaton.WorldAssembly
     public enum Biome { Forest = 0, Swamp = 1 }
 
     /// <summary>
+    /// The parts of the rotten swamp (Kayospace «Биом: Гнилая топь», подзоны): the mixed mire; the reach (open water,
+    /// far views, lilies); the drowned wood (trees close together, dark and foggy); the moss fields (more land than
+    /// water, hummocks, young pines); the burnt swamp (charred trunks, ash on the water, smouldering peat).
+    /// </summary>
+    public enum SwampZone { Mire = 0, Reach = 1, Drowned = 2, Moss = 3, Burnt = 4 }
+
+    /// <summary>
     /// Where the biomes lie (Kayospace «Биом: Гнилая топь»): patches of rotten swamp of every size, from a few chunks
     /// to more than a district, from ring 1 outwards and more of them further out; never in ring 0 or at the start.
     /// A pure function of the seed and the chunk, so neighbours always agree. A swamp chunk is flat and low (the
@@ -91,6 +98,41 @@ namespace Hakaton.WorldAssembly
         {
             int cell = Math.Max(1, rules.SwampNoiseCell);
             return (Value(i, j, cell, Salt.Biome + 2) * 2 + Value(i, j, Math.Max(1, cell / 2), Salt.Biome + 3)) / 3;
+        }
+
+        /// <summary>
+        /// Which part of the swamp a chunk is in: the nearest of points jittered in cells of
+        /// <see cref="WorldRules.SwampZoneCell"/> chunks, each a zone by its own hash (the mixed mire most often).
+        /// Neighbouring chunks mostly share a zone, so the parts are broad and their borders crooked.
+        /// </summary>
+        public SwampZone Zone(ChunkCoord c)
+        {
+            int cell = Math.Max(1, rules.SwampZoneCell);
+            int gx = CornerField.FloorDiv(c.X, cell), gy = CornerField.FloorDiv(c.Y, cell);
+            double best = double.MaxValue;
+            int bx = gx, by = gy;
+            for (int i = -1; i <= 1; i++)
+                for (int j = -1; j <= 1; j++)
+                {
+                    double px = (gx + i + Hash.Unit(seed, Salt.Biome + 4, gx + i, gy + j)) * cell;
+                    double py = (gy + j + Hash.Unit(seed, Salt.Biome + 5, gx + i, gy + j)) * cell;
+                    double d = (c.X + .5 - px) * (c.X + .5 - px) + (c.Y + .5 - py) * (c.Y + .5 - py);
+                    if (d < best) { best = d; bx = gx + i; by = gy + j; }
+                }
+            double roll = Hash.Unit(seed, Salt.Biome + 6, bx, by);
+            return roll < .3 ? SwampZone.Mire : roll < .48 ? SwampZone.Reach : roll < .66 ? SwampZone.Drowned : roll < .84 ? SwampZone.Moss : SwampZone.Burnt;
+        }
+
+        /// <summary>
+        /// Ground fog lies over this chunk of swamp: in broad patches (a slow noise over the world, about a third of the
+        /// swamp) and always in the drowned wood. Elsewhere the swamp is clear.
+        /// </summary>
+        public bool Foggy(ChunkCoord c)
+        {
+            if (!IsSwamp(c)) return false;
+            if (Zone(c) == SwampZone.Drowned) return true;
+            int cell = Math.Max(2, rules.SwampZoneCell + 1);
+            return (Value(c.X, c.Y, cell, Salt.Biome + 7) * 2 + Value(c.X, c.Y, Math.Max(1, cell / 2), Salt.Biome + 8)) / 3 > .58;
         }
 
         /// <summary>Open swamp: every corner under water.</summary>

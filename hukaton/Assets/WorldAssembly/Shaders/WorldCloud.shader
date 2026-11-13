@@ -53,5 +53,31 @@ Shader "Hakaton/World Cloud"
             }
             ENDHLSL
         }
+
+        // Depth for the presentation camera's native-resolution occlusion (NativeWorldUIPass draws only DepthOnly).
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            Cull Back
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                half4 _BaseColor;
+                half _Shade;
+                float _FogDensity;
+                float _FogScale;
+                float _Far;
+            CBUFFER_END
+
+            float4 vert(float4 position : POSITION) : SV_POSITION { return TransformObjectToHClip(position.xyz); }
+            half frag(float4 position : SV_POSITION) : SV_Target { return position.z; }
+            ENDHLSL
+        }
     }
 }

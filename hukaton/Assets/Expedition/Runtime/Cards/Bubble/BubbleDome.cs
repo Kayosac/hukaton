@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(100)]
-    public sealed class BubbleDome : CardZoneBehaviour, ICardAreaOutline, IStrikeShield, ICardBarrier
+    public sealed class BubbleDome : CardZoneBehaviour, ICardAreaOutline, IStrikeShield, ICardBarrier, IPlayerStatusShield
     {
         [Header("Authored parts")]
         [Tooltip("The film: a crooked unit hemisphere (Hakaton/Soap Bubble), scaled to the radius.")]
@@ -229,6 +229,9 @@ namespace Hakaton.Expeditions.Cards
                 other.Root.position += outward * BubbleRules.ExpelStep(need, snapDepth, expelSpeed, dt);
             }
         }
+
+        /// <summary>The player inside the standing dome gets no new debuffs (board «Дебаффы»).</summary>
+        public bool ShieldsPlayer(Vector3 feet) => Standing && BubbleRules.Inside(feet + Vector3.up * .1f, Centre, radius);
 
         /// <summary>A strike from outside at someone inside hits the film: ripple, jiggle, bump; no damage.</summary>
         public bool BlocksStrike(ICombatant attacker, ICombatant victim, Vector3 point)

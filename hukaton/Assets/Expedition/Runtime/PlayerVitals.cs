@@ -15,7 +15,10 @@ namespace Hakaton.Expeditions
         public ExpeditionWorld world;
 
         public int HalfHearts { get; private set; }
-        public int MaximumHalfHearts => settings.maximumHalfHearts;
+        /// <summary>The most half hearts the player can have now: the settings' maximum less what Rot took this outing.</summary>
+        public int MaximumHalfHearts => Mathf.Max(2, settings.maximumHalfHearts - RotHalfHearts);
+        /// <summary>Half hearts Rot (<see cref="PlayerStatusKind.Rot"/>) took off the maximum on this outing.</summary>
+        public int RotHalfHearts { get; private set; }
         public int PreviousHalfHearts { get; private set; }
         public float LastChangeTime { get; private set; } = float.NegativeInfinity;
         public bool LastChangeWasDamage { get; private set; }
@@ -32,6 +35,7 @@ namespace Hakaton.Expeditions
 
         public void Restore()
         {
+            RotHalfHearts = 0;
             HalfHearts = PreviousHalfHearts = settings.maximumHalfHearts;
             invulnerableUntil = 0;
             LastChangeTime = float.NegativeInfinity;
@@ -40,7 +44,7 @@ namespace Hakaton.Expeditions
 
         public bool Heal(int halfHearts)
         {
-            int healed = Mathf.Min(settings.maximumHalfHearts, HalfHearts + Mathf.Max(0, halfHearts));
+            int healed = Mathf.Min(MaximumHalfHearts, HalfHearts + Mathf.Max(0, halfHearts));
             if (healed == HalfHearts) return false;
             PreviousHalfHearts = HalfHearts;
             HalfHearts = healed;
@@ -75,9 +79,12 @@ namespace Hakaton.Expeditions
         public bool Hurt(int halfHearts, Vector3 knockback, Vector3? source, bool piercesGuard = false)
         {
             if (halfHearts <= 0 || !world.Running || HalfHearts == 0 || (Invulnerable && !(piercesGuard && !Immortal))) return false;
+            // Fragile: the hit counts double and leaves no protection behind it.
+            var statuses = world.statuses;
+            if (statuses) halfHearts = PlayerStatusRules.FragileDamage(halfHearts, statuses.DamageScale);
             PreviousHalfHearts = HalfHearts;
             HalfHearts = Mathf.Max(0, HalfHearts - halfHearts);
-            invulnerableUntil = Time.time + settings.hurtInvulnerability;
+            invulnerableUntil = statuses && statuses.Fragile ? 0 : Time.time + settings.hurtInvulnerability;
             LastChangeTime = Time.time;
             LastChangeWasDamage = true;
             motor.ApplyNormalizedImpulse(knockback);
@@ -96,6 +103,54 @@ namespace Hakaton.Expeditions
             if (HalfHearts == 0) world.ReturnToShop(true);
             return true;
         }
+
+        /// <summary>
+        /// Damage over time from a debuff (Poison, Burn): <paramref name="halfHearts"/> at once, Fragile doubles it. It
+        /// ignores the protection after a hit and gives none; no push. Can kill: the defeat runs as for any hit.
+        /// </summary>
+        public bool TickDamage(int halfHearts, DamageKind kind)
+        {
+            if (halfHearts <= 0 || !world.Running || HalfHearts == 0 || Immortal) return false;
+            var statuses = world.statuses;
+            if (statuses) halfHearts = PlayerStatusRules.FragileDamage(halfHearts, statuses.DamageScale);
+            PreviousHalfHearts = HalfHearts;
+            HalfHearts = Mathf.Max(0, HalfHearts - halfHearts);
+            LastChangeTime = Time.time;
+            LastChangeWasDamage = true;
+            if (world.feel)
+            {
+                world.feel.AddTrauma(.18f);
+                world.feel.Kick(new Vector3(-25, 0, UnityEngine.Random.Range(-30f, 30f)));
+            }
+            world.Play(world.cues ? world.cues.playerHurt : null, null, .55f, kind == DamageKind.Fire ? 1.1f : .9f);
+            Changed?.Invoke(HalfHearts - PreviousHalfHearts);
+            if (HalfHearts == 0) world.ReturnToShop(true);
+            return true;
+        }
+
+        /// <summary>
+        /// Rot: takes <paramref name="halfHearts"/> more off the maximum until the outing ends (one heart always stays);
+        /// hearts above the new maximum are lost. False when nothing more can rot.
+        /// </summary>
+        public bool Rot(int halfHearts)
+        {
+            int rotted = PlayerStatusRules.RotAfter(RotHalfHearts, halfHearts, settings.maximumHalfHearts);
+            if (rotted == RotHalfHearts) return false;
+            RotHalfHearts = rotted;
+            if (HalfHearts > MaximumHalfHearts)
+            {
+                PreviousHalfHearts = HalfHearts;
+                HalfHearts = MaximumHalfHearts;
+                LastChangeTime = Time.time;
+                LastChangeWasDamage = true;
+                Changed?.Invoke(HalfHearts - PreviousHalfHearts);
+            }
+            if (world && world.feel) { world.feel.AddTrauma(.3f); world.feel.PunchFov(8); }
+            return true;
+        }
+
+        /// <summary>The outing is over: the maximum is whole again (the hearts themselves come back with <see cref="Restore"/>).</summary>
+        public void ClearRot() => RotHalfHearts = 0;
 
         /// <summary>Instant death (deep water): hearts empty at once, ignoring protection. The caller runs the defeat.</summary>
         public bool Drain()

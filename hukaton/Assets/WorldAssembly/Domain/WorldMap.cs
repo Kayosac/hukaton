@@ -18,6 +18,8 @@ namespace Hakaton.WorldAssembly
         public int[] Corners = new int[4];
         /// <summary>The land this chunk belongs to (<see cref="BiomeField"/>).</summary>
         public Biome Biome;
+        /// <summary>The part of the swamp (<see cref="BiomeField.Zone"/>); the mire outside the swamp.</summary>
+        public SwampZone Zone;
         /// <summary>World edge middles by side.</summary>
         public Mid[] Mids = new Mid[4];
         public bool MazeHeart;
@@ -144,6 +146,7 @@ namespace Hakaton.WorldAssembly
         ChunkPlan Build(ChunkCoord c)
         {
             var plan = new ChunkPlan { Coord = c, Ring = Rules.RingOf(c), Biome = Biomes.At(c) };
+            if (plan.Biome == Biome.Swamp) plan.Zone = Biomes.Zone(c);
             Corners.Corners(c, plan.Corners);
             var feature = FeatureAt(c);
             if (feature != null) Array.Copy(feature.Mids, plan.Mids, 4);
@@ -299,6 +302,8 @@ namespace Hakaton.WorldAssembly
                 string id = ids[Hash.Range(Seed, ids.Length, Salt.Scene, c.X, c.Y, k)];
                 if (plan.Ring == 0 && TileShapes.IsPocketScene(id)) continue;
                 if (k < 11 && (id == west || id == south)) continue;
+                // The eternal flame is rare: a landmark of a swamp, not one in every few chunks.
+                if (k < 11 && id == "eternal-flame" && Hash.Unit(Seed, Salt.Scene + 3, c.X, c.Y, k) < .65) continue;
                 return id;
             }
             return ids[0];

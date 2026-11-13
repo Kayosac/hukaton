@@ -29,6 +29,7 @@ Shader "Hakaton/World Rain Veil"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Assets/WorldAssembly/Shaders/WorldGrade.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
@@ -72,7 +73,7 @@ Shader "Hakaton/World Rain Veil"
                 // Thin at the sides, thinning out under the cloud and at the ground.
                 float shape = smoothstep(0.0, 0.25, uv.x) * (1 - smoothstep(0.75, 1.0, uv.x)) * smoothstep(0.0, 0.08, uv.y) * (1 - smoothstep(0.85, 1.0, uv.y));
                 float alpha = _BaseColor.a * _Amount * shape * (0.6 + 0.4 * streak) * seen;
-                return half4(_BaseColor.rgb, alpha);
+                return half4(WorldGrade(_BaseColor.rgb), alpha);
             }
             ENDHLSL
         }

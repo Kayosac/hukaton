@@ -1,5 +1,134 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &157905612898539651
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8459324994244660453}
+  - component: {fileID: 5498598225020544889}
+  m_Layer: 0
+  m_Name: Ears ringing
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8459324994244660453
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157905612898539651}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1019133088368092248}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &5498598225020544889
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157905612898539651}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 6189651955318584818, guid: cf0832003d3544ef7a4420e2158116fd, type: 2}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: f97e61ce0c54149248d8af691edbd300, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 0
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 1
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1001 &9154051329738880743
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -74,7 +203,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8155184446505603775, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8459324994244660453}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
       insertIndex: -1
@@ -82,10 +214,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1406977006992750869}
+    - targetCorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7875827578252866951}
     - targetCorrespondingSourceObject: {fileID: 2530020009209004566, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8008238822515199376}
   m_SourcePrefab: {fileID: 100100000, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+--- !u!4 &1019133088368092248 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8155184446505603775, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+  m_PrefabInstance: {fileID: 9154051329738880743}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1828473845259224537 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7379625630327108414, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
@@ -138,6 +278,53 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: f95055e7952694cc6aed9c8a9b9d2e2a, type: 2}
   motor: {fileID: 1828473845259224537}
   world: {fileID: 0}
+--- !u!114 &7875827578252866951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5514639691037410900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: deb6b45486d284935ab712b221f77bf2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PlayerStatuses
+  world: {fileID: 0}
+  definitions:
+  - {fileID: 11400000, guid: 9e6e3e0fd653043459477e9dec2f64d3, type: 2}
+  - {fileID: 11400000, guid: 08926703efce34691bd6ee8b4ac7c34f, type: 2}
+  - {fileID: 11400000, guid: f7dc84d4c03aa49bd998658043845505, type: 2}
+  - {fileID: 11400000, guid: a5f34cb3b00804ba9b17bc64b8a3aa24, type: 2}
+  - {fileID: 11400000, guid: d12bb20d773f842e183eeaa0318f1b48, type: 2}
+  - {fileID: 11400000, guid: cdb92bbdad9dc442abffa32d0738fa46, type: 2}
+  - {fileID: 11400000, guid: 81de3a623cf1d4670948c7b5d941c42e, type: 2}
+  - {fileID: 11400000, guid: ac46865bba8ab4dfda55c9ea42e6cacc, type: 2}
+  - {fileID: 11400000, guid: a98c4ba7226554ff281fb30c8553e77a, type: 2}
+  - {fileID: 11400000, guid: afd11e0f5fce543568c982c297519a70, type: 2}
+  - {fileID: 11400000, guid: 88a937da61d1e477e86a99cc04b39319, type: 2}
+  - {fileID: 11400000, guid: 9bdca1f9822d744208d37d45686948b1, type: 2}
+  badgePrefab: {fileID: 8756233231397267718, guid: 2ce2d3f74d7004fd698bc8bd9a4edbb2, type: 3}
+  deafFilter: {fileID: 0}
+  ringing: {fileID: 5498598225020544889}
+  ringingVolume: 0.3
+  muffleFadeSeconds: 0.35
+  muffleRecoverSeconds: 1.5
+  blindFogColour: {r: 0.02, g: 0.02, b: 0.03, a: 1}
+  blindFadeSeconds: 0.7
+  warpShear: 0.09
+  warpStretch: 0.07
+  warpShift: 0.035
+  warpRoll: 6
+  warpSpeed: 1.2
+  warpFadeSeconds: 1
+  burnFlames: {fileID: 4039943994851622645, guid: 46be5aed491c4452b50d8ef757eaca24, type: 3}
+  burnFlamesOffset: {x: 0, y: -0.42, z: 0.9}
+  burnFlamesScale: 0.45
+  burnFlamesTint: {r: 1, g: 1, b: 1, a: 1}
+  droppedCoin: {fileID: 4671988797353070536, guid: 62e37ec70c6114a248bdc8b4490df29b, type: 3}
+  leakMinimumSpeed: 0.6
+  handTremble: 0.006
 --- !u!1 &6635445901132281073 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2530020009209004566, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}

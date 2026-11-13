@@ -27,14 +27,20 @@ namespace Hakaton.WorldAssembly.EditorTools
             int cx = 0, cy = 0;
             bool swamp = parts.Length > 2 && parts[2] == "swamp";
             // "seed radius scene <variant>": round the nearest chunk of that scene, close shots of it too.
-            string only = parts.Length > 3 && parts[2] == "scene" ? parts[3] : null;
-            string prefix = only != null ? $"scene-{only}-{seed}" : $"swamp-{seed}";
+            // "seed radius zone <reach|drowned|moss|burnt|mire>": round the nearest open chunk of that part of the swamp.
+            string only = parts.Length > 3 && (parts[2] == "scene" || parts[2] == "zone") ? parts[3] : null;
+            bool byZone = parts.Length > 3 && parts[2] == "zone";
+            string prefix = only != null ? $"{parts[2]}-{only}-{seed}" : $"swamp-{seed}";
             if (only != null)
             {
                 int best = int.MaxValue;
                 for (int x = -24; x <= 24; x++)
                     for (int y = -24; y <= 24; y++)
-                        if (map.Chunk(x, y).Variant.Id == only && x * x + y * y < best) { best = x * x + y * y; cx = x; cy = y; }
+                    {
+                        var p = map.Chunk(x, y);
+                        bool match = byZone ? p.Biome == Biome.Swamp && p.Shape.Kind == ShapeKind.Plain && p.Zone.ToString().ToLowerInvariant() == only && map.Biomes.Zone(new ChunkCoord(x + 1, y)) == p.Zone && map.Biomes.Zone(new ChunkCoord(x - 1, y)) == p.Zone : p.Variant.Id == only;
+                        if (match && x * x + y * y < best) { best = x * x + y * y; cx = x; cy = y; }
+                    }
                 if (best == int.MaxValue) return $"no {only} within 24 chunks of seed {seed}";
                 swamp = true;
             }
@@ -62,7 +68,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 for (int y = cy - radius; y <= cy + radius; y++)
                 {
                     var plan = map.Chunk(x, y);
-                    var prefab = catalogue.Find(plan.Shape.Id, plan.Variant.Id, plan.Biome == Biome.Swamp ? ChunkCatalog.Swamp : "");
+                    var prefab = catalogue.Find(plan.Shape.Id, plan.Variant.Id, ChunkCatalog.Land(plan.Biome, plan.Zone));
                     if (!prefab) { missing++; continue; }
                     var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab.gameObject, scene);
                     go.transform.SetParent(root.transform, false);

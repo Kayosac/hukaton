@@ -7,8 +7,9 @@ using UnityEngine.UI;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// A small HUD badge under the wallet while a timed card modifier is on the player (Moon gravity, Lightness) or the
-    /// player is wet (<see cref="WetStatus"/>, rain): a glossy symbol inside a golden ring, both turning about Y in
+    /// A small HUD badge under the wallet while a timed card modifier is on the player (Moon gravity, Lightness), the
+    /// player is wet (<see cref="WetStatus"/>, rain) or a debuff is on the player (<see cref="PlayerStatuses"/>; red ring,
+    /// the icon comes from the debuff's <see cref="PlayerStatusDefinition"/>): a glossy symbol inside a golden ring, both turning about Y in
     /// opposite directions (drawn flipbooks); the two halves of the ring drain together with the remaining time, the
     /// badge blinks for the last seconds, pops when refreshed and disappears with a soft sound when the state ends.
     /// Optionally keeps an aura effect around the camera for as long. Instantiated from its prefab under the expedition
@@ -16,13 +17,15 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     public sealed class PlayerStatusBadge : MonoBehaviour
     {
-        public enum Source { MotorModifier, Wet }
+        public enum Source { MotorModifier, Wet, Status }
 
         [Tooltip("What the badge follows: a timed motor modifier, or the player being wet (the ring is full under the rain " +
                  "and drains over the 30 s after leaving it).")]
         public Source source = Source.MotorModifier;
         [Tooltip("The motor modifier this badge follows (Source = MotorModifier).")]
         public MotorModifier modifier;
+        [Tooltip("The debuff this badge follows (Source = Status). Set by ShowStatus from the debuff's definition.")]
+        public PlayerStatusKind status;
         public RectTransform rect;
         public Image icon;
         [Tooltip("Filled images drained together with the remaining time: the far and the near half of the ring.")]
@@ -81,7 +84,58 @@ namespace Hakaton.Expeditions.Cards
             Layout();
         }
 
-        bool Follows(PlayerStatusBadge other) => source == other.source && (source == Source.Wet || modifier == other.modifier);
+        /// <summary>
+        /// Shows the badge of a debuff (one shared prefab for all of them): the definition's icon, or the prefab's
+        /// placeholder tinted with its colour; refreshes the badge already shown.
+        /// </summary>
+        public static PlayerStatusBadge ShowStatus(ExpeditionWorld world, PlayerStatusBadge prefab, PlayerStatusDefinition definition)
+        {
+            if (!world || !prefab || !definition || !world.motor) return null;
+            Shown.RemoveAll(b => !b);
+            foreach (var shown in Shown)
+                if (shown.world == world && shown.source == Source.Status && shown.status == definition.kind && !shown.ending)
+                {
+                    shown.Refresh();
+                    return shown;
+                }
+            var row = world.hud ? (world.hud.statusRow ? (Transform)world.hud.statusRow : world.hud.canvas ? world.hud.canvas.transform : null) : null;
+            if (!row) return null;
+            var badge = Instantiate(prefab, row, false);
+            badge.name = prefab.name + " — " + definition.displayName;
+            badge.source = Source.Status;
+            badge.status = definition.kind;
+            if (badge.icon)
+            {
+                var flipbook = badge.icon.GetComponent<UiSpriteFlipbook>();
+                bool turning = definition.iconFrames != null && definition.iconFrames.Length > 0;
+                if (flipbook)
+                {
+                    flipbook.enabled = turning;
+                    if (turning) flipbook.frames = definition.iconFrames;
+                }
+                if (turning || definition.icon) badge.icon.color = Color.white;
+                if (turning) badge.icon.sprite = definition.iconFrames[0];
+                else if (definition.icon) badge.icon.sprite = definition.icon;
+                else badge.icon.color = definition.placeholderTint;
+            }
+            world.TrackForOuting(badge.gameObject);
+            badge.Begin(world);
+            return badge;
+        }
+
+        /// <summary>Takes the debuff's badge away at once (the debuff was removed: put out, washed off, cured).</summary>
+        public static void HideStatus(ExpeditionWorld world, PlayerStatusKind kind)
+        {
+            Shown.RemoveAll(b => !b);
+            foreach (var shown in Shown.ToArray())
+                if (shown.world == world && shown.source == Source.Status && shown.status == kind && !shown.ending) shown.End();
+        }
+
+        bool Follows(PlayerStatusBadge other) => source == other.source
+            && (source == Source.Wet || (source == Source.Status ? status == other.status : modifier == other.modifier));
+
+        /// <summary>A debuff without a timer (Rot): the ring stays full and never blinks.</summary>
+        bool Permanent => source == Source.Status && world && world.statuses && world.statuses.IsPermanent(status);
 
         /// <summary>Seconds left of what the badge follows (0 when it is over).</summary>
         float Remaining()
@@ -91,6 +145,11 @@ namespace Hakaton.Expeditions.Cards
             {
                 var wet = world.motor.GetComponentInParent<WetStatus>();
                 return wet ? wet.Remaining : 0;
+            }
+            if (source == Source.Status)
+            {
+                if (!world.statuses || !world.statuses.Has(status)) return 0;
+                return Permanent ? 1 : world.statuses.Remaining(status);
             }
             return world.motor.ModifierRemaining(modifier);
         }
@@ -115,7 +174,7 @@ namespace Hakaton.Expeditions.Cards
             // The remaining time, not the turning phase: both halves always show the same share.
             foreach (var ring in rings) if (ring) ring.fillAmount = remaining / total;
             float alpha = 1;
-            if (remaining < warnSeconds)
+            if (remaining < warnSeconds && !Permanent)
             {
                 // Faster blinking as the end comes closer.
                 float urgency = 1 - remaining / Mathf.Max(.01f, warnSeconds);

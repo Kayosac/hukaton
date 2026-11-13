@@ -58,10 +58,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             catalogue.entries.Clear();
             int count = 0;
             var stale = new HashSet<string>(AssetDatabase.FindAssets("", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath).Where(p => !AssetDatabase.IsValidFolder(p)));
-            void Add(TileShape shape, string variant, Biome biome)
+            void Add(TileShape shape, string variant, Biome biome, SwampZone part = SwampZone.Mire)
             {
-                var view = Build(shape, variant, biome, out string data, out var built);
-                catalogue.entries.Add(new ChunkCatalog.Entry { shape = shape.Id, variant = variant, biome = built == Biome.Swamp ? ChunkCatalog.Swamp : "", prefab = view });
+                var view = Build(shape, variant, biome, part, out string data, out var built);
+                catalogue.entries.Add(new ChunkCatalog.Entry { shape = shape.Id, variant = variant, biome = ChunkCatalog.Land(built, part), prefab = view });
                 stale.Remove(AssetDatabase.GetAssetPath(view.gameObject));
                 stale.Remove(data);
                 count++;
@@ -73,6 +73,11 @@ namespace Hakaton.WorldAssembly.EditorTools
                     // its scenes, and the channels of the rivers that run through it; its landmarks are swamp by kind.
                     bool inSwamp = TileShapes.IsSwampScene(variant.Id) || shape.Kind == ShapeKind.Shore;
                     Add(shape, variant.Id, inSwamp ? Biome.Swamp : Biome.Forest);
+                    // The swamp's parts (the reach, the drowned wood, the moss fields, the burnt swamp): its scenes and
+                    // shores built for each; cliffs and landmarks are the same in all.
+                    if (inSwamp)
+                        foreach (SwampZone part in System.Enum.GetValues(typeof(SwampZone)))
+                            if (part != SwampZone.Mire) Add(shape, variant.Id, Biome.Swamp, part);
                     // The cliffs of the swamp's raised terraces: the same steps, dressed as the swamp.
                     if (shape.Kind == ShapeKind.Cliff) Add(shape, variant.Id, Biome.Swamp);
                 }
@@ -86,15 +91,17 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         // ---------- one chunk ----------
 
-        static ChunkView Build(TileShape shape, string variant, Biome biome, out string data, out Biome built)
+        static ChunkView Build(TileShape shape, string variant, Biome biome, SwampZone part, out string data, out Biome built)
         {
-            var terrain = new TileTerrain(shape, variant, Plateau, CanyonDepth, biome);
+            var terrain = new TileTerrain(shape, variant, Plateau, CanyonDepth, biome, part);
             built = terrain.Biome;
             swamp = built == Biome.Swamp;
+            zone = swamp ? part : SwampZone.Mire;
             string folder = $"{Root}/{shape.Id}";
             Directory.CreateDirectory(folder);
             // A forest shape built for the swamp (a river's channel) has a name of its own.
             string name = swamp && !TileShapes.IsSwampScene(variant) && shape.Kind != ShapeKind.Landmark ? $"{shape.Id} {variant} swamp" : $"{shape.Id} {variant}";
+            if (zone != SwampZone.Mire) name += " " + zone.ToString().ToLowerInvariant();
             string meshPath = $"{folder}/{name} data.asset";
             data = meshPath;
             AssetDatabase.DeleteAsset(meshPath);
@@ -123,6 +130,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var obstacles = new List<WorldObstacle>();
             if (terrain.Wet) obstacles.Add(Water(go.transform, terrain, meshPath, name, false));
             if (terrain.Wet && terrain.Scene != null && terrain.Scene.Pools.Any(pool => pool.Bog)) obstacles.Add(Water(go.transform, terrain, meshPath, name, true));
+            SunkenSpot(view, terrain);
             if (shape.Kind == ShapeKind.Maze && terrain.Forest != null)
             {
                 ForestWalls(go.transform, terrain, rng);
@@ -139,6 +147,8 @@ namespace Hakaton.WorldAssembly.EditorTools
 
             Crossings(go.transform, terrain, rng);
             Dress(go.transform, terrain, rng);
+            charred.Clear();
+            if (zone == SwampZone.Burnt) Char();
             Interactive(view);
             view.navMesh = Bake(go, terrain, name);
             if (view.navMesh) AssetDatabase.AddObjectToAsset(view.navMesh, meshPath);
@@ -231,6 +241,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 mats[(int)Surface.Bank] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Humus] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Path] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
+                // The burnt swamp keeps the swamp's own ground: an ash ground of its own met the forest's moss and the
+                // swamp's peat at hard straight seams. Charred wood, ash on the water and smoke say it burnt.
             }
             return (mesh, mats);
         }
@@ -248,6 +260,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.SceneThicket(p)) return Surface.Humus;
             // The swamp's peat where its water reaches, the forest's moss on the dry side of a shore: chunks meet on
             // the same ground at every edge.
+            // The moss fields: their land is moss, only the water's edge is peat.
+            if (t.Zone == SwampZone.Moss && h > TileTerrain.WaterLevel + .14f) return Surface.Main;
             if (t.Biome == Biome.Swamp && t.Wetness(p) > .3f) return Surface.Humus;
             return Surface.Main;
         }
@@ -280,7 +294,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>A swamp ground: the world ground material with a swamp texture (made once; edit it freely afterwards).</summary>
-        static Material SwampGround(string name, string texture)
+        static Material SwampGround(string name, string texture, Color? tint = null)
         {
             string path = $"{GroundMaterials}/{name}.mat";
             if (materials.TryGetValue(path, out var cached)) return cached;
@@ -292,6 +306,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/SwampArt/Textures/{texture}.png");
                 if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
                 if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+                if (tint.HasValue && m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint.Value);
                 AssetDatabase.CreateAsset(m, path);
             }
             materials[path] = m;
@@ -300,6 +315,8 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         /// <summary>The chunk being built belongs to the rotten swamp: its art, its water, its dressing.</summary>
         static bool swamp;
+        /// <summary>The part of the swamp the chunk is built for.</summary>
+        static SwampZone zone;
 
         static Material Mat(string name)
         {
@@ -423,6 +440,35 @@ namespace Hakaton.WorldAssembly.EditorTools
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        /// <summary>
+        /// The deepest spot of the chunk's open water, if it is deep enough to hide a chest from a wading player
+        /// (WorldStreamer.SpawnSunken): its bed, local. Kept off the edges, where the neighbour's water may differ.
+        /// </summary>
+        static void SunkenSpot(ChunkView view, TileTerrain t)
+        {
+            view.hasSunkenSpot = false;
+            if (!t.Wet) return;
+            float best = 1.15f;
+            for (float x = 2.5f; x <= 13.5f; x += .5f)
+                for (float y = 2.5f; y <= 13.5f; y += .5f)
+                {
+                    var p = new Vector2(x, y);
+                    if (!t.IsWater(p) || t.IsBog(p)) continue;
+                    float depth = TileTerrain.WaterLevel - t.Height(p);
+                    // A spot deep all round, so the chest lies under water whole.
+                    bool round = true;
+                    for (int k = 0; k < 6 && round; k++)
+                    {
+                        var q = p + new Vector2(Mathf.Cos(k * 1.047f), Mathf.Sin(k * 1.047f)) * .8f;
+                        round = t.IsWater(q) && !t.IsBog(q) && TileTerrain.WaterLevel - t.Height(q) > 1.05f;
+                    }
+                    if (!round || depth <= best) continue;
+                    best = depth;
+                    view.hasSunkenSpot = true;
+                    view.sunkenSpot = new Vector3(x - 8, t.Height(p) + .02f, y - 8);
+                }
         }
 
         static Vector2 FlowAt(TileTerrain t, Vector2 p)
@@ -634,6 +680,54 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// about (<see cref="PhysicsProp"/>). Pieces of card obstacles (thorn walls) keep to their obstacle; dressing
         /// that lost its colliders (inside maze and forest walls) only burns; big pieces (a log bridge) stay put.
         /// </summary>
+        static readonly HashSet<GameObject> charred = new HashSet<GameObject>();
+
+        /// <summary>
+        /// The burnt swamp: everything placed is charred black (its materials' charred copies), what floats is ash grey.
+        /// </summary>
+        static void Char()
+        {
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || asset.StartsWith("VFX/") || go.GetComponentInParent<WorldObstacle>()) continue;
+                bool ash = SwampFloating.Any(asset.EndsWith);
+                // Wood chars; hummocks, reeds and stones stay as they are; what floats is ash.
+                bool wood = asset.Contains("Trees/") || asset.Contains("Deadwood/") || asset.Contains("Buildings/") || asset.Contains("Paths/") || asset.Contains("Graveyard/");
+                if (!wood && !ash) continue;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r is ParticleSystemRenderer) continue;
+                    var mats = r.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++) if (mats[i]) mats[i] = Charred(mats[i], ash);
+                    r.sharedMaterials = mats;
+                }
+                charred.Add(go);
+            }
+        }
+
+        const string BurntMaterials = "Assets/WorldAssembly/Materials/Burnt";
+
+        /// <summary>A charred (or ash grey) copy of a material: a variant of it, darkened. Made once; edit freely.</summary>
+        static Material Charred(Material source, bool ash)
+        {
+            if (source.name.EndsWith(" Charred") || source.name.EndsWith(" Ash")) return source;
+            string path = $"{BurntMaterials}/{source.name}{(ash ? " Ash" : " Charred")}.mat";
+            if (materials.TryGetValue(path, out var cached)) return cached;
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m)
+            {
+                Directory.CreateDirectory(BurntMaterials);
+                m = new Material(source) { name = Path.GetFileNameWithoutExtension(path) };
+                if (AssetDatabase.Contains(source)) m.parent = source;
+                var tint = ash ? new Color(.5f, .48f, .46f) : new Color(.26f, .23f, .21f);
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint);
+                else if (m.HasProperty("_Color")) m.SetColor("_Color", tint);
+                AssetDatabase.CreateAsset(m, path);
+            }
+            materials[path] = m;
+            return m;
+        }
+
         static void Interactive(ChunkView view)
         {
             var burnables = new List<Burnable>();
@@ -642,6 +736,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var (go, asset) in placed)
             {
                 if (!go || asset.StartsWith("VFX/") || go.GetComponentInParent<WorldObstacle>()) continue;
+                // What burnt long ago neither burns nor wakes.
+                if (charred.Contains(go)) continue;
                 string id = asset.Substring(asset.LastIndexOf('/') + 1);
                 var colliders = go.GetComponentsInChildren<Collider>();
                 var scale = go.transform.lossyScale;
@@ -1318,6 +1414,17 @@ namespace Hakaton.WorldAssembly.EditorTools
                 mound.transform.position += Vector3.down * (asset.EndsWith("Round") ? .315f : .16f);
                 Vent(mound, local, t);
             }
+            foreach (var (at, scale) in scene.Beacons)
+            {
+                if (!t.InPart(at)) continue;
+                var local = t.Local(at);
+                var mound = Place(group, SwampArt + "Deadwood/SM_SW27_GasVentRound", t, local, 30, Vector3.one * scale);
+                if (!mound) continue;
+                mound.transform.position += Vector3.down * .315f * scale;
+                Physics.SyncTransforms();
+                float top = mound.GetComponentsInChildren<Renderer>().Select(r => r.bounds.max.y).DefaultIfEmpty(mound.transform.position.y).Max();
+                Beacon(group, new Vector3(mound.transform.position.x, top - .15f, mound.transform.position.z));
+            }
             foreach (var (at, radius) in scene.TarSpots)
             {
                 if (!t.InPart(at)) continue;
@@ -1430,6 +1537,47 @@ namespace Hakaton.WorldAssembly.EditorTools
             vent.flashLight = light;
         }
 
+        /// <summary>
+        /// An eternal flame: a tall blue-green fire of marsh gas with its light, under a "Beacon" object the chunk's
+        /// detail culling leaves alone, so it is seen as far as the fog lets anything be seen.
+        /// </summary>
+        static void Beacon(Transform group, Vector3 at)
+        {
+            var beacon = new GameObject("Beacon").transform;
+            beacon.SetParent(group, false);
+            beacon.position = at;
+            // The fire's pixels keep the size every fire in the game has (a scaled effect turns into blobs): a column
+            // of a few flames at their own size, burning longer and rising faster; no smoke (marsh gas burns clean).
+            void Flame(string asset, Vector3 offset, float life, float speed)
+            {
+                var fx = Place(beacon, asset, null, Vector2.zero, 0, Vector3.one);
+                if (!fx) return;
+                fx.transform.localPosition = offset;
+                foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    if (ps.name == "Smoke") { ps.gameObject.SetActive(false); continue; }
+                    var main = ps.main;
+                    main.scalingMode = ParticleSystemScalingMode.Shape;
+                    main.startLifetimeMultiplier *= life;
+                    main.startSpeedMultiplier *= speed;
+                }
+            }
+            // A bed of flame on the mound, and tongues out of it rising high and fast: a column, not a campfire.
+            Flame("VFX/Fire/FieldTall/FireFieldTallGreen", Vector3.zero, 1.3f, 1.2f);
+            Flame("VFX/Fire/Torch/FireTorchBlue", new Vector3(0, .05f, 0), 1, 1);
+            // A second bed a little higher and narrower: a flame taller than a campfire, at the pixel size every
+            // fire in the game has.
+            Flame("VFX/Fire/Torch/FireTorchGreen", new Vector3(.15f, .35f, .1f), 1.3f, 1.4f);
+            var light = new GameObject("Beacon light").AddComponent<Light>();
+            light.transform.SetParent(beacon, false);
+            light.transform.localPosition = Vector3.up * 2.4f;
+            light.type = LightType.Point;
+            light.color = new Color(.45f, .85f, .95f);
+            light.range = 24;
+            light.intensity = 4f;
+            light.shadows = LightShadows.None;
+        }
+
         static readonly Dictionary<string, (string clip, float volume, float min, float max)> SoundCues = new Dictionary<string, (string, float, float, float)>
         {
             ["campfire"] = ("Assets/Audio/Sfx/impacts/fire_crackle_loop.wav", .5f, 1.5f, 14),
@@ -1442,6 +1590,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["bog-sink"] = ("Assets/Plugins/Retro Arsenal/Sound/Misc/retro_bubble_loop.wav", .35f, 1, 8),
             ["bog-lunge"] = ("Assets/Plugins/Retro Arsenal/Sound/Explosion/retro_explosion_water.wav", .45f, 1, 12),
             ["bog-swallow"] = ("Assets/Plugins/Retro Arsenal/Sound/Explosion/retro_explosion_slime2.wav", .6f, 1, 14),
+            ["gas-roar"] = ("Assets/Plugins/Retro Arsenal/Sound/Fire/retro_fire_big_loop.wav", .45f, 2, 30),
         };
 
         const string CueFolder = "Assets/WorldAssembly/Audio";
@@ -1594,6 +1743,30 @@ namespace Hakaton.WorldAssembly.EditorTools
         static readonly string[] SwampHummocks = { "SM_SW01_HummockTall", "SM_SW01_HummockLong", "SM_SW01_HummockDouble", "SM_SW01_HummockFlat" };
         static readonly string[] SwampLogs = { "SM_SW11_SunkenLogLong", "SM_SW11_SunkenLogBent", "SM_SW10_SnagLowSideways", "SM_SW10_SnagRootFan" };
         static readonly string[] SwampFloating = { "SM_SW04_DuckweedPatch", "SM_SW04_DuckweedCrescent", "SM_SW04_DuckweedDouble", "SM_SW05_LilyPads", "SM_SW05_LilyPadsFlower" };
+        static readonly string[] MossPines = { "FA_TR07_YoungStraight", "FA_TR02_TallNarrow", "FA_TR09_YoungFork", "FA_TR07_YoungStraight" };
+        static readonly string[] BurntReeds = { "SM_SW02_CattailShortBroken", "SM_SW02_CattailShortBroken", "SM_SW03_SedgeLean" };
+        static readonly string[] Smoulder = { "SmokeSmallGrey", "SmokeTinyGrey" };
+
+        /// <summary>How much of everything the swamp's parts hold (Kayospace «Биом: Гнилая топь», подзоны).</summary>
+        struct SwampDress
+        {
+            public int waterTrees, dryTrees, pines, hummocks, logs, reeds, sedge, mushrooms, litter, floating;
+            public float treeRoom;
+
+            public static SwampDress Of(SwampZone zone) => zone switch
+            {
+                // Open water to the far trees: a snag or two, lilies and duckweed, reeds along what land there is.
+                SwampZone.Reach => new SwampDress { waterTrees = 1, dryTrees = 1, hummocks = 3, logs = 1, reeds = 9, sedge = 5, mushrooms = 1, litter = 1, floating = 18, treeRoom = 3 },
+                // Trunk by trunk, dark under the willows.
+                SwampZone.Drowned => new SwampDress { waterTrees = 14, dryTrees = 4, hummocks = 3, logs = 3, reeds = 6, sedge = 6, mushrooms = 4, litter = 3, floating = 4, treeRoom = 1.9f },
+                // More land than water: hummocks, sedge, young pines, pale mushrooms.
+                SwampZone.Moss => new SwampDress { waterTrees = 2, dryTrees = 2, pines = 5, hummocks = 9, logs = 1, reeds = 8, sedge = 20, mushrooms = 5, litter = 2, floating = 3, treeRoom = 2.6f },
+                // Charred snags and stumps, broken reeds, ash on the water.
+                SwampZone.Burnt => new SwampDress { waterTrees = 7, dryTrees = 5, hummocks = 2, logs = 4, reeds = 4, sedge = 2, litter = 5, floating = 9, treeRoom = 2.4f },
+                _ => new SwampDress { waterTrees = 7, dryTrees = 2, hummocks = 4, logs = 2, reeds = 14, sedge = 9, mushrooms = 2, litter = 2, floating = 7, treeRoom = 2.6f },
+            };
+        }
+
         static readonly string[] SwampMushrooms = { "SM_SW06_PaleMushroomsCluster", "SM_SW06_PaleMushroomsTall" };
 
         static void Dress(Transform parent, TileTerrain t, System.Random rng)
@@ -1749,10 +1922,14 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (!prop.NoCollider && t.InPart(prop.At)) taken.Add((t.Local(prop.At), 1.4f * prop.Scale.x));
             float big = scene != null && scene.Size > 16 ? 1.6f : 1;
             int N(float n) => Mathf.RoundToInt(n * big);
-            // Trees first: the swamp is a drowned wood.
-            Scatter(SwampArt + "Trees/", SwampWaterTrees, N(scene != null ? 6 : 7), 1.4f, 2.6f, .75f, 1.05f, Shallow, false, true);
-            Scatter(SwampArt + "Trees/", SwampTrees, N(scene != null ? 3 : 2), 1.4f, 2.4f, .7f, 1f, DryLand, false, true);
-            if (t.Shape.Kind == ShapeKind.Shore) Scatter("Trees/", Trees, 3, 1.6f, 2.6f, .65f, 1.3f, p => DryLand(p) && t.Wetness(p) < .05f, false, true);
+            // The part of the swamp sets how much of everything there is (the mire: the mix).
+            var z = SwampDress.Of(zone);
+            // Trees first: the swamp is a drowned wood (the reach keeps only a few snags, the drowned wood is thick).
+            Scatter(SwampArt + "Trees/", zone == SwampZone.Reach || zone == SwampZone.Burnt ? SwampTrees : SwampWaterTrees, N(scene != null ? z.waterTrees - 1 : z.waterTrees), 1.4f, z.treeRoom, .75f, 1.05f, Shallow, false, true);
+            Scatter(SwampArt + "Trees/", SwampTrees, N(scene != null ? z.dryTrees + 1 : z.dryTrees), 1.4f, 2.4f, .7f, 1f, DryLand, false, true);
+            if (t.Shape.Kind == ShapeKind.Shore && zone != SwampZone.Burnt) Scatter("Trees/", Trees, 3, 1.6f, 2.6f, .65f, 1.3f, p => DryLand(p) && t.Wetness(p) < .05f, false, true);
+            // The moss fields: young pines on their low land.
+            if (z.pines > 0) Scatter("Trees/", MossPines, N(z.pines), 1.6f, 2.4f, .55f, .9f, p => DryLand(p) && t.WaterDistance(p) > .8f, false, true);
             // A bog window is fenced by growth: cattails and sedge right round its mire, hummocks a step off.
             if (scene != null && scene.Pools.Any(pool => pool.Bog))
             {
@@ -1761,13 +1938,15 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Scatter(SwampArt + "Plants/", SwampSedge, 6, .6f, .45f, .8f, 1.2f, p => Rim(p, .2f, 1.4f), true);
                 Scatter(SwampArt + "Plants/", SwampHummocks, 2, 1.2f, 1.2f, .75f, 1f, p => Rim(p, .9f, 2.4f) && Shallow(p), false, true);
             }
-            Scatter(SwampArt + "Plants/", SwampHummocks, N(4), 1.2f, 1.3f, .8f, 1.15f, Shallow, false, true);
-            Scatter(SwampArt + "Deadwood/", SwampLogs, N(2), 2, 2.4f, .8f, 1f, Shallow, false, true);
-            Scatter(SwampArt + "Plants/", SwampReeds, N(14), .8f, .55f, .75f, 1.25f, Shore, true);
-            Scatter(SwampArt + "Plants/", SwampSedge, N(9), .8f, .5f, .8f, 1.3f, p => DryLand(p) || Shore(p), true);
-            Scatter(SwampArt + "Plants/", SwampMushrooms, N(2), 1.2f, .8f, .8f, 1.2f, DryLand, true);
-            Scatter(SwampArt + "Deadwood/", SwampLitter, N(2), 2.2f, 1.6f, .8f, 1.05f, p => DryLand(p) || Shallow(p), false, true);
-            Floating(N(7));
+            Scatter(SwampArt + "Plants/", SwampHummocks, N(z.hummocks), 1.2f, 1.3f, .8f, 1.15f, Shallow, false, true);
+            Scatter(SwampArt + "Deadwood/", SwampLogs, N(z.logs), 2, 2.4f, .8f, 1f, Shallow, false, true);
+            Scatter(SwampArt + "Plants/", zone == SwampZone.Burnt ? BurntReeds : SwampReeds, N(z.reeds), .8f, .55f, .75f, 1.25f, Shore, true);
+            Scatter(SwampArt + "Plants/", SwampSedge, N(z.sedge), .8f, .5f, .8f, 1.3f, p => DryLand(p) || Shore(p), true);
+            Scatter(SwampArt + "Plants/", SwampMushrooms, N(z.mushrooms), 1.2f, .8f, .8f, 1.2f, DryLand, true);
+            Scatter(SwampArt + "Deadwood/", SwampLitter, N(z.litter), 2.2f, 1.6f, .8f, 1.05f, p => DryLand(p) || Shallow(p), false, true);
+            // The burnt swamp: its peat still smoulders here and there.
+            if (zone == SwampZone.Burnt) Scatter("VFX/Smoke/Grey/", Smoulder, 2, 2.4f, 4, .8f, 1.1f, p => DryLand(p) && t.WaterDistance(p) > .6f, true);
+            Floating(N(z.floating));
         }
 
         /// <summary>
@@ -1777,8 +1956,10 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// </summary>
         static void CullDetail(Transform chunk)
         {
+            // An eternal flame (a "Beacon") is seen as far as anything: not culled with the rest.
             var renderers = chunk.GetComponentsInChildren<Renderer>(true)
                 .Where(r => !r.transform.IsChildOf(chunk.Find("Ground")) && !(chunk.Find("Water") && r.transform.IsChildOf(chunk.Find("Water"))))
+                .Where(r => !r.GetComponentsInParent<Transform>(true).Any(p => p.name == "Beacon"))
                 .ToArray();
             if (renderers.Length == 0) return;
             var group = chunk.gameObject.AddComponent<LODGroup>();
@@ -2570,6 +2751,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (prefabs.Length == 0) Debug.LogWarning("[World] no creature prefab " + file);
                 content.creatures.Add(new WorldContent.CreatureEntry { role = id, prefabs = prefabs });
             }
+            SwampLifeAssets.Wire(content);
             if (created) AssetDatabase.CreateAsset(content, ContentPath);
             else EditorUtility.SetDirty(content);
         }

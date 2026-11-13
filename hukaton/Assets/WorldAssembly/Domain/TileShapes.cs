@@ -143,7 +143,7 @@ namespace Hakaton.WorldAssembly
         /// a tar pit, a breathing bog with gas vents, a drowned graveyard, a drowned mill, an isle of dead trees. The
         /// hut's roof, the mill's loft and the isle are pockets only cards reach.
         /// </summary>
-        public static readonly string[] SwampScenes = { "hummocks", "log-road", "sunken-hut", "tar-pit", "breathing-bog", "drowned-graveyard", "drowned-mill", "deadwood-isle" };
+        public static readonly string[] SwampScenes = { "hummocks", "log-road", "sunken-hut", "tar-pit", "breathing-bog", "drowned-graveyard", "drowned-mill", "deadwood-isle", "eternal-flame" };
 
         public static bool IsSwampScene(string id) => Array.IndexOf(SwampScenes, id) >= 0;
 
@@ -167,6 +167,7 @@ namespace Hakaton.WorldAssembly
                 case "drowned-graveyard": return "ruins";
                 case "drowned-mill": return "yard";
                 case "deadwood-isle": return "pillar";
+                case "eternal-flame": return "boulders";
                 default: return null;
             }
         }

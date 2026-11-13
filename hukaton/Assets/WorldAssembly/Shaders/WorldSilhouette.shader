@@ -56,5 +56,30 @@ Shader "Hakaton/World Silhouette"
             }
             ENDHLSL
         }
+
+        // Depth for the presentation camera's native-resolution occlusion (NativeWorldUIPass draws only DepthOnly).
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            Cull Off
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float _Near;
+                float _FadeIn;
+                float _Far;
+                float _FogDensity;
+            CBUFFER_END
+
+            float4 vert(float4 position : POSITION) : SV_POSITION { return TransformObjectToHClip(position.xyz); }
+            half frag(float4 position : SV_POSITION) : SV_Target { return position.z; }
+            ENDHLSL
+        }
     }
 }

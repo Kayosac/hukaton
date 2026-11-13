@@ -45,6 +45,23 @@ namespace Hakaton.WorldAssembly.Unity
         }
 
         public const string Water = "water", Swamp = "swamp", Forest = "forest", High = "high", Deep = "deep", Rain = "rain", Storm = "storm", Snow = "snow";
+        /// <summary>The swamp's parts and its fog banks (inside one the world is white).</summary>
+        public const string Drowned = "drowned", Burnt = "burnt", Moss = "moss", Reach = "reach", Mist = "mist";
+
+        /// <summary>Moods added after scenes were saved: put in at start if the scene's list lacks them.</summary>
+        static Mood[] Later => new[]
+        {
+            new Mood(Drowned, 1.55f, new Color(.27f, .35f, .31f), .45f, .55f, .78f),
+            new Mood(Burnt, 1.25f, new Color(.5f, .47f, .44f), .55f, .8f, .9f),
+            new Mood(Moss, .8f, new Color(.55f, .62f, .48f), .25f, 1.05f, 1.05f),
+            new Mood(Reach, .85f, new Color(.6f, .66f, .6f), .2f, 1, 1),
+            new Mood(Mist, 6f, new Color(.74f, .79f, .74f), .8f, .85f, 1.05f),
+        };
+
+        readonly Dictionary<string, float> held = new Dictionary<string, float>();
+
+        /// <summary>Holds a mood at <paramref name="k"/> from outside (SwampLife's fog banks) until it says otherwise.</summary>
+        public void Hold(string mood, float k) => held[mood] = k;
 
         public List<Mood> moods = new List<Mood>
         {
@@ -98,6 +115,10 @@ namespace Hakaton.WorldAssembly.Unity
             if (!rain) rain = gameObject.AddComponent<WorldRain>();
             silhouettes = GetComponent<FarSilhouettes>();
             if (postProcess) postProcess.enabled = false;
+            foreach (var mood in Later)
+                if (!moods.Exists(m => m.name == mood.name)) moods.Add(mood);
+            // The swamp's fog banks, fish, frogs and dragonflies go with the air too.
+            if (!GetComponent<SwampLife>()) gameObject.AddComponent<SwampLife>();
         }
 
         void LateUpdate()
@@ -147,6 +168,10 @@ namespace Hakaton.WorldAssembly.Unity
         {
             active = false;
             if (postProcess) postProcess.enabled = false;
+            if (swampLook) swampLook.weight = 0;
+            Grade(null);
+            Shader.SetGlobalFloat(ReflectFog, 0);
+            held.Clear();
             RenderSettings.fogDensity = baseFog;
             RenderSettings.fogColor = baseColour;
             RenderSettings.ambientIntensity = baseAmbient;
@@ -192,6 +217,7 @@ namespace Hakaton.WorldAssembly.Unity
             bool cold = own.BaseLevel >= 3;
             Raise(cold ? Snow : Rain, Mathf.Max(sky.Rain, rain.Gloom * .6f));
             if (!cold) Raise(Storm, Mathf.Max(sky.Storm, rain.StormGloom * .5f));
+            foreach (var kv in held) Raise(kv.Key, kv.Value);
         }
 
         void Raise(string mood, float k)
@@ -204,8 +230,18 @@ namespace Hakaton.WorldAssembly.Unity
         /// <summary>The moods a chunk brings, by its kind and what stands on it.</summary>
         static IEnumerable<(string, float)> MoodsOf(ChunkPlan plan)
         {
-            // The rotten swamp: thick green air over all of it, whatever stands on the chunk.
-            if (plan.Biome == Biome.Swamp) yield return (Swamp, 1);
+            // The rotten swamp: thick green air over all of it, whatever stands on the chunk; its parts each their own.
+            if (plan.Biome == Biome.Swamp)
+            {
+                yield return (Swamp, 1);
+                switch (plan.Zone)
+                {
+                    case SwampZone.Drowned: yield return (Drowned, 1); break;
+                    case SwampZone.Burnt: yield return (Burnt, 1); break;
+                    case SwampZone.Moss: yield return (Moss, 1); break;
+                    case SwampZone.Reach: yield return (Reach, 1); break;
+                }
+            }
             switch (plan.Shape.Kind)
             {
                 case ShapeKind.River:
@@ -239,8 +275,43 @@ namespace Hakaton.WorldAssembly.Unity
 
         // ---------- the air ----------
 
+        Volume swampLook;
+
+        static readonly int ReflectFog = Shader.PropertyToID("_WorldReflectFog");
+        static readonly int GradeOn = Shader.PropertyToID("_WorldGradeOn"), GradeFilter = Shader.PropertyToID("_WorldGradeFilter"), GradeSaturation = Shader.PropertyToID("_WorldGradeSaturation");
+
+        /// <summary>
+        /// The place's colour grading for what is drawn after the world's post-processing (World Resolution: water,
+        /// ground fog, clouds, rain), as shader globals (Assets/WorldAssembly/Shaders/WorldGrade.hlsl).
+        /// </summary>
+        static void Grade(Volume look)
+        {
+            float w = look ? look.weight : 0;
+            if (w <= .001f || !look.sharedProfile || !look.sharedProfile.TryGet<UnityEngine.Rendering.Universal.ColorAdjustments>(out var colour))
+            {
+                Shader.SetGlobalFloat(GradeOn, 0);
+                return;
+            }
+            Shader.SetGlobalFloat(GradeOn, w);
+            Shader.SetGlobalColor(GradeFilter, colour.colorFilter.overrideState ? colour.colorFilter.value : Color.white);
+            Shader.SetGlobalFloat(GradeSaturation, colour.saturation.overrideState ? 1 + colour.saturation.value / 100 : 1);
+        }
+
         void Apply()
         {
+            // The swamp's own colour (WorldContent.swampLook) as strong as the swamp round the player.
+            var look = streamer.content ? streamer.content.swampLook : null;
+            if (look && !swampLook)
+            {
+                var go = new GameObject("Swamp look");
+                go.transform.SetParent(transform, false);
+                swampLook = go.AddComponent<Volume>();
+                swampLook.isGlobal = true;
+                swampLook.priority = 10;
+                swampLook.sharedProfile = look;
+            }
+            if (swampLook) swampLook.weight = Strength(Swamp);
+            Grade(swampLook);
             float fog = 1, sunlight = 1, ambient = 1;
             var colour = baseColour;
             foreach (var mood in moods)
@@ -264,6 +335,7 @@ namespace Hakaton.WorldAssembly.Unity
                 colour = Color.Lerp(colour, new Color(.86f, .89f, .96f), .35f * lit);
             }
             RenderSettings.fogDensity = baseFog * fog;
+            Shader.SetGlobalFloat(ReflectFog, Mathf.Clamp01((fog - 1) / 1.2f));
             RenderSettings.fogColor = colour;
             RenderSettings.ambientIntensity = baseAmbient * ambient;
             if (sun) sun.intensity = baseSun * sunlight;
