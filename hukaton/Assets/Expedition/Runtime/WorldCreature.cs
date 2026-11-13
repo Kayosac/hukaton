@@ -234,6 +234,8 @@ namespace Hakaton.Expeditions
             squad = null;
             EndAttack();
             holding = false;
+            // One that waits under water is there already when the place comes into view.
+            sunk = ambush.submerge ? 1 : 0;
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -325,7 +327,8 @@ namespace Hakaton.Expeditions
             Vector3 to = target - eye;
             float distance = to.magnitude;
             if (distance > sightRange) return false;
-            bool calm = IsCalm;
+            // One lying in wait is all attention: it notices on every side, not only ahead (WorldCreature.Ambush.cs).
+            bool calm = IsCalm && !Lurking;
             bool loud = player && world.motor.IsSprinting && distance < hearingRange * 2;
             if (calm && distance > hearingRange && !loud && Vector3.Dot(transform.forward, to / distance) < BehindDot) return false;
             // Card zones (fog) hide the target.
@@ -525,9 +528,9 @@ namespace Hakaton.Expeditions
         {
             float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
-            if (HasRangedAttack && ThinkRanged()) return;
             // Holding the player in its grip (WorldCreature.Grab.cs).
             if (ThinkHold()) return;
+            if (HasRangedAttack && ThinkRanged()) return;
             switch (State)
             {
                 case CreatureState.Chase:
@@ -1155,7 +1158,7 @@ namespace Hakaton.Expeditions
                 Vector3 tremble = State == CreatureState.Windup ? Random.insideUnitSphere * .02f * TopHeight * crouch : Vector3.zero;
                 float stretch = State == CreatureState.Strike ? 1.12f : 1;
                 float roll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 10 : 0;
-                view.Present(pose, transform.forward, Vector3.up * hop + tremble + FlightSway(),
+                view.Present(pose, transform.forward, Vector3.up * (hop - Submerged(dt)) + tremble + FlightSway(),
                     new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
             // Frozen, the drawing still turns to the player: never seen flat from the side, in a shell or not.

@@ -17,6 +17,8 @@ namespace Hakaton.Expeditions
         [Min(0)] public int squeezeHalfHearts = 1;
         [Tooltip("Seconds between squeezes.")]
         [Min(.1f)] public float squeezeInterval = .75f;
+        [Tooltip("Sucks blood: every squeeze that lands heals it by this much health (the leech). 0: none.")]
+        [Min(0)] public int drainHeal;
         [Tooltip("The player slips out once further than the strike's contact range plus this, metres.")]
         [Min(0)] public float slip = .8f;
     }
@@ -72,9 +74,15 @@ namespace Hakaton.Expeditions
             nextSqueeze += grab.squeezeInterval;
             squash.Kick(-2.5f);
             world.Play(strikeCue, body.position, .7f);
-            if (grab.squeezeHalfHearts > 0)
-                target.TakeDamage(new DamageInfo(ScaledDamage(grab.squeezeHalfHearts, DamageScale), Vector3.zero,
-                    target.Position + Vector3.up * .9f, body.position, DamageKind.Hit, this, true));
+            if (grab.squeezeHalfHearts <= 0) return;
+            bool landed = target.TakeDamage(new DamageInfo(ScaledDamage(grab.squeezeHalfHearts, DamageScale), Vector3.zero,
+                target.Position + Vector3.up * .9f, body.position, DamageKind.Hit, this, true));
+            // A leech drinks what it took: its health comes back (its grip holds on; the hurt check counts from here).
+            if (landed && grab.drainHeal > 0 && Health < maximumHealth)
+            {
+                Health = Mathf.Min(maximumHealth, Health + grab.drainHeal);
+                healthAtGrab = Health;
+            }
         }
     }
 }

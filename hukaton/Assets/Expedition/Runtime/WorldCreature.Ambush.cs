@@ -12,6 +12,12 @@ namespace Hakaton.Expeditions
         [Tooltip("Lies in wait: does not wander, stands still in its cover and springs at the target once it comes close. " +
                  "It does not give itself away by the aggression pose before that.")]
         public bool enabled;
+        [Tooltip("Hides in water instead of plants (the leech): the nearest wadeable water round where it appears.")]
+        public bool inWater;
+        [Tooltip("Lies under the surface while it waits: the drawing sinks out of sight and its body does not block the way.")]
+        public bool submerge;
+        [Tooltip("Springs at the target (a leap). Off: it only comes out of hiding and fights as usual.")]
+        public bool springs = true;
         [Tooltip("Cover it hides in: plants of the place whose names start with one of these (the swamp's cattails and sedge).")]
         public string[] cover = { "SM_SW02_", "SM_SW03_" };
         [Tooltip("Looks for cover this far from where it appears, metres.")]
@@ -87,6 +93,7 @@ namespace Hakaton.Expeditions
             if (sees && TargetDistance < ambush.pounceRange)
             {
                 world.Play(threatCue, body.position);
+                if (!ambush.springs) { squash.Kick(-3); Enter(CreatureState.Chase); return true; }
                 pounceArmed = true;
                 Enter(CreatureState.Windup);
                 return true;
@@ -134,6 +141,63 @@ namespace Hakaton.Expeditions
             body.position = home;
             transform.position = home;
             if (navigator.isOnNavMesh) navigator.Warp(home);
+        }
+
+        /// <summary>
+        /// Settles in the nearest wadeable water among <paramref name="waters"/> within reach of where it appeared and away
+        /// from other ambushers (<paramref name="taken"/>): that becomes its home. <paramref name="move"/> as in <see cref="HideIn"/>.
+        /// </summary>
+        public void HideInWater(IEnumerable<WorldObstacle> waters, List<Vector3> taken, bool move)
+        {
+            if (!ambush.enabled || !ambush.inWater || waters == null) return;
+            Vector3 from = home;
+            Vector3? spot = null;
+            for (float r = 0; r <= ambush.coverSearch && spot == null; r += 1.5f)
+            {
+                int steps = r <= 0 ? 1 : 12;
+                for (int i = 0; i < steps && spot == null; i++)
+                {
+                    float a = i * Mathf.PI * 2 / steps;
+                    var probe = from + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * r;
+                    if (!NavMesh.SamplePosition(probe, out var hit, 1.2f, NavMesh.AllAreas)) continue;
+                    bool free = true;
+                    if (taken != null) foreach (var other in taken) if (Flat(other - hit.position).magnitude < ambush.coverSpacing) { free = false; break; }
+                    if (!free) continue;
+                    foreach (var water in waters)
+                        if (water && water.kind == ObstacleKind.Lake && water.InWater(hit.position)) { spot = hit.position; break; }
+                }
+            }
+            if (spot == null) return;
+            taken?.Add(spot.Value);
+            home = spot.Value + Vector3.up * .15f;
+            if (!move) return;
+            body.position = home;
+            transform.position = home;
+            if (navigator.isOnNavMesh) navigator.Warp(home);
+        }
+
+        float sunk;
+        bool passable;
+
+        /// <summary>Under the water the player walks over it: its body does not block him (it still stands on the bottom).</summary>
+        public bool Passable => passable;
+
+        /// <summary>
+        /// How far the drawing sinks below its feet now (lying under the water while it waits), metres at size one;
+        /// its body stops blocking the way once it is under.
+        /// </summary>
+        float Submerged(float dt)
+        {
+            if (!ambush.submerge) return 0;
+            bool under = Lurking && !lured;
+            sunk = Mathf.MoveTowards(sunk, under ? 1 : 0, dt * (under ? 1.2f : 3.5f));
+            bool through = sunk >= .6f && !dying;
+            if (through != passable && capsule && world && world.motor && world.motor.characterController)
+            {
+                passable = through;
+                Physics.IgnoreCollision(capsule, world.motor.characterController, through);
+            }
+            return sunk * (view ? view.height + .15f : 1.7f);
         }
 
         bool IsCover(string name)
