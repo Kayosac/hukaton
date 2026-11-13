@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: 6bb73edb98a75493981f223011f5bb52, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _HINT_OUTLINE
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -19,7 +20,7 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties: 
+  m_LockedProperties: _AlphaCutoff
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -29,27 +30,27 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AlphaCutoff: 0.5
+    - _AlphaCutoff: 0.47
     - _Anchor: 0
-    - _AnimationFPS: 8
+    - _AnimationFPS: 11.2
     - _Boil: 0.18
     - _Breath: 0.004
-    - _HintOutline: 0
-    - _MaxCellPixels: 3
+    - _HintOutline: 1
+    - _MaxCellPixels: 0.5
     - _MaxRefine: 0
-    - _Motion: 1
-    - _OutlineCells: 2
-    - _OutlineMinAlpha: 0.12
-    - _OutlinePulseSpeed: 1.1
+    - _Motion: 0.5
+    - _OutlineCells: 1
+    - _OutlineMinAlpha: 1
+    - _OutlinePulseSpeed: 0
     - _OutlineStrength: 1
-    - _PixelsPerUnit: 1
+    - _PixelsPerUnit: 0.2
     - _Seed: 3.1
     - _Speed: 1
     - _Sway: 0.4
     - _ZWrite: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _OutlineColor: {r: 1, g: 0.8, b: 0.34999996, a: 1}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpriteUVRect: {r: 0, g: 0, b: 1, a: 1}
   m_BuildTextureStacks: []
