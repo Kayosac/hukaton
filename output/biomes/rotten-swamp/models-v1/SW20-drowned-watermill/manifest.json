@@ -1,0 +1,81 @@
+[
+ {
+  "id": "SW20a",
+  "name": "DrownedMill",
+  "fbx": "SM_SW20_DrownedMill.fbx",
+  "tris": 7450,
+  "tris_by_material": {
+   "Bark": 1556,
+   "Planks": 3316,
+   "LogWall": 240,
+   "Roof": 1192,
+   "Props": 78,
+   "Moss": 646,
+   "Plants": 422
+  },
+  "size_xyz_m": [
+   6.225,
+   6.126,
+   7.275
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW20a_Bark",
+   "SW20a_Planks",
+   "SW20a_LogWall",
+   "SW20a_Roof",
+   "SW20a_Props",
+   "SW20a_Moss",
+   "SW20a_Plants"
+  ],
+  "water_line_z": 0.614,
+  "solidity": "solid",
+  "burns": false,
+  "collider": "piles+bearing post: capsules/boxes; deck: one box (top at z=2.41); house walls: box; roof: 2 sloped boxes; braces, railing rails, drips, moss: no collider (railing posts optional). No ladder/stairs: the deck and the roof are reachable only via cards; keep diagonal braces without colliders so they are not a climbing route.",
+  "moving_parts": "water wheel = separate FBX SM_SW20_DrownedMillWheel (separate prefab child); put its pivot at wheel_mount_xyz_m (Blender X right, Y back, Z up, relative to the mill pivot) = wheel_mount_unity_guess (standard Unity FBX import: X mirrored, Blender Y -> -Z, Z -> Y; verify once against the bearing block under the +X deck edge, where the axle stub ends). Spin around the wheel local X axis (axle); paddles dip ~0.6 m below the water line.",
+  "wheel_mount_xyz_m": [
+   3.603,
+   -0.543,
+   2.014
+  ],
+  "wheel_mount_unity_guess": [
+   -3.603,
+   2.014,
+   0.543
+  ],
+  "wheel_gap_to_mill_m": "wheel inner face (local x=-0.42) is 0.24 m from the bearing post, ~0.6 m from the deck edge, ~1.7 m from the house wall, ~0.15 m horizontal clearance under the lean-to eave; axle stub ends inside the bearing block",
+  "deck_top_z": 2.414,
+  "notes": "Front (-Y) = door + window + gable window, railing walkway on the front and -X side; porch with lean-to roof and the wheel on +X. Water line at the moss collars of the stilts. Pivot = bottom of the stilts, XY centred on the mill (without the wheel)."
+ },
+ {
+  "id": "SW20w",
+  "name": "DrownedMillWheel",
+  "fbx": "SM_SW20_DrownedMillWheel.fbx",
+  "tris": 1260,
+  "tris_by_material": {
+   "Planks": 732,
+   "Bark": 356,
+   "Props": 68,
+   "Moss": 104
+  },
+  "size_xyz_m": [
+   1.6,
+   3.771,
+   3.782
+  ],
+  "min_z": -1.8977,
+  "objects": [
+   "SW20w_Planks",
+   "SW20w_Bark",
+   "SW20w_Props",
+   "SW20w_Moss"
+  ],
+  "water_line_z": null,
+  "solidity": "solid (moving)",
+  "burns": false,
+  "collider": "none or one thin cylinder; it spins",
+  "pivot": "axle centre (0,0,0), axle along local X",
+  "diameter_m": 3.8,
+  "notes": "12 rim segments x2, 10 spokes per side, 23 soling boards (one missing, two broken), 12 paddles, octagonal hub with iron bands, axle stub reaching the bearing block on the mill."
+ }
+]

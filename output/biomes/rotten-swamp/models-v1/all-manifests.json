@@ -1,0 +1,2275 @@
+[
+ {
+  "item": "SW01-hummocks",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW01a",
+    "name": "HummockTall",
+    "fbx": "SM_SW01_HummockTall.fbx",
+    "tris": 618,
+    "tris_by_material": {
+     "Mud": 18,
+     "Peat": 99,
+     "Moss": 25,
+     "Plants": 476
+    },
+    "size_xyz_m": [
+     1.64,
+     1.304,
+     1.313
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW01a_Mud",
+     "SW01a_Peat",
+     "SW01a_Moss",
+     "SW01a_Plants"
+    ],
+    "water_line_z": 0.249,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "Peat + Mud meshes (or one convex hull of both) solid; Moss skin, Plants and Props: no collider",
+    "moving_parts": null,
+    "notes": "pivot at the bottom centre of the submerged base; sink so the water line mark is at the water surface. Top walk surface: max face slope 16 deg."
+   },
+   {
+    "id": "SW01b",
+    "name": "HummockLong",
+    "fbx": "SM_SW01_HummockLong.fbx",
+    "tris": 968,
+    "tris_by_material": {
+     "Mud": 20,
+     "Peat": 110,
+     "Moss": 38,
+     "Plants": 688,
+     "Props": 112
+    },
+    "size_xyz_m": [
+     1.877,
+     1.194,
+     1.426
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW01b_Mud",
+     "SW01b_Peat",
+     "SW01b_Moss",
+     "SW01b_Plants",
+     "SW01b_Props"
+    ],
+    "water_line_z": 0.244,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "Peat + Mud meshes (or one convex hull of both) solid; Moss skin, Plants and Props: no collider",
+    "moving_parts": null,
+    "notes": "pivot at the bottom centre of the submerged base; sink so the water line mark is at the water surface. Top walk surface: max face slope 11 deg."
+   },
+   {
+    "id": "SW01c",
+    "name": "HummockDouble",
+    "fbx": "SM_SW01_HummockDouble.fbx",
+    "tris": 778,
+    "tris_by_material": {
+     "Mud": 36,
+     "Peat": 198,
+     "Moss": 42,
+     "Plants": 502
+    },
+    "size_xyz_m": [
+     1.88,
+     1.505,
+     1.242
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW01c_Mud",
+     "SW01c_Peat",
+     "SW01c_Moss",
+     "SW01c_Plants"
+    ],
+    "water_line_z": 0.249,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "Peat + Mud meshes (or one convex hull of both) solid; Moss skin, Plants and Props: no collider",
+    "moving_parts": null,
+    "notes": "pivot at the bottom centre of the submerged base; sink so the water line mark is at the water surface. Top walk surface: max face slope 17 deg."
+   },
+   {
+    "id": "SW01d",
+    "name": "HummockFlat",
+    "fbx": "SM_SW01_HummockFlat.fbx",
+    "tris": 792,
+    "tris_by_material": {
+     "Mud": 20,
+     "Peat": 110,
+     "Moss": 50,
+     "Plants": 612
+    },
+    "size_xyz_m": [
+     1.841,
+     1.769,
+     0.936
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW01d_Mud",
+     "SW01d_Peat",
+     "SW01d_Moss",
+     "SW01d_Plants"
+    ],
+    "water_line_z": 0.247,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "Peat + Mud meshes (or one convex hull of both) solid; Moss skin, Plants and Props: no collider",
+    "moving_parts": null,
+    "notes": "pivot at the bottom centre of the submerged base; sink so the water line mark is at the water surface. Top walk surface: max face slope 7 deg."
+   }
+  ]
+ },
+ {
+  "item": "SW02-cattails",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW02a",
+    "name": "CattailTallLean",
+    "fbx": "SM_SW02_CattailTallLean.fbx",
+    "tris": 612,
+    "tris_by_material": {
+     "Plants": 444,
+     "Props": 168
+    },
+    "size_xyz_m": [
+     1.017,
+     0.936,
+     1.709
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW02a_Plants",
+     "SW02a_Props"
+    ],
+    "water_line_z": 0.15,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root; stalks+leaves on Plants with wind UV2; cobs on Props carry the same wind UV2 values as their stalk (needs wind on the Props shader or cobs will not follow the swaying stalk); water_line_z is a suggested planting depth (shallow water/shore)"
+   },
+   {
+    "id": "SW02b",
+    "name": "CattailShortBroken",
+    "fbx": "SM_SW02_CattailShortBroken.fbx",
+    "tris": 817,
+    "tris_by_material": {
+     "Plants": 537,
+     "Props": 280
+    },
+    "size_xyz_m": [
+     1.045,
+     1.042,
+     1.212
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW02b_Plants",
+     "SW02b_Props"
+    ],
+    "water_line_z": 0.15,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root; stalks+leaves on Plants with wind UV2; cobs on Props carry the same wind UV2 values as their stalk (needs wind on the Props shader or cobs will not follow the swaying stalk); water_line_z is a suggested planting depth (shallow water/shore)"
+   },
+   {
+    "id": "SW02c",
+    "name": "CattailWideArch",
+    "fbx": "SM_SW02_CattailWideArch.fbx",
+    "tris": 1088,
+    "tris_by_material": {
+     "Plants": 920,
+     "Props": 168
+    },
+    "size_xyz_m": [
+     1.941,
+     1.602,
+     1.791
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW02c_Plants",
+     "SW02c_Props"
+    ],
+    "water_line_z": 0.15,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root; stalks+leaves on Plants with wind UV2; cobs on Props carry the same wind UV2 values as their stalk (needs wind on the Props shader or cobs will not follow the swaying stalk); water_line_z is a suggested planting depth (shallow water/shore)"
+   }
+  ]
+ },
+ {
+  "item": "SW03-sedge",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW03a",
+    "name": "SedgeFan",
+    "fbx": "SM_SW03_SedgeFan.fbx",
+    "tris": 327,
+    "tris_by_material": {
+     "Plants": 300,
+     "Mud": 27
+    },
+    "size_xyz_m": [
+     0.767,
+     0.805,
+     0.637
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW03a_Plants",
+     "SW03a_Mud"
+    ],
+    "water_line_z": null,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root (bottom of the 2 cm moss clump); cards have wind UV2"
+   },
+   {
+    "id": "SW03b",
+    "name": "SedgeRosette",
+    "fbx": "SM_SW03_SedgeRosette.fbx",
+    "tris": 415,
+    "tris_by_material": {
+     "Plants": 388,
+     "Mud": 27
+    },
+    "size_xyz_m": [
+     0.678,
+     0.648,
+     0.307
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW03b_Plants",
+     "SW03b_Mud"
+    ],
+    "water_line_z": null,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root (bottom of the 2 cm moss clump); cards have wind UV2"
+   },
+   {
+    "id": "SW03c",
+    "name": "SedgeLean",
+    "fbx": "SM_SW03_SedgeLean.fbx",
+    "tris": 275,
+    "tris_by_material": {
+     "Plants": 248,
+     "Mud": 27
+    },
+    "size_xyz_m": [
+     0.753,
+     0.449,
+     0.581
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW03c_Plants",
+     "SW03c_Mud"
+    ],
+    "water_line_z": null,
+    "solidity": "soft-passable",
+    "burns": true,
+    "collider": "none (soft, passable)",
+    "moving_parts": null,
+    "notes": "pivot at the root (bottom of the 2 cm moss clump); cards have wind UV2"
+   }
+  ]
+ },
+ {
+  "item": "SW04-duckweed",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW04a",
+    "name": "DuckweedPatch",
+    "fbx": "SM_SW04_DuckweedPatch.fbx",
+    "tris": 40,
+    "tris_by_material": {
+     "Plants": 40
+    },
+    "size_xyz_m": [
+     1.812,
+     1.771,
+     0.006
+    ],
+    "min_z": -0.0,
+    "objects": [
+     "SW04a_Plants"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the centre of the water surface; cards float 1-6 mm above it; gentle flutter in the wind UV2 (bob on water)"
+   },
+   {
+    "id": "SW04b",
+    "name": "DuckweedCrescent",
+    "fbx": "SM_SW04_DuckweedCrescent.fbx",
+    "tris": 24,
+    "tris_by_material": {
+     "Plants": 24
+    },
+    "size_xyz_m": [
+     2.022,
+     1.918,
+     0.007
+    ],
+    "min_z": -0.0008,
+    "objects": [
+     "SW04b_Plants"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the centre of the water surface; cards float 1-6 mm above it; gentle flutter in the wind UV2 (bob on water)"
+   },
+   {
+    "id": "SW04c",
+    "name": "DuckweedBand",
+    "fbx": "SM_SW04_DuckweedBand.fbx",
+    "tris": 38,
+    "tris_by_material": {
+     "Plants": 38
+    },
+    "size_xyz_m": [
+     3.455,
+     1.236,
+     0.007
+    ],
+    "min_z": -0.0009,
+    "objects": [
+     "SW04c_Plants"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the centre of the water surface; cards float 1-6 mm above it; gentle flutter in the wind UV2 (bob on water)"
+   },
+   {
+    "id": "SW04d",
+    "name": "DuckweedDouble",
+    "fbx": "SM_SW04_DuckweedDouble.fbx",
+    "tris": 32,
+    "tris_by_material": {
+     "Plants": 32
+    },
+    "size_xyz_m": [
+     2.503,
+     1.854,
+     0.007
+    ],
+    "min_z": -0.0009,
+    "objects": [
+     "SW04d_Plants"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the centre of the water surface; cards float 1-6 mm above it; gentle flutter in the wind UV2 (bob on water)"
+   }
+  ]
+ },
+ {
+  "item": "SW05-waterlilies",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW05a",
+    "name": "LilyPads",
+    "fbx": "SM_SW05_LilyPads.fbx",
+    "tris": 36,
+    "tris_by_material": {
+     "Plants": 36
+    },
+    "size_xyz_m": [
+     0.379,
+     0.395,
+     0.014
+    ],
+    "min_z": 0.001,
+    "objects": [
+     "SW05a_Plants"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the water level; pads float 0-9 mm above it (thin cards, centre sags 4 mm); petals flutter slightly (wind UV2 on Props)"
+   },
+   {
+    "id": "SW05b",
+    "name": "LilyPadsFlower",
+    "fbx": "SM_SW05_LilyPadsFlower.fbx",
+    "tris": 120,
+    "tris_by_material": {
+     "Plants": 24,
+     "Props": 96
+    },
+    "size_xyz_m": [
+     0.479,
+     0.419,
+     0.066
+    ],
+    "min_z": 0.0004,
+    "objects": [
+     "SW05b_Plants",
+     "SW05b_Props"
+    ],
+    "water_line_z": 0.0,
+    "solidity": "surface",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the water level; pads float 0-9 mm above it (thin cards, centre sags 4 mm); petals flutter slightly (wind UV2 on Props)"
+   }
+  ]
+ },
+ {
+  "item": "SW06-pale-mushrooms",
+  "group": "Plants",
+  "variants": [
+   {
+    "id": "SW06a",
+    "name": "PaleMushroomsTall",
+    "fbx": "SM_SW06_PaleMushroomsTall.fbx",
+    "tris": 221,
+    "tris_by_material": {
+     "Props": 221
+    },
+    "size_xyz_m": [
+     0.236,
+     0.126,
+     0.29
+    ],
+    "min_z": -0.0172,
+    "objects": [
+     "SW06a_Props"
+    ],
+    "water_line_z": null,
+    "solidity": "soft-passable",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the cluster base (stem feet reach 12 mm below to sink into stumps/logs); no wind"
+   },
+   {
+    "id": "SW06b",
+    "name": "PaleMushroomsCluster",
+    "fbx": "SM_SW06_PaleMushroomsCluster.fbx",
+    "tris": 504,
+    "tris_by_material": {
+     "Props": 504
+    },
+    "size_xyz_m": [
+     0.344,
+     0.206,
+     0.272
+    ],
+    "min_z": -0.0222,
+    "objects": [
+     "SW06b_Props"
+    ],
+    "water_line_z": null,
+    "solidity": "soft-passable",
+    "burns": false,
+    "collider": "none",
+    "moving_parts": null,
+    "notes": "pivot at the cluster base (stem feet reach 12 mm below to sink into stumps/logs); no wind"
+   }
+  ]
+ },
+ {
+  "item": "SW07-dead-birches",
+  "group": "Trees",
+  "variants": [
+   {
+    "id": "SW07a",
+    "name": "LongSnag",
+    "fbx": "SM_SW07_LongSnag.fbx",
+    "tris": 603,
+    "tris_by_material": {
+     "Birch": 332,
+     "Bark": 209,
+     "Props": 52,
+     "Moss": 10
+    },
+    "size_xyz_m": [
+     2.28,
+     2.784,
+     6.952
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW07a_Birch",
+     "SW07a_Bark",
+     "SW07a_Props",
+     "SW07a_Moss"
+    ],
+    "water_line_z": null,
+    "ground_line_z": 0.24,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "capsule/simplified mesh around trunk (+fork for b); twigs and stubs no collider",
+    "moving_parts": null,
+    "notes": "Pivot at the bottom of the root flare; the soft root-flare collar goes 0.24 m below the ground line (sink when placing). Leafless dead snag. Material per object: Birch (upper trunk, stubs, twigs), Bark (dark old base sleeve + surface roots), Props (splintered heartwood of broken top: grey_wood; stub ends: end_grain_grey), Moss (drape on the root flare). Tiny trunk sway in Wind UV2."
+   },
+   {
+    "id": "SW07b",
+    "name": "ForkSnag",
+    "fbx": "SM_SW07_ForkSnag.fbx",
+    "tris": 463,
+    "tris_by_material": {
+     "Birch": 219,
+     "Bark": 198,
+     "Props": 36,
+     "Moss": 10
+    },
+    "size_xyz_m": [
+     2.195,
+     2.219,
+     3.712
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW07b_Birch",
+     "SW07b_Bark",
+     "SW07b_Props",
+     "SW07b_Moss"
+    ],
+    "water_line_z": null,
+    "ground_line_z": 0.24,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "capsule/simplified mesh around trunk (+fork for b); twigs and stubs no collider",
+    "moving_parts": null,
+    "notes": "Pivot at the bottom of the root flare; the soft root-flare collar goes 0.24 m below the ground line (sink when placing). Leafless dead snag. Material per object: Birch (upper trunk, stubs, twigs), Bark (dark old base sleeve + surface roots), Props (splintered heartwood of broken top: grey_wood; stub ends: end_grain_grey), Moss (drape on the root flare). Tiny trunk sway in Wind UV2."
+   },
+   {
+    "id": "SW07c",
+    "name": "DiagonalSnag",
+    "fbx": "SM_SW07_DiagonalSnag.fbx",
+    "tris": 903,
+    "tris_by_material": {
+     "Birch": 166,
+     "Bark": 689,
+     "Props": 22,
+     "Moss": 26
+    },
+    "size_xyz_m": [
+     4.707,
+     1.838,
+     4.226
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW07c_Birch",
+     "SW07c_Bark",
+     "SW07c_Props",
+     "SW07c_Moss"
+    ],
+    "water_line_z": null,
+    "ground_line_z": 0.24,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "capsule/simplified mesh around trunk (+fork for b); twigs and stubs no collider",
+    "moving_parts": null,
+    "notes": "Pivot at the bottom of the root flare; the soft root-flare collar goes 0.24 m below the ground line (sink when placing). Leafless dead snag. Material per object: Birch (upper trunk, stubs, twigs), Bark (dark old base sleeve + surface roots), Props (splintered heartwood of broken top: grey_wood; stub ends: end_grain_grey), Moss (drape on the root flare). Tiny trunk sway in Wind UV2."
+   }
+  ]
+ },
+ {
+  "item": "SW08-stilt-alders",
+  "group": "Trees",
+  "variants": [
+   {
+    "id": "SW08a",
+    "name": "StiltAlderTall",
+    "fbx": "SM_SW08_StiltAlderTall.fbx",
+    "tris": 2454,
+    "tris_by_material": {
+     "Bark": 801,
+     "BarkMossy": 245,
+     "Moss": 160,
+     "Plants": 1248
+    },
+    "size_xyz_m": [
+     7.615,
+     5.818,
+     7.428
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW08a_Bark",
+     "SW08a_BarkMossy",
+     "SW08a_Moss",
+     "SW08a_Plants"
+    ],
+    "water_line_z": 0.4,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "trunk + stilt roots solid (capsules per root/trunk segment or simplified mesh of the Bark/BarkMossy objects); branches above head height and crown cards (Plants) no collider. Open gaps under the roots stay passable only if the scene wants it (clearance under the junction ~1.9 m).",
+    "moving_parts": null,
+    "notes": "Pivot = centre of the root feet at the bottom of the feet (feet go 0.40 m under the water line). Objects: Bark (trunk top, branches, twigs), BarkMossy (lower trunk + stilt roots), Moss (drape on upward faces), Plants (layered alder_clump_0/1 crown cards, 8 tris each). Wind UV2: bark sway up to ~0.05 m, crown cards sway up to ~0.13 m + flutter 0.035 m."
+   },
+   {
+    "id": "SW08b",
+    "name": "StiltAlderLow",
+    "fbx": "SM_SW08_StiltAlderLow.fbx",
+    "tris": 1703,
+    "tris_by_material": {
+     "Bark": 552,
+     "BarkMossy": 210,
+     "Moss": 109,
+     "Plants": 832
+    },
+    "size_xyz_m": [
+     7.843,
+     4.294,
+     5.36
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW08b_Bark",
+     "SW08b_BarkMossy",
+     "SW08b_Moss",
+     "SW08b_Plants"
+    ],
+    "water_line_z": 0.4,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "trunk + stilt roots solid (capsules per root/trunk segment or simplified mesh of the Bark/BarkMossy objects); branches above head height and crown cards (Plants) no collider. Open gaps under the roots stay passable only if the scene wants it (clearance under the junction ~1.5 m).",
+    "moving_parts": null,
+    "notes": "Pivot = centre of the root feet at the bottom of the feet (feet go 0.40 m under the water line). Objects: Bark (trunk top, branches, twigs), BarkMossy (lower trunk + stilt roots), Moss (drape on upward faces), Plants (layered alder_clump_0/1 crown cards, 8 tris each). Wind UV2: bark sway up to ~0.05 m, crown cards sway up to ~0.13 m + flutter 0.035 m."
+   }
+  ]
+ },
+ {
+  "item": "SW09-drowned-willows",
+  "group": "Trees",
+  "variants": [
+   {
+    "id": "SW09a",
+    "name": "DrownedWillowArch",
+    "fbx": "SM_SW09_DrownedWillowArch.fbx",
+    "tris": 3333,
+    "tris_by_material": {
+     "Bark": 912,
+     "BarkMossy": 330,
+     "Moss": 85,
+     "Plants": 2006
+    },
+    "size_xyz_m": [
+     8.83,
+     7.57,
+     7.718
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW09a_Bark",
+     "SW09a_BarkMossy",
+     "SW09a_Moss",
+     "SW09a_Plants"
+    ],
+    "water_line_z": 0.4,
+    "solidity": "solid (trunk+branches); strands soft-passable",
+    "burns": true,
+    "collider": "trunk + big limbs + roots solid (capsules / simplified mesh of Bark and BarkMossy objects); Plants (strand curtains, moss drips) no collider",
+    "moving_parts": null,
+    "notes": "Pivot = trunk base centre at the bottom of the roots (roots go 0.40 m under the water line). Objects: Bark, BarkMossy (trunk/limb upper sides, root tops), Moss (drape on upward faces), Plants (willow_strands_0/1 hang cards in layered curtain shells + a few moss_drip cards). Wind UV2: bark sway up to ~0.04 m, strands sway from the hang point (= branch sway) growing to the tips + flutter 0.05 m."
+   },
+   {
+    "id": "SW09b",
+    "name": "DrownedWillowFork",
+    "fbx": "SM_SW09_DrownedWillowFork.fbx",
+    "tris": 2398,
+    "tris_by_material": {
+     "Bark": 580,
+     "BarkMossy": 360,
+     "Moss": 64,
+     "Plants": 1394
+    },
+    "size_xyz_m": [
+     8.066,
+     7.691,
+     6.317
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW09b_Bark",
+     "SW09b_BarkMossy",
+     "SW09b_Moss",
+     "SW09b_Plants"
+    ],
+    "water_line_z": 0.4,
+    "solidity": "solid (trunk+branches); strands soft-passable",
+    "burns": true,
+    "collider": "trunk + big limbs + roots solid (capsules / simplified mesh of Bark and BarkMossy objects); Plants (strand curtains, moss drips) no collider",
+    "moving_parts": null,
+    "notes": "Pivot = trunk base centre at the bottom of the roots (roots go 0.40 m under the water line). Objects: Bark, BarkMossy (trunk/limb upper sides, root tops), Moss (drape on upward faces), Plants (willow_strands_0/1 hang cards in layered curtain shells + a few moss_drip cards). Wind UV2: bark sway up to ~0.04 m, strands sway from the hang point (= branch sway) growing to the tips + flutter 0.05 m."
+   }
+  ]
+ },
+ {
+  "item": "SW10-uprooted-snags",
+  "group": "Deadwood",
+  "variants": [
+   {
+    "id": "SW10a",
+    "name": "SnagRootFan",
+    "fbx": "SM_SW10_SnagRootFan.fbx",
+    "tris": 2270,
+    "tris_by_material": {
+     "Bark": 1338,
+     "Props": 11,
+     "Moss": 829,
+     "Plants": 92
+    },
+    "size_xyz_m": [
+     2.765,
+     2.151,
+     1.906
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW10a_Bark",
+     "SW10a_Props",
+     "SW10a_Moss",
+     "SW10a_Plants"
+    ],
+    "name_ru": "Коряга: вертикальный веер корней",
+    "water_line_z": 0.374,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "trunk + 3-5 main roots as convex hulls (Bark); Moss/Props share them; Plants (sedge, moss drips) no collider",
+    "moving_parts": null,
+    "pivot": "bottom centre (lowest root tip at z=0)",
+    "notes": "roots run below the water line; place with water at water_line_z"
+   },
+   {
+    "id": "SW10b",
+    "name": "SnagLowSideways",
+    "fbx": "SM_SW10_SnagLowSideways.fbx",
+    "tris": 2397,
+    "tris_by_material": {
+     "Bark": 1286,
+     "Props": 10,
+     "Moss": 975,
+     "Plants": 126
+    },
+    "size_xyz_m": [
+     3.203,
+     2.194,
+     1.507
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW10b_Bark",
+     "SW10b_Props",
+     "SW10b_Moss",
+     "SW10b_Plants"
+    ],
+    "name_ru": "Коряга: низкая боковая",
+    "water_line_z": 0.378,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "trunk + 3-5 main roots as convex hulls (Bark); Moss/Props share them; Plants (sedge, moss drips) no collider",
+    "moving_parts": null,
+    "pivot": "bottom centre (lowest root tip at z=0)",
+    "notes": "roots run below the water line; place with water at water_line_z"
+   },
+   {
+    "id": "SW10c",
+    "name": "SnagHollowSplit",
+    "fbx": "SM_SW10_SnagHollowSplit.fbx",
+    "tris": 2229,
+    "tris_by_material": {
+     "Bark": 1253,
+     "Props": 18,
+     "Moss": 864,
+     "Plants": 94
+    },
+    "size_xyz_m": [
+     3.229,
+     2.401,
+     2.124
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW10c_Bark",
+     "SW10c_Props",
+     "SW10c_Moss",
+     "SW10c_Plants"
+    ],
+    "name_ru": "Коряга: полая расколотая",
+    "water_line_z": 0.377,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "trunk + 3-5 main roots as convex hulls (Bark); Moss/Props share them; Plants (sedge, moss drips) no collider",
+    "moving_parts": null,
+    "pivot": "bottom centre (lowest root tip at z=0)",
+    "notes": "roots run below the water line; place with water at water_line_z"
+   }
+  ]
+ },
+ {
+  "item": "SW11-sunken-logs",
+  "group": "Deadwood",
+  "variants": [
+   {
+    "id": "SW11a",
+    "name": "SunkenLogLong",
+    "fbx": "SM_SW11_SunkenLogLong.fbx",
+    "tris": 1467,
+    "tris_by_material": {
+     "Bark": 592,
+     "Props": 49,
+     "Moss": 790,
+     "Plants": 36
+    },
+    "size_xyz_m": [
+     1.323,
+     6.151,
+     0.888
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW11a_Bark",
+     "SW11a_Props",
+     "SW11a_Moss",
+     "SW11a_Plants"
+    ],
+    "name_ru": "Топляк: длинное прямое бревно",
+    "water_line_z": 0.365,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "one capsule/box along the log (Bark); top face is flat & continuous for walking; branch stub (b) small box or no collider; Moss/Props/Plants no separate collider",
+    "moving_parts": null,
+    "pivot": "bottom centre; log runs along Y (catalog Z = length)",
+    "notes": "sunken: about a third of the height under the water line; front end has the V split above water"
+   },
+   {
+    "id": "SW11b",
+    "name": "SunkenLogBent",
+    "fbx": "SM_SW11_SunkenLogBent.fbx",
+    "tris": 1078,
+    "tris_by_material": {
+     "Bark": 394,
+     "Props": 46,
+     "Moss": 612,
+     "Plants": 26
+    },
+    "size_xyz_m": [
+     1.761,
+     3.69,
+     1.46
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW11b_Bark",
+     "SW11b_Props",
+     "SW11b_Moss",
+     "SW11b_Plants"
+    ],
+    "name_ru": "Топляк: короткое изогнутое с обломком ветки",
+    "water_line_z": 0.341,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "one capsule/box along the log (Bark); top face is flat & continuous for walking; branch stub (b) small box or no collider; Moss/Props/Plants no separate collider",
+    "moving_parts": null,
+    "pivot": "bottom centre; log runs along Y (catalog Z = length)",
+    "notes": "sunken: about a third of the height under the water line; front end has the V split above water"
+   }
+  ]
+ },
+ {
+  "item": "SW12-rotten-stumps",
+  "group": "Deadwood",
+  "variants": [
+   {
+    "id": "SW12a",
+    "name": "StumpLowClosed",
+    "fbx": "SM_SW12_StumpLowClosed.fbx",
+    "tris": 952,
+    "tris_by_material": {
+     "Bark": 178,
+     "Props": 240,
+     "Moss": 470,
+     "Plants": 50
+    },
+    "size_xyz_m": [
+     1.583,
+     1.217,
+     0.779
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW12a_Bark",
+     "SW12a_Props",
+     "SW12a_Moss",
+     "SW12a_Fungus",
+     "SW12a_Plants"
+    ],
+    "name_ru": "Пень: низкий закрытый",
+    "water_line_z": 0.239,
+    "solidity": "walk-on-top",
+    "burns": true,
+    "collider": "trunk convex hull (Bark) with the flat top as standing surface; roots no collider or low boxes; Fungus/Plants no collider",
+    "separate_objects": {
+     "SW12a_Fungus": "Props material; pale mushroom clusters, removable (delete the object)"
+    },
+    "tris_by_object": {
+     "SW12a_Bark": 178,
+     "SW12a_Props": 14,
+     "SW12a_Moss": 470,
+     "SW12a_Fungus": 240,
+     "SW12a_Plants": 50
+    },
+    "moving_parts": null,
+    "pivot": "bottom centre (root tips at z=0)",
+    "notes": "roots go under the water line"
+   },
+   {
+    "id": "SW12b",
+    "name": "StumpTallHollow",
+    "fbx": "SM_SW12_StumpTallHollow.fbx",
+    "tris": 827,
+    "tris_by_material": {
+     "Bark": 322,
+     "Props": 240,
+     "Moss": 174,
+     "Plants": 50
+    },
+    "size_xyz_m": [
+     1.655,
+     1.577,
+     1.477
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW12b_Bark",
+     "SW12b_Props",
+     "SW12b_Moss",
+     "SW12b_Fungus",
+     "SW12b_Plants"
+    ],
+    "name_ru": "Пень: высокий полый со ступенью",
+    "water_line_z": 0.271,
+    "solidity": "walk-on-top",
+    "burns": true,
+    "collider": "outer trunk as 6-8 boxes around the hollow (or a convex hull + no-walk top rim), step chunk = separate box (standable at its flat top); Fungus/Plants no collider",
+    "separate_objects": {
+     "SW12b_Fungus": "Props material; pale mushroom clusters, removable (delete the object)"
+    },
+    "tris_by_object": {
+     "SW12b_Bark": 322,
+     "SW12b_Props": 41,
+     "SW12b_Moss": 174,
+     "SW12b_Fungus": 240,
+     "SW12b_Plants": 50
+    },
+    "moving_parts": null,
+    "pivot": "bottom centre (root tips at z=0)",
+    "notes": "roots go under the water line"
+   }
+  ]
+ },
+ {
+  "item": "SW13-corduroy-road",
+  "group": "Paths",
+  "variants": [
+   {
+    "id": "SW13a",
+    "name": "CorduroyStraight",
+    "fbx": "SM_SW13_CorduroyStraight.fbx",
+    "tris": 660,
+    "tris_by_material": {
+     "Bark": 524,
+     "Props": 72,
+     "Plants": 36,
+     "Moss": 28
+    },
+    "size_xyz_m": [
+     3.65,
+     4.003,
+     0.867
+    ],
+    "min_z": -0.0375,
+    "objects": [
+     "SW13a_Bark",
+     "SW13a_Props",
+     "SW13a_Plants",
+     "SW13a_Moss"
+    ],
+    "water_line_z": 0.3,
+    "deck_top_z": 0.45,
+    "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+    "joints": "straight 4 m: entry (0,0) -> exit (0,4) dir +Y",
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "raw logs - do not burn"
+   },
+   {
+    "id": "SW13b",
+    "name": "CorduroyCorner",
+    "fbx": "SM_SW13_CorduroyCorner.fbx",
+    "tris": 813,
+    "tris_by_material": {
+     "Bark": 618,
+     "Props": 74,
+     "Plants": 48,
+     "Moss": 73
+    },
+    "size_xyz_m": [
+     4.069,
+     4.173,
+     1.329
+    ],
+    "min_z": -0.0224,
+    "objects": [
+     "SW13b_Bark",
+     "SW13b_Props",
+     "SW13b_Plants",
+     "SW13b_Moss"
+    ],
+    "water_line_z": 0.3,
+    "deck_top_z": 0.45,
+    "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+    "joints": "corner 90 deg: entry (0,0) -> exit (2,2) dir +X",
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "raw logs - do not burn"
+   },
+   {
+    "id": "SW13c",
+    "name": "CorduroyTJunction",
+    "fbx": "SM_SW13_CorduroyTJunction.fbx",
+    "tris": 987,
+    "tris_by_material": {
+     "Bark": 616,
+     "BarkMossy": 120,
+     "Props": 104,
+     "Plants": 48,
+     "Moss": 99
+    },
+    "size_xyz_m": [
+     4.005,
+     3.986,
+     1.278
+    ],
+    "min_z": -0.0048,
+    "objects": [
+     "SW13c_Bark",
+     "SW13c_BarkMossy",
+     "SW13c_Props",
+     "SW13c_Plants",
+     "SW13c_Moss"
+    ],
+    "water_line_z": 0.3,
+    "deck_top_z": 0.45,
+    "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+    "joints": "T: entry (0,0) -> exits (-2,2) dir -X and (2,2) dir +X",
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "raw logs - do not burn"
+   },
+   {
+    "id": "SW13d",
+    "name": "CorduroyHole",
+    "fbx": "SM_SW13_CorduroyHole.fbx",
+    "tris": 1211,
+    "tris_by_material": {
+     "Bark": 924,
+     "BarkMossy": 132,
+     "Props": 58,
+     "Plants": 48,
+     "Moss": 49
+    },
+    "size_xyz_m": [
+     3.627,
+     4.016,
+     1.277
+    ],
+    "min_z": -0.3099,
+    "objects": [
+     "SW13d_Bark",
+     "SW13d_BarkMossy",
+     "SW13d_Props",
+     "SW13d_Plants",
+     "SW13d_Moss"
+    ],
+    "water_line_z": 0.3,
+    "deck_top_z": 0.45,
+    "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+    "joints": "straight with a collapsed hole: entry (0,0) -> exit (0,4)",
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "mesh collider from the Bark+BarkMossy+Props logs/runners (or a box per log); Plants/Moss no collider; the hole stays open",
+    "moving_parts": "none",
+    "notes": "raw logs - do not burn"
+   },
+   {
+    "id": "SW13e",
+    "name": "CorduroyEnd",
+    "fbx": "SM_SW13_CorduroyEnd.fbx",
+    "tris": 931,
+    "tris_by_material": {
+     "Bark": 726,
+     "BarkMossy": 70,
+     "Props": 48,
+     "Plants": 48,
+     "Moss": 39
+    },
+    "size_xyz_m": [
+     3.604,
+     4.215,
+     1.471
+    ],
+    "min_z": -0.3219,
+    "objects": [
+     "SW13e_Bark",
+     "SW13e_BarkMossy",
+     "SW13e_Props",
+     "SW13e_Plants",
+     "SW13e_Moss"
+    ],
+    "water_line_z": 0.3,
+    "deck_top_z": 0.45,
+    "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+    "joints": "end: entry (0,0), dies out towards +Y",
+    "solidity": "walk-on-top",
+    "burns": false,
+    "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "raw logs - do not burn"
+   }
+  ]
+ },
+ {
+  "item": "SW14-rotten-boardwalks",
+  "group": "Paths",
+  "variants": [
+   {
+    "id": "SW14a",
+    "name": "RottenBoardwalk",
+    "fbx": "SM_SW14_RottenBoardwalk.fbx",
+    "tris": 867,
+    "tris_by_material": {
+     "Planks": 602,
+     "Props": 22,
+     "Plants": 34,
+     "Moss": 209
+    },
+    "size_xyz_m": [
+     2.017,
+     3.114,
+     1.298
+    ],
+    "min_z": -0.0287,
+    "objects": [
+     "SW14a_Planks",
+     "SW14a_Props",
+     "SW14a_Plants",
+     "SW14a_Moss"
+    ],
+    "water_line_z": 0.38,
+    "deck_top_z": 0.86,
+    "pivot": "centre of the entry edge (y=0), z=0 = post bottoms; walkway runs along +Y to y=3.0",
+    "solidity": "walk-on-top",
+    "burns": true,
+    "collider": "planks (box per plank or mesh collider of SW14x_Planks) + posts; the gap in b stays open; Plants (moss drips) and Moss no collider",
+    "moving_parts": "none",
+    "notes": "whole uneven deck, one chipped board"
+   },
+   {
+    "id": "SW14b",
+    "name": "RottenBoardwalkSagged",
+    "fbx": "SM_SW14_RottenBoardwalkSagged.fbx",
+    "tris": 879,
+    "tris_by_material": {
+     "Planks": 588,
+     "Props": 20,
+     "Plants": 34,
+     "Moss": 237
+    },
+    "size_xyz_m": [
+     2.137,
+     3.123,
+     1.316
+    ],
+    "min_z": -0.075,
+    "objects": [
+     "SW14b_Planks",
+     "SW14b_Props",
+     "SW14b_Plants",
+     "SW14b_Moss"
+    ],
+    "water_line_z": 0.38,
+    "deck_top_z": 0.86,
+    "pivot": "centre of the entry edge (y=0), z=0 = post bottoms; walkway runs along +Y to y=3.0",
+    "solidity": "walk-on-top",
+    "burns": true,
+    "collider": "planks (box per plank or mesh collider of SW14x_Planks) + posts; the gap in b stays open; Plants (moss drips) and Moss no collider",
+    "moving_parts": "none",
+    "notes": "right side sagged, 2 missing planks (real gap) + broken stub"
+   }
+  ]
+ },
+ {
+  "item": "SW15-stakes",
+  "group": "Deadwood",
+  "variants": [
+   {
+    "id": "SW15a",
+    "name": "StakeBare",
+    "fbx": "SM_SW15_StakeBare.fbx",
+    "tris": 313,
+    "tris_by_material": {
+     "Bark": 211,
+     "Props": 10,
+     "Moss": 76,
+     "Plants": 16
+    },
+    "size_xyz_m": [
+     1.058,
+     0.545,
+     2.585
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW15a_Bark",
+     "SW15a_Props",
+     "SW15a_Moss",
+     "SW15a_Plants"
+    ],
+    "name_ru": "Свая: голый обломок с развилкой",
+    "water_line_z": 0.4,
+    "solidity": "solid",
+    "burns": true,
+    "tris_by_object": {
+     "SW15a_Bark": 211,
+     "SW15a_Props": 10,
+     "SW15a_Moss": 76,
+     "SW15a_Plants": 16
+    },
+    "collider": "one capsule along the post (Bark); rope/rag/sedge no collider",
+    "moving_parts": null,
+    "pivot": "bottom end of the post (0.4 m below the water line)",
+    "notes": ""
+   },
+   {
+    "id": "SW15b",
+    "name": "StakeRope",
+    "fbx": "SM_SW15_StakeRope.fbx",
+    "tris": 494,
+    "tris_by_material": {
+     "Bark": 93,
+     "Props": 297,
+     "Moss": 80,
+     "Plants": 24
+    },
+    "size_xyz_m": [
+     0.934,
+     0.733,
+     2.182
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW15b_Bark",
+     "SW15b_Props",
+     "SW15b_Moss",
+     "SW15b_Plants"
+    ],
+    "name_ru": "Свая: столб с верёвкой",
+    "water_line_z": 0.4,
+    "solidity": "solid",
+    "burns": true,
+    "tris_by_object": {
+     "SW15b_Bark": 93,
+     "SW15b_Props": 297,
+     "SW15b_Moss": 80,
+     "SW15b_Plants": 24
+    },
+    "collider": "one capsule along the post (Bark); rope/rag/sedge no collider",
+    "moving_parts": null,
+    "pivot": "bottom end of the post (0.4 m below the water line)",
+    "notes": ""
+   },
+   {
+    "id": "SW15c",
+    "name": "StakeRag",
+    "fbx": "SM_SW15_StakeRag.fbx",
+    "tris": 292,
+    "tris_by_material": {
+     "Bark": 145,
+     "Props": 41,
+     "Moss": 80,
+     "Plants": 26
+    },
+    "size_xyz_m": [
+     0.804,
+     0.521,
+     1.38
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW15c_Bark",
+     "SW15c_Props",
+     "SW15c_Moss",
+     "SW15c_Plants"
+    ],
+    "name_ru": "Кол: короткий с тряпкой",
+    "water_line_z": 0.4,
+    "solidity": "solid",
+    "burns": true,
+    "tris_by_object": {
+     "SW15c_Bark": 145,
+     "SW15c_Props": 41,
+     "SW15c_Moss": 80,
+     "SW15c_Plants": 26
+    },
+    "collider": "one capsule along the post (Bark); rope/rag/sedge no collider",
+    "moving_parts": null,
+    "pivot": "bottom end of the post (0.4 m below the water line)",
+    "notes": "rag card (Plants rag_card) flutters via the Wind UV2 channel"
+   }
+  ]
+ },
+ {
+  "item": "SW16-sunken-hut",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW16a",
+    "name": "SunkenHut",
+    "fbx": "SM_SW16_SunkenHut.fbx",
+    "tris": 4311,
+    "tris_by_material": {
+     "LogWall": 1912,
+     "Bark": 96,
+     "Planks": 816,
+     "Roof": 48,
+     "Props": 640,
+     "Moss": 619,
+     "Plants": 180
+    },
+    "size_xyz_m": [
+     6.374,
+     4.553,
+     5.108
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW16a_LogWall",
+     "SW16a_Bark",
+     "SW16a_Planks",
+     "SW16a_Roof",
+     "SW16a_Props",
+     "SW16a_Moss",
+     "SW16a_Plants"
+    ],
+    "water_line_z": 1.739,
+    "solidity": "solid; roof = walk-on-top (reward)",
+    "burns": false,
+    "collider": "walls: one convex/box hull of the log box (NOT the protruding log ends, casings or drips, so the corners do not become a ladder); roof: 2 tilted box colliders along the two roof planes (back slope ~30 deg after the tilt is the standable one, front ~38 deg); chimney box; Plants/Moss no collider",
+    "moving_parts": "none",
+    "notes": "Upright log cabin modelled whole (lower logs kept), then roll-tilted 3.5 deg toward the front, 5 deg toward +X, sagged ridge and drooping broken front-right eave. Door opening (front, under water) is a dark atlas quad; window pane atlas quad."
+   }
+  ]
+ },
+ {
+  "item": "SW17-village-huts",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW17a",
+    "name": "MainHutPorch",
+    "fbx": "SM_SW17_MainHutPorch.fbx",
+    "tris": 5418,
+    "tris_by_material": {
+     "LogWall": 1272,
+     "Bark": 160,
+     "Planks": 1825,
+     "Roof": 75,
+     "Stone": 792,
+     "Props": 628,
+     "Moss": 482,
+     "Plants": 184
+    },
+    "size_xyz_m": [
+     6.804,
+     5.291,
+     5.816
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW17a_LogWall",
+     "SW17a_Bark",
+     "SW17a_Planks",
+     "SW17a_Roof",
+     "SW17a_Stone",
+     "SW17a_Props",
+     "SW17a_Moss",
+     "SW17a_Plants"
+    ],
+    "water_line_z": null,
+    "flood_levels_z": {
+     "threshold": 0.62,
+     "windows": 1.47,
+     "roof_only": 2.98
+    },
+    "solidity": "solid",
+    "burns": false,
+    "collider": "box/convex hull of the log walls (+ plank end wall); 2 box colliders along the roof planes; porch deck/steps boxes (A); log ends, casings, posts, drips: no separate colliders",
+    "moving_parts": "none",
+    "notes": "Full body (foundation blocks to chimney); flooding is done by placement. flood_levels_z = suggested water heights for threshold / windows / roof-only."
+   },
+   {
+    "id": "SW17b",
+    "name": "NarrowLeaningHut",
+    "fbx": "SM_SW17_NarrowLeaningHut.fbx",
+    "tris": 4242,
+    "tris_by_material": {
+     "LogWall": 1056,
+     "Bark": 96,
+     "Planks": 1363,
+     "Roof": 65,
+     "Stone": 672,
+     "Props": 450,
+     "Moss": 376,
+     "Plants": 164
+    },
+    "size_xyz_m": [
+     4.523,
+     4.041,
+     5.462
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW17b_LogWall",
+     "SW17b_Bark",
+     "SW17b_Planks",
+     "SW17b_Roof",
+     "SW17b_Stone",
+     "SW17b_Props",
+     "SW17b_Moss",
+     "SW17b_Plants"
+    ],
+    "water_line_z": null,
+    "flood_levels_z": {
+     "threshold": 0.6,
+     "windows": 1.35,
+     "roof_only": 2.61
+    },
+    "solidity": "solid",
+    "burns": false,
+    "collider": "box/convex hull of the log walls (+ plank end wall); 2 box colliders along the roof planes; porch deck/steps boxes (A); log ends, casings, posts, drips: no separate colliders",
+    "moving_parts": "none",
+    "notes": "Full body (foundation blocks to chimney); flooding is done by placement. flood_levels_z = suggested water heights for threshold / windows / roof-only."
+   },
+   {
+    "id": "SW17c",
+    "name": "LowSaggingHut",
+    "fbx": "SM_SW17_LowSaggingHut.fbx",
+    "tris": 5404,
+    "tris_by_material": {
+     "LogWall": 1968,
+     "Bark": 96,
+     "Planks": 1182,
+     "Roof": 74,
+     "Stone": 732,
+     "Props": 726,
+     "Moss": 458,
+     "Plants": 168
+    },
+    "size_xyz_m": [
+     6.171,
+     3.946,
+     4.911
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW17c_LogWall",
+     "SW17c_Bark",
+     "SW17c_Planks",
+     "SW17c_Roof",
+     "SW17c_Stone",
+     "SW17c_Props",
+     "SW17c_Moss",
+     "SW17c_Plants"
+    ],
+    "water_line_z": null,
+    "flood_levels_z": {
+     "threshold": 0.49,
+     "windows": 1.29,
+     "roof_only": 2.59
+    },
+    "solidity": "solid",
+    "burns": false,
+    "collider": "box/convex hull of the log walls (+ plank end wall); 2 box colliders along the roof planes; porch deck/steps boxes (A); log ends, casings, posts, drips: no separate colliders",
+    "moving_parts": "none",
+    "notes": "Full body (foundation blocks to chimney); flooding is done by placement. flood_levels_z = suggested water heights for threshold / windows / roof-only."
+   }
+  ]
+ },
+ {
+  "item": "SW18-well-sweep",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW18a",
+    "name": "WellSweep",
+    "fbx": "SM_SW18_WellSweep.fbx",
+    "tris": 982,
+    "tris_by_material": {
+     "LogWall": 312,
+     "BarkMossy": 148,
+     "Planks": 128,
+     "Props": 190,
+     "Moss": 60,
+     "Plants": 144
+    },
+    "size_xyz_m": [
+     2.452,
+     3.284,
+     4.529
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW18a_LogWall",
+     "SW18a_BarkMossy",
+     "SW18a_Planks",
+     "SW18a_Props",
+     "SW18a_Moss",
+     "SW18a_Plants"
+    ],
+    "water_line_z": 1.087,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "crib: box (top rim walkable edge); post: capsule along the trunk; grass no collider",
+    "moving_parts": "lever SM_SW18_WellSweepLever (pivot = axle) at base-local [0.206, -1.327, 4.062] m (Unity [0.206, 4.062, -1.327]); rotates about the X axis (horizontal axle across the fork)",
+    "notes": "crib nearly in water; dark quad = shaft. The axle pin belongs to the base."
+   },
+   {
+    "id": "SW18a_Lever",
+    "name": "WellSweepLever",
+    "fbx": "SM_SW18_WellSweepLever.fbx",
+    "tris": 202,
+    "tris_by_material": {
+     "Bark": 124,
+     "Props": 60,
+     "Moss": 18
+    },
+    "size_xyz_m": [
+     0.54,
+     4.407,
+     2.298
+    ],
+    "min_z": -1.409,
+    "objects": [
+     "SW18a_Lever_Bark",
+     "SW18a_Lever_Props",
+     "SW18a_Lever_Moss"
+    ],
+    "water_line_z": null,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "capsule along the beam; box counterweight",
+    "pivot": "axle centre (rotation axis = local X); modelled pose: long arm raised 16 deg",
+    "place_at_base_local": [
+     0.206,
+     -1.327,
+     4.062
+    ],
+    "bucket_attach_lever_local": [
+     0.0,
+     2.672,
+     0.666
+    ],
+    "bucket_attach_unity": [
+     0.0,
+     0.666,
+     2.672
+    ],
+    "notes": "beam + lashings + counterweight with its short rope (rigid with the beam)"
+   },
+   {
+    "id": "SW18a_Bucket",
+    "name": "WellSweepBucket",
+    "fbx": "SM_SW18_WellSweepBucket.fbx",
+    "tris": 200,
+    "tris_by_material": {
+     "Planks": 54,
+     "Props": 146
+    },
+    "size_xyz_m": [
+     0.462,
+     0.412,
+     1.86
+    ],
+    "min_z": -1.86,
+    "objects": [
+     "SW18a_Bucket_Planks",
+     "SW18a_Bucket_Props"
+    ],
+    "water_line_z": null,
+    "solidity": "prop (no collider or small capsule)",
+    "burns": true,
+    "collider": "none / small capsule",
+    "pivot": "top of the rope = hang point under the lever tip; parent it to the lever at bucket_attach_lever_local and keep its rotation world-upright so it hangs",
+    "notes": "rope 1.25 m + 9 staves + bottom + 2 iron hoops + iron bail"
+   }
+  ]
+ },
+ {
+  "item": "SW19-water-fences",
+  "group": "Paths",
+  "variants": [
+   {
+    "id": "SW19a",
+    "name": "WaterFenceRails",
+    "fbx": "SM_SW19_WaterFenceRails.fbx",
+    "tris": 384,
+    "tris_by_material": {
+     "Planks": 190,
+     "Props": 6,
+     "Plants": 50,
+     "Moss": 138
+    },
+    "size_xyz_m": [
+     3.426,
+     0.752,
+     1.621
+    ],
+    "min_z": -0.0167,
+    "objects": [
+     "SW19a_Planks",
+     "SW19a_Props",
+     "SW19a_Plants",
+     "SW19a_Moss"
+    ],
+    "water_line_z": 0.42,
+    "pivot": "left joint at the base: bottom of the left post = (0,0,0); fence runs along +X, front -Y",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "posts + rails (+ wattle rods as one thin box per intact span) solid; the gaps/hole stay open; Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "two broad rails between two leaning posts; lower rail splintered"
+   },
+   {
+    "id": "SW19b",
+    "name": "WaterFenceWattle",
+    "fbx": "SM_SW19_WaterFenceWattle.fbx",
+    "tris": 1561,
+    "tris_by_material": {
+     "Planks": 68,
+     "Bark": 1282,
+     "Props": 62,
+     "Plants": 50,
+     "Moss": 99
+    },
+    "size_xyz_m": [
+     3.031,
+     0.771,
+     1.474
+    ],
+    "min_z": -0.0076,
+    "objects": [
+     "SW19b_Planks",
+     "SW19b_Bark",
+     "SW19b_Props",
+     "SW19b_Plants",
+     "SW19b_Moss"
+    ],
+    "water_line_z": 0.42,
+    "pivot": "left joint at the base: bottom of the left post = (0,0,0); fence runs along +X, front -Y",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "posts + rails (+ wattle rods as one thin box per intact span) solid; the gaps/hole stay open; Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "woven wattle (real rods) between two posts and 3 stakes, ragged hole"
+   },
+   {
+    "id": "SW19c",
+    "name": "WaterFenceBroken",
+    "fbx": "SM_SW19_WaterFenceBroken.fbx",
+    "tris": 482,
+    "tris_by_material": {
+     "Planks": 242,
+     "Props": 12,
+     "Plants": 46,
+     "Moss": 182
+    },
+    "size_xyz_m": [
+     3.924,
+     0.853,
+     1.306
+    ],
+    "min_z": -0.0646,
+    "objects": [
+     "SW19c_Planks",
+     "SW19c_Props",
+     "SW19c_Plants",
+     "SW19c_Moss"
+    ],
+    "water_line_z": 0.42,
+    "pivot": "left joint at the base: bottom of the left post = (0,0,0); fence runs along +X, front -Y",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "posts + rails (+ wattle rods as one thin box per intact span) solid; the gaps/hole stay open; Plants and Moss no collider",
+    "moving_parts": "none",
+    "notes": "low broken section, upper rail missing, leaning post pair"
+   }
+  ]
+ },
+ {
+  "item": "SW20-drowned-watermill",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW20a",
+    "name": "DrownedMill",
+    "fbx": "SM_SW20_DrownedMill.fbx",
+    "tris": 7450,
+    "tris_by_material": {
+     "Bark": 1556,
+     "Planks": 3316,
+     "LogWall": 240,
+     "Roof": 1192,
+     "Props": 78,
+     "Moss": 646,
+     "Plants": 422
+    },
+    "size_xyz_m": [
+     6.225,
+     6.126,
+     7.275
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW20a_Bark",
+     "SW20a_Planks",
+     "SW20a_LogWall",
+     "SW20a_Roof",
+     "SW20a_Props",
+     "SW20a_Moss",
+     "SW20a_Plants"
+    ],
+    "water_line_z": 0.614,
+    "solidity": "solid",
+    "burns": false,
+    "collider": "piles+bearing post: capsules/boxes; deck: one box (top at z=2.41); house walls: box; roof: 2 sloped boxes; braces, railing rails, drips, moss: no collider (railing posts optional). No ladder/stairs: the deck and the roof are reachable only via cards; keep diagonal braces without colliders so they are not a climbing route.",
+    "moving_parts": "water wheel = separate FBX SM_SW20_DrownedMillWheel (separate prefab child); put its pivot at wheel_mount_xyz_m (Blender X right, Y back, Z up, relative to the mill pivot) = wheel_mount_unity_guess (standard Unity FBX import: X mirrored, Blender Y -> -Z, Z -> Y; verify once against the bearing block under the +X deck edge, where the axle stub ends). Spin around the wheel local X axis (axle); paddles dip ~0.6 m below the water line.",
+    "wheel_mount_xyz_m": [
+     3.603,
+     -0.543,
+     2.014
+    ],
+    "wheel_mount_unity_guess": [
+     -3.603,
+     2.014,
+     0.543
+    ],
+    "wheel_gap_to_mill_m": "wheel inner face (local x=-0.42) is 0.24 m from the bearing post, ~0.6 m from the deck edge, ~1.7 m from the house wall, ~0.15 m horizontal clearance under the lean-to eave; axle stub ends inside the bearing block",
+    "deck_top_z": 2.414,
+    "notes": "Front (-Y) = door + window + gable window, railing walkway on the front and -X side; porch with lean-to roof and the wheel on +X. Water line at the moss collars of the stilts. Pivot = bottom of the stilts, XY centred on the mill (without the wheel)."
+   },
+   {
+    "id": "SW20w",
+    "name": "DrownedMillWheel",
+    "fbx": "SM_SW20_DrownedMillWheel.fbx",
+    "tris": 1260,
+    "tris_by_material": {
+     "Planks": 732,
+     "Bark": 356,
+     "Props": 68,
+     "Moss": 104
+    },
+    "size_xyz_m": [
+     1.6,
+     3.771,
+     3.782
+    ],
+    "min_z": -1.8977,
+    "objects": [
+     "SW20w_Planks",
+     "SW20w_Bark",
+     "SW20w_Props",
+     "SW20w_Moss"
+    ],
+    "water_line_z": null,
+    "solidity": "solid (moving)",
+    "burns": false,
+    "collider": "none or one thin cylinder; it spins",
+    "pivot": "axle centre (0,0,0), axle along local X",
+    "diameter_m": 3.8,
+    "notes": "12 rim segments x2, 10 spokes per side, 23 soling boards (one missing, two broken), 12 paddles, octagonal hub with iron bands, axle stub reaching the bearing block on the mill."
+   }
+  ]
+ },
+ {
+  "item": "SW21-sunken-boats",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW21a",
+    "name": "SunkenBoatNarrow",
+    "fbx": "SM_SW21_SunkenBoatNarrow.fbx",
+    "tris": 2040,
+    "tris_by_material": {
+     "Planks": 1796,
+     "Props": 52,
+     "Moss": 140,
+     "Plants": 52
+    },
+    "size_xyz_m": [
+     1.412,
+     3.329,
+     0.946
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW21a_Planks",
+     "SW21a_Props",
+     "SW21a_Moss",
+     "SW21a_Plants"
+    ],
+    "water_line_z": 0.3,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "hull: 2-3 boxes (bottom + low sides) or a convex hull of SW21a_Planks without thwarts; rope, moss, drips, duckweed: no collider",
+    "moving_parts": "none",
+    "notes": "Length along Y, bow to -Y. Already listing/stern-down (sunken); hole on the +X side. Duckweed cards inside sit at water_line_z."
+   },
+   {
+    "id": "SW21b",
+    "name": "SunkenBoatWide",
+    "fbx": "SM_SW21_SunkenBoatWide.fbx",
+    "tris": 2186,
+    "tris_by_material": {
+     "Planks": 1920,
+     "Props": 52,
+     "Moss": 162,
+     "Plants": 52
+    },
+    "size_xyz_m": [
+     1.767,
+     4.029,
+     1.014
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW21b_Planks",
+     "SW21b_Props",
+     "SW21b_Moss",
+     "SW21b_Plants"
+    ],
+    "water_line_z": 0.32,
+    "solidity": "solid",
+    "burns": true,
+    "collider": "hull: 2-3 boxes (bottom + low sides) or a convex hull of SW21b_Planks without thwarts; rope, moss, drips, duckweed: no collider",
+    "moving_parts": "none",
+    "notes": "Length along Y, bow to -Y. Already listing/stern-down (sunken); hole on the +X side. Duckweed cards inside sit at water_line_z."
+   }
+  ]
+ },
+ {
+  "item": "SW22-net-rack",
+  "group": "Paths",
+  "variants": [
+   {
+    "id": "SW22a",
+    "name": "NetRack",
+    "fbx": "SM_SW22_NetRack.fbx",
+    "tris": 1140,
+    "tris_by_material": {
+     "BarkMossy": 78,
+     "Bark": 232,
+     "Props": 410,
+     "Plants": 288,
+     "Moss": 132
+    },
+    "size_xyz_m": [
+     3.571,
+     0.919,
+     2.623
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW22a_BarkMossy",
+     "SW22a_Bark",
+     "SW22a_Props",
+     "SW22a_Plants",
+     "SW22a_Moss"
+    ],
+    "water_line_z": null,
+    "pivot": "base centre on the ground (z=0), front -Y",
+    "solidity": "solid poles, passable nets",
+    "burns": true,
+    "collider": "two capsules on the forked poles + one capsule on the cross pole (SW22a_BarkMossy); nets/rag (SW22a_Plants), rope (Props) and moss: no collider",
+    "wind": "Plants cards: Wind UV2 = (sway, flutter) in metres, 0 at the hang line on the pole",
+    "moving_parts": "none (nets/rag move by wind shader only)",
+    "notes": "two forked poles + cross pole; 2 torn net sections (4 cards) and a rag"
+   }
+  ]
+ },
+ {
+  "item": "SW23-swamp-idol",
+  "group": "Buildings",
+  "variants": [
+   {
+    "id": "SW23a",
+    "name": "SwampIdol",
+    "fbx": "SM_SW23_SwampIdol.fbx",
+    "tris": 2530,
+    "tris_by_material": {
+     "Planks": 792,
+     "Bark": 32,
+     "Props": 218,
+     "Mud": 68,
+     "Moss": 1204,
+     "Plants": 216
+    },
+    "size_xyz_m": [
+     1.763,
+     1.559,
+     2.796
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW23a_Planks",
+     "SW23a_Bark",
+     "SW23a_Props",
+     "SW23a_Mud",
+     "SW23a_Moss",
+     "SW23a_Plants"
+    ],
+    "water_line_z": null,
+    "ground_line_z": 0.12,
+    "solidity": "solid",
+    "burns": false,
+    "post_size_xyz_m": [
+     0.938,
+     0.587,
+     2.786
+    ],
+    "collider": "post: 3 capsules or tilted boxes following the bends (SW23a_Planks); mound (Mud) is a thin skin at ground level - no collider; plants, moss, drips, stick: no collider",
+    "moving_parts": "none",
+    "notes": "Pivot = bottom of the post (0.12 m of the post is buried: put ground_line_z at terrain level). Face (Props idol_face) only on the front facet (-Y): continuous 6-stave post (real grooves between staves, horizontal cracks), heavy brow block, long wedge nose, recessed eye slits (no mouth, as the repainted texture). The thin mound + plants at the foot widen the overall bounds; the post alone is post_size_xyz_m."
+   }
+  ]
+ },
+ {
+  "item": "SW24-wooden-crosses",
+  "group": "Graveyard",
+  "variants": [
+   {
+    "id": "SW24a",
+    "name": "WoodenCrossTall",
+    "fbx": "SM_SW24_WoodenCrossTall.fbx",
+    "tris": 514,
+    "tris_by_material": {
+     "Planks": 80,
+     "Props": 392,
+     "Plants": 2,
+     "Moss": 40
+    },
+    "size_xyz_m": [
+     0.828,
+     0.347,
+     1.834
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW24a_Planks",
+     "SW24a_Props",
+     "SW24a_Plants",
+     "SW24a_Moss"
+    ],
+    "water_line_z": 0.35,
+    "pivot": "bottom end of the upright = (0,0,0) (lower 0.35 m goes into the bog/water)",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "two boxes (upright + crossbar) or a capsule on the upright; rope/moss no collider",
+    "moving_parts": "none",
+    "notes": "tall cross, tilted crossbar, X lashing"
+   },
+   {
+    "id": "SW24b",
+    "name": "WoodenCrossThinBroken",
+    "fbx": "SM_SW24_WoodenCrossThinBroken.fbx",
+    "tris": 532,
+    "tris_by_material": {
+     "Planks": 88,
+     "Props": 388,
+     "Plants": 2,
+     "Moss": 54
+    },
+    "size_xyz_m": [
+     0.621,
+     0.275,
+     1.399
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW24b_Planks",
+     "SW24b_Props",
+     "SW24b_Plants",
+     "SW24b_Moss"
+    ],
+    "water_line_z": 0.35,
+    "pivot": "bottom end of the upright = (0,0,0) (lower 0.35 m goes into the bog/water)",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "two boxes (upright + crossbar) or a capsule on the upright; rope/moss no collider",
+    "moving_parts": "none",
+    "notes": "thin S-crooked upright, broken left arm and splintered top"
+   },
+   {
+    "id": "SW24c",
+    "name": "WoodenCrossHeavy",
+    "fbx": "SM_SW24_WoodenCrossHeavy.fbx",
+    "tris": 659,
+    "tris_by_material": {
+     "Planks": 80,
+     "Props": 520,
+     "Plants": 2,
+     "Moss": 57
+    },
+    "size_xyz_m": [
+     0.961,
+     0.534,
+     1.588
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW24c_Planks",
+     "SW24c_Props",
+     "SW24c_Plants",
+     "SW24c_Moss"
+    ],
+    "water_line_z": 0.35,
+    "pivot": "bottom end of the upright = (0,0,0) (lower 0.35 m goes into the bog/water)",
+    "solidity": "solid",
+    "burns": true,
+    "collider": "two boxes (upright + crossbar) or a capsule on the upright; rope/moss no collider",
+    "moving_parts": "none",
+    "notes": "short heavy cross leaning diagonally, crossbar low"
+   }
+  ]
+ },
+ {
+  "item": "SW25-grave-fences",
+  "group": "Graveyard",
+  "variants": [
+   {
+    "id": "SW25a",
+    "name": "GraveFenceTilted",
+    "fbx": "SM_SW25_GraveFenceTilted.fbx",
+    "tris": 575,
+    "tris_by_material": {
+     "Props": 356,
+     "Plants": 12,
+     "Moss": 207
+    },
+    "size_xyz_m": [
+     2.118,
+     0.333,
+     1.198
+    ],
+    "min_z": -0.0133,
+    "objects": [
+     "SW25a_Props",
+     "SW25a_Plants",
+     "SW25a_Moss"
+    ],
+    "water_line_z": 0.42,
+    "pivot": "left joint at the base: bottom of the left post = (0,0,0); runs along +X, front -Y",
+    "solidity": "solid",
+    "burns": false,
+    "collider": "one thin box over the section (posts+rails); in b two boxes leaving the gap; Moss/Plants no collider",
+    "moving_parts": "none",
+    "notes": "whole tilted section, wavy top rail, 7 uneven pickets; material: Props iron region (wrought iron, rust painted)"
+   },
+   {
+    "id": "SW25b",
+    "name": "GraveFenceBroken",
+    "fbx": "SM_SW25_GraveFenceBroken.fbx",
+    "tris": 567,
+    "tris_by_material": {
+     "Props": 362,
+     "Plants": 14,
+     "Moss": 191
+    },
+    "size_xyz_m": [
+     1.651,
+     0.296,
+     1.178
+    ],
+    "min_z": -0.0119,
+    "objects": [
+     "SW25b_Props",
+     "SW25b_Plants",
+     "SW25b_Moss"
+    ],
+    "water_line_z": 0.42,
+    "pivot": "left joint at the base: bottom of the left post = (0,0,0); runs along +X, front -Y",
+    "solidity": "solid",
+    "burns": false,
+    "collider": "one thin box over the section (posts+rails); in b two boxes leaving the gap; Moss/Plants no collider",
+    "moving_parts": "none",
+    "notes": "broken section: torn and bent top rail, gap, snapped picket; material: Props iron region (wrought iron, rust painted)"
+   }
+  ]
+ },
+ {
+  "item": "SW27-gas-vents",
+  "group": "Deadwood",
+  "variants": [
+   {
+    "id": "SW27a",
+    "name": "GasVentRound",
+    "fbx": "SM_SW27_GasVentRound.fbx",
+    "tris": 680,
+    "tris_by_material": {
+     "Peat": 189,
+     "Props": 144,
+     "Moss": 63,
+     "Plants": 44
+    },
+    "size_xyz_m": [
+     1.714,
+     1.427,
+     1.24
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW27a_Peat",
+     "SW27a_Props",
+     "SW27a_Moss",
+     "SW27a_Fungus",
+     "SW27a_Plants"
+    ],
+    "name_ru": "Газовое жерло: низкое круглое",
+    "water_line_z": null,
+    "ground_line_z": 0.315,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "tris_by_object": {
+     "SW27a_Peat": 189,
+     "SW27a_Props": 240,
+     "SW27a_Moss": 63,
+     "SW27a_Fungus": 144,
+     "SW27a_Plants": 44
+    },
+    "vfx_vent_mouth_local_blender_xyz": [
+     0.012,
+     -0.011,
+     0.717
+    ],
+    "vfx_vent_axis_blender": [
+     0.0,
+     -0.068,
+     0.998
+    ],
+    "vfx_note": "bubbles/gas VFX spawn at the mouth centre (rim level), rising along the axis; the hole goes ~0.6-0.7 m down (dark Props vent_hole); rust vent_crust ring + tongues around the mouth. Coordinates are Blender-local (X right, Y = back, Z up; front faces -Y), same frame as the FBX pivot; z = height above the pivot",
+    "collider": "mound as a convex hull of the Peat object (walkable), mouth area: trigger volume for the gas zone (game side); Plants/Fungus no collider",
+    "separate_objects": {
+     "SW27a_Fungus": "Props material; removable mushrooms at the base"
+    },
+    "moving_parts": null,
+    "pivot": "bottom centre; the skirt sinks 0.14 m into the ground",
+    "notes": "set the mound into the bog so ground_line_z is at the ground surface"
+   },
+   {
+    "id": "SW27b",
+    "name": "GasVentSlit",
+    "fbx": "SM_SW27_GasVentSlit.fbx",
+    "tris": 801,
+    "tris_by_material": {
+     "Peat": 327,
+     "Props": 144,
+     "Moss": 58,
+     "Plants": 40
+    },
+    "size_xyz_m": [
+     2.356,
+     1.673,
+     1.26
+    ],
+    "min_z": 0.0,
+    "objects": [
+     "SW27b_Peat",
+     "SW27b_Props",
+     "SW27b_Moss",
+     "SW27b_Fungus",
+     "SW27b_Plants"
+    ],
+    "name_ru": "Газовое жерло: наклонное щелевидное",
+    "water_line_z": null,
+    "ground_line_z": 0.16,
+    "solidity": "walk-on-top",
+    "burns": false,
+    "tris_by_object": {
+     "SW27b_Peat": 327,
+     "SW27b_Props": 232,
+     "SW27b_Moss": 58,
+     "SW27b_Fungus": 144,
+     "SW27b_Plants": 40
+    },
+    "vfx_vent_mouth_local_blender_xyz": [
+     0.26,
+     -0.149,
+     0.971
+    ],
+    "vfx_vent_axis_blender": [
+     -0.121,
+     -0.212,
+     0.97
+    ],
+    "vfx_note": "bubbles/gas VFX spawn at the mouth centre (rim level), rising along the axis; the hole goes ~0.6-0.7 m down (dark Props vent_hole); rust vent_crust ring + tongues around the mouth. Coordinates are Blender-local (X right, Y = back, Z up; front faces -Y), same frame as the FBX pivot; z = height above the pivot",
+    "collider": "mound as a convex hull of the Peat object (walkable), mouth area: trigger volume for the gas zone (game side); Plants/Fungus no collider",
+    "separate_objects": {
+     "SW27b_Fungus": "Props material; removable mushrooms at the base"
+    },
+    "moving_parts": null,
+    "pivot": "bottom centre; the skirt sinks 0.14 m into the ground",
+    "notes": "set the mound into the bog so ground_line_z is at the ground surface"
+   }
+  ]
+ }
+]

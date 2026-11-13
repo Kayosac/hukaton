@@ -1,0 +1,173 @@
+[
+ {
+  "id": "SW13a",
+  "name": "CorduroyStraight",
+  "fbx": "SM_SW13_CorduroyStraight.fbx",
+  "tris": 660,
+  "tris_by_material": {
+   "Bark": 524,
+   "Props": 72,
+   "Plants": 36,
+   "Moss": 28
+  },
+  "size_xyz_m": [
+   3.65,
+   4.003,
+   0.867
+  ],
+  "min_z": -0.0375,
+  "objects": [
+   "SW13a_Bark",
+   "SW13a_Props",
+   "SW13a_Plants",
+   "SW13a_Moss"
+  ],
+  "water_line_z": 0.3,
+  "deck_top_z": 0.45,
+  "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+  "joints": "straight 4 m: entry (0,0) -> exit (0,4) dir +Y",
+  "solidity": "walk-on-top",
+  "burns": false,
+  "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+  "moving_parts": "none",
+  "notes": "raw logs - do not burn"
+ },
+ {
+  "id": "SW13b",
+  "name": "CorduroyCorner",
+  "fbx": "SM_SW13_CorduroyCorner.fbx",
+  "tris": 813,
+  "tris_by_material": {
+   "Bark": 618,
+   "Props": 74,
+   "Plants": 48,
+   "Moss": 73
+  },
+  "size_xyz_m": [
+   4.069,
+   4.173,
+   1.329
+  ],
+  "min_z": -0.0224,
+  "objects": [
+   "SW13b_Bark",
+   "SW13b_Props",
+   "SW13b_Plants",
+   "SW13b_Moss"
+  ],
+  "water_line_z": 0.3,
+  "deck_top_z": 0.45,
+  "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+  "joints": "corner 90 deg: entry (0,0) -> exit (2,2) dir +X",
+  "solidity": "walk-on-top",
+  "burns": false,
+  "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+  "moving_parts": "none",
+  "notes": "raw logs - do not burn"
+ },
+ {
+  "id": "SW13c",
+  "name": "CorduroyTJunction",
+  "fbx": "SM_SW13_CorduroyTJunction.fbx",
+  "tris": 987,
+  "tris_by_material": {
+   "Bark": 616,
+   "BarkMossy": 120,
+   "Props": 104,
+   "Plants": 48,
+   "Moss": 99
+  },
+  "size_xyz_m": [
+   4.005,
+   3.986,
+   1.278
+  ],
+  "min_z": -0.0048,
+  "objects": [
+   "SW13c_Bark",
+   "SW13c_BarkMossy",
+   "SW13c_Props",
+   "SW13c_Plants",
+   "SW13c_Moss"
+  ],
+  "water_line_z": 0.3,
+  "deck_top_z": 0.45,
+  "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+  "joints": "T: entry (0,0) -> exits (-2,2) dir -X and (2,2) dir +X",
+  "solidity": "walk-on-top",
+  "burns": false,
+  "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+  "moving_parts": "none",
+  "notes": "raw logs - do not burn"
+ },
+ {
+  "id": "SW13d",
+  "name": "CorduroyHole",
+  "fbx": "SM_SW13_CorduroyHole.fbx",
+  "tris": 1211,
+  "tris_by_material": {
+   "Bark": 924,
+   "BarkMossy": 132,
+   "Props": 58,
+   "Plants": 48,
+   "Moss": 49
+  },
+  "size_xyz_m": [
+   3.627,
+   4.016,
+   1.277
+  ],
+  "min_z": -0.3099,
+  "objects": [
+   "SW13d_Bark",
+   "SW13d_BarkMossy",
+   "SW13d_Props",
+   "SW13d_Plants",
+   "SW13d_Moss"
+  ],
+  "water_line_z": 0.3,
+  "deck_top_z": 0.45,
+  "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+  "joints": "straight with a collapsed hole: entry (0,0) -> exit (0,4)",
+  "solidity": "walk-on-top",
+  "burns": false,
+  "collider": "mesh collider from the Bark+BarkMossy+Props logs/runners (or a box per log); Plants/Moss no collider; the hole stays open",
+  "moving_parts": "none",
+  "notes": "raw logs - do not burn"
+ },
+ {
+  "id": "SW13e",
+  "name": "CorduroyEnd",
+  "fbx": "SM_SW13_CorduroyEnd.fbx",
+  "tris": 931,
+  "tris_by_material": {
+   "Bark": 726,
+   "BarkMossy": 70,
+   "Props": 48,
+   "Plants": 48,
+   "Moss": 39
+  },
+  "size_xyz_m": [
+   3.604,
+   4.215,
+   1.471
+  ],
+  "min_z": -0.3219,
+  "objects": [
+   "SW13e_Bark",
+   "SW13e_BarkMossy",
+   "SW13e_Props",
+   "SW13e_Plants",
+   "SW13e_Moss"
+  ],
+  "water_line_z": 0.3,
+  "deck_top_z": 0.45,
+  "pivot": "centre of the entry joint edge, z=0 = runner bottom (lowest point)",
+  "joints": "end: entry (0,0), dies out towards +Y",
+  "solidity": "walk-on-top",
+  "burns": false,
+  "collider": "mesh collider from Bark+BarkMossy+Props (logs+runners); Plants and Moss no collider",
+  "moving_parts": "none",
+  "notes": "raw logs - do not burn"
+ }
+]

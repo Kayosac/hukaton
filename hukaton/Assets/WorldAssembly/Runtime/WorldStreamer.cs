@@ -213,7 +213,7 @@ namespace Hakaton.WorldAssembly.Unity
                 }
                 else line.In[k] = 0;
                 var plan = Map.Chunk(c);
-                var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id) : null;
+                var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, plan.Biome == Biome.Swamp ? ChunkCatalog.Swamp : "") : null;
                 if (k == 0 || k == last || plan.Shape.Kind == ShapeKind.River) line.Points.Add(centre);
                 else if (prefab && prefab.roadGuide.Length >= 2)
                 {
@@ -442,7 +442,7 @@ namespace Hakaton.WorldAssembly.Unity
         void Load(ChunkCoord coord)
         {
             var plan = Map.Chunk(coord);
-            var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id) : null;
+            var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, plan.Biome == Biome.Swamp ? ChunkCatalog.Swamp : "") : null;
             if (!prefab)
             {
                 Debug.LogWarning($"[World] no prefab for {plan.Shape.Id}/{plan.Variant.Id}");

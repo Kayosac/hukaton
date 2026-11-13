@@ -1,0 +1,105 @@
+[
+ {
+  "id": "SW18a",
+  "name": "WellSweep",
+  "fbx": "SM_SW18_WellSweep.fbx",
+  "tris": 982,
+  "tris_by_material": {
+   "LogWall": 312,
+   "BarkMossy": 148,
+   "Planks": 128,
+   "Props": 190,
+   "Moss": 60,
+   "Plants": 144
+  },
+  "size_xyz_m": [
+   2.452,
+   3.284,
+   4.529
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW18a_LogWall",
+   "SW18a_BarkMossy",
+   "SW18a_Planks",
+   "SW18a_Props",
+   "SW18a_Moss",
+   "SW18a_Plants"
+  ],
+  "water_line_z": 1.087,
+  "solidity": "solid",
+  "burns": true,
+  "collider": "crib: box (top rim walkable edge); post: capsule along the trunk; grass no collider",
+  "moving_parts": "lever SM_SW18_WellSweepLever (pivot = axle) at base-local [0.206, -1.327, 4.062] m (Unity [0.206, 4.062, -1.327]); rotates about the X axis (horizontal axle across the fork)",
+  "notes": "crib nearly in water; dark quad = shaft. The axle pin belongs to the base."
+ },
+ {
+  "id": "SW18a_Lever",
+  "name": "WellSweepLever",
+  "fbx": "SM_SW18_WellSweepLever.fbx",
+  "tris": 202,
+  "tris_by_material": {
+   "Bark": 124,
+   "Props": 60,
+   "Moss": 18
+  },
+  "size_xyz_m": [
+   0.54,
+   4.407,
+   2.298
+  ],
+  "min_z": -1.409,
+  "objects": [
+   "SW18a_Lever_Bark",
+   "SW18a_Lever_Props",
+   "SW18a_Lever_Moss"
+  ],
+  "water_line_z": null,
+  "solidity": "solid",
+  "burns": true,
+  "collider": "capsule along the beam; box counterweight",
+  "pivot": "axle centre (rotation axis = local X); modelled pose: long arm raised 16 deg",
+  "place_at_base_local": [
+   0.206,
+   -1.327,
+   4.062
+  ],
+  "bucket_attach_lever_local": [
+   0.0,
+   2.672,
+   0.666
+  ],
+  "bucket_attach_unity": [
+   0.0,
+   0.666,
+   2.672
+  ],
+  "notes": "beam + lashings + counterweight with its short rope (rigid with the beam)"
+ },
+ {
+  "id": "SW18a_Bucket",
+  "name": "WellSweepBucket",
+  "fbx": "SM_SW18_WellSweepBucket.fbx",
+  "tris": 200,
+  "tris_by_material": {
+   "Planks": 54,
+   "Props": 146
+  },
+  "size_xyz_m": [
+   0.462,
+   0.412,
+   1.86
+  ],
+  "min_z": -1.86,
+  "objects": [
+   "SW18a_Bucket_Planks",
+   "SW18a_Bucket_Props"
+  ],
+  "water_line_z": null,
+  "solidity": "prop (no collider or small capsule)",
+  "burns": true,
+  "collider": "none / small capsule",
+  "pivot": "top of the rope = hang point under the lever tip; parent it to the lever at bucket_attach_lever_local and keep its rotation world-upright so it hangs",
+  "notes": "rope 1.25 m + 9 staves + bottom + 2 iron hoops + iron bail"
+ }
+]

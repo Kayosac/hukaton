@@ -132,7 +132,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             Color32 Level(int level) => level switch
             {
                 // Rotten swamp: murky brown-green low ground.
-                0 when p.Biome == Biome.Swamp => new Color32(72, 82, 52, 255),
+                // Rotten swamp: murky water in the open, olive on its shores.
+                0 when p.Biome == Biome.Swamp && p.Shape.Kind == ShapeKind.Shore => new Color32(86, 96, 58, 255),
+                0 when p.Biome == Biome.Swamp => new Color32(46, 66, 58, 255),
                 0 => new Color32(118, 128, 78, 255),
                 1 => new Color32(150, 140, 120, 255),
                 _ => new Color32(205, 200, 190, 255),
