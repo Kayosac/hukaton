@@ -1083,14 +1083,12 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 double kind = rng.NextDouble();
                 GameObject piece;
-                // Fewer, bigger thickets and more stone: a thicket is ~570 triangles, a boulder under a hundred, and the
-                // forest wall was the heaviest dressing in the world (up to 31 thickets a chunk).
-                if (kind < .6)
+                if (kind < .75)
                 {
-                    float w = Rnd(1.3f, 1.8f);
+                    float w = Rnd(1.1f, 1.5f);
                     piece = Place(thorns, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(w, w * Rnd(1.8f, 2.4f), w));
                 }
-                else if (kind < .75) piece = Place(thorns, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f));
+                else if (kind < .9) piece = Place(thorns, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f));
                 else piece = Place(thorns, "Rocks/FA_RK06_BoulderSplit", t, p, Rnd(0, 360), Vector3.one * Rnd(1.1f, 1.5f));
                 // Kept out of the lanes; where nothing that size fits, a small thicket.
                 piece = Fit(piece, t, f.WallDepth) ?? Fit(Place(thorns, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(.8f, 1.6f, .8f)), t, f.WallDepth);
