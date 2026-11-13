@@ -41,7 +41,8 @@ namespace Hakaton.Decks.Unity
         Bubble = 35,
         // Третий каталог (14.11.2026): семь новых карт из таблицы KayoSpace.
         WaterJet = 36,
-        Rockfall = 37
+        Rockfall = 37,
+        EvilEye = 38
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]
