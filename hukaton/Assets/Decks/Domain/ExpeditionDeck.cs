@@ -154,11 +154,16 @@ namespace Hakaton.Decks
 
         int nextGrantedId = -1000;
 
-        /// <summary>Adds a temporary copy (never owned or saved) to the hand: the cave prologue's cards, cheats.</summary>
-        public CardCopy GrantToHand(CardSpec spec, int level = 1)
+        /// <summary>
+        /// Adds a temporary copy (never owned or saved) to the hand, over the hand's limit: the cave prologue's cards,
+        /// cheats, the phone's prize. <paramref name="uses"/> above 0 overrides the uses of its level (the phone's card is
+        /// one-use); like every card in the hand, R discards it, and it is gone with the outing.
+        /// </summary>
+        public CardCopy GrantToHand(CardSpec spec, int level = 1, int uses = 0)
         {
             if (Completed || spec == null) return null;
             var card = new CardCopy(nextGrantedId--, spec, spec.Mergeable ? Math.Max(1, Math.Min(CardSpec.MaxLevel, level)) : 1);
+            if (uses > 0) card.UsesLeft = uses;
             // A spell given in the prologue never runs out.
             if (Prologue && spec.Mergeable) card.UsesLeft = int.MaxValue;
             Deck.AddToHand(card);

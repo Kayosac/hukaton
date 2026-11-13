@@ -73,6 +73,11 @@ namespace Hakaton.Computer
         /// without it the improvements window has no stamina track.
         /// </summary>
         public StaminaUpgrade Stamina { get; set; }
+        /// <summary>
+        /// The special items (the phone's «Батарея телефона»), handed over by the game like <see cref="Shop"/> (not
+        /// serialized); the battery track shows once the phone is bought.
+        /// </summary>
+        public Hakaton.SpecialItems.SpecialItemsHost SpecialItems { get; set; }
 
         void Awake()
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Hakaton.Character;
 using Hakaton.Decks;
+using Hakaton.SpecialItems;
 using Hakaton.Trading;
 
 namespace Hakaton.Computer
@@ -47,14 +48,17 @@ namespace Hakaton.Computer
 
         /// <summary>
         /// The PC's improvements: hand size and the deck limit (deck workshop), then the shift length when the shop is
-        /// given and has upgrades to sell, then the player's stamina when given, then the bulk buyer's chance — only once
-        /// the player has met him (a surprise until then).
+        /// given and has upgrades to sell, then the player's stamina when given, the phone's battery once the phone is bought,
+        /// then the bulk buyer's chance — only once the player has met him (a surprise until then).
         /// </summary>
-        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null, StaminaUpgrade stamina = null)
+        public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null, StaminaUpgrade stamina = null,
+            SpecialItemsHost items = null)
         {
             var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
             if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
             if (stamina != null && stamina.Steps > 0) tracks.Add(new StaminaTrack(model, stamina));
+            if (items && items.phone && items.phone.BatterySteps > 0 && items.Inventory.Owns(PhoneBatteryTrack.PhoneId))
+                tracks.Add(new PhoneBatteryTrack(model, items));
             if (shop != null && shop.BulkBuyerMet && shop.BulkBuyerSteps > 0) tracks.Add(new BulkBuyerTrack(shop));
             return tracks;
         }
@@ -126,6 +130,39 @@ namespace Hakaton.Computer
                 return null;
             }
             public override string Bought => $"Бег без передышки: {Seconds(stamina.Seconds)}.";
+        }
+
+        /// <summary>«Батарея телефона»: spins per outing of the phone's one-armed bandit, paid from the shared wallet.</summary>
+        sealed class PhoneBatteryTrack : PcUpgradeTrack
+        {
+            public const string PhoneId = "phone";
+            readonly DeckWorkshop model;
+            readonly SpecialItemsHost items;
+            public PhoneBatteryTrack(DeckWorkshop model, SpecialItemsHost items) { this.model = model; this.items = items; }
+            PhoneSettings Phone => items.phone;
+            int Level => items.Inventory.PhoneBatteryLevel;
+            public override string Title => "Батарея телефона";
+            public override int Step => Math.Min(Level, Steps);
+            public override int Steps => Phone.BatterySteps;
+            public override string Values => Maxed ? Spins(Phone.SpinsAt(Level)) : Phone.SpinsAt(Level) + Arrow + Spins(Phone.SpinsAt(Level + 1));
+            public override int Price => Phone.BatteryPriceAt(Level);
+            public override string Buy()
+            {
+                if (model.IsAway) return "Сначала вернитесь в лавку.";
+                if (Maxed) return "Батарея уже на пределе.";
+                if (!model.Wallet.TrySpend(Price)) return "Не хватает монет.";
+                items.Inventory.SetPhoneBattery(Level + 1);
+                return null;
+            }
+            public override string Bought => $"Телефон держит {Spins(Phone.SpinsAt(Level))} за вылазку.";
+        }
+
+        /// <summary>"10 спинов", "1 спин", "3 спина".</summary>
+        public static string Spins(int n)
+        {
+            int last = n % 10, lastTwo = n % 100;
+            string word = last == 1 && lastTwo != 11 ? "спин" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "спина" : "спинов";
+            return n + " " + word;
         }
 
         sealed class BulkBuyerTrack : PcUpgradeTrack

@@ -112,6 +112,27 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>Every special item for free (introductions skipped) and the phone's battery at its last step.</summary>
+        public bool GrantSpecialItems()
+        {
+            var items = game.specialItems;
+            if (!items || !items.catalog) { status = "Спецпредметов в сцене нет."; return false; }
+            if (!game.Ready || game.Phase != GamePhase.Shop || game.expedition.Returning)
+            { status = "Спецпредметы выдаются в лавке."; return false; }
+            int added = 0;
+            foreach (var item in items.catalog.items)
+            {
+                if (!item) continue;
+                items.Inventory.MarkIntroduced(item.id);
+                items.Inventory.MarkSeen(item.id);
+                if (items.Grant(item)) added++;
+            }
+            if (items.phone) items.Inventory.SetPhoneBattery(items.phone.BatterySteps);
+            game.SaveNow();
+            status = "Спецпредметов выдано: " + added + ". Батарея телефона на максимуме.";
+            return true;
+        }
+
         /// <summary>
         /// The next visitor the shop generates is the bulk buyer («Скупщик»), whatever his chance, the revenue goal or an
         /// earlier visit this shift; he still needs goods on the display and stays away during the tutorial.
@@ -218,6 +239,7 @@ namespace Hakaton.Game
             GUILayout.Label("Коллекция и деньги", title);
             GUI.enabled = game.Ready && game.Phase == GamePhase.Shop && !game.expedition.Returning;
             if (GUILayout.Button("Все карты + прокачки", button)) UnlockCollection();
+            if (GUILayout.Button("Все спецпредметы (Q на вылазке)", button)) GrantSpecialItems();
             GUI.enabled = game.Ready;
             if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
             GUI.enabled = true;

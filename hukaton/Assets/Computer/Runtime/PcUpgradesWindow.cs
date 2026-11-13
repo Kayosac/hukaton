@@ -34,7 +34,7 @@ namespace Hakaton.Computer
         /// </summary>
         void Build()
         {
-            var tracks = PcUpgradeTrack.For(computer.workshop.Model, computer.Shop, computer.Stamina);
+            var tracks = PcUpgradeTrack.For(computer.workshop.Model, computer.Shop, computer.Stamina, computer.SpecialItems);
             if (SameTracks(tracks)) return;
             foreach (var old in rows)
             {
