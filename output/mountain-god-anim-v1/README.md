@@ -1,8 +1,22 @@
-# MG01: god animation (v5)
+# MG01: god animation (v6)
 
 The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
 his support hands. Previews: `MG01_rider.mp4` (riding the finger: the pull and the talk), `MG01_body.mp4` (the body up
 close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp4` is the v2 view from the lip.
+
+## v6 (deeper sit, a longer pull, the hand out of the way at the face)
+
+- He sits deeper in the cradle (pelvis 125 m down instead of 70, hunched 8 deg); Notice is 4.4 s for the longer push up.
+  The support hands stay on their rocks (IK misses 0); if the body now cuts into a rock, the rock is the one to move.
+- The pull is 28 s: the hand lifts off the lip, dives in a wide arc to the cloud sea on his left, skims it in a long
+  sweep around in front of him, swings out to his right and climbs along his front to the face. The finger turns from
+  the lip toward his face in one turn about the vertical through his left (no flip on the way); he leans down after
+  the hand and turns with it. The arm stays on one IK branch the whole way.
+- At the face (Talk) the player stands 320 m in front of him and 160 m below his eyes, the index finger pointing at
+  his face; the hand is turned so the arm hangs low from the shoulder and comes up from below and outside. Nothing of
+  the hand is between the player and his face (`facesearch.py`: candidates scored by the share of the player's view
+  the hand covers and by how high the arm loops; the old pose looped the arm over his head).
+- `liftseq.py` — contact sheet of a clip: a wide view and the player's view every 2 s.
 
 ## v5 (after the review of v4: the caps looked like patches)
 
@@ -77,11 +91,11 @@ What was wrong, and what changed:
 | Clip | Length | Loop | What happens |
 |---|---|---|---|
 | Idle | 12 s | yes | Sits deep, breathing (6 s), small arms and the raised legs sway; S hands on their rocks, C hands on the thighs. |
-| Notice | 3.6 s | no | Pushes off and stands up on the support arms, head turns to the lip. |
+| Notice | 4.4 s | no | Pushes off and stands up on the support arms, head turns to the lip. |
 | AlertIdle | 12 s | yes | Stands, watching the lip. |
 | Reach | 11 s | no | Lets go (hands down), legs drop straight, torso sags and bounces, then leans 13 deg as C01 swings to the lip. |
 | ReachHold | 12 s | yes | Waits at the lip; free fingers twitch, the legs and C02 hang and sway. |
-| Lift | 16 s | no | Down to the clouds, a low sweep toward himself, then up along his front to the face. |
+| Lift | 28 s | no | Off the lip, a dive to the clouds on his left, a long sweep around in front of him over the clouds, out to his right and up along his front to the face. |
 | Talk | 12 s | yes | Nods and tilts, small arms gesture, the hand holds steady. |
 
 Dock: the index fingertip's end tucks 5 m under the lip edge, the finger's top 1 m below the platform. IK misses

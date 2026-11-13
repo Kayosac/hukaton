@@ -215,7 +215,7 @@ def breath(t):
     return math.sin(2 * math.pi * t / BREATH)
 
 
-SIT = dict(rise=-.7, lean=5.0)      # deep in the cradle, hunched
+SIT = dict(rise=-1.25, lean=8.0)    # deep down in the cradle, hunched over
 STAND = dict(rise=.56, lean=-2.5)   # up on the support arms, chest out
 SAG = .38                            # after letting go: the legs' weight pulls him down
 REACH_END = dict(rise=.05, lean=13.0, roll=2.5)
@@ -228,18 +228,18 @@ def idle(t):
     return p
 
 
-NOTICE_LEN = 3.6
+NOTICE_LEN = 4.4
 
 
 def notice(t):
     p = Pose(); p.breath = breath(t); p.sway = t
     # a short dip to push off, then up with a heavy settle
-    dip = .07 * (smooth(t / .35) - smooth((t - .35) / .4))
-    u = settle((t - .3) / 2.6, overshoot=.07, wobbles=1.5)
+    dip = .1 * (smooth(t / .4) - smooth((t - .4) / .45))
+    u = settle((t - .35) / 3.3, overshoot=.06, wobbles=1.5)
     p.rise = SIT["rise"] + (STAND["rise"] - SIT["rise"]) * u - dip
-    p.lean = SIT["lean"] + (STAND["lean"] - SIT["lean"]) * smoother((t - .2) / 2.4)
-    p.look = DOCK_TIP; p.look_w = .55 * smooth((t - .4) / 1.6)
-    p.sway_amp = 1 + .4 * smooth(t / 2)
+    p.lean = SIT["lean"] + (STAND["lean"] - SIT["lean"]) * smoother((t - .25) / 3.0)
+    p.look = DOCK_TIP; p.look_w = .55 * smooth((t - .5) / 2.0)
+    p.sway_amp = 1 + .4 * smooth(t / 2.4)
     return p
 
 
@@ -335,13 +335,15 @@ def reach_hold(t):
     return p
 
 
-LIFT_LEN = 16.0
+LIFT_LEN = 28.0
 LIFT_RISE, LIFT_LEAN = .3, 2.0
-# The pull: off the lip and down to the cloud sea, a long low sweep toward himself just over the clouds (the finger's
-# underside skims them, the player rides 50 m up, under the god's whole height), then up along his front to the face.
-# Fingertip waypoints (time s, position); FACE_TIP closes the list.
-LIFT_KEYS = [(0.0, None), (1.8, Vector((-.2, -14.0, 1.7))), (3.4, Vector((.0, -13.0, -.12))), (5.8, Vector((.6, -10.2, -.2))),
-             (8.0, Vector((1.3, -7.6, -.1))), (10.4, Vector((1.9, -5.6, 4.2))), (12.7, Vector((1.9, -3.4, 10.4))), (14.8, None)]
+# The pull: the hand lifts off the lip, dives in a wide arc to the cloud sea on his left, skims it in a long sweep
+# around in front of him (the finger's underside on the clouds, the player 50 m up, the god's whole height above),
+# swings out to his right and climbs in a wide spiral along his front to the face. Fingertip waypoints (time s,
+# position); FACE_TIP closes the list.
+LIFT_KEYS = [(0.0, None), (2.6, Vector((-.8, -15.2, 6.2))), (5.6, Vector((-4.6, -13.6, .1))), (8.8, Vector((-7.2, -9.4, -.05))),
+             (12.2, Vector((-5.0, -6.2, -.1))), (15.4, Vector((-.6, -6.8, -.05))), (18.4, Vector((3.4, -6.6, .5))),
+             (21.4, Vector((1.4, -7.0, 4.6))), (24.0, Vector((-1.6, -4.6, 9.8))), (26.6, None)]
 
 
 def hermite_path(keys, t):
@@ -370,22 +372,27 @@ def lift(t):
     hold_base(p)
     end = LIFT_KEYS[-1][0]
     f = min(1.0, t / end)
-    # he bends down after his hand to the clouds, then straightens as it climbs to his face
-    down, up = smooth(t / 4.0), smoother((t - 8.0) / (end - 8.0))
-    p.lean = REACH_END["lean"] + (18.0 - REACH_END["lean"]) * down + (LIFT_LEAN - 18.0) * up
-    p.rise = REACH_END["rise"] + (-.2 - REACH_END["rise"]) * down + (LIFT_RISE + .2) * up
-    p.roll = REACH_END["roll"] * (1 - up)
+    tip = lift_tip(t)
+    # he bends down after his hand to the clouds and turns with it, then straightens as it climbs to his face
+    down, up = smooth(t / 5.5), smoother((t - 16.0) / (end - 16.0))
+    p.lean = REACH_END["lean"] + (20.0 - REACH_END["lean"]) * down + (LIFT_LEAN - 20.0) * up
+    p.rise = REACH_END["rise"] + (-.25 - REACH_END["rise"]) * down + (LIFT_RISE + .25) * up
+    follow = max(-1.0, min(1.0, -tip.x / 6.0))
+    p.roll = REACH_END["roll"] * (1 - up) + 4.0 * follow * smooth(t / 4.0) * (1 - up)
     p.c01 = 1; p.fingers = 1
     p.point_w = 1
-    p.point_dir = DOCK_DIR.slerp(FACE_DIR, smooth((t - 1.0) / 7.0))
-    tip = lift_tip(t)
+    # the finger turns from the lip to his face the long way round on his left (where the hand sweeps), never
+    # through a flip: one turn about the vertical, and at the very end the last roll into the face pose
+    yaw = TURN * smooth((t - 1.5) / (end - 4.0))
+    qz = Quaternion((0, 0, 1), yaw)
+    p.point_dir = qz @ DOCK_DIR
     e_dock = M_DOCK.translation - (DOCK_TIP - DOCK_DIR * FINGER_LEN)
     e_face = M_FACE.translation - (FACE_TIP - FACE_DIR * FINGER_LEN)
-    pos = tip - p.point_dir * FINGER_LEN + e_dock.lerp(e_face, smoother(f))
-    rot = M_DOCK.to_quaternion().slerp(M_FACE.to_quaternion(), smoother(f))
+    pos = tip - p.point_dir * FINGER_LEN + (qz @ e_dock).lerp(e_face, smoother(f))
+    rot = (qz @ M_DOCK.to_quaternion()).slerp(M_FACE.to_quaternion(), smoother((t - (end - 6.0)) / 6.0))
     p.hand = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(t / 1.5) - smooth((t - (end - 1.6)) / 1.6))
-    p.look = tip + Vector((0, 0, G.FINGER_R)); p.look_w = .7
+    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(t / 1.8) - smooth((t - (end - 2.0)) / 2.0))
+    p.look = tip + Vector((0, 0, G.FINGER_R)); p.look_w = .75
     return p
 
 
@@ -409,13 +416,19 @@ def talk(t):
 # length behind the wanted fingertip.
 DOCK_TIP = G.LIP + Vector((0, -.05, -.01 - G.FINGER_R))
 DOCK_DIR = Vector((0, -1, 0))
-FACE_SPOT = Vector((HEAD.x - .1, HEAD.y - 3.2, HEAD.z - .2))
-FACE_DIR = Vector((1, 0, 0))
+# At the face the hand hides nothing: the player stands 320 m in front of him and 160 m below his eyes, the index
+# finger pointing at his face; the hand turned so the arm hangs low from the shoulder and comes up from below and
+# outside (searched by the share of the view the hand covers and by how high the arm loops).
+FACE_AZ, FACE_DIST, FACE_DROP = math.radians(0), 3.2, 1.6
+FACE_SPOT = HEAD + Vector((-math.sin(FACE_AZ) * FACE_DIST, -math.cos(FACE_AZ) * FACE_DIST, -FACE_DROP))
+FACE_DIR = Vector((HEAD.x - FACE_SPOT.x, HEAD.y - FACE_SPOT.y, 0)).normalized()
 FACE_TIP = FACE_SPOT + FACE_DIR * SPOT_BACK + Vector((0, 0, -G.FINGER_R))
 HAND_ORIENT = 1.0  # at the dock and the face the wrist target is lined up with the forearm (see fit_target)
 TRAVEL_ORIENT = .04  # on the way: the hand trails the arm
 M_DOCK = hand_matrix(DOCK_TIP, DOCK_DIR, Vector((0, 1, .6)))
-M_FACE = hand_matrix(FACE_TIP, FACE_DIR, Vector((-1, .5, .5)))
+M_FACE = hand_matrix(FACE_TIP, FACE_DIR, -FACE_DIR + FACE_DIR.cross(Vector((0, 0, 1))).normalized())
+# the turn of the finger in the pull, from DOCK_DIR to FACE_DIR about the vertical, through his left (-x)
+TURN = -(math.pi - math.atan2(FACE_DIR.x, FACE_DIR.y)) if FACE_DIR.y > -1 else -math.pi
 
 
 def fit_target(m, tip, fdir, pose_fn, rounds=6):
@@ -480,8 +493,12 @@ def fit_dock():
         global M_FACE
         M_FACE = m
         return talk(0)
-    M_FACE = fit_target(M_FACE, FACE_TIP, FACE_DIR, face)
+    # four rounds: the arm stays on its low branch (hanging from the shoulder and up to the face); more rounds walk the
+    # target onto the branch where the arm loops over his head
+    M_FACE = fit_target(M_FACE, FACE_TIP, FACE_DIR, face, rounds=4)
     apply(talk(0))
+    top = max(whead(b).z for b in ("C01_shoulder", "C01_seg02", "C01_seg03", "C01_seg04", "C01_elbow", "C01_seg06", "C01_seg07"))
+    print(f"face: arm top {top:.2f} (head {HEAD.z:.2f})")
     print(f"face: tip miss {(wtail('C01_f0_02') - FACE_TIP).length:.4f}, wrist bend {wrist_bend():.1f} deg")
 
 
