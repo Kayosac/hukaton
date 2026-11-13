@@ -325,7 +325,7 @@ namespace Hakaton.WorldAssembly
                     theme = CreatureThemes.ForScene(plan.Variant.Id);
                     // Someone always lives at a camp, an apiary or a farm; ruins and hollows are lairs.
                     if (plan.Biome == Biome.Forest && (theme == "camp" || theme == "apiary" || theme == "farm")) chance = Math.Max(chance, .75);
-                    else if (theme == "ruins" || theme == "hollow") chance *= 1.5;
+                    else if (CreatureThemes.IsLair(theme)) chance *= 1.5;
                     break;
                 case ShapeKind.Maze:
                     theme = plan.Forest ? "forest" : "maze";

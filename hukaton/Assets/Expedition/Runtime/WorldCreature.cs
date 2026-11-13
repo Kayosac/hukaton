@@ -231,6 +231,7 @@ namespace Hakaton.Expeditions
             lured = false;
             ResetKin();
             ResetRanged();
+            squad = null;
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -304,6 +305,8 @@ namespace Hakaton.Expeditions
                 nextSight = Time.time + .12f;
                 sees = CanSeeTarget();
             }
+            // In a fight a squad member knows what its squad mates see (WorldCreature.Patrol.cs).
+            if (!sees && SquadSees()) sees = true;
             if (sees) { lastSeen = TargetPosition; unseen = 0; }
             else unseen += dt;
         }
@@ -334,6 +337,8 @@ namespace Hakaton.Expeditions
         {
             State = next;
             stateTime = 0;
+            // Its squad turns on the player with it (WorldCreature.Patrol.cs).
+            squad?.Raise(this, next);
             switch (next)
             {
                 case CreatureState.Idle: idleDuration = Random.Range(1.2f, 2.8f); Halt(); break;
@@ -376,6 +381,8 @@ namespace Hakaton.Expeditions
 
         void ThinkIdle(bool noticed)
         {
+            // A squad member walks the squad's route instead of wandering about (WorldCreature.Patrol.cs).
+            if (ThinkPatrol()) return;
             switch (State)
             {
                 case CreatureState.Idle:

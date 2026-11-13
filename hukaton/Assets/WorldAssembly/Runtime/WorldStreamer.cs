@@ -759,6 +759,7 @@ namespace Hakaton.WorldAssembly.Unity
                     if (NavMesh.SamplePosition(aside, out var spot, 2f, NavMesh.AllAreas)) centre = spot.position + Vector3.up * .15f;
                 }
                 var taken = new List<Vector3>();
+                var group = new List<WorldCreature>();
                 for (int m = 0; m < spawn.Count; m++, k++)
                 {
                     bool remembered = false;
@@ -778,7 +779,10 @@ namespace Hakaton.WorldAssembly.Unity
                     else creature.ResetForOuting(null);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
+                    group.Add(creature);
                 }
+                // Squad creatures (giant dung beetles) walk a route round their spot together.
+                if (prefab && prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, (int)(Pick(plan.Coord, 80 + g) & 0x7fffffff));
             }
         }
 
