@@ -64,35 +64,6 @@ img[outline > 0] = (40, 44, 52, 200)
 img[crack > 0] = (235, 242, 255, 255)
 Image.fromarray(img, 'RGBA').save(f"{OUT}/DebuffCracks.png")
 
-# Honey: amber drips running down from the top edge.
-honey = np.zeros((H, W), float)
-top = 2 + noise(16, 5)[0] * 5
-for x in range(W):
-    honey[:int(top[x]), x] = 1
-x = 0
-while x < W:
-    w = int(rng.integers(3, 7)); length = int(rng.integers(8, 34))
-    for i in range(w):
-        if x + i < W:
-            depth = length - abs(i - w / 2) * (length / w) * .6
-            honey[:int(depth), x + i] = 1
-    # A round blob at the end of the drip.
-    cy, cx, r = int(length - 2), x + w // 2, w * .55
-    honey[np.hypot(yy - cy, xx - cx) <= r] = 1
-    x += w + int(rng.integers(10, 34))
-pad = np.pad(honey, 1)
-rim = np.zeros_like(honey)
-for dy in (-1, 0, 1):
-    for dx in (-1, 0, 1):
-        rim = np.maximum(rim, pad[1 + dy:H + 1 + dy, 1 + dx:W + 1 + dx])
-img = np.zeros((H, W, 4), np.uint8)
-img[rim > 0] = (92, 48, 8, 255)
-img[honey > 0] = (232, 150, 34, 235)
-# A light streak in each drip.
-shine = (honey > 0) & (np.roll(honey, 2, axis=1) == 0) & (np.roll(honey, -1, axis=1) > 0)
-img[shine] = (255, 222, 140, 255)
-Image.fromarray(img, 'RGBA').save(f"{OUT}/DebuffHoney.png")
-
 # Placeholder badge icon: a white exclamation mark in a ragged circle, tinted per debuff in the HUD.
 S = 32
 ic = np.zeros((S, S, 4), np.uint8)
