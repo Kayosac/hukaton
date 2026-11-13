@@ -1,0 +1,42 @@
+[
+ {
+  "id": "SW23a",
+  "name": "SwampIdol",
+  "fbx": "SM_SW23_SwampIdol.fbx",
+  "tris": 2530,
+  "tris_by_material": {
+   "Planks": 792,
+   "Bark": 32,
+   "Props": 218,
+   "Mud": 68,
+   "Moss": 1204,
+   "Plants": 216
+  },
+  "size_xyz_m": [
+   1.763,
+   1.559,
+   2.796
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW23a_Planks",
+   "SW23a_Bark",
+   "SW23a_Props",
+   "SW23a_Mud",
+   "SW23a_Moss",
+   "SW23a_Plants"
+  ],
+  "water_line_z": null,
+  "ground_line_z": 0.12,
+  "solidity": "solid",
+  "burns": false,
+  "post_size_xyz_m": [
+   0.938,
+   0.587,
+   2.786
+  ],
+  "collider": "post: 3 capsules or tilted boxes following the bends (SW23a_Planks); mound (Mud) is a thin skin at ground level - no collider; plants, moss, drips, stick: no collider",
+  "moving_parts": "none",
+  "notes": "Pivot = bottom of the post (0.12 m of the post is buried: put ground_line_z at terrain level). Face (Props idol_face) only on the front facet (-Y): continuous 6-stave post (real grooves between staves, horizontal cracks), heavy brow block, long wedge nose, recessed eye slits (no mouth, as the repainted texture). The thin mound + plants at the foot widen the overall bounds; the post alone is post_size_xyz_m."
+ }
+]

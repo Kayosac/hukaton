@@ -1,0 +1,38 @@
+[
+ {
+  "id": "SW16a",
+  "name": "SunkenHut",
+  "fbx": "SM_SW16_SunkenHut.fbx",
+  "tris": 4311,
+  "tris_by_material": {
+   "LogWall": 1912,
+   "Bark": 96,
+   "Planks": 816,
+   "Roof": 48,
+   "Props": 640,
+   "Moss": 619,
+   "Plants": 180
+  },
+  "size_xyz_m": [
+   6.374,
+   4.553,
+   5.108
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW16a_LogWall",
+   "SW16a_Bark",
+   "SW16a_Planks",
+   "SW16a_Roof",
+   "SW16a_Props",
+   "SW16a_Moss",
+   "SW16a_Plants"
+  ],
+  "water_line_z": 1.739,
+  "solidity": "solid; roof = walk-on-top (reward)",
+  "burns": false,
+  "collider": "walls: one convex/box hull of the log box (NOT the protruding log ends, casings or drips, so the corners do not become a ladder); roof: 2 tilted box colliders along the two roof planes (back slope ~30 deg after the tilt is the standable one, front ~38 deg); chimney box; Plants/Moss no collider",
+  "moving_parts": "none",
+  "notes": "Upright log cabin modelled whole (lower logs kept), then roll-tilted 3.5 deg toward the front, 5 deg toward +X, sagged ridge and drooping broken front-right eave. Door opening (front, under water) is a dark atlas quad; window pane atlas quad."
+ }
+]

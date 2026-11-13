@@ -1,0 +1,36 @@
+[
+ {
+  "id": "SW22a",
+  "name": "NetRack",
+  "fbx": "SM_SW22_NetRack.fbx",
+  "tris": 1140,
+  "tris_by_material": {
+   "BarkMossy": 78,
+   "Bark": 232,
+   "Props": 410,
+   "Plants": 288,
+   "Moss": 132
+  },
+  "size_xyz_m": [
+   3.571,
+   0.919,
+   2.623
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW22a_BarkMossy",
+   "SW22a_Bark",
+   "SW22a_Props",
+   "SW22a_Plants",
+   "SW22a_Moss"
+  ],
+  "water_line_z": null,
+  "pivot": "base centre on the ground (z=0), front -Y",
+  "solidity": "solid poles, passable nets",
+  "burns": true,
+  "collider": "two capsules on the forked poles + one capsule on the cross pole (SW22a_BarkMossy); nets/rag (SW22a_Plants), rope (Props) and moss: no collider",
+  "wind": "Plants cards: Wind UV2 = (sway, flutter) in metres, 0 at the hang line on the pole",
+  "moving_parts": "none (nets/rag move by wind shader only)",
+  "notes": "two forked poles + cross pole; 2 torn net sections (4 cards) and a rag"
+ }
+]

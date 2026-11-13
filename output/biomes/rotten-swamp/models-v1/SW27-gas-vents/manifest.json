@@ -1,0 +1,112 @@
+[
+ {
+  "id": "SW27a",
+  "name": "GasVentRound",
+  "fbx": "SM_SW27_GasVentRound.fbx",
+  "tris": 680,
+  "tris_by_material": {
+   "Peat": 189,
+   "Props": 144,
+   "Moss": 63,
+   "Plants": 44
+  },
+  "size_xyz_m": [
+   1.714,
+   1.427,
+   1.24
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW27a_Peat",
+   "SW27a_Props",
+   "SW27a_Moss",
+   "SW27a_Fungus",
+   "SW27a_Plants"
+  ],
+  "name_ru": "Газовое жерло: низкое круглое",
+  "water_line_z": null,
+  "ground_line_z": 0.315,
+  "solidity": "walk-on-top",
+  "burns": false,
+  "tris_by_object": {
+   "SW27a_Peat": 189,
+   "SW27a_Props": 240,
+   "SW27a_Moss": 63,
+   "SW27a_Fungus": 144,
+   "SW27a_Plants": 44
+  },
+  "vfx_vent_mouth_local_blender_xyz": [
+   0.012,
+   -0.011,
+   0.717
+  ],
+  "vfx_vent_axis_blender": [
+   0.0,
+   -0.068,
+   0.998
+  ],
+  "vfx_note": "bubbles/gas VFX spawn at the mouth centre (rim level), rising along the axis; the hole goes ~0.6-0.7 m down (dark Props vent_hole); rust vent_crust ring + tongues around the mouth. Coordinates are Blender-local (X right, Y = back, Z up; front faces -Y), same frame as the FBX pivot; z = height above the pivot",
+  "collider": "mound as a convex hull of the Peat object (walkable), mouth area: trigger volume for the gas zone (game side); Plants/Fungus no collider",
+  "separate_objects": {
+   "SW27a_Fungus": "Props material; removable mushrooms at the base"
+  },
+  "moving_parts": null,
+  "pivot": "bottom centre; the skirt sinks 0.14 m into the ground",
+  "notes": "set the mound into the bog so ground_line_z is at the ground surface"
+ },
+ {
+  "id": "SW27b",
+  "name": "GasVentSlit",
+  "fbx": "SM_SW27_GasVentSlit.fbx",
+  "tris": 801,
+  "tris_by_material": {
+   "Peat": 327,
+   "Props": 144,
+   "Moss": 58,
+   "Plants": 40
+  },
+  "size_xyz_m": [
+   2.356,
+   1.673,
+   1.26
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW27b_Peat",
+   "SW27b_Props",
+   "SW27b_Moss",
+   "SW27b_Fungus",
+   "SW27b_Plants"
+  ],
+  "name_ru": "Газовое жерло: наклонное щелевидное",
+  "water_line_z": null,
+  "ground_line_z": 0.16,
+  "solidity": "walk-on-top",
+  "burns": false,
+  "tris_by_object": {
+   "SW27b_Peat": 327,
+   "SW27b_Props": 232,
+   "SW27b_Moss": 58,
+   "SW27b_Fungus": 144,
+   "SW27b_Plants": 40
+  },
+  "vfx_vent_mouth_local_blender_xyz": [
+   0.26,
+   -0.149,
+   0.971
+  ],
+  "vfx_vent_axis_blender": [
+   -0.121,
+   -0.212,
+   0.97
+  ],
+  "vfx_note": "bubbles/gas VFX spawn at the mouth centre (rim level), rising along the axis; the hole goes ~0.6-0.7 m down (dark Props vent_hole); rust vent_crust ring + tongues around the mouth. Coordinates are Blender-local (X right, Y = back, Z up; front faces -Y), same frame as the FBX pivot; z = height above the pivot",
+  "collider": "mound as a convex hull of the Peat object (walkable), mouth area: trigger volume for the gas zone (game side); Plants/Fungus no collider",
+  "separate_objects": {
+   "SW27b_Fungus": "Props material; removable mushrooms at the base"
+  },
+  "moving_parts": null,
+  "pivot": "bottom centre; the skirt sinks 0.14 m into the ground",
+  "notes": "set the mound into the bog so ground_line_z is at the ground surface"
+ }
+]

@@ -1,0 +1,88 @@
+[
+ {
+  "id": "SW12a",
+  "name": "StumpLowClosed",
+  "fbx": "SM_SW12_StumpLowClosed.fbx",
+  "tris": 952,
+  "tris_by_material": {
+   "Bark": 178,
+   "Props": 240,
+   "Moss": 470,
+   "Plants": 50
+  },
+  "size_xyz_m": [
+   1.583,
+   1.217,
+   0.779
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW12a_Bark",
+   "SW12a_Props",
+   "SW12a_Moss",
+   "SW12a_Fungus",
+   "SW12a_Plants"
+  ],
+  "name_ru": "Пень: низкий закрытый",
+  "water_line_z": 0.239,
+  "solidity": "walk-on-top",
+  "burns": true,
+  "collider": "trunk convex hull (Bark) with the flat top as standing surface; roots no collider or low boxes; Fungus/Plants no collider",
+  "separate_objects": {
+   "SW12a_Fungus": "Props material; pale mushroom clusters, removable (delete the object)"
+  },
+  "tris_by_object": {
+   "SW12a_Bark": 178,
+   "SW12a_Props": 14,
+   "SW12a_Moss": 470,
+   "SW12a_Fungus": 240,
+   "SW12a_Plants": 50
+  },
+  "moving_parts": null,
+  "pivot": "bottom centre (root tips at z=0)",
+  "notes": "roots go under the water line"
+ },
+ {
+  "id": "SW12b",
+  "name": "StumpTallHollow",
+  "fbx": "SM_SW12_StumpTallHollow.fbx",
+  "tris": 827,
+  "tris_by_material": {
+   "Bark": 322,
+   "Props": 240,
+   "Moss": 174,
+   "Plants": 50
+  },
+  "size_xyz_m": [
+   1.655,
+   1.577,
+   1.477
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "SW12b_Bark",
+   "SW12b_Props",
+   "SW12b_Moss",
+   "SW12b_Fungus",
+   "SW12b_Plants"
+  ],
+  "name_ru": "Пень: высокий полый со ступенью",
+  "water_line_z": 0.271,
+  "solidity": "walk-on-top",
+  "burns": true,
+  "collider": "outer trunk as 6-8 boxes around the hollow (or a convex hull + no-walk top rim), step chunk = separate box (standable at its flat top); Fungus/Plants no collider",
+  "separate_objects": {
+   "SW12b_Fungus": "Props material; pale mushroom clusters, removable (delete the object)"
+  },
+  "tris_by_object": {
+   "SW12b_Bark": 322,
+   "SW12b_Props": 41,
+   "SW12b_Moss": 174,
+   "SW12b_Fungus": 240,
+   "SW12b_Plants": 50
+  },
+  "moving_parts": null,
+  "pivot": "bottom centre (root tips at z=0)",
+  "notes": "roots go under the water line"
+ }
+]
