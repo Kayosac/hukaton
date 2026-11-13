@@ -108,6 +108,29 @@ namespace Hakaton.Expeditions
             return true;
         }
 
+        /// <summary>
+        /// Takes hearts down to <paramref name="keepHalfHearts"/> at once (a curse): never kills, ignores the protection
+        /// after a hit, shakes the view. False when the player already has no more than that.
+        /// </summary>
+        public bool DrainTo(int keepHalfHearts)
+        {
+            keepHalfHearts = Mathf.Max(1, keepHalfHearts);
+            if (!world.Running || Immortal || HalfHearts <= keepHalfHearts) return false;
+            PreviousHalfHearts = HalfHearts;
+            HalfHearts = keepHalfHearts;
+            LastChangeTime = Time.time;
+            LastChangeWasDamage = true;
+            if (world.feel)
+            {
+                world.feel.AddTrauma(.6f);
+                world.feel.Kick(new Vector3(-120, 0, 90));
+                world.feel.PunchFov(14);
+            }
+            if (world.time) world.time.HitStop(.08f);
+            Changed?.Invoke(HalfHearts - PreviousHalfHearts);
+            return true;
+        }
+
         void OnLanded(float speed)
         {
             if (!world || !world.Running) return;

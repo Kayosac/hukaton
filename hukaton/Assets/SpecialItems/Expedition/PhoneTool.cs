@@ -105,15 +105,18 @@ namespace Hakaton.SpecialItems
         [Header("Sound")]
         public SfxCue openSound;
         public SfxCue closeSound, leverSound, spinLoop, reelStopSound, winSound, loseSound, jackpotSound, deadSound,
-            refuseSound, ringSound, voiceSound, cardSound, curseSound, boostSound;
+            refuseSound, ringSound, voiceSound, cardSound, curseSound, boostSound, healSound;
 
         [Header("Effects (Retro Arsenal)")]
         public VfxBurst winCoins;
         public VfxBurst jackpotCoins, jackpotConfetti;
+        [Tooltip("Three hearts: the healing burst in front of the eyes, and the sparkles around it.")]
+        public VfxBurst healBurst, healSparkle;
+        public Color healColour = new Color(.45f, 1f, .55f);
         public Color coinColour = new Color(1f, .82f, .3f);
 
         State state = State.Hidden;
-        float stateTime, spinStarted, resultUntil, ringUntil;
+        float stateTime, spinStarted, resultUntil;
         int charges, capacity, stopped;
         PhoneOutcome outcome;
         PhoneSymbol[] symbols = { PhoneSymbol.Coin, PhoneSymbol.Card, PhoneSymbol.Heart };
@@ -178,7 +181,6 @@ namespace Hakaton.SpecialItems
             if (motion != null) StopCoroutine(motion);
             motion = null;
             StopSounds();
-            ringUntil = 0;
             HideAll();
             if (World && World.motor && World.motor.stamina) World.motor.stamina.ClearUnlimited();
         }
@@ -398,8 +400,7 @@ namespace Hakaton.SpecialItems
                     GrantCard();
                     break;
                 case PhoneOutcome.Heal:
-                    World.vitals.Heal(World.vitals.MaximumHalfHearts);
-                    World.Announce("Три сердца: здоровье полное", 2.5f);
+                    Heal();
                     break;
                 case PhoneOutcome.Boost:
                     Boost(settings);
@@ -479,51 +480,31 @@ namespace Hakaton.SpecialItems
             }
         }
 
+        void Heal()
+        {
+            World.vitals.Heal(World.vitals.MaximumHalfHearts);
+            World.Play(healSound);
+            var eye = World.viewCamera.transform;
+            World.Spawn(healBurst, eye.position + eye.forward * 3.2f - eye.up * .3f, Quaternion.LookRotation(-eye.forward), healColour, .9f);
+            World.Spawn(healSparkle, eye.position + eye.forward * 3.4f, Quaternion.identity, healColour, .7f);
+            World.Announce("Три сердца: здоровье полное", 2.5f);
+        }
+
+        /// <summary>Three skulls: the hearts drop to one at once; never kills.</summary>
         void Curse(PhoneSettings settings)
         {
             World.Play(curseSound);
-            float seconds = settings.curseSeconds;
-            string time = Mathf.RoundToInt(seconds) + " с";
-            switch (random.Next(3))
-            {
-                case 0:
-                    World.motor.ApplyModifier(Hakaton.Character.MotorModifier.MoveSpeed, settings.slowStepMultiplier, seconds);
-                    World.Announce("Три черепа: ватные ноги " + time, 3);
-                    break;
-                case 1:
-                    World.motor.ApplyModifier(Hakaton.Character.MotorModifier.Gravity, settings.heavyGravityMultiplier, seconds);
-                    World.Announce("Три черепа: тяжесть " + time, 3);
-                    break;
-                default:
-                    ringUntil = Time.time + seconds;
-                    nextRingCall = 0;
-                    World.Announce("Три черепа: рингтон! Все бегут на звук — " + time, 3);
-                    break;
-            }
+            if (World.vitals.DrainTo(settings.curseKeepHalfHearts)) World.Announce("Три черепа: осталось одно сердце", 3);
+            else World.Announce("Три черепа: брать нечего — сердце и так одно", 3);
         }
 
-        float nextRingCall;
-
-        /// <summary>The ringtone curse: the phone rings and every creature in hearing comes running to the player.</summary>
+        /// <summary>The incoming call rings until the goblin answers.</summary>
         void Ringtone()
         {
-            bool ringing = Time.time < ringUntil;
             bool calling = state == State.Result && callScreen && callScreen.activeSelf && !callAnswered;
-            if (World.sfx)
-            {
-                if (ringing || calling) World.sfx.Loop(ringOwner, ringSound, World.viewCamera.transform.position);
-                else World.sfx.StopLoop(ringOwner);
-            }
-            if (!ringing || Time.time < nextRingCall) return;
-            nextRingCall = Time.time + .5f;
-            Vector3 here = World.motor.transform.position;
-            float remaining = ringUntil - Time.time, reach = Settings ? Settings.ringtoneRadius : 30;
-            foreach (var creature in World.ActiveCreatures)
-            {
-                if (!creature || !creature.isActiveAndEnabled || !creature.Alive) continue;
-                if (Vector3.Distance(creature.Position, here) > reach) continue;
-                creature.Investigate(here, remaining, pull: true, distract: false);
-            }
+            if (!World.sfx) return;
+            if (calling) World.sfx.Loop(ringOwner, ringSound, World.viewCamera.transform.position);
+            else World.sfx.StopLoop(ringOwner);
         }
 
         // ---------- the goblin's call ----------
