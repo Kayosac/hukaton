@@ -73,14 +73,14 @@ namespace Hakaton.WorldAssembly.Unity
                 if (m == null) moods.Add(m = new Mood(name, fog, tint, amount, sunlight, ambient));
                 m.fog = fog; m.tint = tint; m.tintAmount = amount; m.sun = sunlight; m.ambient = ambient;
             }
-            Set(Swamp, 2.5f, new Color(.6f, .58f, .4f), .78f, .55f, .82f);
+            Set(Swamp, 2.5f, new Color(.6f, .57f, .37f), .9f, .55f, .82f);
             Set(Drowned, 1.25f, new Color(.4f, .4f, .28f), .5f, .7f, .85f);
             Set(Moss, .78f, new Color(.66f, .65f, .48f), .3f, 1.1f, 1.08f);
             Set(Reach, .88f, new Color(.64f, .64f, .5f), .25f, 1.05f, 1);
             Set(Burnt, 1.15f, new Color(.55f, .5f, .45f), .55f, .85f, .92f);
             Set(Mist, 5.5f, new Color(.78f, .76f, .64f), .8f, .85f, 1.05f);
-            // The deep forest: thicker, but its air stays cool and blue-green, never the swamp's olive.
-            Set(Forest, 1.45f, new Color(.36f, .52f, .52f), .35f, .72f, .8f);
+            // The deep forest: thicker and darker, its air as neutral as the open forest's.
+            Set(Forest, 1.45f, new Color(.47f, .5f, .49f), .3f, .75f, .82f);
         }
 
         /// <summary>Holds a mood at <paramref name="k"/> from outside (SwampLife's fog banks) until it says otherwise.</summary>
@@ -118,7 +118,13 @@ namespace Hakaton.WorldAssembly.Unity
         FarSilhouettes silhouettes;
         bool active;
         float baseFog, baseAmbient, baseSun;
-        Color baseColour;
+        Color baseColour, sceneColour;
+
+        /// <summary>
+        /// The open world's own air (the forest, where no place mood holds): a neutral grey, cool only a touch, so the
+        /// forest's colour is its leaves' and the swamp's olive and the water's blue read against it.
+        /// </summary>
+        public static readonly Color OpenAir = new Color(.66f, .69f, .69f);
         Light sun;
         readonly Dictionary<string, float> target = new Dictionary<string, float>();
         readonly Dictionary<string, float> current = new Dictionary<string, float>();
@@ -171,7 +177,8 @@ namespace Hakaton.WorldAssembly.Unity
             active = true;
             if (postProcess) postProcess.enabled = true;
             baseFog = RenderSettings.fogDensity;
-            baseColour = RenderSettings.fogColor;
+            sceneColour = RenderSettings.fogColor;
+            baseColour = OpenAir;
             baseAmbient = RenderSettings.ambientIntensity;
             sun = RenderSettings.sun;
             baseSun = sun ? sun.intensity : 1;
@@ -197,7 +204,7 @@ namespace Hakaton.WorldAssembly.Unity
             Shader.SetGlobalFloat(ReflectFog, 0);
             held.Clear();
             RenderSettings.fogDensity = baseFog;
-            RenderSettings.fogColor = baseColour;
+            RenderSettings.fogColor = sceneColour;
             RenderSettings.ambientIntensity = baseAmbient;
             if (sun) sun.intensity = baseSun;
             if (silhouettes) silhouettes.FogChanged();
