@@ -10,6 +10,7 @@ using Hakaton.Economy.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Feel;
 using Hakaton.ShopBlockout;
+using Hakaton.SpecialItems;
 using Hakaton.Trading;
 using Hakaton.Trading.Unity;
 using Hakaton.Tutorial;
@@ -47,6 +48,8 @@ namespace Hakaton.Game
             "Больше так не рискуй."
         };
         public FirstPersonMotor player;
+        [Tooltip("Special items (board «Спецпредметы»): sold by the goblin dealer once open, kept forever, used on outings with Q.")]
+        public SpecialItemsHost specialItems;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
         public GameObject expeditionGeometry;
@@ -77,7 +80,19 @@ namespace Hakaton.Game
         public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
         /// <summary>Map points marked «after the revenue goal» (the endless world) appear only once it is reached.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
-        public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", saveFile);
+        public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", EditorSaveFile ?? saveFile);
+#if UNITY_EDITOR
+        /// <summary>
+        /// Dev tooling: an editor (a worktree's) can play on a save file of its own (SessionState «Hakaton.SaveFile», set
+        /// per editor process), so its tests never touch the player's progress. Never in a build.
+        /// </summary>
+        static string EditorSaveFile
+        {
+            get { string file = UnityEditor.SessionState.GetString("Hakaton.SaveFile", ""); return file.Length > 0 ? file : null; }
+        }
+#else
+        static string EditorSaveFile => null;
+#endif
         public string LastNotice { get; private set; }
         public bool Ready { get; private set; }
         /// <summary>This launch continued a saved game (the main menu's «Продолжить»).</summary>
@@ -114,6 +129,14 @@ namespace Hakaton.Game
             if (services.computer) services.computer.Shop = trade.Session;
             // «Выносливость» on the PC: the player's own upgrade, handed over the same way.
             if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
+            // Special items: the phone opens with the first revenue goal; the dealer sells them, the PC grows the battery.
+            if (specialItems)
+            {
+                specialItems.UnlockCheck = unlock => unlock == SpecialItemUnlock.Always || unlock == SpecialItemUnlock.FirstGoal && GoalReached;
+                cardShop.SpecialItems = specialItems;
+                if (services.computer) services.computer.SpecialItems = specialItems;
+                specialItems.Inventory.Changed += MarkDirty;
+            }
             // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
             // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
             trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
@@ -171,6 +194,7 @@ namespace Hakaton.Game
             if (services && cardShop) cardShop.Visits.Changed -= MarkDirty;
             if (tutorial) tutorial.Changed -= MarkDirty;
             if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
+            if (specialItems) specialItems.Inventory.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
         }
         void OnApplicationQuit() { SaveNow(); }
@@ -445,7 +469,8 @@ namespace Hakaton.Game
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
-            map = outingMap ? outingMap.Save() : null
+            map = outingMap ? outingMap.Save() : null,
+            specialItems = specialItems ? specialItems.Inventory.Save() : null
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
@@ -464,6 +489,7 @@ namespace Hakaton.Game
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
             if (outingMap) outingMap.Restore(save.map);
+            if (specialItems) specialItems.Restore(save.specialItems);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

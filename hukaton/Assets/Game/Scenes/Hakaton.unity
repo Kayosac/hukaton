@@ -9947,6 +9947,7 @@ MonoBehaviour:
     \u043D\u043E \u043D\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F."
   - "\u0411\u043E\u043B\u044C\u0448\u0435 \u0442\u0430\u043A \u043D\u0435 \u0440\u0438\u0441\u043A\u0443\u0439."
   player: {fileID: 1042966981}
+  specialItems: {fileID: 1219706907}
   shopGeometry: {fileID: 215353183}
   expeditionGeometry: {fileID: 1150446504}
   shopHud: {fileID: 416848468}
@@ -10642,6 +10643,93 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1001 &1219706905
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2325365105271040555, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_Name
+      value: Special items
+      objectReference: {fileID: 0}
+    - target: {fileID: 5484426207042643593, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: items
+      value: 
+      objectReference: {fileID: 1219706907}
+    - target: {fileID: 5484426207042643593, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8743338416827705287, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2325365105271040555, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1219706907}
+  m_SourcePrefab: {fileID: 100100000, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+--- !u!1 &1219706906 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2325365105271040555, guid: cbe3fd58c99614258aabc7892334d479, type: 3}
+  m_PrefabInstance: {fileID: 1219706905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1219706907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1219706906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfca44a5c76854b109b4ac02dca16efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.SpecialItems::Hakaton.SpecialItems.SpecialItemsHost
+  catalog: {fileID: 11400000, guid: b501385326c8e408eb74083f155bcdd5, type: 2}
+  phone: {fileID: 11400000, guid: 2aa102d9c306e45c59b18a962aaea3d6, type: 2}
 --- !u!1 &1263977265
 GameObject:
   m_ObjectHideFlags: 0
@@ -18382,3 +18470,4 @@ SceneRoots:
   - {fileID: 2097891198}
   - {fileID: 721115448}
   - {fileID: 1882618683}
+  - {fileID: 1219706905}

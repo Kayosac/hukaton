@@ -4,6 +4,7 @@ using Hakaton.Character;
 using Hakaton.Decks;
 using Hakaton.Decks.Unity;
 using Hakaton.DialogueUI;
+using Hakaton.SpecialItems;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -62,6 +63,12 @@ namespace Hakaton.Backroom
                  "brazier); it follows the row as it closes up.")]
         public Vector2 countOffset = new Vector2(20, 3);
 
+        [Header("Special items")]
+        [Tooltip("The special items' own places, left and right of the card row (board «Спецпредметы»): an open, unbought " +
+                 "item lies there on every visit. He introduces each the first time it lies there.")]
+        public SpecialItemOfferView leftItem;
+        public SpecialItemOfferView rightItem;
+
         [Header("Lines")]
         [TextArea] public string[] introduction =
         {
@@ -80,6 +87,10 @@ namespace Hakaton.Backroom
         [TextArea] public string emptyLine = "Всё разобрали. Приходи после работы.";
 
         public GoblinVisits Visits { get; } = new GoblinVisits();
+        /// <summary>The scene's special items (the game hands them over, like the collection in <see cref="Bind"/>).</summary>
+        public SpecialItemsHost SpecialItems { get; set; }
+        /// <summary>A special item was bought.</summary>
+        public event Action<SpecialItemDefinition> ItemBought;
         public bool IsOpen { get; private set; }
         public event Action Closed;
         public event Action<CardCopy> Bought;
@@ -120,7 +131,12 @@ namespace Hakaton.Backroom
         bool swallowRelease;
         int skippedFrame = -10;
         bool JustSkipped => swallowRelease || Time.frameCount <= skippedFrame + 1;
-        bool Talking => Visits.IntroductionRead < introduction.Length;
+        bool CardIntroduction => Visits.IntroductionRead < introduction.Length;
+        bool Talking => CardIntroduction || introducing;
+        /// <summary>The special item he is introducing now (its lines wait for E), or null.</summary>
+        SpecialItemDefinition introducing;
+        int introducingLine;
+        SpecialItemOfferView itemShown;
         float lineUntil;
         int lineSeed, talkEndedFrame = -1;
         Vector2 leaveHome;
@@ -140,6 +156,11 @@ namespace Hakaton.Backroom
                 if (!stepAside[i]) continue;
                 var group = stepAside[i].GetComponent<CanvasGroup>();
                 asideGroups[i] = group ? group : stepAside[i].gameObject.AddComponent<CanvasGroup>();
+            }
+            foreach (var slot in ItemSlots)
+            {
+                slot.Clicked += OnItemClicked;
+                slot.Hovered += OnItemHovered;
             }
             revealButton.onClick.AddListener(() => { if (!JustSkipped) RevealAll(); });
             leaveButton.onClick.AddListener(() => { if (!JustSkipped) Close(); });
@@ -170,9 +191,11 @@ namespace Hakaton.Backroom
             }
             Fan(0);
             EndInspect();
+            DealItems();
             Play(dealSound);
-            if (Talking) Say(introduction[Visits.IntroductionRead], true);
-            else if (!offer.AnyLeft) Say(emptyLine);
+            if (CardIntroduction) Say(introduction[Visits.IntroductionRead], true);
+            else if (StartItemIntroduction()) { }
+            else if (!offer.AnyLeft && !AnyItemOnSale) Say(emptyLine);
             else HideBubble();
             Refresh();
             return true;
@@ -183,6 +206,8 @@ namespace Hakaton.Backroom
             if (!IsOpen) return;
             IsOpen = false;
             EndInspect();
+            EndItemShow();
+            introducing = null;
             SetVisible(false);
             if (control) control.SetBlocked(this, false);
             Closed?.Invoke();
@@ -205,6 +230,13 @@ namespace Hakaton.Backroom
             if (lineUntil > 0 && bubble && bubble.IsTyping) lineUntil = Time.unscaledTime + 2.6f;
             if (lineUntil > 0 && Time.unscaledTime > lineUntil) HideBubble();
             StepAside();
+            if (itemShown)
+            {
+                bool skip = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
+                    || keyboard.enterKey.wasPressedThisFrame) || mouse != null && mouse.leftButton.wasPressedThisFrame;
+                if (skip) { swallowRelease |= mouse != null && mouse.leftButton.wasPressedThisFrame; skippedFrame = Time.frameCount; EndItemShow(); }
+                return;
+            }
             if (inspecting)
             {
                 Inspect(keyboard, mouse);
@@ -252,15 +284,125 @@ namespace Hakaton.Backroom
 
         void NextLine()
         {
-            Visits.ReadIntroductionLine(introduction.Length);
-            if (Talking) Say(introduction[Visits.IntroductionRead], true);
-            else
+            if (CardIntroduction)
             {
-                HideBubble();
-                // The click that closed the last line must not also buy the card under it.
-                talkEndedFrame = Time.frameCount;
+                Visits.ReadIntroductionLine(introduction.Length);
+                if (CardIntroduction) { Say(introduction[Visits.IntroductionRead], true); Refresh(); return; }
+                if (StartItemIntroduction()) { Refresh(); return; }
             }
+            else if (introducing)
+            {
+                introducingLine++;
+                if (introducingLine < introducing.introduction.Length) { Say(introducing.introduction[introducingLine], true); Refresh(); return; }
+                SpecialItems.Inventory.MarkIntroduced(introducing.id);
+                introducing = null;
+                if (StartItemIntroduction()) { Refresh(); return; }
+            }
+            HideBubble();
+            // The click that closed the last line must not also buy the card under it.
+            talkEndedFrame = Time.frameCount;
             Refresh();
+        }
+
+        // ---------- special items ----------
+
+        SpecialItemOfferView[] ItemSlots
+        {
+            get
+            {
+                if (leftItem && rightItem) return new[] { leftItem, rightItem };
+                if (leftItem) return new[] { leftItem };
+                return rightItem ? new[] { rightItem } : new SpecialItemOfferView[0];
+            }
+        }
+
+        bool AnyItemOnSale
+        {
+            get
+            {
+                foreach (var slot in ItemSlots) if (slot.Item) return true;
+                return false;
+            }
+        }
+
+        /// <summary>Lays the open, unbought special items in their places (one per side, in catalogue order).</summary>
+        void DealItems()
+        {
+            foreach (var slot in ItemSlots) slot.Hide();
+            if (!SpecialItems || !SpecialItems.catalog) return;
+            bool leftUsed = false, rightUsed = false;
+            foreach (var item in SpecialItems.catalog.items)
+            {
+                if (!SpecialItems.OnSale(item)) continue;
+                var slot = item.leftOfCards ? (leftUsed ? null : leftItem) : (rightUsed ? null : rightItem);
+                if (!slot) continue;
+                if (slot == leftItem) leftUsed = true; else rightUsed = true;
+                slot.Deal(item, !SpecialItems.Inventory.WasSeen(item.id), .3f);
+            }
+        }
+
+        /// <summary>Starts introducing the first item on the table he has not introduced yet. False when there is none.</summary>
+        bool StartItemIntroduction()
+        {
+            if (!SpecialItems) return false;
+            foreach (var slot in ItemSlots)
+            {
+                var item = slot.Item;
+                if (!item || SpecialItems.Inventory.WasIntroduced(item.id)) continue;
+                if (item.introduction == null || item.introduction.Length == 0) { SpecialItems.Inventory.MarkIntroduced(item.id); continue; }
+                introducing = item;
+                introducingLine = 0;
+                Say(item.introduction[0], true);
+                return true;
+            }
+            return false;
+        }
+
+        void OnItemHovered(SpecialItemOfferView view)
+        {
+            if (!view.Item || !SpecialItems) return;
+            view.IsNew = false;
+            SpecialItems.Inventory.MarkSeen(view.Item.id);
+        }
+
+        void OnItemClicked(SpecialItemOfferView view)
+        {
+            if (Time.frameCount > talkEndedFrame + 1 && !JustSkipped) BuyItem(view);
+        }
+
+        /// <summary>Buys the special item in this place for its price (once and for good). False when refused.</summary>
+        public bool BuyItem(SpecialItemOfferView view)
+        {
+            var item = view ? view.Item : null;
+            if (!IsOpen || Talking || inspecting || itemShown || !item || !SpecialItems || Model.IsAway) return false;
+            if (!SpecialItems.OnSale(item)) return false;
+            if (!Model.Wallet.TrySpend(item.price))
+            {
+                view.Refuse();
+                Play(refuseSound);
+                Play(scoffVoice);
+                Say(Pick(poorLines));
+                Refused?.Invoke();
+                return false;
+            }
+            SpecialItems.Inventory.MarkSeen(item.id);
+            SpecialItems.Grant(item);
+            Play(buySound);
+            Play(laughVoice);
+            Say(string.IsNullOrEmpty(item.boughtLine) ? Pick(boughtLines) : item.boughtLine);
+            itemShown = view;
+            view.Lift(() => { if (itemShown == view) itemShown = null; if (IsOpen) Refresh(); }, () => Play(stowSound));
+            Visits.Touch();
+            ItemBought?.Invoke(item);
+            Refresh();
+            return true;
+        }
+
+        void EndItemShow()
+        {
+            var view = itemShown;
+            itemShown = null;
+            if (view) view.Finish(() => Play(stowSound));
         }
 
         // ---------- the table ----------
@@ -281,7 +423,7 @@ namespace Hakaton.Backroom
         public bool Choose(int slot)
         {
             var offer = Visits.Offer;
-            if (!IsOpen || Talking || inspecting || offer == null || slot < 0 || slot >= cards.Length) return false;
+            if (!IsOpen || Talking || inspecting || itemShown || offer == null || slot < 0 || slot >= cards.Length) return false;
             var view = cards[slot];
             bool blind = !offer.Revealed;
             string error = offer.Buy(slot, Model, out var copy);
@@ -346,7 +488,8 @@ namespace Hakaton.Backroom
             ((RectTransform)leaveButton.transform).anchoredPosition =
                 revealButton.gameObject.activeSelf ? leaveHome : new Vector2(0, leaveHome.y);
             revealLabel.text = "Раскрыть все";
-            leaveButton.interactable = !Talking && !inspecting;
+            leaveButton.interactable = !Talking && !inspecting && !itemShown;
+            foreach (var slot in ItemSlots) if (slot.group && slot.Item) slot.group.interactable = slot.group.blocksRaycasts = !Talking && !itemShown;
             foreach (var card in cards) if (card.group) card.group.interactable = !Talking;
         }
 
