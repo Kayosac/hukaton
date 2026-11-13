@@ -116,17 +116,22 @@ namespace Hakaton.Game
         /// The phone for free, in the shop or right on an outing (then Q takes it out at once); the dealer's introduction
         /// is skipped. Kept like a bought one.
         /// </summary>
-        public bool GrantPhone()
+        public bool GrantPhone() => GrantItem("phone", "Телефон", "Телефон получен: Q на вылазке, Tab — автомат.");
+
+        /// <summary>The cassette player for free, like <see cref="GrantPhone"/>.</summary>
+        public bool GrantPlayer() => GrantItem("player", "Плеер", "Плеер получен: Q на вылазке, Tab — музыка, зажать Tab — следующий трек.");
+
+        bool GrantItem(string id, string name, string done)
         {
             var items = game.specialItems;
-            var phone = items ? items.Find("phone") : null;
-            if (!phone) { status = "Телефона в каталоге спецпредметов нет."; return false; }
-            if (!game.Ready || game.InCave || game.expedition.Returning) { status = "Телефон выдаётся в лавке или на вылазке."; return false; }
-            items.Inventory.MarkIntroduced(phone.id);
-            items.Inventory.MarkSeen(phone.id);
-            if (!items.Grant(phone)) { status = "Телефон уже есть: Q на вылазке."; return false; }
+            var item = items ? items.Find(id) : null;
+            if (!item) { status = name + ": нет в каталоге спецпредметов."; return false; }
+            if (!game.Ready || game.InCave || game.expedition.Returning) { status = name + " выдаётся в лавке или на вылазке."; return false; }
+            items.Inventory.MarkIntroduced(item.id);
+            items.Inventory.MarkSeen(item.id);
+            if (!items.Grant(item)) { status = name + " уже есть: Q на вылазке."; return false; }
             game.SaveNow(); // On an outing the change is kept dirty and saved on the way home.
-            status = "Телефон получен: Q на вылазке, Tab — автомат.";
+            status = done;
             return true;
         }
 
@@ -260,6 +265,7 @@ namespace Hakaton.Game
             if (GUILayout.Button("Все спецпредметы (Q на вылазке)", button)) GrantSpecialItems();
             GUI.enabled = game.Ready && !game.InCave && !game.expedition.Returning;
             if (GUILayout.Button("Получить телефон", button)) GrantPhone();
+            if (GUILayout.Button("Получить плеер", button)) GrantPlayer();
             GUI.enabled = game.Ready;
             if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
             GUI.enabled = true;

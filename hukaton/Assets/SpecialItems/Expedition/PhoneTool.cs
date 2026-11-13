@@ -39,12 +39,8 @@ namespace Hakaton.SpecialItems
         public CrtScreen screen;
 
         [Header("Taking out")]
-        [Tooltip("Where the hand rests (bottom-left anchored, reference pixels).")]
-        public Vector2 shownPosition = new Vector2(253, -170);
-        [Tooltip("Where the hand comes from, relative to its place: out of the bottom-left corner…")]
-        public Vector2 enterOffset = new Vector2(-380, -560);
-        [Tooltip("…turned this far anticipating the clockwise turn it makes on the way in, degrees.")]
-        public float enterAngle = 42;
+        [Tooltip("Where the hand rests and how it comes in and moves (shared with the other items in the hand).")]
+        public HandHold hold = new HandHold();
         [Min(.01f)] public float enterSeconds = .24f;
         [Tooltip("A beat between the hand arriving and the lid opening: two separate movements.")]
         [Min(0)] public float openPause = .06f;
@@ -52,28 +48,6 @@ namespace Hakaton.SpecialItems
         [Tooltip("The lid snaps open: the phone hops up this fast (reference pixels per second).")]
         public float openHop = 260;
         [Min(.01f)] public float leaveSeconds = .18f;
-
-        [Header("Physics in the hand")]
-        [Tooltip("Turning the view leaves the phone behind: reference pixels per degree per second, and the limit.")]
-        public float lookLag = .3f;
-        public float maxLookLag = 70;
-        [Tooltip("It also tilts against a turn: degrees per degree per second, and the limit.")]
-        public float lookTilt = .025f;
-        public float maxLookTilt = 7;
-        [Tooltip("Up and down: rising leaves it low, falling lifts it (reference pixels per m/s, and the limit).")]
-        public float fallLag = 7;
-        public float maxFallLag = 70;
-        [Tooltip("A landing knocks it down: reference pixels per second per m/s of the landing.")]
-        public float landKick = 45;
-        [Min(.1f)] public float lagFrequency = 4.2f;
-        [Range(0, 2)] public float lagDamping = .42f;
-        [Tooltip("The step: side sway and dip (reference pixels) walking and running.")]
-        public Vector2 walkBob = new Vector2(7, 10);
-        public Vector2 runBob = new Vector2(13, 18);
-        [Tooltip("Steps per second walking and running (one sway left-right is two steps).")]
-        public float walkStepRate = 3.4f, runStepRate = 5.2f;
-        [Tooltip("The step's roll, degrees, walking and running.")]
-        public float walkBobTilt = 1.6f, runBobTilt = 3.8f;
 
         [Header("Screens")]
         public GameObject reelsScreen;
@@ -125,13 +99,8 @@ namespace Hakaton.SpecialItems
         bool callAnswered;
         GameObject spinOwner, ringOwner;
         readonly System.Random random = new System.Random();
-        // Pose: the way in or out (0 away, 1 in place), the hop of the lid, the lag spring (x, y, tilt), the step.
-        float slide, stepPhase;
-        SpringVector3 lag, hop;
-        SpringFloat stepAmount, running;
-        Vector2 shake;
-        float lastYaw, lastPitch;
-        bool lookKnown;
+        // The way in or out: 0 away, 1 in place.
+        float slide;
         Color betColour = Color.white;
 
         PhoneSettings Settings => Items ? Items.phone : null;
@@ -160,7 +129,8 @@ namespace Hakaton.SpecialItems
             SetDisplay(false);
             SetSpeech(null);
             slide = 0;
-            Pose(0);
+            hold.End();
+            hold.Apply(phone, 0, 0);
         }
 
         // ---------- outings ----------
@@ -213,7 +183,7 @@ namespace Hakaton.SpecialItems
             if (canvas) canvas.enabled = true;
             SetDisplay(false);
             SetFrame(0);
-            ResetPhysics();
+            hold.Begin(World);
             // One: the hand comes out of the bottom-left corner, turning clockwise, closed.
             World.Play(openSound, null, .7f, .8f);
             for (float t = 0; t < enterSeconds; t += Time.deltaTime)
@@ -228,7 +198,7 @@ namespace Hakaton.SpecialItems
             for (int i = 1; i < 4; i++)
             {
                 SetFrame(i);
-                if (i == 1) hop.Kick(new Vector3(0, openHop, 0));
+                if (i == 1) hold.Hop(openHop);
                 yield return new WaitForSeconds(frameSeconds);
             }
             SetDisplay(true);
@@ -271,8 +241,6 @@ namespace Hakaton.SpecialItems
         {
             if (body && openingFrames != null && index < openingFrames.Length && openingFrames[index]) body.sprite = openingFrames[index];
         }
-
-        static Vector2 Snap(Vector2 position) => new Vector2(Mathf.Round(position.x), Mathf.Round(position.y));
 
         // ---------- the bandit ----------
 
@@ -366,7 +334,7 @@ namespace Hakaton.SpecialItems
 
         void LateUpdate()
         {
-            if (state != State.Hidden) Pose(Time.deltaTime);
+            if (state != State.Hidden) hold.Apply(phone, slide, Time.deltaTime);
             if (!World || !World.sfx) return;
             if (state == State.Spinning || state == State.Stopping && stopped < reels.Length)
                 World.sfx.Loop(spinOwner, spinLoop, World.viewCamera.transform.position);
@@ -590,88 +558,6 @@ namespace Hakaton.SpecialItems
             battery.sprite = batteryLevels[level];
         }
 
-        // ---------- feel ----------
-
-        // ---------- the hand's pose ----------
-
-        void ResetPhysics()
-        {
-            lag = default;
-            hop = default;
-            stepAmount = default;
-            running = default;
-            shake = Vector2.zero;
-            lookKnown = false;
-            if (World && World.motor)
-            {
-                World.motor.Landed -= OnLanded;
-                World.motor.Landed += OnLanded;
-            }
-        }
-
-        void OnLanded(float speed)
-        {
-            if (state == State.Hidden) return;
-            lag.Kick(new Vector3(0, -speed * landKick, 0));
-        }
-
-        /// <summary>
-        /// Where the hand is this frame: its way in (out of the bottom-left corner, turning clockwise), the lag of the
-        /// view's turns and of jumps and falls (a spring, so it overshoots and settles), the lid's hop and the step, which
-        /// quickens and grows into a run. Whole reference pixels; the turn is free.
-        /// </summary>
-        void Pose(float dt)
-        {
-            if (!phone) return;
-            var target = Vector3.zero;
-            if (dt > 0 && World && World.viewCamera && World.motor && state != State.Hidden)
-            {
-                var euler = World.viewCamera.transform.eulerAngles;
-                if (lookKnown)
-                {
-                    float yawRate = Mathf.DeltaAngle(lastYaw, euler.y) / dt, pitchRate = Mathf.DeltaAngle(lastPitch, euler.x) / dt;
-                    target.x = Mathf.Clamp(-yawRate * lookLag, -maxLookLag, maxLookLag);
-                    target.y = Mathf.Clamp(pitchRate * lookLag, -maxLookLag, maxLookLag);
-                    target.z = Mathf.Clamp(yawRate * lookTilt, -maxLookTilt, maxLookTilt);
-                }
-                lastYaw = euler.y;
-                lastPitch = euler.x;
-                lookKnown = true;
-                float vertical = World.motor.Velocity.y;
-                target.y += Mathf.Clamp(-vertical * fallLag, -maxFallLag, maxFallLag);
-                // The step: only on the ground, quicker and bigger at a run.
-                bool walking = World.motor.IsGrounded && World.motor.Speed01 > .05f;
-                stepAmount.Step(walking ? Mathf.Clamp01(World.motor.Speed01 * 1.5f) : 0, 6, .9f, dt);
-                running.Step(World.motor.IsSprinting ? 1 : 0, 5, .9f, dt);
-                float rate = Mathf.Lerp(walkStepRate, runStepRate, running.Value);
-                if (walking) stepPhase += dt * rate * Mathf.PI;
-            }
-            if (dt > 0)
-            {
-                lag.Step(target, lagFrequency, lagDamping, dt);
-                hop.Step(Vector3.zero, 9, .35f, dt);
-            }
-            var amplitude = Vector2.Lerp(walkBob, runBob, running.Value) * stepAmount.Value;
-            float tiltAmount = Mathf.Lerp(walkBobTilt, runBobTilt, running.Value) * stepAmount.Value;
-            // A figure of eight: one sway per two steps, a dip on every step.
-            var step = new Vector2(Mathf.Sin(stepPhase) * amplitude.x, -Mathf.Abs(Mathf.Cos(stepPhase)) * amplitude.y + amplitude.y * .5f);
-            float roll = Mathf.Sin(stepPhase) * tiltAmount;
-
-            float k = EaseOutBack(Mathf.Clamp01(slide));
-            var way = Vector2.LerpUnclamped(enterOffset, Vector2.zero, k);
-            float wayAngle = Mathf.LerpUnclamped(enterAngle, 0, k);
-            var position = shownPosition + way + new Vector2(lag.Value.x, lag.Value.y) + new Vector2(0, hop.Value.y) + step + shake;
-            phone.anchoredPosition = Snap(position);
-            phone.localRotation = Quaternion.Euler(0, 0, wayAngle + lag.Value.z + roll);
-        }
-
-        static float EaseOutBack(float t)
-        {
-            const float c1 = 1.2f, c3 = c1 + 1;
-            float u = t - 1;
-            return 1 + c3 * u * u * u + c1 * u * u;
-        }
-
         void Shake()
         {
             if (!isActiveAndEnabled) return;
@@ -682,10 +568,10 @@ namespace Hakaton.SpecialItems
         {
             for (int i = 0; i < 6; i++)
             {
-                shake = new Vector2(i % 2 == 0 ? 3 : -3, 0);
+                hold.shake = new Vector2(i % 2 == 0 ? 3 : -3, 0);
                 yield return new WaitForSeconds(.03f);
             }
-            shake = Vector2.zero;
+            hold.shake = Vector2.zero;
         }
 
         IEnumerator BlinkBet()
@@ -715,7 +601,7 @@ namespace Hakaton.SpecialItems
         void OnDisable()
         {
             StopSounds();
-            if (World && World.motor) World.motor.Landed -= OnLanded;
+            hold.End();
         }
     }
 }
