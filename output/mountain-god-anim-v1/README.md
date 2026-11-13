@@ -16,7 +16,10 @@ v5 does not cap anything: the whole skin is rebuilt (`rebuild/`, see `rebuild/RE
 - Its own UVs (xatlas, about 2000 charts) and a colour map baked from the old skin (`T_MG01_BodyAnim_BaseColor.png`,
   2048, bilinear in Unity; material `M_MG01_BodyAnim`, a copy of `M_MG01_Body` with that map).
 - Weights from the nearest old skin, at most four bones a vertex; the beard and hat springs carry only skin that was
-  theirs (a healed place on the chest under the beard swung with it and tore open into a dark pocket in Unity). Faces
+  theirs (a healed place on the chest under the beard swung with it and tore open into a dark pocket in Unity), and no
+  vertex follows a bone farther from it than that bone's old skin reached (a few beard vertices had ended up on C01's
+  fingers and stretched into a beam into the sky whenever the hand moved; `rebuild/check_curtains.py` now finds no edge
+  between limbs that stretches in the clips). Faces
   whose corners follow different limbs (they would stretch into curtains when the limbs part): C01 55, C02 54, L01 77 —
   the weight seams the old skin already had at the root joints.
 - The finger is a little thicker than in v4 (top 16.5 m above the bone at the tip): the dock and the Unity capsules

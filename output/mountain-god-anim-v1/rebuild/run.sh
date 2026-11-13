@@ -12,8 +12,9 @@ python3 frames_S.py
 python3 relax.py
 python3 poisson.py "$W/relaxed.npz" "$W/poisson.npz" 10 1500000 240000
 python3 pullback.py "$W/relaxed.npz" "$W/poisson.npz" "$W/res.npz"
-python3 fairheal.py "$W/res.npz" "$W/res_fh.npz"
-python3 weightfix.py "$W/res_fh.npz" "$W/relaxed.npz" "$W/res_fhw.npz"
+python3 weightfix.py "$W/res.npz" "$W/relaxed.npz" "$W/res_w.npz"
+python3 fairheal.py "$W/res_w.npz" "$W/res_fhw.npz"
 python3 check_seams.py "$W/res_fhw.npz"
+python3 check_curtains.py "$W/res_fhw.npz"
 python3 bake.py -- "$W/res.npz" "$W/T_MG01_BodyAnim_BaseColor.png" 2048 .04 .1 "$W/relaxed.npz"
 python3 finalize.py "$W/res_fhw.npz" "$W/T_MG01_BodyAnim_BaseColor.png" ../out

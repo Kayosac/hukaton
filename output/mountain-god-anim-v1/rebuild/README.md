@@ -20,7 +20,9 @@ whole skin instead, so the healed places are ordinary skin with ordinary topolog
 6. `fairheal.py` — healed sheets that came back crumpled (built where the pose stretched the skin) are faired smooth
    between the skin around them; creases near them relaxed.
 7. `weightfix.py` — the spring bones (beard, hat) keep only skin that was theirs: a healed place on the chest next to
-   the beard does not swing with the beard's spring (in Unity it tore open into a dark pocket).
+   the beard does not swing with the beard's spring (in Unity it tore open into a dark pocket). And no vertex follows a
+   bone farther from it (in rest) than that bone's old skin reached: a few beard vertices had ended up on C01's
+   fingers and stretched into a beam when the hand moved.
 8. `bake.py` — UVs by xatlas (about 2000 charts, 80 % of the map used); colour baked from the old skin (Cycles,
    selected to active, in the opened pose); healed places take the colour of the nearest old skin; every pixel
    outside the charts takes its nearest chart pixel (no dark borders in filtering or mip levels).
@@ -30,6 +32,9 @@ whole skin instead, so the healed places are ordinary skin with ordinary topolog
 the v4 split and caps.
 
 ## Checks
+
+- `check_curtains.py` — edges that stretch in a moment of the clips far beyond their rest length (more than 6 times
+  and over 0.35): only the L02 hip joint keeps some (the leg drops 90 degrees), none between limbs.
 
 - `check_seams.py` — faces whose corners follow different limbs (they would stretch into curtains when the limbs
   part). After the rebuild: C01 55, C02 54, L01 77 faces, about the weight seams the old skin already had at the root

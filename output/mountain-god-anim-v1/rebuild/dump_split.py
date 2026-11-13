@@ -36,7 +36,8 @@ print("weight sums", W.sum(1).min(), W.sum(1).max())
 ML = np.array([np.array(arm.data.bones[b].matrix_local) for b in bones])
 # per-vertex part code from attribute? recompute: dominant limb by weights of LIMB groups
 vs, vd, jt = godrig.separate_limbs.sides
-np.savez(WORK + "/split.npz", V=V, T=T, TL=TL, uv=uv, W=W, ML=ML, bones=np.array(bones), vside=np.array(vs), vsdom=np.array(vd), joint=np.array(jt))
+BH = np.array([arm.data.bones[b].head_local[:] for b in bones]); BT = np.array([arm.data.bones[b].tail_local[:] for b in bones])
+np.savez(WORK + "/split.npz", V=V, T=T, TL=TL, uv=uv, W=W, ML=ML, bones=np.array(bones), vside=np.array(vs), vsdom=np.array(vd), joint=np.array(jt), BH=BH, BT=BT)
 # components
 import bmesh
 bm = bmesh.new(); bm.from_mesh(me)
