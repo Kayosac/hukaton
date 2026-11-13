@@ -125,8 +125,8 @@ def rope_tug(seed):
     fib = bp(rng.standard_normal(n(.4)), 2500, 9000) * adsr(.4, .15, .2) * (.6 + .4 * np.sin(2 * np.pi * 23 * t(.4)))
     place(y, fib, .05, .22)                                                                         # fibres grinding
     place(y, stick_slip(.22, 700, 1100, [(1300, 1), (2650, .5), (4100, .25)], rng, .15, adsr(.22, .05, .1), q=14), .12, .28)  # pulley axle
-    place(y, wood_hit(rng, 260, .3, 1.3, 1.6), .36, .8)                                             # trip catches, rig thunk
-    place(y, metal_hit(rng, 1250, .7, .3, .6), .365, .35)                                           # latch tongue
+    place(y, wood_hit(rng, 260, .3, 1.6, .8), .36, .35)                                             # trip catches, rig thunk
+    place(y, metal_hit(rng, 1250, .5, .2, .4), .365, .12)                                           # latch tongue
     return y
 
 # Handle springs back and knocks the frame (two variants)
@@ -146,9 +146,9 @@ def handle_knock(seed, bounces):
 def hatch_unlatch(seed):
     rng = np.random.default_rng(seed)
     y = np.zeros(n(.8))
-    place(y, metal_hit(rng, 2350, .6, .3, 1.2), 0, .9)                # bolt slides out: click
+    place(y, metal_hit(rng, 2350, .5, .25, .8), 0, .5)                # bolt slides out: click
     place(y, .4 * bp(rng.standard_normal(n(.05)), 2000, 8000) * adsr(.05, .002, .045), .004)  # bolt scrape
-    place(y, metal_hit(rng, 1780, .5, .25, 1.0), .055, .55)           # bolt hits its keeper
+    place(y, metal_hit(rng, 1780, .4, .2, .6), .055, .15)           # bolt hits its keeper
     env = adsr(.55, .06, .2, 1.2)
     place(y, stick_slip(.55, 70, 210, [(560, 1), (1220, .8), (2450, .4), (3900, .2)], rng, .25, env, q=16), .07, 1.6)  # iron hinge groan
     return y
@@ -158,7 +158,7 @@ def hatch_knock(seed, f0, sub):
     y = np.zeros(n(.5))
     place(y, wood_hit(rng, f0, .45, .8, 2.0), 0)
     place(y, thump(rng, sub * 1.6, sub, .09, .4), 0, .9)
-    place(y, metal_hit(rng, 980, 1.2, .4, .5), .002, .25)             # hinge iron rings
+    pass             # hinge iron rings
     dust = bp(rng.standard_normal(n(.35)), 3000, 9000) * (rng.random(n(.35)) < .02) * np.exp(-t(.35) / .12)
     place(y, dust, .02, .5)
     return y
@@ -172,10 +172,7 @@ def hatch_slam(seed):
     place(y, thump(rng, 90, 48, .16, .6), hit, 1.3)
     place(y, wood_hit(rng, 175, .6, .6, 2.2), hit, 1.0)
     place(y, wood_hit(rng, 390, .4, .9, .3), hit + .003, .6)
-    place(y, metal_hit(rng, 2100, .8, .35, 1.0), hit + .012, .5)       # bolt snaps home
-    place(y, metal_hit(rng, 1600, .5, .25, .8), hit + .06, .3)
-    place(y, wood_hit(rng, 200, .35, 1.0, 1.0), hit + .11, .35)        # bounce in the frame
-    place(y, wood_hit(rng, 210, .3, 1.2, .7), hit + .17, .14)
+    place(y, metal_hit(rng, 2100, .5, .25, .6), hit + .012, .2)       # bolt snaps home
     dust = hp(rng.standard_normal(n(.7)), 2500) * (rng.random(n(.7)) < .012) * np.exp(-t(.7) / .3)
     place(y, dust, hit + .05, .9)                                      # dust and grit trickle
     return y
@@ -208,12 +205,12 @@ def winch_ratchet(seed, dur=1.15):
     at = .015; k = 0
     while at < dur - .02:
         stroke_pos = k % 4
-        place(y, pawl_clack(rng, 1.0 if stroke_pos == 0 else .78 + .12 * rng.random(), 1.1 if stroke_pos == 0 else .9), at)
-        at += (.072 if stroke_pos < 3 else .13) * rng.uniform(.9, 1.12); k += 1
+        place(y, pawl_clack(rng, .55 if stroke_pos == 0 else .3 + .08 * rng.random(), .8), at)
+        at += (.16 if stroke_pos < 3 else .26) * rng.uniform(.9, 1.12); k += 1
     tt = t(dur)
     # drum + gear rumble modulated by the tooth rate
     rumble = lp(rng.standard_normal(len(tt)), 260, 3) * (.6 + .4 * np.sin(2 * np.pi * 13 * tt)) * adsr(dur, .05, .08)
-    place(y, rumble, 0, .55)
+    place(y, rumble, 0, .8)
     # gear mesh hum (tonal, wobbling with the crank)
     f = 190 * (1 + .04 * np.sin(2 * np.pi * 3.2 * tt))
     hum = (np.sin(2 * np.pi * np.cumsum(f) / SR) + .5 * np.sin(4 * np.pi * np.cumsum(f) / SR)) * adsr(dur, .06, .1)
@@ -233,13 +230,13 @@ def winch_unwind(seed, dur=1.15):
     u = tt / dur
     speed = np.sin(np.pi * np.clip(u * 1.15, 0, 1)) ** .7 * (1 - .65 * np.clip((u - .55) / .45, 0, 1))
     speed = np.maximum(speed, .05)
-    teeth_rate = 8 + 46 * speed                                        # gear teeth ticks per second
+    teeth_rate = 5 + 22 * speed                                        # gear teeth ticks per second
     ph = np.cumsum(teeth_rate) / SR
     y = np.zeros(n(dur + .3))
     idx = np.nonzero(np.diff(np.floor(ph)) > 0)[0]
     for i in idx:
         s = i / SR
-        g = .35 + .5 * speed[i]
+        g = .15 + .25 * speed[i]
         place(y, g * metal_hit(rng, 2600 + rng.uniform(-200, 200), .25, .08, .9), s)  # light freewheel ticks
     # whirring gear whine following the speed
     f = 120 + 520 * speed
@@ -260,9 +257,8 @@ def winch_stop(seed, heavy):
     'heavy' = arrival down (weight bounces once), else = he bumps up into the hatch frame."""
     rng = np.random.default_rng(seed)
     y = np.zeros(n(1.1))
-    place(y, pawl_clack(rng, 1.0, 1.4), 0)
-    place(y, metal_hit(rng, 900, 2.2, .7, .8), .006, .9)               # big ratchet wheel rings
-    place(y, metal_hit(rng, 1370, 1.4, .5, 1.0), .012, .5)
+    place(y, pawl_clack(rng, .6, 1.1), 0)
+    place(y, metal_hit(rng, 900, 1.4, .5, .6), .006, .4)               # ratchet wheel rings
     place(y, thump(rng, 80, 50, .14, .5), .004, 1.0)
     # rope twang: low plucked string with sagging pitch
     tt = t(.8)
@@ -272,17 +268,15 @@ def winch_stop(seed, heavy):
         tw += a * np.sin(2 * np.pi * h * np.cumsum(f) / SR) * np.exp(-tt / (.32 / h))
     place(y, tw * (1 + .2 * np.sin(2 * np.pi * 5.5 * tt)), .01, .5)
     if heavy:
-        place(y, pawl_clack(rng, .55, .9), .19)                         # weight bounces, pawl knocks again
-        place(y, wood_hit(rng, 230, .3, 1.0, 1.0), .2, .4)
+        pass
     else:
         place(y, wood_hit(rng, 190, .45, .7, 2.0), .03, .9)             # goblin's rig bumps the hatch frame
-        place(y, wood_hit(rng, 420, .3, 1.1, .3), .1, .3)
     return y
 
 if __name__ == '__main__':
     finish('rig_rope_tug.wav', rope_tug(1), -1.0)
-    finish('rig_handle_knock_01.wav', handle_knock(11, 3), -2)
-    finish('rig_handle_knock_02.wav', handle_knock(12, 2), -2)
+    finish('rig_handle_knock_01.wav', handle_knock(11, 1), -2)
+    finish('rig_handle_knock_02.wav', handle_knock(12, 1), -2)
     finish('rig_hatch_unlatch.wav', hatch_unlatch(21), -1.5)
     finish('rig_hatch_knock_01.wav', hatch_knock(31, 210, 68), -1, .6)
     finish('rig_hatch_knock_02.wav', hatch_knock(32, 232, 74), -1, .6)

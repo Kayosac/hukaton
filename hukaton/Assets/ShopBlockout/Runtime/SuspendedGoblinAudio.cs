@@ -26,7 +26,7 @@ namespace Hakaton.ShopBlockout
 
         [Header("Hatch")]
         public SfxCue hatchUnlatch;
-        [Tooltip("Played each time the opening hatch swings past fully open and turns back (its overshoot and bounces).")]
+        [Tooltip("Played once when the opening hatch first swings past fully open and turns back.")]
         public SfxCue hatchKnock;
         public SfxCue hatchSlam;
         [Range(0, 1)] public float hatchUnlatchVolume = .8f, hatchSlamVolume = 1;
@@ -133,9 +133,9 @@ namespace Hakaton.ShopBlockout
             float velocity = hatch - lastHatch;
             if (state == GoblinLiftState.OpeningHatch)
             {
-                // Swung past fully open and turned back: the hatch hits its stop.
+                // Swung past fully open and turned back: the hatch hits its stop once (the smaller bounces stay quiet).
                 float overshoot = lastHatch - 1;
-                if (lastHatchVelocity > 0 && velocity < 0 && overshoot > minKnockOvershoot)
+                if (!knocked && lastHatchVelocity > 0 && velocity < 0 && overshoot > minKnockOvershoot)
                 {
                     float weight = Mathf.Clamp01(overshoot / fullKnockOvershoot);
                     Play(hatchKnock, Hatch, Mathf.Lerp(hatchKnockVolume.x, hatchKnockVolume.y, weight));
