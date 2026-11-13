@@ -24,6 +24,8 @@ namespace Hakaton.Game
         public PlayerSave player;
         /// <summary>The outing map: opened points, where they were drawn, which are still new. Null in old saves.</summary>
         public OutingMapSave map;
+        /// <summary>The god in the mountains has been met (his «?» is gone from the map). False in older saves.</summary>
+        public bool godMet;
         /// <summary>Special items: bought ones, the dealer's introductions, the phone's battery steps. Null in old saves.</summary>
         public Hakaton.SpecialItems.SpecialItemsSave specialItems;
 

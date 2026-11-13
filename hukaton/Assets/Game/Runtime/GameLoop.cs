@@ -9,6 +9,7 @@ using Hakaton.Decks.Unity;
 using Hakaton.Economy.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Feel;
+using Hakaton.GodMountains;
 using Hakaton.ShopBlockout;
 using Hakaton.SpecialItems;
 using Hakaton.Trading;
@@ -40,12 +41,22 @@ namespace Hakaton.Game
         public CaveTutorial cave;
         [Tooltip("The map at the door: opened outing points, a card with «Идти» / «Остаться». Empty: straight to the endless world.")]
         public OutingMap outingMap;
+        [Tooltip("The one trip to the god: the «?» on the map from the revenue goal until he is met. Empty: no «?».")]
+        public GodMountainsVisit godVisit;
         [Tooltip("The goblin's word in the shop after the first drowning (once per save). Empty: just the notice.")]
         public GoblinLecture lecture;
         [TextArea] public string[] drownLecture =
         {
             "Когда-нибудь ты научишься плавать, но не сегодня.",
             "Больше так не рискуй."
+        };
+        [Tooltip("Back from the god: the goblin waits on the counter (the shop tutorial's goblin) and has a word, then poofs.")]
+        [TextArea] public string[] godReturnLecture =
+        {
+            "Где ты был? Почему ты вернулся с пустыми руками?",
+            "Так никуда не годится, партнёр.",
+            "Но ладно, в этот раз прощаю, я видел по бухгалтерии. От тебя есть польза.",
+            "А у меня есть для тебя кое-что интересное. Заглядывай."
         };
         public FirstPersonMotor player;
         [Tooltip("Special items (board «Спецпредметы»): sold by the goblin dealer once open, kept forever, used on outings with Q.")]
@@ -102,12 +113,16 @@ namespace Hakaton.Game
         /// <summary>The cave prologue is running: leaving now starts it again next time.</summary>
         public bool InCave => cave && cave.Active;
         /// <summary>Leaving now loses something: the cave run or the current outing (the shop is saved as it is).</summary>
-        public bool LeavingLosesProgress => Ready && (InCave || Phase == GamePhase.Expedition);
+        public bool LeavingLosesProgress => Ready && (InCave || InGodMountains || Phase == GamePhase.Expedition);
+        /// <summary>The trip to the god is running: leaving now leaves him unmet, his «?» stays on the map.</summary>
+        public bool InGodMountains => godVisit && godVisit.Active;
+        /// <summary>The god has been met (saved): his «?» is gone from the map for good.</summary>
+        public bool GodMet => godMet;
         /// <summary>The goblin is in the shop with his word about deep water.</summary>
         public bool LectureActive => lecture && lecture.Active;
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
         public bool DrownLectureGiven => drownLectureGiven;
-        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven;
+        bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet;
         // The return notice waits until the goblin has had his say.
         string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
@@ -264,9 +279,14 @@ namespace Hakaton.Game
             // the endless world grows next to it once the goal is reached.
             if (outingMap)
             {
-                outingMap.Open(MapSiteUnlocked, expedition.PlaceName, place =>
+                outingMap.Open(MapSiteUnlocked, MapPlaceName, place =>
                 {
                     if (departing) return;
+                    if (place == OutingPlace.God)
+                    {
+                        if (CanVisitGodNow()) StartCoroutine(VisitGod());
+                        return;
+                    }
                     if (!CanDepartNow(out var refusal)) { if (refusal != null) Notify(refusal); return; }
                     expedition.NextPlace = place;
                     StartCoroutine(DepartWithTransition());
@@ -277,8 +297,59 @@ namespace Hakaton.Game
             StartCoroutine(DepartWithTransition());
         }
 
-        bool MapSiteUnlocked(OutingMap.Site site) => expedition.HasPlace(site.place)
-            && (site.unlock == OutingMapUnlock.Always || site.unlock == OutingMapUnlock.RevenueGoal && PlaceChoiceUnlocked);
+        bool MapSiteUnlocked(OutingMap.Site site) => site.unlock == OutingMapUnlock.GodMeeting
+            ? site.place == OutingPlace.God && godVisit && PlaceChoiceUnlocked && !godMet
+            : expedition.HasPlace(site.place)
+              && (site.unlock == OutingMapUnlock.Always || site.unlock == OutingMapUnlock.RevenueGoal && PlaceChoiceUnlocked);
+
+        string MapPlaceName(OutingPlace place) => place == OutingPlace.God && godVisit ? godVisit.mapName : expedition.PlaceName(place);
+
+        /// <summary>The god's trip takes no deck: only the door's own conditions apply (no open shop, window or talk).</summary>
+        bool CanVisitGodNow() => Ready && godVisit && !godMet && !godVisit.Active && Phase == GamePhase.Shop && !expedition.Returning
+            && !trade.Session.IsOpen && !services.IsOpen && !trade.ExitsLocked && !trade.ViewTransitioning
+            && !player.control.HasModalOwner && !workshop.Model.IsAway;
+
+        /// <summary>
+        /// The «?»: the usual dark of the door but no title (the player must not learn where he goes), the shop saved as
+        /// it stands, then the visit loads the mountains and opens the screen itself.
+        /// </summary>
+        System.Collections.IEnumerator VisitGod()
+        {
+            departing = true;
+            player.control.SetBlocked(this, true);
+            if (sfx) sfx.Play(departCue);
+            if (fade) yield return fade.FadeTo(1, departFadeSeconds);
+            player.control.SetBlocked(this, false);
+            departing = false;
+            if (!CanVisitGodNow()) { if (fade) yield return fade.FadeTo(0, .6f); yield break; }
+            SaveNow();
+            SetPhase(GamePhase.Expedition);
+            godVisit.Finished += LeaveGodMountains;
+            godVisit.Begin();
+        }
+
+        /// <summary>The screen is dark and the player stands in the shop: the god was met (saved) or the trip broke off.</summary>
+        void LeaveGodMountains(bool met)
+        {
+            godVisit.Finished -= LeaveGodMountains;
+            SetPhase(GamePhase.Shop);
+            if (met)
+            {
+                godMet = true;
+                if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+                // the goblin is on the counter as the picture comes back: where were you, and empty-handed?
+                if (lecture && !(tutorial && tutorial.Active)) lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
+            }
+            dirty = true;
+            if (fade) StartCoroutine(fade.FadeTo(0, .6f));
+        }
+
+        /// <summary>Cheats: the god's «?» comes back on the map (with the revenue goal) for another trip.</summary>
+        public void ForgetGodMeeting()
+        {
+            godMet = false;
+            MarkDirty();
+        }
 
         bool CanDepartNow(out string error)
         {
@@ -469,7 +540,7 @@ namespace Hakaton.Game
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
-            map = outingMap ? outingMap.Save() : null,
+            map = outingMap ? outingMap.Save() : null, godMet = godMet,
             specialItems = specialItems ? specialItems.Inventory.Save() : null
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
@@ -488,7 +559,12 @@ namespace Hakaton.Game
             if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
-            if (outingMap) outingMap.Restore(save.map);
+            godMet = save.godMet;
+            if (outingMap)
+            {
+                outingMap.Restore(save.map);
+                if (godMet) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+            }
             if (specialItems) specialItems.Restore(save.specialItems);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;

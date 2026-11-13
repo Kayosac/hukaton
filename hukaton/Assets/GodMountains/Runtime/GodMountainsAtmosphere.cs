@@ -51,6 +51,14 @@ namespace Hakaton.GodMountains
         public Key[] keys = Array.Empty<Key>();
         [Tooltip("Optional skybox (Hukaton/Fantasy Day Sky). Empty: the camera's solid background takes the air's sky colour.")]
         public Material sky;
+        [Header("Culling by the fog")]
+        [Tooltip("The camera's far plane follows the fog: past the distance where the fog hides everything nothing is drawn " +
+                 "(inside the mountain that is some 40 m; out in the heights kilometres).")]
+        public bool farByFog = true;
+        [Tooltip("Far plane = this / fog density. Exponential squared fog leaves 2^-(k²) of a thing there: 3.5 → 0.02%.")]
+        [Min(1)] public float fogCutoff = 3.5f;
+        [Min(1)] public float minFar = 15;
+        [Min(10)] public float maxFar = 12000;
 
         static readonly int FogStartId = Shader.PropertyToID("_FogStart");
         Material skyCopy;
@@ -77,6 +85,8 @@ namespace Hakaton.GodMountains
 
         void LateUpdate()
         {
+            // played alone the test player's camera is the view; in the game the visit hands over the game's camera
+            if (!viewCamera && viewer) viewCamera = viewer.GetComponentInChildren<Camera>();
             if (held >= 0) Apply(AirAt(held));
             else if (viewer) Apply(Evaluate(viewer.position));
         }
@@ -133,6 +143,8 @@ namespace Hakaton.GodMountains
             RenderSettings.ambientEquatorColor = air.ambient;
             RenderSettings.ambientGroundColor = air.ambient * .5f;
             if (viewCamera) viewCamera.backgroundColor = air.sky;
+            if (farByFog && viewCamera)
+                viewCamera.farClipPlane = Mathf.Clamp(fogCutoff / Mathf.Max(air.density, 1e-6f), minFar, maxFar);
             var copy = SkyCopy();
             if (!copy) return;
             copy.SetFloat(FogStartId, Mathf.Lerp(clearFogStart, 90, air.skyHidden));

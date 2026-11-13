@@ -65,7 +65,8 @@ namespace Hakaton.Expeditions
         public OutingPlace NextPlace { get; set; } = OutingPlace.Endless;
         public bool HasPlaceChoice => readyWorld && outingWorld is IOutingWorld;
         /// <summary>The place exists in this scene (the outing map shows only those).</summary>
-        public bool HasPlace(OutingPlace place) => place == OutingPlace.Ready ? (bool)readyWorld : outingWorld is IOutingWorld;
+        public bool HasPlace(OutingPlace place) => place == OutingPlace.Ready ? (bool)readyWorld
+            : place == OutingPlace.Endless && outingWorld is IOutingWorld;
         /// <summary>The title of a place, as the map card and the arrival title show it.</summary>
         public string PlaceName(OutingPlace place) => place == OutingPlace.Ready && readyWorld ? readyWorld.placeName : locationName;
         /// <summary>The title of the place the next outing goes to.</summary>
@@ -106,6 +107,8 @@ namespace Hakaton.Expeditions
         public event Action PrologueReturned;
         /// <summary>The cave prologue runs instead of an outing to the valley.</summary>
         public bool InPrologue { get; private set; }
+        /// <summary>A place far below the valley's floor (the god's mountains): falling under the kill height is not death there.</summary>
+        public bool IgnoreKillHeight { get; set; }
         /// <summary>Where a fall into the prologue's water puts the player back when no shores are listed below.</summary>
         public Transform prologueShore;
         /// <summary>Safe spots on both banks of the prologue's water: a fall returns the player to the nearest one.</summary>
@@ -182,7 +185,7 @@ namespace Hakaton.Expeditions
             FocusedInteractable = null;
             if (!Running) return;
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
-            if (motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
+            if (!IgnoreKillHeight && motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
             else if (control.GameplayActive) FocusedInteractable = FindInteractable(viewCamera.transform);
