@@ -28,7 +28,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     {
                         if (x * x + y * y > 14 * 14) continue;
                         var plan = map.Chunk(x, y);
-                        string key = plan.Shape.Kind + (plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.PlateauTop ? "/" + plan.Variant.Id : "");
+                        string key = (plan.Biome == Biome.Swamp ? "Swamp " : "") + plan.Shape.Kind + (plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.PlateauTop ? "/" + plan.Variant.Id : "");
                         counts[plan.Ring].TryGetValue(key, out int c);
                         counts[plan.Ring][key] = c + 1;
                         totals[plan.Ring]++;
@@ -131,6 +131,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             Color32 Level(int level) => level switch
             {
+                // Rotten swamp: murky brown-green low ground.
+                0 when p.Biome == Biome.Swamp => new Color32(72, 82, 52, 255),
                 0 => new Color32(118, 128, 78, 255),
                 1 => new Color32(150, 140, 120, 255),
                 _ => new Color32(205, 200, 190, 255),

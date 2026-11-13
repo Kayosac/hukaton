@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Hakaton.WorldAssembly
 {
@@ -100,7 +101,7 @@ namespace Hakaton.WorldAssembly
         {
             var list = new List<TileShape>
             {
-                Flat("plain", ShapeKind.Plain, 0, Scenes(PlainScenes)),
+                Flat("plain", ShapeKind.Plain, 0, Scenes(PlainScenes.Concat(SwampScenes).ToArray())),
                 Flat("plateau-top", ShapeKind.PlateauTop, 0, Scenes(TopScenes)),
                 Cliff("cliff-corner", new[] { 1, 0, 0, 0 }, true),
                 Cliff("cliff-edge", new[] { 1, 1, 0, 0 }, true, ledge: true),
@@ -131,8 +132,38 @@ namespace Hakaton.WorldAssembly
         public static readonly string[] PlainScenes = { "gap", "boulders", "knoll", "gully", "ruins", "camp", "farm", "hollow", "grove", "pond", "thorns", "tower", "apiary", "pillar", "yard" };
         public static readonly string[] TopScenes = { "gap", "boulders", "knoll", "ruins", "hollow", "thorns", "tower", "pillar", "yard" };
 
+        /// <summary>
+        /// Scenes of a flat chunk of rotten swamp (Kayospace «Биом: Гнилая топь»): hummocks, a log road, a sunken hut,
+        /// a tar pit, a breathing bog with gas vents, a drowned graveyard, a drowned mill, an isle of dead trees. The
+        /// hut's roof, the mill's loft and the isle are pockets only cards reach.
+        /// </summary>
+        public static readonly string[] SwampScenes = { "hummocks", "log-road", "sunken-hut", "tar-pit", "breathing-bog", "drowned-graveyard", "drowned-mill", "deadwood-isle" };
+
+        public static bool IsSwampScene(string id) => Array.IndexOf(SwampScenes, id) >= 0;
+
         /// <summary>Scenes with a pocket only a card reaches.</summary>
-        public static bool IsPocketScene(string id) => id == "thorns" || id == "tower" || id == "pillar" || id == "yard";
+        public static bool IsPocketScene(string id) => id == "thorns" || id == "tower" || id == "pillar" || id == "yard" ||
+            id == "sunken-hut" || id == "drowned-mill" || id == "deadwood-isle";
+
+        /// <summary>
+        /// The forest scene a swamp scene borrows its chunk from while the swamp has no chunks of its own (its art is
+        /// still being made): something of the same build — a pocket for a pocket — or null for scenes that have chunks.
+        /// </summary>
+        public static string StandIn(string id)
+        {
+            switch (id)
+            {
+                case "hummocks": return "pond";
+                case "log-road": return "gully";
+                case "sunken-hut": return "pillar";
+                case "tar-pit": return "hollow";
+                case "breathing-bog": return "boulders";
+                case "drowned-graveyard": return "ruins";
+                case "drowned-mill": return "yard";
+                case "deadwood-isle": return "pillar";
+                default: return null;
+            }
+        }
 
         static Variant[] Scenes(string[] ids)
         {
@@ -146,6 +177,11 @@ namespace Hakaton.WorldAssembly
                 // teleport).
                 else if (id == "pillar" || id == "yard")
                     result[i] = new Variant(id, new[] { new Link(0, 1, Need.Card), new Link(1, 0, Need.Drop) }, new[] { new Region(id, 0, pocket: true) });
+                // Swamp pockets: the sunken hut's roof and the mill's loft (impulse, updraft, rope, teleport), the isle
+                // in the bog (the same, or ice over the bog).
+                else if (id == "sunken-hut" || id == "drowned-mill" || id == "deadwood-isle")
+                    result[i] = new Variant(id, new[] { new Link(0, 1, Need.Card), new Link(1, 0, Need.Drop) },
+                        new[] { new Region(id == "sunken-hut" ? "roof" : id == "drowned-mill" ? "loft" : "isle", 0, pocket: true) });
                 else result[i] = new Variant(id);
             }
             return result;

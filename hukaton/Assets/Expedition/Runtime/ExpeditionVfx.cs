@@ -1,3 +1,4 @@
+using Hakaton.Expeditions.Cards;
 using Hakaton.Feel;
 using UnityEngine;
 
@@ -18,6 +19,8 @@ namespace Hakaton.Expeditions
         public VfxBurst stunned;
         [Tooltip("Drops falling from a wet body (WetStatus); held while it stays wet.")]
         public VfxBurst wetDrips;
+        [Tooltip("The HUD badge shown when the player gets wet by wading in water (WorldObstacle lake); the rain has its own references.")]
+        public PlayerStatusBadge wetBadge;
         [Tooltip("The ice shell a wet creature hit by Ice is encased in (IceEncasement): meshes, shards, effects.")]
         public IceShellKit iceShell;
     }

@@ -204,6 +204,8 @@ namespace Hakaton.WorldAssembly.Unity
         /// <summary>The moods a chunk brings, by its kind and what stands on it.</summary>
         static IEnumerable<(string, float)> MoodsOf(ChunkPlan plan)
         {
+            // The rotten swamp: thick green air over all of it, whatever stands on the chunk.
+            if (plan.Biome == Biome.Swamp) yield return (Swamp, 1);
             switch (plan.Shape.Kind)
             {
                 case ShapeKind.River:

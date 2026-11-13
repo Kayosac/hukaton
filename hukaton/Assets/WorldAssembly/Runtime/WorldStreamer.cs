@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Expeditions.Events;
 using Hakaton.Feel;
 using Hakaton.OldApiary;
@@ -55,6 +56,7 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly List<Mesh> meshes = new List<Mesh>();
             public readonly List<(int index, WorldLoot loot)> loot = new List<(int, WorldLoot)>();
             public readonly List<(int index, WorldCreature creature)> creatures = new List<(int, WorldCreature)>();
+            public readonly List<(int index, TarPuddleZone tar)> tar = new List<(int, TarPuddleZone)>();
             public TreasureChest chest;
             public BeastBrawl brawl;
             public Oddity oddity;
@@ -68,6 +70,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly Dictionary<int, (Vector3 position, Quaternion rotation)> props = new Dictionary<int, (Vector3, Quaternion)>();
             public readonly HashSet<int> burnt = new HashSet<int>();
             public readonly HashSet<int> awakened = new HashSet<int>();
+            /// <summary>Natural tar pools burnt out or washed away: they do not come back.</summary>
+            public readonly HashSet<int> tarGone = new HashSet<int>();
             public readonly List<GameObject> loose = new List<GameObject>();
             public bool chestOpened;
             /// <summary>A mimic as it was left: shut, on guard where it last hid, killed or opened.</summary>
@@ -490,6 +494,7 @@ namespace Hakaton.WorldAssembly.Unity
                     if (mem != null && mem.burnt.Contains(i)) fire.Burnt(b);
                 }
 
+            SwampPieces(entry, mem);
             SpawnLoot(entry, mem);
             SpawnChest(entry, mem);
             SpawnEvent(entry, mem);
@@ -504,6 +509,26 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 var other = coord.Step(side);
                 if (loaded.ContainsKey(other)) Join(coord, side);
+            }
+        }
+
+        /// <summary>
+        /// The rotten swamp's live pieces: gas vents join the outing's card zones; natural tar pools are laid as tar
+        /// puddles (the «Лужа смолы» rules), except those that burnt out or were washed away before.
+        /// </summary>
+        void SwampPieces(Loaded entry, Memory mem)
+        {
+            var view = entry.view;
+            foreach (var vent in view.gasVents) if (vent) vent.OnSpawned(world);
+            if (!content || !content.tarPuddle) return;
+            for (int i = 0; i < view.tarSpots.Length; i++)
+            {
+                var spot = view.tarSpots[i];
+                if (!spot || (mem != null && mem.tarGone.Contains(i))) continue;
+                var tar = world.SpawnForOuting(content.tarPuddle, spot.transform.position, spot.transform.rotation, view.transform);
+                if (!tar) continue;
+                tar.Setup(spot.radius, content.tarSlow, content.tarBurnSeconds, content.tarBurnDamage);
+                entry.tar.Add((i, tar));
             }
         }
 
@@ -788,6 +813,8 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 if (!memory.TryGetValue(coord, out var mem)) memory[coord] = mem = new Memory();
                 foreach (var (index, loot) in entry.loot) if (!loot || loot.Taken) mem.takenLoot.Add(index);
+                // Tar that caught fire is as good as burnt out.
+                foreach (var (index, tar) in entry.tar) if (!tar || tar.Phase != TarPhase.Tar) mem.tarGone.Add(index);
                 if (entry.chest && entry.chest.Opened) mem.chestOpened = true;
                 if (entry.chest && entry.chest.TryGetComponent<ChestMimic>(out var mimic)) mem.mimic = mimic.Capture();
                 if (entry.brawl) mem.brawl = entry.brawl.Capture();

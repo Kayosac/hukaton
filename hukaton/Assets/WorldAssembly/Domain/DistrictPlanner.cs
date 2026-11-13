@@ -31,11 +31,12 @@ namespace Hakaton.WorldAssembly
         readonly int seed;
         readonly WorldRules rules;
         readonly CornerField corners;
+        readonly BiomeField biomes;
         readonly int size, half;
 
-        public DistrictPlanner(int seed, WorldRules rules, CornerField corners)
+        public DistrictPlanner(int seed, WorldRules rules, CornerField corners, BiomeField biomes = null)
         {
-            this.seed = seed; this.rules = rules; this.corners = corners;
+            this.seed = seed; this.rules = rules; this.corners = corners; this.biomes = biomes;
             size = rules.District;
             half = size / 2;
         }
@@ -81,7 +82,12 @@ namespace Hakaton.WorldAssembly
         }
 
         bool Usable(ChunkCoord c) => !WorldRules.IsStartArea(c) && corners.IsFlatLow(c);
-        bool CanyonAllowed(ChunkCoord c) => rules.RingOf(c) >= 1;
+        /// <summary>Canyons stay out of the swamp: it is a basin, not a gorge.</summary>
+        bool CanyonAllowed(ChunkCoord c) => rules.RingOf(c) >= 1 && !Swamp(c);
+
+        bool Swamp(ChunkCoord c) => biomes != null && biomes.IsSwamp(c);
+
+        Biome BiomeOf(ChunkCoord c) => biomes?.At(c) ?? Biome.Forest;
 
         // ---------- the district ----------
 
@@ -300,7 +306,12 @@ namespace Hakaton.WorldAssembly
                 int ox = origin.X + 1 + Hash.Range(seed, Math.Max(1, size - 1 - n), Salt.Landmark + 3, dx, dy, key);
                 int oy = origin.Y + 1 + Hash.Range(seed, Math.Max(1, size - 1 - n), Salt.Landmark + 4, dx, dy, key);
                 if (ox + n > origin.X + size - 1 || oy + n > origin.Y + size - 1) continue;
+                // A landmark belongs to one land: all its parts in the biome it is made for.
                 bool ok = true;
+                for (int x = ox; x < ox + n && ok; x++)
+                    for (int y = oy; y < oy + n && ok; y++)
+                        if (BiomeOf(new ChunkCoord(x, y)) != kind.Biome) ok = false;
+                if (!ok) continue;
                 int level = corners.Level(ox, oy);
                 for (int x = ox; x <= ox + n && ok; x++)
                     for (int y = oy; y <= oy + n && ok; y++)
@@ -344,6 +355,8 @@ namespace Hakaton.WorldAssembly
             {
                 if (c.X <= origin.X || c.Y <= origin.Y || c.X >= origin.X + size - 1 || c.Y >= origin.Y + size - 1) return false;
                 if (used.Contains(c) || WorldRules.IsStartArea(c) || !corners.IsFlatLow(c)) return false;
+                // No thicket mazes and no giant forest in the swamp.
+                if (Swamp(c)) return false;
                 // A second maze keeps a chunk of open ground from the first.
                 foreach (var side in Sides.All)
                     if (plan.TryGetValue(c.Step(side), out var near) && near.Feature == Feature.Maze) return false;

@@ -16,6 +16,8 @@ namespace Hakaton.WorldAssembly
         public int BaseLevel;
         /// <summary>World corner levels clockwise NW, NE, SE, SW.</summary>
         public int[] Corners = new int[4];
+        /// <summary>The land this chunk belongs to (<see cref="BiomeField"/>).</summary>
+        public Biome Biome;
         /// <summary>World edge middles by side.</summary>
         public Mid[] Mids = new Mid[4];
         public bool MazeHeart;
@@ -52,6 +54,7 @@ namespace Hakaton.WorldAssembly
         public readonly int Seed;
         public readonly WorldRules Rules;
         public readonly CornerField Corners;
+        public readonly BiomeField Biomes;
         readonly DistrictPlanner districts;
         readonly Dictionary<(int, int), Dictionary<ChunkCoord, ChunkFeature>> districtCache = new Dictionary<(int, int), Dictionary<ChunkCoord, ChunkFeature>>();
         readonly Dictionary<ChunkCoord, ChunkPlan> plans = new Dictionary<ChunkCoord, ChunkPlan>();
@@ -62,8 +65,9 @@ namespace Hakaton.WorldAssembly
         {
             Seed = seed;
             Rules = rules ?? new WorldRules();
-            Corners = new CornerField(seed, Rules);
-            districts = new DistrictPlanner(seed, Rules, Corners);
+            Biomes = new BiomeField(seed, Rules);
+            Corners = new CornerField(seed, Rules, Biomes);
+            districts = new DistrictPlanner(seed, Rules, Corners, Biomes);
             Guarantee();
         }
 
@@ -138,7 +142,7 @@ namespace Hakaton.WorldAssembly
 
         ChunkPlan Build(ChunkCoord c)
         {
-            var plan = new ChunkPlan { Coord = c, Ring = Rules.RingOf(c) };
+            var plan = new ChunkPlan { Coord = c, Ring = Rules.RingOf(c), Biome = Biomes.At(c) };
             Corners.Corners(c, plan.Corners);
             var feature = FeatureAt(c);
             if (feature != null) Array.Copy(feature.Mids, plan.Mids, 4);
@@ -252,7 +256,7 @@ namespace Hakaton.WorldAssembly
         string Scene(ChunkPlan plan)
         {
             var c = plan.Coord;
-            var ids = plan.Shape.Kind == ShapeKind.Plain ? TileShapes.PlainScenes : TileShapes.TopScenes;
+            var ids = plan.Shape.Kind != ShapeKind.Plain ? TileShapes.TopScenes : plan.Biome == Biome.Swamp ? TileShapes.SwampScenes : TileShapes.PlainScenes;
             string First(int x, int y, int salt)
             {
                 for (int k = 0; k < 8; k++)
@@ -263,7 +267,9 @@ namespace Hakaton.WorldAssembly
                 }
                 return ids[0];
             }
-            string west = First(c.X - 1, c.Y, 0), south = First(c.X, c.Y - 1, 0);
+            // A neighbour of another land picks from another list: it never repeats this one's scene.
+            string west = Biomes.At(new ChunkCoord(c.X - 1, c.Y)) == plan.Biome ? First(c.X - 1, c.Y, 0) : null;
+            string south = Biomes.At(new ChunkCoord(c.X, c.Y - 1)) == plan.Biome ? First(c.X, c.Y - 1, 0) : null;
             for (int k = 0; k < 12; k++)
             {
                 string id = ids[Hash.Range(Seed, ids.Length, Salt.Scene, c.X, c.Y, k)];
@@ -294,7 +300,7 @@ namespace Hakaton.WorldAssembly
                 case ShapeKind.Plain:
                     theme = CreatureThemes.ForScene(plan.Variant.Id);
                     // Someone always lives at a camp, an apiary or a farm; ruins and hollows are lairs.
-                    if (theme == "camp" || theme == "apiary" || theme == "farm") chance = Math.Max(chance, .75);
+                    if (plan.Biome == Biome.Forest && (theme == "camp" || theme == "apiary" || theme == "farm")) chance = Math.Max(chance, .75);
                     else if (theme == "ruins" || theme == "hollow") chance *= 1.5;
                     break;
                 case ShapeKind.Maze:

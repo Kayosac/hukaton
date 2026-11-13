@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Hakaton.Decks.Unity;
+using Hakaton.Expeditions.Cards;
 using Hakaton.Feel;
 using UnityEngine;
 
@@ -319,9 +320,53 @@ namespace Hakaton.Expeditions
                 : float.PositiveInfinity;
         }
 
+        // ---------- wading ----------
+
+        [Header("Wading")]
+        [Tooltip("Lake: how often everyone standing in this water is made wet, s (WetStatus: wet in the water and 30 s after leaving it, like under rain).")]
+        [Min(.05f)] public float soakTick = .25f;
+        float nextSoak;
+        static readonly List<ICombatant> Waders = new List<ICombatant>();
+
+        void Update()
+        {
+            if (kind != ObstacleKind.Lake || !world || !world.Running || Time.time < nextSoak) return;
+            nextSoak = Time.time + soakTick;
+            SoakWaders();
+        }
+
+        /// <summary>
+        /// Lake: water wets whoever stands in it, like rain (Kayospace «Биом: Гнилая топь»): the player, creatures and
+        /// allies with their feet under the surface get <see cref="WetStatus"/> — so Ice encases them and lightning
+        /// strikes them twice as hard. Standing on ice that holds is not in the water.
+        /// </summary>
+        public void SoakWaders()
+        {
+            if (!world || !HasSurface) return;
+            var box = SurfaceBounds;
+            box.Expand(new Vector3(1, 8, 1));
+            Waders.Clear();
+            world.Combatants(Waders);
+            foreach (var body in Waders)
+            {
+                if (body == null || !body.Alive || !body.Root) continue;
+                var feet = body.Position;
+                if (!box.Contains(feet) || !InWater(feet)) continue;
+                bool player = ReferenceEquals(body, world.Player);
+                bool wasWet = player && WetStatus.IsWet(body.Root);
+                WetStatus.Soak(body.Root, world);
+                if (player && !wasWet && world.vfx && world.vfx.wetBadge) PlayerStatusBadge.Show(world, world.vfx.wetBadge);
+            }
+        }
+
+        /// <summary>Lake: feet under this water's surface and not on ice that holds.</summary>
+        public bool InWater(Vector3 feet) => SurfaceAt(feet, out float level) && feet.y < level - .02f && !(world && IcePatch.IsSolidAt(world, feet));
+
         void OnTriggerStay(Collider other)
         {
             if (kind != ObstacleKind.Lake || !world || !world.Running) return;
+            // A bog does not drown at once: it holds and swallows slowly (BogMire).
+            if (GetComponent<BogMire>()) return;
             if (other.GetComponentInParent<PlayerVitals>() != world.vitals) return;
             // Wading is free. The moment the feet touch water over a deep bed the player is lost — drown at once,
             // no waiting until the body has sunk. Standing on ice that holds is not in the water.

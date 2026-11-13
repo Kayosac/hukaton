@@ -430,5 +430,105 @@ namespace Hakaton.WorldAssembly.Tests
             }
             return seen.ToList();
         }
+
+        // ---------- rotten swamp ----------
+
+        [Test]
+        public void SwampLiesInPatchesFromRingOneOutward()
+        {
+            int[] swamp = new int[3], total = new int[3];
+            int bigPatches = 0;
+            for (int seed = 1; seed <= 30; seed++)
+            {
+                var map = new WorldMap(seed);
+                var cells = new HashSet<ChunkCoord>();
+                foreach (var c in Square(Area))
+                {
+                    var plan = map.Chunk(c);
+                    total[plan.Ring]++;
+                    if (plan.Biome != Biome.Swamp) continue;
+                    swamp[plan.Ring]++;
+                    cells.Add(c);
+                    Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: swamp at the start {c}");
+                    // No lone swamp chunk.
+                    Assert.GreaterOrEqual(Sides.All.Count(side => map.Biomes.IsSwamp(c.Step(side))), 1, $"seed {seed}: lone swamp {c}");
+                }
+                // Patches of every size, some bigger than a district (64 chunks).
+                var seen = new HashSet<ChunkCoord>();
+                foreach (var start in cells)
+                {
+                    if (!seen.Add(start)) continue;
+                    int size = 0;
+                    var stack = new Stack<ChunkCoord>();
+                    stack.Push(start);
+                    while (stack.Count > 0)
+                    {
+                        var c = stack.Pop();
+                        size++;
+                        foreach (var side in Sides.All)
+                        {
+                            var next = c.Step(side);
+                            if (cells.Contains(next) && seen.Add(next)) stack.Push(next);
+                        }
+                    }
+                    if (size > 64) bigPatches++;
+                }
+            }
+            Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
+            double ring1 = swamp[1] / (double)total[1], ring2 = swamp[2] / (double)total[2];
+            Assert.That(ring1, Is.InRange(.04, .3), "some swamp in ring 1");
+            Assert.That(ring2, Is.InRange(.15, .45), "more swamp in ring 2");
+            Assert.Greater(ring2, ring1, "the swamp grows further out");
+            Assert.Greater(bigPatches, 0, "some patches are bigger than a district");
+        }
+
+        [Test]
+        public void SwampIsALowBasinWithItsOwnScenes()
+        {
+            for (int seed = 1; seed <= 30; seed++)
+            {
+                var map = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    var plan = map.Chunk(c);
+                    if (plan.Biome != Biome.Swamp) continue;
+                    Assert.IsTrue(plan.Corners.All(level => level == 0), $"seed {seed}: swamp {c} is not flat and low ({plan})");
+                    Assert.AreNotEqual(ShapeKind.Maze, plan.Shape.Kind, $"seed {seed}: maze in the swamp {c}");
+                    Assert.AreNotEqual(ShapeKind.Canyon, plan.Shape.Kind, $"seed {seed}: canyon in the swamp {c}");
+                    if (plan.Shape.Kind == ShapeKind.Plain)
+                        Assert.IsTrue(TileShapes.IsSwampScene(plan.Variant.Id), $"seed {seed}: forest scene {plan.Variant.Id} in the swamp {c}");
+                    if (plan.Shape.Kind == ShapeKind.Landmark)
+                        Assert.AreEqual(Biome.Swamp, Landmarks.Parse(plan.Shape.Id).kind.Biome, $"seed {seed}: forest landmark in the swamp {c}");
+                }
+                foreach (var c in Square(Area))
+                {
+                    var plan = map.Chunk(c);
+                    if (plan.Biome == Biome.Swamp) continue;
+                    if (plan.Shape.Kind == ShapeKind.Plain) Assert.IsFalse(TileShapes.IsSwampScene(plan.Variant.Id), $"seed {seed}: swamp scene in the forest {c}");
+                    if (plan.Shape.Kind == ShapeKind.Landmark)
+                        Assert.AreEqual(Biome.Forest, Landmarks.Parse(plan.Shape.Id).kind.Biome, $"seed {seed}: swamp landmark in the forest {c}");
+                }
+            }
+        }
+
+        [Test]
+        public void SwampScenesBorrowForestChunksOfTheSameBuild()
+        {
+            foreach (var id in TileShapes.SwampScenes)
+            {
+                string standIn = TileShapes.StandIn(id);
+                Assert.IsNotNull(standIn, id);
+                Assert.IsFalse(TileShapes.IsSwampScene(standIn), id);
+                Assert.AreEqual(TileShapes.IsPocketScene(id), TileShapes.IsPocketScene(standIn), $"{id} and {standIn}: a pocket for a pocket");
+                Assert.AreNotEqual("rocks", CreatureThemes.ForScene(id), $"{id} keeps the creatures of a place like it");
+            }
+        }
+
+        [Test]
+        public void WithoutTheSwampTheWorldIsAllForest()
+        {
+            var map = new WorldMap(3, new WorldRules { Swamp = false });
+            foreach (var c in Square(Area)) Assert.AreEqual(Biome.Forest, map.Chunk(c).Biome, c.ToString());
+        }
     }
 }
