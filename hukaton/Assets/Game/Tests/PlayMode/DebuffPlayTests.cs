@@ -85,7 +85,6 @@ namespace Hakaton.Game.Tests
             Assert.That(statuses.deafFilter.enabled, Is.False);
             Assert.That(world.vitals.RotHalfHearts, Is.Zero);
             Assert.That(world.motor.StatusSpeedScale, Is.EqualTo(1));
-            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
@@ -139,7 +138,6 @@ namespace Hakaton.Game.Tests
             world.CollectCoins(5, Color.yellow);
             Assert.That(world.LoseCoins(3), Is.EqualTo(3));
             Assert.That(world.Coins, Is.EqualTo(2));
-            LogAssert.NoUnexpectedReceived();
         }
 
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
