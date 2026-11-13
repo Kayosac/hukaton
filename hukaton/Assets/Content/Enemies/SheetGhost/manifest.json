@@ -1,0 +1,488 @@
+{
+  "character": "SheetGhost",
+  "display_name": "Парящий призрак-простыня",
+  "brief": "Парящий призрак-простыня. Размер как у жука-навозника. Агрессивный.",
+  "type": "aggressive",
+  "temperament_status": "user_specified_art_direction; gameplay_not_implemented",
+  "physical_height_m": 1.5675,
+  "size_provided_by_user": true,
+  "size_reference": "GiantDungBeetle body height without spear",
+  "nominal_world_scale": 1,
+  "master_pixels_per_unit": 503.34928229665076,
+  "default_visible_body_pixels": 789,
+  "hover_gap_m": 0.20065589353612165,
+  "hover_gap_pixels": 101,
+  "master_atlas": "output/monsters/sheet-ghost/atlas.png",
+  "cell_width": 237,
+  "cell_height": 223,
+  "columns": 2,
+  "rows": 4,
+  "width": 512,
+  "height": 1024,
+  "ground_anchor_top_left": [
+    800.0,
+    1450
+  ],
+  "pivot": [
+    0.5021097,
+    0.0044843
+  ],
+  "cells": [
+    {
+      "name": "SheetGhost_DefaultFront",
+      "rect": [
+        0,
+        801,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 523
+    },
+    {
+      "name": "SheetGhost_DefaultBack",
+      "rect": [
+        237,
+        801,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 520
+    },
+    {
+      "name": "SheetGhost_AggroFront",
+      "rect": [
+        0,
+        578,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 978
+    },
+    {
+      "name": "SheetGhost_HurtFront",
+      "rect": [
+        237,
+        578,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 484
+    },
+    {
+      "name": "SheetGhost_AttackFront",
+      "rect": [
+        0,
+        355,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 667
+    },
+    {
+      "name": "SheetGhost_DeathFront",
+      "rect": [
+        237,
+        355,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 507
+    },
+    {
+      "name": "SheetGhost_DeathBack",
+      "rect": [
+        0,
+        132,
+        237,
+        223
+      ],
+      "pivot": [
+        0.5021097,
+        0.0044843
+      ],
+      "outline_fixed": 0,
+      "edge": 482
+    }
+  ],
+  "empty_cells": "Unused power-of-two region is transparent",
+  "identity": "Opaque off-white continuous bedsheet, rounded dome, two dark eye holes and small dark oval mouth, two draped cloth lobes, scalloped hem, pale blue-gray flat folds; no nose, teeth, hands, feet or bones.",
+  "generation_mode": "built-in image_gen, transparent_background=true",
+  "prompts": "prompts.json",
+  "user_art_approval": "accepted",
+  "unity_import_validation": "verified_actual_editor_import",
+  "gameplay_implemented": false,
+  "health": null,
+  "damage": null,
+  "loot_assigned": false,
+  "references": [
+    "output/shop-visitors/09-peasant-line-details.png",
+    "output/monsters/style-current.json",
+    "output/monsters/goblin-dog-test/masters/front-aggro.png",
+    "output/monsters/giant-dung-beetle/manifest.json"
+  ],
+  "notes": [
+    "All source RGBA pixels preserved by transparent padding; no per-state scale changes.",
+    "Living states hover about0.2m above shared ground anchor; death lies on the ground.",
+    "Actual world size matches beetle body1.5675m, excluding hover gap."
+  ],
+  "unity": {
+    "atlas": "SheetGhostAtlas.png",
+    "width": 512,
+    "height": 1024,
+    "cell_width": 237,
+    "cell_height": 223,
+    "columns": 2,
+    "rows": 4,
+    "pixels_per_unit": 100,
+    "world_density": 100,
+    "world_scale": 1,
+    "sprites": [
+      {
+        "name": "SheetGhost_DefaultFront",
+        "rect": [
+          0,
+          801,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 523
+      },
+      {
+        "name": "SheetGhost_DefaultBack",
+        "rect": [
+          237,
+          801,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 520
+      },
+      {
+        "name": "SheetGhost_AggroFront",
+        "rect": [
+          0,
+          578,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 978
+      },
+      {
+        "name": "SheetGhost_HurtFront",
+        "rect": [
+          237,
+          578,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 484
+      },
+      {
+        "name": "SheetGhost_AttackFront",
+        "rect": [
+          0,
+          355,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 667
+      },
+      {
+        "name": "SheetGhost_DeathFront",
+        "rect": [
+          237,
+          355,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 507
+      },
+      {
+        "name": "SheetGhost_DeathBack",
+        "rect": [
+          0,
+          132,
+          237,
+          223
+        ],
+        "pivot": [
+          0.5021097,
+          0.0044843
+        ],
+        "outline_fixed": 0,
+        "edge": 482
+      }
+    ],
+    "import_validation": "verified_actual_editor_import",
+    "atlas_sha256": "c3d127aeec39ed226ace9e10cf3c189ba5efcb4ca8c02f1f16c141b3e3e61e4d",
+    "visual_review": "All seven states and scale comparison inspected in an isolated preview copy of saved EnemyDebug scene",
+    "scale_comparison": "output/monsters/sheet-ghost/unity-scale-comparison.png"
+  },
+  "atlas": "SheetGhostAtlas.png",
+  "master_directory": "output/monsters/sheet-ghost",
+  "pixelsPerUnit": 100,
+  "master_cells": [
+    {
+      "name": "SheetGhost_DefaultFront",
+      "state": "front-default",
+      "master": "masters/front-default.png",
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        308
+      ],
+      "visible_bbox": [
+        360,
+        560,
+        1230,
+        1349
+      ]
+    },
+    {
+      "name": "SheetGhost_DefaultBack",
+      "state": "back-default",
+      "master": "masters/back-default.png",
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1600,
+        0,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        307
+      ],
+      "visible_bbox": [
+        360,
+        560,
+        1233,
+        1349
+      ]
+    },
+    {
+      "name": "SheetGhost_AggroFront",
+      "state": "front-aggro",
+      "master": "masters/front-aggro.png",
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        3200,
+        0,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        221
+      ],
+      "visible_bbox": [
+        354,
+        340,
+        1245,
+        1349
+      ]
+    },
+    {
+      "name": "SheetGhost_HurtFront",
+      "state": "front-hurt",
+      "master": "masters/front-hurt.png",
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1600,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        289
+      ],
+      "visible_bbox": [
+        427,
+        525,
+        1190,
+        1349
+      ]
+    },
+    {
+      "name": "SheetGhost_AttackFront",
+      "state": "front-attack",
+      "master": "masters/front-attack.png",
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1600,
+        1600,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        326
+      ],
+      "visible_bbox": [
+        216,
+        577,
+        1385,
+        1349
+      ]
+    },
+    {
+      "name": "SheetGhost_DeathFront",
+      "state": "front-death",
+      "master": "masters/front-death.png",
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        3200,
+        1600,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        292
+      ],
+      "visible_bbox": [
+        210,
+        985,
+        1384,
+        1450
+      ]
+    },
+    {
+      "name": "SheetGhost_DeathBack",
+      "state": "back-death",
+      "master": "masters/back-death.png",
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        3200,
+        1600,
+        1600
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        173,
+        294
+      ],
+      "visible_bbox": [
+        250,
+        992,
+        1350,
+        1450
+      ]
+    }
+  ],
+  "status": "generated_saved_atlas_and_unity_import_verified",
+  "master_atlas_sha256": "1d8d91e993e5ccf96d66a264369798fbd74d145eac7d16fd4dac5b798a601bb9",
+  "registry": {
+    "table": "tb_hakaton-enemies",
+    "row": "8qz4v6tw9k",
+    "attachment": "9cc1341fd1599116e9b27a670ddf48c0c71d8affe10c2eb5b161461030250820",
+    "verified": true
+  },
+  "user_art_feedback": {
+    "date": "2026-11-13",
+    "quote": "Да, оставляем. Теперь давай придумаем добычу для призрака",
+    "scope": "SheetGhost monster art accepted; loot concepts not yet selected."
+  }
+}

@@ -1,0 +1,493 @@
+{
+  "character": "GiantDungBeetle",
+  "display_name": "Гигантский жук-навозник с копьём",
+  "brief": "Гигантский жук-навозник с копьём",
+  "type": "aggressive",
+  "temperament_status": "artistic_assumption_not_gameplay_implemented",
+  "physical_height_m": 1.5675,
+  "physical_height_status": "User requested smaller than GoblinDog; chosen75% visible body height, excludes spear",
+  "nominal_world_scale": 1,
+  "master_pixels_per_unit": 590.7496012759171,
+  "master_atlas": "output/monsters/giant-dung-beetle/atlas.png",
+  "cell_width": 209,
+  "cell_height": 193,
+  "columns": 2,
+  "rows": 4,
+  "width": 512,
+  "height": 1024,
+  "ground_anchor_top_left": [
+    704.0,
+    1280
+  ],
+  "pivot": [
+    0.5023923,
+    0.0051813
+  ],
+  "empty_cells": "See power-of-two unused alpha region; seven occupied equal cells",
+  "generation_mode": "built-in image_gen, transparent_background=true",
+  "prompts": "prompts.json",
+  "user_art_approval": "not_yet_recorded",
+  "unity_import_validation": "verified_actual_editor_import_after_user_size_correction",
+  "gameplay_implemented": false,
+  "health": null,
+  "damage": null,
+  "loot_assigned": false,
+  "notes": [
+    "Original generator pixels and alpha retained by transparent padding only; per-state vertical offsets align visible ground at y1280.",
+    "Low-alpha generator noise retained in master alpha. Unity density build uses the required hard-alpha resampler."
+  ],
+  "unity": {
+    "atlas": "GiantDungBeetleAtlas.png",
+    "width": 512,
+    "height": 1024,
+    "cell_width": 209,
+    "cell_height": 193,
+    "columns": 2,
+    "rows": 4,
+    "pixels_per_unit": 100,
+    "world_density": 100,
+    "world_scale": 1,
+    "sprites": [
+      {
+        "name": "GiantDungBeetle_DefaultFront",
+        "rect": [
+          0,
+          831,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 1138
+      },
+      {
+        "name": "GiantDungBeetle_DefaultBack",
+        "rect": [
+          209,
+          831,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 1163
+      },
+      {
+        "name": "GiantDungBeetle_AggroFront",
+        "rect": [
+          0,
+          638,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 1321
+      },
+      {
+        "name": "GiantDungBeetle_HurtFront",
+        "rect": [
+          209,
+          638,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 1006
+      },
+      {
+        "name": "GiantDungBeetle_AttackFront",
+        "rect": [
+          0,
+          445,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 786
+      },
+      {
+        "name": "GiantDungBeetle_DeathFront",
+        "rect": [
+          209,
+          445,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 777
+      },
+      {
+        "name": "GiantDungBeetle_DeathBack",
+        "rect": [
+          0,
+          252,
+          209,
+          193
+        ],
+        "pivot": [
+          0.5023923,
+          0.0051813
+        ],
+        "outline_fixed": 0,
+        "edge": 810
+      }
+    ],
+    "resampling_report": "work/density-report.json",
+    "source_meta": "output/sprite-density/originals/Enemies/GiantDungBeetle/GiantDungBeetleAtlas.png.meta",
+    "import_validation": "verified_actual_editor_import_after_user_size_correction",
+    "visual_review": "All seven states inspected in EnemyDebug preview-scene GPU render; direct comparison confirms beetle smaller than GoblinDog",
+    "atlas_sha256": "9ca569e5793c26a022b54eb06a4fecfee8f32f927404a9a3ccdf5030290e716f",
+    "scale_comparison": "output/monsters/giant-dung-beetle/unity-scale-comparison.png"
+  },
+  "atlas": "GiantDungBeetleAtlas.png",
+  "master_directory": "output/monsters/giant-dung-beetle",
+  "pixelsPerUnit": 100,
+  "master_cells": [
+    {
+      "name": "GiantDungBeetle_DefaultFront",
+      "state": "front-default",
+      "master": "masters/front-default.png",
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        106
+      ],
+      "visible_bbox": [
+        149,
+        203,
+        1257,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_DefaultBack",
+      "state": "back-default",
+      "master": "masters/back-default.png",
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1408,
+        0,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        115
+      ],
+      "visible_bbox": [
+        164,
+        184,
+        1175,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_AggroFront",
+      "state": "front-aggro",
+      "master": "masters/front-aggro.png",
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        2816,
+        0,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        89
+      ],
+      "visible_bbox": [
+        132,
+        155,
+        1308,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_HurtFront",
+      "state": "front-hurt",
+      "master": "masters/front-hurt.png",
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1408,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        149
+      ],
+      "visible_bbox": [
+        145,
+        314,
+        1302,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_AttackFront",
+      "state": "front-attack",
+      "master": "masters/front-attack.png",
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1408,
+        1408,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        106
+      ],
+      "visible_bbox": [
+        147,
+        345,
+        1300,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_DeathFront",
+      "state": "front-death",
+      "master": "masters/front-death.png",
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        2816,
+        1408,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        90
+      ],
+      "visible_bbox": [
+        93,
+        574,
+        1306,
+        1280
+      ],
+      "source_alpha_preserved": true
+    },
+    {
+      "name": "GiantDungBeetle_DeathBack",
+      "state": "back-death",
+      "master": "masters/back-death.png",
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        2816,
+        1408,
+        1408
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        77,
+        106
+      ],
+      "visible_bbox": [
+        101,
+        586,
+        1302,
+        1280
+      ],
+      "source_alpha_preserved": true
+    }
+  ],
+  "cells": [
+    {
+      "name": "GiantDungBeetle_DefaultFront",
+      "rect": [
+        0,
+        831,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 1138
+    },
+    {
+      "name": "GiantDungBeetle_DefaultBack",
+      "rect": [
+        209,
+        831,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 1163
+    },
+    {
+      "name": "GiantDungBeetle_AggroFront",
+      "rect": [
+        0,
+        638,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 1321
+    },
+    {
+      "name": "GiantDungBeetle_HurtFront",
+      "rect": [
+        209,
+        638,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 1006
+    },
+    {
+      "name": "GiantDungBeetle_AttackFront",
+      "rect": [
+        0,
+        445,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 786
+    },
+    {
+      "name": "GiantDungBeetle_DeathFront",
+      "rect": [
+        209,
+        445,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 777
+    },
+    {
+      "name": "GiantDungBeetle_DeathBack",
+      "rect": [
+        0,
+        252,
+        209,
+        193
+      ],
+      "pivot": [
+        0.5023923,
+        0.0051813
+      ],
+      "outline_fixed": 0,
+      "edge": 810
+    }
+  ],
+  "status": "generated_saved_atlas_and_unity_import_verified",
+  "references": [
+    "output/shop-visitors/09-peasant-line-details.png",
+    "output/monsters/style-current.json",
+    "output/monsters/goblin-dog-test/masters/front-aggro.png",
+    "output/monsters/purple-mushroom-test/atlas.png"
+  ],
+  "master_atlas_sha256": "4262f10abad2e0fa85e5315d31776d89792129802ebf0a99ebe9c5cf1935266c",
+  "registry": {
+    "table": "tb_hakaton-enemies",
+    "row": "t8xq38rr0j",
+    "attachment": "0e131c8ef05814bd40e2bd1629f4abeab4fa15f60b294bf7ca16f3a006333b93",
+    "verified": true
+  },
+  "relative_size": {
+    "reference": "GoblinDog",
+    "reference_world_scale": 1.34,
+    "reference_visible_height_m": 2.09,
+    "body_height_ratio": 0.75,
+    "user_instruction": "жук не больше гоблин дога, а меньше"
+  }
+}

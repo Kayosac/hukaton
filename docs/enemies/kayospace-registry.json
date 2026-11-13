@@ -1,7 +1,7 @@
 {
   "project_id": "01M6WVK7017HGXKC9MDPA30KFS",
-  "updated_on": "2026-11-11",
-  "enemy_count": 15,
+  "updated_on": "2026-11-13",
+  "enemy_count": 26,
   "columns": [
     "Враг",
     "Спрайт врага",
@@ -2954,6 +2954,402 @@
         "100 монет / 50%",
         "180 монет / 20%"
       ]
+    },
+    {
+      "enemy": "GiantDungBeetle",
+      "name": "Гигантский жук-навозник с копьём",
+      "row_index": 15,
+      "native_row_id": "t8xq38rr0j",
+      "category": "Агрессивный",
+      "category_status": "предварительный художественный образ; игровой префаб отсутствует",
+      "behavior": "Художественный образ агрессивного жука с копьём; характер принят предварительно. По правке пользователя меньше гоблин-дога: тело около 75% его высоты. Игровое поведение и здоровье ещё не настроены; игровой префаб отсутствует.",
+      "combat_pattern": "В арт-наборе: агрессия, выпад копьём к зрителю, получение урона и смерть. Игровой паттерн, дальность, тайминги и баланс ещё не реализованы.",
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не задано",
+      "damage_text": "Ближний: не задан. Дальний: не задан; дальняя атака не реализована.",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/GiantDungBeetle/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/GiantDungBeetle/GiantDungBeetleAtlas.png",
+      "sprite": "output/monsters/giant-dung-beetle/registry-sprite.png",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "0e131c8ef05814bd40e2bd1629f4abeab4fa15f60b294bf7ca16f3a006333b93",
+        "w": 480,
+        "h": 480,
+        "alt": "Гигантский жук-навозник с копьём — полный спрайт спереди"
+      },
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/giant-dung-beetle/registry-verification.json",
+      "gameplay_implemented": false,
+      "atlas_sha256": "9ca569e5793c26a022b54eb06a4fecfee8f32f927404a9a3ccdf5030290e716f",
+      "sprite_sha256": "0e131c8ef05814bd40e2bd1629f4abeab4fa15f60b294bf7ca16f3a006333b93",
+      "physical_height_m": 1.5675,
+      "size_reference": "75% of GoblinDog visible height at scale1.34"
+    },
+    {
+      "enemy": "SheetGhost",
+      "name": "Парящий призрак-простыня",
+      "row_index": 16,
+      "native_row_id": "8qz4v6tw9k",
+      "category": "Агрессивный",
+      "category_status": "задан пользователем; игровой префаб отсутствует",
+      "behavior": "По заданию пользователя: агрессивный парящий призрак-простыня, размер тела как у жука-навозника (около 1,57 м). В рисунке парит над землёй. Игровое поведение, полёт и здоровье ещё не реализованы; игровой префаб отсутствует.",
+      "combat_pattern": "Арт-состояния: агрессия, бросок к зрителю, получение урона и опавшая простыня при смерти. Игровой паттерн, дистанции, тайминги и баланс ещё не настроены.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан. Дальний: не задан; дальняя атака не реализована.",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/SheetGhost/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/SheetGhost/SheetGhostAtlas.png",
+      "atlas_sha256": "c3d127aeec39ed226ace9e10cf3c189ba5efcb4ca8c02f1f16c141b3e3e61e4d",
+      "sprite": "output/monsters/sheet-ghost/registry-sprite.png",
+      "sprite_sha256": "9cc1341fd1599116e9b27a670ddf48c0c71d8affe10c2eb5b161461030250820",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "9cc1341fd1599116e9b27a670ddf48c0c71d8affe10c2eb5b161461030250820",
+        "w": 480,
+        "h": 480,
+        "alt": "Парящий призрак-простыня — полный спрайт спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "GiantDungBeetle body height; hovering gap separate",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/sheet-ghost/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "AntMachineGunCrew",
+      "name": "Муравьиный пулемётный расчёт",
+      "row_index": 17,
+      "native_row_id": "4kr54x4n00",
+      "category": "Агрессивный",
+      "category_status": "Рабочее художественное предположение; игровой префаб отсутствует",
+      "behavior": "Три муравья в касках обслуживают старый пулемёт на триноге: стрелок, подающий ленту и помощник. Один составной враг. Агрессивный характер и общая высота около 1,57 м — рабочие художественные предположения; игровой префаб и поведение ещё не реализованы.",
+      "combat_pattern": "В художественном наборе: подготовка расчёта, стрельба с короткой вспышкой у ствола, общая реакция на попадание и поражение установки. Игровые дистанции, очереди, темп стрельбы, точность и урон не заданы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан (урон за пулю не определён)",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/AntMachineGunCrew/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/AntMachineGunCrew/AntMachineGunCrewAtlas.png",
+      "atlas_sha256": "fec2a9b813f19ce5063c945219bb2d002700c45d53bf45ccbf0a5dfedc870bcd",
+      "sprite": "output/monsters/ant-machine-gun-crew/registry-sprite.png",
+      "sprite_sha256": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
+        "w": 480,
+        "h": 480,
+        "alt": "Три муравья в касках у старого пулемёта на триноге — обычный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Provisional total crew height including antennae/tripod matches beetle body",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/ant-machine-gun-crew/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "GiantVileToad",
+      "name": "Гигантская мерзкая жаба",
+      "row_index": 18,
+      "native_row_id": "52m2b74yd3",
+      "category": "Агрессивный",
+      "category_status": "Рабочее художественное предположение; игровой префаб отсутствует",
+      "behavior": "По запросу: гигантская мерзкая жаба размером с гоблин-дога. Широкое бородавчатое тело, тяжёлое брюхо, отвисшая горловая складка и слюна. Высота обычного спрайта 2,09 м, как у текущего GoblinDog. Агрессивность — рабочее художественное предположение; игрового префаба и поведения пока нет.",
+      "combat_pattern": "В художественном наборе угрожающе раздувает горло, бросается вперёд и выбрасывает короткий толстый язык к игроку. При попадании заваливается набок. Это рисунки состояний; игровые атаки, дальности, интервалы и баланс не реализованы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/GiantVileToad/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/GiantVileToad/GiantVileToadAtlas.png",
+      "atlas_sha256": "9f46873d20df24fa6900125507f38ca2fa046bf98a6461aefa23bb3f391d2c5c",
+      "sprite": "output/monsters/giant-vile-toad/registry-sprite.png",
+      "sprite_sha256": "85937e498168376dcea269badf7907d4f66fd89d76603c87786575685dc1ef4d",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "85937e498168376dcea269badf7907d4f66fd89d76603c87786575685dc1ef4d",
+        "w": 480,
+        "h": 480,
+        "alt": "Гигантская мерзкая жаба — обычный вид спереди"
+      },
+      "physical_height_m": 2.09,
+      "size_reference": "Current GoblinDog default visible height209px /134PPU *1.34 world scale =2.09m",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/giant-vile-toad/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "MosquitoSwarm",
+      "name": "Рой комаров",
+      "row_index": 19,
+      "native_row_id": "nwkkpb3r19",
+      "category": "Агрессивный",
+      "category_status": "Рабочее художественное предположение; игровой префаб отсутствует",
+      "behavior": "Составной художественный враг: семь серо-коричневых комаров с длинными хоботками и светлыми крыльями. Размер всего роя около 1,57 м, парение примерно на 0,3 м над общей опорной точкой. Размер и агрессивность — рабочие художественные предположения; игровой префаб и поведение не реализованы.",
+      "combat_pattern": "В рисунках рой собирается плотнее при угрозе, бросается к игроку клином с направленными вперёд хоботками и разлетается при ударе. В смерти все семь насекомых лежат на земле. Игровые атаки, дистанции, интервалы и урон ещё не определены.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/MosquitoSwarm/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/MosquitoSwarm/MosquitoSwarmAtlas.png",
+      "atlas_sha256": "0f4c9140165e67c50a6ffbeb433de3a78e974f08cd61dcf52e0963816503cef9",
+      "sprite": "output/monsters/mosquito-swarm/registry-sprite.png",
+      "sprite_sha256": "b6fbc5f1a9858d3de83dc501afc8e825d6f0f62cb7598c5f9658879c899e1fbc",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "b6fbc5f1a9858d3de83dc501afc8e825d6f0f62cb7598c5f9658879c899e1fbc",
+        "w": 480,
+        "h": 480,
+        "alt": "Рой из семи комаров — обычный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Provisional swarm height1.5675m excluding0.3m hover gap",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/mosquito-swarm/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "MantisMan",
+      "name": "Богомоло-люд",
+      "row_index": 20,
+      "native_row_id": "w18dbsfsss",
+      "category": "Агрессивный",
+      "category_status": "Агрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "По выбору пользователя: агрессивный богомоло-люд размером с жука-навозника, меньше гоблин-дога (высота спрайта с усиками около 1,57 м). Прямоходящий зелёный богомол с двумя руками-серпами и сложенными надкрыльями. Игровой префаб и поведение пока не реализованы.",
+      "combat_pattern": "В художественном наборе поднимает оба серпа при агрессии, делает выпад вперёд с рубящим движением, отшатывается при попадании и падает набок. Игровые атаки, дистанции, тайминги и баланс ещё не настроены.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/MantisMan/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/MantisMan/MantisManAtlas.png",
+      "atlas_sha256": "a71021180dfcf0e06944ecc084bc68499e23e65bbb9d84b51445154baa93fb5d",
+      "sprite": "output/monsters/mantis-man/registry-sprite.png",
+      "sprite_sha256": "4cc3649cc1350a56dd5d15b4e6e398228c390b067c02363352f55c4037c49261",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "4cc3649cc1350a56dd5d15b4e6e398228c390b067c02363352f55c4037c49261",
+        "w": 480,
+        "h": 480,
+        "alt": "Богомоло-люд — обычный полный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Same height as beetle1.5675m including antennae; user specified",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/mantis-man/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "SwampMutant",
+      "name": "Болотный мутант",
+      "row_index": 21,
+      "native_row_id": "mmz7ctr9d2",
+      "category": "Агрессивный",
+      "category_status": "Агрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "По заданию пользователя: агрессивный болотный мутант в чёрном плаще с одной деревянной ногой, размером с гоблин-дога (высота обычного спрайта 2,09 м). Сгорбленный силуэт, зеленоватая бородавчатая кожа, капюшон; правая нога деревянная, левая живая. Игровой префаб и поведение ещё не реализованы.",
+      "combat_pattern": "В художественном наборе угрожающе поднимает руки, делает выпад с захватом, отшатывается при попадании и падает набок. Деревянная нога остаётся на той же стороне. Игровые атаки, дистанции, тайминги и баланс пока не настроены.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/SwampMutant/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/SwampMutant/SwampMutantAtlas.png",
+      "atlas_sha256": "d9471a21def436adcb74b7415a5dcf7450aa6ff8133a814a3ada2a2572eef3dc",
+      "sprite": "output/monsters/swamp-mutant/registry-sprite.png",
+      "sprite_sha256": "04f9ef203a03e67ec654a733cf8ef8848cae1963ce4884db4c27e1ed8cd0b63e",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "04f9ef203a03e67ec654a733cf8ef8848cae1963ce4884db4c27e1ed8cd0b63e",
+        "w": 480,
+        "h": 480,
+        "alt": "Болотный мутант в чёрном плаще с деревянной ногой — обычный вид спереди"
+      },
+      "physical_height_m": 2.09,
+      "size_reference": "Same height as GoblinDog2.09m; user specified",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/swamp-mutant/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "GiantSwampLeech",
+      "name": "Гигантская болотная пиявка",
+      "row_index": 22,
+      "native_row_id": "83kswj2jzq",
+      "category": "Агрессивный",
+      "category_status": "Агрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "По заданию пользователя: агрессивная гигантская болотная пиявка размером с жука. Высота обычного спрайта около 1,57 м, как тело жука-навозника без копья. Толстое сегментированное тело, бордовая передняя присоска-пасть с тремя челюстными выступами, небольшая задняя присоска. Без видимых глаз и конечностей. Игровой префаб и поведение пока не реализованы.",
+      "combat_pattern": "В арт-наборе напрягает и поднимает переднюю часть тела, бросается присоской к зрителю, скручивается при попадании и обмякает после смерти. Это художественные состояния; игровые атаки, эффекты присасывания, тайминги и баланс ещё не заданы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/GiantSwampLeech/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/GiantSwampLeech/GiantSwampLeechAtlas.png",
+      "atlas_sha256": "4cc07999019837ec643b6df4c259b3ae6c4b02f600e6415117e180003e3a3422",
+      "sprite": "output/monsters/giant-swamp-leech/registry-sprite.png",
+      "sprite_sha256": "48a7e31b60689f5178eaabe7678d36c4f196365455bfe00a0b1144a83ffcdc22",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "48a7e31b60689f5178eaabe7678d36c4f196365455bfe00a0b1144a83ffcdc22",
+        "w": 480,
+        "h": 480,
+        "alt": "Гигантская болотная пиявка — обычный полный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Same default height as GiantDungBeetle1.5675m; user specified",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/giant-swamp-leech/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "GiantSwampSpider",
+      "name": "Гигантский болотный паук",
+      "row_index": 23,
+      "native_row_id": "qcd7z32sxk",
+      "category": "Агрессивный",
+      "category_status": "Агрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "Агрессивный болотный паук. Размер как у жука: высота обычного спрайта 1,5675 м. Подготовлен арт; игровое поведение не реализовано.",
+      "combat_pattern": "Арт: угроза с поднятыми лапами, выпад со жвалами, реакция на попадание и смерть. Боевые параметры не заданы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/GiantSwampSpider/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/GiantSwampSpider/GiantSwampSpiderAtlas.png",
+      "atlas_sha256": "07f382ef5ebd5194adc80640c92d9b279db58bbbddb4d18f264fa5f60290f94b",
+      "sprite": "output/monsters/giant-swamp-spider/registry-sprite.png",
+      "sprite_sha256": "9bdffac657ceca3fe4cf754c9fad3ea19e44f2a6c7d74413080237ea07666b5e",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "9bdffac657ceca3fe4cf754c9fad3ea19e44f2a6c7d74413080237ea07666b5e",
+        "w": 480,
+        "h": 480,
+        "alt": "Гигантский болотный паук — обычный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Same default height as GiantDungBeetle1.5675m; user specified",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/giant-swamp-spider/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "DrownedSwimmer",
+      "name": "Утопленник",
+      "row_index": 24,
+      "native_row_id": "r74cxd0ac1",
+      "category": "Мирный",
+      "category_status": "Неагрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "Неагрессивный по запросу пользователя. Нейтральная безвольная поза, синюшная опухшая кожа, тина, мокрые волосы; закрытый зелёный купальник с V-образными лямками. Размер по умолчанию как у жука: 1,5675 м. Игровое поведение не реализовано; реакция на провокацию не задана.",
+      "combat_pattern": "Арт: обычный вид, испуг, получение урона, лежачее состояние смерти; атака не предусмотрена в наборе. Боевые параметры не заданы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/DrownedSwimmer/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/DrownedSwimmer/DrownedSwimmerAtlas.png",
+      "atlas_sha256": "ec66e761df8d4994093a3a12576b1f1b9f1cadd84602ecaa55b3aee5bc51ba55",
+      "sprite": "output/monsters/drowned-swimmer/registry-sprite.png",
+      "sprite_sha256": "3668262e04afd0d26cad0ac19ce415f61f4159b3fd61cdadf15953cde3e351ae",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "3668262e04afd0d26cad0ac19ce415f61f4159b3fd61cdadf15953cde3e351ae",
+        "w": 480,
+        "h": 480,
+        "alt": "Утопленник — нейтральный вид спереди"
+      },
+      "physical_height_m": 1.5675,
+      "size_reference": "Same default height as GiantDungBeetle1.5675m; assistant assumed size",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/drowned-swimmer/registry-verification.json",
+      "gameplay_implemented": false
+    },
+    {
+      "enemy": "RagingFlyAgaric",
+      "name": "Яростный мухомор",
+      "row_index": 25,
+      "native_row_id": "y6q9w7qnvh",
+      "category": "Агрессивный",
+      "category_status": "Агрессивный характер выбран пользователем; игровой префаб отсутствует",
+      "behavior": "Большой уродливый агрессивный мухомор с шестью воспалёнными красными глазами. Размер выбран как у гоблин-дога: 2,09 м. Подготовлен арт; игровое поведение не реализовано.",
+      "combat_pattern": "По запросу плюётся. Арт атаки: раздувает щёки и выпускает оливковую слюну из пасти к игроку. Дальность, частота, урон и отдельный снаряд ещё не заданы.",
+      "health": null,
+      "health_text": "Не задано",
+      "damage_half_hearts": null,
+      "damage_text": "Ближний: не задан; дальний: не задан",
+      "prefab": null,
+      "manifest": "hukaton/Assets/Content/Enemies/RagingFlyAgaric/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/RagingFlyAgaric/RagingFlyAgaricAtlas.png",
+      "atlas_sha256": "ef44950703af4563f149326048e7c50cf80c3ce6a225872c8ca634162352b585",
+      "sprite": "output/monsters/raging-fly-agaric/registry-sprite.png",
+      "sprite_sha256": "1789c92f0ee4fa88fd1181a9e433d2a6f82a0b6b2e2d43afb671770ce747b7dd",
+      "sprite_size": [
+        480,
+        480
+      ],
+      "native_sprite_attachment": {
+        "asset": "1789c92f0ee4fa88fd1181a9e433d2a6f82a0b6b2e2d43afb671770ce747b7dd",
+        "w": 480,
+        "h": 480,
+        "alt": "Яростный мухомор — обычный вид спереди"
+      },
+      "physical_height_m": 2.09,
+      "size_reference": "Same default height as GoblinDog2.09m; user specified",
+      "loot": [],
+      "loot_text": "Нет — добыча не назначена",
+      "verification": "output/monsters/raging-fly-agaric/registry-verification.json",
+      "gameplay_implemented": false
     }
   ],
   "artifact_kind": "table",
@@ -3125,5 +3521,687 @@
     ],
     "row_heights_and_column_widths_preserved": true,
     "native_table_screenshot_review": false
+  },
+  "giant_dung_beetle_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "t8xq38rr0j",
+    "verification": "output/monsters/giant-dung-beetle/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/giant-dung-beetle/work/table-after.json"
+  },
+  "sheet_ghost_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "8qz4v6tw9k",
+    "verification": "output/monsters/sheet-ghost/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/sheet-ghost/work/table-after.json"
+  },
+  "ant_machine_gun_crew_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "4kr54x4n00",
+    "verification": "output/monsters/ant-machine-gun-crew/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/ant-machine-gun-crew/work/table-after.json"
+  },
+  "giant_vile_toad_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "52m2b74yd3",
+    "verification": "output/monsters/giant-vile-toad/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/giant-vile-toad/work/table-after.json"
+  },
+  "mosquito_swarm_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "nwkkpb3r19",
+    "verification": "output/monsters/mosquito-swarm/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/mosquito-swarm/work/table-after.json"
+  },
+  "mantis_man_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "w18dbsfsss",
+    "verification": "output/monsters/mantis-man/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/mantis-man/work/table-after.json"
+  },
+  "swamp_mutant_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "mmz7ctr9d2",
+    "verification": "output/monsters/swamp-mutant/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/swamp-mutant/work/table-after.json"
+  },
+  "giant_swamp_leech_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "83kswj2jzq",
+    "verification": "output/monsters/giant-swamp-leech/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/giant-swamp-leech/work/table-after.json"
+  },
+  "giant_swamp_spider_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "qcd7z32sxk",
+    "verification": "output/monsters/giant-swamp-spider/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/giant-swamp-spider/work/table-after.json"
+  },
+  "drowned_swimmer_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "r74cxd0ac1",
+    "verification": "output/monsters/drowned-swimmer/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/drowned-swimmer/work/table-after.json"
+  },
+  "raging_fly_agaric_update": {
+    "table": "tb_hakaton-enemies",
+    "row_id": "y6q9w7qnvh",
+    "verification": "output/monsters/raging-fly-agaric/registry-verification.json",
+    "columns": [
+      {
+        "id": "nzvksyet8q",
+        "name": "Враг",
+        "type": "text",
+        "width": 309
+      },
+      {
+        "id": "71x5m43nt4",
+        "name": "Спрайт врага",
+        "type": "url",
+        "width": 264
+      },
+      {
+        "id": "8ds5cv44sg",
+        "name": "Характер",
+        "type": "select",
+        "options": [
+          "Пугливый",
+          "Мирный",
+          "Агрессивный",
+          "Территориальный"
+        ],
+        "width": 178
+      },
+      {
+        "id": "wsc2ek33h1",
+        "name": "Описание поведения",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "dj8rxdb84s",
+        "name": "Описание паттерна боя",
+        "type": "text",
+        "width": 480
+      },
+      {
+        "id": "2r0hr2mz12",
+        "name": "Здоровье (HP)",
+        "type": "number",
+        "width": 169
+      },
+      {
+        "id": "4bkmw8spck",
+        "name": "Урон (сердца)",
+        "type": "text",
+        "width": 280
+      },
+      {
+        "id": "jm428e0bxn",
+        "name": "Добыча",
+        "type": "text",
+        "width": 1200
+      }
+    ],
+    "readback": "output/monsters/raging-fly-agaric/work/table-after.json"
   }
 }

@@ -10,7 +10,12 @@ namespace Hukaton.Rendering
     public sealed class NativeWorldUIPass : ScriptableRenderPass
     {
         static readonly ShaderTagId[] Tags = { new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly"), new ShaderTagId("SRPDefaultUnlit") };
-        static readonly ShaderTagId[] DepthTags = { new ShaderTagId("DepthOnly"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly"), new ShaderTagId("SRPDefaultUnlit") };
+        // Only the DepthOnly pass: a renderer list draws every pass of an object that matches ANY of its tags, so a
+        // forward fallback here drew each occluder twice (depth, then fully lit with colour masked), switching shaders on
+        // every object: in the swamp about a thousand set-pass calls and ~2.5 ms of the render thread a frame.
+        // Opaque world shaders must therefore have a DepthOnly pass to occlude native artwork (World Silhouette and
+        // World Cloud have one for this).
+        static readonly ShaderTagId[] DepthTags = { new ShaderTagId("DepthOnly") };
         readonly bool depthOnly, transparent, artwork;
         WorldResolution owner;
 
@@ -27,8 +32,7 @@ namespace Hukaton.Rendering
             var queue = transparent ? RenderQueueRange.transparent : RenderQueueRange.opaque;
             // Background sky meshes have no surface depth and must not occlude the UI.
             if (depthOnly) queue.lowerBound = (int)RenderQueue.Geometry;
-            // Keep each occluder's own alpha clipping and vertex animation (foliage, fences, etc.).
-            // Prefer its DepthOnly pass, with a colour-masked forward pass as fallback.
+            // Keep each occluder's own alpha clipping and vertex animation (foliage, fences, etc.) through its DepthOnly pass.
             var state = new RenderStateBlock(RenderStateMask.Nothing);
             if (depthOnly || !artwork)
             {

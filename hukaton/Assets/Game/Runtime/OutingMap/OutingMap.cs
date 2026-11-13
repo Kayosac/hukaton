@@ -12,7 +12,8 @@ namespace Hakaton.Game
     public enum OutingMapUnlock
     {
         [Tooltip("On the map from the start.")] Always,
-        [Tooltip("Appears once the shop has made its revenue goal.")] RevenueGoal
+        [Tooltip("Appears once the shop has made its revenue goal.")] RevenueGoal,
+        [Tooltip("Appears with the revenue goal and leaves the map for good once the god has been met (the «?»).")] GodMeeting
     }
 
     /// <summary>
@@ -82,8 +83,8 @@ namespace Hakaton.Game
         public Vector2 dashSize = new Vector2(22, 16);
         [Tooltip("Routes stop this far (field pixels) from the icons.")]
         [Min(0)] public float routeTrim = 74;
-        [Tooltip("A new route draws itself dash by dash over this time, then its point appears.")]
-        [Min(0)] public float revealSeconds = .9f;
+        [Tooltip("A new route draws itself dash by dash over this time, then its point appears. A left click skips it.")]
+        [Min(0)] public float revealSeconds = .45f;
         [Header("Open / close")]
         [Min(.01f)] public float openSeconds = .45f;
         [Min(.01f)] public float closeSeconds = .25f;
@@ -108,6 +109,8 @@ namespace Hakaton.Game
         float shown, shownFrom, animStart;
         bool opening;
         float appliedPixel = -1, appliedScale = -1;
+        // The press that skipped the drawing-in must not also pick the point under the cursor on release.
+        bool swallowClick;
 
         void Awake()
         {
@@ -145,6 +148,23 @@ namespace Hakaton.Game
         }
         public IReadOnlyList<OutingMapSiteSave> OpenedSites => state.sites;
         Site Definition(string id) => sites?.FirstOrDefault(s => s.id == id);
+
+        /// <summary>The id of the first point that leads to <paramref name="place"/>, or null.</summary>
+        public string SiteFor(OutingPlace place) => sites?.FirstOrDefault(s => s.place == place)?.id;
+
+        /// <summary>
+        /// Wipes an opened point off the map for good (the god's «?» after the meeting). It comes back only if its unlock
+        /// says so again on a later look.
+        /// </summary>
+        public bool Forget(string id)
+        {
+            if (string.IsNullOrEmpty(id) || state.sites.RemoveAll(s => s.id == id) == 0) return false;
+            // its route goes with it: the rest is drawn again (as it was, no drawing-in) on the next look
+            if (card) card.Close();
+            ClearDrawing();
+            Changed?.Invoke();
+            return true;
+        }
 
         /// <summary>
         /// Opens every point that is unlocked and whose parent is already on the map, placing it near the parent.
@@ -294,7 +314,7 @@ namespace Hakaton.Game
 
         void Pick(OutingMapSiteView view)
         {
-            if (!IsOpen || card && card.IsOpen) return;
+            if (!IsOpen || card && card.IsOpen || swallowClick) return;
             var opened = Opened(view.Id);
             var site = Definition(view.Id);
             if (opened == null || site == null) return;
@@ -340,9 +360,11 @@ namespace Hakaton.Game
                 if (pendingDashes[i]) pendingDashes[i].enabled = true;
                 pendingDashes.RemoveAt(i); pendingAt.RemoveAt(i);
             }
+            var mouse = Mouse.current;
+            if (swallowClick && (mouse == null || !mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)) swallowClick = false;
             if (!IsOpen || Time.frameCount == openedFrame) return; // The key that opened the door must not answer here.
             var keyboard = Keyboard.current;
-            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && !(card && card.IsOpen) && SkipReveal()) swallowClick = true;
             bool back = keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame;
             if (card && card.IsOpen)
             {
@@ -355,6 +377,17 @@ namespace Hakaton.Game
                     card.goButton.onClick.Invoke();
             }
             else if (back) Close();
+        }
+
+        /// <summary>Finishes every route and point still drawing itself in; false when nothing was drawing.</summary>
+        bool SkipReveal()
+        {
+            bool any = pendingDashes.Count > 0;
+            foreach (var dash in pendingDashes) if (dash) dash.enabled = true;
+            pendingDashes.Clear(); pendingAt.Clear();
+            foreach (var view in views.Values)
+                if (view && view.Appearing) { view.FinishAppearing(); any = true; }
+            return any;
         }
 
         void OnDisable() { if (IsOpen) Close(); }
