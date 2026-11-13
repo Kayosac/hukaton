@@ -1,0 +1,485 @@
+{
+  "character": "MosquitoSwarm",
+  "display_name": "Рой комаров",
+  "brief": "Рой комаров.",
+  "type": "aggressive",
+  "temperament_status": "working_art_assumption_not_explicitly_user_specified",
+  "physical_height_m": 1.5675,
+  "size_provided_by_user": false,
+  "size_reference": "Provisional swarm height1.5675m excluding0.3m hover gap.",
+  "nominal_world_scale": 1,
+  "master_pixels_per_unit": 692.8229665071771,
+  "default_visible_body_pixels": 1086,
+  "master_atlas": "output/monsters/mosquito-swarm/atlas.png",
+  "cell_width": 176,
+  "cell_height": 201,
+  "columns": 2,
+  "rows": 4,
+  "width": 512,
+  "height": 1024,
+  "ground_anchor_top_left": [
+    900.0,
+    1500
+  ],
+  "pivot": [
+    0.5,
+    0.0099502
+  ],
+  "cells": [
+    {
+      "name": "MosquitoSwarm_DefaultFront",
+      "rect": [
+        0,
+        823,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 65,
+      "edge": 2384
+    },
+    {
+      "name": "MosquitoSwarm_DefaultBack",
+      "rect": [
+        176,
+        823,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 33,
+      "edge": 2583
+    },
+    {
+      "name": "MosquitoSwarm_AggroFront",
+      "rect": [
+        0,
+        622,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 4,
+      "edge": 2297
+    },
+    {
+      "name": "MosquitoSwarm_HurtFront",
+      "rect": [
+        176,
+        622,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 61,
+      "edge": 2352
+    },
+    {
+      "name": "MosquitoSwarm_AttackFront",
+      "rect": [
+        0,
+        421,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 88,
+      "edge": 1668
+    },
+    {
+      "name": "MosquitoSwarm_DeathFront",
+      "rect": [
+        176,
+        421,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 167,
+      "edge": 1237
+    },
+    {
+      "name": "MosquitoSwarm_DeathBack",
+      "rect": [
+        0,
+        220,
+        176,
+        201
+      ],
+      "pivot": [
+        0.5,
+        0.0099502
+      ],
+      "outline_fixed": 116,
+      "edge": 1141
+    }
+  ],
+  "empty_cells": "Unused power-of-two region is transparent",
+  "identity": "Exactly seven gray-brown mosquitoes, round heads, small black eyes, long dark proboscises, thin segmented abdomens, six legs each and two pale blue-gray wings each.",
+  "generation_mode": "built-in image_gen, transparent_background=true",
+  "prompts": "prompts.json",
+  "user_art_approval": "not_yet_recorded",
+  "unity_import_validation": "verified_actual_editor_import",
+  "gameplay_implemented": false,
+  "health": null,
+  "damage": null,
+  "loot_assigned": false,
+  "references": [
+    "output/shop-visitors/09-peasant-line-details.png",
+    "output/monsters/style-current.json",
+    "output/monsters/purple-mushroom-test/masters/front-default.png",
+    "output/monsters/goblin-dog-test/masters/front-aggro.png"
+  ],
+  "notes": [
+    "One composite swarm of seven insects; seven state/view sprites.",
+    "All original RGBA pixels preserved by transparent padding; no per-state rescaling.",
+    "Aggression has one red exclamation and four red emphasis strokes in generated result.",
+    "Death front has black X eyes on every visible eye; rear has no face marks.",
+    "Height and temperament are explicitly provisional art assumptions; gameplay not implemented."
+  ],
+  "hover_gap_m": 0.3,
+  "hover_gap_pixels": 208,
+  "unity": {
+    "atlas": "MosquitoSwarmAtlas.png",
+    "width": 512,
+    "height": 1024,
+    "cell_width": 176,
+    "cell_height": 201,
+    "columns": 2,
+    "rows": 4,
+    "pixels_per_unit": 100,
+    "world_density": 100,
+    "world_scale": 1,
+    "sprites": [
+      {
+        "name": "MosquitoSwarm_DefaultFront",
+        "rect": [
+          0,
+          823,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 65,
+        "edge": 2384
+      },
+      {
+        "name": "MosquitoSwarm_DefaultBack",
+        "rect": [
+          176,
+          823,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 33,
+        "edge": 2583
+      },
+      {
+        "name": "MosquitoSwarm_AggroFront",
+        "rect": [
+          0,
+          622,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 4,
+        "edge": 2297
+      },
+      {
+        "name": "MosquitoSwarm_HurtFront",
+        "rect": [
+          176,
+          622,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 61,
+        "edge": 2352
+      },
+      {
+        "name": "MosquitoSwarm_AttackFront",
+        "rect": [
+          0,
+          421,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 88,
+        "edge": 1668
+      },
+      {
+        "name": "MosquitoSwarm_DeathFront",
+        "rect": [
+          176,
+          421,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 167,
+        "edge": 1237
+      },
+      {
+        "name": "MosquitoSwarm_DeathBack",
+        "rect": [
+          0,
+          220,
+          176,
+          201
+        ],
+        "pivot": [
+          0.5,
+          0.0099502
+        ],
+        "outline_fixed": 116,
+        "edge": 1141
+      }
+    ],
+    "import_validation": "verified_actual_editor_import",
+    "atlas_sha256": "0f4c9140165e67c50a6ffbeb433de3a78e974f08cd61dcf52e0963816503cef9",
+    "visual_review": "All seven states and scale comparison inspected in an isolated preview copy of saved EnemyDebug scene",
+    "scale_comparison": "output/monsters/mosquito-swarm/unity-scale-comparison.png"
+  },
+  "atlas": "MosquitoSwarmAtlas.png",
+  "master_directory": "output/monsters/mosquito-swarm",
+  "pixelsPerUnit": 100,
+  "master_cells": [
+    {
+      "name": "MosquitoSwarm_DefaultFront",
+      "state": "front-default",
+      "master": "masters/front-default.png",
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        113
+      ],
+      "visible_bbox": [
+        331,
+        206,
+        1469,
+        1292
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_DefaultBack",
+      "state": "back-default",
+      "master": "masters/back-default.png",
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1800,
+        0,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        113
+      ],
+      "visible_bbox": [
+        336,
+        207,
+        1463,
+        1292
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_AggroFront",
+      "state": "front-aggro",
+      "master": "masters/front-aggro.png",
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        3600,
+        0,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        84
+      ],
+      "visible_bbox": [
+        381,
+        133,
+        1418,
+        1292
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_HurtFront",
+      "state": "front-hurt",
+      "master": "masters/front-hurt.png",
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        1800,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        103
+      ],
+      "visible_bbox": [
+        301,
+        168,
+        1499,
+        1292
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_AttackFront",
+      "state": "front-attack",
+      "master": "masters/front-attack.png",
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1800,
+        1800,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        242
+      ],
+      "visible_bbox": [
+        368,
+        495,
+        1432,
+        1292
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_DeathFront",
+      "state": "front-death",
+      "master": "masters/front-death.png",
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        3600,
+        1800,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        318
+      ],
+      "visible_bbox": [
+        313,
+        1062,
+        1478,
+        1500
+      ]
+    },
+    {
+      "name": "MosquitoSwarm_DeathBack",
+      "state": "back-death",
+      "master": "masters/back-death.png",
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        3600,
+        1800,
+        1800
+      ],
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        315
+      ],
+      "visible_bbox": [
+        313,
+        1061,
+        1464,
+        1500
+      ]
+    }
+  ],
+  "status": "generated_saved_atlas_and_unity_import_verified",
+  "master_atlas_sha256": "a261abcf5534e22f75793380de7bc3db0b5360afd85d54516b892f1a610a1321",
+  "registry": {
+    "table": "tb_hakaton-enemies",
+    "row": "nwkkpb3r19",
+    "attachment": "b6fbc5f1a9858d3de83dc501afc8e825d6f0f62cb7598c5f9658879c899e1fbc",
+    "verified": true
+  }
+}
