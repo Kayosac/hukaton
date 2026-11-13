@@ -60,6 +60,29 @@ namespace Hakaton.WorldAssembly.Unity
 
         readonly Dictionary<string, float> held = new Dictionary<string, float>();
 
+        /// <summary>
+        /// The forest and the swamp read apart (14.11): the forest's air is clear and cool teal far off, its light
+        /// warm; the swamp's is thick olive murk (rot and marsh gas, not green), its light dim and flat. These set
+        /// the moods over what the scene saved, so the two lands keep their looks wherever the moods were edited.
+        /// </summary>
+        void Retune()
+        {
+            void Set(string name, float fog, Color tint, float amount, float sunlight, float ambient)
+            {
+                var m = moods.Find(x => x.name == name);
+                if (m == null) moods.Add(m = new Mood(name, fog, tint, amount, sunlight, ambient));
+                m.fog = fog; m.tint = tint; m.tintAmount = amount; m.sun = sunlight; m.ambient = ambient;
+            }
+            Set(Swamp, 2.5f, new Color(.6f, .57f, .37f), .9f, .55f, .82f);
+            Set(Drowned, 1.25f, new Color(.4f, .4f, .28f), .5f, .7f, .85f);
+            Set(Moss, .78f, new Color(.66f, .65f, .48f), .3f, 1.1f, 1.08f);
+            Set(Reach, .88f, new Color(.64f, .64f, .5f), .25f, 1.05f, 1);
+            Set(Burnt, 1.15f, new Color(.55f, .5f, .45f), .55f, .85f, .92f);
+            Set(Mist, 5.5f, new Color(.78f, .76f, .64f), .8f, .85f, 1.05f);
+            // The deep forest: thicker and darker, its air as neutral as the open forest's.
+            Set(Forest, 1.45f, new Color(.47f, .5f, .49f), .3f, .75f, .82f);
+        }
+
         /// <summary>Holds a mood at <paramref name="k"/> from outside (SwampLife's fog banks) until it says otherwise.</summary>
         public void Hold(string mood, float k) => held[mood] = k;
 
@@ -95,7 +118,13 @@ namespace Hakaton.WorldAssembly.Unity
         FarSilhouettes silhouettes;
         bool active;
         float baseFog, baseAmbient, baseSun;
-        Color baseColour;
+        Color baseColour, sceneColour;
+
+        /// <summary>
+        /// The open world's own air (the forest, where no place mood holds): a cool blue-grey haze (14.11, chosen from
+        /// variants), so the forest reads fresh and clear against the swamp's olive murk and its warm crowns stand out.
+        /// </summary>
+        public static Color OpenAir = new Color(.5f, .63f, .81f);
         Light sun;
         readonly Dictionary<string, float> target = new Dictionary<string, float>();
         readonly Dictionary<string, float> current = new Dictionary<string, float>();
@@ -117,6 +146,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (postProcess) postProcess.enabled = false;
             foreach (var mood in Later)
                 if (!moods.Exists(m => m.name == mood.name)) moods.Add(mood);
+            Retune();
             // The swamp's fog banks, fish, frogs and dragonflies go with the air too.
             if (!GetComponent<SwampLife>()) gameObject.AddComponent<SwampLife>();
         }
@@ -147,7 +177,8 @@ namespace Hakaton.WorldAssembly.Unity
             active = true;
             if (postProcess) postProcess.enabled = true;
             baseFog = RenderSettings.fogDensity;
-            baseColour = RenderSettings.fogColor;
+            sceneColour = RenderSettings.fogColor;
+            baseColour = OpenAir;
             baseAmbient = RenderSettings.ambientIntensity;
             sun = RenderSettings.sun;
             baseSun = sun ? sun.intensity : 1;
@@ -173,7 +204,7 @@ namespace Hakaton.WorldAssembly.Unity
             Shader.SetGlobalFloat(ReflectFog, 0);
             held.Clear();
             RenderSettings.fogDensity = baseFog;
-            RenderSettings.fogColor = baseColour;
+            RenderSettings.fogColor = sceneColour;
             RenderSettings.ambientIntensity = baseAmbient;
             if (sun) sun.intensity = baseSun;
             if (silhouettes) silhouettes.FogChanged();
@@ -313,7 +344,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (swampLook) swampLook.weight = Strength(Swamp);
             Grade(swampLook);
             float fog = 1, sunlight = 1, ambient = 1;
-            var colour = baseColour;
+            var colour = OpenAir;
             foreach (var mood in moods)
             {
                 float k = Strength(mood.name);
