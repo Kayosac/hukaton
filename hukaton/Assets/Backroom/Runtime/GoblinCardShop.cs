@@ -132,10 +132,13 @@ namespace Hakaton.Backroom
         int skippedFrame = -10;
         bool JustSkipped => swallowRelease || Time.frameCount <= skippedFrame + 1;
         bool CardIntroduction => Visits.IntroductionRead < introduction.Length;
-        bool Talking => CardIntroduction || introducing;
+        bool Talking => CardIntroduction || introducing || explaining;
         /// <summary>The special item he is introducing now (its lines wait for E), or null.</summary>
         SpecialItemDefinition introducing;
         int introducingLine;
+        /// <summary>The special item just bought: its bought line, then how it works (each waits for E), or null.</summary>
+        SpecialItemDefinition explaining;
+        int explainingLine, explainStartedFrame = -1;
         SpecialItemOfferView itemShown;
         float lineUntil;
         int lineSeed, talkEndedFrame = -1;
@@ -208,6 +211,7 @@ namespace Hakaton.Backroom
             EndInspect();
             EndItemShow();
             introducing = null;
+            explaining = null;
             SetVisible(false);
             if (control) control.SetBlocked(this, false);
             Closed?.Invoke();
@@ -224,6 +228,8 @@ namespace Hakaton.Backroom
             {
                 bool next = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
                     || keyboard.enterKey.wasPressedThisFrame) || mouse != null && mouse.leftButton.wasPressedThisFrame;
+                // The click that bought the item does not also skip its first line.
+                if (explaining && Time.frameCount <= explainStartedFrame) next = false;
                 if (next && !(bubble && bubble.SkipTyping())) NextLine();
                 return;
             }
@@ -289,6 +295,17 @@ namespace Hakaton.Backroom
                 Visits.ReadIntroductionLine(introduction.Length);
                 if (CardIntroduction) { Say(introduction[Visits.IntroductionRead], true); Refresh(); return; }
                 if (StartItemIntroduction()) { Refresh(); return; }
+            }
+            else if (explaining)
+            {
+                explainingLine++;
+                if (explainingLine <= explaining.howToUse.Length) { Say(explaining.howToUse[explainingLine - 1], true); Refresh(); return; }
+                explaining = null;
+                HideBubble();
+                // The held-up item now goes into the bag by itself: its flight carries on.
+                talkEndedFrame = Time.frameCount;
+                Refresh();
+                return;
             }
             else if (introducing)
             {
@@ -389,9 +406,20 @@ namespace Hakaton.Backroom
             SpecialItems.Grant(item);
             Play(buySound);
             Play(laughVoice);
-            Say(string.IsNullOrEmpty(item.boughtLine) ? Pick(boughtLines) : item.boughtLine);
             itemShown = view;
-            view.Lift(() => { if (itemShown == view) itemShown = null; if (IsOpen) Refresh(); }, () => Play(stowSound));
+            bool explains = item.howToUse != null && item.howToUse.Length > 0;
+            string bought = string.IsNullOrEmpty(item.boughtLine) ? Pick(boughtLines) : item.boughtLine;
+            if (explains)
+            {
+                // He holds the bought item up in the middle and explains it, line by line (E).
+                explaining = item;
+                explainingLine = 0;
+                explainStartedFrame = Time.frameCount;
+                Say(bought, true);
+            }
+            else Say(bought);
+            view.Lift(() => { if (itemShown == view) itemShown = null; if (IsOpen) Refresh(); }, () => Play(stowSound),
+                () => explaining == item && IsOpen);
             Visits.Touch();
             ItemBought?.Invoke(item);
             Refresh();

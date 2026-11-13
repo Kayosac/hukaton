@@ -92,10 +92,10 @@ namespace Hakaton.Backroom
         public void Refuse() => shake.Kick(80);
 
         /// <summary>Bought: the item (not its panel) up to the middle over the cards, held a moment, then off into the bag. <paramref name="done"/> when gone.</summary>
-        public void Lift(Action done, Action stowed)
+        public void Lift(Action done, Action stowed, Func<bool> keepShowing = null)
         {
             if (flight != null) StopCoroutine(flight);
-            flight = StartCoroutine(Fly(done, stowed));
+            flight = StartCoroutine(Fly(done, stowed, keepShowing));
         }
 
         /// <summary>The bought item's show is skipped: gone at once.</summary>
@@ -108,7 +108,7 @@ namespace Hakaton.Backroom
             Hide();
         }
 
-        IEnumerator Fly(Action done, Action stowed)
+        IEnumerator Fly(Action done, Action stowed, Func<bool> keepShowing)
         {
             if (price) price.text = "";
             if (group) group.blocksRaycasts = false;
@@ -130,9 +130,10 @@ namespace Hakaton.Backroom
             iconRect.position = to;
             iconRect.localScale = Vector3.one * inspectScale;
             Panel(side, 1);
-            for (float t = 0; t < holdSeconds; t += Time.unscaledDeltaTime)
+            // Held up while the dealer still talks about it (keepShowing), at least holdSeconds.
+            for (float t = 0; t < holdSeconds || keepShowing != null && keepShowing(); t += Time.unscaledDeltaTime)
             {
-                iconRect.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 9) * 3);
+                iconRect.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 9) * 3 * Mathf.Lerp(1, .4f, Mathf.Clamp01(t - holdSeconds)));
                 yield return null;
             }
             iconRect.localRotation = Quaternion.identity;

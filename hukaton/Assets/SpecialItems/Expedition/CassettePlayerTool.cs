@@ -65,6 +65,9 @@ namespace Hakaton.SpecialItems
         readonly System.Random random = new System.Random();
 
         public override bool IsOut => state != State.Hidden && state != State.Stowing;
+        public override string ControlHint => (Playing ? "Tab — пауза" : "Tab — играть") + "\nзажать Tab — следующий трек";
+        /// <summary>The music was on when the last outing ended: the next one starts with it.</summary>
+        public bool ResumesNextOuting { get; private set; }
         /// <summary>The tape is playing (in the hand or put away).</summary>
         public bool Playing { get; private set; }
         public AudioClip CurrentTrack => orderAt >= 0 && orderAt < order.Count && order[orderAt] < tracks.Length ? tracks[order[orderAt]] : null;
@@ -95,6 +98,9 @@ namespace Hakaton.SpecialItems
             if (motion != null) StopCoroutine(motion);
             motion = null;
             HideAll();
+            // Came home with the music on: it plays again from the start of the same track; Tab turns it off.
+            if (ResumesNextOuting && Items && definition && Items.Owns(definition)) Play(false);
+            ResumesNextOuting = false;
         }
 
         public override void OutingEnded()
@@ -102,6 +108,7 @@ namespace Hakaton.SpecialItems
             if (motion != null) StopCoroutine(motion);
             motion = null;
             HideAll();
+            if (Playing) ResumesNextOuting = true;
             if (Playing) RunTape(FadeAway());
             else if (music && tape == null)
             {
@@ -175,6 +182,7 @@ namespace Hakaton.SpecialItems
             // On the way home (the Return card, a defeat) the music already fades with the screen.
             if (Playing && World && World.Returning)
             {
+                ResumesNextOuting = true;
                 Playing = false;
                 RunTape(FadeAway());
                 ShowLamp();
@@ -224,11 +232,13 @@ namespace Hakaton.SpecialItems
             else Play();
         }
 
-        public void Play()
+        public void Play() => Play(true);
+
+        void Play(bool click)
         {
             if (!music || tracks.Length == 0) return;
             if (!loaded) Load(orderAt < 0 ? 0 : orderAt);
-            Sound(playSound);
+            if (click) Sound(playSound);
             Playing = true;
             RunTape(SpeedUp(music.time > 0));
             ShowLamp();

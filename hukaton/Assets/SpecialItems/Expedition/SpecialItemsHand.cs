@@ -64,13 +64,22 @@ namespace Hakaton.SpecialItems
             pressedAt = -1;
             holding = false;
             Current = null;
+            if (world) world.HeldItemHint = null;
             foreach (var tool in tools) if (tool) tool.OutingEnded();
         }
 
         bool Usable => world && items && world.Running && !world.InPrologue && world.control.GameplayActive;
 
+        /// <summary>The other half of every item's hint: Q puts it away, held Q chooses another.</summary>
+        [TextArea] public string stowHint = "Q — убрать\nзажать Q — другой предмет";
+
         void Update()
         {
+            if (world)
+            {
+                var hint = Current && Current.IsOut ? Current.ControlHint : null;
+                world.HeldItemHint = string.IsNullOrEmpty(hint) ? null : hint + "\n" + stowHint;
+            }
             if (!Usable)
             {
                 CloseMenu();

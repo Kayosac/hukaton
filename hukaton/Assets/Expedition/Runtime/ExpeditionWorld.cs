@@ -94,6 +94,8 @@ namespace Hakaton.Expeditions
         int coinStreak;
         float lastCoinTime = -10;
         public string Notice { get; private set; }
+        /// <summary>How to use the special item in the hand (lines, bottom left of the HUD), or null with nothing in it.</summary>
+        public string HeldItemHint { get; set; }
         public float NoticeUntil { get; private set; }
         /// <summary>Raised for each item picked up.</summary>
         public event Action<LootItem> Collected;
