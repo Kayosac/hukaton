@@ -63,16 +63,18 @@ namespace Hakaton.WorldAssembly
             // Giant dung beetles patrol the dry ground in squads: 3–4 in ring 1, 5–7 further out.
             // Mantis men lie in wait in the reeds: one in ring 1, two further out.
             ["swamp-hummocks"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2),
-            ["swamp-log-road"] = new Theme("snail-frog-mount", "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2),
-            ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2),
+            ["swamp-log-road"] = new Theme("snail-frog-mount", "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2),
+            ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2),
             ["swamp-tar-pit"] = new Theme("purple-mushroom*3", "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1, "budding-troll|" + Beetles2 + "|" + Mantis2),
             ["swamp-bog"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Mantis1, "budding-troll+snail-frog-mount|" + Mantis2),
             ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2),
-            ["swamp-mill"] = new Theme("rooster-baseball*2", "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2),
+            ["swamp-mill"] = new Theme("rooster-baseball*2", "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1 + "|" + Mutant1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2 + "|" + Mutant2),
         };
 
         const string Beetles1 = "giant-dung-beetle*3-4", Beetles2 = "giant-dung-beetle*5-7";
         const string Mantis1 = "mantis-man", Mantis2 = "mantis-man*2";
+        // Swamp mutants haunt the huts, the mill, the graveyard and the log road: one, further out one or two.
+        const string Mutant1 = "swamp-mutant", Mutant2 = "swamp-mutant*1-2";
 
         /// <summary>Theme of a scene id; plain rocky scenes share one.</summary>
         public static string ForScene(string scene)

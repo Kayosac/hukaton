@@ -233,6 +233,7 @@ namespace Hakaton.Expeditions
             ResetRanged();
             squad = null;
             EndAttack();
+            holding = false;
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -340,6 +341,8 @@ namespace Hakaton.Expeditions
             stateTime = 0;
             // Its squad turns on the player with it (WorldCreature.Patrol.cs).
             squad?.Raise(this, next);
+            // A grip lasts through the strike and the recovery after it; anything else lets go (WorldCreature.Grab.cs).
+            if (next != CreatureState.Recover && next != CreatureState.Strike) holding = false;
             switch (next)
             {
                 case CreatureState.Idle: idleDuration = Random.Range(1.2f, 2.8f); Halt(); break;
@@ -523,6 +526,8 @@ namespace Hakaton.Expeditions
             float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
             if (HasRangedAttack && ThinkRanged()) return;
+            // Holding the player in its grip (WorldCreature.Grab.cs).
+            if (ThinkHold()) return;
             switch (State)
             {
                 case CreatureState.Chase:
@@ -700,9 +705,12 @@ namespace Hakaton.Expeditions
             hitThisStrike = true;
             // A card shield around the target (the Bubble) takes the blow: no damage, no push.
             if (StrikeShielded(victim, aim)) return;
+            // A grab holds instead of pushing away (WorldCreature.Grab.cs).
+            bool grabs = grab.enabled && ReferenceEquals(victim, world.Player);
             // A blow with more of the combo to come only nudges: the next one must still reach.
-            Vector3 knockback = followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
+            Vector3 knockback = grabs ? Vector3.zero : followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
             victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this, followUp));
+            if (grabs) { StartHold(); desired = Vector3.zero; }
         }
 
         // ---------------- reactions ----------------
@@ -1093,6 +1101,7 @@ namespace Hakaton.Expeditions
         CreaturePose PoseForState()
         {
             if (Time.time < hurtUntil || State == CreatureState.Stunned) return CreaturePose.Hurt;
+            if (holding) return CreaturePose.Attack;
             switch (State)
             {
                 case CreatureState.Alert:
