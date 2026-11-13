@@ -66,6 +66,32 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             while (Time.time < until && sandbox.ReceivedDamage < afterWeb + 2) yield return null;
             Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(afterWeb + 2), "it runs in and bites for a heart");
         }
+
+        [UnityTest]
+        public IEnumerator ToadSpitsFromAfarAndYanksWithItsTongue()
+        {
+            var toad = Spawn("Giant vile toad");
+            // Far: it spits slime.
+            yield return Stand(toad, 10);
+            bool spat = false;
+            float until = Time.time + 8;
+            while (Time.time < until && !spat) { yield return null; spat = EnemyProjectile.Active.Any(p => p && p.Shooter == toad); }
+            Assert.That(spat, Is.True, "it spits slime from afar");
+            // Within the tongue's reach: it pulls the player in, and the slam follows.
+            yield return Wait(.5f);
+            yield return Stand(toad, 5);
+            float start = Vector3.Distance(sandbox.motor.transform.position, toad.Position);
+            float closest = start;
+            int before = sandbox.ReceivedDamage;
+            until = Time.time + 6;
+            while (Time.time < until && sandbox.ReceivedDamage < before + 3)
+            {
+                yield return null;
+                closest = Mathf.Min(closest, Vector3.Distance(sandbox.motor.transform.position, toad.Position));
+            }
+            Assert.That(closest, Is.LessThan(start - 1.5f), "the tongue yanks the player in");
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(before + 3), "the slam takes one and a half hearts");
+        }
     }
 }
 #endif

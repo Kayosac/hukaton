@@ -385,7 +385,8 @@ namespace Hakaton.Expeditions
                     hitThisStrike = false;
                     world.Play(strikeCue, body.position);
                     squash.Kick(6);
-                    lunging = pouncing || (followUp ? followUpStep > 0 : dash);
+                    lunging = !tonguing && (pouncing || (followUp ? followUpStep > 0 : dash));
+                    if (tonguing) LashTongue();
                     if (lunging) KickDust(stepDustCount * 3);
                     if (strikeShake > 0)
                     {
@@ -535,6 +536,8 @@ namespace Hakaton.Expeditions
             float fromHome = Flat(body.position - home).magnitude;
             // Holding the player in its grip (WorldCreature.Grab.cs).
             if (ThinkHold()) return;
+            // A sticky tongue from a few metres (WorldCreature.Tongue.cs).
+            if (TryTongue()) return;
             if (HasRangedAttack && ThinkRanged()) return;
             switch (State)
             {
@@ -702,7 +705,7 @@ namespace Hakaton.Expeditions
 
         void CheckStrikeContact()
         {
-            if (hitThisStrike) return;
+            if (hitThisStrike || tonguing) return;
             float size = Size;
             // A flyer dives in with its whole body: the reach is measured from the middle of the drawing.
             Vector3 snout = flying ? Centre + transform.forward * Mathf.Max(.3f, TopHeight * .5f) : body.position + (transform.forward * .65f + Vector3.up * .6f) * size;

@@ -52,7 +52,9 @@ namespace Hakaton.Expeditions
         /// <summary>It sits in cover waiting (not yet sprung, not fighting).</summary>
         public bool Lurking => ambush.enabled && IsCalm && State != CreatureState.Investigate;
 
-        float WindupSeconds => pouncing ? ambush.pounceWindup : followUp ? followUpWindup : windup;
+        float WindupSeconds => pouncing ? ambush.pounceWindup : tonguing ? tongue.windup
+            : followUp ? (afterTongue ? tongue.slamWindup : followUpWindup) : windup;
+        bool afterTongue;
         float StrikeSeconds => pouncing ? ambush.pounceSeconds : strikeSeconds;
         float LungeSpeed => pouncing ? ambush.pounceSpeed : followUp ? followUpStep : dashSpeed;
 
@@ -63,11 +65,17 @@ namespace Hakaton.Expeditions
             pounceArmed = false;
             followUp = false;
             followUpsLeft = Mathf.Max(0, strikesPerAttack - 1);
+            // The tongue (WorldCreature.Tongue.cs) only pulls: the slam after it is the next blow.
+            tonguing = tongueArmed;
+            tongueArmed = false;
+            afterTongue = false;
+            if (tonguing) followUpsLeft = Mathf.Max(followUpsLeft, 1);
         }
 
         void EndAttack()
         {
             pouncing = pounceArmed = followUp = chaining = lunging = false;
+            tonguing = tongueArmed = afterTongue = false;
             followUpsLeft = 0;
         }
 
@@ -78,6 +86,8 @@ namespace Hakaton.Expeditions
             followUpsLeft--;
             followUp = true;
             pouncing = false;
+            afterTongue = tonguing;
+            tonguing = false;
             chaining = true;
             Enter(CreatureState.Windup);
             return true;

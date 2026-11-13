@@ -62,13 +62,13 @@ namespace Hakaton.WorldAssembly
             // The rotten swamp: the creatures of the place each scene is most like, and the swamp's own.
             // Giant dung beetles patrol the dry ground in squads: 3–4 in ring 1, 5–7 further out.
             // Mantis men lie in wait in the reeds: one in ring 1, two further out.
-            ["swamp-hummocks"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2),
+            ["swamp-hummocks"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Toad1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Toad2),
             ["swamp-log-road"] = new Theme("snail-frog-mount", "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2),
             ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spider1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spider2),
             ["swamp-graveyard"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spiders1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spiders2),
             ["swamp-tar-pit"] = new Theme("purple-mushroom*3", "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Spider1, "budding-troll|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Spider2),
-            ["swamp-bog"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Mantis1 + "|" + Leeches1, "budding-troll+snail-frog-mount|" + Mantis2 + "|" + Leeches2),
-            ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1 + "|" + Spider1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2 + "|" + Spider2),
+            ["swamp-bog"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Mantis1 + "|" + Leeches1 + "|" + Toad1, "budding-troll+snail-frog-mount|" + Mantis2 + "|" + Leeches2 + "|" + Toad2),
+            ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1 + "|" + Spider1 + "|" + Toad1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2 + "|" + Spider2 + "|" + Toad2),
             ["swamp-mill"] = new Theme("rooster-baseball*2", "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1 + "|" + Mutant1 + "|" + Leeches1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2 + "|" + Mutant2 + "|" + Leeches2),
         };
 
@@ -81,6 +81,8 @@ namespace Hakaton.WorldAssembly
         // Giant swamp spiders hunt round snags, tar and huts: one, further out two; on the drowned graveyard they swarm.
         const string Spider1 = "giant-swamp-spider", Spider2 = "giant-swamp-spider*2";
         const string Spiders1 = "giant-swamp-spider*3", Spiders2 = "giant-swamp-spider*3-5";
+        // Giant vile toads squat on the wet ground: hummocks, the bog, the snag isle; one, further out one or two.
+        const string Toad1 = "giant-vile-toad", Toad2 = "giant-vile-toad*1-2";
 
         /// <summary>Theme of a scene id; plain rocky scenes share one.</summary>
         public static string ForScene(string scene)
