@@ -192,7 +192,8 @@ def process(entry, out_dir):
                 w, h = sprites[idx[0]]['w'], sprites[idx[0]]['h']
                 P = [(pivot_of(sprites[i])[0] * w, (1 - pivot_of(sprites[i])[1]) * h) for i in idx]
                 E = [extents(cells[i], *pp) for i, pp in zip(idx, P)]
-                m = 1.0 / f
+                # one transparent texel around the drawing, more where a hint outline is drawn in the margin
+                m = (1.0 + entry.get('margin_px', 0)) / f
                 L, R, U, D = (max(e[k] for e in E) + m for k in range(4))
                 nl, nr, nu, nd = (math.ceil(v * f) for v in (L, R, U, D))
                 # Characters stand on their pivot: the frame ends exactly on the feet line (nothing is drawn below it).

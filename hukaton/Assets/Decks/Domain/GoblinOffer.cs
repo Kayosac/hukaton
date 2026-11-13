@@ -133,6 +133,9 @@ namespace Hakaton.Decks
         public int IntroductionRead { get; private set; }
         public event Action Changed;
 
+        /// <summary>He has been called down at least once in this game (saved; a new game starts without it).</summary>
+        public bool Visited => visited;
+
         /// <summary>The rope calls him down (a fresh ten) only when the conditions are met.</summary>
         public bool CanCall => !visited || outingSince && shiftSince;
 

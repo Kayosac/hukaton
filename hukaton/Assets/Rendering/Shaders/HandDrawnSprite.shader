@@ -27,6 +27,15 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         // Off for plates that carry text on top (speech bubbles).
         [Header(Depth)]
         [ToggleUI] _ZWrite ("Write Depth", Float) = 1
+        // A pulsing outline of hard cells around the drawing (hints: «Потяни меня» and its rope). Off by default:
+        // ordinary sprites compile without it. Renderers fade it with _OutlineStrength in a MaterialPropertyBlock.
+        [Header(Hint Outline)]
+        [Toggle(_HINT_OUTLINE)] _HintOutline ("Pulsing Hint Outline", Float) = 0
+        _OutlineColor ("Outline Colour", Color) = (1, 0.8, 0.35, 1)
+        _OutlineCells ("Outline Width (world pixel cells)", Range(1,4)) = 2
+        _OutlinePulseSpeed ("Pulses Per Second", Range(0,4)) = 1.1
+        _OutlineMinAlpha ("Pulse Low Alpha", Range(0,1)) = 0.12
+        _OutlineStrength ("Outline Strength (per renderer)", Range(0,1)) = 1
     }
 
     SubShader
@@ -55,6 +64,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             float4 _SpriteUVRect;
             float _PixelsPerUnit, _AlphaCutoff, _MaxCellPixels, _MaxRefine, _Motion, _AnimationFPS;
             float _Speed, _Sway, _Breath, _Boil, _Anchor, _Seed;
+            half4 _OutlineColor;
+            float _OutlineCells, _OutlinePulseSpeed, _OutlineMinAlpha, _OutlineStrength;
         CBUFFER_END
 
         struct Attributes
@@ -120,6 +131,42 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             return clamp(determinant / max(axisLengths * max(_PixelsPerUnit, 0.001), 1e-12), 1e-7, 1.0);
         }
 
+        #if defined(_HINT_OUTLINE)
+        // Alpha of the source texel under a sprite-local UV, zero outside the drawing (same snapping as the drawing).
+        half DrawingAlpha(float2 uv)
+        {
+            float2 rectSize = max(_SpriteUVRect.zw, float2(0.00001, 0.00001));
+            float2 inset = _MainTex_TexelSize.xy * 0.5;
+            float2 atlasUV = clamp(_SpriteUVRect.xy + uv * rectSize,
+                _SpriteUVRect.xy + inset, _SpriteUVRect.xy + rectSize - inset);
+            atlasUV = (floor(atlasUV * _MainTex_TexelSize.zw + 0.01) + 0.5) * _MainTex_TexelSize.xy;
+            half a = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0).a;
+            return min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)) < 0.0 ? 0.0 : a;
+        }
+
+        // Cells within _OutlineCells world cells of the drawing: the hint colour, its alpha pulsing over time.
+        half4 HintOutline(float2 uv, float2 worldCell, Varyings input)
+        {
+            half strength = saturate(_OutlineStrength) * input.color.a;
+            clip(strength - 0.002);
+            float reach = clamp(_OutlineCells, 1.0, 4.0);
+            int r = (int)ceil(reach);
+            half near = 0;
+            [loop] for (int y = -r; y <= r; y++)
+            {
+                [loop] for (int x = -r; x <= r; x++)
+                {
+                    if (x * x + y * y > reach * reach + 0.5) continue;
+                    near = max(near, step(_AlphaCutoff, DrawingAlpha(uv + float2(x, y) * worldCell)));
+                }
+            }
+            clip(near - 0.5);
+            float pulse = 0.5 + 0.5 * sin(_Time.y * _OutlinePulseSpeed * 6.2831853);
+            half alpha = lerp(_OutlineMinAlpha, 1.0, pulse) * _OutlineColor.a * strength;
+            return half4(MixFog(_OutlineColor.rgb, input.fogFactor), alpha);
+        }
+        #endif
+
         half4 Frag(Varyings input) : SV_Target
         {
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -147,6 +194,11 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
                 sin(uv.x * 21.0 + phase * 1.37) + sin(uv.y * 13.0 - phase * 1.91));
             uv += wobble * 0.5 * worldCell * _Boil * height * _Motion;
 
+            #if defined(_HINT_OUTLINE)
+            // The outline lives in the drawing's transparent margin: test it before anything is rejected.
+            if (min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)) < 0.0 || DrawingAlpha(uv) < _AlphaCutoff)
+                return HintOutline(uv, worldCell, input);
+            #endif
             // Reject outside the source; clamping alone would smear opaque edge texels.
             clip(min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y)));
             // Keep sampling inside this cell even at an exact edge (never the neighbouring pose).
@@ -174,6 +226,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma fragment Frag
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
+            #pragma shader_feature_local_fragment _HINT_OUTLINE
             ENDHLSL
         }
         Pass
@@ -186,6 +239,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma fragment Frag
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
+            #pragma shader_feature_local_fragment _HINT_OUTLINE
             ENDHLSL
         }
     }
