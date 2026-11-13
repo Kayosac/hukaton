@@ -67,8 +67,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (bool distant in new[] { false, true })
             {
                 var (material, shadows, receive, layer) = group.Key;
-                var input = distant ? group.Value.Select(s => (s.source, Lod(s.mesh, s.sub), 0, s.m)).ToList()
-                    : group.Value.Select(s => Lighter(sources[s.source], s.mesh, s.sub) ? (s.source, NearLod(s.mesh, s.sub), 0, s.m) : s).ToList();
+                var input = distant ? group.Value.Select(s => (s.source, Lod(s.mesh, s.sub), 0, s.m)).ToList() : group.Value;
                 var mesh = Build(input, $"{name} merged {material.name}{(distant ? " far" : "")}", out var slices);
                 AssetDatabase.AddObjectToAsset(mesh, assetPath);
                 var go = new GameObject(material.name) { layer = layer };
@@ -122,8 +121,6 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             foreach (var m in lods.Values) if (m) Object.DestroyImmediate(m);
             lods.Clear();
-            foreach (var m in nearLods.Values) if (m) Object.DestroyImmediate(m);
-            nearLods.Clear();
         }
 
         /// <summary>The far look of one submesh: small pieces as they are, big ones to a third of their triangles.</summary>
@@ -134,35 +131,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             float quality = triangles < 120 ? 1 : triangles < 400 ? .55f : .3f;
             lod = MeshDecimator.Simplify(mesh, sub, quality);
             lods[(mesh, sub)] = lod;
-            return lod;
-        }
-
-        /// <summary>
-        /// Near looks of soft plants drawn with fewer triangles than the art: bushes, cattails, sedge and pale mushrooms
-        /// (300–1100 triangles each, by the hundred in the swamp) are walked through (<see cref="ChunkLooks.Soft"/>) and
-        /// have no collider — nothing is hit where they are drawn, so their near look can shed triangles without opening a
-        /// gap between what is seen and what is hit. Everything solid keeps its triangles as drawn.
-        /// </summary>
-        static bool Lighter(Renderer r, Mesh mesh, int sub)
-        {
-            if (mesh.GetIndexCount(sub) / 3 < NearLodFrom || r.GetComponents<Collider>().Any(c => !c.isTrigger)) return false;
-            if (ChunkLooks.SoftPart(r.name)) return true;
-            // "Assets/ForestArt/Prefabs/Plants/FA_VG08_BushRound.prefab" → "Plants/FA_VG08_BushRound", the swamp's "Swamp/Plants/…".
-            string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(r.gameObject);
-            foreach (var (root, prefix) in new[] { ("Assets/ForestArt/Prefabs/", ""), ("Assets/SwampArt/Prefabs/", "Swamp/") })
-                if (path.StartsWith(root)) return ChunkLooks.Soft(prefix + path.Substring(root.Length, path.Length - root.Length - ".prefab".Length));
-            return false;
-        }
-
-        const int NearLodFrom = 200;
-        const float NearLodQuality = .5f;
-        static readonly Dictionary<(Mesh, int), Mesh> nearLods = new Dictionary<(Mesh, int), Mesh>();
-
-        static Mesh NearLod(Mesh mesh, int sub)
-        {
-            if (nearLods.TryGetValue((mesh, sub), out var lod) && lod) return lod;
-            lod = MeshDecimator.Simplify(mesh, sub, NearLodQuality);
-            nearLods[(mesh, sub)] = lod;
             return lod;
         }
 
@@ -231,8 +199,12 @@ namespace Hakaton.WorldAssembly.EditorTools
                         if (dims[c] == 0) continue;
                         var u = uvs[c][i];
                         for (int k = 0; k < dim[c]; k++)
-                            if (unit[c]) w.Write((ushort)Mathf.RoundToInt(Mathf.Clamp01(u[k]) * 65535));
-                            else w.Write(u[k]);
+                        {
+                            // A component the art does not have reads as a missing one would: (0, 0, 0, 1).
+                            float value = k < dims[c] ? u[k] : k == 3 ? 1 : 0;
+                            if (unit[c]) w.Write((ushort)Mathf.RoundToInt(Mathf.Clamp01(value) * 65535));
+                            else w.Write(value);
+                        }
                     }
                 }
             }
