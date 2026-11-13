@@ -518,12 +518,12 @@ namespace Hakaton.WorldAssembly.Unity
                     // A valuable reward goes to the place the scene made for it (its first find spot); ordinary finds anywhere.
                     bool valuable = plan.Loot[i] != "find";
                     var socket = valuable ? sockets[0] : sockets[(Pick(plan.Coord, i) + (uint)i) % (uint)sockets.Length];
-                    var loot = PlaceLoot(plan.Loot[i], socket);
+                    var loot = PlaceLoot(plan.Loot[i], socket, Pick(plan.Coord, 60 + i));
                     if (loot) entry.loot.Add((i, loot));
                 }
             if (plan.PocketReward != null && entry.view.pocketSocket && (mem == null || !mem.takenLoot.Contains(PocketIndex)))
             {
-                var loot = PlaceLoot(plan.PocketReward, entry.view.pocketSocket);
+                var loot = PlaceLoot(plan.PocketReward, entry.view.pocketSocket, Pick(plan.Coord, 59));
                 if (loot) entry.loot.Add((PocketIndex, loot));
             }
         }
@@ -687,12 +687,14 @@ namespace Hakaton.WorldAssembly.Unity
             entry.oddity = oddity;
         }
 
-        WorldLoot PlaceLoot(string id, Transform socket)
+        /// <param name="pick">Seeds which item a pooled find turns out to be: the same for the same spot of the same world.</param>
+        WorldLoot PlaceLoot(string id, Transform socket, uint pick)
         {
             var prefab = content ? content.Loot(id) : null;
             if (!prefab) return null;
             var loot = Instantiate(prefab, socket.position, socket.rotation, socket);
             loot.world = world;
+            loot.PickFromPool(new System.Random((int)(pick & 0x7fffffff)));
             loot.guaranteed = true;
             loot.spawnPoints = null;
             world.finds.Add(loot);
