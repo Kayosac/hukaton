@@ -70,9 +70,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 {
                     // The forest: everything but the rotten swamp's own scenes. The swamp (Kayospace «Биом: Гнилая топь»):
                     // its scenes, and the channels of the rivers that run through it; its landmarks are swamp by kind.
-                    bool swampScene = TileShapes.IsSwampScene(variant.Id);
-                    if (!swampScene) Add(shape, variant.Id, Biome.Forest);
-                    if (swampScene || shape.Kind == ShapeKind.River) Add(shape, variant.Id, Biome.Swamp);
+                    bool inSwamp = TileShapes.IsSwampScene(variant.Id) || shape.Kind == ShapeKind.Shore;
+                    Add(shape, variant.Id, inSwamp ? Biome.Swamp : Biome.Forest);
                 }
             // Variants that are gone (an old scene list) leave no prefabs behind.
             foreach (var path in stale) AssetDatabase.DeleteAsset(path);
@@ -223,9 +222,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 // The swamp keeps the forest's moss at its edges (no seam with a forest neighbour); round its water the
                 // ground is its own silt and peat.
-                // Peat all over, edges too: swamp chunks meet without a line, the patch's rim is where the forest's
-                // moss begins.
-                mats[(int)Surface.Main] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Bed] = SwampGround("SW_Ground_Mud", "T_Swamp_Mud");
                 mats[(int)Surface.Bank] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
                 mats[(int)Surface.Humus] = SwampGround("SW_Ground_Peat", "T_Swamp_Peat");
@@ -245,6 +241,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (t.Shape.Kind == ShapeKind.Maze) return t.InMazeWall(p) ? Surface.Humus : Surface.Path;
             if (t.SceneFloor(p) || t.SceneTrail(p)) return Surface.Path;
             if (t.SceneThicket(p)) return Surface.Humus;
+            // The swamp's peat where its water reaches, the forest's moss on the dry side of a shore: chunks meet on
+            // the same ground at every edge.
+            if (t.Biome == Biome.Swamp && t.Wetness(p) > .3f) return Surface.Humus;
             return Surface.Main;
         }
 
@@ -1545,8 +1544,11 @@ namespace Hakaton.WorldAssembly.EditorTools
         // The rotten swamp's dressing.
         static readonly string[] SwampSedge = { "SM_SW03_SedgeFan", "SM_SW03_SedgeRosette", "SM_SW03_SedgeLean" };
         static readonly string[] SwampReeds = { "SM_SW02_CattailTallLean", "SM_SW02_CattailShortBroken", "SM_SW02_CattailWideArch" };
-        static readonly string[] SwampLitter = { "SM_SW12_StumpLowClosed", "SM_SW15_StakeBare", "SM_SW10_SnagLowSideways", "SM_SW12_StumpTallHollow" };
-        static readonly string[] SwampTrees = { "SM_SW07_LongSnag", "SM_SW07_ForkSnag", "SM_SW07_DiagonalSnag", "SM_SW08_StiltAlderLow", "SM_SW09_DrownedWillowFork" };
+        static readonly string[] SwampLitter = { "SM_SW12_StumpLowClosed", "SM_SW15_StakeBare", "SM_SW12_StumpTallHollow", "SM_SW15_StakeRope" };
+        static readonly string[] SwampTrees = { "SM_SW07_LongSnag", "SM_SW07_ForkSnag", "SM_SW07_DiagonalSnag", "SM_SW07_ForkSnag" };
+        static readonly string[] SwampWaterTrees = { "SM_SW08_StiltAlderTall", "SM_SW08_StiltAlderLow", "SM_SW09_DrownedWillowArch", "SM_SW09_DrownedWillowFork", "SM_SW07_LongSnag", "SM_SW08_StiltAlderLow", "SM_SW07_DiagonalSnag" };
+        static readonly string[] SwampHummocks = { "SM_SW01_HummockTall", "SM_SW01_HummockLong", "SM_SW01_HummockDouble", "SM_SW01_HummockFlat" };
+        static readonly string[] SwampLogs = { "SM_SW11_SunkenLogLong", "SM_SW11_SunkenLogBent", "SM_SW10_SnagLowSideways", "SM_SW10_SnagRootFan" };
         static readonly string[] SwampFloating = { "SM_SW04_DuckweedPatch", "SM_SW04_DuckweedCrescent", "SM_SW04_DuckweedDouble", "SM_SW05_LilyPads", "SM_SW05_LilyPadsFlower" };
         static readonly string[] SwampMushrooms = { "SM_SW06_PaleMushroomsCluster", "SM_SW06_PaleMushroomsTall" };
 
@@ -1634,64 +1636,71 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>
-        /// The rotten swamp's dressing: sedge on the dry ground, cattails at the water's edge, duckweed and lilies on the
-        /// water (never on the mire: the windows keep their own look), stumps and stakes, a few dead birches, alders and
-        /// willows, pale mushrooms.
+        /// The rotten swamp's dressing (Kayospace «Биом: Гнилая топь»: it is never bare): trees standing in the water
+        /// all over — stilt alders, drowned willows, dead birches — and more on the islands; hummocks and sunken logs to
+        /// step on; cattails along every shore, sedge on the islands; duckweed and lilies on the water (never on the
+        /// mire: the windows keep their own look); stumps, stakes and pale mushrooms. On a shore's dry side the forest's
+        /// own trees take over.
         /// </summary>
         static void DressSwamp(Transform parent, TileTerrain t, System.Random rng)
         {
             var dressing = new GameObject("Dressing").transform;
             dressing.SetParent(parent, false);
             var scene = t.Scene;
-            Func<Vector2, bool> open = p => !t.SceneBusy(p) && !t.SceneTrail(p);
-            void Scatter(string folder, string[] names, int count, float edge, float minSpacing, float scaleMin, float scaleMax, Func<Vector2, bool> where, bool soft)
+            var taken = new List<(Vector2 at, float radius)>();
+            bool Clear(Vector2 p, float radius) => taken.All(q => Vector2.Distance(p, q.at) > radius + q.radius);
+            bool Open(Vector2 p) => scene == null || (!t.SceneBusy(p) && !t.SceneTrail(p));
+            bool Shallow(Vector2 p) => t.IsWater(p) && !t.IsBog(p) && TileTerrain.WaterLevel - t.Height(p) < .75f && t.WaterDistance(p) > -3.5f;
+            bool DryLand(Vector2 p) => !t.IsWater(p) && t.WaterDistance(p) > .3f && Free(t, p);
+            bool Shore(Vector2 p) => t.WaterDistance(p) > -.9f && t.WaterDistance(p) < .5f && !t.IsBog(p);
+            int Scatter(string asset, string[] names, int count, float edge, float radius, float scaleMin, float scaleMax, Func<Vector2, bool> where, bool soft, bool solid = false)
             {
-                var spots = new List<Vector2>();
-                for (int attempt = 0; attempt < count * 14 && spots.Count < count; attempt++)
+                int made = 0;
+                for (int attempt = 0; attempt < count * 16 && made < count; attempt++)
                 {
                     var p = new Vector2(edge + (float)rng.NextDouble() * (16 - 2 * edge), edge + (float)rng.NextDouble() * (16 - 2 * edge));
-                    if (!Free(t, p) || (where != null && !where(p)) || spots.Any(q => Vector2.Distance(p, q) < minSpacing)) continue;
-                    if (!soft && NearLink(p, 2.2f)) continue;
-                    var go = Place(dressing, SwampArt + folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble()));
-                    if (go && lastFall > (folder == "Trees" ? .25f : soft ? .5f : .35f)) { Object.DestroyImmediate(go); continue; }
-                    spots.Add(p);
-                    if (go && soft) foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    if (!Open(p) || !where(p) || !Clear(p, radius)) continue;
+                    if (solid && NearLink(p, 1.6f)) continue;
+                    var go = Place(dressing, asset + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble()));
+                    if (!go) continue;
+                    if (lastFall > (soft ? .6f : .45f)) { Object.DestroyImmediate(go); continue; }
+                    taken.Add((p, radius));
+                    made++;
+                    if (soft) foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
+                return made;
             }
             void Floating(int count)
             {
-                var spots = new List<Vector2>();
-                for (int attempt = 0; attempt < count * 20 && spots.Count < count; attempt++)
+                for (int attempt = 0, made = 0; attempt < count * 20 && made < count; attempt++)
                 {
-                    var p = new Vector2(1 + (float)rng.NextDouble() * 14, 1 + (float)rng.NextDouble() * 14);
-                    if (!t.IsDeep(p) || t.IsBog(p) || t.WaterDistance(p) > -1 || spots.Any(q => Vector2.Distance(p, q) < 1.8f)) continue;
-                    var go = Place(dressing, SwampArt + "Plants/" + SwampFloating[rng.Next(SwampFloating.Length)], null, Vector2.zero, (float)rng.NextDouble() * 360, Vector3.one * Mathf.Lerp(.6f, 1f, (float)rng.NextDouble()));
+                    var p = new Vector2(.8f + (float)rng.NextDouble() * 14.4f, .8f + (float)rng.NextDouble() * 14.4f);
+                    if (!t.IsDeep(p) || t.IsBog(p) || !Clear(p, .9f)) continue;
+                    var go = Place(dressing, SwampArt + "Plants/" + SwampFloating[rng.Next(SwampFloating.Length)], null, Vector2.zero, (float)rng.NextDouble() * 360, Vector3.one * Mathf.Lerp(.6f, 1.1f, (float)rng.NextDouble()));
                     if (!go) continue;
                     go.transform.localPosition = new Vector3(p.x - 8, TileTerrain.WaterLevel + .015f, p.y - 8);
                     foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    spots.Add(p);
+                    taken.Add((p, .6f));
+                    made++;
                 }
             }
-            bool Shore(Vector2 p) => t.Wet && t.WaterDistance(p) < .9f;
-            bool Dry(Vector2 p) => !t.Wet || t.WaterDistance(p) > 1.2f;
+            // What the scene placed keeps its room.
             if (scene != null)
-            {
-                float many = scene.Size > 16 ? 2.4f : 1;
-                Scatter("Plants", SwampSedge, Mathf.RoundToInt((scene.Grass + 6) * many), 1, 1, .8f, 1.3f, p => open(p), true);
-                Scatter("Plants", SwampReeds, Mathf.RoundToInt(Mathf.Max(scene.Bushes * 3, 8) * many), 1, 1.2f, .8f, 1.25f, p => open(p) && Shore(p), true);
-                Scatter("Plants", SwampMushrooms, 2, 1.5f, 3, .8f, 1.2f, p => open(p) && Dry(p), true);
-                Scatter("Deadwood", SwampLitter, 2, 2.6f, 2.6f, .8f, 1.05f, p => open(p) && Dry(p), false);
-                if (scene.Trees > 0) Scatter("Trees", SwampTrees, scene.Trees, 1.8f, 3.6f, .6f, .9f, p => open(p) && Dry(p), false);
-                Floating(3);
-            }
-            else if (t.Shape.Kind == ShapeKind.River)
-            {
-                Scatter("Plants", SwampSedge, 9, 1, 1.1f, .8f, 1.3f, null, true);
-                Scatter("Plants", SwampReeds, 7, 1.2f, 1.4f, .8f, 1.2f, Shore, true);
-                Scatter("Deadwood", SwampLitter, 1, 2.6f, 3, .8f, 1f, p => t.WaterDistance(p) > 1.4f, false);
-                Scatter("Trees", SwampTrees, 2, 2, 4, .6f, .9f, p => t.WaterDistance(p) > 1.8f, false);
-                Floating(4);
-            }
+                foreach (var prop in scene.Props)
+                    if (!prop.NoCollider && t.InPart(prop.At)) taken.Add((t.Local(prop.At), 1.4f * prop.Scale.x));
+            float big = scene != null && scene.Size > 16 ? 1.6f : 1;
+            int N(float n) => Mathf.RoundToInt(n * big);
+            // Trees first: the swamp is a drowned wood.
+            Scatter(SwampArt + "Trees/", SwampWaterTrees, N(scene != null ? 6 : 7), 1.4f, 2.6f, .75f, 1.05f, Shallow, false, true);
+            Scatter(SwampArt + "Trees/", SwampTrees, N(scene != null ? 3 : 2), 1.4f, 2.4f, .7f, 1f, DryLand, false, true);
+            if (t.Shape.Kind == ShapeKind.Shore) Scatter("Trees/", Trees, 3, 1.6f, 2.6f, .65f, 1.3f, p => DryLand(p) && t.Wetness(p) < .05f, false, true);
+            Scatter(SwampArt + "Plants/", SwampHummocks, N(4), 1.2f, 1.3f, .8f, 1.15f, Shallow, false, true);
+            Scatter(SwampArt + "Deadwood/", SwampLogs, N(2), 2, 2.4f, .8f, 1f, Shallow, false, true);
+            Scatter(SwampArt + "Plants/", SwampReeds, N(14), .8f, .55f, .75f, 1.25f, Shore, true);
+            Scatter(SwampArt + "Plants/", SwampSedge, N(9), .8f, .5f, .8f, 1.3f, p => DryLand(p) || Shore(p), true);
+            Scatter(SwampArt + "Plants/", SwampMushrooms, N(2), 1.2f, .8f, .8f, 1.2f, DryLand, true);
+            Scatter(SwampArt + "Deadwood/", SwampLitter, N(2), 2.2f, 1.6f, .8f, 1.05f, p => DryLand(p) || Shallow(p), false, true);
+            Floating(N(7));
         }
 
         /// <summary>

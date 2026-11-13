@@ -493,8 +493,10 @@ namespace Hakaton.WorldAssembly.Tests
                     var plan = map.Chunk(c);
                     if (plan.Biome != Biome.Swamp) continue;
                     Assert.IsTrue(plan.Corners.All(level => level == 0), $"seed {seed}: swamp {c} is not flat and low ({plan})");
-                    Assert.AreNotEqual(ShapeKind.Maze, plan.Shape.Kind, $"seed {seed}: maze in the swamp {c}");
-                    Assert.AreNotEqual(ShapeKind.Canyon, plan.Shape.Kind, $"seed {seed}: canyon in the swamp {c}");
+                    // Open swamp (all corners under water) is a swamp scene or a swamp landmark; its rim is shores.
+                    bool open = map.Biomes.Open(c);
+                    Assert.IsTrue(plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.Shore || plan.Shape.Kind == ShapeKind.Landmark, $"seed {seed}: {plan} in the swamp {c}");
+                    Assert.AreEqual(!open, plan.Shape.Kind == ShapeKind.Shore, $"seed {seed}: {plan} at {c}, open {open}");
                     if (plan.Shape.Kind == ShapeKind.Plain)
                         Assert.IsTrue(TileShapes.IsSwampScene(plan.Variant.Id), $"seed {seed}: forest scene {plan.Variant.Id} in the swamp {c}");
                     if (plan.Shape.Kind == ShapeKind.Landmark)
@@ -504,6 +506,7 @@ namespace Hakaton.WorldAssembly.Tests
                 {
                     var plan = map.Chunk(c);
                     if (plan.Biome == Biome.Swamp) continue;
+                    Assert.AreNotEqual(ShapeKind.Shore, plan.Shape.Kind, $"seed {seed}: a shore in the forest {c}");
                     if (plan.Shape.Kind == ShapeKind.Plain) Assert.IsFalse(TileShapes.IsSwampScene(plan.Variant.Id), $"seed {seed}: swamp scene in the forest {c}");
                     if (plan.Shape.Kind == ShapeKind.Landmark)
                         Assert.AreEqual(Biome.Forest, Landmarks.Parse(plan.Shape.Id).kind.Biome, $"seed {seed}: swamp landmark in the forest {c}");

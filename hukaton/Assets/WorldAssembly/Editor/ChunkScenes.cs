@@ -861,216 +861,178 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>
-        /// The bog (the rotten swamp's landmark, Kayospace «Биом: Гнилая топь»): two bog windows crossed by rotten
-        /// boardwalks, two shallow pools to wade, dead birches, cattails and mist. The reward lies on the boardwalk over
-        /// the far window; ice freezes a way across too.
+        /// The bog (the rotten swamp's landmark, Kayospace «Биом: Гнилая топь»): open swamp water with two bog windows
+        /// crossed by rotten boardwalks, islands with a sagging hut and dead birches, a lantern on a post. The reward lies
+        /// on the boardwalk over the far window; ice freezes a way across too.
         /// </summary>
         void Swamp()
         {
             Size = 32;
             Mire(8.4f, 8.2f, 3.4f, 4.4f, 2.6f);
-            Water(24, 8.6f, 3.8f, 4.8f, .75f);
-            Water(8, 24, 3.2f, 4.2f, .7f);
             Mire(23.6f, 23.6f, 3.6f, 4.6f, 2.6f);
+            Isle(13.4f, 4.6f, 4f, 1.15f);
+            Isle(25, 9, 4.2f, 1.1f);
+            Isle(7.6f, 24.4f, 4.2f, 1.1f);
+            Isle(16, 16, 3.4f, 1.05f);
+            Isle(27.4f, 17.4f, 2.8f, 1);
             Boardwalks.Add((new[] { V(3, 5.6f), V(8.4f, 8.2f), V(13.8f, 10.8f) }, .3f));
             Boardwalks.Add((new[] { V(18, 22.2f), V(23.6f, 23.6f) }, .3f));
             Boardwalks.Add((new[] { V(23.6f, 23.6f), V(23.6f, 29.4f) }, .3f));
-            PutScaled("Structures/FA_ST04_Post", 17.4f, 21, 0, new Vector3(1, 1.6f, 1));
-            Put("Props/FA_PR01_LanternHanging", 17.4f, 21, 0, 1, 2);
-            Put(SW + "Buildings/SM_SW17_LowSaggingHut", 13, 4.6f, 180, .9f);
-            string[] snags = { "SM_SW07_LongSnag", "SM_SW07_ForkSnag", "SM_SW07_DiagonalSnag" };
-            var at = new[] { V(4.2f, 12.6f), V(3.2f, 2.6f), V(20.4f, 13.8f), V(28.6f, 18.4f), V(13, 27.6f), V(27.6f, 28.6f) };
-            for (int i = 0; i < at.Length; i++) Put(SW + "Trees/" + snags[i % 3], at[i].x, at[i].y, at[i].x * 37, .8f + at[i].y % 3 * .1f);
-            Put(SW + "Deadwood/SM_SW10_SnagRootFan", 3.6f, 20, 40);
-            Put(SW + "Trees/SM_SW09_DrownedWillowArch", 28.4f, 13, 250, .85f);
-            Sunk(SW + "Plants/SM_SW01_HummockTall", 24.6f, 7.4f, 30, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockFlat", 7.2f, 25, 140, .25f);
-            Cattails((5, 4.4f, 0), (11.6f, 11.8f, 90), (20.6f, 6, 180), (27.6f, 11.4f, 270), (5.2f, 27.2f, 30), (10.6f, 21.4f, 120), (20.2f, 26.4f, 210), (27, 20.2f, 300));
+            PutScaled("Structures/FA_ST04_Post", 16.6f, 16.4f, 0, new Vector3(1, 1.6f, 1));
+            Put("Props/FA_PR01_LanternHanging", 16.6f, 16.4f, 0, 1, 2);
+            Put(SW + "Buildings/SM_SW17_LowSaggingHut", 13.4f, 4.8f, 180, .9f);
+            Put(SW + "Trees/SM_SW07_LongSnag", 24, 10.4f, 40);
+            Put(SW + "Trees/SM_SW07_ForkSnag", 6.4f, 25.4f, 120);
+            Put(SW + "Trees/SM_SW07_DiagonalSnag", 27.6f, 17.8f, 250, .9f);
             Float(SW + "Plants/SM_SW04_DuckweedBand", 8.4f, 8.2f, 20);
             Float(SW + "Plants/SM_SW04_DuckweedDouble", 23.6f, 23.6f, 200);
-            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 23.4f, 9.4f, 0);
-            Float(SW + "Plants/SM_SW05_LilyPads", 8.6f, 23.2f, 90);
             Deco("VFX/Smoke/White/SmokeFlatWhite", 8.4f, 8.2f, 0, 1.6f, .1f);
             Deco("VFX/Smoke/White/SmokeFlatWhite", 23.6f, 23.6f, 0, 1.6f, .1f);
-            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 24.4f, 9.2f, 0, .8f, 0);
-            Sounds.Add((V(24.4f, 9.2f), "bubbles", 0));
             Deco("VFX/Insects/Flies", 8, 24, 0, 1.2f, 1);
-            Trails.Add(new[] { V(1, 16), V(9, 15.6f), V(16, 16.6f), V(23, 16), V(31, 16.4f) });
-            Trails.Add(new[] { V(16, 1), V(15.4f, 9), V(16, 16.6f), V(16.6f, 31) });
-            Finds = new[] { V(23.6f, 25.4f), V(13.6f, 9.6f) };
-            Creatures = new[] { V(19.4f, 20), V(5.6f, 15) };
-            Grass = 16; Ferns = 0; Bushes = 6; Trees = 0;
+            Sounds.Add((V(8.4f, 8.2f), "bubbles", 0));
+            Finds = new[] { V(23.6f, 25.4f), V(25, 9.2f) };
+            Creatures = new[] { V(16, 16.8f), V(7.6f, 24.4f) };
         }
 
         // ---------- the rotten swamp (Kayospace «Биом: Гнилая топь») ----------
+        // Water everywhere, knee deep (TileTerrain.SwampBed); land comes in islands (domes rising out of the bed). Islands
+        // and pools keep off the chunk's edges, where the open swamp meets its neighbours under the water.
 
         const string SW = "Swamp/";
+
+        /// <summary>An island: a dome out of the swamp's bed, dry over about half its radius.</summary>
+        void Isle(float x, float y, float radius, float height = 1.05f) =>
+            Domes.Add(new Dome { Centre = V(x, y), Radius = radius, Height = height });
 
         void Cattails(params (float x, float y, float yaw)[] at)
         {
             string[] kinds = { "SM_SW02_CattailTallLean", "SM_SW02_CattailShortBroken", "SM_SW02_CattailWideArch" };
-            for (int i = 0; i < at.Length; i++)
-                Deco(SW + "Plants/" + kinds[i % 3], at[i].x, at[i].y, at[i].yaw);
+            for (int i = 0; i < at.Length; i++) Deco(SW + "Plants/" + kinds[i % 3], at[i].x, at[i].y, at[i].yaw);
         }
 
         /// <summary>
-        /// Кочкарник: four pools of shallow water, hummocks standing in them, a bog window in the middle with a rag on
-        /// a stake to warn and one flat hummock to hop over it.
+        /// Кочкарник: open water with four islands and hummocks between them to hop along; a bog window in the middle with
+        /// a rag on a stake to warn.
         /// </summary>
         void Hummocks()
         {
-            Water(4.4f, 4.6f, 2.1f, 2.9f, .9f);
-            Water(11.6f, 4.3f, 1.9f, 2.7f, .8f);
-            Water(4.3f, 11.6f, 2f, 2.8f, .85f);
-            Water(11.4f, 11.5f, 2.2f, 3f, .9f);
-            Mire(8.2f, 8.1f, 1.3f, 1.9f);
-            Sunk(SW + "Plants/SM_SW01_HummockTall", 4.8f, 4.1f, 20, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockFlat", 3.6f, 5.3f, 110, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockLong", 11.2f, 4.9f, 70, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockDouble", 4.6f, 12.1f, 200, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockFlat", 11.9f, 11, 30, .25f);
-            Sunk(SW + "Plants/SM_SW01_HummockTall", 10.6f, 12.3f, 300, .25f, .9f);
-            Sunk(SW + "Plants/SM_SW01_HummockFlat", 8.4f, 8.2f, 0, .25f, .8f);
-            Float(SW + "Plants/SM_SW04_DuckweedPatch", 8.1f, 8, 30);
-            Float(SW + "Plants/SM_SW04_DuckweedCrescent", 4.1f, 4.4f, 200, .8f);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 11.6f, 11.8f, 60, .7f);
-            Float(SW + "Plants/SM_SW05_LilyPads", 12, 4, 0);
-            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 3.8f, 11.2f, 90);
-            Cattails((2.6f, 6.8f, 0), (13.3f, 6, 120), (6.2f, 13.4f, 240), (13.4f, 12.9f, 60));
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 9.9f, 9.6f, 40);
-            Put(SW + "Trees/SM_SW07_LongSnag", 14.2f, 14.3f, 20);
-            Put(SW + "Deadwood/SM_SW12_StumpLowClosed", 1.8f, 14.2f, 0);
-            Sounds.Add((V(8.2f, 8.1f), "bubbles", 0));
-            Finds = new[] { V(8, 13.5f), V(13.6f, 8.1f) };
-            Creatures = new[] { V(8, 2.6f), V(2.5f, 8.1f) };
-            Grass = 8; Ferns = 0; Bushes = 3; Trees = 1;
+            Isle(4.2f, 4.2f, 3.2f);
+            Isle(11.8f, 4.4f, 2.9f);
+            Isle(4.4f, 11.8f, 3f);
+            Isle(11.8f, 11.8f, 3.3f, 1.1f);
+            Mire(8f, 8f, 1.3f, 1.9f);
+            Sunk(SW + "Plants/SM_SW01_HummockFlat", 8, 4.6f, 20, .25f);
+            Sunk(SW + "Plants/SM_SW01_HummockTall", 4.6f, 8, 110, .25f);
+            Sunk(SW + "Plants/SM_SW01_HummockLong", 11.6f, 8.2f, 70, .25f);
+            Sunk(SW + "Plants/SM_SW01_HummockDouble", 8.2f, 11.4f, 200, .25f);
+            Float(SW + "Plants/SM_SW04_DuckweedPatch", 8, 8, 30);
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 9.6f, 9.4f, 40);
+            Sounds.Add((V(8f, 8f), "bubbles", 0));
+            Finds = new[] { V(11.8f, 11.8f), V(4.4f, 11.8f) };
+            Creatures = new[] { V(11.8f, 4.4f), V(4.2f, 4.2f) };
         }
 
         /// <summary>
-        /// Гать: a strip of mire across the chunk and the log road over it; one log is gone where the road crosses
-        /// the deepest mire (jump it, or fall in). Round the strip's ends on foot.
+        /// Гать: a strip of mire across the swamp and the log road over it, end to end; one log is gone where the road
+        /// crosses the deepest mire (jump it, or fall in). Islands on both sides.
         /// </summary>
         void LogRoad()
         {
-            Mire(4.2f, 8.1f, 1.5f, 2.1f);
+            Mire(4.4f, 8.1f, 1.5f, 2.1f);
             Mire(8f, 8.3f, 1.7f, 2.3f);
-            Mire(11.8f, 7.9f, 1.5f, 2.1f);
-            Water(4, 13, 1.8f, 2.5f, .7f);
-            Water(12.4f, 3.4f, 1.8f, 2.5f, .75f);
+            Mire(11.6f, 7.9f, 1.5f, 2.1f);
+            Isle(4, 3.8f, 3f);
+            Isle(12.2f, 12.4f, 3.1f);
+            Isle(12.6f, 3.6f, 2.4f, .95f);
             string[] road = { "SM_SW13_CorduroyStraight", "SM_SW13_CorduroyHole", "SM_SW13_CorduroyStraight", "SM_SW13_CorduroyStraight" };
             // Each module runs 4 m back from its pivot, the middle of its entry joint.
             for (int i = 0; i < 4; i++) Sunk(SW + "Paths/" + road[i], 8, (i + 1) * 4 - .01f, 0, .15f);
-            Put(SW + "Deadwood/SM_SW15_StakeBare", 6.6f, 3, 10);
-            Put(SW + "Deadwood/SM_SW15_StakeBare", 9.4f, 5.6f, 200);
-            Put(SW + "Deadwood/SM_SW15_StakeRope", 6.5f, 11.4f, 80);
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 9.3f, 13.4f, 300);
-            Put(SW + "Paths/SM_SW22_NetRack", 12.6f, 12.4f, 30);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 4.2f, 8.1f, 90, .8f);
-            Float(SW + "Plants/SM_SW04_DuckweedDouble", 11.8f, 7.9f, 0, .8f);
-            Float(SW + "Plants/SM_SW05_LilyPads", 4.4f, 13.2f, 40);
-            Cattails((2.2f, 11.6f, 0), (5.6f, 14.4f, 90), (13.8f, 4.6f, 200), (11, 2.4f, 300));
-            Put(SW + "Trees/SM_SW08_StiltAlderLow", 14.4f, 14.2f, 220, .8f);
-            Put(SW + "Deadwood/SM_SW10_SnagLowSideways", 2.2f, 2.6f, 40);
+            Put(SW + "Deadwood/SM_SW15_StakeBare", 6.4f, 5.4f, 10);
+            Put(SW + "Deadwood/SM_SW15_StakeRope", 9.6f, 11, 80);
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 9.5f, 6.2f, 300);
+            Put(SW + "Paths/SM_SW22_NetRack", 12.2f, 12.6f, 30);
+            Float(SW + "Plants/SM_SW04_DuckweedBand", 4.4f, 8.1f, 90, .8f);
+            Float(SW + "Plants/SM_SW04_DuckweedDouble", 11.6f, 7.9f, 0, .8f);
             Sounds.Add((V(8f, 8.3f), "bubbles", 0));
-            Finds = new[] { V(2.6f, 4.6f), V(13.4f, 11) };
-            Creatures = new[] { V(14.4f, 11.6f), V(1.8f, 11.2f) };
-            Grass = 6; Ferns = 0; Bushes = 2; Trees = 0;
+            Finds = new[] { V(4, 3.8f), V(12.6f, 11.4f) };
+            Creatures = new[] { V(12.6f, 3.6f), V(3.6f, 12.6f) };
         }
 
         /// <summary>
         /// Затонувшая изба: a hut gone into deep water up to its windows; the reward on its roof — impulse, an updraft, a
-        /// rope or a teleport take you there. A boat sunk at the bank of a small pool, a willow over it.
+        /// rope or a teleport take you there. A boat sunk by an island, a willow over it.
         /// </summary>
         void SunkenHut()
         {
-            Water(9f, 8.4f, 4.4f, 5.4f, 1.6f);
-            Water(2.8f, 13.4f, 1.3f, 1.9f, .65f);
-            Sunk(SW + "Buildings/SM_SW16_SunkenHut", 9, 8.4f, 15, 1.739f);
-            Pocket = V(9, 8.4f);
+            Water(9f, 8.6f, 3.4f, 4.4f, 1.7f);
+            Sunk(SW + "Buildings/SM_SW16_SunkenHut", 9, 8.6f, 15, 1.739f);
+            Pocket = V(9, 8.6f);
             PocketOnTop = true;
-            Sunk(SW + "Buildings/SM_SW21_SunkenBoatNarrow", 2.9f, 13.2f, 40, .3f);
-            Put(SW + "Trees/SM_SW09_DrownedWillowFork", 1.8f, 14.6f, 120, .8f);
-            Float(SW + "Plants/SM_SW04_DuckweedCrescent", 6.4f, 6.2f, 30);
-            Float(SW + "Plants/SM_SW04_DuckweedPatch", 11.8f, 10.8f, 200, .8f);
-            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 11.6f, 6.2f, 0);
-            Cattails((5.2f, 11.6f, 30), (12.8f, 12.4f, 180), (12.6f, 4.6f, 300));
-            Put(SW + "Deadwood/SM_SW15_StakeRope", 13.6f, 9.4f, 0);
-            Put(SW + "Deadwood/SM_SW12_StumpTallHollow", 14.2f, 3, 70);
-            Put(SW + "Trees/SM_SW07_ForkSnag", 2.2f, 4, 200);
-            Finds = new[] { V(2.4f, 2.4f), V(14, 2.2f) };
-            Creatures = new[] { V(2.4f, 8.4f), V(14.2f, 13.8f) };
-            Grass = 6; Ferns = 0; Bushes = 3; Trees = 0;
+            Isle(3.6f, 12.4f, 3f);
+            Isle(12.8f, 3.4f, 2.5f, 1);
+            Isle(3.4f, 3.6f, 2.6f, 1);
+            Sunk(SW + "Buildings/SM_SW21_SunkenBoatNarrow", 6.4f, 13.2f, 40, .3f);
+            Float(SW + "Plants/SM_SW04_DuckweedCrescent", 6.2f, 6, 30);
+            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 12, 6.2f, 0);
+            Finds = new[] { V(3.6f, 12.4f), V(12.8f, 3.4f) };
+            Creatures = new[] { V(3.4f, 3.6f), V(13.4f, 13.4f) };
         }
 
-        /// <summary>Смоляной бочаг: a black pool of tar in a ring of dead birches; Fire turns it into a bonfire.</summary>
+        /// <summary>Смоляной бочаг: an island with a black pool of tar in a ring of dead birches; Fire turns it into a bonfire.</summary>
         void TarPit()
         {
-            TarSpots.Add((V(8, 8.4f), 2.4f));
+            Isle(8, 8.2f, 6f, 1.15f);
+            TarSpots.Add((V(8, 8.2f), 2.2f));
             string[] birches = { "SM_SW07_LongSnag", "SM_SW07_ForkSnag", "SM_SW07_DiagonalSnag", "SM_SW07_ForkSnag", "SM_SW07_LongSnag" };
             for (int i = 0; i < birches.Length; i++)
             {
                 float a = (20 + i * 72) * Mathf.Deg2Rad;
-                Put(SW + "Trees/" + birches[i], 8 + Mathf.Cos(a) * 4.4f, 8.4f + Mathf.Sin(a) * 4.4f, i * 61, .8f + i % 2 * .15f);
+                Put(SW + "Trees/" + birches[i], 8 + Mathf.Cos(a) * 3.6f, 8.2f + Mathf.Sin(a) * 3.6f, i * 61, .8f + i % 2 * .15f);
             }
-            Water(2.8f, 2.8f, 1.5f, 2.2f, .6f);
-            Water(13.2f, 13, 1.6f, 2.3f, .7f);
-            Put(SW + "Deadwood/SM_SW10_SnagRootFan", 13, 3.8f, 60);
-            Put(SW + "Deadwood/SM_SW12_StumpLowClosed", 2.6f, 13.2f, 0);
-            Deco(SW + "Plants/SM_SW06_PaleMushroomsCluster", 2.9f, 13.6f, 30);
-            Deco(SW + "Plants/SM_SW06_PaleMushroomsTall", 12.6f, 4.4f, 200);
-            Cattails((4.2f, 2, 0), (12, 14.2f, 140));
-            Finds = new[] { V(8, 14), V(2.2f, 7.4f) };
-            Creatures = new[] { V(14, 8.4f), V(8, 2.2f) };
-            Grass = 8; Ferns = 0; Bushes = 3; Trees = 0;
+            Deco(SW + "Plants/SM_SW06_PaleMushroomsCluster", 5.4f, 10.6f, 30);
+            Finds = new[] { V(10.4f, 5.4f), V(5.2f, 6.2f) };
+            Creatures = new[] { V(13.6f, 13.6f), V(2.4f, 13.6f) };
         }
 
         /// <summary>
-        /// Дышащая топь: two gas vents puff marsh gas; a spark sets them off. A tar pool by the round vent catches from
-        /// its flash; a bog window bubbles in the corner.
+        /// Дышащая топь: two gas vents on islands puff marsh gas; a spark sets them off. A tar pool by the round vent
+        /// catches from its flash; a bog window bubbles in the corner.
         /// </summary>
         void BreathingBog()
         {
-            Mire(11f, 11.6f, 1.5f, 2.1f);
-            Water(4.4f, 4.2f, 2f, 2.7f, .8f);
-            Water(12.4f, 4.4f, 1.6f, 2.3f, .7f);
-            GasVents.Add((V(5.6f, 10.4f), SW + "Deadwood/SM_SW27_GasVentRound", 20));
-            GasVents.Add((V(9.4f, 6.8f), SW + "Deadwood/SM_SW27_GasVentSlit", 110));
-            TarSpots.Add((V(7.6f, 12.9f), 1.1f));
-            Deco("VFX/Bubbles/Boiling/ToxicBoilingBubbles", 11, 11.6f, 0, .8f);
-            Sounds.Add((V(11f, 11.6f), "bubbles", 0));
-            Float(SW + "Plants/SM_SW04_DuckweedDouble", 11, 11.6f, 70, .7f);
-            Float(SW + "Plants/SM_SW04_DuckweedPatch", 4.6f, 4, 0);
-            Put(SW + "Deadwood/SM_SW10_SnagLowSideways", 2, 13.6f, 20);
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 12.8f, 8.8f, 0);
-            Put(SW + "Trees/SM_SW07_DiagonalSnag", 14, 14.4f, 260, .8f);
-            Cattails((2.6f, 6.6f, 0), (14.4f, 3.2f, 90));
-            Finds = new[] { V(13.8f, 14), V(1.8f, 7.4f) };
-            Creatures = new[] { V(8, 2.4f), V(14.2f, 7.6f) };
-            Grass = 6; Ferns = 0; Bushes = 2; Trees = 0;
+            Isle(5.4f, 10.4f, 3.4f, 1.1f);
+            Isle(9.6f, 5.6f, 3.2f, 1.1f);
+            Isle(12.6f, 12.4f, 2.4f, 1);
+            Mire(12f, 9f, 1.4f, 2f);
+            GasVents.Add((V(5f, 10.8f), SW + "Deadwood/SM_SW27_GasVentRound", 20));
+            GasVents.Add((V(9.8f, 5.2f), SW + "Deadwood/SM_SW27_GasVentSlit", 110));
+            TarSpots.Add((V(6.8f, 9f), 1f));
+            Deco("VFX/Bubbles/Boiling/ToxicBoilingBubbles", 12, 9, 0, .8f);
+            Sounds.Add((V(12f, 9f), "bubbles", 0));
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 12.6f, 12.4f, 0);
+            Finds = new[] { V(12.6f, 12f), V(4.2f, 11.4f) };
+            Creatures = new[] { V(3.4f, 3.6f), V(13.4f, 3.4f) };
         }
 
-        /// <summary>Утопшее кладбище: crooked crosses and grave fences standing in shallow water; a willow weeps over them.</summary>
+        /// <summary>Утопшее кладбище: crooked crosses and grave fences standing in the water round a little graveyard isle.</summary>
         void DrownedGraveyard()
         {
-            Water(8f, 8.2f, 4f, 5f, .75f);
+            Isle(11.6f, 11.6f, 3.6f, 1.1f);
+            Isle(3.8f, 4f, 2.8f, 1);
             var crosses = new (float x, float y, float yaw, string kind)[]
             {
-                (6, 7.2f, 10, "Tall"), (7.6f, 9.8f, 200, "ThinBroken"), (9.6f, 6.8f, 160, "Heavy"), (10.4f, 9.4f, 30, "Tall"),
-                (5.6f, 10, 250, "Heavy"), (8.8f, 11.4f, 80, "ThinBroken"), (11.2f, 7.6f, 300, "Tall"),
+                (5.6f, 7.4f, 10, "Tall"), (7.4f, 9.6f, 200, "ThinBroken"), (9.2f, 6.8f, 160, "Heavy"), (8.2f, 12.6f, 30, "Tall"),
+                (5.4f, 11.4f, 250, "Heavy"), (12.8f, 7.6f, 80, "ThinBroken"), (10.6f, 4.4f, 300, "Tall"),
             };
             foreach (var c in crosses) Sunk(SW + "Graveyard/SM_SW24_WoodenCross" + c.kind, c.x, c.y, c.yaw, .35f);
-            Sunk(SW + "Graveyard/SM_SW25_GraveFenceTilted", 6.4f, 6, 10, .42f);
-            Sunk(SW + "Graveyard/SM_SW25_GraveFenceBroken", 9.8f, 10.8f, 80, .42f);
-            Put("Special/FA_SP06_GravestoneMedium", 12.6f, 12.8f, 200);
-            Put("Special/FA_SP05_GravestoneSmall", 13.6f, 11.6f, 160);
-            Put(SW + "Trees/SM_SW09_DrownedWillowArch", 2.8f, 13.2f, 60, .8f);
-            Put(SW + "Trees/SM_SW07_ForkSnag", 13.4f, 3, 20);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 7.2f, 8.4f, 20, .9f);
-            Float(SW + "Plants/SM_SW05_LilyPads", 9.4f, 8.6f, 0);
-            Cattails((3.8f, 7.6f, 0), (11.8f, 4.4f, 100));
-            Finds = new[] { V(14, 9.6f), V(2.2f, 3.2f) };
-            Creatures = new[] { V(2.6f, 8.2f), V(14, 6) };
-            Grass = 7; Ferns = 0; Bushes = 2; Trees = 0;
+            Sunk(SW + "Graveyard/SM_SW25_GraveFenceTilted", 6.6f, 6, 10, .42f);
+            Sunk(SW + "Graveyard/SM_SW25_GraveFenceBroken", 9.6f, 10.2f, 80, .42f);
+            Put(SW + "Graveyard/SM_SW24_WoodenCrossHeavy", 12.4f, 12.6f, 120);
+            Put(SW + "Graveyard/SM_SW24_WoodenCrossTall", 10.4f, 11.2f, 40);
+            Put("Special/FA_SP06_GravestoneMedium", 12.6f, 11, 200);
+            Put("Special/FA_SP05_GravestoneSmall", 11.2f, 13, 160);
+            Finds = new[] { V(11.8f, 11.8f), V(3.8f, 4f) };
+            Creatures = new[] { V(3.4f, 12.6f), V(13, 3.4f) };
         }
 
         /// <summary>
@@ -1079,21 +1041,18 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// </summary>
         void DrownedMill()
         {
-            Water(8.4f, 8.4f, 4.6f, 5.6f, 1.5f);
+            Water(8.4f, 8.4f, 3.6f, 4.6f, 1.6f);
             Sunk(SW + "Buildings/SM_SW20_DrownedMill", 8.4f, 8.4f, 0, .614f);
             Pocket = V(8.4f, 8.4f);
             PocketOnTop = true;
-            Sunk(SW + "Buildings/SM_SW21_SunkenBoatWide", 10.8f, 5.4f, 30, .32f);
-            Put(SW + "Paths/SM_SW19_WaterFenceWattle", 3.4f, 12.8f, 30);
-            Put(SW + "Paths/SM_SW19_WaterFenceBroken", 13, 3.4f, 100);
-            Put(SW + "Deadwood/SM_SW15_StakeBare", 13.8f, 12.8f, 0);
-            Put(SW + "Trees/SM_SW08_StiltAlderTall", 2.4f, 3, 40, .7f);
-            Float(SW + "Plants/SM_SW04_DuckweedCrescent", 6, 11, 120);
-            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 11.2f, 11.4f, 0);
-            Cattails((4.8f, 5.4f, 0), (12.4f, 11.8f, 200));
-            Finds = new[] { V(1.6f, 2), V(14.4f, 14.4f) };
-            Creatures = new[] { V(2, 14.4f), V(14.4f, 1.8f) };
-            Grass = 6; Ferns = 0; Bushes = 2; Trees = 0;
+            Isle(3.4f, 3.4f, 2.6f, 1);
+            Isle(12.8f, 12.8f, 2.6f, 1);
+            Isle(3.6f, 12.8f, 2.4f, 1);
+            Sunk(SW + "Buildings/SM_SW21_SunkenBoatWide", 12.2f, 5.2f, 30, .32f);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceWattle", 4.8f, 7.6f, 70, .42f);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceBroken", 11.4f, 11.6f, 100, .42f);
+            Finds = new[] { V(3.4f, 3.4f), V(12.8f, 12.8f) };
+            Creatures = new[] { V(3.6f, 12.8f), V(13.4f, 3.2f) };
         }
 
         /// <summary>
@@ -1102,58 +1061,49 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// </summary>
         void DeadwoodIsle()
         {
-            Mire(8f, 8f, 4f, 4.8f, 2.8f, 1.9f);
+            Isle(8, 8, 2.8f, 1.2f);
+            Mire(8f, 8f, 4.2f, 4.9f, 2.8f, 1.9f);
             Put(SW + "Buildings/SM_SW23_SwampIdol", 8, 8.4f, 180);
             Put(SW + "Trees/SM_SW07_ForkSnag", 7, 7.2f, 30, .75f);
             Put(SW + "Trees/SM_SW07_DiagonalSnag", 9.2f, 7.6f, 200, .65f);
             Pocket = V(8.2f, 7.4f);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 4.4f, 8, 90);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 11.6f, 8.2f, 270);
-            Float(SW + "Plants/SM_SW04_DuckweedCrescent", 8, 4.4f, 0);
-            Float(SW + "Plants/SM_SW04_DuckweedPatch", 8, 11.6f, 180);
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 2.6f, 12.6f, 0);
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 13.4f, 3.4f, 180);
-            Put(SW + "Trees/SM_SW08_StiltAlderLow", 14.2f, 14.4f, 300, .7f);
-            Finds = new[] { V(2.4f, 2.6f), V(13.6f, 13.4f) };
-            Creatures = new[] { V(13.6f, 2.6f), V(2.4f, 13.4f) };
-            Grass = 7; Ferns = 0; Bushes = 3; Trees = 0;
+            Float(SW + "Plants/SM_SW04_DuckweedBand", 4.2f, 8, 90);
+            Float(SW + "Plants/SM_SW04_DuckweedBand", 11.8f, 8.2f, 270);
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 2.4f, 12.8f, 0);
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 13.6f, 3.2f, 180);
+            Finds = new[] { V(2.2f, 2.4f), V(13.8f, 13.6f) };
+            Creatures = new[] { V(13.8f, 2.4f), V(2.2f, 13.6f) };
         }
 
         /// <summary>
-        /// Затопленная деревня (landmark 2 × 2): huts standing in a flooded street, a well sweep in the middle, water
-        /// fences, sunk boats and a bog window in a yard. The reward waits on the porch of the main hut.
+        /// Затопленная деревня (landmark 2 × 2): huts on islands in the flooded street, a well sweep in the middle, water
+        /// fences, sunk boats and a bog window in a yard. The reward waits by the main hut.
         /// </summary>
         void FloodedVillage()
         {
             Size = 32;
-            Water(16, 16, 8.6f, 10.6f, .75f);
-            Water(6.6f, 25.4f, 2.6f, 3.6f, .8f);
-            Water(25.6f, 6.6f, 2.6f, 3.6f, .8f);
-            Mire(21.4f, 23.4f, 1.6f, 2.2f);
-            Put(SW + "Buildings/SM_SW17_MainHutPorch", 11.4f, 20.8f, 160);
+            Isle(11.2f, 21, 4.6f, 1.15f);
+            Isle(21.4f, 10.4f, 4.2f, 1.15f);
+            Isle(25, 22.4f, 4f, 1.1f);
+            Isle(16.4f, 15.2f, 2.8f, 1);
+            Isle(6.4f, 7.2f, 3.4f, 1.05f);
+            Mire(20f, 25.8f, 1.6f, 2.2f);
+            Put(SW + "Buildings/SM_SW17_MainHutPorch", 11.2f, 21.2f, 160);
             Put(SW + "Buildings/SM_SW17_NarrowLeaningHut", 21.4f, 10.6f, 20);
-            Put(SW + "Buildings/SM_SW17_LowSaggingHut", 25.8f, 21.2f, 250);
-            Put(SW + "Buildings/SM_SW18_WellSweep", 16.6f, 15, 30);
-            Sunk(SW + "Paths/SM_SW19_WaterFenceRails", 8, 13, 90, .42f);
-            Sunk(SW + "Paths/SM_SW19_WaterFenceRails", 19.6f, 7.4f, 0, .42f);
-            Sunk(SW + "Paths/SM_SW19_WaterFenceWattle", 14.4f, 24.8f, 10, .42f);
-            Sunk(SW + "Paths/SM_SW19_WaterFenceBroken", 23.6f, 15.6f, 80, .42f);
-            Sunk(SW + "Buildings/SM_SW21_SunkenBoatWide", 18.8f, 18.4f, 40, .32f);
-            Sunk(SW + "Buildings/SM_SW21_SunkenBoatNarrow", 6.2f, 24.6f, 120, .3f);
-            Put(SW + "Paths/SM_SW22_NetRack", 27.4f, 26.4f, 200);
-            Put(SW + "Trees/SM_SW09_DrownedWillowFork", 4, 6, 30, .9f);
-            Put(SW + "Trees/SM_SW08_StiltAlderTall", 28, 28.4f, 200, .8f);
-            Put(SW + "Trees/SM_SW07_LongSnag", 27.6f, 3.8f, 0);
-            Put(SW + "Deadwood/SM_SW15_StakeRag", 23.4f, 25.8f, 40);
-            Float(SW + "Plants/SM_SW04_DuckweedBand", 13.4f, 13.2f, 30);
-            Float(SW + "Plants/SM_SW04_DuckweedPatch", 21.4f, 23.4f, 0, .8f);
-            Float(SW + "Plants/SM_SW05_LilyPadsFlower", 18.6f, 12.4f, 0);
-            Float(SW + "Plants/SM_SW05_LilyPads", 10.2f, 15.6f, 90);
-            Cattails((7.6f, 9.6f, 0), (24.6f, 17.6f, 100), (12.6f, 26.6f, 200), (19.4f, 25.6f, 300), (26.8f, 9.8f, 30));
-            Sounds.Add((V(21.4f, 23.4f), "bubbles", 0));
-            Finds = new[] { V(10.2f, 17.6f), V(26.4f, 27.8f) };
-            Creatures = new[] { V(14.6f, 10.2f), V(22.6f, 27.2f) };
-            Grass = 16; Ferns = 0; Bushes = 5; Trees = 0;
+            Put(SW + "Buildings/SM_SW17_LowSaggingHut", 25.2f, 22.6f, 250);
+            Put(SW + "Buildings/SM_SW18_WellSweep", 16.4f, 15.2f, 30);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceRails", 8.2f, 15.4f, 90, .42f);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceRails", 19.6f, 6.4f, 0, .42f);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceWattle", 15, 25.4f, 10, .42f);
+            Sunk(SW + "Paths/SM_SW19_WaterFenceBroken", 26.4f, 15.8f, 80, .42f);
+            Sunk(SW + "Buildings/SM_SW21_SunkenBoatWide", 18.6f, 19.4f, 40, .32f);
+            Sunk(SW + "Buildings/SM_SW21_SunkenBoatNarrow", 6.6f, 25.2f, 120, .3f);
+            Put(SW + "Paths/SM_SW22_NetRack", 6.4f, 7.4f, 200);
+            Put(SW + "Deadwood/SM_SW15_StakeRag", 22.6f, 26.4f, 40);
+            Float(SW + "Plants/SM_SW04_DuckweedPatch", 20, 25.8f, 0, .8f);
+            Sounds.Add((V(20f, 25.8f), "bubbles", 0));
+            Finds = new[] { V(9.6f, 18.6f), V(25.6f, 25.4f) };
+            Creatures = new[] { V(14.2f, 9.6f), V(27.4f, 6.4f) };
         }
 
         /// <summary>

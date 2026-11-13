@@ -25,18 +25,38 @@ namespace Hakaton.WorldAssembly
             this.rules = rules;
         }
 
+        /// <summary>
+        /// The swamp is water with islands, not land with ponds: a chunk is swamp when at least one of its corners is
+        /// under water (<see cref="Wet"/>). Chunks with all four corners wet are open swamp; the others are its shores,
+        /// where the water meets the dry land of the forest.
+        /// </summary>
         public Biome At(ChunkCoord c)
         {
             if (biomes.TryGetValue(c, out var cached)) return cached;
-            // A lone swamp chunk would read as a puddle: ragged tips are trimmed (swamp noise with swamp on two sides at
-            // least), and what is left keeps only chunks with a trimmed neighbour, so no swamp chunk stands alone.
-            var biome = Biome.Forest;
-            if (Trimmed(c))
-                foreach (var side in Sides.All)
-                    if (Trimmed(c.Step(side))) { biome = Biome.Swamp; break; }
+            var biome = Wet(c.X, c.Y) || Wet(c.X + 1, c.Y) || Wet(c.X, c.Y + 1) || Wet(c.X + 1, c.Y + 1) ? Biome.Swamp : Biome.Forest;
             biomes[c] = biome;
             return biome;
         }
+
+        /// <summary>
+        /// Corner (i, j) (the south-west corner of chunk (i, j)) lies under the swamp's water: all four chunks round it
+        /// are swamp by the noise (ragged tips trimmed). Two chunks sharing an edge agree on it, so the water meets the
+        /// land the same from both sides.
+        /// </summary>
+        public bool Wet(int i, int j) =>
+            Trimmed(new ChunkCoord(i, j)) && Trimmed(new ChunkCoord(i - 1, j)) && Trimmed(new ChunkCoord(i, j - 1)) && Trimmed(new ChunkCoord(i - 1, j - 1));
+
+        /// <summary>Wet corners of a chunk clockwise NW, NE, SE, SW (as <see cref="CornerField.Corners"/>): 1 wet, 0 dry.</summary>
+        public void WetCorners(ChunkCoord c, int[] result)
+        {
+            result[0] = Wet(c.X, c.Y + 1) ? 1 : 0;
+            result[1] = Wet(c.X + 1, c.Y + 1) ? 1 : 0;
+            result[2] = Wet(c.X + 1, c.Y) ? 1 : 0;
+            result[3] = Wet(c.X, c.Y) ? 1 : 0;
+        }
+
+        /// <summary>Open swamp: every corner under water.</summary>
+        public bool Open(ChunkCoord c) => Wet(c.X, c.Y) && Wet(c.X + 1, c.Y) && Wet(c.X, c.Y + 1) && Wet(c.X + 1, c.Y + 1);
 
         bool Trimmed(ChunkCoord c)
         {
