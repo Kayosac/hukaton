@@ -161,6 +161,16 @@ namespace Hakaton.Expeditions
             if (!Preparation.Active || !world.Running || card == null || card.IsReturn) return null;
             float charge = Preparation.Charge;
             ComputeLaunch(charge, out var origin, out var velocity);
+            // Crooked hands: the card flies off the aim (the preview and the area ring keep showing the aim).
+            var statuses = world.statuses;
+            if (statuses && statuses.Has(PlayerStatusKind.CrookedHands))
+            {
+                var eyeAxes = world.viewCamera.transform;
+                velocity = PlayerStatusRules.Crook(velocity, eyeAxes.up, eyeAxes.right,
+                    statuses.Strength(PlayerStatusKind.CrookedHands, 0), UnityEngine.Random.value, UnityEngine.Random.value);
+                var crooked = statuses.Definition(PlayerStatusKind.CrookedHands);
+                if (crooked) world.Play(crooked.tickCue);
+            }
             Cancel();
             if (world.workshop.Model.Current.Release(card.Id) == null) return null;
             world.hand.Take(card.Id, out var handPose, out var handView);

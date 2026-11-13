@@ -110,7 +110,12 @@ namespace Hakaton.Character
         /// <summary>Current multiplier of received impulses (1 without Lightness).</summary>
         public float ImpulseScale => Modifier(MotorModifier.ReceivedImpulse, 1);
         /// <summary>Current walking speed multiplier (1 when nothing slows the player).</summary>
-        public float MoveSpeedScale => Modifier(MotorModifier.MoveSpeed, 1);
+        public float MoveSpeedScale => Modifier(MotorModifier.MoveSpeed, 1) * Mathf.Max(0, StatusSpeedScale);
+        /// <summary>
+        /// A second, independent speed multiplier owned by a game layer's status system (the outing's Slow debuff), so it
+        /// stacks with the timed modifiers instead of replacing them. 1 when nothing slows the player.
+        /// </summary>
+        public float StatusSpeedScale { get; set; } = 1;
         /// <summary>Current falling-speed limit in real m/s (∞ when none).</summary>
         public float FallSpeedLimit => Modifier(MotorModifier.FallSpeedLimit, float.PositiveInfinity);
 

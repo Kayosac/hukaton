@@ -45,10 +45,12 @@ namespace Hakaton.Expeditions
         public bool hitsCreatures = true;
 
         [Header("Effects on a hit")]
-        [Tooltip("Movement speed multiplier while slowed (player and creatures). 1: no slowdown.")]
+        [Tooltip("Debuffs a hit puts on the player, each with its own chance (the player's debuff system, board «Дебаффы»).")]
+        public StatusInflict[] playerStatuses = new StatusInflict[0];
+        [Tooltip("Movement speed multiplier while slowed — creatures only; the player gets debuffs from the list above.")]
         [Range(0, 1)] public float slowScale = 1;
         [Min(0)] public float slowSeconds;
-        [Tooltip("Freezes a creature; the player cannot move for this long.")]
+        [Tooltip("Freezes a creature; the player cannot move for this long (not a debuff).")]
         [Min(0)] public float freezeSeconds;
         [Tooltip("Knocks a creature off its feet (interrupts its attack). No effect on the player.")]
         [Min(0)] public float stunSeconds;
@@ -67,7 +69,8 @@ namespace Hakaton.Expeditions
         [Tooltip("Played in a loop while it flies; optional.")]
         public SfxCue flightLoop;
 
-        public bool HasEffects => slowSeconds > 0 && slowScale < 1 || freezeSeconds > 0 || stunSeconds > 0;
+        public bool HasEffects => slowSeconds > 0 && slowScale < 1 || freezeSeconds > 0 || stunSeconds > 0
+            || playerStatuses != null && playerStatuses.Length > 0;
 
         /// <summary>Arc height of the flight: zero for a straight shot.</summary>
         public float FlightArc => path == Path.Arc ? arcHeight : 0;

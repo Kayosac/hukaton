@@ -245,6 +245,8 @@ namespace Hakaton.Expeditions
             // A shooter shrunk by the Crooked mirror hits weaker (never below ½ heart).
             int damage = shooter ? WorldCreature.ScaledDamage(profile.damage, shooter.DamageScale) : profile.damage;
             bool landed = victim.TakeDamage(new DamageInfo(damage, push, point, source, profile.kind, shooter));
+            // Debuffs reach the player even during the protection after a hit (no leniency).
+            if (ReferenceEquals(victim, world.Player)) StatusInflict.ApplyAll(profile.playerStatuses, world.statuses);
             if (!landed && damage > 0) return;
             ApplyEffects(victim, point);
         }
@@ -263,9 +265,8 @@ namespace Hakaton.Expeditions
             }
             else if (ReferenceEquals(victim, world.Player) && world.motor)
             {
-                // Frozen in place reads as the strongest slowdown; whichever is stronger wins while both last.
+                // Frozen in place; slowing the player is a debuff now (playerStatuses, applied in Hit).
                 if (profile.freezeSeconds > 0) world.motor.ApplyModifier(MotorModifier.MoveSpeed, 0, profile.freezeSeconds);
-                else if (slow) world.motor.ApplyModifier(MotorModifier.MoveSpeed, profile.slowScale, profile.slowSeconds);
             }
         }
 

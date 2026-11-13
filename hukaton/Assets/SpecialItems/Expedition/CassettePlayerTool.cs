@@ -115,7 +115,8 @@ namespace Hakaton.SpecialItems
                 if (tape != null) StopCoroutine(tape);
                 tape = null;
                 music.Stop();
-                music.time = 0;
+                // Rewinding only means something with a clip in the source (no tape loaded yet: nothing to rewind).
+                if (music.clip) music.time = 0;
                 music.pitch = 1;
             }
             Playing = false;

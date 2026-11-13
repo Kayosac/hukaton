@@ -21,7 +21,15 @@ namespace Hakaton.Expeditions
 
         public override void Apply(in ImpactContext c)
         {
-            bool meaningful = c.PlayerWithin(c.Radius) && c.World.vitals.Heal(c.Power);
+            bool reached = c.PlayerWithin(c.Radius);
+            bool meaningful = reached && c.World.vitals.Heal(c.Power);
+            // «Лечение» cures the debuffs it can (Poison), even at full hearts.
+            if (reached && c.World.statuses && c.World.statuses.Count > 0)
+            {
+                int before = c.World.statuses.Count;
+                c.World.statuses.Healed();
+                if (c.World.statuses.Count < before) meaningful = true;
+            }
             if (HealAllies(c)) meaningful = true;
             Feedback(c, meaningful);
         }
