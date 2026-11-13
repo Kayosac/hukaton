@@ -102,7 +102,7 @@ namespace Hakaton.Expeditions.Tests
         {
             var effect = AssetDatabase.LoadAssetAtPath<BubbleEffect>("Assets/Game/Data/Effects/Bubble.asset");
             Assert.That(effect, Is.Not.Null);
-            Assert.That((effect.duration.i, effect.duration.ii, effect.duration.iii), Is.EqualTo((4f, 6f, 9f)));
+            Assert.That((effect.duration.i, effect.duration.ii, effect.duration.iii), Is.EqualTo((4f, 8f, 16f)));
             Assert.That(effect.radius, Is.EqualTo(3));
             Assert.That(effect.TryGetStat(out string label, out var values, out string unit), Is.True);
             Assert.That(label, Is.EqualTo("Длительность"));

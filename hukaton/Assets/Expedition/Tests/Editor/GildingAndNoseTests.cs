@@ -46,7 +46,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect.tierSteps.ToArray(), Is.EqualTo(new[] { 1, 1, 2 }));
             Assert.That(effect.coinMultiplier.At(1), Is.EqualTo(1));
             Assert.That(effect.coinMultiplier.At(2), Is.EqualTo(1.5f));
-            Assert.That(effect.coinMultiplier.At(3), Is.EqualTo(1));
+            Assert.That(effect.coinMultiplier.At(3), Is.EqualTo(2));
             Assert.That(effect.TopRank, Is.EqualTo(5));
             for (int rank = 1; rank <= 5; rank++)
             {
@@ -108,10 +108,10 @@ namespace Hakaton.Expeditions.Tests
         {
             var effect = Load<MerchantNoseEffect>("Assets/Game/Data/Effects/Merchant nose.asset");
             Assert.That(effect, Is.Not.Null);
-            Assert.That(new[] { effect.radius.At(1), effect.radius.At(2), effect.radius.At(3) }, Is.EqualTo(new[] { 20f, 35f, 50f }));
+            Assert.That(new[] { effect.radius.At(1), effect.radius.At(2), effect.radius.At(3) }, Is.EqualTo(new[] { 20f, 40f, 70f }));
             Assert.That(effect.seconds, Is.EqualTo(40));
             Assert.That(effect.mimicShiverEvery.x, Is.GreaterThanOrEqualTo(6), "mimic hints stay rare");
-            Assert.That(((ICardArea)effect).TryGetArea(null, 3, null, out float r) && Mathf.Approximately(r, 50));
+            Assert.That(((ICardArea)effect).TryGetArea(null, 3, null, out float r) && Mathf.Approximately(r, 70));
             var beacon = effect.beaconPrefab;
             Assert.That(beacon && beacon.burst && beacon.burst.systems.Length > 0 && beacon.burst.systems.All(s => s), "pillar particles");
             var renderers = beacon.GetComponentsInChildren<ParticleSystemRenderer>(true);

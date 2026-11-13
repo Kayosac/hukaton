@@ -102,7 +102,7 @@ namespace Hakaton.Decks.Tests
             Assert.That(dummy.artwork, Is.Not.Null, "Its own face (Decks/Art/blank.png).");
             Assert.That(dummy.effectAsset, Is.Not.Null, "A no-op effect, should it ever be thrown.");
             Assert.That(string.IsNullOrWhiteSpace(dummy.displayName) || string.IsNullOrWhiteSpace(dummy.description), Is.False);
-            Assert.That(config.dummyChance, Is.EqualTo(.1f).Within(.0001f));
+            Assert.That(config.dummyChance, Is.EqualTo(.2f).Within(.0001f));
             var workshop = config.CreateWorkshop(new Hakaton.Economy.CoinWallet(0));
             var spec = workshop.Spec(dummy.id);
             Assert.That(spec, Is.Not.Null, "In the workshop's catalogue, so a save holding it loads.");
