@@ -1197,6 +1197,13 @@ namespace Hakaton.Expeditions
             else if (frozen) Tint(frozenTint, .65f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
+            // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).
+            if (farOpacity < 1 && view && view.spriteRenderer)
+            {
+                var c = view.spriteRenderer.color;
+                c.a = Mathf.Lerp(1, farOpacity, Mathf.Clamp01((PlayerDistance - solidWithin) / Mathf.Max(1, solidWithin)));
+                view.spriteRenderer.color = c;
+            }
         }
 
         /// <summary>A puff of dust from under the feet; throttled so a fast gait does not turn into a smoke screen.</summary>

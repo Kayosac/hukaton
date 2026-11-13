@@ -125,6 +125,22 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             yield return null;
             Assert.That(swarm.Alive, Is.False, "one hit swats it");
         }
+
+        [UnityTest]
+        public IEnumerator GhostPassesThroughEverythingAndDivesAtThePlayer()
+        {
+            var ghost = Spawn("Sheet ghost");
+            Assert.That(ghost.flying && ghost.phasing, Is.True);
+            yield return Stand(ghost, 14);
+            yield return Wait(.3f);
+            Assert.That(ghost.view.spriteRenderer.color.a, Is.LessThan(.8f), "see-through from afar");
+            Assert.That(ghost.GetComponent<CapsuleCollider>().excludeLayers.value, Is.EqualTo(~0), "it touches nothing");
+            yield return Stand(ghost, 6);
+            float until = Time.time + 8;
+            while (Time.time < until && sandbox.ReceivedDamage < 1) yield return null;
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(1), "its dive hits for half a heart");
+            Assert.That(ghost.view.spriteRenderer.color.a, Is.GreaterThan(.95f), "solid up close");
+        }
     }
 }
 #endif
