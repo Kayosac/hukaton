@@ -408,6 +408,9 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// <summary>In a bog window of the swamp (a pool of mire, <see cref="ChunkScene.Pool.Bog"/>) rather than water.</summary>
         public bool IsBog(Vector2 p) => Scene != null && Scene.InBog(this, p + Offset);
 
+        /// <summary>How far outside the nearest bog window's mire, m (negative inside it; large without one).</summary>
+        public float BogDistance(Vector2 p) => Scene == null ? 99 : Scene.BogDistance(this, p + Offset);
+
         /// <summary>Within <paramref name="margin"/> of the water's own banks.</summary>
         public bool NearWater(Vector2 p, float margin)
         {

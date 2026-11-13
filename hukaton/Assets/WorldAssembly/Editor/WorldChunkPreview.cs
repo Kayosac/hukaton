@@ -26,7 +26,19 @@ namespace Hakaton.WorldAssembly.EditorTools
             // "seed radius swamp": round the heart of the nearest rotten swamp instead of the start.
             int cx = 0, cy = 0;
             bool swamp = parts.Length > 2 && parts[2] == "swamp";
-            if (swamp)
+            // "seed radius scene <variant>": round the nearest chunk of that scene, close shots of it too.
+            string only = parts.Length > 3 && parts[2] == "scene" ? parts[3] : null;
+            string prefix = only != null ? $"scene-{only}-{seed}" : $"swamp-{seed}";
+            if (only != null)
+            {
+                int best = int.MaxValue;
+                for (int x = -24; x <= 24; x++)
+                    for (int y = -24; y <= 24; y++)
+                        if (map.Chunk(x, y).Variant.Id == only && x * x + y * y < best) { best = x * x + y * y; cx = x; cy = y; }
+                if (best == int.MaxValue) return $"no {only} within 24 chunks of seed {seed}";
+                swamp = true;
+            }
+            else if (swamp)
             {
                 int best = -1;
                 for (int x = -20; x <= 20; x++)
@@ -82,14 +94,18 @@ namespace Hakaton.WorldAssembly.EditorTools
                 {
                     var from = c + Quaternion.Euler(0, k * 90, 0) * new Vector3(0, 0, -10);
                     cam.transform.SetPositionAndRotation(from + Vector3.up * (Ground(from) + 1.7f), Quaternion.Euler(8, k * 90, 0));
-                    Shot(cam, Path.Combine(dir, $"swamp-{seed}-eye-{k}.png"), 1600, 900);
+                    Shot(cam, Path.Combine(dir, $"{prefix}-eye-{k}.png"), 1600, 900);
+                    if (only == null) continue;
+                    var near = c + Quaternion.Euler(0, k * 90, 0) * new Vector3(0, 0, -6);
+                    cam.transform.SetPositionAndRotation(near + Vector3.up * (Ground(near) + 4.5f), Quaternion.Euler(32, k * 90, 0));
+                    Shot(cam, Path.Combine(dir, $"{prefix}-close-{k}.png"), 1600, 900);
                 }
                 cam.transform.SetPositionAndRotation(c + new Vector3(-22, 18, -22), Quaternion.Euler(30, 45, 0));
-                Shot(cam, Path.Combine(dir, $"swamp-{seed}-above.png"), 1600, 900);
+                Shot(cam, Path.Combine(dir, $"{prefix}-above.png"), 1600, 900);
                 cam.orthographic = true;
                 cam.orthographicSize = (radius + .5f) * 16;
                 cam.transform.SetPositionAndRotation(c + new Vector3(0, 200, 0), Quaternion.Euler(90, 0, 0));
-                Shot(cam, Path.Combine(dir, $"swamp-{seed}-top.png"), 1400, 1400);
+                Shot(cam, Path.Combine(dir, $"{prefix}-top.png"), 1400, 1400);
                 EditorSceneManager.ClosePreviewScene(scene);
                 if (previous.IsValid()) SceneManager.SetActiveScene(previous);
                 return $"photographed the swamp of seed {seed} round chunk ({cx}, {cy}), radius {radius}, missing prefabs {missing}";

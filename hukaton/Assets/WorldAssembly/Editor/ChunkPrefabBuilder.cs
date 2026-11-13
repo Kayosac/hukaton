@@ -317,34 +317,18 @@ namespace Hakaton.WorldAssembly.EditorTools
         static WorldObstacle Water(Transform parent, TileTerrain t, string assetPath, string name, bool bog)
         {
             // Water surface: grid cells with water under any corner, flat at the water level; flow along the river.
-            int n = Mathf.RoundToInt(TileTerrain.Size / Step);
-            var verts = new List<Vector3>();
-            var flow = new List<Vector2>();
-            var tris = new List<int>();
-            float y = TileTerrain.WaterLevel;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                {
-                    var p0 = new Vector2(i * Step, j * Step);
-                    // Only where the water has some depth: shallow rims would show as a band of foam.
-                    bool any = t.IsDeep(p0) || t.IsDeep(p0 + new Vector2(Step, 0)) || t.IsDeep(p0 + new Vector2(0, Step)) || t.IsDeep(p0 + new Vector2(Step, Step));
-                    if (!any || t.IsBog(p0 + Vector2.one * Step / 2) != bog) continue;
-                    int b = verts.Count;
-                    verts.Add(new Vector3(p0.x - 8, y, p0.y - 8));
-                    verts.Add(new Vector3(p0.x - 8, y, p0.y + Step - 8));
-                    verts.Add(new Vector3(p0.x + Step - 8, y, p0.y + Step - 8));
-                    verts.Add(new Vector3(p0.x + Step - 8, y, p0.y - 8));
-                    var dir = FlowAt(t, p0 + Vector2.one * Step / 2);
-                    for (int k = 0; k < 4; k++) flow.Add(dir);
-                    tris.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
-                }
-            var water = new Mesh { name = name + (bog ? " bog" : " water") };
-            water.SetVertices(verts);
-            water.SetTriangles(tris, 0);
-            water.SetUVs(0, flow);
-            water.RecalculateNormals();
-            water.RecalculateBounds();
+            // Each obstacle measures its depth from its own cells (the lake's water drowns, the bog swallows slowly).
+            bool hasBog = t.Scene != null && t.Scene.Pools.Any(pool => pool.Bog);
+            var water = WaterMesh(t, name + (bog ? " bog" : " water"), cell => t.IsBog(cell) == bog, false);
             AssetDatabase.AddObjectToAsset(water, assetPath);
+            // What shows is one surface over both, the mire blending into the water round its window (UV1: how much
+            // mire), so a bog window is a round dark patch with a soft edge rather than a pasted square of cells.
+            Mesh look = null;
+            if (hasBog && !bog)
+            {
+                look = WaterMesh(t, name + " water look", cell => true, true);
+                AssetDatabase.AddObjectToAsset(look, assetPath);
+            }
             // No baked ice: the Ice card freezes water in a radius as a card-made IcePatch.
 
             var root = new GameObject(bog ? "Bog" : "Water");
@@ -362,8 +346,21 @@ namespace Hakaton.WorldAssembly.EditorTools
             var visual = new GameObject("Water mesh");
             visual.transform.SetParent(root.transform, false);
             visual.AddComponent<MeshFilter>().sharedMesh = water;
-            visual.AddComponent<MeshRenderer>().sharedMaterial = Mat(bog ? "Assets/WorldAssembly/Materials/Bog mire.mat"
-                : swamp ? "Assets/WorldAssembly/Materials/Swamp water.mat" : "Assets/WorldAssembly/Materials/River water.mat");
+            var waterMat = Mat(swamp ? "Assets/WorldAssembly/Materials/Swamp water.mat" : "Assets/WorldAssembly/Materials/River water.mat");
+            var renderer = visual.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = waterMat;
+            if (hasBog)
+            {
+                // The obstacles' own cells stay for their depth; the shared look is drawn under the water's.
+                renderer.enabled = false;
+                if (look)
+                {
+                    var shown = new GameObject("Water mesh");
+                    shown.transform.SetParent(visual.transform, false);
+                    shown.AddComponent<MeshFilter>().sharedMesh = look;
+                    shown.AddComponent<MeshRenderer>().sharedMaterial = waterMat;
+                }
+            }
 
             var obstacle = root.AddComponent<WorldObstacle>();
             obstacle.kind = ObstacleKind.Lake;
@@ -381,6 +378,48 @@ namespace Hakaton.WorldAssembly.EditorTools
                 mire.swallowSound = Cue("bog-swallow");
             }
             return obstacle;
+        }
+
+        /// <summary>
+        /// Flat cells at the water level where the water has some depth and <paramref name="take"/> accepts the cell's
+        /// centre. With <paramref name="mire"/>, UV1.x says how much of the bog's mire is at each vertex (1 inside its
+        /// window, fading out over about a metre round it) for the water shader's mire blend.
+        /// </summary>
+        static Mesh WaterMesh(TileTerrain t, string name, Func<Vector2, bool> take, bool mire)
+        {
+            int n = Mathf.RoundToInt(TileTerrain.Size / Step);
+            var verts = new List<Vector3>();
+            var flow = new List<Vector2>();
+            var mud = new List<Vector2>();
+            var tris = new List<int>();
+            float y = TileTerrain.WaterLevel;
+            float Mire(Vector2 q) => 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(-.9f, .45f, t.BogDistance(q)));
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    var p0 = new Vector2(i * Step, j * Step);
+                    // Only where the water has some depth: shallow rims would show as a band of foam.
+                    bool any = t.IsDeep(p0) || t.IsDeep(p0 + new Vector2(Step, 0)) || t.IsDeep(p0 + new Vector2(0, Step)) || t.IsDeep(p0 + new Vector2(Step, Step));
+                    if (!any || !take(p0 + Vector2.one * Step / 2)) continue;
+                    int b = verts.Count;
+                    var corners = new[] { p0, p0 + new Vector2(0, Step), p0 + new Vector2(Step, Step), p0 + new Vector2(Step, 0) };
+                    foreach (var c in corners)
+                    {
+                        verts.Add(new Vector3(c.x - 8, y, c.y - 8));
+                        mud.Add(new Vector2(mire ? Mire(c) : 0, 0));
+                    }
+                    var dir = FlowAt(t, p0 + Vector2.one * Step / 2);
+                    for (int k = 0; k < 4; k++) flow.Add(dir);
+                    tris.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+                }
+            var mesh = new Mesh { name = name };
+            mesh.SetVertices(verts);
+            mesh.SetTriangles(tris, 0);
+            mesh.SetUVs(0, flow);
+            mesh.SetUVs(1, mud);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         static Vector2 FlowAt(TileTerrain t, Vector2 p)
@@ -1711,6 +1750,14 @@ namespace Hakaton.WorldAssembly.EditorTools
             Scatter(SwampArt + "Trees/", SwampWaterTrees, N(scene != null ? 6 : 7), 1.4f, 2.6f, .75f, 1.05f, Shallow, false, true);
             Scatter(SwampArt + "Trees/", SwampTrees, N(scene != null ? 3 : 2), 1.4f, 2.4f, .7f, 1f, DryLand, false, true);
             if (t.Shape.Kind == ShapeKind.Shore) Scatter("Trees/", Trees, 3, 1.6f, 2.6f, .65f, 1.3f, p => DryLand(p) && t.Wetness(p) < .05f, false, true);
+            // A bog window is fenced by growth: cattails and sedge right round its mire, hummocks a step off.
+            if (scene != null && scene.Pools.Any(pool => pool.Bog))
+            {
+                bool Rim(Vector2 p, float from, float to) => t.BogDistance(p) > from && t.BogDistance(p) < to && (Shallow(p) || Shore(p) || DryLand(p));
+                Scatter(SwampArt + "Plants/", SwampReeds, 10, .6f, .45f, .8f, 1.25f, p => Rim(p, .1f, 1.1f), true);
+                Scatter(SwampArt + "Plants/", SwampSedge, 6, .6f, .45f, .8f, 1.2f, p => Rim(p, .2f, 1.4f), true);
+                Scatter(SwampArt + "Plants/", SwampHummocks, 2, 1.2f, 1.2f, .75f, 1f, p => Rim(p, .9f, 2.4f) && Shallow(p), false, true);
+            }
             Scatter(SwampArt + "Plants/", SwampHummocks, N(4), 1.2f, 1.3f, .8f, 1.15f, Shallow, false, true);
             Scatter(SwampArt + "Deadwood/", SwampLogs, N(2), 2, 2.4f, .8f, 1f, Shallow, false, true);
             Scatter(SwampArt + "Plants/", SwampReeds, N(14), .8f, .55f, .75f, 1.25f, Shore, true);
