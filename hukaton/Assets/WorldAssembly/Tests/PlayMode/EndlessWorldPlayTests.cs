@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Hakaton.Decks.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Expeditions.Cards;
@@ -1471,30 +1472,7 @@ namespace Hakaton.WorldAssembly.Tests
         public IEnumerator RenderCostOfTheSwampAgainstTheForest()
         {
             var map = streamer.Map;
-            ChunkCoord heart = default, forest = default;
-            int best = -1;
-            for (int x = -14; x <= 14; x++)
-                for (int y = -14; y <= 14; y++)
-                {
-                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
-                    int around = 0;
-                    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
-                    int score = around * 100 - (x * x + y * y);
-                    if (score > best) { best = score; heart = new ChunkCoord(x, y); }
-                }
-            Assert.That(best, Is.GreaterThan(0), "a swamp within 14 chunks");
-            float ring = Mathf.Sqrt(heart.X * heart.X + heart.Y * heart.Y);
-            best = int.MaxValue;
-            for (int x = -14; x <= 14; x++)
-                for (int y = -14; y <= 14; y++)
-                {
-                    var c = new ChunkCoord(x, y);
-                    bool clear = true;
-                    for (int i = -3; i <= 3 && clear; i++) for (int j = -3; j <= 3 && clear; j++) clear = !map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j));
-                    if (!clear || map.Chunk(c).Shape.Kind != ShapeKind.Plain) continue;
-                    int score = (int)(Mathf.Abs(Mathf.Sqrt(x * x + y * y) - ring) * 100);
-                    if (score < best) { best = score; forest = c; }
-                }
+            var (heart, forest) = SwampHeartAndForestSpot(map);
             var origin = streamer.root ? streamer.root.position : streamer.transform.position;
             float size = map.Rules.ChunkSize;
             var report = new System.Text.StringBuilder();
@@ -1532,6 +1510,293 @@ namespace Hakaton.WorldAssembly.Tests
             File.WriteAllText(file, report.ToString());
             Debug.Log("[World] render cost\n" + report);
         }
+
+        /// <summary>
+        /// The heart of the nearest swamp (the most swamp round it within 14 chunks) and a plain forest chunk as far from
+        /// the start with no swamp within three chunks: where the render measurements stand.
+        /// </summary>
+        static (ChunkCoord heart, ChunkCoord forest) SwampHeartAndForestSpot(WorldMap map)
+        {
+            ChunkCoord heart = default, forest = default;
+            int best = -1;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
+                    int around = 0;
+                    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
+                    int score = around * 100 - (x * x + y * y);
+                    if (score > best) { best = score; heart = new ChunkCoord(x, y); }
+                }
+            Assert.That(best, Is.GreaterThan(0), "a swamp within 14 chunks");
+            float ring = Mathf.Sqrt(heart.X * heart.X + heart.Y * heart.Y);
+            best = int.MaxValue;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    var c = new ChunkCoord(x, y);
+                    bool clear = true;
+                    for (int i = -3; i <= 3 && clear; i++) for (int j = -3; j <= 3 && clear; j++) clear = !map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j));
+                    if (!clear || map.Chunk(c).Shape.Kind != ShapeKind.Plain) continue;
+                    int score = (int)(Mathf.Abs(Mathf.Sqrt(x * x + y * y) - ring) * 100);
+                    if (score < best) { best = score; forest = c; }
+                }
+            return (heart, forest);
+        }
+
+        /// <summary>
+        /// Where the swamp's and the forest's draws and frame time go: one spot, four ways round, measured with everything
+        /// on and with one thing changed at a time (the sun's shadows off, screen-space AO and its depth-normals prepass
+        /// off, fewer shadow cascades, no shadows from the far merged dressing, particles paused, the presentation camera
+        /// drawing nothing but the upscaled image); plus what the
+        /// visible renderers are (shader, keywords, queue, property block, shadow casting, SRP Batcher compatibility) and
+        /// which particle systems are alive. Logs/world-plans/render-passes.txt. A measurement, run by name.
+        /// </summary>
+        [UnityTest, Explicit("a measurement, run by name")]
+        public IEnumerator RenderPassesOfTheSwampAndTheForest()
+        {
+            var map = streamer.Map;
+            var (heart, forest) = SwampHeartAndForestSpot(map);
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = map.Rules.ChunkSize;
+            var report = new System.Text.StringBuilder();
+            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
+            var suns = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.type == LightType.Directional && l.shadows != LightShadows.None).ToList();
+            var sunShadows = suns.Select(l => l.shadows).ToList();
+            var ao = RendererFeatures().Where(f => f.GetType().Name.Contains("AmbientOcclusion")).ToList();
+            var aoWas = ao.Select(FeatureActive).ToList();
+            var cascadesProperty = pipeline.GetType().GetProperty("shadowCascadeCount");
+            var distanceProperty = pipeline.GetType().GetProperty("shadowDistance");
+            int cascadesWere = (int)cascadesProperty.GetValue(pipeline);
+            float distanceWas = (float)distanceProperty.GetValue(pipeline);
+            report.AppendLine($"pipeline {pipeline.name}, quality {QualitySettings.names[QualitySettings.GetQualityLevel()]}, shadow cascades {cascadesWere}, shadow distance {distanceWas} m, " +
+                              $"shadow-casting directional lights {suns.Count}, AO features {ao.Count}");
+            var farCasters = new List<(Renderer r, UnityEngine.Rendering.ShadowCastingMode mode)>();
+            System.Action<bool> farShadows = on =>
+            {
+                if (!on && farCasters.Count == 0)
+                    foreach (var look in Object.FindObjectsByType<MergedLook>(FindObjectsSortMode.None))
+                    {
+                        var far = look.transform.Find("Far");
+                        if (far) foreach (var r in far.GetComponentsInChildren<Renderer>(true)) if (r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off) farCasters.Add((r, r.shadowCastingMode));
+                    }
+                foreach (var (r, mode) in farCasters) if (r) r.shadowCastingMode = on ? mode : UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (on) farCasters.Clear();
+            };
+            var particleRenderers = new List<ParticleSystemRenderer>();
+            System.Action<bool> particles = on =>
+            {
+                if (!on && particleRenderers.Count == 0)
+                    foreach (var ps in Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None))
+                    {
+                        var pr = ps.GetComponent<ParticleSystemRenderer>();
+                        if (!ps.isPlaying || !pr || !pr.enabled) continue;
+                        ps.Pause(false);
+                        pr.enabled = false;
+                        particleRenderers.Add(pr);
+                    }
+                if (on)
+                {
+                    foreach (var pr in particleRenderers) if (pr) { pr.enabled = true; pr.GetComponent<ParticleSystem>().Play(false); }
+                    particleRenderers.Clear();
+                }
+            };
+            // The presentation camera (fixed-resolution world): with nothing to cull it draws only the upscaled image.
+            var outputMasks = new List<(Camera camera, int mask)>();
+            System.Action<bool> output = on =>
+            {
+                foreach (var (camera, mask) in outputMasks) if (camera) camera.cullingMask = mask;
+                outputMasks.Clear();
+                if (!on)
+                    foreach (var camera in Camera.allCameras)
+                        if (camera.name.StartsWith("World presentation")) { outputMasks.Add((camera, camera.cullingMask)); camera.cullingMask = 0; }
+            };
+            System.Action<bool, bool, int, float, bool, bool> apply = (shadows, ssao, cascades, distance, far, effects) =>
+            {
+                for (int i = 0; i < suns.Count; i++) suns[i].shadows = shadows ? sunShadows[i] : LightShadows.None;
+                foreach (var feature in ao) SetFeatureActive(feature, ssao);
+                cascadesProperty.SetValue(pipeline, cascades);
+                distanceProperty.SetValue(pipeline, distance);
+                farShadows(far);
+                particles(effects);
+            };
+            var configs = new (string name, bool shadows, bool ssao, int cascades, float distance, bool far, bool effects)[]
+            {
+                ("all", true, true, cascadesWere, distanceWas, true, true),
+                ("no sun shadows", false, true, cascadesWere, distanceWas, true, true),
+                ("no SSAO", true, false, cascadesWere, distanceWas, true, true),
+                ("2 cascades", true, true, 2, distanceWas, true, true),
+                ("far no shadows", true, true, cascadesWere, distanceWas, false, true),
+                ("no particles", true, true, cascadesWere, distanceWas, true, false),
+                ("no output camera", true, true, cascadesWere, distanceWas, true, true),
+            };
+            var batches = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Batches Count");
+            var setPass = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "SetPass Calls Count");
+            var draws = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Draw Calls Count");
+            var casters = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Shadow Casters Count");
+            var timings = new FrameTiming[1];
+            // Which cameras draw each frame: a visible Scene view (or gizmos) adds its own draws to every counter.
+            var cameraFrames = new Dictionary<string, int>();
+            System.Action<UnityEngine.Rendering.ScriptableRenderContext, Camera> countCamera = (_, cam) =>
+            {
+                string key = cam.cameraType + " " + cam.name;
+                cameraFrames[key] = cameraFrames.TryGetValue(key, out var n) ? n + 1 : 1;
+            };
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += countCamera;
+            int countedFrames = Time.frameCount;
+            // Gizmos in the Game view draw an icon per light, audio source and particle system, each its own set-pass
+            // call: measured with them off so the numbers are the game's own.
+            var gizmoFields = new List<(Object view, FieldInfo field, bool was)>();
+            foreach (var view in Resources.FindObjectsOfTypeAll(typeof(UnityEditor.EditorWindow).Assembly.GetType("UnityEditor.GameView")))
+                for (var t = view.GetType(); t != null; t = t.BaseType)
+                {
+                    var field = t.GetField("m_Gizmos", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (field == null || field.FieldType != typeof(bool)) continue;
+                    gizmoFields.Add((view, field, (bool)field.GetValue(view)));
+                    field.SetValue(view, false);
+                    break;
+                }
+            report.AppendLine($"game views {gizmoFields.Count}, gizmos were on in {gizmoFields.Count(g => g.was)}: measured with gizmos off");
+            world.vitals.Immortal = true;
+            try
+            {
+                foreach (var (label, at) in new[] { ("swamp", heart), ("forest", forest) })
+                {
+                    var plan = map.Chunk(at);
+                    var spot = origin + new Vector3(at.X * size, plan.BaseLevel * map.Rules.PlateauHeight + 1.5f, at.Y * size);
+                    var sums = new double[configs.Length, 8];
+                    int frames = 0;
+                    for (int k = 0; k < 4; k++)
+                    {
+                        world.motor.Teleport(spot, Quaternion.Euler(0, k * 90, 0));
+                        yield return WaitFor(() => streamer.IsLoaded(at), 10);
+                        for (int f = 0; f < 40; f++) yield return null;
+                        if (k == 0) report.Append(Census($"{label} {at} ({plan}) looking north"));
+                        for (int c = 0; c < configs.Length; c++)
+                        {
+                            var o = configs[c];
+                            apply(o.shadows, o.ssao, o.cascades, o.distance, o.far, o.effects);
+                            output(o.name != "no output camera");
+                            for (int f = 0; f < 5; f++) yield return null;
+                            for (int f = 0; f < 20; f++)
+                            {
+                                float before = Time.realtimeSinceStartup;
+                                yield return null;
+                                FrameTimingManager.CaptureFrameTimings();
+                                FrameTimingManager.GetLatestTimings(1, timings);
+                                sums[c, 0] += batches.LastValue; sums[c, 1] += setPass.LastValue; sums[c, 2] += draws.LastValue; sums[c, 3] += casters.LastValue;
+                                sums[c, 4] += (Time.realtimeSinceStartup - before) * 1000;
+                                sums[c, 5] += timings[0].cpuRenderThreadFrameTime;
+                                sums[c, 6] += timings[0].gpuFrameTime;
+                                sums[c, 7] += timings[0].cpuMainThreadFrameTime - timings[0].cpuMainThreadPresentWaitTime;
+                            }
+                        }
+                        apply(true, true, cascadesWere, distanceWas, true, true);
+                        output(true);
+                        frames += 20;
+                    }
+                    report.AppendLine($"== {label} {at}: averages over 4 directions (frame = editor wall clock; render thread and GPU from FrameTimingManager, 0 when it gives nothing)");
+                    for (int c = 0; c < configs.Length; c++)
+                        report.AppendLine($"  {configs[c].name,-17} batches {sums[c, 0] / frames,5:0}, set-pass {sums[c, 1] / frames,4:0}, draw calls {sums[c, 2] / frames,5:0}, " +
+                                          $"shadow casters {sums[c, 3] / frames,5:0}, frame {sums[c, 4] / frames,5:0.0} ms, main thread {sums[c, 7] / frames,5:0.0} ms, render thread {sums[c, 5] / frames,5:0.0} ms, GPU {sums[c, 6] / frames,5:0.0} ms");
+                }
+            }
+            finally
+            {
+                for (int i = 0; i < suns.Count; i++) if (suns[i]) suns[i].shadows = sunShadows[i];
+                for (int i = 0; i < ao.Count; i++) SetFeatureActive(ao[i], aoWas[i]);
+                cascadesProperty.SetValue(pipeline, cascadesWere);
+                distanceProperty.SetValue(pipeline, distanceWas);
+                farShadows(true);
+                particles(true);
+                output(true);
+                UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= countCamera;
+                foreach (var (view, field, was) in gizmoFields) if (view) field.SetValue(view, was);
+                batches.Dispose(); setPass.Dispose(); draws.Dispose(); casters.Dispose();
+            }
+            countedFrames = Mathf.Max(1, Time.frameCount - countedFrames);
+            report.AppendLine($"cameras per frame: {string.Join(", ", cameraFrames.OrderByDescending(c => c.Value).Select(c => $"{c.Key} {c.Value / (float)countedFrames:0.00}"))}");
+            report.AppendLine($"scene views open {UnityEditor.SceneView.sceneViews.Count}");
+            var file = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "render-passes.txt");
+            File.WriteAllText(file, report.ToString());
+            Debug.Log("[World] render passes\n" + report);
+        }
+
+        /// <summary>What the renderers visible right now are drawn with, grouped (one line per shader variant).</summary>
+        static string Census(string title)
+        {
+            var groups = new Dictionary<string, (int draws, int renderers, int casters, int blocks)>();
+            var types = new Dictionary<string, int>();
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy || !r.isVisible || r.forceRenderingOff) continue;
+                types[r.GetType().Name] = types.TryGetValue(r.GetType().Name, out var n) ? n + 1 : 1;
+                bool block = r.HasPropertyBlock();
+                bool casts = r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off;
+                foreach (var m in r.sharedMaterials.Distinct())
+                {
+                    if (!m || !m.shader) continue;
+                    var key = $"{m.shader.name} q{m.renderQueue} [{string.Join(" ", m.shaderKeywords.OrderBy(w => w))}] srp:{SrpBatcherCode(m.shader)}";
+                    groups.TryGetValue(key, out var g);
+                    groups[key] = (g.draws + 1, g.renderers + 1, g.casters + (casts ? 1 : 0), g.blocks + (block ? 1 : 0));
+                }
+            }
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"== census, {title}: renderers {string.Join(", ", types.OrderByDescending(t => t.Value).Select(t => $"{t.Key} {t.Value}"))}");
+            sb.AppendLine("  (material slots, of them casting shadows, of them with a property block; srp:0 = SRP Batcher compatible)");
+            foreach (var g in groups.OrderByDescending(g => g.Value.draws))
+                sb.AppendLine($"  {g.Value.draws,5} {g.Value.casters,5} {g.Value.blocks,5}  {g.Key}");
+            var systems = Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Where(p => p.gameObject.activeInHierarchy).ToList();
+            sb.AppendLine($"  particle systems active {systems.Count}, playing {systems.Count(p => p.isPlaying)}, alive particles {systems.Sum(p => p.particleCount)}; by top object (systems, visible, casting):");
+            foreach (var g in systems.GroupBy(p => TopBelowChunk(p.transform)).OrderByDescending(g => g.Count()).Take(12))
+            {
+                var rs = g.Select(p => p.GetComponent<ParticleSystemRenderer>()).Where(r => r).ToList();
+                sb.AppendLine($"    {g.Count(),4} {rs.Count(r => r.isVisible),4} {rs.Count(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off),4}  {g.Key}");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>Where a part sits: up to three names from just under its chunk (or the scene root) down towards it.</summary>
+        static string TopBelowChunk(Transform t)
+        {
+            var names = new List<string>();
+            for (var x = t; x && !x.GetComponent<ChunkView>(); x = x.parent) names.Insert(0, Regex.Replace(x.name, @"\s*\(\d+\)$|\(Clone\)", ""));
+            return (t.GetComponentInParent<ChunkView>() ? "chunk/" : "") + string.Join("/", names.Take(3));
+        }
+
+        static readonly Dictionary<Shader, int> SrpCodes = new Dictionary<Shader, int>();
+
+        /// <summary>The editor's own SRP Batcher verdict on a shader (0 = compatible), as its inspector shows it.</summary>
+        static int SrpBatcherCode(Shader shader)
+        {
+            if (SrpCodes.TryGetValue(shader, out var code)) return code;
+            const BindingFlags any = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            var util = typeof(UnityEditor.ShaderUtil);
+            var active = util.GetMethod("GetShaderActiveSubshaderIndex", any);
+            var check = util.GetMethod("GetSRPBatcherCompatibilityCode", any);
+            int sub = active != null ? (int)active.Invoke(null, new object[] { shader }) : 0;
+            code = check != null ? (int)check.Invoke(null, new object[] { shader, sub }) : -1;
+            return SrpCodes[shader] = code;
+        }
+
+        /// <summary>The renderer features of the current pipeline's renderers (URP keeps them behind its asset).</summary>
+        static List<Object> RendererFeatures()
+        {
+            var list = new List<Object>();
+            var asset = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
+            if (!asset) return list;
+            var field = asset.GetType().GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field?.GetValue(asset) is System.Array datas)
+                foreach (var data in datas)
+                    if (data != null && data.GetType().GetProperty("rendererFeatures")?.GetValue(data) is System.Collections.IList features)
+                        foreach (var feature in features)
+                            if (feature is Object o && o && !list.Contains(o)) list.Add(o);
+            return list;
+        }
+
+        static bool FeatureActive(Object feature) => (bool)feature.GetType().GetProperty("isActive").GetValue(feature);
+
+        static void SetFeatureActive(Object feature, bool on) => feature.GetType().GetMethod("SetActive").Invoke(feature, new object[] { on });
 
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
         {
