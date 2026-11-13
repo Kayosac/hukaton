@@ -84,7 +84,9 @@ namespace Hakaton.EnemyDebug.Tests
                     Assert.That(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject), Is.Zero, transform.name);
                 var canvas = sandbox.title.canvas;
                 Assert.That(canvas.pixelPerfect, Is.True);
-                Assert.That(canvas.GetComponent<CanvasScaler>().scaleFactor, Is.EqualTo(1));
+                var scaler = canvas.GetComponent<CanvasScaler>();
+                Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ScaleWithScreenSize));
+                Assert.That(scaler.referenceResolution, Is.EqualTo(new Vector2(1920, 1080)));
                 foreach (var label in canvas.GetComponentsInChildren<TMP_Text>(true))
                 {
                     Assert.That(label.enableAutoSizing, Is.False);

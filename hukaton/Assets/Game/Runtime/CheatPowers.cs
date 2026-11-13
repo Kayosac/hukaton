@@ -126,7 +126,8 @@ namespace Hakaton.Game
                 title.normal.textColor = new Color(.95f, .86f, .55f);
                 body.normal.textColor = new Color(.92f, .9f, .84f);
             }
-            GUI.matrix = Matrix4x4.Scale(new Vector3(menu.pixelScale, menu.pixelScale, 1));
+            float scale = menu.pixelScale * Hakaton.Feel.UiReference.ScreenScale; // laid out for Full HD
+            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             var rect = new Rect(menu.panelPosition.x + menu.panelSize.x + 8, menu.panelPosition.y, 340, 250);
             GUI.Box(rect, GUIContent.none);
             GUI.Box(rect, GUIContent.none);
