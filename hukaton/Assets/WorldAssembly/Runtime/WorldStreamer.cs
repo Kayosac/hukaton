@@ -743,6 +743,8 @@ namespace Hakaton.WorldAssembly.Unity
             var sockets = entry.view.creatureSockets;
             if (plan.Spawns.Count == 0 || sockets.Length == 0 || !content) return;
             int k = 0;
+            // Ambushers of this chunk each take their own clump of cover.
+            var cover = new List<Vector3>();
             for (int g = 0; g < plan.Spawns.Count; g++)
             {
                 var spawn = plan.Spawns[g];
@@ -777,6 +779,8 @@ namespace Hakaton.WorldAssembly.Unity
                     creature.spawnPoints = null;
                     if (remembered) creature.Resume(state.health, state.position);
                     else creature.ResetForOuting(null);
+                    // An ambusher (mantis man) settles in the nearest reeds round its spot.
+                    if (creature.ambush.enabled) creature.HideIn(entry.view.burnables, cover, !remembered);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
                     group.Add(creature);

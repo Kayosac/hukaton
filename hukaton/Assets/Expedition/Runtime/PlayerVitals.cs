@@ -64,16 +64,17 @@ namespace Hakaton.Expeditions
         public Transform Root => motor.transform;
 
         /// <summary>A hit from a creature, an ally or a card effect: <see cref="DamageInfo.Amount"/> half hearts.</summary>
-        public bool TakeDamage(in DamageInfo damage) => Hurt(damage.Amount, damage.Impulse, damage.Source);
+        public bool TakeDamage(in DamageInfo damage) => Hurt(damage.Amount, damage.Impulse, damage.Source, damage.PiercesGuard);
 
         /// <summary>
         /// One hit of <paramref name="halfHearts"/> (1 = ½ heart). <paramref name="knockback"/> is a normalized impulse;
         /// <paramref name="source"/> (world position) aims the camera kick away from the attacker. Ignored while
-        /// protected after the previous hit and outside an outing.
+        /// protected after the previous hit (unless <paramref name="piercesGuard"/>: the next blow of the same attack)
+        /// and outside an outing.
         /// </summary>
-        public bool Hurt(int halfHearts, Vector3 knockback, Vector3? source)
+        public bool Hurt(int halfHearts, Vector3 knockback, Vector3? source, bool piercesGuard = false)
         {
-            if (halfHearts <= 0 || !world.Running || HalfHearts == 0 || Invulnerable) return false;
+            if (halfHearts <= 0 || !world.Running || HalfHearts == 0 || (Invulnerable && !(piercesGuard && !Immortal))) return false;
             PreviousHalfHearts = HalfHearts;
             HalfHearts = Mathf.Max(0, HalfHearts - halfHearts);
             invulnerableUntil = Time.time + settings.hurtInvulnerability;
