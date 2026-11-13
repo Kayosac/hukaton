@@ -315,5 +315,48 @@ namespace Hakaton.Loot.EditorTools
             log.AppendLine("shot " + path);
             return log.ToString();
         }
+
+        // Slight crooked spread so a full shelf does not look machine-aligned; every slot still faces camera B.
+        static readonly float[] SlotYaw = { -7, 5, 9, -4, 3, -9 };
+        const string DisplayCasePath = "Assets/ShopBlockout/Prefabs/DisplayCase.prefab";
+
+        /// <summary>
+        /// Turns the six display anchors («Item visual») of the DisplayCase prefab to face the customer camera B (the
+        /// case's -X), with a small spread, and drops scene overrides of their rotation in the open scene.
+        /// </summary>
+        public static string FaceShelfToCamera()
+        {
+            var log = new StringBuilder();
+            var contents = PrefabUtility.LoadPrefabContents(DisplayCasePath);
+            var anchors = contents.GetComponentsInChildren<Transform>(true).Where(t => t.name == "Item visual").ToArray();
+            if (anchors.Length != 6) { PrefabUtility.UnloadPrefabContents(contents); return "FAILED anchors: " + anchors.Length; }
+            // Slot order as in the scene bindings: sorted by height, then by side.
+            anchors = anchors.OrderBy(a => Mathf.Round(contents.transform.InverseTransformPoint(a.position).y * 10))
+                .ThenBy(a => contents.transform.InverseTransformPoint(a.position).z).ToArray();
+            for (int i = 0; i < anchors.Length; i++)
+            {
+                anchors[i].rotation = contents.transform.rotation * Quaternion.Euler(0, SlotYaw[i], 0);
+                log.AppendLine($"{anchors[i].parent.name}: yaw {SlotYaw[i]}");
+            }
+            PrefabUtility.SaveAsPrefabAsset(contents, DisplayCasePath);
+            PrefabUtility.UnloadPrefabContents(contents);
+            int reverted = 0;
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+            foreach (var root in scene.GetRootGameObjects())
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name != "Item visual" || !PrefabUtility.IsPartOfPrefabInstance(t)) continue;
+                    var so = new SerializedObject(t);
+                    var rotation = so.FindProperty("m_LocalRotation");
+                    if (rotation != null && rotation.prefabOverride)
+                    {
+                        PrefabUtility.RevertPropertyOverride(rotation, InteractionMode.AutomatedAction);
+                        reverted++;
+                    }
+                }
+            if (reverted > 0) UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+            log.AppendLine($"scene {scene.path}: reverted {reverted} rotation override(s)");
+            return log.ToString();
+        }
     }
 }
