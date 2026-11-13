@@ -38,7 +38,9 @@ namespace Hakaton.Decks.Unity
         MerchantNose = 32,
         Marauder = 33,
         Echo = 34,
-        Bubble = 35
+        Bubble = 35,
+        // Третий каталог (14.11.2026): семь новых карт из таблицы KayoSpace.
+        WaterJet = 36
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]
