@@ -18,6 +18,9 @@ namespace Hakaton.Expeditions
         [Tooltip("Optional: the find turns out to be one of these items (weighted). On a ready-made location it is picked " +
                  "anew every outing; in the endless world once per spot. Empty — always the item above.")]
         public LootPool pool;
+        [Tooltip("Size of the built 3D model on the ground relative to the item's model (the shelf shows it at 1). " +
+                 "Drawings keep their own height.")]
+        [Min(.1f)] public float modelScale = 1;
         public bool guaranteed = true;
         [Range(0, 1)] public float spawnChance = .7f;
         public Rigidbody body;
@@ -99,6 +102,7 @@ namespace Hakaton.Expeditions
                 if (made)
                 {
                     drawing = made.GetComponent<LootSpriteView>();
+                    if (!drawing) made.transform.localScale *= modelScale;
                     foreach (var collider in made.GetComponentsInChildren<Collider>()) collider.enabled = false;
                 }
             }
@@ -214,7 +218,7 @@ namespace Hakaton.Expeditions
                 foreach (var filter in model.GetComponentsInChildren<MeshFilter>())
                 {
                     if (!filter.sharedMesh) continue;
-                    Gizmos.matrix = visual.localToWorldMatrix * root.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+                    Gizmos.matrix = visual.localToWorldMatrix * Matrix4x4.Scale(Vector3.one * modelScale) * root.worldToLocalMatrix * filter.transform.localToWorldMatrix;
                     Gizmos.DrawMesh(filter.sharedMesh);
                 }
                 Gizmos.matrix = Matrix4x4.identity;

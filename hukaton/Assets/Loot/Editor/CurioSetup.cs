@@ -25,6 +25,7 @@ namespace Hakaton.Loot.EditorTools
         const string CommonFind = "Assets/Loot/Prefabs/Finds/Find common_find.prefab";
         const string SpecialFind = "Assets/Loot/Prefabs/Finds/Find special_find.prefab";
         const string CrystalFind = "Assets/Loot/Prefabs/Finds/Find crystal.prefab";
+        const float WorldScale = 2;
         const string WorldContentPath = "Assets/WorldAssembly/World content.asset";
 
         struct Spec
@@ -227,13 +228,16 @@ namespace Hakaton.Loot.EditorTools
                 var property = so.FindProperty("pool");
                 if (property == null || so.FindProperty("spawnChance") == null) continue;
                 property.objectReferenceValue = pool;
+                // Curios lie on the ground twice their shelf size so they read from afar.
+                var scale = so.FindProperty("modelScale");
+                if (scale != null) scale.floatValue = WorldScale;
                 so.ApplyModifiedPropertiesWithoutUndo();
                 set++;
             }
             if (prefabPath == CrystalFind) contents.name = "Find crystal";
             PrefabUtility.SaveAsPrefabAsset(contents, prefabPath);
             PrefabUtility.UnloadPrefabContents(contents);
-            log.AppendLine($"{Path.GetFileName(prefabPath)}: pool {pool.name} on {set} pickup(s)");
+            log.AppendLine($"{Path.GetFileName(prefabPath)}: pool {pool.name}, model scale {WorldScale} on {set} pickup(s)");
         }
 
         static void PointWorldContent(string role, string prefabPath, StringBuilder log)
