@@ -121,7 +121,8 @@ namespace Hakaton.WorldAssembly.Unity
                 var c = streamer.CoordAt(new Vector3(p.x, player.y, p.y));
                 var plan = map.Chunk(c);
                 level = origin.y + plan.BaseLevel * plateau + WaterLevel;
-                return plan.Biome == Biome.Swamp && plan.Shape.Kind != ShapeKind.Cliff;
+                // Only where the swamp is foggy: patches of it, the rest is clear.
+                return plan.Biome == Biome.Swamp && plan.Shape.Kind != ShapeKind.Cliff && map.Biomes.Foggy(c);
             }
             // The wind turns slowly; the banks go with it, each wandering a little of its own.
             float turn = Mathf.PerlinNoise(Time.time * .01f, 3.1f) - .5f;

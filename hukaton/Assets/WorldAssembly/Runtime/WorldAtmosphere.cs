@@ -169,6 +169,8 @@ namespace Hakaton.WorldAssembly.Unity
             active = false;
             if (postProcess) postProcess.enabled = false;
             if (swampLook) swampLook.weight = 0;
+            Grade(null);
+            Shader.SetGlobalFloat(ReflectFog, 0);
             held.Clear();
             RenderSettings.fogDensity = baseFog;
             RenderSettings.fogColor = baseColour;
@@ -275,6 +277,26 @@ namespace Hakaton.WorldAssembly.Unity
 
         Volume swampLook;
 
+        static readonly int ReflectFog = Shader.PropertyToID("_WorldReflectFog");
+        static readonly int GradeOn = Shader.PropertyToID("_WorldGradeOn"), GradeFilter = Shader.PropertyToID("_WorldGradeFilter"), GradeSaturation = Shader.PropertyToID("_WorldGradeSaturation");
+
+        /// <summary>
+        /// The place's colour grading for what is drawn after the world's post-processing (World Resolution: water,
+        /// ground fog, clouds, rain), as shader globals (Assets/WorldAssembly/Shaders/WorldGrade.hlsl).
+        /// </summary>
+        static void Grade(Volume look)
+        {
+            float w = look ? look.weight : 0;
+            if (w <= .001f || !look.sharedProfile || !look.sharedProfile.TryGet<UnityEngine.Rendering.Universal.ColorAdjustments>(out var colour))
+            {
+                Shader.SetGlobalFloat(GradeOn, 0);
+                return;
+            }
+            Shader.SetGlobalFloat(GradeOn, w);
+            Shader.SetGlobalColor(GradeFilter, colour.colorFilter.overrideState ? colour.colorFilter.value : Color.white);
+            Shader.SetGlobalFloat(GradeSaturation, colour.saturation.overrideState ? 1 + colour.saturation.value / 100 : 1);
+        }
+
         void Apply()
         {
             // The swamp's own colour (WorldContent.swampLook) as strong as the swamp round the player.
@@ -289,6 +311,7 @@ namespace Hakaton.WorldAssembly.Unity
                 swampLook.sharedProfile = look;
             }
             if (swampLook) swampLook.weight = Strength(Swamp);
+            Grade(swampLook);
             float fog = 1, sunlight = 1, ambient = 1;
             var colour = baseColour;
             foreach (var mood in moods)
@@ -312,6 +335,7 @@ namespace Hakaton.WorldAssembly.Unity
                 colour = Color.Lerp(colour, new Color(.86f, .89f, .96f), .35f * lit);
             }
             RenderSettings.fogDensity = baseFog * fog;
+            Shader.SetGlobalFloat(ReflectFog, Mathf.Clamp01((fog - 1) / 1.2f));
             RenderSettings.fogColor = colour;
             RenderSettings.ambientIntensity = baseAmbient * ambient;
             if (sun) sun.intensity = baseSun * sunlight;

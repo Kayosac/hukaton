@@ -13,7 +13,9 @@ namespace Hakaton.Character
         /// <summary>Limit of the falling speed in real m/s (Lightness). Use <see cref="FirstPersonMotor.ApplyFallSpeedLimit"/> for design units.</summary>
         FallSpeedLimit,
         /// <summary>Walking / sprinting speed multiplier (tar ×0.5).</summary>
-        MoveSpeed
+        MoveSpeed,
+        /// <summary>Jump height multiplier (0: no jump of its own; a bog's mire gives its own lunge instead).</summary>
+        JumpHeight
     }
 
     [DefaultExecutionOrder(-100)]
@@ -90,7 +92,7 @@ namespace Hakaton.Character
         int groundMaskLayer = -1, layerCollisionMask;
         Vector3 externalPlanar;
         Collider frameGround;
-        readonly TimedModifier[] modifiers = new TimedModifier[4];
+        readonly TimedModifier[] modifiers = new TimedModifier[5];
         // Horizontal normals of the walls (anything too steep to walk on) the capsule touched during this frame's move.
         const int MaxWallContacts = 8;
         readonly Vector3[] wallNormals = new Vector3[MaxWallContacts];
@@ -116,6 +118,8 @@ namespace Hakaton.Character
         /// stacks with the timed modifiers instead of replacing them. 1 when nothing slows the player.
         /// </summary>
         public float StatusSpeedScale { get; set; } = 1;
+        /// <summary>Current jump height multiplier (1 normally; 0 in a bog's mire, where the lunge replaces the jump).</summary>
+        public float JumpHeightScale => Modifier(MotorModifier.JumpHeight, 1);
         /// <summary>Current falling-speed limit in real m/s (∞ when none).</summary>
         public float FallSpeedLimit => Modifier(MotorModifier.FallSpeedLimit, float.PositiveInfinity);
 
@@ -277,9 +281,9 @@ namespace Hakaton.Character
             if (!gameplay) { PlanarVelocity = Vector3.zero; target = Vector3.zero; }
             PlanarVelocity = Vector3.MoveTowards(PlanarVelocity, target, rate * dt);
 
-            if (gameplay && now <= jumpBufferedUntil && now - lastGrounded <= coyoteTime && stamina.TryJump())
+            if (gameplay && JumpHeightScale > .001f && now <= jumpBufferedUntil && now - lastGrounded <= coyoteTime && stamina.TryJump())
             {
-                verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight);
+                verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight * JumpHeightScale);
                 jumpBufferedUntil = lastGrounded = float.NegativeInfinity;
                 lastJump = now; grounded = false; hadAirTime = true;
                 IsSprinting = false;

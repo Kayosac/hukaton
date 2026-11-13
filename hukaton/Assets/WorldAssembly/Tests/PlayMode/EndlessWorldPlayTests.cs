@@ -1473,7 +1473,7 @@ namespace Hakaton.WorldAssembly.Tests
             for (int x = -14; x <= 14; x++)
                 for (int y = -14; y <= 14; y++)
                 {
-                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
+                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y)) || !map.Biomes.Foggy(new ChunkCoord(x, y))) continue;
                     int around = 0;
                     for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
                     int score = around * 100 - (x * x + y * y);
@@ -1499,6 +1499,19 @@ namespace Hakaton.WorldAssembly.Tests
             var away = new Vector3(1, 0, .4f).normalized;
             yield return Shot(dir, "play-swamp-look", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.2f + away * 10);
             yield return Shot(dir, "play-swamp-fog-outside", bank + away * 17 + Vector3.up * 2.4f, bank + Vector3.up * .8f);
+            // As the game shows it (World Resolution on: the presentation camera draws water and the fog banks).
+            world.motor.Teleport(bank + away * 17 + Vector3.up * .8f, Quaternion.LookRotation(-away));
+            for (int f = 0; f < 30; f++) yield return null;
+            yield return new WaitForEndOfFrame();
+            var screen = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(dir, "play-swamp-fog-screen.png"), screen.EncodeToPNG());
+            Object.Destroy(screen);
+            // Walk into a fog bank: the world goes white.
+            bank = life.ThickestBank();
+            world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
+            yield return WaitFor(() => air.Strength(WorldAtmosphere.Mist) > .5f, 6);
+            Assert.That(air.Strength(WorldAtmosphere.Mist), Is.GreaterThan(.5f), "inside a fog bank the air is thick");
+            yield return Shot(dir, "play-swamp-fog-inside", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.4f + away * 10, world.motor.transform.position + Vector3.up * 1.6f);
             // The eternal flame, if one burns near enough: seen from a way off.
             ChunkCoord flame = default;
             bool burning = false;
@@ -1514,13 +1527,14 @@ namespace Hakaton.WorldAssembly.Tests
                 Assert.That(beacon, Is.Not.Null, "the eternal flame's light");
                 Debug.Log($"[World] eternal flame at {flame}: light {beacon.transform.position}, chunk centre {at}, fire systems {beacon.transform.parent.GetComponentsInChildren<ParticleSystem>().Count(p => p.isPlaying)} playing");
                 yield return Shot(dir, "play-swamp-eternal-flame-light", beacon.transform.position + new Vector3(-4, .5f, -3), beacon.transform.position + Vector3.down * .8f);
+                // As the game shows it.
+                world.motor.Teleport(beacon.transform.position + new Vector3(-7, -1.5f, -5), Quaternion.LookRotation(new Vector3(7, 0, 5)));
+                for (int f = 0; f < 40; f++) yield return null;
+                yield return new WaitForEndOfFrame();
+                var flameScreen = ScreenCapture.CaptureScreenshotAsTexture();
+                File.WriteAllBytes(Path.Combine(dir, "play-swamp-eternal-flame-screen.png"), flameScreen.EncodeToPNG());
+                Object.Destroy(flameScreen);
             }
-            // Walk into a fog bank: the world goes white.
-            bank = life.ThickestBank();
-            world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
-            yield return WaitFor(() => air.Strength(WorldAtmosphere.Mist) > .5f, 6);
-            Assert.That(air.Strength(WorldAtmosphere.Mist), Is.GreaterThan(.5f), "inside a fog bank the air is thick");
-            yield return Shot(dir, "play-swamp-fog-inside", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.4f + away * 10, world.motor.transform.position + Vector3.up * 1.6f);
 
 
             // A will-o'-the-wisp drifts off towards where it leads as the player comes near.

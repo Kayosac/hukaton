@@ -538,6 +538,24 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void GroundFogLiesOnlyInPatchesOfTheSwamp()
+        {
+            int swamp = 0, foggy = 0;
+            for (int seed = 1; seed <= 20; seed++)
+            {
+                var map = new WorldMap(seed);
+                foreach (var c in Square(Area))
+                {
+                    if (!map.Biomes.IsSwamp(c)) { Assert.IsFalse(map.Biomes.Foggy(c), $"fog off the swamp {c}"); continue; }
+                    swamp++;
+                    if (map.Biomes.Foggy(c)) foggy++;
+                }
+            }
+            float share = foggy / (float)swamp;
+            Assert.That(share, Is.InRange(.15f, .7f), $"fog over {share:P0} of the swamp");
+        }
+
+        [Test]
         public void WithoutTheSwampTheWorldIsAllForest()
         {
             var map = new WorldMap(3, new WorldRules { Swamp = false });

@@ -123,6 +123,18 @@ namespace Hakaton.WorldAssembly
             return roll < .3 ? SwampZone.Mire : roll < .48 ? SwampZone.Reach : roll < .66 ? SwampZone.Drowned : roll < .84 ? SwampZone.Moss : SwampZone.Burnt;
         }
 
+        /// <summary>
+        /// Ground fog lies over this chunk of swamp: in broad patches (a slow noise over the world, about a third of the
+        /// swamp) and always in the drowned wood. Elsewhere the swamp is clear.
+        /// </summary>
+        public bool Foggy(ChunkCoord c)
+        {
+            if (!IsSwamp(c)) return false;
+            if (Zone(c) == SwampZone.Drowned) return true;
+            int cell = Math.Max(2, rules.SwampZoneCell + 1);
+            return (Value(c.X, c.Y, cell, Salt.Biome + 7) * 2 + Value(c.X, c.Y, Math.Max(1, cell / 2), Salt.Biome + 8)) / 3 > .58;
+        }
+
         /// <summary>Open swamp: every corner under water.</summary>
         public bool Open(ChunkCoord c) => Wet(c.X, c.Y) && Wet(c.X + 1, c.Y) && Wet(c.X, c.Y + 1) && Wet(c.X + 1, c.Y + 1);
 

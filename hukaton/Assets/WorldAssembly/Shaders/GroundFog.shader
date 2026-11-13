@@ -32,6 +32,7 @@ Shader "Hakaton/Ground Fog"
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+            #include "Assets/WorldAssembly/Shaders/WorldGrade.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
@@ -90,7 +91,7 @@ Shader "Hakaton/Ground Fog"
                 float near = saturate((self - 0.4) / max(_Near, 0.01));
                 float alpha = saturate(_Density * shape * body * soft * near * _Fade);
                 half3 colour = lerp(_BaseColor.rgb, unity_FogColor.rgb, _FogShare);
-                return half4(colour, alpha);
+                return half4(WorldGrade(colour), alpha);
             }
             ENDHLSL
         }
