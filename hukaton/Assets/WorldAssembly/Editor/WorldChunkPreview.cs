@@ -29,13 +29,15 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (swamp)
             {
                 int best = -1;
-                for (int x = -14; x <= 14; x++)
-                    for (int y = -14; y <= 14; y++)
+                for (int x = -20; x <= 20; x++)
+                    for (int y = -20; y <= 20; y++)
                     {
                         if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
-                        int around = 0;
+                        int around = 0, raised = 0;
                         for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
-                        int score = around * 100 - (x * x + y * y);
+                        // Rather a swamp with a raised terrace in sight.
+                        for (int i = -3; i <= 3; i++) for (int j = -3; j <= 3; j++) if (map.Corners.Level(x + i, y + j) == 1 && map.Biomes.Raised(x + i, y + j)) raised++;
+                        int score = around * 100 + System.Math.Min(raised, 6) * 400 - (x * x + y * y);
                         if (score > best) { best = score; cx = x; cy = y; }
                     }
             }

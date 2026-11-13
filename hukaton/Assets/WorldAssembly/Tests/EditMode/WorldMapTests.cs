@@ -485,6 +485,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void SwampIsALowBasinWithItsOwnScenes()
         {
+            int raised = 0;
             for (int seed = 1; seed <= 30; seed++)
             {
                 var map = new WorldMap(seed);
@@ -492,9 +493,17 @@ namespace Hakaton.WorldAssembly.Tests
                 {
                     var plan = map.Chunk(c);
                     if (plan.Biome != Biome.Swamp) continue;
-                    Assert.IsTrue(plan.Corners.All(level => level == 0), $"seed {seed}: swamp {c} is not flat and low ({plan})");
-                    // Open swamp (all corners under water) is a swamp scene or a swamp landmark; its rim is shores.
+                    // The swamp lies low and rises one level at most; its steps are ordinary cliffs, dry.
+                    Assert.IsTrue(plan.Corners.All(level => level <= 1), $"seed {seed}: swamp {c} above the first level ({plan})");
                     bool open = map.Biomes.Open(c);
+                    if (plan.Corners.Distinct().Count() > 1)
+                    {
+                        Assert.IsFalse(open, $"seed {seed}: open water on a slope {c}");
+                        Assert.IsTrue(plan.Shape.Kind != ShapeKind.Plain && plan.Shape.Kind != ShapeKind.Shore && plan.Shape.Kind != ShapeKind.Landmark, $"seed {seed}: {plan} on a slope {c}");
+                        continue;
+                    }
+                    if (open && plan.Corners[0] == 1) raised++;
+                    // Open swamp (all corners under water) is a swamp scene or a swamp landmark; its rim is shores.
                     Assert.IsTrue(plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.Shore || plan.Shape.Kind == ShapeKind.Landmark, $"seed {seed}: {plan} in the swamp {c}");
                     Assert.AreEqual(!open, plan.Shape.Kind == ShapeKind.Shore, $"seed {seed}: {plan} at {c}, open {open}");
                     if (plan.Shape.Kind == ShapeKind.Plain)
@@ -512,6 +521,7 @@ namespace Hakaton.WorldAssembly.Tests
                         Assert.AreEqual(Biome.Forest, Landmarks.Parse(plan.Shape.Id).kind.Biome, $"seed {seed}: swamp landmark in the forest {c}");
                 }
             }
+            Assert.Greater(raised, 0, "the swamp never rises a level");
         }
 
         [Test]

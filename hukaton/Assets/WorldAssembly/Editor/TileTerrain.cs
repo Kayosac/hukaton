@@ -189,17 +189,23 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// </summary>
         public float Wetness(Vector2 p)
         {
-            if (Biome != Biome.Swamp) return 0;
+            if (!Swampy) return 0;
             if (Shape.Kind != ShapeKind.Shore) return 1;
             float w = Field(p) + Noise(p, 3.4f, 61) * .38f * EdgeFade(p, 2.5f);
             return Mathf.SmoothStep(0, 1, Mathf.Clamp01((w - .3f) / .4f));
         }
 
+        /// <summary>
+        /// The swamp's water lies here: a swamp chunk but for a river's channel and the cliffs of its raised terraces,
+        /// which are dry ground of the swamp (its moss, its dead trees).
+        /// </summary>
+        public bool Swampy => Biome == Biome.Swamp && Shape.Kind != ShapeKind.River && Shape.Kind != ShapeKind.Cliff;
+
         /// <summary>Height without ramps and without crookedness.</summary>
         float Base(Vector2 p)
         {
             float fade = EdgeFade(p, 2.5f);
-            if (Biome == Biome.Swamp && Shape.Kind != ShapeKind.River)
+            if (Swampy)
             {
                 // Water everywhere, land in islands: the bed under knee-deep water, islands (the scene's domes) rising out
                 // of it, bog windows and deep pools sunk into it.
@@ -337,7 +343,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             // Under the swamp's water the edges lie almost flat: a wave there would break the water into a grid.
             float edge = EdgeWave * (Wave(p.x) * (1 - fy) + Wave(p.y) * (1 - fx)) * (1 - .85f * Wetness(p));
             // A swamp lies flat: its pools and hummocks are the relief, the ground only sags a little.
-            float roll = Biome == Biome.Swamp ? Roll * .3f : Roll;
+            float roll = Swampy ? Roll * .3f : Roll;
             float inner = roll * (Noise(p, 6.5f, 41) * .7f + Noise(p, 3.2f, 42) * .3f) * Mathf.Min(fx, fy);
             return edge + inner;
         }
@@ -346,7 +352,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         public float WaterDistance(Vector2 p)
         {
             // The swamp's water is everywhere: how high the ground stands over it, as metres of shore.
-            if (Biome == Biome.Swamp && Shape.Kind != ShapeKind.River) return (Base(p) - WaterLevel) * 4 - .4f;
+            if (Swampy) return (Base(p) - WaterLevel) * 4 - .4f;
             if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) - PondBank;
             if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset);
             if (HasFalls) return Vector2.Distance(p, FallsPool) - FallsBank;
@@ -385,7 +391,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             get
             {
-                if (Biome == Biome.Swamp || Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond") || HasFalls) return true;
+                if (Swampy || Shape.Kind == ShapeKind.River || (Shape.Kind == ShapeKind.Plain && Variant == "pond") || HasFalls) return true;
                 if (Scene == null) return false;
                 foreach (var pool in Scene.Pools)
                 {
@@ -405,7 +411,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// <summary>Within <paramref name="margin"/> of the water's own banks.</summary>
         public bool NearWater(Vector2 p, float margin)
         {
-            if (Biome == Biome.Swamp && Shape.Kind != ShapeKind.River) return WaterDistance(p) < margin;
+            if (Swampy) return WaterDistance(p) < margin;
             if (Shape.Kind == ShapeKind.Plain && Variant == "pond") return Vector2.Distance(p, PondCentre) < PondBank + margin;
             if (Scene != null && Scene.Pools.Count > 0) return Scene.PoolDistance(p + Offset) < margin;
             if (HasFalls) return Vector2.Distance(p, FallsPool) < FallsBank + margin;

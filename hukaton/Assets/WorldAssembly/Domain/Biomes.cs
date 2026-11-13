@@ -25,26 +25,42 @@ namespace Hakaton.WorldAssembly
             this.rules = rules;
         }
 
+        /// <summary>The corner field of the same world: the swamp's water lies only where the ground is level.</summary>
+        public CornerField Corners;
+
         /// <summary>
-        /// The swamp is water with islands, not land with ponds: a chunk is swamp when at least one of its corners is
-        /// under water (<see cref="Wet"/>). Chunks with all four corners wet are open swamp; the others are its shores,
-        /// where the water meets the dry land of the forest.
+        /// The swamp is water with islands, not land with ponds: a chunk is swamp when one of its corners lies inside the
+        /// patch (<see cref="Inside"/>). Where all four corners are under water (<see cref="Wet"/>) it is open swamp;
+        /// level chunks with some dry corners are its shores; the swamp rises one level in places, and the steps
+        /// between are cliffs, dry.
         /// </summary>
         public Biome At(ChunkCoord c)
         {
             if (biomes.TryGetValue(c, out var cached)) return cached;
-            var biome = Wet(c.X, c.Y) || Wet(c.X + 1, c.Y) || Wet(c.X, c.Y + 1) || Wet(c.X + 1, c.Y + 1) ? Biome.Swamp : Biome.Forest;
+            var biome = Inside(c.X, c.Y) || Inside(c.X + 1, c.Y) || Inside(c.X, c.Y + 1) || Inside(c.X + 1, c.Y + 1) ? Biome.Swamp : Biome.Forest;
             biomes[c] = biome;
             return biome;
         }
 
-        /// <summary>
-        /// Corner (i, j) (the south-west corner of chunk (i, j)) lies under the swamp's water: all four chunks round it
-        /// are swamp by the noise (ragged tips trimmed). Two chunks sharing an edge agree on it, so the water meets the
-        /// land the same from both sides.
-        /// </summary>
-        public bool Wet(int i, int j) =>
+        /// <summary>Corner (i, j) (the south-west corner of chunk (i, j)) lies inside the patch: all four chunks round it are swamp by the noise.</summary>
+        public bool Inside(int i, int j) =>
             Trimmed(new ChunkCoord(i, j)) && Trimmed(new ChunkCoord(i - 1, j)) && Trimmed(new ChunkCoord(i, j - 1)) && Trimmed(new ChunkCoord(i - 1, j - 1));
+
+        /// <summary>
+        /// Corner (i, j) lies under the swamp's water: inside the patch, and the four chunks round it are level (no cliff
+        /// touches the water), on the low ground or the one level up. Two chunks sharing an edge agree on it, so the
+        /// water meets the land the same from both sides.
+        /// </summary>
+        public bool Wet(int i, int j)
+        {
+            if (!Inside(i, j)) return false;
+            if (Corners == null) return true;
+            int level = Corners.Level(i, j);
+            for (int di = -1; di <= 1; di++)
+                for (int dj = -1; dj <= 1; dj++)
+                    if (Corners.Level(i + di, j + dj) != level) return false;
+            return true;
+        }
 
         /// <summary>Wet corners of a chunk clockwise NW, NE, SE, SW (as <see cref="CornerField.Corners"/>): 1 wet, 0 dry.</summary>
         public void WetCorners(ChunkCoord c, int[] result)
@@ -53,6 +69,28 @@ namespace Hakaton.WorldAssembly
             result[1] = Wet(c.X + 1, c.Y + 1) ? 1 : 0;
             result[2] = Wet(c.X + 1, c.Y) ? 1 : 0;
             result[3] = Wet(c.X, c.Y) ? 1 : 0;
+        }
+
+        /// <summary>
+        /// Corner (i, j) lifts the swamp one level: deep inside a patch (two chunks of swamp all round, so its cliffs
+        /// and their shores stay in the swamp) where the rise noise is high — broad terraces, not single bumps.
+        /// </summary>
+        public bool Raised(int i, int j)
+        {
+            // The rise is eroded by one corner, so no terrace is narrower than three corners (two chunks of top).
+            for (int x = i - 1; x <= i + 1; x++)
+                for (int y = j - 1; y <= j + 1; y++)
+                    if (RiseNoise(x, y) <= rules.SwampRise) return false;
+            for (int x = i - 3; x <= i + 2; x++)
+                for (int y = j - 3; y <= j + 2; y++)
+                    if (!Trimmed(new ChunkCoord(x, y))) return false;
+            return true;
+        }
+
+        double RiseNoise(int i, int j)
+        {
+            int cell = Math.Max(1, rules.SwampNoiseCell);
+            return (Value(i, j, cell, Salt.Biome + 2) * 2 + Value(i, j, Math.Max(1, cell / 2), Salt.Biome + 3)) / 3;
         }
 
         /// <summary>Open swamp: every corner under water.</summary>

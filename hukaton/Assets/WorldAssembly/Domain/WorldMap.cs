@@ -67,6 +67,7 @@ namespace Hakaton.WorldAssembly
             Rules = rules ?? new WorldRules();
             Biomes = new BiomeField(seed, Rules);
             Corners = new CornerField(seed, Rules, Biomes);
+            Biomes.Corners = Corners;
             districts = new DistrictPlanner(seed, Rules, Corners, Biomes);
             Guarantee();
         }
@@ -161,9 +162,10 @@ namespace Hakaton.WorldAssembly
             }
             else if (feature != null && feature.Feature == Feature.Landmark)
                 Set(plan, TileShapes.Get(feature.Landmark.PartId(feature.PartI, feature.PartJ)), feature.LandmarkRotation);
-            else if (plan.Biome == Biome.Swamp && !Biomes.Open(c)) MatchShore(plan);
             else if (max > min) MatchCliff(plan, relative);
-            else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
+            else if (plan.Biome == Biome.Swamp && !Biomes.Open(c)) MatchShore(plan);
+            // Open swamp is a swamp scene on whichever level it lies.
+            else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 || plan.Biome == Biome.Swamp ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
             else MatchFeature(plan);
 
             ChooseVariant(plan, feature);
@@ -225,6 +227,7 @@ namespace Hakaton.WorldAssembly
                 case "river-end":
                     id = roll < .45 ? "lake" : roll < .8 || plan.Ring == 0 ? "spring" : "island";
                     break;
+                case "shore-dry":
                 case "shore-corner":
                 case "shore-edge":
                 case "shore-saddle":

@@ -72,6 +72,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     // its scenes, and the channels of the rivers that run through it; its landmarks are swamp by kind.
                     bool inSwamp = TileShapes.IsSwampScene(variant.Id) || shape.Kind == ShapeKind.Shore;
                     Add(shape, variant.Id, inSwamp ? Biome.Swamp : Biome.Forest);
+                    // The cliffs of the swamp's raised terraces: the same steps, dressed as the swamp.
+                    if (shape.Kind == ShapeKind.Cliff) Add(shape, variant.Id, Biome.Swamp);
                 }
             // Variants that are gone (an old scene list) leave no prefabs behind.
             foreach (var path in stale) AssetDatabase.DeleteAsset(path);
@@ -1554,7 +1556,7 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         static void Dress(Transform parent, TileTerrain t, System.Random rng)
         {
-            if (t.Biome == Biome.Swamp) { DressSwamp(parent, t, rng); return; }
+            if (t.Biome == Biome.Swamp && t.Shape.Kind != ShapeKind.Cliff) { DressSwamp(parent, t, rng); return; }
             var dressing = new GameObject("Dressing").transform;
             dressing.SetParent(parent, false);
             void Scatter(string folder, string[] names, int count, float edge, float minSpacing, float scaleMin, float scaleMax, Func<Vector2, bool> where = null)
@@ -1564,18 +1566,18 @@ namespace Hakaton.WorldAssembly.EditorTools
                 {
                     var p = new Vector2(edge + (float)rng.NextDouble() * (16 - 2 * edge), edge + (float)rng.NextDouble() * (16 - 2 * edge));
                     if (!Free(t, p) || (where != null && !where(p)) || placed.Any(q => Vector2.Distance(p, q) < minSpacing)) continue;
-                    if (folder != "Plants" && NearLink(p, 2.2f)) continue;
+                    if (!folder.EndsWith("Plants") && NearLink(p, 2.2f)) continue;
                     float s = Mathf.Lerp(scaleMin, scaleMax, (float)rng.NextDouble());
                     var placedGo = Place(dressing, folder + "/" + names[rng.Next(names.Length)], t, p, (float)rng.NextDouble() * 360, Vector3.one * s);
                     // Nothing on ground that falls away under it: trees and stones would hang over the slope.
-                    if (placedGo && lastFall > (folder == "Trees" ? .25f : folder == "Plants" ? .5f : .35f))
+                    if (placedGo && lastFall > (folder.EndsWith("Trees") ? .25f : folder.EndsWith("Plants") ? .5f : .35f))
                     {
                         Object.DestroyImmediate(placedGo);
                         continue;
                     }
                     placed.Add(p);
                     // Grass and bushes cast no shadows: many small draws for little.
-                    if (placedGo && folder == "Plants")
+                    if (placedGo && folder.EndsWith("Plants"))
                         foreach (var r in placedGo.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
             }
@@ -1600,6 +1602,21 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (scene.Trees > 0) Scatter("Trees", Trees, scene.Trees, 1.8f, 3.4f, .65f, 1.45f, open);
                     break;
                 }
+                case ShapeKind.Cliff when t.Biome == Biome.Swamp:
+                    // A terrace of the rotten swamp: sedge and dead trees on its moss, the rock as anywhere.
+                    Scatter(SwampArt + "Plants", SwampSedge, 18, 1, 1f, .8f, 1.3f);
+                    Scatter(SwampArt + "Plants", SwampMushrooms, 3, 1.2f, 1.4f, .8f, 1.2f);
+                    if (!t.IsSaddle) Scatter("Rocks", Boulders, 2, 2.4f, 3, .7f, 1.4f, Low);
+                    Scatter(SwampArt + "Trees", SwampTrees, 3, 2, 2.8f, .7f, 1f, High);
+                    Scatter(SwampArt + "Trees", SwampWaterTrees, 1, 2, 3f, .75f, 1f, High);
+                    if (!t.IsSaddle) Scatter(SwampArt + "Trees", SwampTrees, 3, 2, 2.8f, .7f, 1f, Low);
+                    if (!t.IsSaddle) Scatter(SwampArt + "Trees", SwampWaterTrees, 1, 2, 3f, .75f, 1f, Low);
+                    if (!t.IsSaddle) Scatter(SwampArt + "Deadwood", SwampLitter, 2, 2.4f, 2.4f, .8f, 1.05f, Low);
+                    if (!t.IsSaddle) Scatter(SwampArt + "Deadwood", SwampLogs, 1, 2.6f, 2.6f, .8f, 1f, Low);
+                    if (t.Variant == "ledge") Ledge(dressing, t);
+                    if (t.HasFalls) Falls(dressing, t);
+                    CliffFace(dressing, t, rng);
+                    break;
                 case ShapeKind.Cliff:
                     Scatter("Plants", Grass, 10, 1, 1.2f, .7f, 1.2f);
                     Scatter("Plants", Bushes, 4, 1.2f, 1.8f, .9f, 1.5f);

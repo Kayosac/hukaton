@@ -115,6 +115,7 @@ namespace Hakaton.WorldAssembly
                 Maze("maze-bend", true, true, false, false),
                 Maze("maze-tee", true, true, true, false),
                 Maze("maze-cross", true, true, true, true),
+                Shore("shore-dry", new[] { 0, 0, 0, 0 }),
                 Shore("shore-corner", new[] { 1, 0, 0, 0 }),
                 Shore("shore-edge", new[] { 1, 1, 0, 0 }),
                 Shore("shore-saddle", new[] { 1, 0, 1, 0 }),
