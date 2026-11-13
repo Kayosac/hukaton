@@ -11,6 +11,7 @@ namespace Hakaton.Tutorial
     /// <see cref="spot"/> in front of the player while the screen is still dark, says his lines on the shared speech
     /// plate as the picture comes back (E or the left button for the next one), then leaves in a poof and the player is
     /// free. Movement is held while he talks, the pause menu may cover it: the same pattern as the shop tutorial's last lines.
+    /// Another goblin can be given instead (the counter one, back from the god): he talks where he stands.
     /// </summary>
     public sealed class GoblinLecture : MonoBehaviour
     {
@@ -41,22 +42,30 @@ namespace Hakaton.Tutorial
         int suspendedFrame = -10;
 
         /// <summary>Starts the lecture at once (call it while the screen is still dark). False if one runs or it cannot run.</summary>
-        public bool Play(string[] lines)
+        public bool Play(string[] lines) => Play(lines, null);
+
+        /// <summary>
+        /// As <see cref="Play(string[])"/>, but <paramref name="standing"/> (when given) talks instead of the lecture's own
+        /// goblin, where he stands (on the counter), the view held on his face.
+        /// </summary>
+        public bool Play(string[] lines, CounterGoblin standing)
         {
-            if (Active || lines == null || lines.Length == 0 || !isActiveAndEnabled || !goblin || !bubble || !spot) return false;
-            StartCoroutine(Run(lines));
+            if (Active || lines == null || lines.Length == 0 || !isActiveAndEnabled || !bubble) return false;
+            if (!standing && (!goblin || !spot)) return false;
+            StartCoroutine(Run(lines, standing));
             return true;
         }
 
-        IEnumerator Run(string[] lines)
+        IEnumerator Run(string[] lines, CounterGoblin standing)
         {
             Active = true;
             Line = -1;
             continueRequested = false;
-            goblin.transform.SetPositionAndRotation(spot.position, spot.rotation);
-            goblin.Show(true);
+            var who = standing ? standing : goblin;
+            if (!standing) goblin.transform.SetPositionAndRotation(spot.position, spot.rotation);
+            who.Show(true);
             if (control) { control.AllowPause(this, true); control.SetBlocked(this, true); }
-            Vector3 look = spot.position + Vector3.up * lookHeight;
+            Vector3 look = standing ? standing.face.transform.position : spot.position + Vector3.up * lookHeight;
             if (view)
             {
                 // Out of the dark already facing him; then the view stays on him while he talks.
@@ -75,7 +84,7 @@ namespace Hakaton.Tutorial
             {
                 Line = i;
                 bubble.Say(lines[i], true);
-                goblin.Speak(i == 0);
+                who.Speak(i == 0);
                 continueRequested = false;
                 yield return null;
                 while (!continueRequested) yield return null;
@@ -84,7 +93,7 @@ namespace Hakaton.Tutorial
             }
             Line = -1;
             // Gone in a puff of smoke, and the shop is the player's again.
-            if (goblin.isActiveAndEnabled) goblin.Poof();
+            if (who.isActiveAndEnabled) who.Poof();
             Release();
             Active = false;
             Finished?.Invoke();

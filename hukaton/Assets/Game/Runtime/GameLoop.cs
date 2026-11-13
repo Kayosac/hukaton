@@ -49,6 +49,14 @@ namespace Hakaton.Game
             "Когда-нибудь ты научишься плавать, но не сегодня.",
             "Больше так не рискуй."
         };
+        [Tooltip("Back from the god: the goblin waits on the counter (the shop tutorial's goblin) and has a word, then poofs.")]
+        [TextArea] public string[] godReturnLecture =
+        {
+            "Где ты был? Почему ты вернулся с пустыми руками?",
+            "Так никуда не годится, партнёр.",
+            "Но ладно, в этот раз прощаю, я видел по бухгалтерии. От тебя есть польза.",
+            "А у меня есть для тебя кое-что интересное. Заглядывай."
+        };
         public FirstPersonMotor player;
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
@@ -305,6 +313,8 @@ namespace Hakaton.Game
             {
                 godMet = true;
                 if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+                // the goblin is on the counter as the picture comes back: where were you, and empty-handed?
+                if (lecture && !(tutorial && tutorial.Active)) lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
             }
             dirty = true;
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
