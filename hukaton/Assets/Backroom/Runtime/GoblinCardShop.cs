@@ -541,9 +541,16 @@ namespace Hakaton.Backroom
             bool click = mouse != null && mouse.leftButton.wasPressedThisFrame;
             bool key = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
                 || keyboard.enterKey.wasPressedThisFrame);
-            // Skipped: E / Space / Enter at any moment, a click while the card is still on its way up or already on its
-            // way out. Only a press that started after the purchase counts, so the buying click never skips.
-            if (key || click && (inspected.Leaving || !inspected.Arrived))
+            // Skipped on its way up (E / Space / Enter or a click): only the flight is skipped, the card is at the eyes at
+            // once, so the player still sees what he bought; the next press puts it away. Skipped at the eyes (a key) or on
+            // its way out (a key or a click): put away at once. Only a press that started after the purchase counts, so
+            // the buying click never skips.
+            if ((key || click) && !inspected.Leaving && !inspected.Arrived)
+            {
+                SkipToEyes(click);
+                return;
+            }
+            if (key || click && inspected.Leaving)
             {
                 Skip(click);
                 return;
@@ -591,6 +598,24 @@ namespace Hakaton.Backroom
             // Calls OnInspectGone before it returns: the table is no longer stepping aside.
             card.Finish(() => Play(stowSound));
             // The table's card is put away at once (as EndInspect does), not left to fade back in with the table.
+            if (handingOver) handingOver.Hide();
+            handingOver = null;
+        }
+
+        /// <summary>
+        /// A skip press while the card is still on its way up: it is at the eyes at once (a blind card turned), the table
+        /// is gone from over it and the goblin's line is typed out. The click's release is swallowed so it does not also
+        /// put the card away.
+        /// </summary>
+        void SkipToEyes(bool byMouse)
+        {
+            swallowRelease |= byMouse;
+            skippedFrame = Time.frameCount;
+            pressed = turning = false;
+            if (bubble) bubble.SkipTyping();
+            if (inspected) inspected.ArriveNow();
+            asideAlpha = 0;
+            ApplyAside();
             if (handingOver) handingOver.Hide();
             handingOver = null;
         }

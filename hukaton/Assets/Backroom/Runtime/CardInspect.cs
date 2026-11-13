@@ -121,6 +121,19 @@ namespace Hakaton.Backroom
         }
 
         /// <summary>
+        /// Skipped on its way up: it is at the eyes at once, held and breathing (a blind card has turned and fired its
+        /// turn). Nothing happens once it has arrived or is already leaving.
+        /// </summary>
+        public void ArriveNow()
+        {
+            if (Leaving || finished || Arrived) return;
+            age = hold + Arrive;
+            spin = Vector2.zero;
+            if (faceDown && !turnedOver) { turnedOver = true; turned?.Invoke(); }
+            Pose(heldLocal, heldSize, held);
+        }
+
+        /// <summary>
         /// Skipped: put away at once, from wherever it is (on its way up, held, or on its way out). A blind card that has
         /// not turned yet still fires its turn; the stow fires as if it had shot off (<paramref name="launch"/>, unless
         /// it was already sent away with one); then it is gone, and the gone callback has run when this returns.

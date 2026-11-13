@@ -14,7 +14,7 @@ namespace Hakaton.Trading.Unity
     {
         [Header("Temporary prototype balance")]
         [Tooltip("A full shift before any upgrade, seconds.")]
-        [Min(1)] public float shiftSeconds = 30;
+        [Min(1)] public float shiftSeconds = 15;
         [Tooltip("Shift upgrades bought on the PC («Время смены»), in order: seconds added to the shift and their price.")]
         public ShiftStep[] shiftSteps =
         {
