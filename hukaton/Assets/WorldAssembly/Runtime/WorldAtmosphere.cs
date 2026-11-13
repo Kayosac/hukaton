@@ -121,10 +121,10 @@ namespace Hakaton.WorldAssembly.Unity
         Color baseColour, sceneColour;
 
         /// <summary>
-        /// The open world's own air (the forest, where no place mood holds): a neutral grey, cool only a touch, so the
-        /// forest's colour is its leaves' and the swamp's olive and the water's blue read against it.
+        /// The open world's own air (the forest, where no place mood holds): a cool blue-grey haze (14.11, chosen from
+        /// variants), so the forest reads fresh and clear against the swamp's olive murk and its warm crowns stand out.
         /// </summary>
-        public static readonly Color OpenAir = new Color(.66f, .69f, .69f);
+        public static Color OpenAir = new Color(.5f, .63f, .81f);
         Light sun;
         readonly Dictionary<string, float> target = new Dictionary<string, float>();
         readonly Dictionary<string, float> current = new Dictionary<string, float>();
@@ -344,7 +344,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (swampLook) swampLook.weight = Strength(Swamp);
             Grade(swampLook);
             float fog = 1, sunlight = 1, ambient = 1;
-            var colour = baseColour;
+            var colour = OpenAir;
             foreach (var mood in moods)
             {
                 float k = Strength(mood.name);
