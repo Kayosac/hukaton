@@ -81,7 +81,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         [UnityTest]
         public IEnumerator KeyboardPosesSpawnAndClearUseSavedSourcesAndRespectModalOwnership()
         {
-            var preview = sandbox.Previews.First(p => p.source.name == "Goblin dog");
+            var preview = sandbox.Previews.First(p => p.source.name == "Hostile bush");
             yield return Aim(preview);
             foreach (var pair in new[] { (Key.Digit1,CreaturePose.Alarm), (Key.Digit2,CreaturePose.Hurt), (Key.Digit3,CreaturePose.Attack), (Key.Digit4,CreaturePose.Death), (Key.Digit0,CreaturePose.Default) })
             {
@@ -159,7 +159,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(card.Spec.Id, Is.EqualTo("strike"));
             Assert.That(card.UsesLeft, Is.EqualTo(int.MaxValue));
             Assert.That(trip.Deck.Hand.Count, Is.EqualTo(1));
-            var preview = sandbox.Previews.First(p => p.source.name == "Goblin dog");
+            var preview = sandbox.Previews.First(p => p.source.name == "Hostile bush");
             sandbox.motor.Teleport(preview.transform.position + new Vector3(0,.05f,-3), Quaternion.identity);
             var creature = sandbox.Spawn(preview);
             creature.Freeze(30); // Stationary target; actual input, projectile sweep, impact and death remain unchanged.
