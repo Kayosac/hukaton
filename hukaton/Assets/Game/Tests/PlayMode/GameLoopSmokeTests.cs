@@ -338,6 +338,43 @@ namespace Hakaton.Game.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator ShopMusicIsQuietAndPlaysOnlyAfterTheTutorial()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            var shop = Object.FindAnyObjectByType<ShopMusic>();
+            Assert.That(shop && shop.game == game && shop.music && shop.music.clip, Is.True, "The game scene wires the shop music.");
+            var music = shop.music;
+            Assert.That((music.loop, music.playOnAwake, music.spatialBlend), Is.EqualTo((true, false, 0f)));
+            Assert.That(music.outputAudioMixerGroup && music.outputAudioMixerGroup.name == "Music", Is.True, "Routed to the Music group.");
+            Assert.That(shop.volume, Is.InRange(.01f, .15f), "The shop music is meant to be very quiet.");
+
+            Assert.That(game.InCave || game.tutorial.Active, Is.True, "A new game starts with the tutorial.");
+            float end = Time.realtimeSinceStartup + 1.5f;
+            while (Time.realtimeSinceStartup < end)
+            {
+                Assert.That(music.isPlaying && music.volume > 0, Is.False, "No music during the tutorial.");
+                yield return null;
+            }
+
+            game.SkipTutorial();
+            yield return WaitFor(() => shop.ShouldPlay, 5);
+            Assert.That(shop.ShouldPlay, Is.True, "After the tutorial the shop music belongs in the shop.");
+            yield return null;
+            Assert.That(music.isPlaying, Is.True);
+            Assert.That(music.volume, Is.LessThan(shop.volume), "It fades in rather than starting at full volume.");
+            yield return new WaitForSecondsRealtime(shop.fadeInSeconds + .3f);
+            Assert.That(music.volume, Is.EqualTo(shop.volume).Within(.001f));
+
+            var pc = Object.FindAnyObjectByType<PcComputer>();
+            Assert.That(pc.Open(), Is.True);
+            yield return WaitFor(() => !music.isPlaying, shop.fadeOutSeconds + 2);
+            Assert.That((music.isPlaying, music.volume), Is.EqualTo((false, 0f)), "The shop music steps aside for the PC's own.");
+            pc.CloseImmediately();
+            yield return WaitFor(() => music.isPlaying, 2);
+            Assert.That(music.isPlaying, Is.True, "…and comes back when the PC is off.");
+        }
+
         static IEnumerator WaitForCounterView(TradingPrototype trade)
         {
             yield return null; // the shop notices the change in its next update
