@@ -72,13 +72,22 @@
   выдать другую карту нет. Струю проверяли временным статическим зондом через `invoke` (эффект.Apply по живой копии), зонд удалён.
 - Готовые API: мокрота `WetStatus.Soak(body, world, seconds)`, значок игроку `PlayerStatusBadge.Show(world, world.vfx.wetBadge)`;
   тушение зверя `WorldCreature.Douse()`, смолы `TarPuddleZone.Extinguish()`; урон `WorldCreature.Damage(amount, impulse, point, burnSeconds)`.
+- Карта с задержкой/зоной (найдено на Камнепаде): эффект ставит префаб-зону `CardZoneBehaviour` + `ICardAreaOutline`
+  (контур рисуется, пока `TryGetOutline` true) и отвечает `LeavesOutlinedZone => true`; кольцо при прицеливании —
+  `ICardArea.TryGetArea`. Образцы: Fog, Lure, Rockfall.
+- Урон по площади: перебор `world.Combatants(list)` (игрок, звери, союзники, мимики) и `fighter.TakeDamage(DamageInfo)`;
+  игроку то же число в половинках сердца. Горящая смола и цепная молния бьют всех без разбора сторон.
+- «Мелкий» зверь = масса `body.mass` (μ) не больше 1 (масса игрока); оглушение — `WorldCreature.Stagger(seconds, from)`.
+- В EnemyDebug у отладочного игрока НЕТ `CardAreaDisplay` (кольца/контуры не видны) — для проверки зонд временно
+  добавляет его с `ringPrefab` из Player.prefab. Команда `timescale` не держится: HitStop возвращает 1 после удара,
+  поэтому кадр «до обвала» снимать командой `shot` в том же опросе, что и `invoke` (оба .cmd положить разом).
 
 ## Статус
 
 | Карта | Статус |
 |---|---|
 | Струя | готово (adb4640f0): WaterJetEffect, тесты WaterJetTests 7/7, вживую в EnemyDebug — checks/water_jet-*.png; таблица KayoSpace — за пользователем |
-| Камнепад | — |
+| Камнепад | готово (a6122059b): RockfallEffect + зона RockfallZone, тесты RockfallTests 8/8, вживую в EnemyDebug — checks/rockfall-*.png; таблица KayoSpace — за пользователем |
 | Сглаз | — |
 | Вороньё | — |
 | Пороховая бочка | — |
