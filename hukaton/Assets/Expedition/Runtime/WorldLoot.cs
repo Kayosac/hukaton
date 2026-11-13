@@ -15,6 +15,12 @@ namespace Hakaton.Expeditions
     {
         [Tooltip("What this is. Name, price, rarity and look come from the item.")]
         public LootItem item;
+        [Tooltip("Optional: the find turns out to be one of these items (weighted). On a ready-made location it is picked " +
+                 "anew every outing; in the endless world once per spot. Empty — always the item above.")]
+        public LootPool pool;
+        [Tooltip("Size of the built 3D model on the ground relative to the item's model (the shelf shows it at 1). " +
+                 "Drawings keep their own height.")]
+        [Min(.1f)] public float modelScale = 1;
         public bool guaranteed = true;
         [Range(0, 1)] public float spawnChance = .7f;
         public Rigidbody body;
@@ -32,6 +38,8 @@ namespace Hakaton.Expeditions
         float focusPulse, popTime = -1;
         SpringFloat scale = new SpringFloat(1);
         LootSpriteView drawing;
+        GameObject built;
+        bool pickFixed;
 
         /// <summary>A creature's drop: pulled into the bag by itself once the player is close enough.</summary>
         public bool Magnetic { get; set; }
@@ -51,9 +59,33 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>Makes this pickup the given item (a creature's drop): look, glint and what is credited.</summary>
-        public void Setup(LootItem value)
+        public void Setup(LootItem value) => SetItem(value);
+
+        /// <summary>
+        /// The endless world picks the pool item from the world seed and the spot, so a reloaded chunk shows the same
+        /// thing; outing resets then keep it.
+        /// </summary>
+        public void PickFromPool(System.Random random)
         {
+            if (!pool) return;
+            pickFixed = true;
+            SetItem(pool.Pick(random));
+        }
+
+        /// <summary>Becomes another item: rebuilds the look the previous one had built and retints the glint.</summary>
+        void SetItem(LootItem value)
+        {
+            if (!value) return;
+            if (value == item && dressed) return;
             item = value;
+            if (built)
+            {
+                built.transform.SetParent(null, false);
+                Destroy(built);
+                built = null;
+                drawing = null;
+            }
+            dressed = false;
             Dress();
         }
 
@@ -66,9 +98,11 @@ namespace Hakaton.Expeditions
             if (visual && visual.childCount == 0)
             {
                 var made = catalog.CreateVisual(item, visual, false);
+                built = made;
                 if (made)
                 {
                     drawing = made.GetComponent<LootSpriteView>();
+                    if (!drawing) made.transform.localScale *= modelScale;
                     foreach (var collider in made.GetComponentsInChildren<Collider>()) collider.enabled = false;
                 }
             }
@@ -83,6 +117,7 @@ namespace Hakaton.Expeditions
         public void ResetForOuting(System.Random random)
         {
             Record();
+            if (pool && !pickFixed) SetItem(pool.Pick(random));
             Dress();
             Taken = false;
             var point = spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[random.Next(spawnPoints.Length)] : null;
@@ -183,7 +218,7 @@ namespace Hakaton.Expeditions
                 foreach (var filter in model.GetComponentsInChildren<MeshFilter>())
                 {
                     if (!filter.sharedMesh) continue;
-                    Gizmos.matrix = visual.localToWorldMatrix * root.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+                    Gizmos.matrix = visual.localToWorldMatrix * Matrix4x4.Scale(Vector3.one * modelScale) * root.worldToLocalMatrix * filter.transform.localToWorldMatrix;
                     Gizmos.DrawMesh(filter.sharedMesh);
                 }
                 Gizmos.matrix = Matrix4x4.identity;

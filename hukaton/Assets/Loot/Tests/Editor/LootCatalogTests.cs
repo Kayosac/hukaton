@@ -126,5 +126,56 @@ namespace Hakaton.Loot.Tests
                 }
             Assert.That(problems, Is.Empty, string.Join("\n", problems));
         }
+
+        [Test]
+        public void FindPoolsHoldOnlyCatalogueItemsAndAreNotEmpty()
+        {
+            var catalog = Catalog();
+            var problems = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(LootPool)))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var pool = AssetDatabase.LoadAssetAtPath<LootPool>(path);
+                if (pool.IsEmpty) problems.Add($"{path}: the pool has no item with a weight above 0.");
+                foreach (var entry in pool.entries)
+                {
+                    if (entry == null || !entry.item) { problems.Add($"{path}: an entry has no item."); continue; }
+                    if (!catalog.Contains(entry.item)) problems.Add($"{path}: {entry.item.name} is not in the catalogue.");
+                    if (!entry.item.model) problems.Add($"{path}: {entry.item.name} has no world model.");
+                }
+            }
+            foreach (var (path, prefab) in Prefabs())
+                foreach (var loot in prefab.GetComponentsInChildren<WorldLoot>(true))
+                    if (loot.pool && loot.pool.IsEmpty) problems.Add($"{path} ({loot.name}): its pool is empty.");
+            Assert.That(problems, Is.Empty, string.Join("\n", problems));
+        }
+
+        [Test]
+        public void PoolPickFollowsTheWeights()
+        {
+            var a = ScriptableObject.CreateInstance<LootItem>();
+            var b = ScriptableObject.CreateInstance<LootItem>();
+            var pool = ScriptableObject.CreateInstance<LootPool>();
+            try
+            {
+                pool.entries.Add(new LootPool.Entry { item = a, weight = 3 });
+                pool.entries.Add(new LootPool.Entry { item = b, weight = 1 });
+                Assert.That(pool.Pick(0.0), Is.SameAs(a));
+                Assert.That(pool.Pick(0.74), Is.SameAs(a));
+                Assert.That(pool.Pick(0.76), Is.SameAs(b));
+                Assert.That(pool.Pick(1.0), Is.SameAs(b));
+                var random = new System.Random(5);
+                int countA = 0;
+                for (int i = 0; i < 4000; i++) if (pool.Pick(random) == a) countA++;
+                Assert.That(countA / 4000f, Is.EqualTo(.75f).Within(.03f));
+                Assert.That(pool.Pick(new System.Random(42)), Is.SameAs(pool.Pick(new System.Random(42))), "Same seed, same item.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(a);
+                Object.DestroyImmediate(b);
+                Object.DestroyImmediate(pool);
+            }
+        }
     }
 }

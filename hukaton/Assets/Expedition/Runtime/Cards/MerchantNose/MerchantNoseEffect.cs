@@ -13,8 +13,8 @@ namespace Hakaton.Expeditions.Cards
     public sealed class MerchantNoseEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Board numbers (I / II / III)")]
-        [Tooltip("Shut chests within this distance of the hit get a pillar, m (board: 20 / 35 / 50).")]
-        public LevelFloat radius = new LevelFloat(20, 35, 50);
+        [Tooltip("Shut chests within this distance of the hit get a pillar, m (table 13.11: 20 / 40 / 70).")]
+        public LevelFloat radius = new LevelFloat(20, 40, 70);
         [Tooltip("How long a pillar stands unless its chest is opened first, s.")]
         [Min(1)] public float seconds = 40;
 

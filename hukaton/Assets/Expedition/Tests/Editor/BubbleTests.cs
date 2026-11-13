@@ -71,11 +71,38 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void StrikesFromOutsideOnSomeoneInsideHitTheFilm()
+        {
+            Vector3 c = Centre;
+            Assert.That(BubbleRules.Shields(c + new Vector3(3.6f, 0, 0), c + new Vector3(2.9f, 0, 0), c, 3), Is.True, "The player right at the film.");
+            Assert.That(BubbleRules.Shields(c + new Vector3(-5f, 0, 0), c, c, 3), Is.True);
+            Assert.That(BubbleRules.Shields(c + new Vector3(3.6f, 0, 0), c + new Vector3(3.3f, 0, 0), c, 3), Is.False, "Outside, no cover.");
+            Assert.That(BubbleRules.Shields(c + new Vector3(1, 0, 0), c, c, 3), Is.False, "An attacker inside is not kept off (it is pushed out anyway).");
+            Vector3 film = BubbleRules.FilmPoint(c + new Vector3(0, 0, 6), c, 3, c.y + .9f);
+            Assert.That((film - c).magnitude, Is.EqualTo(3).Within(1e-3f));
+            Assert.That(film.z - c.z, Is.GreaterThan(2.5f), "On the attacker's side.");
+        }
+
+        [Test]
+        public void ScriptMovedFightersCannotStepIntoTheDome()
+        {
+            Vector3 c = Centre;
+            // A chest mimic hopping toward the player inside: its hop ends on the film, outside.
+            Vector3 end = BubbleRules.KeepOut(c + new Vector3(1.5f, 0, 0), .45f, c, 3);
+            Assert.That(end.x - c.x, Is.EqualTo(3.45f).Within(1e-3f));
+            Assert.That(end.y, Is.EqualTo(c.y));
+            Vector3 outside = c + new Vector3(0, 0, -4);
+            Assert.That(BubbleRules.KeepOut(outside, .45f, c, 3), Is.EqualTo(outside));
+            // Its bite on the player inside from outside is shielded like a creature's strike.
+            Assert.That(BubbleRules.Shields(end, c + new Vector3(2.6f, 0, 0), c, 3), Is.True);
+        }
+
+        [Test]
         public void AssetsCarryTheNumbersAndTheDomeHasNoCollider()
         {
             var effect = AssetDatabase.LoadAssetAtPath<BubbleEffect>("Assets/Game/Data/Effects/Bubble.asset");
             Assert.That(effect, Is.Not.Null);
-            Assert.That((effect.duration.i, effect.duration.ii, effect.duration.iii), Is.EqualTo((4f, 6f, 9f)));
+            Assert.That((effect.duration.i, effect.duration.ii, effect.duration.iii), Is.EqualTo((4f, 8f, 16f)));
             Assert.That(effect.radius, Is.EqualTo(3));
             Assert.That(effect.TryGetStat(out string label, out var values, out string unit), Is.True);
             Assert.That(label, Is.EqualTo("Длительность"));

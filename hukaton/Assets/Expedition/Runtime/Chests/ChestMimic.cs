@@ -454,7 +454,7 @@ namespace Hakaton.Expeditions
             Vector3 toPlayer = Flat(PlayerFeet() - transform.position);
             float reach = Mathf.Min(lunge, Mathf.Max(0, toPlayer.magnitude - .7f));
             Vector3 from = transform.position, to2 = from + (toPlayer.sqrMagnitude > .01f ? toPlayer.normalized : -transform.forward) * reach;
-            to2 = Leashed(to2);
+            to2 = KeptOut(Leashed(to2));
             time = 0;
             bool snapped = false;
             while (time < .12f)
@@ -483,6 +483,8 @@ namespace Hakaton.Expeditions
             if (Vector3.Distance(mouth, world.vitals.Centre) > biteReach) return;
             Vector3 push = Flat(world.vitals.Centre - transform.position);
             push = (push.sqrMagnitude > .01f ? push.normalized : -transform.forward) * biteKnockback + Vector3.up * 2.5f;
+            // A card shield around the player (the Bubble) takes the bite: no damage, no push.
+            if (CardBarriers.BlockStrike(world, this, world.vitals, world.vitals.Centre)) return;
             if (world.vitals.TakeDamage(new DamageInfo(biteHalfHearts, push, world.vitals.Centre, transform.position, DamageKind.Hit, this)))
             {
                 Bites++;
@@ -507,7 +509,7 @@ namespace Hakaton.Expeditions
                 Vector3 start = transform.position;
                 Vector3 step = Flat(target - start);
                 step = step.magnitude > stride ? step.normalized * stride : step;
-                Vector3 end = Ground(Leashed(start + step));
+                Vector3 end = Ground(KeptOut(Leashed(start + step)));
                 Quaternion face = step.sqrMagnitude > .001f ? Quaternion.LookRotation(-step.normalized) : transform.rotation;
                 float chatter = Random.Range(8, 22);
                 world.Play(rattleCue, Centre, .8f, Random.Range(.92f, 1.12f));
@@ -682,6 +684,12 @@ namespace Hakaton.Expeditions
             float limit = Mathf.Max(0, leash - .4f);
             return offset.magnitude > limit ? new Vector3(home.x, point.y, home.z) + offset.normalized * limit : point;
         }
+
+        /// <summary>A hop or lunge target kept out of card barriers (the Bubble's dome), with room for the chest.</summary>
+        Vector3 KeptOut(Vector3 point) => CardBarriers.KeepOut(World, point, BarrierRadius);
+
+        /// <summary>Half the chest's width, for card barriers, m.</summary>
+        public const float BarrierRadius = .45f;
 
         /// <summary>The best spot to run to: inside the circle, on walkable ground, as far from the player as possible.</summary>
         Vector3 FleeSpot()

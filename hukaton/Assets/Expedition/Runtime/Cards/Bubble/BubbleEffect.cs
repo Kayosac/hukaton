@@ -13,7 +13,7 @@ namespace Hakaton.Expeditions.Cards
     {
         [Header("Card numbers (I / II / III)")]
         [Tooltip("How long the dome stands, s.")]
-        public LevelFloat duration = new LevelFloat(4, 6, 9);
+        public LevelFloat duration = new LevelFloat(4, 8, 16);
         [Tooltip("Radius of the dome, m.")]
         [Min(.5f)] public float radius = 3;
 
