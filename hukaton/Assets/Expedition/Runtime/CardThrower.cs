@@ -30,8 +30,14 @@ namespace Hakaton.Expeditions
         public LineRenderer trajectory;
         [Tooltip("Camera-space point where a card physically leaves the hand.")]
         public Transform launchSocket;
-        [Tooltip("Width of the preview on screen with its glow, pixels at 1080 lines; the bright core is about a fifth of it. Scales with the window height, constant at any distance.")]
-        [Min(.5f)] public float previewWidthPixels = 12;
+        [Tooltip("Width of the preview in its middle, on screen with its glow, pixels at 1080 lines; the bright core is about a fifth of it. Scales with the window height, the same at any distance.")]
+        [Min(.5f)] public float previewWidthPixels = 16;
+        [Tooltip("Width at the two ends, as a share of the middle: the stripe thins out towards both ends.")]
+        [Range(0, 1)] public float previewEndWidth = .15f;
+        [Tooltip("How soon the stripe swells from its ends: below 1 it fills out quickly and stays thick longer, above 1 it is thick only right in the middle.")]
+        [Range(.2f, 3)] public float previewTaperPower = .7f;
+        [Tooltip("Share of the stripe's screen length at each end over which it fades in from (and out to) full transparency.")]
+        [Range(.01f, .5f)] public float previewFadeShare = .3f;
         [Tooltip("Screen length of one line segment, pixels at 1080 lines: the path is cut into pieces of this length so the width stays exact along it.")]
         [Min(1)] public float previewDashPixels = 12;
         [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
@@ -59,10 +65,12 @@ namespace Hakaton.Expeditions
         readonly Vector3[] previewPoints = new Vector3[64];
         readonly Gradient previewGradient = new Gradient();
         readonly GradientColorKey[] previewColours = new GradientColorKey[2];
-        readonly GradientAlphaKey[] previewAlphas = { new GradientAlphaKey(.8f, 0), new GradientAlphaKey(1, .1f), new GradientAlphaKey(1, 1) };
+        readonly GradientAlphaKey[] previewAlphas = new GradientAlphaKey[6];
         // The preview as drawn: one vertex per piece, a fixed screen length apart.
         const int MaxDashPoints = 256, WidthKeys = 24;
         readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
+        // Length of the drawn line from its start to each dash point, metres (the LineRenderer keys width and colour by it).
+        readonly float[] dashLengths = new float[MaxDashPoints];
         readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
         readonly AnimationCurve widthCurve = new AnimationCurve();
 
@@ -313,10 +321,15 @@ namespace Hakaton.Expeditions
             trajectory.positionCount = dashes;
             for (int i = 0; i < dashes; i++) trajectory.SetPosition(i, dashPoints[i]);
             UpdatePreviewWidth(view, dashes);
-            // The halo glows in the card's accent (the core is white in the shader), barely softer by the hand.
+            // The halo glows in the card's accent (the core is white in the shader); both ends melt into transparency.
             Color core = world.Accent(card);
             previewColours[0] = new GradientColorKey(core, 0);
             previewColours[1] = new GradientColorKey(core, 1);
+            float fade = previewFadeShare;
+            float[] shares = { 0, fade * .4f, fade, 1 - fade, 1 - fade * .4f, 1 };
+            float[] alphas = { 0, .55f, 1, 1, .55f, 0 };
+            for (int i = 0; i < previewAlphas.Length; i++)
+                previewAlphas[i] = new GradientAlphaKey(alphas[i], LengthShareAt(shares[i], dashes));
             previewGradient.SetKeys(previewColours, previewAlphas);
             trajectory.colorGradient = previewGradient;
         }
@@ -382,40 +395,59 @@ namespace Hakaton.Expeditions
             return dashes;
         }
 
+        /// <summary>Thickness along the stripe, 0..1 of its screen length: thin at both ends, full in the middle.</summary>
+        public static float Taper(float share, float endWidth, float power)
+        {
+            float swell = Mathf.Pow(Mathf.Sin(Mathf.Clamp01(share) * Mathf.PI), power);
+            return Mathf.Lerp(endWidth, 1, swell);
+        }
+
         /// <summary>
-        /// Width so every point of the line is <see cref="previewWidthPixels"/> (at 1080 lines) wide on screen:
-        /// proportional to its depth in front of the camera. The curve is keyed along the line's length.
+        /// Share of the line's WORLD length (what the LineRenderer keys its width and colour by) at a share of its SCREEN
+        /// length: the dash points are equally spaced on screen, so the screen share is their index share.
+        /// </summary>
+        float LengthShareAt(float screenShare, int count)
+        {
+            float total = dashLengths[count - 1];
+            if (total <= 1e-6f) return screenShare;
+            float index = Mathf.Clamp01(screenShare) * (count - 1);
+            int i = Mathf.Min((int)index, count - 2);
+            return Mathf.Clamp01(Mathf.Lerp(dashLengths[i], dashLengths[i + 1], index - i) / total);
+        }
+
+        /// <summary>
+        /// Width so the line is <see cref="previewWidthPixels"/> (at 1080 lines) wide on screen in its middle and thins
+        /// towards both ends (<see cref="Taper"/>), whatever the depth: proportional to the depth in front of the camera.
+        /// Keys sit at even shares of the SCREEN length, timed by the share of the world length the renderer uses.
         /// </summary>
         void UpdatePreviewWidth(Camera view, int count)
         {
             var eye = view.transform;
             Vector3 origin = eye.position, forward = eye.forward;
             float perMetreOfDepth = previewWidthPixels / 1080f * 2 * Mathf.Tan(view.fieldOfView * .5f * Mathf.Deg2Rad);
-            float total = 0;
-            for (int i = 1; i < count; i++) total += Vector3.Distance(dashPoints[i - 1], dashPoints[i]);
-            // Walk the polyline once, sampling the depth at evenly spaced fractions of its length.
-            int segment = 1;
-            float walked = 0, segmentLength = count > 1 ? Vector3.Distance(dashPoints[0], dashPoints[1]) : 0;
+            dashLengths[0] = 0;
+            for (int i = 1; i < count; i++) dashLengths[i] = dashLengths[i - 1] + Vector3.Distance(dashPoints[i - 1], dashPoints[i]);
+            float total = dashLengths[count - 1];
+            float lastTime = -1;
             for (int k = 0; k < WidthKeys; k++)
             {
-                float time = k / (WidthKeys - 1f), target = time * total;
-                while (segment < count - 1 && walked + segmentLength < target)
-                {
-                    walked += segmentLength;
-                    segment++;
-                    segmentLength = Vector3.Distance(dashPoints[segment - 1], dashPoints[segment]);
-                }
-                float along = segmentLength > 1e-6f ? Mathf.Clamp01((target - walked) / segmentLength) : 1;
-                Vector3 point = Vector3.Lerp(dashPoints[segment - 1], dashPoints[segment], along);
+                float share = k / (WidthKeys - 1f);
+                float index = share * (count - 1);
+                int i = Mathf.Min((int)index, count - 2);
+                Vector3 point = Vector3.Lerp(dashPoints[i], dashPoints[i + 1], index - i);
+                float time = total > 1e-6f ? Mathf.Lerp(dashLengths[i], dashLengths[i + 1], index - i) / total : share;
+                // Keys must keep strictly increasing times.
+                time = Mathf.Max(time, lastTime + 1e-4f);
+                if (k == WidthKeys - 1) time = Mathf.Max(time, 1);
+                lastTime = time;
                 float depth = Mathf.Max(view.nearClipPlane, Vector3.Dot(point - origin, forward));
-                widthKeys[k] = new Keyframe(time, perMetreOfDepth * depth);
+                widthKeys[k] = new Keyframe(time, perMetreOfDepth * depth * Taper(share, previewEndWidth, previewTaperPower));
             }
             // Straight lines between the keys.
-            float step = 1f / (WidthKeys - 1);
             for (int k = 0; k < WidthKeys; k++)
             {
-                float slopeIn = k > 0 ? (widthKeys[k].value - widthKeys[k - 1].value) / step : 0;
-                float slopeOut = k < WidthKeys - 1 ? (widthKeys[k + 1].value - widthKeys[k].value) / step : slopeIn;
+                float slopeIn = k > 0 ? (widthKeys[k].value - widthKeys[k - 1].value) / Mathf.Max(1e-4f, widthKeys[k].time - widthKeys[k - 1].time) : 0;
+                float slopeOut = k < WidthKeys - 1 ? (widthKeys[k + 1].value - widthKeys[k].value) / Mathf.Max(1e-4f, widthKeys[k + 1].time - widthKeys[k].time) : slopeIn;
                 widthKeys[k].inTangent = k > 0 ? slopeIn : slopeOut;
                 widthKeys[k].outTangent = slopeOut;
             }
