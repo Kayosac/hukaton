@@ -37,6 +37,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         public readonly ForestLayout Forest;
         /// <summary>Where this chunk sits in its scene: (0, 0) for one chunk, the part's corner for a landmark part.</summary>
         public readonly Vector2 Offset;
+        /// <summary>The land the chunk is built for: the rotten swamp has its own art, water, ground and calmer rolls.</summary>
+        public readonly Biome Biome;
         readonly int seed;
 
         public readonly struct Ramp
@@ -51,10 +53,14 @@ namespace Hakaton.WorldAssembly.EditorTools
         public bool HasFalls => Shape.Kind == ShapeKind.Cliff && Variant == "falls";
         public const float FallsRadius = 1.4f, FallsBank = 2.2f, FallsDeep = .95f;
 
-        public TileTerrain(TileShape shape, string variant, float plateau, float canyonDepth)
+        public TileTerrain(TileShape shape, string variant, float plateau, float canyonDepth, Biome biome = Biome.Forest)
         {
             Shape = shape; Variant = variant; Plateau = plateau; CanyonDepth = canyonDepth;
-            seed = (shape.Id + "/" + variant).GetHashCode();
+            // A swamp scene or landmark is swamp whatever is asked.
+            if (TileShapes.IsSwampScene(variant)) biome = Biome.Swamp;
+            if (shape.Kind == ShapeKind.Landmark) biome = Landmarks.Parse(shape.Id).kind.Biome;
+            Biome = biome;
+            seed = (shape.Id + "/" + variant + (biome == Biome.Swamp ? "/swamp" : "")).GetHashCode();
             if (shape.Kind == ShapeKind.Plain || shape.Kind == ShapeKind.PlateauTop) Scene = ChunkScene.Get(variant);
             if (shape.Kind == ShapeKind.Maze && TileShapes.IsForest(variant)) Forest = new ForestLayout(shape.Mids, variant, seed);
             if (shape.Kind == ShapeKind.Landmark)
@@ -64,6 +70,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Scene = ChunkScene.Get(kind.Id);
                 Offset = new Vector2(i * Size, j * Size);
                 seed = kind.Id.GetHashCode();
+                Biome = kind.Biome;
             }
             if (shape.Kind == ShapeKind.River || shape.Kind == ShapeKind.Canyon)
             {
@@ -295,7 +302,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             float fx = Mathf.Clamp01(Mathf.Min(p.x, Size - p.x) / 3), fy = Mathf.Clamp01(Mathf.Min(p.y, Size - p.y) / 3);
             float Wave(float s) { float w = Mathf.Sin(Mathf.PI * s / 8); return w * w; }
             float edge = EdgeWave * (Wave(p.x) * (1 - fy) + Wave(p.y) * (1 - fx));
-            float inner = Roll * (Noise(p, 6.5f, 41) * .7f + Noise(p, 3.2f, 42) * .3f) * Mathf.Min(fx, fy);
+            // A swamp lies flat: its pools and hummocks are the relief, the ground only sags a little.
+            float roll = Biome == Biome.Swamp ? Roll * .3f : Roll;
+            float inner = roll * (Noise(p, 6.5f, 41) * .7f + Noise(p, 3.2f, 42) * .3f) * Mathf.Min(fx, fy);
             return edge + inner;
         }
 
@@ -353,6 +362,9 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         /// <summary>Water at least a hand deep here.</summary>
         public bool IsDeep(Vector2 p) => Wet && Base(p) < WaterLevel - .1f;
+
+        /// <summary>In a bog window of the swamp (a pool of mire, <see cref="ChunkScene.Pool.Bog"/>) rather than water.</summary>
+        public bool IsBog(Vector2 p) => Scene != null && Scene.InBog(this, p + Offset);
 
         /// <summary>Within <paramref name="margin"/> of the water's own banks.</summary>
         public bool NearWater(Vector2 p, float margin)

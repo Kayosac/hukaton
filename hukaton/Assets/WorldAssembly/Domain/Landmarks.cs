@@ -61,6 +61,7 @@ namespace Hakaton.WorldAssembly
             new LandmarkKind("sinkhole", 2, 1, 0),
             // The old bog is the rotten swamp's own landmark now.
             new LandmarkKind("swamp", 2, 1, 1, biome: Biome.Swamp),
+            new LandmarkKind("flooded-village", 2, 0, 1, biome: Biome.Swamp),
             new LandmarkKind("lake", 2, 1, 1, 1, 1),
         };
 
