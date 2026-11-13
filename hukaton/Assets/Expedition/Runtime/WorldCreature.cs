@@ -1219,6 +1219,8 @@ namespace Hakaton.Expeditions
             // Colour: red flash on hit, icy while frozen, flickering orange while burning.
             if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);
+            // In its shell: a dull stony grey, so it is plain that hitting it now does nothing (WorldCreature.Tricks.cs).
+            else if (InShell) Tint(new Color(.62f, .66f, .74f), .55f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
             // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).

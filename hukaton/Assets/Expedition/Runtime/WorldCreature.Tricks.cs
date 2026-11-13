@@ -37,10 +37,13 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float vanishSeconds = .45f;
         [Tooltip("It reappears this far from the target, metres.")]
         [Min(1)] public float appearDistance = 2.6f;
+        [Tooltip("It chases in plain sight this long before it may blink, seconds.")]
+        [Min(0)] public float showSeconds = 1;
         [Tooltip("The wind-up of the dive after it reappears, seconds: short, but still a warning.")]
-        [Min(.05f)] public float windup = .35f;
-        [Tooltip("The puff it vanishes and reappears in.")]
+        [Min(.05f)] public float windup = .45f;
+        [Tooltip("The puff it vanishes and reappears in, and its size per metre of the creature's height.")]
         public VfxBurst puff;
+        [Min(.01f)] public float puffScale = 1;
     }
 
     /// <summary>
@@ -197,7 +200,7 @@ namespace Hakaton.Expeditions
         {
             if (shellSeconds <= 0) return Vector2.one;
             shellShape = Mathf.MoveTowards(shellShape, InShell ? 1 : 0, dt * 7);
-            return new Vector2(1 + .14f * shellShape, 1 - .4f * shellShape);
+            return new Vector2(1 + .2f * shellShape, 1 - .5f * shellShape);
         }
 
         // ---------------- burrow ----------------
@@ -313,13 +316,14 @@ namespace Hakaton.Expeditions
                 if (Time.time >= blinkAt) Reappear();
                 return blinking;
             }
-            if (State != CreatureState.Chase || !sees || Time.time < nextBlink) return false;
+            // It shows itself first: a second of the chase before the first trick.
+            if (State != CreatureState.Chase || stateTime < blink.showSeconds || !sees || Time.time < nextBlink) return false;
             float distance = TargetDistance;
             if (distance < blink.minRange || distance > blink.maxRange) return false;
             blinking = true;
             blinkAt = Time.time + blink.vanishSeconds;
             nextBlink = blinkAt + blink.cooldown;
-            world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, Mathf.Clamp(TopHeight, .6f, 1.4f));
+            world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
             world.Play(threatCue, body.position, 1, 1.1f);
             SetHidden(true);
             Halt();
@@ -354,7 +358,7 @@ namespace Hakaton.Expeditions
             body.rotation = facing;
             transform.rotation = facing;
             SetHidden(false);
-            world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, Mathf.Clamp(TopHeight, .6f, 1.4f));
+            world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
             world.Play(alertCue, body.position, 1, 1.2f);
             blinkStrike = true;
             Enter(CreatureState.Windup);
