@@ -199,6 +199,8 @@ namespace Hakaton.OldApiary
 
         void Remember(Burnable b)
         {
+            // Drawn in its chunk's merged look until now: from here on by its own renderers (they char and shrink).
+            MergedLooks.Unmerge(b.gameObject);
             touched[b] = new Original
             {
                 scale = b.transform.localScale,

@@ -43,6 +43,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             materials.Clear();
             prefabs.Clear();
+            ChunkMerge.ForgetLods();
             // Collision copies are made anew with the chunks that use them.
             collisionCopies.Clear();
             AssetDatabase.DeleteAsset(CollisionPath);
@@ -159,6 +160,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                 var ramp = terrain.Ramps[0];
                 view.roadGuide = new[] { new Vector3(ramp.A.x - 8, 0, ramp.A.y - 8), new Vector3(ramp.B.x - 8, Plateau, ramp.B.y - 8) };
             }
+            // The still dressing drawn by material: a dozen draws a chunk instead of hundreds.
+            ChunkMerge.Merge(go, meshPath, name);
             CullDetail(go.transform);
 
             string prefabPath = $"{folder}/{name}.prefab";
@@ -1779,7 +1782,16 @@ namespace Hakaton.WorldAssembly.EditorTools
                 .ToArray();
             if (renderers.Length == 0) return;
             var group = chunk.gameObject.AddComponent<LODGroup>();
-            group.SetLODs(new[] { new LOD(.2f, renderers) });
+            var near = chunk.Find("Merged look/Near");
+            var far = chunk.Find("Merged look/Far");
+            // Past about 30 m the merged dressing is drawn with fewer triangles; past about 70 m not at all.
+            if (near && far)
+                group.SetLODs(new[]
+                {
+                    new LOD(.45f, renderers.Where(r => !r.transform.IsChildOf(far)).ToArray()),
+                    new LOD(.2f, renderers.Where(r => !r.transform.IsChildOf(near)).ToArray()),
+                });
+            else group.SetLODs(new[] { new LOD(.2f, renderers) });
             group.localReferencePoint = new Vector3(0, 2, 0);
             group.size = 16;
         }

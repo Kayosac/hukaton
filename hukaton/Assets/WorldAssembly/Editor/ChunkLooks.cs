@@ -41,6 +41,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     var renderer = filter.GetComponent<MeshRenderer>();
                     if (!renderer || !renderer.enabled || !filter.sharedMesh || filter.gameObject.layer == 4) continue;
                     if (ground && filter.transform.IsChildOf(ground)) continue;
+                    // The merged look draws the pieces already measured one by one.
+                    if (filter.GetComponentInParent<MergedLook>()) continue;
                     string key = Key(filter.transform, root);
                     if (Soft(key)) continue;
                     var m = filter.transform.localToWorldMatrix;
@@ -117,6 +119,6 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// Things you walk through as you see them: grass, ferns, broad leaves, bushes, ivy, moss, cobwebs, cloth and
         /// charms on strings, decals, effects. Everything else drawn is solid.
         /// </summary>
-        public static bool Soft(string key) => key == "Water mesh" || SoftPieces.Any(key.StartsWith) || SoftPart(key);
+        public static bool Soft(string key) => key == "Water mesh" || key.StartsWith("Merged look") || SoftPieces.Any(key.StartsWith) || SoftPart(key);
     }
 }

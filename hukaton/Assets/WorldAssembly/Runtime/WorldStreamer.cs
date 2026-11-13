@@ -484,7 +484,11 @@ namespace Hakaton.WorldAssembly.Unity
                 world.props.Add(p);
             }
             for (int i = 0; i < view.trees.Length; i++)
-                if (view.trees[i] && mem != null && mem.awakened.Contains(i)) view.trees[i].gameObject.SetActive(false);
+                if (view.trees[i] && mem != null && mem.awakened.Contains(i))
+                {
+                    MergedLooks.Unmerge(view.trees[i].gameObject);
+                    view.trees[i].gameObject.SetActive(false);
+                }
             if (fire)
                 for (int i = 0; i < view.burnables.Length; i++)
                 {
