@@ -69,6 +69,23 @@ namespace Hakaton.Expeditions.Cards
         }
 
         /// <summary>
+        /// A strike from outside on someone inside: the film takes it. The victim counts by its feet (a little above
+        /// them), the attacker by its feet: the dome is widest at the ground, so standing right at the film still counts.
+        /// </summary>
+        public static bool Shields(Vector3 attackerFeet, Vector3 victimFeet, Vector3 centre, float radius)
+            => Inside(victimFeet + Vector3.up * .1f, centre, radius) && !Inside(attackerFeet + Vector3.up * .1f, centre, radius);
+
+        /// <summary>Where a blow from <paramref name="from"/> meets the film: on the dome toward it, at most at the given height.</summary>
+        public static Vector3 FilmPoint(Vector3 from, Vector3 centre, float radius, float height)
+        {
+            Vector3 flat = from - centre;
+            flat.y = 0;
+            Vector3 direction = flat.sqrMagnitude > 1e-6f ? flat.normalized : Vector3.forward;
+            float h = Mathf.Clamp(height - centre.y, 0, radius * .95f);
+            return centre + direction * RadiusAt(radius, h) + Vector3.up * h;
+        }
+
+        /// <summary>
         /// Does a point moving from <paramref name="from"/> to <paramref name="to"/> fly into the dome? True also when
         /// it already is inside. <paramref name="point"/>: where it meets the film (or where it is).
         /// </summary>

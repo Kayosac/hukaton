@@ -71,6 +71,19 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void StrikesFromOutsideOnSomeoneInsideHitTheFilm()
+        {
+            Vector3 c = Centre;
+            Assert.That(BubbleRules.Shields(c + new Vector3(3.6f, 0, 0), c + new Vector3(2.9f, 0, 0), c, 3), Is.True, "The player right at the film.");
+            Assert.That(BubbleRules.Shields(c + new Vector3(-5f, 0, 0), c, c, 3), Is.True);
+            Assert.That(BubbleRules.Shields(c + new Vector3(3.6f, 0, 0), c + new Vector3(3.3f, 0, 0), c, 3), Is.False, "Outside, no cover.");
+            Assert.That(BubbleRules.Shields(c + new Vector3(1, 0, 0), c, c, 3), Is.False, "An attacker inside is not kept off (it is pushed out anyway).");
+            Vector3 film = BubbleRules.FilmPoint(c + new Vector3(0, 0, 6), c, 3, c.y + .9f);
+            Assert.That((film - c).magnitude, Is.EqualTo(3).Within(1e-3f));
+            Assert.That(film.z - c.z, Is.GreaterThan(2.5f), "On the attacker's side.");
+        }
+
+        [Test]
         public void AssetsCarryTheNumbersAndTheDomeHasNoCollider()
         {
             var effect = AssetDatabase.LoadAssetAtPath<BubbleEffect>("Assets/Game/Data/Effects/Bubble.asset");
