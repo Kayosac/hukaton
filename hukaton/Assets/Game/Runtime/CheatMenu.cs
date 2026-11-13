@@ -112,6 +112,24 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>
+        /// The phone for free, in the shop or right on an outing (then Q takes it out at once); the dealer's introduction
+        /// is skipped. Kept like a bought one.
+        /// </summary>
+        public bool GrantPhone()
+        {
+            var items = game.specialItems;
+            var phone = items ? items.Find("phone") : null;
+            if (!phone) { status = "Телефона в каталоге спецпредметов нет."; return false; }
+            if (!game.Ready || game.InCave || game.expedition.Returning) { status = "Телефон выдаётся в лавке или на вылазке."; return false; }
+            items.Inventory.MarkIntroduced(phone.id);
+            items.Inventory.MarkSeen(phone.id);
+            if (!items.Grant(phone)) { status = "Телефон уже есть: Q на вылазке."; return false; }
+            game.SaveNow(); // On an outing the change is kept dirty and saved on the way home.
+            status = "Телефон получен: Q на вылазке, Tab — автомат.";
+            return true;
+        }
+
         /// <summary>Every special item for free (introductions skipped) and the phone's battery at its last step.</summary>
         public bool GrantSpecialItems()
         {
@@ -240,6 +258,8 @@ namespace Hakaton.Game
             GUI.enabled = game.Ready && game.Phase == GamePhase.Shop && !game.expedition.Returning;
             if (GUILayout.Button("Все карты + прокачки", button)) UnlockCollection();
             if (GUILayout.Button("Все спецпредметы (Q на вылазке)", button)) GrantSpecialItems();
+            GUI.enabled = game.Ready && !game.InCave && !game.expedition.Returning;
+            if (GUILayout.Button("Получить телефон", button)) GrantPhone();
             GUI.enabled = game.Ready;
             if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
             GUI.enabled = true;
