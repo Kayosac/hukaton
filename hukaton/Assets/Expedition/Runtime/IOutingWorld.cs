@@ -7,7 +7,9 @@ namespace Hakaton.Expeditions
     /// content lists as parts load and empties them as they unload.
     /// </summary>
     /// <summary>Where an outing goes: the ready-made location or a new endless world.</summary>
-    public enum OutingPlace { Ready, Endless }
+    /// <summary>Where an outing goes: the ready-made location, a new endless world, or the one trip to the god's
+    /// mountains (not an outing world: the game runs it like the cave prologue).</summary>
+    public enum OutingPlace { Ready, Endless, God }
 
     public interface IOutingWorld
     {

@@ -1523,7 +1523,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8155184446505603775, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
       propertyPath: m_LocalPosition.x
@@ -21762,6 +21762,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2846282836311981597, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4279507748
@@ -56014,6 +56018,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1922056676}
+  - component: {fileID: 731200001}
   m_Layer: 0
   m_Name: "God mountains \u2014 level"
   m_TagString: Untagged
@@ -61697,6 +61702,35 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 4681226017524391116, guid: de957229e973840f2a252fdb9e23c027, type: 3}
   m_PrefabInstance: {fileID: 6082274978300789209}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &731200001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922056675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c1ce2d158f34b9e85a71436885d170c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodMountainsLevel
+  encounter: {fileID: 1873006900}
+  atmosphere: {fileID: 772319981}
+  spawn: {fileID: 597622700}
+  farClip: 12000
+  standalone:
+  - {fileID: 731200002}
+  - {fileID: 731200003}
+--- !u!1 &731200002 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3715002107750330547, guid: b8705906dc11d4ec79a1de85f7bbe864, type: 3}
+  m_PrefabInstance: {fileID: 54777189}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &731200003 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6597176585956589324, guid: 45eb1af49b27646dbb38fb3289446529, type: 3}
+  m_PrefabInstance: {fileID: 713992249}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

@@ -151,6 +151,15 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>The god's «?» comes back on the map (once the revenue goal is reached) for another trip.</summary>
+        public bool ResetGodMeeting()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.ForgetGodMeeting();
+            status = "«?» снова появится на карте у двери (после цели выручки).";
+            return true;
+        }
+
         public int StockDisplayRandomly()
         {
             var trade = game.trade;
@@ -228,6 +237,8 @@ namespace Hakaton.Game
             if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
             GUI.enabled = game.Ready && game.DrownLectureGiven;
             if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
+            GUI.enabled = game.Ready && game.GodMet && !game.InGodMountains;
+            if (GUILayout.Button("Бог — ещё раз («?» на карте)", button)) ResetGodMeeting();
             GUI.enabled = true;
             GUILayout.Space(8);
 

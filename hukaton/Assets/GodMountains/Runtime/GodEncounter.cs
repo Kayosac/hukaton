@@ -91,7 +91,7 @@ namespace Hakaton.GodMountains
         static readonly int ReachHoldState = Animator.StringToHash("ReachHold");
         static readonly int TalkState = Animator.StringToHash("Talk");
 
-        bool noticed, riding, continueRequested;
+        bool noticed, riding, continueRequested, bound, ready;
         float onFinger;
         Vector3 rideOffset;
         CharacterController body;
@@ -103,6 +103,24 @@ namespace Hakaton.GodMountains
 
         void Start()
         {
+            // In the game the visit hands over the player first (Bind); played alone, the scene's test player is used.
+            if (GodMountainsLevel.Hosted && !bound) return;
+            Init();
+        }
+
+        /// <summary>The game's player and speech plate take over from the scene's own test rig.</summary>
+        public void Bind(FirstPersonMotor playerMotor, FirstPersonView playerView, PlayerControlGate playerControl, TutorialBubble plate)
+        {
+            motor = playerMotor;
+            view = playerView;
+            control = playerControl;
+            if (plate) bubble = plate;
+            bound = true;
+            Init();
+        }
+
+        void Init()
+        {
             if (!god || !finger || !motor || !view || !control || !edgeLine || !lip)
             {
                 Debug.LogError("GodEncounter needs the god, the finger, the player and the level marks.", this);
@@ -112,10 +130,12 @@ namespace Hakaton.GodMountains
             body = motor.GetComponent<CharacterController>();
             if (bubble) bubble.Hide();
             if (edgeWall) edgeWall.SetActive(true);
+            ready = true;
         }
 
         void Update()
         {
+            if (!ready) return;
             switch (Stage)
             {
                 case GodStage.Path:
@@ -279,6 +299,21 @@ namespace Hakaton.GodMountains
             riding = false;
             if (body) foreach (var c in fingerColliders) if (c) Physics.IgnoreCollision(body, c, false);
             return Vector3.zero;
+        }
+
+        /// <summary>
+        /// Lets the player go at once (the screen is dark on the way home): the body leaves the finger, the controls and
+        /// the view are free again. The encounter stays where it was.
+        /// </summary>
+        public void Release()
+        {
+            if (riding && motor) motor.ReleaseExternalControl(this, Vector3.zero);
+            if (riding && body) foreach (var c in fingerColliders) if (c) Physics.IgnoreCollision(body, c, false);
+            riding = false;
+            StopAllCoroutines();
+            if (bubble) bubble.Hide();
+            if (view) view.Guide(null);
+            if (control) control.SetBlocked(this, false);
         }
 
         void OnDisable()

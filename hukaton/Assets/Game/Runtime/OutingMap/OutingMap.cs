@@ -12,7 +12,8 @@ namespace Hakaton.Game
     public enum OutingMapUnlock
     {
         [Tooltip("On the map from the start.")] Always,
-        [Tooltip("Appears once the shop has made its revenue goal.")] RevenueGoal
+        [Tooltip("Appears once the shop has made its revenue goal.")] RevenueGoal,
+        [Tooltip("Appears with the revenue goal and leaves the map for good once the god has been met (the «?»).")] GodMeeting
     }
 
     /// <summary>
@@ -145,6 +146,23 @@ namespace Hakaton.Game
         }
         public IReadOnlyList<OutingMapSiteSave> OpenedSites => state.sites;
         Site Definition(string id) => sites?.FirstOrDefault(s => s.id == id);
+
+        /// <summary>The id of the first point that leads to <paramref name="place"/>, or null.</summary>
+        public string SiteFor(OutingPlace place) => sites?.FirstOrDefault(s => s.place == place)?.id;
+
+        /// <summary>
+        /// Wipes an opened point off the map for good (the god's «?» after the meeting). It comes back only if its unlock
+        /// says so again on a later look.
+        /// </summary>
+        public bool Forget(string id)
+        {
+            if (string.IsNullOrEmpty(id) || state.sites.RemoveAll(s => s.id == id) == 0) return false;
+            // its route goes with it: the rest is drawn again (as it was, no drawing-in) on the next look
+            if (card) card.Close();
+            ClearDrawing();
+            Changed?.Invoke();
+            return true;
+        }
 
         /// <summary>
         /// Opens every point that is unlocked and whose parent is already on the map, placing it near the parent.
