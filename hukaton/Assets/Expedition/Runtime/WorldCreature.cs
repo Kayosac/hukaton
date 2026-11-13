@@ -677,9 +677,11 @@ namespace Hakaton.Expeditions
             Vector3 snout = flying ? Centre + transform.forward * Mathf.Max(.3f, TopHeight * .5f) : body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
             var victim = Target;
             Vector3 aim = victim.Position + Vector3.up * .9f;
-            Vector3 to = aim - snout;
-            if (to.magnitude > contactRange || Vector3.Dot(strikeDirection, Flat(to).normalized) < .1f) return;
+            // A big beast standing right on its target reaches it with its body, not only its snout (StrikeConnects).
+            if (!StrikeConnects(snout, body.position, CapsuleRadius, size, strikeDirection, victim.Position, aim, contactRange)) return;
             hitThisStrike = true;
+            // A card shield around the target (the Bubble) takes the blow: no damage, no push.
+            if (StrikeShielded(victim, aim)) return;
             Vector3 knockback = (strikeDirection * (dash ? 7 : 4) + Vector3.up * 2.5f);
             victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this));
         }
@@ -842,6 +844,34 @@ namespace Hakaton.Expeditions
         /// <summary>Damage times <paramref name="scale"/>, never below ½ heart (1) for a hit that does any damage.</summary>
         public static int ScaledDamage(int amount, float scale)
             => amount <= 0 || Mathf.Approximately(scale, 1) ? amount : Mathf.Max(1, Mathf.RoundToInt(amount * Mathf.Max(0, scale)));
+
+        /// <summary>
+        /// Does a strike reach its target? The snout (in front of and above the feet, by the creature's size) must be
+        /// within <paramref name="contactRange"/> of the aim point with the target ahead of it — or, for a creature
+        /// standing right on its target (a big one's snout is already past it), the target's feet must be ahead of the
+        /// body within its own reach: body radius + snout length (0.65 × size, at least 0.65) + half a target.
+        /// </summary>
+        public static bool StrikeConnects(Vector3 snout, Vector3 bodyPosition, float bodyRadius, float size, Vector3 strikeDirection,
+            Vector3 victimFeet, Vector3 aim, float contactRange)
+        {
+            Vector3 to = aim - snout;
+            if (to.magnitude <= contactRange && Vector3.Dot(strikeDirection, Flat(to).normalized) >= .1f) return true;
+            Vector3 near = Flat(victimFeet - bodyPosition);
+            float distance = near.magnitude;
+            if (distance > Mathf.Max(0, bodyRadius) + .65f * Mathf.Max(1, size) + .5f) return false;
+            // Level with the body: not a target far above or below (a flyer dives in with the snout test).
+            if (aim.y < bodyPosition.y - .5f || victimFeet.y > bodyPosition.y + Mathf.Max(1, size) * 1.2f) return false;
+            return distance < .05f || Vector3.Dot(strikeDirection, near / distance) >= .1f;
+        }
+
+        /// <summary>A card shield (<see cref="IStrikeShield"/>, the Bubble) keeps this strike off the target.</summary>
+        bool StrikeShielded(ICombatant victim, Vector3 point)
+        {
+            var zones = world.Zones.All;
+            for (int i = 0; i < zones.Count; i++)
+                if (zones[i] is IStrikeShield shield && shield.BlocksStrike(this, victim, point)) return true;
+            return false;
+        }
 
         /// <summary>Received-impulse multiplier on this body (Lightness ×1.5); 1 normally.</summary>
         public float ImpulseScale => BodyModifierStatus.ImpulseScaleOf(body);
