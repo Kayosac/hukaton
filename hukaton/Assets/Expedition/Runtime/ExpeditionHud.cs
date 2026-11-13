@@ -61,6 +61,11 @@ namespace Hakaton.Expeditions
         [Tooltip("The one contextual hint, bottom left: 'E — подобрать', 'ПКМ — отмена'…")]
         public TMP_Text context;
         public TMP_Text notice, cardLabel;
+        [Tooltip("How to use the special item in the hand, bottom left over the contextual hint; with its dark copy under it.")]
+        public TMP_Text itemHint;
+        public TMP_Text itemHintShadow;
+        [Tooltip("Units between the item's lines and the bottom when the contextual hint is there too.")]
+        public float itemHintRaise = 14;
 
         [Header("Stamina")]
         [Tooltip("The arc of pips around the aim, under it (Stamina pips prefab); shows itself only while stamina matters.")]
@@ -220,6 +225,25 @@ namespace Hakaton.Expeditions
             if (reticle) reticle.color = reticleColour;
         }
 
+        Vector2 itemHintHome;
+        bool itemHintKnown;
+
+        void UpdateItemHint(string contextHint)
+        {
+            if (!itemHint) return;
+            if (!itemHintKnown) { itemHintHome = itemHint.rectTransform.anchoredPosition; itemHintKnown = true; }
+            string text = world.HeldItemHint ?? "";
+            if (world.InPrologue) text = "";
+            itemHint.text = text;
+            var place = itemHintHome + new Vector2(0, string.IsNullOrEmpty(contextHint) ? 0 : itemHintRaise);
+            itemHint.rectTransform.anchoredPosition = place;
+            if (itemHintShadow)
+            {
+                itemHintShadow.text = text;
+                itemHintShadow.rectTransform.anchoredPosition = place + new Vector2(1, -1);
+            }
+        }
+
         void UpdateTexts(float dt)
         {
             var trip = world.workshop.Model.Current;
@@ -244,6 +268,7 @@ namespace Hakaton.Expeditions
             }
             if (world.InPrologue && !world.FocusedLoot) hint = "";
             if (context) context.text = hint;
+            UpdateItemHint(hint);
 
             notice.text = Time.time < world.NoticeUntil ? world.Notice : "";
             UpdatePickups();

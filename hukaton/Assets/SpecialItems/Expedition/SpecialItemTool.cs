@@ -18,6 +18,9 @@ namespace Hakaton.SpecialItems
         /// <summary>In the hand, or on its way there.</summary>
         public abstract bool IsOut { get; }
 
+        /// <summary>How to use it while it is in the hand (HUD, bottom left), one action per line.</summary>
+        public virtual string ControlHint => null;
+
         /// <summary>Take it out (animated).</summary>
         public abstract void Draw();
 

@@ -50,5 +50,7 @@ namespace Hakaton.SpecialItems
         };
         [Tooltip("What the dealer says when it is bought.")]
         [TextArea] public string boughtLine = "Носи с собой. Сдачи не будет.";
+        [Tooltip("Right after the purchase, after the line above: how it works, one line per E (the bought item hangs in the middle meanwhile).")]
+        [TextArea] public string[] howToUse = new string[0];
     }
 }

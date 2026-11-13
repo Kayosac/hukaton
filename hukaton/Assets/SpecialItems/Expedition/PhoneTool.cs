@@ -105,6 +105,13 @@ namespace Hakaton.SpecialItems
 
         PhoneSettings Settings => Items ? Items.phone : null;
         public override bool IsOut => state != State.Hidden && state != State.Stowing;
+        public override string ControlHint => state switch
+        {
+            State.Spinning => "Tab — стоп",
+            State.Result => callScreen && callScreen.activeSelf ? "Tab — сбросить и крутить" : "Tab — крутить ещё",
+            State.Stopping => "",
+            _ => charges > 0 ? "Tab — крутить (" + (Settings ? Settings.bet : 10) + " монет)" : "Батарея села",
+        };
         /// <summary>Spins left on this outing.</summary>
         public int Charges => charges;
         public int Capacity => capacity;
