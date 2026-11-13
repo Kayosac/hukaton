@@ -815,6 +815,8 @@ namespace Hakaton.WorldAssembly.Unity
             var sockets = entry.view.creatureSockets;
             if (plan.Spawns.Count == 0 || sockets.Length == 0 || !content) return;
             int k = 0;
+            // Ambushers of this chunk each take their own clump of cover.
+            var cover = new List<Vector3>();
             for (int g = 0; g < plan.Spawns.Count; g++)
             {
                 var spawn = plan.Spawns[g];
@@ -831,6 +833,7 @@ namespace Hakaton.WorldAssembly.Unity
                     if (NavMesh.SamplePosition(aside, out var spot, 2f, NavMesh.AllAreas)) centre = spot.position + Vector3.up * .15f;
                 }
                 var taken = new List<Vector3>();
+                var group = new List<WorldCreature>();
                 for (int m = 0; m < spawn.Count; m++, k++)
                 {
                     bool remembered = false;
@@ -848,9 +851,16 @@ namespace Hakaton.WorldAssembly.Unity
                     creature.spawnPoints = null;
                     if (remembered) creature.Resume(state.health, state.position);
                     else creature.ResetForOuting(null);
+                    // An ambusher (mantis man) settles in the nearest reeds round its spot.
+                    // A leech goes under the nearest water instead.
+                    if (creature.ambush.inWater) creature.HideInWater(entry.view.obstacles, cover, !remembered);
+                    else if (creature.ambush.enabled) creature.HideIn(entry.view.burnables, cover, !remembered);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
+                    group.Add(creature);
                 }
+                // Squad creatures (giant dung beetles) walk a route round their spot together.
+                if (prefab && prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, (int)(Pick(plan.Coord, 80 + g) & 0x7fffffff));
             }
         }
 

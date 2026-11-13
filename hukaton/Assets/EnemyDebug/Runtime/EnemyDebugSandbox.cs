@@ -26,6 +26,8 @@ namespace Hakaton.EnemyDebug
         [Min(3)] public float spacing = 10;
         public Vector3 gridOrigin = new Vector3(-15, 0, 0);
         [Min(1)] public float focusReach = 14;
+        [Tooltip("E on a creature that only comes in squads (Patrol) brings a whole squad of this many, walking its route.")]
+        [Min(1)] public int squadSize = 4;
 
         readonly List<EnemyDebugPreview> previews = new List<EnemyDebugPreview>();
         readonly List<WorldCreature> live = new List<WorldCreature>();
@@ -113,9 +115,25 @@ namespace Hakaton.EnemyDebug
         public WorldCreature Spawn(EnemyDebugPreview preview)
         {
             if (!preview || !preview.source) return null;
+            var origin = preview.transform.position;
+            if (!preview.source.patrol.enabled) return SpawnOne(preview.source, origin, preview.transform.rotation);
+            // A squad creature comes as a squad, side by side, and walks its route round the spot as in the world.
+            var group = new List<WorldCreature>();
+            for (int i = 0; i < squadSize; i++)
+            {
+                float a = i * 2.4f;
+                var at = origin + (i == 0 ? Vector3.zero : new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (1.4f + .45f * i));
+                group.Add(SpawnOne(preview.source, at, preview.transform.rotation));
+            }
+            PatrolSquad.Form(group, origin, live.Count * 7919 + 17);
+            return group[0];
+        }
+
+        WorldCreature SpawnOne(WorldCreature source, Vector3 position, Quaternion rotation)
+        {
             // Instantiate the ORIGINAL gameplay prefab, never the presentation-only preview.
-            var creature = Instantiate(preview.source, preview.transform.position, preview.transform.rotation, liveRoot);
-            creature.name = preview.source.name + " [live]";
+            var creature = Instantiate(source, position, rotation, liveRoot);
+            creature.name = source.name + " [live]";
             creature.world = world;
             creature.ResetForOuting(null);
             live.Add(creature);
@@ -148,7 +166,7 @@ namespace Hakaton.EnemyDebug
             {
                 string alarm = Focused.source.temperament == Temperament.Timid ? "испуг" : "агрессия";
                 string attack = Focused.HasAttack ? "3 атака" : "3 нет атаки";
-                string shoots = Focused.source.HasRangedAttack ? "   стреляет" : "";
+                string shoots = (Focused.source.HasRangedAttack ? "   стреляет" : "") + (Focused.source.patrol.enabled ? $"   отряд ×{squadSize}" : "");
                 focusText.text = $"{Focused.source.displayName} / {Focused.PoseLabel}{shoots}\n1 {alarm}   2 урон   {attack}   4 смерть\n0 исходное   E живая копия";
             }
         }

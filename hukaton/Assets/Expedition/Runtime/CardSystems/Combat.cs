@@ -24,10 +24,16 @@ namespace Hakaton.Expeditions
         public readonly DamageKind Kind;
         /// <summary>Who dealt it, when it was a fighter (a creature, an ally); null for the player's cards and hazards.</summary>
         public readonly ICombatant Instigator;
+        /// <summary>
+        /// The next blow of one attack (the mantis' second sickle): lands on the player even inside the short protection
+        /// the attack's first blow gave.
+        /// </summary>
+        public readonly bool PiercesGuard;
 
         public DamageInfo(int amount, Vector3 impulse, Vector3 point, Vector3? source = null, DamageKind kind = DamageKind.Hit,
-            ICombatant instigator = null)
+            ICombatant instigator = null, bool piercesGuard = false)
         {
+            PiercesGuard = piercesGuard;
             Amount = amount;
             Impulse = impulse;
             Point = point;

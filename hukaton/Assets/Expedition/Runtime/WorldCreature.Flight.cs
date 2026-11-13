@@ -29,6 +29,11 @@ namespace Hakaton.Expeditions
         [Min(0)] public float jitter;
         [Tooltip("Width of the ground shadow relative to the creature's size; zero for none.")]
         [Min(0)] public float shadowSize = .4f;
+        [Tooltip("A ghost: flies straight through trees, rocks, walls and the player (no collisions at all; cards and strikes still find it).")]
+        public bool phasing;
+        [Tooltip("Ghost: how see-through it is from afar (1: solid). It thickens to solid as it comes within the distance below.")]
+        [Range(.1f, 1)] public float farOpacity = 1;
+        [Min(0)] public float solidWithin = 6;
         [Range(0, 1)] public float shadowOpacity = .35f;
 
         float flightGround, swayOffset;
@@ -42,6 +47,8 @@ namespace Hakaton.Expeditions
         {
             if (!body) return;
             body.useGravity = !flying;
+            // A ghost touches nothing; whatever looks for it (cards, strikes, sight) still finds its collider.
+            if (capsule) capsule.excludeLayers = phasing ? ~0 : 0;
             if (!flying)
             {
                 if (flightShadow) flightShadow.gameObject.SetActive(false);
@@ -72,6 +79,7 @@ namespace Hakaton.Expeditions
 
         Vector3 AvoidObstacles(Vector3 direction)
         {
+            if (phasing) return direction;
             float radius = capsule ? capsule.radius : .25f;
             int count = Physics.SphereCastNonAlloc(Centre, radius, direction, flightHits, 1.6f, ~(1 << 2), QueryTriggerInteraction.Ignore);
             float nearest = float.MaxValue;

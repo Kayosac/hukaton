@@ -234,6 +234,11 @@ namespace Hakaton.Expeditions
             lured = false;
             ResetKin();
             ResetRanged();
+            squad = null;
+            EndAttack();
+            holding = false;
+            // One that waits under water is there already when the place comes into view.
+            sunk = ambush.submerge ? 1 : 0;
             body.isKinematic = false;
             body.detectCollisions = true;
             body.linearVelocity = body.angularVelocity = Vector3.zero;
@@ -309,6 +314,8 @@ namespace Hakaton.Expeditions
                 nextSight = Time.time + .12f;
                 sees = CanSeeTarget();
             }
+            // In a fight a squad member knows what its squad mates see (WorldCreature.Patrol.cs).
+            if (!sees && SquadSees()) sees = true;
             if (sees) { lastSeen = TargetPosition; unseen = 0; }
             else unseen += dt;
         }
@@ -325,7 +332,8 @@ namespace Hakaton.Expeditions
             Vector3 to = target - eye;
             float distance = to.magnitude;
             if (distance > sightRange) return false;
-            bool calm = IsCalm;
+            // One lying in wait is all attention: it notices on every side, not only ahead (WorldCreature.Ambush.cs).
+            bool calm = IsCalm && !Lurking;
             bool loud = player && world.motor.IsSprinting && distance < hearingRange * 2;
             if (calm && distance > hearingRange && !loud && Vector3.Dot(transform.forward, to / distance) < BehindDot) return false;
             // Card zones (fog) hide the target.
@@ -339,6 +347,10 @@ namespace Hakaton.Expeditions
         {
             State = next;
             stateTime = 0;
+            // Its squad turns on the player with it (WorldCreature.Patrol.cs).
+            squad?.Raise(this, next);
+            // A grip lasts through the strike and the recovery after it; anything else lets go (WorldCreature.Grab.cs).
+            if (next != CreatureState.Recover && next != CreatureState.Strike) holding = false;
             switch (next)
             {
                 case CreatureState.Idle: idleDuration = Random.Range(1.2f, 2.8f); Halt(); break;
@@ -349,8 +361,11 @@ namespace Hakaton.Expeditions
                 case CreatureState.Threat: nextThreatSound = 0; provokeTimer = 0; break;
                 case CreatureState.Flee: ChooseFleeDirection(); world.Play(alertCue, body.position, 1, 1.15f); KickDust(stepDustCount * 2); break;
                 case CreatureState.Windup:
-                    world.Play(windupCue, body.position);
-                    squash.Kick(-4);
+                    // A new attack (not the next blow of a combo) starts its series of strikes (WorldCreature.Ambush.cs).
+                    if (!chaining) BeginAttack();
+                    chaining = false;
+                    if (!followUp) world.Play(windupCue, body.position);
+                    squash.Kick(followUp ? -2 : -4);
                     break;
                 case CreatureState.Aim:
                     world.Play(windupCue, body.position);
@@ -361,6 +376,7 @@ namespace Hakaton.Expeditions
                     break;
                 case CreatureState.Recover:
                     shoving = false;
+                    EndAttack();
                     break;
                 case CreatureState.Strike:
                     Vector3 to = ToTarget;
@@ -369,7 +385,9 @@ namespace Hakaton.Expeditions
                     hitThisStrike = false;
                     world.Play(strikeCue, body.position);
                     squash.Kick(6);
-                    if (dash) KickDust(stepDustCount * 3);
+                    lunging = !tonguing && (pouncing || (followUp ? followUpStep > 0 : dash));
+                    if (tonguing) LashTongue();
+                    if (lunging) KickDust(stepDustCount * 3);
                     if (strikeShake > 0)
                     {
                         KickDust(stepDustCount * 4);
@@ -381,6 +399,8 @@ namespace Hakaton.Expeditions
 
         void ThinkIdle(bool noticed)
         {
+            // A squad member walks the squad's route instead of wandering about (WorldCreature.Patrol.cs).
+            if (ThinkPatrol()) return;
             switch (State)
             {
                 case CreatureState.Idle:
@@ -477,7 +497,10 @@ namespace Hakaton.Expeditions
         {
             if (IsCalm)
             {
-                if (Provoked || (sees && TargetDistance < sightRange)) { Aggro(); return; }
+                if (Provoked) { Aggro(); return; }
+                // An ambusher lies low in its cover until the target is close enough to spring at (WorldCreature.Ambush.cs).
+                if (ThinkLurk()) return;
+                if (sees && TargetDistance < sightRange) { Aggro(); return; }
                 ThinkIdle(false);
                 return;
             }
@@ -511,6 +534,10 @@ namespace Hakaton.Expeditions
         {
             float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
+            // Holding the player in its grip (WorldCreature.Grab.cs).
+            if (ThinkHold()) return;
+            // A sticky tongue from a few metres (WorldCreature.Tongue.cs).
+            if (TryTongue()) return;
             if (HasRangedAttack && ThinkRanged()) return;
             switch (State)
             {
@@ -536,13 +563,15 @@ namespace Hakaton.Expeditions
                 case CreatureState.Windup:
                     Halt();
                     Face(ToTarget);
-                    if (stateTime >= windup) Enter(CreatureState.Strike);
+                    if (stateTime >= WindupSeconds) Enter(CreatureState.Strike);
                     break;
                 case CreatureState.Strike:
-                    desired = dash ? strikeDirection * dashSpeed : Vector3.zero;
-                    if (dash && world.feel && distance < 9) world.feel.Sustain(.1f);
-                    if (stateTime >= strikeSeconds)
+                    desired = lunging ? strikeDirection * LungeSpeed : Vector3.zero;
+                    if (lunging && world.feel && distance < 9) world.feel.Sustain(.1f);
+                    if (stateTime >= StrikeSeconds)
                     {
+                        // A combo: the next blow at once, with a short wind-up (WorldCreature.Ambush.cs).
+                        if (NextBlow()) break;
                         Enter(CreatureState.Recover);
                         idleDuration = !hitThisStrike && recoveryOnMiss >= 0 ? recoveryOnMiss : recovery;
                     }
@@ -664,7 +693,7 @@ namespace Hakaton.Expeditions
             Vector3 velocity = body.linearVelocity;
             Vector3 planar = new Vector3(velocity.x, 0, velocity.z);
             // While frozen or knocked about, physics keeps the momentum: cards and rocks still push it around.
-            float acceleration = controlled ? 3 : State == CreatureState.Strike && dash ? 90 : State == CreatureState.Flee ? 45 : 18;
+            float acceleration = controlled ? 3 : State == CreatureState.Strike && lunging ? 90 : State == CreatureState.Flee ? 45 : 18;
             Vector3 target = controlled ? Vector3.zero : desired * (MoveSpeedScale * TimeScale);
             planar = Vector3.MoveTowards(planar, target, acceleration * dt);
             body.linearVelocity = new Vector3(planar.x, velocity.y, planar.z);
@@ -676,7 +705,7 @@ namespace Hakaton.Expeditions
 
         void CheckStrikeContact()
         {
-            if (hitThisStrike) return;
+            if (hitThisStrike || tonguing) return;
             float size = Size;
             // A flyer dives in with its whole body: the reach is measured from the middle of the drawing.
             Vector3 snout = flying ? Centre + transform.forward * Mathf.Max(.3f, TopHeight * .5f) : body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
@@ -687,8 +716,12 @@ namespace Hakaton.Expeditions
             hitThisStrike = true;
             // A card shield around the target (the Bubble) takes the blow: no damage, no push.
             if (StrikeShielded(victim, aim)) return;
-            Vector3 knockback = (strikeDirection * (dash ? 7 : 4) + Vector3.up * 2.5f);
-            victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this));
+            // A grab holds instead of pushing away (WorldCreature.Grab.cs).
+            bool grabs = grab.enabled && ReferenceEquals(victim, world.Player);
+            // A blow with more of the combo to come only nudges: the next one must still reach.
+            Vector3 knockback = grabs ? Vector3.zero : followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
+            victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this, followUp));
+            if (grabs) { StartHold(); desired = Vector3.zero; }
             // Debuffs land even during the protection after a previous hit (no leniency).
             if (ReferenceEquals(victim, world.Player) && strikeStatuses != null && strikeStatuses.Length > 0)
                 StatusInflict.ApplyAll(strikeStatuses, world.statuses);
@@ -1075,7 +1108,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < collision.contactCount; i++)
                 normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, collision.GetContact(i).normal));
             int damage = ExpeditionEffectRules.ImpactDamage(normalSpeed, world.settings.collisionDamageSpeed, world.settings.collisionDamageStep);
-            bool crashed = State == CreatureState.Strike && dash && normalSpeed > 4 && !collision.rigidbody;
+            bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && !collision.rigidbody;
             if (damage > 0)
             {
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, collision.GetContact(0).point, Quaternion.identity, new Color(.8f, .72f, .6f), 1);
@@ -1100,6 +1133,7 @@ namespace Hakaton.Expeditions
         CreaturePose PoseForState()
         {
             if (Time.time < hurtUntil || State == CreatureState.Stunned) return CreaturePose.Hurt;
+            if (holding) return CreaturePose.Attack;
             switch (State)
             {
                 case CreatureState.Alert:
@@ -1153,7 +1187,7 @@ namespace Hakaton.Expeditions
                 Vector3 tremble = State == CreatureState.Windup ? Random.insideUnitSphere * .02f * TopHeight * crouch : Vector3.zero;
                 float stretch = State == CreatureState.Strike ? 1.12f : 1;
                 float roll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 10 : 0;
-                view.Present(pose, transform.forward, Vector3.up * hop + tremble + FlightSway(),
+                view.Present(pose, transform.forward, Vector3.up * (hop - Submerged(dt)) + tremble + FlightSway(),
                     new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
             }
             // Frozen, the drawing still turns to the player: never seen flat from the side, in a shell or not.
@@ -1163,6 +1197,13 @@ namespace Hakaton.Expeditions
             else if (frozen) Tint(frozenTint, .65f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
+            // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).
+            if (farOpacity < 1 && view && view.spriteRenderer)
+            {
+                var c = view.spriteRenderer.color;
+                c.a = Mathf.Lerp(1, farOpacity, Mathf.Clamp01((PlayerDistance - solidWithin) / Mathf.Max(1, solidWithin)));
+                view.spriteRenderer.color = c;
+            }
         }
 
         /// <summary>A puff of dust from under the feet; throttled so a fast gait does not turn into a smoke screen.</summary>

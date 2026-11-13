@@ -1,13 +1,14 @@
 {
   "table_id": "tb_hakaton-cards",
   "table_url": "kayospace://board/tb_hakaton-cards",
-  "table_name": "Hakaton — таблица всех карт",
+  "table_name": "Hakaton — Карты",
   "project_id": "01M6WVK7017HGXKC9MDPA30KFS",
-  "updated_on": "2026-11-11",
-  "card_count": 26,
-  "main_count": 22,
-  "story_count": 3,
+  "updated_on": "2026-11-14",
+  "card_count": 34,
+  "main_count": 32,
+  "story_count": 0,
   "return_count": 1,
+  "dummy_count": 1,
   "table_columns": [
     {
       "id": "g34zvt63xm",
@@ -28,15 +29,31 @@
       "options": [
         "Основная",
         "Сюжетная",
-        "Возвращение"
+        "Возвращение",
+        "Пустышка"
       ],
       "width": 147
+    },
+    {
+      "id": "vsqh4q7ns1",
+      "name": "Редкость (шанс у гоблина)",
+      "type": "select",
+      "options": [
+        "1 (50 %)",
+        "2 (30 %)",
+        "3 (15 %)",
+        "4 (4 %)",
+        "5 (1 %)",
+        "Пустышка (20 % на место)",
+        "Не продаётся"
+      ],
+      "width": 596
     },
     {
       "id": "tyttkaqjmt",
       "name": "Описание эффекта",
       "type": "text",
-      "width": 480
+      "width": 1200
     },
     {
       "id": "pr3714yc1b",
@@ -54,10 +71,10 @@
       "id": "g3zgxcbr7v",
       "name": "Цена у гоблина (монеты)",
       "type": "text",
-      "width": 657
+      "width": 244
     }
   ],
-  "row_height": 220,
+  "row_height": 172,
   "sources": [
     "hukaton/Assets/Game/Data/Cards.asset",
     "hukaton/Assets/Decks/Runtime/CardDefinition.cs",
@@ -71,9 +88,6 @@
     "hukaton/Assets/Expedition/Runtime/Cards/TreeAwakening/TreeAlly.cs",
     "hukaton/Assets/Expedition/Runtime/Cards/BranchBridge/BranchBridge.cs"
   ],
-  "source_audit": "output/card-catalog/source-audit.json",
-  "artwork_manifest": "output/card-catalog/artwork-manifest.json",
-  "verification_path": "output/card-catalog/verification.json",
   "units": {
     "damage": "HP существ; урон игроку в механиках с DamageInfo — 0,5 сердца за единицу",
     "healing": "сердца игрока / HP союзника указаны отдельно",
@@ -81,17 +95,6 @@
     "levels": "I / II / III",
     "uses": "заряды одной копии за обычную вылазку"
   },
-  "notes": [
-    "Все 26 карт включены по явному выбору пользователя.",
-    "Имена взяты из CardDefinition.displayName, изображения — из назначенного artwork; нарисованные заголовки некоторых старых карт отличаются от имени ассета.",
-    "Нет разделения на боевую и исследовательскую колоды; «Набор» различает основную, сюжетную и служебную карту возвращения.",
-    "Числа взяты из сохранённых CardDefinition и effectAsset; старые справочники и комментарии могут содержать значения прежних двух уровней.",
-    "Сюжетные инструкции не продаются, не входят в обычную колоду и не улучшаются. Цена 0 в ассете не обозначает бесплатную продажу.",
-    "Карта возвращения существует как CardCopy.Return и использует returnArtwork; отдельного CardDefinition для неё нет.",
-    "Сохранены только каталожные данные; игровые ассеты и исходники KayoSpace не менялись.",
-    "По указанию пользователя в таблице показывается только полная цена; цена покупки вслепую исключена.",
-    "Пустышка (2026-11-12, Assets/Game/Data/dummy.asset, поле DeckPrototypeConfig.dummyCard в Cards.asset, вне списка 22 карт) в таблицу пока НЕ добавлена: продаётся только гоблином (шанс 10 % на место, не на первом визите) за 25 монет и вслепую, и раскрытой (purchasePrice 50), ничего не делает, не улучшается и навсегда покидает колоду и коллекцию в начале вылазки. Своего арта нет: временно лицо — рубашка Decks/Art/Backs/PenusCardBack.png. Строку добавить, когда пользователь даст арт; вызовов KayoSpace при этом изменении не было."
-  ],
   "rows": [
     {
       "card_id": "impulse",
@@ -101,47 +104,38 @@
         "Карта": "Импульс",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Радиально отталкивает игрока, существ и подвижные предметы; помогает забраться на уступ. Сбивает существ с ног на 0,55 с. Сила воздействия на тела зависит от их массы.",
         "Параметры I / II / III": "Сила импульса: 8 / 11 / 14\nРадиус: 2,5 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "120"
       },
       "definition_path": "hukaton/Assets/Game/Data/impulse.asset",
-      "definition_sha256": "21c66594701a14e0661e98e16452e6911e470a58f5cdaacb98cc2524d174142b",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Impulse.asset",
-      "effect_sha256": "1a860e81939e48f7a2975a3c62777391798aa0e6117f2f3fb21ac1a02ba517f4",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/ImpulseEffect.cs",
-      "effect_script_sha256": "64ae5ae3f83b879ccfba9c189a0b653dcaa0fe4f20b3fd626fefe3b779382216",
       "artwork": {
-        "path": "output/card-catalog/artwork/impulse.png",
-        "sha256": "caa9164948ca6ed12f1a0767fedfd5608a7589c23839e6222452756f068a716e",
         "source": "hukaton/Assets/Decks/Art/07-wind.png",
-        "source_sha256": "b1ec33265bd47d4eac18b55bb3583fc1660a93825755658734e1cd03a7829cdb",
+        "source_sha256": "22b52cd3574f562a2053fc3908b6e9613f5d0929b2c6e2e73f7aba68c17e9080",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Импульс — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 120,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "jekz65sc3f",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "caa9164948ca6ed12f1a0767fedfd5608a7589c23839e6222452756f068a716e",
-          "w": 320,
-          "h": 480,
-          "alt": "Импульс — актуальная карта"
+          "asset": "22b52cd3574f562a2053fc3908b6e9613f5d0929b2c6e2e73f7aba68c17e9080",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Импульс — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "21c66594701a14e0661e98e16452e6911e470a58f5cdaacb98cc2524d174142b"
     },
     {
       "card_id": "ice",
@@ -151,47 +145,38 @@
         "Карта": "Лёд",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Замораживает существо; мокрая цель замерзает вдвое дольше. Водный участок превращается в проходимый лёд до конца вылазки.",
         "Параметры I / II / III": "Заморозка: 2 / 4 / 7 с\nМокрая цель: 4 / 8 / 14 с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "120"
       },
       "definition_path": "hukaton/Assets/Game/Data/ice.asset",
-      "definition_sha256": "268d252780aadf0b2c439c3253a71ed78389202485860f131a64a4cb0c795200",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Ice.asset",
-      "effect_sha256": "430e815ebc3e37b2fefce70410dd78f6ce72b4cb2b9e6d3378fcd92f7e6eb1c5",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/FreezeEffect.cs",
-      "effect_script_sha256": "b014bfadf4eec5fa416af65dc127369d55dfb9fbafaf84589a0e52a2829b9852",
       "artwork": {
-        "path": "output/card-catalog/artwork/ice.png",
-        "sha256": "e3354e7d91bd277590e5df275f7aac059cb97697d64d3e581d4c11c1a57118a5",
         "source": "hukaton/Assets/Decks/Art/08-ice.png",
-        "source_sha256": "2b425c012d4d5fd30f8024cbd3735be6bd532271a9ef7e8da93f4e88b32c0e53",
+        "source_sha256": "0f2a13604c4842a77c93d1ce63ccfe0fc403d672a056f5a6a52bfa38287afc5d",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Лёд — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 120,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "mgmknsnrjw",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "e3354e7d91bd277590e5df275f7aac059cb97697d64d3e581d4c11c1a57118a5",
-          "w": 320,
-          "h": 480,
-          "alt": "Лёд — актуальная карта"
+          "asset": "0f2a13604c4842a77c93d1ce63ccfe0fc403d672a056f5a6a52bfa38287afc5d",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Лёд — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "268d252780aadf0b2c439c3253a71ed78389202485860f131a64a4cb0c795200"
     },
     {
       "card_id": "fire",
@@ -201,47 +186,38 @@
         "Карта": "Огонь",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Ранит существо при попадании, выжигает колючие заросли. Поджигает смолу и созданную картой ветвь-мост.",
         "Параметры I / II / III": "Прямой урон: 1 / 2 / 4 HP",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "100"
       },
       "definition_path": "hukaton/Assets/Game/Data/fire.asset",
-      "definition_sha256": "7c9b629d155139ed8457fdede9167e28f86282b4514ff917ee6305041fc804fd",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Fire.asset",
-      "effect_sha256": "69048dbc76fb403b4202a286afbff07c19bc6c6cdb7ef6347e690faaa6a947f4",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/FireEffect.cs",
-      "effect_script_sha256": "6136f64f5989043e3ca95d2c073ae43914fcb5ee055a75a4032027bd153b7f1b",
       "artwork": {
-        "path": "output/card-catalog/artwork/fire.png",
-        "sha256": "6ee321a0bb59c4cac4d31b2240bf60554079e93edfa1ed277f81e3cf7eca4850",
         "source": "hukaton/Assets/Decks/Art/fire-realtime.png",
-        "source_sha256": "e83e72b7c6126e7ec79a702d25a3e7f3400f735c72c2492ce1b7b4fbe3fb3346",
+        "source_sha256": "b709f60f2df219a54f4d8401e0171d77c48591658108bc79423d04975b7390a9",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Огонь — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 100,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "ry8rh0eszd",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "6ee321a0bb59c4cac4d31b2240bf60554079e93edfa1ed277f81e3cf7eca4850",
-          "w": 320,
-          "h": 480,
-          "alt": "Огонь — актуальная карта"
+          "asset": "b709f60f2df219a54f4d8401e0171d77c48591658108bc79423d04975b7390a9",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Огонь — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "7c9b629d155139ed8457fdede9167e28f86282b4514ff917ee6305041fc804fd"
     },
     {
       "card_id": "strike",
@@ -251,47 +227,38 @@
         "Карта": "Удар",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Точный бросок: ранит зверя при прямом попадании.",
         "Параметры I / II / III": "Прямой урон: 3 / 5 / 8 HP",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "120"
       },
       "definition_path": "hukaton/Assets/Game/Data/strike.asset",
-      "definition_sha256": "33c3e774e65a9af38c6527b906f21d0ad8de840ec2ba77674044672f95b752af",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Strike.asset",
-      "effect_sha256": "45843c019f17189423b8533a4c28b4ada04ca7de81e3653949de0e1341488ac9",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/StrikeEffect.cs",
-      "effect_script_sha256": "55940d5d2b09344d6a3ba42eaffc76c2fb04e885905b437425fe3e97005bbb05",
       "artwork": {
-        "path": "output/card-catalog/artwork/strike.png",
-        "sha256": "1670e32482a5d0f968423bcb3e8048b03c71d4a32b113218e52a62821b38151a",
         "source": "hukaton/Assets/Game/Art/strike.png",
-        "source_sha256": "f10a5d3d5294300f62fd708addddbb913216ef787c3ec10ef709d9bd3085994f",
+        "source_sha256": "2478e306546da373d91b5761201b7ee9bbfb6116756856fbd0fbdf2973af1e90",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Удар — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 120,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "yvc0wg4vhn",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "1670e32482a5d0f968423bcb3e8048b03c71d4a32b113218e52a62821b38151a",
-          "w": 320,
-          "h": 480,
-          "alt": "Удар — актуальная карта"
+          "asset": "2478e306546da373d91b5761201b7ee9bbfb6116756856fbd0fbdf2973af1e90",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Удар — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "33c3e774e65a9af38c6527b906f21d0ad8de840ec2ba77674044672f95b752af"
     },
     {
       "card_id": "heavy_strike",
@@ -301,47 +268,38 @@
         "Карта": "Тяжёлый удар",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "При прямом попадании ранит и отбрасывает существо по направлению броска; сбивает с ног на 0,7 с.",
         "Параметры I / II / III": "Урон: 2 / 3 / 4 HP\nСила импульса: 10 / 14 / 18",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "140"
       },
       "definition_path": "hukaton/Assets/Game/Data/heavy_strike.asset",
-      "definition_sha256": "04ae07e20f6b6ff052e45311092591ee316b382dd07c253960f54e45f2124f85",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Heavy strike.asset",
-      "effect_sha256": "84af55966d4fc45a08cb32baaf4d3d432bb1a1f9e04aba887ed2b9f72e12ecb4",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/HeavyStrikeEffect.cs",
-      "effect_script_sha256": "d1ca6dba1d75f5ba93229f104559124ee37e4d227ba070c1f7fa1a7b13060c17",
       "artwork": {
-        "path": "output/card-catalog/artwork/heavy_strike.png",
-        "sha256": "0ade5b48471ded476dc8d1a1466bec0b38192fca3540dbfc01f6278680327eba",
         "source": "hukaton/Assets/Game/Art/heavy-strike.png",
-        "source_sha256": "9fbc826ce964bb12651b565004e2b135af280424fc87a098d355bf0a7794fedd",
+        "source_sha256": "a37d0b2d3d4f31a1d4518e1ef96caa0804ec262479d31f33ffa111d32ed69eb1",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Тяжёлый удар — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 140,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "a5w4rd6a92",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "0ade5b48471ded476dc8d1a1466bec0b38192fca3540dbfc01f6278680327eba",
-          "w": 320,
-          "h": 480,
-          "alt": "Тяжёлый удар — актуальная карта"
+          "asset": "a37d0b2d3d4f31a1d4518e1ef96caa0804ec262479d31f33ffa111d32ed69eb1",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Тяжёлый удар — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "04ae07e20f6b6ff052e45311092591ee316b382dd07c253960f54e45f2124f85"
     },
     {
       "card_id": "heal",
@@ -351,47 +309,38 @@
         "Карта": "Лечение",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Лечит игрока и союзников вокруг места попадания, включая оживлённое дерево. Здоровье восстанавливается до максимума.",
         "Параметры I / II / III": "Игроку: 1 / 2 / 3 сердца\nСоюзникам: 2 / 4 / 6 HP\nРадиус: 2,5 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "140"
       },
       "definition_path": "hukaton/Assets/Game/Data/heal.asset",
-      "definition_sha256": "b62cc8766b71ddd85b83b88cfcb7e0cf1e77b4b35e834dd8eb5ea157eaa88025",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Heal.asset",
-      "effect_sha256": "5bc9667ef006cc97b99440073df954509e10893f918e8328589ade7eadc4bf64",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/HealEffect.cs",
-      "effect_script_sha256": "cb1ac85465ba6ea8ba986f6ff4fb7eed0a30920c60ca5bd1b065a5eeb5a0df58",
       "artwork": {
-        "path": "output/card-catalog/artwork/heal.png",
-        "sha256": "87d8a9286ae69c0c7e4bb6abc80d7abadc6259f40a12569acff9c9d80fd570fa",
         "source": "hukaton/Assets/Decks/Art/water-realtime.png",
-        "source_sha256": "85dcefae660ac3e9de062e5be6104a1127abc02129e42a30300d74e9bb02ffdd",
+        "source_sha256": "7439c4481c96ec9f02c169b81b295939261aa5207bd0a4938e1bf646692dd88b",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Лечение — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 140,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "f5na600c15",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "87d8a9286ae69c0c7e4bb6abc80d7abadc6259f40a12569acff9c9d80fd570fa",
-          "w": 320,
-          "h": 480,
-          "alt": "Лечение — актуальная карта"
+          "asset": "7439c4481c96ec9f02c169b81b295939261aa5207bd0a4938e1bf646692dd88b",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Лечение — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "b62cc8766b71ddd85b83b88cfcb7e0cf1e77b4b35e834dd8eb5ea157eaa88025"
     },
     {
       "card_id": "lure",
@@ -401,49 +350,38 @@
         "Карта": "Манок",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "Создаёт шум, который притягивает всех существ со всего радиуса, в том числе агрессивных, уже атакующих и из-за пределов их территории. Пока шум звучит, притянутые остаются у него и не замечают игрока; раненное существо перестаёт слушать этот шум.",
         "Параметры I / II / III": "Радиус: 20 / 40 / 70 м\nДлительность: 6 / 12 / 20 с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "80"
       },
       "definition_path": "hukaton/Assets/Game/Data/lure.asset",
-      "definition_sha256": "977a92df557dddd1fbc7328922f6280fd21a9a3ad41822a40a1f51e187c7e612",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Lure.asset",
-      "effect_sha256": "dc598dd69644583c6490d7c135da4932a9e111826e719d33faeb5ea353da63ff",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Lure/LureEffect.cs",
-      "effect_script_sha256": "2c282a55cb916414c5f45d8b3f53c7c609ca241f3c42def705ad040a5d2af64c",
       "artwork": {
-        "path": "output/card-catalog/artwork/lure.png",
-        "sha256": "c509becb032e59e7077639a204be19577c3d2832d45420f370b42f25db8f6260",
         "source": "hukaton/Assets/Decks/Art/lure.png",
-        "source_sha256": "c509becb032e59e7077639a204be19577c3d2832d45420f370b42f25db8f6260",
+        "source_sha256": "5ad5323c860ab479e691826217e2b92c17f76b46431275b2558d74acdff53869",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           1024,
           1536
-        ],
-        "alt": "Манок — тянет к себе всех существ, даже издалека и даже из боя"
+        ]
       },
-      "price": 80,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "bmc5semsqz",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "c509becb032e59e7077639a204be19577c3d2832d45420f370b42f25db8f6260",
+          "asset": "5ad5323c860ab479e691826217e2b92c17f76b46431275b2558d74acdff53869",
           "w": 1024,
           "h": 1536,
-          "alt": "Манок — тянет к себе всех существ, даже издалека и даже из боя"
+          "alt": "Манок — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
       },
-      "artwork_updated_on": "2026-11-12",
-      "artwork_verification": "output/card-designs/lure-update-2026-11-12/kayospace-verification.json"
+      "definition_sha256": "b6b94ff5ec8954f902f13f265c3be970749314fb20b718617a0896781c28b2ef"
     },
     {
       "card_id": "tar_puddle",
@@ -453,47 +391,38 @@
         "Карта": "Лужа смолы",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "1 (50 %)",
         "Описание эффекта": "До поджига сохраняется до конца вылазки и замедляет. После поджига перестаёт замедлять и ранит всех: 1 HP/с существам, 0,5 сердца/с игроку. Дождь смывает лужу.",
         "Параметры I / II / III": "Радиус: 2 / 3 / 4 м\nСкорость в смоле: 50%\nПосле поджига горит 30 с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "100"
       },
       "definition_path": "hukaton/Assets/Game/Data/tar_puddle.asset",
-      "definition_sha256": "b01c00601d7512e0902a35ce66133bc7787868bbfa765cf37428fac3673af5dc",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Tar puddle.asset",
-      "effect_sha256": "8f09852b308e575404b1e09ad57bbf6bc663f5a42fb9ec7f8e74df1c5782687b",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/TarPuddle/TarPuddleEffect.cs",
-      "effect_script_sha256": "889e876c40a571f8298bacdea5dba1b451b5a2d643c45c7a1b2bd01a363a8056",
       "artwork": {
-        "path": "output/card-catalog/artwork/tar_puddle.png",
-        "sha256": "444cdc098ed0e7c886ee8eeaee8d04b924565437b0d75771e9e7930e14901688",
         "source": "hukaton/Assets/Decks/Art/tar_puddle.png",
-        "source_sha256": "95999503ed3ba387d146a784405f1d45d05cf31ec6571fef227c59f1e51f27ba",
+        "source_sha256": "147cb39d3fcea2414b2cf32297d08b8f7ed4bea8615566bbb049c49d3b32199a",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Лужа смолы — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 100,
-      "rank": 1,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "44ys80znc3",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "444cdc098ed0e7c886ee8eeaee8d04b924565437b0d75771e9e7930e14901688",
-          "w": 320,
-          "h": 480,
-          "alt": "Лужа смолы — актуальная карта"
+          "asset": "147cb39d3fcea2414b2cf32297d08b8f7ed4bea8615566bbb049c49d3b32199a",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Лужа смолы — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "b01c00601d7512e0902a35ce66133bc7787868bbfa765cf37428fac3673af5dc"
     },
     {
       "card_id": "attraction",
@@ -503,35 +432,25 @@
         "Карта": "Притяжение",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
         "Описание эффекта": "Однократно тянет игрока, существ и подвижные предметы к точке попадания; не удерживает их на месте. Сбивает существ с ног на 0,45 с.",
         "Параметры I / II / III": "Сила импульса: 6 / 9 / 12\nРадиус: 3 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "120"
       },
       "definition_path": "hukaton/Assets/Game/Data/attraction.asset",
-      "definition_sha256": "3a3ac0907e8fa90beb1c46279b0f10a09bae4e5921ffbceccc36153476aec0a5",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Attraction.asset",
-      "effect_sha256": "f38e9ee4ab57fea79580cf3d60f80761fd240ff7d79f18389fd727fc16ab9d25",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Attraction/AttractionEffect.cs",
-      "effect_script_sha256": "71a3038aa0cb0e2fb71e6cbb87311d812fccfbb1b14cdd161c4623ded84ecc04",
       "artwork": {
-        "path": "output/card-catalog/artwork/attraction.png",
-        "sha256": "73695d6698263e4959a3c75274b7b77f24afa5f9a4f717d48087959f04277cc6",
         "source": "hukaton/Assets/Decks/Art/attraction.png",
         "source_sha256": "f37e410722ef06afea74320ea1584ea781dac7fefccb80a6b4636df791ba991b",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Притяжение — актуальная карта"
+        ]
       },
-      "price": 120,
-      "rank": 2,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "1r5010hsjn",
@@ -543,7 +462,8 @@
           "alt": "Притяжение — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "3a3ac0907e8fa90beb1c46279b0f10a09bae4e5921ffbceccc36153476aec0a5"
     },
     {
       "card_id": "fog",
@@ -553,35 +473,25 @@
         "Карта": "Туман",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
         "Описание эффекта": "Создаёт неподвижную область тумана, которая закрывает обзор игроку и существам. Помогает скрыться, но не снимает агрессию мгновенно.",
         "Параметры I / II / III": "Длительность: 8 / 14 / 24 с\nРадиус: 3 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "120"
       },
       "definition_path": "hukaton/Assets/Game/Data/fog.asset",
-      "definition_sha256": "8698e7514e3ebdbc8fde4fcd50938b28152dd7e5c02a15aa11450f7ca1d072d2",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Fog.asset",
-      "effect_sha256": "f869b69fa1c47fe60821899e572fe4aea5e89559cb26025cd57949162551d493",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Fog/FogEffect.cs",
-      "effect_script_sha256": "230c20daf5f7674c09a1b48ad3320702c3a3a3267bb5da9ccf7c47c1c90aa287",
       "artwork": {
-        "path": "output/card-catalog/artwork/fog.png",
-        "sha256": "315137657570ca3cacffc4e02757428dbf9b85714afb66dfe32c46537aa17f9c",
         "source": "hukaton/Assets/Decks/Art/fog.png",
         "source_sha256": "30b316b88829b81c21292b3d5aed96c473badedb1625dcd795a7fdde03a6404f",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Туман — актуальная карта"
+        ]
       },
-      "price": 120,
-      "rank": 2,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "zxg4f5zcgc",
@@ -593,7 +503,8 @@
           "alt": "Туман — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "8698e7514e3ebdbc8fde4fcd50938b28152dd7e5c02a15aa11450f7ca1d072d2"
     },
     {
       "card_id": "rain_cloud",
@@ -603,35 +514,25 @@
         "Карта": "Облако дождя",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
         "Описание эффекта": "Создаёт неподвижное дождевое облако: тушит огонь, смывает смолу и делает игрока, существ и союзников мокрыми. Само не наносит урон и не лечит.",
         "Параметры I / II / III": "Радиус: 3 / 4,5 / 6 м\nДлительность: 15 с\nМокрота после выхода: 30 с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "140"
       },
       "definition_path": "hukaton/Assets/Game/Data/rain_cloud.asset",
-      "definition_sha256": "8b17dd82f105bdeaf7eb84288d6d541116a353252808772a07bfbe8a46a6b55f",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Rain cloud.asset",
-      "effect_sha256": "b4b3e3635c98dd0b6b0a19223bd83c37ff39cf2ff3675dc41b173e4c03f42210",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/RainCloud/RainCloudEffect.cs",
-      "effect_script_sha256": "b5024f4c954ebac2759407c984d042f832d8bf23e0d767d6af512229441e5a69",
       "artwork": {
-        "path": "output/card-catalog/artwork/rain_cloud.png",
-        "sha256": "801ae30e6001a0e0fb9b5a901f6241d27610336daaa0cc36177ed74eaf0dcc00",
         "source": "hukaton/Assets/Decks/Art/rain_cloud.png",
         "source_sha256": "4287d4781d8b082d4a6c1b9ebb14467468a333064749bf31091ed7c3e9ded67c",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Облако дождя — актуальная карта"
+        ]
       },
-      "price": 140,
-      "rank": 2,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "5jdjah0aqm",
@@ -643,7 +544,8 @@
           "alt": "Облако дождя — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "8b17dd82f105bdeaf7eb84288d6d541116a353252808772a07bfbe8a46a6b55f"
     },
     {
       "card_id": "lightning",
@@ -653,35 +555,25 @@
         "Карта": "Разряд молнии",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
         "Описание эффекта": "Бьёт напрямую; от мокрой цели разряд переходит к ближайшим мокрым целям в прямой видимости. До 3 целей всего, до 4 м между ними. Может задеть мокрого игрока и союзников; поджигает смолу.",
         "Параметры I / II / III": "Урон существу: 3 / 5 / 8 HP\nМокрому: 6 / 10 / 16 HP",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "150"
       },
       "definition_path": "hukaton/Assets/Game/Data/lightning.asset",
-      "definition_sha256": "3f196db045e497b6bab1d470dfffc10c93073649fe0c041123975b1fd38b171f",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Lightning.asset",
-      "effect_sha256": "2fc3bc736458f8a93527576d48351daa9310dfbc8ff6c32fa0a87a0cb247c002",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Lightning/LightningEffect.cs",
-      "effect_script_sha256": "1215c651cdb8468ca69ee0a78da493d309a41e1a1471bbf58ded48496901c662",
       "artwork": {
-        "path": "output/card-catalog/artwork/lightning.png",
-        "sha256": "6878636272acfe53f841197201e1bb471fb56a8cfac67ecd52f3aaa690b37205",
         "source": "hukaton/Assets/Decks/Art/lightning.png",
         "source_sha256": "7abde296bfaafc45d8a015a406015792a8cb921bb1432881516d25275f69a2f0",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Разряд молнии — актуальная карта"
+        ]
       },
-      "price": 150,
-      "rank": 2,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "aa4f7zq5h6",
@@ -693,7 +585,8 @@
           "alt": "Разряд молнии — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "3f196db045e497b6bab1d470dfffc10c93073649fe0c041123975b1fd38b171f"
     },
     {
       "card_id": "stone_cube",
@@ -703,35 +596,25 @@
         "Карта": "Каменный куб",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
         "Описание эффекта": "Создаёт подвижный каменный куб, который можно использовать как ступеньку или укрытие. Для появления требуется свободное место.",
         "Параметры I / II / III": "Сторона куба: 1,1 / 1,5 / 2 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "180"
       },
       "definition_path": "hukaton/Assets/Game/Data/stone_cube.asset",
-      "definition_sha256": "7022f093791b9c724bb08424ff7b763b66af023d11fce01b4787ce878a792e05",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Stone cube.asset",
-      "effect_sha256": "0d1d5c97816924e68aaf4ee6b03505aad92feb18dc8ec3a1fef94290aa2abaab",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/StoneCube/StoneCubeEffect.cs",
-      "effect_script_sha256": "2e85a079a52f749c360287b037ed6c0fbea62a6ccf20724b0870198259758804",
       "artwork": {
-        "path": "output/card-catalog/artwork/stone_cube.png",
-        "sha256": "b4e043ffbb9de1c5065aa2152700a3bd39d523f26f9ead58b0e63ccbdfd75b39",
         "source": "hukaton/Assets/Decks/Art/stone_cube.png",
         "source_sha256": "435fc1db83d165f212781cdcc4e642f9bea1e94fddda70e619e1eea8dc39c88c",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Каменный куб — актуальная карта"
+        ]
       },
-      "price": 180,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "kv5d0se8vj",
@@ -743,7 +626,8 @@
           "alt": "Каменный куб — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "7022f093791b9c724bb08424ff7b763b66af023d11fce01b4787ce878a792e05"
     },
     {
       "card_id": "branch_bridge",
@@ -753,35 +637,25 @@
         "Карта": "Ветвь-мост",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
         "Описание эффекта": "Выращивает мост от неподвижной твёрдой поверхности в сторону места броска. Сохраняется до конца вылазки; может загореться.",
         "Параметры I / II / III": "Длина: 5 / 8 / 12 м\nШирина: 1,2 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "180"
       },
       "definition_path": "hukaton/Assets/Game/Data/branch_bridge.asset",
-      "definition_sha256": "d11cc90d0f7944d7aed137bc53b474a0a6f7301dbd97ea172fb06668cab8cf21",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Branch bridge.asset",
-      "effect_sha256": "472814ad16ae59e6269159343756d7ae376c3bb2cef13f81eafb046aa7899ba3",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/BranchBridge/BranchBridgeEffect.cs",
-      "effect_script_sha256": "4d8118c683ebe6df689a68163cce60d8f2095c30a0353ba1f529003e16a6c8be",
       "artwork": {
-        "path": "output/card-catalog/artwork/branch_bridge.png",
-        "sha256": "d2f6458a5bd62a749cc31fc57d8030bbce7ac01a0a4324e149986e3965f2cbfb",
         "source": "hukaton/Assets/Decks/Art/branch_bridge.png",
         "source_sha256": "78b948c68528bb018ccec00fedcfaf3162a38575041bfac25131accbb9305bbf",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Ветвь-мост — актуальная карта"
+        ]
       },
-      "price": 180,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "kyrb8za49p",
@@ -793,7 +667,8 @@
           "alt": "Ветвь-мост — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "d11cc90d0f7944d7aed137bc53b474a0a6f7301dbd97ea172fb06668cab8cf21"
     },
     {
       "card_id": "lightness",
@@ -803,35 +678,25 @@
         "Карта": "Лёгкость",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
         "Описание эффекта": "Даёт лёгкость игроку, существам и подвижным предметам: получаемые импульсы ×1,5, скорость падения ограничена 8 м/с.",
         "Параметры I / II / III": "Длительность: 6 / 12 / 20 с\nРадиус: 2,5 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "180"
       },
       "definition_path": "hukaton/Assets/Game/Data/lightness.asset",
-      "definition_sha256": "612cba7ce7027902e84d240d1b86fe726e746e369698acdb1094dd82273b5f57",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Lightness.asset",
-      "effect_sha256": "48ae8fb3db7a20c4debe7df30652df65789a8d94666fb02b50822482aef2bafd",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Lightness/LightnessEffect.cs",
-      "effect_script_sha256": "9e607dd91f2bb1a42b7a0547b4daf64a9f7e808394c1078bb44dff7afff03a37",
       "artwork": {
-        "path": "output/card-catalog/artwork/lightness.png",
-        "sha256": "ac50e23fe3c5cc601601d2335737b21210cf97e30de73ddacafddde1cbc71ae1",
         "source": "hukaton/Assets/Decks/Art/lightness.png",
         "source_sha256": "5d58f385868961bf1b6d2edb9367bd2f65feb37c20aa4db59cc1946fc4e64ccf",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Лёгкость — актуальная карта"
+        ]
       },
-      "price": 180,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "xkejqphs4v",
@@ -843,7 +708,8 @@
           "alt": "Лёгкость — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "612cba7ce7027902e84d240d1b86fe726e746e369698acdb1094dd82273b5f57"
     },
     {
       "card_id": "mushroom_trampoline",
@@ -853,35 +719,25 @@
         "Карта": "Гриб-батут",
         "Изображение": null,
         "Набор": "Основная",
-        "Описание эффекта": "Создаёт гриб-батут на 15 с; при попадании в стену — гриб-полку (трутовик с ровным верхом), низко на стене, с потолка, по существу или находке — гриб на земле рядом; на глубокой воде не растёт. Отскок зависит от высоты падения; предел — 10 м. Серия прыжков с гриба на гриб: каждый следующий +5 % от первого, до +25 %. Диаметр шляпки 1,6 м.",
-        "Параметры I / II / III": "Возврат высоты: 80 / 90 / 100%\nМинимальный отскок: 1,5 / 2,5 / 4 м\nСерия: +5 % за прыжок, до +25 %",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
+        "Описание эффекта": "Создаёт гриб-батут на 15 с. Отскок зависит от высоты падения; предел — 10 м. Диаметр шляпки 1,6 м.",
+        "Параметры I / II / III": "Возврат высоты: 80 / 90 / 100%\nМинимальный отскок: 1,5 / 2,5 / 4 м",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "160"
       },
       "definition_path": "hukaton/Assets/Game/Data/mushroom_trampoline.asset",
-      "definition_sha256": "0ede02f9ac48b2fbf6090226dbbfbd6e0e24f8affa5bc3800b88730bf8990a8d",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Mushroom trampoline.asset",
-      "effect_sha256": "0df05f6999c0d7bebfcf0672f45c2ce286e8f5e15fd68e30d35f2ddd7cdd0909",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/MushroomTrampoline/MushroomTrampolineEffect.cs",
-      "effect_script_sha256": "eb9450e7a8b8c4108696ce5d9b92bb0ccf698d0686d7eed2bd6ee7c0177f642c",
       "artwork": {
-        "path": "output/card-catalog/artwork/mushroom_trampoline.png",
-        "sha256": "6ebdc9b38a359b0b249a85004c60be91b6e64481d3dbd16631256a4d58da8fd5",
         "source": "hukaton/Assets/Decks/Art/mushroom_trampoline.png",
         "source_sha256": "90de24ccafde7880a2c5c5320769cbce1f14b07841b762b3503b9cce521d1004",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Гриб-батут — актуальная карта"
+        ]
       },
-      "price": 160,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "fgk60p8q8t",
@@ -894,7 +750,7 @@
         },
         "row_height": 172
       },
-      "pending_table_sync": "2026-11-12: плейтест «смягчить спавн гриба, гриб-полка на стене, серия прыжков». Описание и параметры этой строки обновлены здесь, в нативной таблице tb_hakaton-cards ещё не обновлены; хэши definition/effect/effect_script относятся к прежним файлам. Новое описание карты в игре: «Создаёт гриб-батут, на стене — гриб-полку. Выше падение — выше отскок, серия прыжков подбрасывает всё выше.»"
+      "definition_sha256": "f3be59a0817e1e336d6a477ceaf8cd317807df4698c4b98bf1c2d944655b8a9e"
     },
     {
       "card_id": "moon_gravity",
@@ -904,35 +760,25 @@
         "Карта": "Лунная гравитация",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
         "Описание эффекта": "При попадании карты временно снижает гравитацию только игрока. Скорость сохраняется; повторное применение продлевает эффект, но не усиливает его.",
         "Параметры I / II / III": "Длительность: 12 / 25 / 45 с\nГравитация игрока: 25%",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "180"
       },
       "definition_path": "hukaton/Assets/Game/Data/moon_gravity.asset",
-      "definition_sha256": "6918b1823eb7e7e1843a5aeeb0e9f5514cdddb2a1ea112a0ee3dda36ba748062",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Moon gravity.asset",
-      "effect_sha256": "d0d9c650ee82af04fd1671d2e4e86502982a365eb9a7138183ff04df8bf32240",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/MoonGravity/MoonGravityEffect.cs",
-      "effect_script_sha256": "381b9f1a84019cb12d48e343926b66a0c0dc4d5140e0ab257dfe51aae33ae564",
       "artwork": {
-        "path": "output/card-catalog/artwork/moon_gravity.png",
-        "sha256": "885d86aba6ba11751bc6cca68c86aaabec9a620c6112f961f00d9850688c02a5",
         "source": "hukaton/Assets/Decks/Art/moon_gravity.png",
         "source_sha256": "c18262d51679aadf75264c0a1588ebfcf93028ffc357159b16d4ef47621d870d",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Лунная гравитация — актуальная карта"
+        ]
       },
-      "price": 180,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "67rm8wrcdr",
@@ -944,7 +790,8 @@
           "alt": "Лунная гравитация — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "6918b1823eb7e7e1843a5aeeb0e9f5514cdddb2a1ea112a0ee3dda36ba748062"
     },
     {
       "card_id": "rope",
@@ -954,35 +801,25 @@
         "Карта": "Верёвка",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
         "Описание эффекта": "Крепит свисающую верёвку к поверхности. По ней можно взбираться и раскачиваться. К существам не крепится.",
         "Параметры I / II / III": "Длина: 5 / 7,5 / 10 м\nСкорость подъёма: 2 м/с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "180"
       },
       "definition_path": "hukaton/Assets/Game/Data/rope.asset",
-      "definition_sha256": "1753955455e63e4e8e8e452b0f7507cd74f8c508ece938bfd0de7cf65e32b807",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Rope.asset",
-      "effect_sha256": "03195c3305ccdef458637dc0649b35a0b7d008622ddcfe7ed334faf03b9b3ae3",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Rope/RopeEffect.cs",
-      "effect_script_sha256": "5e2b7dabdb60044b7a8c85438db916cfd401fce4a3f88b8045b489e8458387ec",
       "artwork": {
-        "path": "output/card-catalog/artwork/rope.png",
-        "sha256": "9663f7788c6ad6837b00d658ed153ea7ef7723c70149a1013cbc6b0f353e2769",
         "source": "hukaton/Assets/Decks/Art/rope.png",
         "source_sha256": "f26722a59231e0ddf926dca14d16a35bf4b5df734180394d4057e3cedc9f15f6",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Верёвка — актуальная карта"
+        ]
       },
-      "price": 180,
-      "rank": 3,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "qangbavszv",
@@ -994,7 +831,8 @@
           "alt": "Верёвка — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "1753955455e63e4e8e8e452b0f7507cd74f8c508ece938bfd0de7cf65e32b807"
     },
     {
       "card_id": "updraft",
@@ -1004,35 +842,25 @@
         "Карта": "Восходящий поток",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "4 (4 %)",
         "Описание эффекта": "Создаёт столб воздуха, поднимающий игрока и тела с условной массой до 2. Скорость подъёма до 4 м/с; из потока можно выйти в сторону.",
         "Параметры I / II / III": "Высота: 6 / 10 / 15 м\nРадиус: 1,5 м\nДлительность: 12 с",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "260"
       },
       "definition_path": "hukaton/Assets/Game/Data/updraft.asset",
-      "definition_sha256": "966d3595657f47f59400c361435f79fec757917dad63b60e756e703fca69742e",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Updraft.asset",
-      "effect_sha256": "161d75b56efa6c8f3b65cb11b02adf020c4d82681924e7ab198d99dbb332f7ca",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Updraft/UpdraftEffect.cs",
-      "effect_script_sha256": "6ebccb1a28714004be6588a797daaf48ceaeb013d66de84b654a97c9c66378b1",
       "artwork": {
-        "path": "output/card-catalog/artwork/updraft.png",
-        "sha256": "55e64ea0aa9651bb2add96b516b0eca2f2cb376356fb97556c78e7e42fb4ecb2",
         "source": "hukaton/Assets/Decks/Art/updraft.png",
         "source_sha256": "9fe8c983a8d21bbac57c31561d0d99a78acc5837cb544624c208448fde459d8c",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Восходящий поток — актуальная карта"
+        ]
       },
-      "price": 260,
-      "rank": 4,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "vnvhxxzx4m",
@@ -1044,7 +872,8 @@
           "alt": "Восходящий поток — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "966d3595657f47f59400c361435f79fec757917dad63b60e756e703fca69742e"
     },
     {
       "card_id": "tree_awakening",
@@ -1054,47 +883,38 @@
         "Карта": "Оживление дерева",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "4 (4 %)",
         "Описание эффекта": "Превращает подходящее дерево в союзника, который следует за игроком и сражается. Каждая копия создаёт нового союзника. Дальность удара 2,5 м, цикл атаки 2,5 с.",
         "Параметры I / II / III": "Здоровье дерева: 12 / 20 / 32 HP\nУрон: 2 / 3 / 4 HP",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "300"
       },
       "definition_path": "hukaton/Assets/Game/Data/tree_awakening.asset",
-      "definition_sha256": "43a0143d1030b0b903f81f5cc626ea69efae4d668f5940c0745433d643d2ce94",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Tree awakening.asset",
-      "effect_sha256": "d03207f8e36c5fbe0a44858ccf2e4e66ffac7cc6f5be15e7d9ccdaef38ff3bfc",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/TreeAwakening/TreeAwakeningEffect.cs",
-      "effect_script_sha256": "eb11af3461a3cc1bbe3d9dba4e179db71d912dc37411ab4ce1f6593a4fe5ab8d",
       "artwork": {
-        "path": "output/card-catalog/artwork/tree_awakening.png",
-        "sha256": "eb1e3997b9907265c025178ef2557142c7f5f3e19096c38e23c01f771e3ff9f1",
         "source": "hukaton/Assets/Decks/Art/tree_awakening.png",
-        "source_sha256": "1b257ec188b6e1261ce85995b030b0ac2f90ea56a88900fcd3436e48b2bca8ad",
+        "source_sha256": "7da729ae1f56986f3ed87a49e76599c1434353f4b8291e7a942ab6f2d8eb62c7",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Оживление дерева — актуальная карта"
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
       },
-      "price": 300,
-      "rank": 4,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "661j32x9ys",
         "image_column_id": "sagj8shw56",
         "image_attachment": {
-          "asset": "eb1e3997b9907265c025178ef2557142c7f5f3e19096c38e23c01f771e3ff9f1",
-          "w": 320,
-          "h": 480,
-          "alt": "Оживление дерева — актуальная карта"
+          "asset": "7da729ae1f56986f3ed87a49e76599c1434353f4b8291e7a942ab6f2d8eb62c7",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Оживление дерева — утверждённый арт, школы 14.11.2026"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "43a0143d1030b0b903f81f5cc626ea69efae4d668f5940c0745433d643d2ce94"
     },
     {
       "card_id": "swap",
@@ -1104,35 +924,25 @@
         "Карта": "Подмена",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "5 (1 %)",
         "Описание эффекта": "Меняет местами игрока и подвижный неживой предмет, сохраняя их скорости. Не работает с существами и закреплёнными предметами; на обеих позициях нужно свободное место.",
         "Параметры I / II / III": "Дальность: 12 / 20 / 30 м\nМаксимальная условная масса предмета: 2",
         "Использований за вылазку I / II / III": "1 / 1 / 1",
         "Цена у гоблина (монеты)": "360"
       },
       "definition_path": "hukaton/Assets/Game/Data/swap.asset",
-      "definition_sha256": "3572b84886f04fb567458a6102a97f19ab690daad28aa91593357f70c7fb6bc8",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Swap.asset",
-      "effect_sha256": "d4557f0d1021a6e36e15cc9e0e64197df67e9b026480cf43941e26e6e3123208",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Swap/SwapEffect.cs",
-      "effect_script_sha256": "f9c84d9fefb5e2a7f9decb75c5eca4b9fab3d86a2bf7b36b01e0e0bc802504f5",
       "artwork": {
-        "path": "output/card-catalog/artwork/swap.png",
-        "sha256": "ed988201987b98a3c7ef678476b2f8d28ca0763de30fc391ff5f63c4c227e074",
         "source": "hukaton/Assets/Decks/Art/swap.png",
         "source_sha256": "d9deb659814a66d908f3f45cfb1548e68f1fc618af7a3b46f900c90239e263ba",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Подмена — актуальная карта"
+        ]
       },
-      "price": 360,
-      "rank": 5,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "whpdtnsfmz",
@@ -1144,7 +954,8 @@
           "alt": "Подмена — актуальная карта"
         },
         "row_height": 172
-      }
+      },
+      "definition_sha256": "3572b84886f04fb567458a6102a97f19ab690daad28aa91593357f70c7fb6bc8"
     },
     {
       "card_id": "teleport",
@@ -1154,35 +965,25 @@
         "Карта": "Телепорт",
         "Изображение": null,
         "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "5 (1 %)",
         "Описание эффекта": "Переносит игрока к месту попадания, если там достаточно места; сохраняет скорость. На II и III уровнях карта возвращается в руку, пока остаются заряды.",
         "Параметры I / II / III": "Зарядов: 1 / 2 / 3",
         "Использований за вылазку I / II / III": "1 / 2 / 3",
         "Цена у гоблина (монеты)": "450"
       },
       "definition_path": "hukaton/Assets/Game/Data/teleport.asset",
-      "definition_sha256": "67adc6dd4fa3ade83960ea4f44d091c891a2ddd800a2d7cdecf5f80a070765d1",
-      "effect_path": "hukaton/Assets/Game/Data/Effects/Teleport.asset",
-      "effect_sha256": "0bcd354982213f192924bc8bdb5fc6519a3024b3de3083ed4fdcab4135508733",
-      "effect_script": "hukaton/Assets/Expedition/Runtime/Cards/Teleport/TeleportEffect.cs",
-      "effect_script_sha256": "d09ab2a541f4f9716fe1fc4a5e5f24fc454758c61a1a46b8c7692f3dd227746d",
       "artwork": {
-        "path": "output/card-catalog/artwork/teleport.png",
-        "sha256": "e5684d70e13a0a7b1908aaa9174668b5b5846336dece0fa0a96a6df7bbd8c0d1",
         "source": "hukaton/Assets/Decks/Art/teleport.png",
         "source_sha256": "d665d78e88cfded68de42e4c83e22d5dba80a1b662c9f92ce05941079a8a373a",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Телепорт — актуальная карта"
+        ]
       },
-      "price": 450,
-      "rank": 5,
-      "upgradable": true,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "58cvnxfhy9",
@@ -1194,157 +995,8 @@
           "alt": "Телепорт — актуальная карта"
         },
         "row_height": 172
-      }
-    },
-    {
-      "card_id": "note_throw",
-      "name": "Бросок",
-      "group": "Сюжетная",
-      "values": {
-        "Карта": "Бросок",
-        "Изображение": null,
-        "Набор": "Сюжетная",
-        "Описание эффекта": "Сюжетная инструкция пещеры: Удержать и отпустить ЛКМ. При броске не вызывает игрового эффекта. Не входит в обычную колоду и не сохраняется в коллекции.",
-        "Параметры I / II / III": "Только I; не улучшается",
-        "Использований за вылазку I / II / III": "По сценарию обучения",
-        "Цена у гоблина (монеты)": "Не продаётся"
       },
-      "definition_path": "hukaton/Assets/Tutorial/Data/note_throw.asset",
-      "definition_sha256": "660261a6807113b494409fef6ea940ad55ffe7a41c0efe438b332a719779c2e9",
-      "effect_path": "hukaton/Assets/Tutorial/Data/InstructionNote.asset",
-      "effect_sha256": "3294e81a8b55ada0160d78d90117364969d29b3e41c193f53a7f3cf57bc20a7f",
-      "effect_script": "hukaton/Assets/Tutorial/Runtime/Cave/InstructionNoteEffect.cs",
-      "effect_script_sha256": "b8ba88328092175a16d61f3ddd49d858d7315881731b7646b505e9f07c95ac12",
-      "artwork": {
-        "path": "output/card-catalog/artwork/note_throw.png",
-        "sha256": "c867fb6d1a78f956a8db95e2a621401af6ed75f925db7b220a75e44c7d9c0a55",
-        "source": "hukaton/Assets/Tutorial/Art/instruction-throw.png",
-        "source_sha256": "01607eaa16345414630b4d1303f8e10bcdad54cfe4095a9daf1fe608b8c44456",
-        "source_size": [
-          1024,
-          1536
-        ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Бросок — актуальная карта"
-      },
-      "price": 0,
-      "rank": 1,
-      "upgradable": false,
-      "kayospace": {
-        "table_id": "tb_hakaton-cards",
-        "row_id": "n4fkwej6y3",
-        "image_column_id": "sagj8shw56",
-        "image_attachment": {
-          "asset": "c867fb6d1a78f956a8db95e2a621401af6ed75f925db7b220a75e44c7d9c0a55",
-          "w": 320,
-          "h": 480,
-          "alt": "Бросок — актуальная карта"
-        },
-        "row_height": 172
-      }
-    },
-    {
-      "card_id": "note_move",
-      "name": "Движение",
-      "group": "Сюжетная",
-      "values": {
-        "Карта": "Движение",
-        "Изображение": null,
-        "Набор": "Сюжетная",
-        "Описание эффекта": "Сюжетная инструкция пещеры: WASD, мышь, Shift, пробел. При броске не вызывает игрового эффекта. Не входит в обычную колоду и не сохраняется в коллекции.",
-        "Параметры I / II / III": "Только I; не улучшается",
-        "Использований за вылазку I / II / III": "По сценарию обучения",
-        "Цена у гоблина (монеты)": "Не продаётся"
-      },
-      "definition_path": "hukaton/Assets/Tutorial/Data/note_move.asset",
-      "definition_sha256": "562de8540a818ab05e9775e4b6e54214d47d9183693fe40e0c0dfee02aab1536",
-      "effect_path": "hukaton/Assets/Tutorial/Data/InstructionNote.asset",
-      "effect_sha256": "3294e81a8b55ada0160d78d90117364969d29b3e41c193f53a7f3cf57bc20a7f",
-      "effect_script": "hukaton/Assets/Tutorial/Runtime/Cave/InstructionNoteEffect.cs",
-      "effect_script_sha256": "b8ba88328092175a16d61f3ddd49d858d7315881731b7646b505e9f07c95ac12",
-      "artwork": {
-        "path": "output/card-catalog/artwork/note_move.png",
-        "sha256": "60946184ce2a21f6bb9b5f0fdcfff77d6e7c1ac432da62ce28225a1b59e30580",
-        "source": "hukaton/Assets/Tutorial/Art/instruction-move.png",
-        "source_sha256": "d6122136cbde02a2efafbe91ea106dde77e4bad926d8d64fbf6c2c166281c4d0",
-        "source_size": [
-          1024,
-          1536
-        ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Движение — актуальная карта"
-      },
-      "price": 0,
-      "rank": 1,
-      "upgradable": false,
-      "kayospace": {
-        "table_id": "tb_hakaton-cards",
-        "row_id": "qgg1ngw5y5",
-        "image_column_id": "sagj8shw56",
-        "image_attachment": {
-          "asset": "60946184ce2a21f6bb9b5f0fdcfff77d6e7c1ac432da62ce28225a1b59e30580",
-          "w": 320,
-          "h": 480,
-          "alt": "Движение — актуальная карта"
-        },
-        "row_height": 172
-      }
-    },
-    {
-      "card_id": "note_discard",
-      "name": "Сброс",
-      "group": "Сюжетная",
-      "values": {
-        "Карта": "Сброс",
-        "Изображение": null,
-        "Набор": "Сюжетная",
-        "Описание эффекта": "Сюжетная инструкция пещеры: R — сбросить всю руку. При броске не вызывает игрового эффекта. Не входит в обычную колоду и не сохраняется в коллекции.",
-        "Параметры I / II / III": "Только I; не улучшается",
-        "Использований за вылазку I / II / III": "По сценарию обучения",
-        "Цена у гоблина (монеты)": "Не продаётся"
-      },
-      "definition_path": "hukaton/Assets/Tutorial/Data/note_discard.asset",
-      "definition_sha256": "6cd34320154995254d3a4a99e10a9ee551092f1ffbc707a0f84461efe4679823",
-      "effect_path": "hukaton/Assets/Tutorial/Data/InstructionNote.asset",
-      "effect_sha256": "3294e81a8b55ada0160d78d90117364969d29b3e41c193f53a7f3cf57bc20a7f",
-      "effect_script": "hukaton/Assets/Tutorial/Runtime/Cave/InstructionNoteEffect.cs",
-      "effect_script_sha256": "b8ba88328092175a16d61f3ddd49d858d7315881731b7646b505e9f07c95ac12",
-      "artwork": {
-        "path": "output/card-catalog/artwork/note_discard.png",
-        "sha256": "e287e5807f5aebb729c97fb04126edecacef047283ff5128fe16dd6625839583",
-        "source": "hukaton/Assets/Tutorial/Art/instruction-discard.png",
-        "source_sha256": "cca5d7c1b79fd02e642566c61a749d7fdba5def9f073ac155a0a229e26388039",
-        "source_size": [
-          1024,
-          1536
-        ],
-        "size": [
-          320,
-          480
-        ],
-        "alt": "Сброс — актуальная карта"
-      },
-      "price": 0,
-      "rank": 1,
-      "upgradable": false,
-      "kayospace": {
-        "table_id": "tb_hakaton-cards",
-        "row_id": "ttk8fjnx0b",
-        "image_column_id": "sagj8shw56",
-        "image_attachment": {
-          "asset": "e287e5807f5aebb729c97fb04126edecacef047283ff5128fe16dd6625839583",
-          "w": 320,
-          "h": 480,
-          "alt": "Сброс — актуальная карта"
-        },
-        "row_height": 172
-      }
+      "definition_sha256": "67adc6dd4fa3ade83960ea4f44d091c891a2ddd800a2d7cdecf5f80a070765d1"
     },
     {
       "card_id": "return",
@@ -1354,29 +1006,25 @@
         "Карта": "Пора домой",
         "Изображение": null,
         "Набор": "Возвращение",
+        "Редкость (шанс у гоблина)": "Не продаётся",
         "Описание эффекта": "Появляется, когда закончились запас, рука и карты, ожидающие возвращения. Нажатие ЛКМ возвращает игрока в лавку. В прологе не появляется.",
         "Параметры I / II / III": "Не улучшается",
         "Использований за вылазку I / II / III": "Завершает вылазку",
         "Цена у гоблина (монеты)": "Не продаётся"
       },
       "definition_path": null,
-      "effect_path": null,
       "artwork": {
-        "path": "output/card-catalog/artwork/return.png",
-        "sha256": "e8535055d596b66be9984e108f90e3ae6dc9a37e9ebcb6b877b3008f02f2e1f5",
         "source": "hukaton/Assets/Decks/Art/06-return.png",
         "source_sha256": "de2ff2a2dcb365d74cdc370906950b0236b813d9117240814c7c9b05cd876aeb",
         "source_size": [
           1024,
           1536
         ],
-        "size": [
+        "table_attachment_size": [
           320,
           480
-        ],
-        "alt": "Пора домой — актуальная карта"
+        ]
       },
-      "upgradable": false,
       "kayospace": {
         "table_id": "tb_hakaton-cards",
         "row_id": "px72nzmv68",
@@ -1389,14 +1037,477 @@
         },
         "row_height": 172
       }
+    },
+    {
+      "card_id": "discord",
+      "name": "Раздор",
+      "group": "Основная",
+      "values": {
+        "Карта": "Раздор",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "4 (4 %)",
+        "Описание эффекта": "Все звери в радиусе вокруг точки попадания встают в стойку с «!!» и дерутся все против всех, пока не останется один или не пройдёт 45 с. Выжившие возвращаются к обычному поведению, павшие роняют свою добычу. Участник, которого ударил игрок, идёт на игрока. Меньше двух зверей — только стойка.",
+        "Параметры I / II / III": "Радиус: 5 / 10 / 15 м\nДрака: до 45 с",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "300"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/discord.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/discord.png",
+        "source_sha256": "d131c460e7252a67766488e58364601dd31a78f6117c29bd7ffb5bab5016bdd2",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "g1pbzzn5dp",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "d131c460e7252a67766488e58364601dd31a78f6117c29bd7ffb5bab5016bdd2",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Раздор — утверждённый арт, школы 14.11.2026"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "f94a2402c5568561a32ceb92ccccc74f9a8fa32f58653ab0ef338c5935e34bdb"
+    },
+    {
+      "card_id": "marauder",
+      "name": "Мародёр",
+      "group": "Основная",
+      "values": {
+        "Карта": "Мародёр",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
+        "Описание эффекта": "Попадание в зверя вешает метку. Если зверь умрёт помеченным, его таблица добычи бросается несколько раз. Повторное попадание продлевает метку.",
+        "Параметры I / II / III": "Метка: 10 / 15 / 20 с\nБросков добычи: 2 / 2 / 3",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "160"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/marauder.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/marauder.png",
+        "source_sha256": "402a3de47ed430f7f112c8f1c1ef5e2357ad52b8fae8f65859e02a3d1001850f",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "hya3v44mja",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "402a3de47ed430f7f112c8f1c1ef5e2357ad52b8fae8f65859e02a3d1001850f",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Мародёр — утверждённый арт, школы 14.11.2026"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "837f83d4068b7b8faf09116c88fd379592b729180cce8aa2766ffcb8f0dd41ff"
+    },
+    {
+      "card_id": "crooked_mirror",
+      "name": "Кривое зеркало",
+      "group": "Основная",
+      "values": {
+        "Карта": "Кривое зеркало",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
+        "Описание эффекта": "Зверь криво сжимается, потом возвращается к прежнему размеру: его урон и масса уменьшаются в той же доле (урон не меньше ½ сердца), Импульс отбрасывает его дальше. Каменный куб или Гриб-батут, наоборот, увеличивается до конца своей жизни.",
+        "Параметры I / II / III": "Размер зверя: 50 / 40 / 30 %\nДлительность: 12 / 16 / 20 с\nКуб и гриб: ×1,5 / ×1,75 / ×2",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "400"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/crooked_mirror.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/crooked_mirror.png",
+        "source_sha256": "ba6da7ecb0ee56da9167b86ebda8b133623376cf60425a3fdd3d5dbb4eb6833e",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "xzh9phdmdv",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "ba6da7ecb0ee56da9167b86ebda8b133623376cf60425a3fdd3d5dbb4eb6833e",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Кривое зеркало — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "c806a99185c56cd722e2642753b13b0c39eb1e27b7ca910fcd8d50b443fe3d02"
+    },
+    {
+      "card_id": "sticky_hour",
+      "name": "Тягучий час",
+      "group": "Основная",
+      "values": {
+        "Карта": "Тягучий час",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "4 (4 %)",
+        "Описание эффекта": "Вязкая зона на земле: существа внутри двигаются и атакуют медленнее, вражеские снаряды внутри летят медленнее. Игрок и союзники не замедляются.",
+        "Параметры I / II / III": "Замедление: ×2 / ×3 / ×4\nРадиус: 4 м\nДлительность: 10 с",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "200"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/sticky_hour.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/sticky_hour.png",
+        "source_sha256": "1b301e954176bc2d61340607bdcec9d4d72574de223fcad5544bf1fe5c883221",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "vbjbespyw7",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "1b301e954176bc2d61340607bdcec9d4d72574de223fcad5544bf1fe5c883221",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Тягучий час — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "547f63c6c5c09964aa04a18c6d4e43131c1acfc49de8ee515727d560540fd73e"
+    },
+    {
+      "card_id": "scarecrow",
+      "name": "Чучело",
+      "group": "Основная",
+      "values": {
+        "Карта": "Чучело",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
+        "Описание эффекта": "Карта втыкается в землю и вырастает до 1,7 м. Агрессивные и территориальные звери поблизости, идущие на игрока, переключаются на неё. Стоит 25 с или до разрушения. Огонь поджигает её: пламя поднимается по краям снизу вверх, через 4 с карта ломается. На III при разрушении вспыхивает и поджигает зверей в 2,5 м.",
+        "Параметры I / II / III": "Здоровье: 6 / 10 / 16 HP\nПриманивает: в 12 м\nСтоит: 25 с",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "140"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/scarecrow.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/scarecrow.png",
+        "source_sha256": "354ba7998e970f98a307b2e80d9283a1d243edaf52a4edbc7cd744b4614efd9e",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "80czkb5z6y",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "354ba7998e970f98a307b2e80d9283a1d243edaf52a4edbc7cd744b4614efd9e",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Чучело — утверждённый арт, школы 14.11.2026"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "57b2396e81de4aae6d7a8f01414b8adfbbc2421b43cb57ae8b71ebed4162c042"
+    },
+    {
+      "card_id": "bubble",
+      "name": "Пузырь",
+      "group": "Основная",
+      "values": {
+        "Карта": "Пузырь",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
+        "Описание эффекта": "Мыльный купол на земле: вражеские снаряды, влетающие внутрь, лопаются; звери и мимики выталкиваются наружу и не могут войти. Удары и укусы снаружи по тем, кто внутри (даже у самой плёнки), уходят в плёнку без урона. Игрок ходит свободно.",
+        "Параметры I / II / III": "Длительность: 4 / 8 / 16 сРадиус: 3 м",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "140"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/bubble.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/bubble.png",
+        "source_sha256": "cbd565f2695567830cbc799c1a0895db3e0bea9a9fdf728208701eafd3e86c4c",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "wfmsnkd4wh",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "cbd565f2695567830cbc799c1a0895db3e0bea9a9fdf728208701eafd3e86c4c",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Пузырь — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "b6bb83272b5a5cb0431fb00f671de181159a7912e354e09fa746626b91423175"
+    },
+    {
+      "card_id": "gilding",
+      "name": "Позолота",
+      "group": "Основная",
+      "values": {
+        "Карта": "Позолота",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
+        "Описание эффекта": "Попадание в закрытый сундук повышает его уровень, не выше «Легендарного»: богаче эффект открытия и выплата. Мимик просыпается, выдаёт себя и убегает, не кусая.",
+        "Параметры I / II / III": "Уровень сундука: +1 / +1 / +2Монеты: ×1 / ×1,5 / ×2",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "200"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/gilding.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/gilding.png",
+        "source_sha256": "7629505842f11fc174545eb72a5198d04a44fa7a66780149ac9f5a654b145b8d",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "fsjtfd9fj5",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "7629505842f11fc174545eb72a5198d04a44fa7a66780149ac9f5a654b145b8d",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Позолота — утверждённый арт, школы 14.11.2026"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "8e1773cba882343f0f45b9c2e9a2984aa966db5c761113189134de6b045f7625"
+    },
+    {
+      "card_id": "merchant_nose",
+      "name": "Нюх торгаша",
+      "group": "Основная",
+      "values": {
+        "Карта": "Нюх торгаша",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "2 (30 %)",
+        "Описание эффекта": "Закрытые сундуки вокруг точки попадания получают столб света, видимый сквозь стены, на 40 с или до открытия. Мимики под столбом изредка вздрагивают.",
+        "Параметры I / II / III": "Радиус: 20 / 40 / 70 мСтолб: 40 с",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "180"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/merchant_nose.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/merchant_nose.png",
+        "source_sha256": "667767bb362f210fb855fb43c2e5d98fb3e262f684aba8e67335243adb117ea3",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "1hh178y0pe",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "667767bb362f210fb855fb43c2e5d98fb3e262f684aba8e67335243adb117ea3",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Нюх торгаша — утверждённый арт, школы 14.11.2026"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "f4ff40fa0dc9ac569e5b6c15735c34c48f6073825ad67497b3932d97dd357166"
+    },
+    {
+      "card_id": "draft",
+      "name": "Сквозняк",
+      "group": "Основная",
+      "values": {
+        "Карта": "Сквозняк",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "3 (15 %)",
+        "Описание эффекта": "Полоса ветра по направлению броска на 1,5 с: сдувает туман, сносит дождевое облако к концу полосы, гасит горящую смолу, переносит огонь на 4 м по ветру, сушит мокрых и толкает тела.",
+        "Параметры I / II / III": "Длина полосы: 8 / 12 / 16 м\nШирина: 3 м",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "200"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/draft.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/draft.png",
+        "source_sha256": "c0fb0a326a468094bcc753616ee1f136e792c0f2c3b9ccbac608b557978d60e8",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "9tmebp0xc7",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "c0fb0a326a468094bcc753616ee1f136e792c0f2c3b9ccbac608b557978d60e8",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Сквозняк — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "db270ea6b08a622de4b0e4f16d747f003cab0d36c9cdce1bd76215eef6a6e905"
+    },
+    {
+      "card_id": "echo",
+      "name": "Эхо",
+      "group": "Основная",
+      "values": {
+        "Карта": "Эхо",
+        "Изображение": null,
+        "Набор": "Основная",
+        "Редкость (шанс у гоблина)": "5 (1 %)",
+        "Описание эффекта": "Повторяет в точке попадания эффект последней брошенной карты на уровне копии Эха. Не повторяет Телепорт, Эхо, «Пора домой» и сюжетные карты — тогда пшик.",
+        "Параметры I / II / III": "Уровень повтора: I / II / III",
+        "Использований за вылазку I / II / III": "1 / 1 / 1",
+        "Цена у гоблина (монеты)": "450"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/echo.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/echo.png",
+        "source_sha256": "7887d4fb8d03070711b153764052e2b5b8ef47718b222d6fe393a771210ed565",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "cwd2kqth4n",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "7887d4fb8d03070711b153764052e2b5b8ef47718b222d6fe393a771210ed565",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Эхо — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "fce3e2e2a9c81d2207a0c27f0af5e85a520ac311b7b12c749214e42c6d37ba1b"
+    },
+    {
+      "card_id": "dummy",
+      "name": "Пустышка",
+      "group": "Пустышка",
+      "values": {
+        "Карта": "Пустышка",
+        "Изображение": null,
+        "Набор": "Пустышка",
+        "Редкость (шанс у гоблина)": "Пустышка (20 % на место)",
+        "Описание эффекта": "Ничего не делает. Совсем. Штраф за покупку вслепую: у гоблина каждое из 10 мест с шансом 20 % занимает пустышка (не в первый визит). Купленная, занимает место в коллекции и колоде как обычная карта и навсегда исчезает из обеих в начале следующей вылазки. Не сливается.",
+        "Параметры I / II / III": "Не улучшается",
+        "Использований за вылазку I / II / III": "1",
+        "Цена у гоблина (монеты)": "50"
+      },
+      "definition_path": "hukaton/Assets/Game/Data/dummy.asset",
+      "artwork": {
+        "source": "hukaton/Assets/Decks/Art/blank.png",
+        "source_sha256": "c085a1407dc504593b18a8f8f389e440c94bc7363a4905bdcb01e2b9cc88ac76",
+        "source_size": [
+          1024,
+          1536
+        ],
+        "table_attachment_size": [
+          1024,
+          1536
+        ]
+      },
+      "kayospace": {
+        "table_id": "tb_hakaton-cards",
+        "row_id": "3e5d2nyvjv",
+        "image_column_id": "sagj8shw56",
+        "image_attachment": {
+          "asset": "c085a1407dc504593b18a8f8f389e440c94bc7363a4905bdcb01e2b9cc88ac76",
+          "w": 1024,
+          "h": 1536,
+          "alt": "Пустышка — актуальная карта"
+        },
+        "row_height": 172
+      },
+      "definition_sha256": "0e1b7dc5cead48af59d6d695c123db482d527bf597d76007e00e0b8361bc3e3e"
     }
+  ],
+  "notes": [
+    "Текущий состав прочитан из живой таблицы: 32 основные карты, Пустышка и Пора домой. Старый реестр из 26 строк сохранён в deployment/registry-before.json.",
+    "Обновлены только изображения 14 утверждённых карт; значения, порядок, высоты строк и колонки сохранены.",
+    "Звери используют утверждённую палитру Кость и кармин; Торг — два знака доллара; Бой — чёрно-красный.",
+    "Школа отражена на рисунках. Поле школы в CardDefinition и новая колонка таблицы в этой поставке не добавлялись.",
+    "Тексты и числа строк отражают текущую таблицу; полный аудит поведения и баланса не проводился."
   ],
   "verification": {
     "native_table_readback_verified": true,
-    "rows_and_values_verified": 26,
-    "images_retrieved_and_byte_verified": 26,
+    "rows_and_values_verified": 34,
+    "updated_images_retrieved_and_byte_verified": 14,
+    "unchanged_images_preserved": 20,
     "table_ui_screenshot_reviewed": false,
-    "task_complete": true,
-    "only_full_prices_readback_verified": true
-  }
+    "unity_editor_imports_verified": 14,
+    "play_mode_validation": false,
+    "task_complete": true
+  },
+  "verification_path": "output/card-designs/schools-2026-11-14/deployment/kayospace-image-verification.json",
+  "table_snapshot": "output/card-designs/schools-2026-11-14/deployment/kayospace-after.json",
+  "art_deployment_manifest": "output/card-designs/schools-2026-11-14/deployment/files.json"
 }
