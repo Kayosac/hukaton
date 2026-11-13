@@ -422,7 +422,7 @@ namespace Hakaton.Backroom
             if (!pressed) return;
             if (mouse.leftButton.isPressed)
             {
-                if (!turning && (mouse.position.ReadValue() - pressAt).sqrMagnitude > DragSlop * DragSlop) turning = true;
+                if (!turning && (mouse.position.ReadValue() - pressAt).magnitude > DragSlop * Hakaton.Feel.UiReference.ScreenScale) turning = true;
                 if (turning && inspected.Arrived) inspected.Turn(mouse.delta.ReadValue());
                 return;
             }

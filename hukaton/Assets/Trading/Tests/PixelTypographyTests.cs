@@ -95,8 +95,8 @@ namespace Hakaton.Trading.Tests
             Assert.That(hud.GetComponent<Canvas>().pixelPerfect, Is.True);
             Assert.That(hud.GetComponent<Canvas>().renderMode, Is.EqualTo(RenderMode.ScreenSpaceOverlay));
             var scaler = hud.GetComponent<CanvasScaler>();
-            Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ConstantPixelSize));
-            Assert.That(scaler.scaleFactor, Is.EqualTo(1));
+            // Full HD layout, magnified with the window (×2 on 4K): the one UI size standard.
+            Assert.That(Hakaton.Feel.UiReference.Follows(scaler), Is.True);
             var labels = hud.GetComponentsInChildren<TMP_Text>(true);
             Assert.That(labels.Length, Is.GreaterThan(0));
             foreach (var label in labels)

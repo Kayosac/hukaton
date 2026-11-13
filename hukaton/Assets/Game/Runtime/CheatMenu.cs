@@ -204,7 +204,8 @@ namespace Hakaton.Game
         {
             if (!IsOpen || !Available) return;
             BuildStyles();
-            GUI.matrix = Matrix4x4.Scale(new Vector3(pixelScale, pixelScale, 1));
+            float scale = pixelScale * Hakaton.Feel.UiReference.ScreenScale; // laid out for Full HD
+            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             var rect = new Rect(panelPosition.x, panelPosition.y, panelSize.x, panelSize.y);
             GUI.Box(rect, GUIContent.none, box);
             GUI.Box(rect, GUIContent.none, box); // second pass darkens the translucent default skin
