@@ -71,3 +71,25 @@ def fence():
 CHARACTERS3 = [
     ('bulk_buyer', 'BulkBuyer', 'Скупщик', 'Низкий хриплый хитрый голос; мешок на прилавок, пересчёт и звон монет, цоканье языком.', fence),
 ]
+
+
+def fence_talk():
+    """His explanation, line by line: four short raspy babbled phrases (one per line on screen), a coin or a tongue
+    click here and there. Varied so consecutive lines never sound alike."""
+    T = .93; R = dict(tract=T, breath=.22, jitter=.012, vib=(4, .015), rough=.18)
+    say = lambda f0, f1, d, v, onset=None, **k: S(contour((0, f0), (1, f1)), d, v, onset=onset, **{**R, 'a': .008, 'r': .04, **k})
+    gap = lambda d=.035: silence(d)
+    # «Я скупщик…» — matter-of-fact, falling.
+    a = mix((cat(say(130, 138, .09, 'a', 'h'), gap(), say(142, 132, .1, 'u', 'k'), gap(),
+                 say(136, 124, .11, 'i', 'sh'), gap(.05), say(128, 112, .18, 'a', 't')), 0, 1), (coin(3500, .2), .62, .35))
+    # «Плачу три четверти…» — a little haggling lilt.
+    b = mix((cat(say(126, 134, .08, 'a', 'p'), gap(), say(138, 146, .09, 'u', 'sh'), gap(),
+                 say(150, 140, .09, 'i', 't'), gap(), say(140, 128, .1, 'e', 'h'), gap(.05), say(132, 118, .16, 'o')), 0, 1),
+            (count_coins(2, .09), .5, .35))
+    # «Не торгуюсь…» — flat and firm, then a click of the tongue.
+    c = mix((cat(say(124, 122, .08, 'e', 'h'), gap(), say(126, 124, .1, 'o', 't'), gap(), say(124, 120, .1, 'u', 'k'), gap(.06),
+                 say(122, 110, .16, 'a', 'h')), 0, 1), (tsk(), .66, .8))
+    # The offer: «По рукам?» — sly, rising at the end.
+    d = mix((cat(say(128, 132, .09, 'o', 'p'), gap(), say(134, 128, .09, 'u', 'h'), gap(.04), say(136, 162, .2, 'a', 'k', a=.02, r=.08)), 0, 1),
+            (flick(), .1, .3))
+    return [a, b, c, d]

@@ -23,6 +23,17 @@ namespace Hakaton.Character
         public Hakaton.Feel.SfxCue voiceHappy;
         [Tooltip("Dislikes the offer, and walks out.")]
         public Hakaton.Feel.SfxCue voiceAngry;
+        [Tooltip("A visitor who explains himself line by line (the bulk buyer): one phrase per line on screen, in order; " +
+                 "the last one is for his closing line (the offer). Empty for ordinary visitors.")]
+        public Hakaton.Feel.SfxCue[] voiceLines;
+
+        /// <summary>The phrase for line <paramref name="line"/> of <paramref name="count"/>: the last phrase always goes with the last line.</summary>
+        public Hakaton.Feel.SfxCue VoiceLine(int line, int count)
+        {
+            if (voiceLines == null || voiceLines.Length == 0 || line < 0 || count <= 0) return null;
+            if (line >= count - 1) return voiceLines[voiceLines.Length - 1];
+            return voiceLines[Mathf.Min(line, Mathf.Max(0, voiceLines.Length - 2))];
+        }
 
         public Sprite ForExpression(NpcExpression expression)
         {
