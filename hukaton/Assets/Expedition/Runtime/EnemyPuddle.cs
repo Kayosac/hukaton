@@ -58,23 +58,36 @@ namespace Hakaton.Expeditions
             Paint(0);
         }
 
-        /// <summary>A flat disc, a little ragged at the rim, darker in the middle.</summary>
+        /// <summary>
+        /// A flat disc, a little ragged at the edge: deep in the middle, thinner toward the edge, with a light rim of
+        /// froth so it reads as a spill on any ground.
+        /// </summary>
         static Mesh Disc(float radius)
         {
-            var vertices = new Vector3[Segments + 1];
-            var colours = new Color[Segments + 1];
-            var triangles = new int[Segments * 3];
+            // Centre, then a ring of the body and a ring of the rim.
+            var vertices = new Vector3[1 + Segments * 2];
+            var colours = new Color[vertices.Length];
+            var triangles = new int[Segments * 9];
             vertices[0] = Vector3.zero;
-            colours[0] = Color.white;
+            colours[0] = new Color(.8f, .8f, .8f, 1);
             for (int i = 0; i < Segments; i++)
             {
                 float a = i * Mathf.PI * 2 / Segments;
-                float r = radius * (.86f + .14f * Mathf.PerlinNoise(i * .7f, radius));
-                vertices[i + 1] = new Vector3(Mathf.Cos(a) * r, 0, Mathf.Sin(a) * r);
-                colours[i + 1] = new Color(1, 1, 1, .55f);
-                triangles[i * 3] = 0;
-                triangles[i * 3 + 1] = i == Segments - 1 ? 1 : i + 2;
-                triangles[i * 3 + 2] = i + 1;
+                float r = radius * (.84f + .16f * Mathf.PerlinNoise(i * .7f, radius * 3));
+                var way = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                vertices[1 + i] = way * r * .82f;
+                colours[1 + i] = new Color(.95f, .95f, .95f, .8f);
+                vertices[1 + Segments + i] = way * r;
+                colours[1 + Segments + i] = new Color(1, 1, 1, .35f);
+            }
+            int t = 0;
+            for (int i = 0; i < Segments; i++)
+            {
+                int next = (i + 1) % Segments;
+                int inner = 1 + i, innerNext = 1 + next, outer = 1 + Segments + i, outerNext = 1 + Segments + next;
+                triangles[t++] = 0; triangles[t++] = innerNext; triangles[t++] = inner;
+                triangles[t++] = inner; triangles[t++] = innerNext; triangles[t++] = outerNext;
+                triangles[t++] = inner; triangles[t++] = outerNext; triangles[t++] = outer;
             }
             var mesh = new Mesh { name = "Puddle", vertices = vertices, colors = colours, triangles = triangles };
             mesh.RecalculateBounds();
