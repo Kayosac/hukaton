@@ -79,7 +79,7 @@ namespace Hakaton.GodMountains
         /// <summary>Where along the route the player stands now, m.</summary>
         public float Metres { get; private set; }
         public float RunningFor => Running ? Time.time - startedAt : 0;
-        public Transform Player => encounter && encounter.Player ? encounter.Player.transform : null;
+        public Transform Player => encounter && encounter.PlayerMotor ? encounter.PlayerMotor.transform : null;
         public Transform Eye => atmosphere && atmosphere.viewer ? atmosphere.viewer : Player;
 
         AudioSource breathSource, mutedSource, windSource;

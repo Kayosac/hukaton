@@ -86,7 +86,7 @@ namespace Hakaton.GodMountains
         /// <summary>The player is handed over and the encounter runs (the moments on the path wait for this).</summary>
         public bool Ready => ready;
         /// <summary>The player, once handed over.</summary>
-        public FirstPersonMotor Player => motor;
+        public FirstPersonMotor PlayerMotor => motor;
 
         static readonly int NoticeId = Animator.StringToHash("Notice");
         static readonly int ReachId = Animator.StringToHash("Reach");
