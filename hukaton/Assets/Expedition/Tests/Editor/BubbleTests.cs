@@ -84,6 +84,20 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void ScriptMovedFightersCannotStepIntoTheDome()
+        {
+            Vector3 c = Centre;
+            // A chest mimic hopping toward the player inside: its hop ends on the film, outside.
+            Vector3 end = BubbleRules.KeepOut(c + new Vector3(1.5f, 0, 0), .45f, c, 3);
+            Assert.That(end.x - c.x, Is.EqualTo(3.45f).Within(1e-3f));
+            Assert.That(end.y, Is.EqualTo(c.y));
+            Vector3 outside = c + new Vector3(0, 0, -4);
+            Assert.That(BubbleRules.KeepOut(outside, .45f, c, 3), Is.EqualTo(outside));
+            // Its bite on the player inside from outside is shielded like a creature's strike.
+            Assert.That(BubbleRules.Shields(end, c + new Vector3(2.6f, 0, 0), c, 3), Is.True);
+        }
+
+        [Test]
         public void AssetsCarryTheNumbersAndTheDomeHasNoCollider()
         {
             var effect = AssetDatabase.LoadAssetAtPath<BubbleEffect>("Assets/Game/Data/Effects/Bubble.asset");

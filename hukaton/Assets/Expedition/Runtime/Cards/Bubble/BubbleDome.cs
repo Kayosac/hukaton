@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions.Cards
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(100)]
-    public sealed class BubbleDome : CardZoneBehaviour, ICardAreaOutline, IStrikeShield
+    public sealed class BubbleDome : CardZoneBehaviour, ICardAreaOutline, IStrikeShield, ICardBarrier
     {
         [Header("Authored parts")]
         [Tooltip("The film: a crooked unit hemisphere (Hakaton/Soap Bubble), scaled to the radius.")]
@@ -133,6 +133,7 @@ namespace Hakaton.Expeditions.Cards
             if (!Standing || !World.Running) return;
             float dt = Time.fixedDeltaTime;
             KeepCreaturesOut(dt);
+            KeepOthersOut(dt);
             PopProjectiles(dt);
         }
 
@@ -206,10 +207,33 @@ namespace Hakaton.Expeditions.Cards
             }
         }
 
-        /// <summary>A strike from outside at someone inside hits the film: ripple, jiggle, bump; no damage.</summary>
-        public bool BlocksStrike(WorldCreature attacker, ICombatant victim, Vector3 point)
+        /// <summary>Move targets of fighters that move by script (the chest mimic) stay outside the film.</summary>
+        public Vector3 KeepOut(Vector3 point, float bodyRadius)
         {
-            if (!Standing || !attacker || victim == null) return false;
+            if (!Standing) return point;
+            return BubbleRules.KeepOut(point, bodyRadius, Centre, radius);
+        }
+
+        /// <summary>Other world fighters (chest mimics) caught inside are moved out like creatures.</summary>
+        void KeepOthersOut(float dt)
+        {
+            var others = World.Wild.All;
+            float r = CurrentRadius;
+            for (int i = 0; i < others.Count; i++)
+            {
+                var other = others[i];
+                if (other == null || other is WorldCreature || !other.Alive || !other.Root) continue;
+                float need = BubbleRules.Overlap(other.Position, ChestMimic.BarrierRadius, 1, Centre, r, out var outward);
+                if (need <= 0) continue;
+                pushed++;
+                other.Root.position += outward * BubbleRules.ExpelStep(need, snapDepth, expelSpeed, dt);
+            }
+        }
+
+        /// <summary>A strike from outside at someone inside hits the film: ripple, jiggle, bump; no damage.</summary>
+        public bool BlocksStrike(ICombatant attacker, ICombatant victim, Vector3 point)
+        {
+            if (!Standing || attacker == null || victim == null) return false;
             if (!BubbleRules.Shields(attacker.Position, victim.Position, Centre, radius)) return false;
             blocked++;
             Vector3 film = BubbleRules.FilmPoint(attacker.Position, Centre, radius, point.y);

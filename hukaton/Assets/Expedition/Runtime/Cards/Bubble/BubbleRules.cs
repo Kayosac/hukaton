@@ -68,6 +68,13 @@ namespace Hakaton.Expeditions.Cards
             return velocity + outward * (inward + back);
         }
 
+        /// <summary>A move target for a body of <paramref name="bodyRadius"/>, moved just outside the dome (unchanged when outside).</summary>
+        public static Vector3 KeepOut(Vector3 point, float bodyRadius, Vector3 centre, float radius)
+        {
+            float need = Overlap(point, bodyRadius, 1, centre, radius, out var outward);
+            return need > 0 ? point + outward * need : point;
+        }
+
         /// <summary>
         /// A strike from outside on someone inside: the film takes it. The victim counts by its feet (a little above
         /// them), the attacker by its feet: the dome is widest at the ground, so standing right at the film still counts.
