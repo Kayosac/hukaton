@@ -57,11 +57,15 @@ namespace Hakaton.Expeditions.Cards
         public VfxBurst hitVfx;
         [Tooltip("Flames riding on the card while it burns (held for the burn).")]
         public VfxBurst flamesVfx;
+        [Tooltip("Where flames sit on the card while it burns (children of the sway pivot, bottom first): the fire catches at the first and climbs to the others.")]
+        public Transform[] flamePoints = new Transform[0];
+        [Tooltip("Share of the burn over which the fire climbs from the first point to the last.")]
+        [Range(0, 1)] public float flameSpread = .55f;
         public VfxBurst breakVfx;
         [Tooltip("Level III: the flare when it is destroyed.")]
         public VfxBurst burstVfx;
         public VfxBurst sinkVfx;
-        [Min(0)] public float riseScale = 1.2f, hitScale = .9f, flamesScale = 3f, breakScale = 2.4f, burstScale = 1.1f, sinkScale = 1.2f;
+        [Min(0)] public float riseScale = 1.2f, hitScale = .9f, flamesScale = 1.5f, breakScale = 2.4f, burstScale = 1.1f, sinkScale = 1.2f;
         public Color fireTint = new Color(1f, .55f, .2f, 1);
         public Color dustTint = new Color(.75f, .66f, .52f, 1);
 
@@ -81,7 +85,7 @@ namespace Hakaton.Expeditions.Cards
         SpringFloat wobble;
         float age, nextThink, burnLeft, flash, swayPhase, goneAt;
         bool burning, broken, sinking;
-        VfxBurst flames;
+        readonly System.Collections.Generic.List<VfxBurst> flames = new System.Collections.Generic.List<VfxBurst>();
 
         public int Health { get; private set; } = 6;
         public int MaximumHealth => numbers.Health;
@@ -167,14 +171,28 @@ namespace Hakaton.Expeditions.Cards
             if (!Alive || burning || !Running) return false;
             burning = true;
             burnLeft = numbers.BurnSeconds;
-            flames = World.Spawn(flamesVfx, Centre, Quaternion.identity, fireTint, flamesScale);
-            if (flames)
-            {
-                flames.Follow(transform, Vector3.up * cardHeight * .3f);
-                flames.HoldFor(numbers.BurnSeconds + .5f);
-            }
+            Kindle(0);
             World.Play(igniteCue, Centre);
             return true;
+        }
+
+        /// <summary>A flame at flame point <paramref name="index"/> (the card's middle without points), riding with the sway.</summary>
+        void Kindle(int index)
+        {
+            Transform point = flamePoints != null && index < flamePoints.Length ? flamePoints[index] : null;
+            Vector3 at = point ? point.position : transform.position + Vector3.up * cardHeight * .3f;
+            var flame = World.Spawn(flamesVfx, at, Quaternion.identity, fireTint, flamesScale);
+            flames.Add(flame);
+            if (!flame) return;
+            if (point) flame.Follow(point, Vector3.zero);
+            else flame.Follow(transform, Vector3.up * cardHeight * .3f);
+            flame.HoldFor(Mathf.Max(0, burnLeft) + .5f);
+        }
+
+        void PutOut(float fade)
+        {
+            foreach (var flame in flames) if (flame) flame.Release(fade);
+            flames.Clear();
         }
 
         // ---------------- outline ----------------
@@ -209,6 +227,10 @@ namespace Hakaton.Expeditions.Cards
                 burnLeft -= dt;
                 float charred = numbers.BurnSeconds > 0 ? 1 - Mathf.Clamp01(burnLeft / numbers.BurnSeconds) : 1;
                 if (view) view.SetTint(Color.Lerp(Color.white, burntTint, charred));
+                // The fire climbs the card: one more flame at each step of the spread.
+                int points = flamePoints != null ? flamePoints.Length : 0;
+                int lit = points <= 1 ? 1 : 1 + Mathf.FloorToInt(Mathf.Clamp01(charred / Mathf.Max(.01f, flameSpread)) * (points - 1));
+                while (flames.Count < lit) Kindle(flames.Count);
                 if (burnLeft <= 0) { Break(true); return; }
             }
             if (age >= numbers.Lifetime) { Sink(); return; }
@@ -282,7 +304,7 @@ namespace Hakaton.Expeditions.Cards
             if (overhead) overhead.Clear();
             if (body) body.enabled = false;
             Vector3 centre = transform.position + Vector3.up * cardHeight * .5f;
-            if (flames) { flames.Release(.4f); flames = null; }
+            PutOut(.4f);
             if (view) view.Hide();
             World.Spawn(breakVfx, centre, Quaternion.identity, burning ? fireTint : accent, breakScale);
             World.Play(breakCue, centre);
@@ -326,7 +348,7 @@ namespace Hakaton.Expeditions.Cards
             ReleaseCreatures();
             if (overhead) overhead.Clear();
             if (body) body.enabled = false;
-            if (flames) { flames.Release(.3f); flames = null; }
+            PutOut(.3f);
             World.Spawn(sinkVfx, transform.position + Vector3.up * .05f, Quaternion.identity, dustTint, sinkScale);
             World.Play(sinkCue, transform.position);
         }
