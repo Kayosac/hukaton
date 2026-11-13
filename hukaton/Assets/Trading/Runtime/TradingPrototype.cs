@@ -36,6 +36,8 @@ namespace Hakaton.Trading.Unity
         public float holdThreshold = .35f;
         public float autoPlaceInterval = .16f;
         public Color slotHighlightColor = new Color(.9f, .8f, .35f);
+        [Tooltip("The aimed-at display slot is tinted with the highlight colour × this (HDR above 1: the pad itself gets brighter than lit, not just yellower).")]
+        [Min(1)] public float slotHighlightBrightness = 4;
         [Tooltip("After a counter-offer the visitor 'thinks' this long before their answer, face and voice show.")]
         [Min(0)] public float reactionBeat = .38f;
 
@@ -551,8 +553,10 @@ namespace Hakaton.Trading.Unity
                 }
                 if (i == hoveredSlot)
                 {
-                    slotHighlight.SetColor("_BaseColor", slotHighlightColor);
-                    slotHighlight.SetColor("_Color", slotHighlightColor);
+                    Color lit = slotHighlightColor * slotHighlightBrightness;
+                    lit.a = 1;
+                    slotHighlight.SetColor("_BaseColor", lit);
+                    slotHighlight.SetColor("_Color", lit);
                     World.SlotRenderers[i].SetPropertyBlock(slotHighlight);
                 }
                 else World.SlotRenderers[i].SetPropertyBlock(null);
