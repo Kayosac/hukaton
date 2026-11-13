@@ -14,9 +14,10 @@ namespace Hakaton.GodMountains
     /// C01 instead of a palm). He sits deep in his own hands; when the player comes out of the slot he stands up. Crossing
     /// the edge line E takes the controls away and turns the view to him: he lets go of himself, his legs drop, and he lays
     /// his index finger under the lip. Controls come back; the player jumps onto the finger. After half a second on it
-    /// the body rides with the finger (external motor control, a fixed offset from the fingertip bone): down to the cloud
-    /// sea, low toward him and up to his face. There he talks, one line per E on the linen bubble, the view held on his
-    /// face. A fall off the summit while he waits puts the player back on CP3.
+    /// the body rides with the finger (external motor control, a fixed offset from the fingertip bone; the finger stays
+    /// level and only turns about the vertical): out to his left and down over the cloud sea, back up along his left and
+    /// in to his face, the summit's air held all the way. There he talks, one line per E on the linen bubble, the view
+    /// held on his face. A fall off the summit while he waits puts the player back on CP3.
     /// The hand-over of «Пора домой» and the way back to the shop come with the game hookup: <see cref="finished"/>.
     /// </summary>
     [DisallowMultipleComponent]
@@ -58,6 +59,8 @@ namespace Hakaton.GodMountains
         [Min(1)] public float fallDepth = 8;
         [Tooltip("Where along the head bone his eyes are (bone units).")]
         public float faceHeight = .55f;
+        [Tooltip("The finger's top above the fingertip bone, m (the finger is about 40 m thick).")]
+        public float fingerTopHeight = 20;
         [Tooltip("How fast the view follows the hand while it comes (1/s).")]
         [Min(.1f)] public float followRate = 1.6f;
 
@@ -91,6 +94,9 @@ namespace Hakaton.GodMountains
         CharacterController body;
 
         Vector3 Player => motor ? motor.transform.position : Vector3.zero;
+
+        /// <summary>The top of the fingertip bone's skin: what the player looks at and jumps onto.</summary>
+        Vector3 FingerTop => finger.position + Vector3.up * fingerTopHeight;
 
         void Start()
         {
@@ -160,17 +166,17 @@ namespace Hakaton.GodMountains
                 yield return WaitForState(AlertIdleState);
             }
             god.SetTrigger(ReachId);
-            // The view follows the hand with a little lag, from his face down to the lip.
+            // The view follows the hand with a little lag, from his face down to the top of the finger at the lip.
             while (!InState(ReachHoldState))
             {
-                look = Vector3.Lerp(look, finger.position, 1 - Mathf.Exp(-followRate * Time.deltaTime));
+                look = Vector3.Lerp(look, FingerTop, 1 - Mathf.Exp(-followRate * Time.deltaTime));
                 view.Guide(look);
                 yield return null;
             }
             float settle = 1.2f;
             while ((settle -= Time.deltaTime) > 0)
             {
-                look = Vector3.Lerp(look, finger.position, 1 - Mathf.Exp(-followRate * Time.deltaTime));
+                look = Vector3.Lerp(look, FingerTop, 1 - Mathf.Exp(-followRate * Time.deltaTime));
                 view.Guide(look);
                 yield return null;
             }
@@ -204,6 +210,9 @@ namespace Hakaton.GodMountains
         {
             if (!motor.TryClaimExternalControl(this)) return;
             rideOffset = finger.InverseTransformPoint(Player);
+            // the hand carries the player off the walking route, out over the cloud sea: the air stays the summit's
+            var air = FindFirstObjectByType<GodMountainsAtmosphere>();
+            if (air) air.Hold(air.RouteMetres(Player));
             // the finger moves with the body now: it must not push the capsule around
             if (body) foreach (var c in fingerColliders) if (c) Physics.IgnoreCollision(body, c, true);
             riding = true;

@@ -73,10 +73,20 @@ namespace Hakaton.GodMountains
             return skyCopy;
         }
 
+        float held = -1;
+
         void LateUpdate()
         {
-            if (viewer) Apply(Evaluate(viewer.position));
+            if (held >= 0) Apply(AirAt(held));
+            else if (viewer) Apply(Evaluate(viewer.position));
         }
+
+        /// <summary>Keeps the air of this place on the route while the viewer is carried off the route (the ride on the
+        /// god's hand): out over the cloud sea the nearest place on the route would be the cloud.</summary>
+        public void Hold(float metres) => held = Mathf.Max(0, metres);
+
+        /// <summary>The air follows the viewer along the route again.</summary>
+        public void Release() => held = -1;
 
         /// <summary>The air at a world position: its nearest place on the route decides.</summary>
         public Air Evaluate(Vector3 position) => AirAt(RouteMetres(position));

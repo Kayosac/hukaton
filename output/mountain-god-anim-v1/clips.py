@@ -8,6 +8,7 @@ ordinary legs drop and straighten under him, the torso sags with the weight and 
 clear of the legs, and lays its index finger under the lip.
 usage: python3 clips.py <out dir>"""
 import sys, os, math, json
+import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bpy
 from mathutils import Vector, Matrix, Quaternion
@@ -143,6 +144,7 @@ class Pose:
         self.leg_swing = 0.0    # pendulum sway of the hanging legs (deg)
         self.point_dir = None   # world direction the index finger is bent toward at its knuckle (the wrist stays
         self.point_w = 0.0      # in line with the forearm; the finger does the aiming)
+        self.fk = None          # C01 laid by hand instead of IK (see fk_c01)
 
 
 def apply(p):
@@ -200,8 +202,16 @@ def apply(p):
         m_th = T[key + "_thigh"].matrix_world.copy()
         T[key].matrix_world = m_th if c <= 0 or hand is None else mlerp(m_th, hand, min(1.0, c))
         IK[bone].orient_weight = max(.02, min(1.0, orient))
+    use_ik = not p.fk or p.fk.get("ik", 0.0) > 0
+    IK["C01_wrist_00"].influence = 1.0 if use_ik else 0.0
     vl.update()
-    if p.point_dir is not None and p.point_w > 0:
+    if use_ik:
+        spread_ik_twist()
+        vl.update()
+    if p.fk:
+        fk_c01(p.fk)
+        vl.update()
+    if not p.fk and p.point_dir is not None and p.point_w > 0:
         q = turn_to("C01_f0_00", lambda: wtail("C01_f0_02") - whead("C01_f0_00"), p.point_dir)
         PB["C01_f0_00"].rotation_quaternion = Quaternion().slerp(q, min(1.0, p.point_w))
         vl.update()
@@ -302,8 +312,31 @@ def reach(t):
     p.c01_orient = 1.0 - (1.0 - TRAVEL_ORIENT) * smooth((t - 1.6) / .9) + (HAND_ORIENT - TRAVEL_ORIENT) * smooth((u - .6) / .4)
     p.fingers = smooth((t - 4.5) / 4.0)
     p.point_dir = DOCK_DIR; p.point_w = smooth((u - .55) / .45)
+    if t >= REACH_FK[0] and "H" in RS:
+        # the wrist head on a smooth arc from where the IK left it to the lip; the hand swings from gripping (turned in)
+        # to leading the swing forward and down, then to its pose on the lip; the arm's roll goes over to the one it
+        # has there as the hand gets there
+        k = smoother(min(1.0, max(0.0, u)))
+        w = vslerp(vslerp(RS["W"], REACH_SWING_W, smoother(u / .6)), DK["W"], smoother((u - .25) / .75))
+        p.fk = dict(H=reach_wrist(u), W=w, tau=RS["tau"] + (DK["tau"] - RS["tau"]) * k,
+                    point=p.point_w, ik=1 - smoother((t - REACH_FK[0]) / (REACH_FK[1] - REACH_FK[0])))
     p.look = DOCK_TIP + Vector((0, 2.0 * (1 - smooth((t - 3) / 5)), 1.5 * (1 - smooth((t - 3) / 5)))); p.look_w = .6
     return p
+
+
+REACH_FK = (2.6, 4.4)   # the reach goes over from the IK to the hand-laid arm here
+REACH_SWING_W = Vector((-.3, -.6, -.75)).normalized()
+RS = {}
+
+
+def reach_wrist(u):
+    """C01's wrist head on its arc from the IK's last pose to the lip (u past 1: the overshoot)."""
+    p0, p3 = RS["H"], DK["H"]
+    p1 = p0 + Vector((-1.6, -4.2, 2.0))
+    p2 = p3 + Vector((-1.4, 4.6, 2.8))
+    if u <= 1:
+        return bezier(p0, p1, p2, p3, max(u, 0.0))
+    return p3 + (p3 - bezier(p0, p1, p2, p3, .985)) * (u - 1) * 30
 
 
 def reach_path(r1, u):
@@ -332,82 +365,382 @@ def reach_hold(t):
     p.c01 = 1; p.hand = M_DOCK; p.fingers = 1; p.wiggle = 1; p.c01_orient = HAND_ORIENT
     p.point_dir = DOCK_DIR; p.point_w = 1
     p.look = DOCK_TIP; p.look_w = .6
+    if "tau" in DK:
+        p.fk = dict(tip=DOCK_TIP, yaw=0.0, pitch=0.0, tau_ref=DK["tau"])
     return p
 
 
 LIFT_LEN = 28.0
+LIFT_END = 26.6                   # the hand has arrived at the face; then it rests
 LIFT_RISE, LIFT_LEAN = .3, 2.0
-# The pull: the hand lifts off the lip, dives in a wide arc to the cloud sea on his left, skims it in a long sweep
-# around in front of him (the finger's underside on the clouds, the player 50 m up, the god's whole height above),
-# swings out to his right and climbs in a wide spiral along his front to the face. Fingertip waypoints (time s,
-# position); FACE_TIP closes the list.
-LIFT_KEYS = [(0.0, None), (2.6, Vector((-.8, -15.2, 6.2))), (5.6, Vector((-4.6, -13.6, .1))), (8.8, Vector((-7.2, -9.4, -.05))),
-             (12.2, Vector((-5.0, -6.2, -.1))), (15.4, Vector((-.6, -6.8, -.05))), (18.4, Vector((3.4, -6.6, .5))),
-             (21.4, Vector((1.4, -7.0, 4.6))), (24.0, Vector((-1.6, -4.6, 9.8))), (26.6, None)]
+FOLD_FROM = 13.0                  # from here the arm goes over from bowing out to hanging in a U under the hand
+FACE_PITCH = 75.0                 # the hand at the face, pitched up about the knuckle from its pose on the lip (deg)
+# The pull, a new single stroke (no cross-over to his right, no spiral): the hand lifts off the lip, swings out to his
+# left and down over the cloud sea (the player sees the clouds and the whole god from the side), runs low along his
+# left side, rises there and glides in from the left to the front of his face. The finger stays level all the way and
+# only turns about the vertical, once, through his left: from pointing away from him (the lip) to pointing at his face.
+# Fingertip control points of a smooth (C2) curve; the speed eases in over 4.5 s and out over the last 7.5 s. The finger
+# lies under the lip: it first draws back toward him, clear of the lip's rocks, and only then rises.
+LIFT_CTRL = [None, (0.0, -15.45, 3.95), (-.6, -14.9, 6.2), (-3.0, -15.6, 6.6), (-7.0, -15.8, 4.6), (-11.8, -11.6, 1.6), (-12.2, -9.6, 2.1),
+             (-9.2, -7.2, 6.0), (-5.0, -4.0, 10.0), (-1.5, -2.5, 13.2), "face-", None]
+# The hand: the finger turns once, through his left, from pointing away from him on the lip to pointing at his face: with
+# the arm while it reaches out to his left and down (the arm almost straight there, the hand sloping down along it),
+# then as the hand comes back up it tips up (the finger stays level, bent at the knuckle) and the arm goes over to
+# hanging from the shoulder in a U that comes up into the hand from below (the elbow is never out to the side and never
+# in against his body). Degrees; the slope is counted from the hand's pose on the lip.
+YAW_KEYS = [(0.0, 0.0), (3.5, -8.0), (7.0, -28.0), (10.5, -40.0), (13.0, -22.0), (16.0, 30.0), (19.5, 100.0), (23.0, 155.0),
+            (LIFT_END, 180.0)]
+PITCH_KEYS = [(0.0, 0.0), (5.0, -2.0), (10.0, -5.0), (14.0, 25.0), (17.5, 75.0), (21.0, 88.0), (24.0, 82.0), (LIFT_END, FACE_PITCH)]
+LEAN_KEYS = [(0.0, 13.0), (6.0, 18.0), (11.5, 20.0), (16.5, 13.0), (21.5, 5.5), (LIFT_END, LIFT_LEAN)]
+RISE_KEYS = [(0.0, .05), (7.0, -.18), (12.0, -.24), (18.0, .05), (LIFT_END, LIFT_RISE)]
+ROLL_KEYS = [(0.0, 2.5), (8.0, 6.0), (13.0, 7.0), (18.0, 4.5), (23.0, 1.0), (LIFT_END, 0.0)]
+_path = {}
 
 
-def hermite_path(keys, t):
-    """C1 path through (time, point) keys, still at both ends."""
-    ts = [k for k, _ in keys]
-    ps = [p for _, p in keys]
-    t = min(max(t, ts[0]), ts[-1])
-    i = max(j for j in range(len(ts) - 1) if ts[j] <= t)
-    def vel(j):
-        if j == 0 or j == len(ts) - 1:
-            return Vector()
-        return ((ps[j + 1] - ps[j]) / (ts[j + 1] - ts[j]) + (ps[j] - ps[j - 1]) / (ts[j] - ts[j - 1])) * .5
-    h = ts[i + 1] - ts[i]
-    u = (t - ts[i]) / h
-    h00, h10, h01, h11 = 2 * u ** 3 - 3 * u ** 2 + 1, u ** 3 - 2 * u ** 2 + u, -2 * u ** 3 + 3 * u ** 2, u ** 3 - u ** 2
-    return ps[i] * h00 + vel(i) * (h10 * h) + ps[i + 1] * h01 + vel(i + 1) * (h11 * h)
+def curve(keys, t):
+    """Smooth monotone curve through (time, value) keys, flat at both ends (Fritsch-Carlson)."""
+    ts = [k for k, _ in keys]; vs = [v for _, v in keys]
+    if t <= ts[0]:
+        return vs[0]
+    if t >= ts[-1]:
+        return vs[-1]
+    n = len(ts)
+    sec = [(vs[i + 1] - vs[i]) / (ts[i + 1] - ts[i]) for i in range(n - 1)]
+    m = [0.0] * n
+    for i in range(1, n - 1):
+        if sec[i - 1] * sec[i] > 0:
+            m[i] = 3 * (ts[i + 1] - ts[i - 1]) / ((2 * ts[i + 1] - ts[i] - ts[i - 1]) / sec[i - 1] + (ts[i + 1] + ts[i] - 2 * ts[i - 1]) / sec[i])
+    i = max(j for j in range(n - 1) if ts[j] <= t)
+    h = ts[i + 1] - ts[i]; u = (t - ts[i]) / h
+    return (vs[i] * (2 * u ** 3 - 3 * u ** 2 + 1) + m[i] * h * (u ** 3 - 2 * u ** 2 + u)
+            + vs[i + 1] * (-2 * u ** 3 + 3 * u ** 2) + m[i + 1] * h * (u ** 3 - u ** 2))
+
+
+def build_path():
+    from scipy.interpolate import BSpline
+    face_in = FACE_TIP + Vector((-.9, -.3, 0))
+    ctrl = [DOCK_TIP if c is None and i == 0 else FACE_TIP if c is None else face_in if c == "face-" else Vector(c)
+            for i, c in enumerate(LIFT_CTRL)]
+    n = len(ctrl); deg = 3
+    knots = [0.0] * deg + list(range(n - deg + 1)) + [float(n - deg)] * deg
+    spl = BSpline(np.array(knots, float), np.array([list(c) for c in ctrl]), deg)
+    us = np.linspace(0, n - deg, 8001)
+    pts = spl(us)
+    s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+    ts = np.linspace(0, LIFT_END, 5001)
+    ramp_in = np.array([smoother(t / 4.5) for t in ts])
+    ramp_out = np.array([1 - smoother((t - (LIFT_END - 7.5)) / 7.5) for t in ts])
+    v = ramp_in * ramp_out
+    st = np.concatenate([[0.0], np.cumsum((v[1:] + v[:-1]) * .5 * np.diff(ts))])
+    _path.update(spl=spl, us=us, s=s * 1.0, ts=ts, st=st / st[-1] * s[-1], length=float(s[-1]),
+                 vmax=float(s[-1] / st[-1]))
 
 
 def lift_tip(t):
-    keys = [(k, p if p is not None else (DOCK_TIP if k == 0 else FACE_TIP)) for k, p in LIFT_KEYS]
-    return hermite_path(keys, t)
+    if not _path:
+        build_path()
+    P = _path
+    s = float(np.interp(min(max(t, 0.0), LIFT_END), P["ts"], P["st"]))
+    u = float(np.interp(s, P["s"], P["us"]))
+    return Vector(P["spl"](u))
+
+
+def talk_nod(t):
+    w = 2 * math.pi / 12.0
+    return (3.2 * math.sin(3 * w * t) * (.6 + .4 * math.sin(w * t)) + 1.5 * math.sin(5 * w * t + 1),
+            2.5 * math.sin(w * t + .5) + 1.2 * math.sin(4 * w * t))
+
+
+_TAU = {}
+
+
+def tau_table():
+    """The arm's roll through the pull, followed frame by frame from the lip so that it never jumps to another answer;
+    lift() and talk() read it."""
+    if "v" in _TAU or _TAU.get("building"):
+        return
+    _TAU["building"] = True
+    ts, vs, prev = [], [], None
+    for f in range(int(round(LIFT_LEN * FPS)) + 1):
+        p = lift(f / FPS)
+        if prev is not None:
+            p.fk["tau_ref"] = prev
+        apply(p)
+        prev = FK_LAST["tau"]
+        ts.append(f / FPS); vs.append(prev)
+    _TAU.update(t=np.array(ts), v=np.array(vs), building=False)
+
+
+def tau_at(t):
+    tau_table()
+    return float(np.interp(t, _TAU["t"], _TAU["v"])) if "v" in _TAU else None
 
 
 def lift(t):
-    p = Pose(); p.breath = breath(t) * .7; p.sway = t + 43.0; p.sway_amp = 1.0
+    L = LIFT_LEN
+    p = Pose(); p.breath = breath(t - L) * (.7 + .3 * smooth((t - (L - 5.0)) / 5.0))
+    p.sway = t + 55.0 - L; p.sway_amp = 1.1 + .5 * smooth((t - (L - 7.0)) / 7.0)
     hold_base(p)
-    end = LIFT_KEYS[-1][0]
-    f = min(1.0, t / end)
+    p.lean, p.rise, p.roll = curve(LEAN_KEYS, t), curve(RISE_KEYS, t), curve(ROLL_KEYS, t)
     tip = lift_tip(t)
-    # he bends down after his hand to the clouds and turns with it, then straightens as it climbs to his face
-    down, up = smooth(t / 5.5), smoother((t - 16.0) / (end - 16.0))
-    p.lean = REACH_END["lean"] + (20.0 - REACH_END["lean"]) * down + (LIFT_LEAN - 20.0) * up
-    p.rise = REACH_END["rise"] + (-.25 - REACH_END["rise"]) * down + (LIFT_RISE + .25) * up
-    follow = max(-1.0, min(1.0, -tip.x / 6.0))
-    p.roll = REACH_END["roll"] * (1 - up) + 4.0 * follow * smooth(t / 4.0) * (1 - up)
+    yaw = math.radians(curve(YAW_KEYS, t))
     p.c01 = 1; p.fingers = 1
-    p.point_w = 1
-    # the finger turns from the lip to his face the long way round on his left (where the hand sweeps), never
-    # through a flip: one turn about the vertical, and at the very end the last roll into the face pose
-    yaw = TURN * smooth((t - 1.5) / (end - 4.0))
-    qz = Quaternion((0, 0, 1), yaw)
-    p.point_dir = qz @ DOCK_DIR
-    e_dock = M_DOCK.translation - (DOCK_TIP - DOCK_DIR * FINGER_LEN)
-    e_face = M_FACE.translation - (FACE_TIP - FACE_DIR * FINGER_LEN)
-    pos = tip - p.point_dir * FINGER_LEN + (qz @ e_dock).lerp(e_face, smoother(f))
-    rot = (qz @ M_DOCK.to_quaternion()).slerp(M_FACE.to_quaternion(), smoother((t - (end - 6.0)) / 6.0))
-    p.hand = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-    p.c01_orient = HAND_ORIENT - (HAND_ORIENT - TRAVEL_ORIENT) * (smooth(t / 1.8) - smooth((t - (end - 2.0)) / 2.0))
-    p.look = tip + Vector((0, 0, G.FINGER_R)); p.look_w = .75
+    p.fk = dict(tip=tip, yaw=yaw, pitch=math.radians(curve(PITCH_KEYS, t)),
+                fold=smoother((t - FOLD_FROM) / (LIFT_END - 1.0 - FOLD_FROM)))
+    ref = tau_at(t)
+    if ref is not None:
+        p.fk["tau_ref"] = ref
+    fd = Quaternion(UP, yaw) @ DOCK_DIR
+    p.look = spot_of(tip, fd) + (DOCK_TIP - spot_of(DOCK_TIP, DOCK_DIR)) * (1 - smooth(t / 2.5))
+    p.look_w = .6 + .15 * smooth(t / 4.0)
+    k = smoother((t - (L - 3.5)) / 3.5)
+    nod, tilt = talk_nod(t - L)
+    p.nod, p.tilt = nod * k, tilt * k
     return p
 
 
 def talk(t):
     p = Pose(); p.breath = breath(t); p.sway = t + 55.0; p.sway_amp = 1.6
     hold_base(p)
-    p.rise = LIFT_RISE; p.lean = LIFT_LEAN; p.c01 = 1; p.fingers = 1; p.c01_orient = HAND_ORIENT
-    p.point_dir = FACE_DIR; p.point_w = 1
+    p.rise = LIFT_RISE; p.lean = LIFT_LEAN; p.c01 = 1; p.fingers = 1
     bob = .003 * breath(t)
-    p.hand = Matrix.Translation(M_FACE.translation + Vector((0, 0, bob))) @ M_FACE.to_quaternion().to_matrix().to_4x4()
+    p.fk = dict(tip=FACE_TIP + Vector((0, 0, bob)), yaw=math.radians(YAW_KEYS[-1][1]), pitch=math.radians(FACE_PITCH),
+                fold=1.0, tau_ref=tau_at(LIFT_LEN))
     p.look = spot_of(FACE_TIP, FACE_DIR); p.look_w = .75
-    w = 2 * math.pi / 12.0
-    p.nod = 3.2 * math.sin(3 * w * t) * (.6 + .4 * math.sin(w * t)) + 1.5 * math.sin(5 * w * t + 1)
-    p.tilt = 2.5 * math.sin(w * t + .5) + 1.2 * math.sin(4 * w * t)
+    p.nod, p.tilt = talk_nod(t)
     return p
+
+
+# ------------------------------------------------------------------ C01 laid by hand (Lift, Talk)
+# The IK solver has more than one answer for this long arm and jumps between them (the arm whips round and coils).
+# From the reach on C01 is posed directly instead:
+#  - the finger keeps exactly the pose it had under the lip, only turned about the vertical (the player rides it at a
+#    fixed offset from the fingertip bone: up on the finger stays up, the player is never tipped or swung round);
+#  - the hand hangs from the knuckle and pitches about it, the finger bending at the knuckle to stay level;
+#  - the arm lies along one smooth curve from the shoulder to the wrist, bone after bone at its own length, the curve
+#    leaving the shoulder toward the hand and running straight into it, the slack bowing it out behind the hand, to his
+#    left and down (at the face it hangs in a U from the shoulder and comes up into the hand);
+#  - every arm bone only swings from its parent; the roll the hand needs is spread along the arm.
+# The reach goes over to it from the IK once the hand has slid off the thigh; on the lip, in the pull and at the face
+# the arm is laid by hand all the time.
+ARM = ["C01_shoulder", "C01_seg02", "C01_seg03", "C01_seg04", "C01_elbow", "C01_seg06", "C01_seg07"]
+ARM_LEN = [arm.data.bones[b].length for b in ARM]
+ARM_TOTAL = sum(ARM_LEN)
+TWIST_W = [.2, .14, .13, .13, .13, .13, .14]
+TS_OUT, TS_FWD = .5, .3           # the curve leaves the shoulder toward the hand, outward along the collar bone and
+FWD = Vector((0, -1, 0))          # forward (never down along his body); it runs straight into the hand. The slack
+HANDLE = .33                      # bows the arm toward a pole (the elbow side):
+POLE_BEHIND, POLE_OUT, POLE_DOWN, POLE_FWD = 1.0, .6, .5, .8
+HANDLE_H = .5                     # (the hand end's handle: the forearm runs into the hand along it)
+TS_FOLD = Vector((-.45, -1.0, -1)).normalized()  # at the face the arm hangs from the shoulder forward, down and a little out
+LEFT = Vector((-1, 0, 0))
+E_MIN, E_MAX = -32.0, 58.0        # the hand's slope: from 32 deg down (the knuckle bent back) to 58 deg up
+YAX = Vector((0, 1, 0))
+UP = Vector((0, 0, 1))
+REL = {}
+for _b in ARM + ["C01_wrist_00", "C01_f0_00"]:
+    _bb = arm.data.bones[_b]
+    REL[_b] = (_bb.parent.matrix_local.inverted() @ _bb.matrix_local).to_quaternion()
+DK = {}
+FK_LAST = {}
+NB = 480
+_BERN = np.array([[(1 - u) ** 3, 3 * (1 - u) ** 2 * u, 3 * (1 - u) * u * u, u ** 3] for u in np.linspace(0, 1, NB + 1)])
+
+
+def capture_dock():
+    """The hand on the lip as the IK fitted it (ReachHold): the finger, the hand and the arm's roll the reach ends in
+    and the pull starts from. From here on C01 is laid by hand there too."""
+    DK.clear()
+    apply(reach_hold(0))
+    wq = lambda b: (arm.matrix_world @ PB[b].matrix).to_quaternion()
+    DK["Q"], DK["F"] = wq("C01_wrist_00"), wq("C01_f0_00")
+    H, K, tip = whead("C01_wrist_00"), whead("C01_f0_00"), wtail("C01_f0_02")
+    DK["vf"] = DK["F"].inverted() @ (tip - K)
+    DK["vh"] = DK["Q"].inverted() @ (K - H)
+    DK["lat"] = (tip - K).normalized().cross(UP).normalized()
+    DK["fd"] = (tip - K).normalized()
+    DK["W"] = DK["Q"] @ YAX
+    DK["e"] = math.asin(DK["W"].z)
+    DK["f0"] = (DK["Q"] @ REL["C01_f0_00"]).inverted() @ DK["F"]
+    ik_tau = FK_LAST["tau"]
+    DK["tau"] = ik_tau
+    apply(reach_hold(0))  # now laid by hand: the roll the hand needs along this arm
+    DK["tau"] = FK_LAST["tau"]
+    DK["H"] = whead("C01_wrist_00")
+    print(f"dock: arm roll {ik_tau:.1f} deg (IK, spread) -> {DK['tau']:.1f} deg (laid by hand), tip miss "
+          f"{(wtail('C01_f0_02') - DOCK_TIP).length:.4f}")
+
+
+def hand_at(tip, yaw, pitch):
+    """Finger (f0_00) and hand (wrist) world rotations and the wrist head for a fingertip at `tip`."""
+    qz = Quaternion(UP, yaw)
+    F = qz @ DK["F"]
+    Q = Quaternion(qz @ DK["lat"], pitch) @ qz @ DK["Q"]
+    K = tip - F @ DK["vf"]
+    return F, Q, K - Q @ DK["vh"]
+
+
+def vslerp(a, b, t):
+    """Turn unit vector a toward b by the fraction t (t > 1 turns past b)."""
+    q = a.rotation_difference(b)
+    ax, ang = q.to_axis_angle()
+    return Quaternion(ax, ang * t) @ a
+
+
+def arm_samples(S, H, tS, tH, pole, h, hand=1.0, fold=0.0):
+    """The arm curve: leaving the shoulder along tS, running into the hand along tH; the slack h bows it toward
+    `pole`, or (fold 1) draws it out along both end directions (the arm hangs in a U from the shoulder to the hand)."""
+    D = (H - S).length
+    a, b = h * fold, h * (1 - fold)
+    P = np.array([list(S), list(S + tS * (HANDLE * D * hand + a) + pole * b), list(H - tH * (HANDLE_H * D * hand + a) + pole * b),
+                  list(H)])
+    return _BERN @ P
+
+
+def solve_arm(S, H, tS, tH, pole, fold=0.0):
+    """Joint points from the shoulder S to the wrist head H: the curve bowed toward the pole until it is as long as
+    the arm, the joints laid on it at the bones' lengths, then a few passes to make every bone exactly its length with
+    both ends held."""
+    D = (H - S).length
+    c = (H - S).normalized()
+    if D >= ARM_TOTAL * .999:  # out of reach: straight (FK_LAST tells)
+        out, s = [S.copy()], 0.0
+        for L in ARM_LEN:
+            s += L; out.append(S + c * s)
+        return out, 0.0
+    pole = pole - c * pole.dot(c)
+    pole = pole.normalized() if pole.length > 1e-6 else Vector((0, 0, -1))
+    def length(h, hand=1.0):
+        p = arm_samples(S, H, tS, tH, pole, h, hand, fold)
+        return float(np.linalg.norm(np.diff(p, axis=0), axis=1).sum())
+    hand = 1.0
+    if length(0.0) >= ARM_TOTAL:  # the end directions alone make it too long: shorter handles, no bow
+        lo, hi = 0.0, 1.0
+        for _ in range(36):
+            mid = (lo + hi) * .5
+            lo, hi = (mid, hi) if length(0.0, mid) < ARM_TOTAL else (lo, mid)
+        hand, hi = lo, 0.0
+    else:
+        lo, hi = 0.0, 1.0
+        while length(hi) < ARM_TOTAL:
+            lo, hi = hi, hi * 1.6
+            if hi > 200:
+                raise RuntimeError(f"C01: no arm curve from {S} to {H}")
+        for _ in range(36):
+            mid = (lo + hi) * .5
+            lo, hi = (mid, hi) if length(mid) < ARM_TOTAL else (lo, mid)
+    pts = arm_samples(S, H, tS, tH, pole, hi, hand, fold)
+    s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+    want = np.cumsum([0.0] + ARM_LEN) * (s[-1] / ARM_TOTAL)
+    J = [np.array([np.interp(w, s, pts[:, i]) for i in range(3)]) for w in want]
+    Hn = np.array(list(H))
+    for _ in range(80):  # FABRIK, both ends held
+        J[-1] = Hn.copy()
+        for i in range(len(ARM_LEN) - 1, -1, -1):
+            d = J[i] - J[i + 1]; J[i] = J[i + 1] + d / np.linalg.norm(d) * ARM_LEN[i]
+        J[0] = np.array(list(S))
+        for i in range(len(ARM_LEN)):
+            d = J[i + 1] - J[i]; J[i + 1] = J[i] + d / np.linalg.norm(d) * ARM_LEN[i]
+        if np.linalg.norm(J[-1] - Hn) < 1e-6:
+            break
+    return [Vector(j) for j in J], hi
+
+
+def twist_of(q):
+    """Angle (rad, -pi..pi) of q's twist about its own Y."""
+    a = 2 * math.atan2(q.y, q.w)
+    return (a + math.pi) % (2 * math.pi) - math.pi
+
+
+def fk_c01(fk):
+    """C01 laid by hand. Either the fingertip is given (tip, yaw, pitch: the hand held, as on the lip, in the pull and
+    at the face; the roll it needs is spread along the arm, tau_ref picking the answer) or the wrist head, the hand's
+    direction and the arm's roll (H, W, tau, point: the reach, where the hand just follows the arm). ik > 0 mixes in
+    the IK pose already set (the reach starts from it)."""
+    S = whead("C01_shoulder")
+    d00 = (wtail("C01_seg00") - whead("C01_seg00")).normalized()
+    if "tip" in fk:
+        F, Q, H = hand_at(fk["tip"], fk["yaw"], fk["pitch"])
+        W = Q @ YAX
+    else:
+        H, W, F, Q = fk["H"], fk["W"].normalized(), None, None
+    c = (H - S).normalized()
+    fold = fk.get("fold", 0.0)
+    tS = (c + d00 * TS_OUT + FWD * TS_FWD).normalized().lerp(TS_FOLD, fold).normalized()
+    # the arm bows behind the hand (the forearm runs straight into it), and to his left and down: the elbow never
+    # comes in toward his body
+    pole = (-W * POLE_BEHIND + LEFT * POLE_OUT - UP * POLE_DOWN + FWD * POLE_FWD).normalized()
+    joints, k = solve_arm(S, H, tS, W, pole, fold)
+    dirs = [(joints[i + 1] - joints[i]).normalized() for i in range(len(ARM))]
+    if Q is not None:
+        locs, lw, tau, res = lay_arm(dirs, Q, fk.get("tau_ref", DK.get("tau", 0.0)))
+    else:
+        locs, lw = lay_arm_roll(dirs, W, fk["tau"])
+        tau, res = fk["tau"], 0.0
+    ik = fk.get("ik", 0.0)
+    if ik > 0:
+        locs = [PB[b].rotation_quaternion.slerp(q, 1 - ik) for b, q in zip(ARM, locs)]
+        lw = PB["C01_wrist_00"].rotation_quaternion.slerp(lw, 1 - ik)
+        IK["C01_wrist_00"].influence = 0.0
+    for b, q in zip(ARM, locs):
+        PB[b].rotation_quaternion = q
+    PB["C01_wrist_00"].rotation_quaternion = lw
+    if F is not None:
+        PB["C01_f0_00"].rotation_quaternion = (Q @ REL["C01_f0_00"]).inverted() @ F
+    else:
+        PB["C01_f0_00"].rotation_quaternion = Quaternion().slerp(DK["f0"], min(1.0, fk.get("point", 0.0)))
+    FK_LAST.update(yaw=math.degrees(fk.get("yaw", 0.0)), pitch=math.degrees(fk.get("pitch", 0.0)), pole=pole, H=H, S=S, k=k,
+                   tau=tau, res=res, reach=(H - S).length / ARM_TOTAL, wrist=math.degrees(dirs[-1].angle(W)))
+
+
+def lay_arm_roll(dirs, W, tau):
+    """Arm bone rotations along `dirs` with the roll tau (deg) spread along the arm; the hand only swings to W."""
+    R = (arm.matrix_world @ PB["C01_seg00"].matrix).to_quaternion()
+    locs = []
+    for i, b in enumerate(ARM):
+        base = R @ REL[b]
+        q = YAX.rotation_difference(base.inverted() @ dirs[i]) @ Quaternion(YAX, math.radians(tau) * TWIST_W[i])
+        locs.append(q); R = base @ q
+    bw = R @ REL["C01_wrist_00"]
+    return locs, YAX.rotation_difference(bw.inverted() @ W)
+
+
+def lay_arm(dirs, Q, tau_ref):
+    """Arm bone rotations along the world directions `dirs`, each bone only swinging from its parent, and the roll the
+    hand (world rotation Q) needs spread along the arm by TWIST_W. tau_ref (deg) picks which spread: the one nearest it
+    (one more full turn spread along the arm is another answer). Returns arm locals, wrist local, the roll and the
+    wrist's leftover roll (deg)."""
+    R0 = (arm.matrix_world @ PB["C01_seg00"].matrix).to_quaternion()
+    W = Q @ YAX
+    tau = math.radians(tau_ref)
+    for it in range(16):
+        R = R0; locs = []
+        for i, b in enumerate(ARM):
+            base = R @ REL[b]
+            q = YAX.rotation_difference(base.inverted() @ dirs[i]) @ Quaternion(YAX, tau * TWIST_W[i])
+            locs.append(q); R = base @ q
+        bw = R @ REL["C01_wrist_00"]
+        lw = bw.inverted() @ Q
+        sw = YAX.rotation_difference(bw.inverted() @ W)
+        res = twist_of(sw.inverted() @ lw)
+        if abs(res) < 1e-6:
+            break
+        tau += res
+    return locs, lw, math.degrees(tau), math.degrees(res)
+
+
+def spread_ik_twist():
+    """C01 under IK (the reach, on the lip): the solver puts the whole roll of the hand into the shoulder joint; keep
+    its bone directions and hand, spread the roll along the arm instead."""
+    dirs = [(wtail(b) - whead(b)).normalized() for b in ARM]
+    Q = (arm.matrix_world @ PB["C01_wrist_00"].matrix).to_quaternion()
+    q0 = arm.convert_space(pose_bone=PB[ARM[0]], matrix=PB[ARM[0]].matrix, from_space="POSE", to_space="LOCAL").to_quaternion()
+    locs, lw, tau, res = lay_arm(dirs, Q, math.degrees(twist_of(q0)))
+    IK["C01_wrist_00"].influence = 0.0
+    for b, q in zip(ARM, locs):
+        PB[b].rotation_quaternion = q
+    PB["C01_wrist_00"].rotation_quaternion = lw
+    FK_LAST.update(tau=tau, res=res)
 
 
 # ------------------------------------------------------------------ dock and face targets
@@ -416,19 +749,16 @@ def talk(t):
 # length behind the wanted fingertip.
 DOCK_TIP = G.LIP + Vector((0, -.05, -.01 - G.FINGER_R))
 DOCK_DIR = Vector((0, -1, 0))
-# At the face the hand hides nothing: the player stands 320 m in front of him and 160 m below his eyes, the index
-# finger pointing at his face; the hand turned so the arm hangs low from the shoulder and comes up from below and
-# outside (searched by the share of the view the hand covers and by how high the arm loops).
+# At the face the hand hides nothing: the player stands 320 m in front of him and 160 m below his eyes on the level
+# finger pointing at his face; the hand behind the player is pitched up about the knuckle and the arm hangs low from the
+# shoulder and runs up into it from in front and below (see fk_c01).
 FACE_AZ, FACE_DIST, FACE_DROP = math.radians(0), 3.2, 1.6
 FACE_SPOT = HEAD + Vector((-math.sin(FACE_AZ) * FACE_DIST, -math.cos(FACE_AZ) * FACE_DIST, -FACE_DROP))
 FACE_DIR = Vector((HEAD.x - FACE_SPOT.x, HEAD.y - FACE_SPOT.y, 0)).normalized()
 FACE_TIP = FACE_SPOT + FACE_DIR * SPOT_BACK + Vector((0, 0, -G.FINGER_R))
-HAND_ORIENT = 1.0  # at the dock and the face the wrist target is lined up with the forearm (see fit_target)
+HAND_ORIENT = 1.0  # on the lip the wrist target is lined up with the forearm (see fit_target)
 TRAVEL_ORIENT = .04  # on the way: the hand trails the arm
 M_DOCK = hand_matrix(DOCK_TIP, DOCK_DIR, Vector((0, 1, .6)))
-M_FACE = hand_matrix(FACE_TIP, FACE_DIR, -FACE_DIR + FACE_DIR.cross(Vector((0, 0, 1))).normalized())
-# the turn of the finger in the pull, from DOCK_DIR to FACE_DIR about the vertical, through his left (-x)
-TURN = -(math.pi - math.atan2(FACE_DIR.x, FACE_DIR.y)) if FACE_DIR.y > -1 else -math.pi
 
 
 def fit_target(m, tip, fdir, pose_fn, rounds=6):
@@ -461,16 +791,16 @@ def spot_of(tip, fdir):
     return tip - fdir.normalized() * SPOT_BACK + Vector((0, 0, G.FINGER_R))
 
 
-def spot(m_target):
-    """The player's spot: on the dock or in front of the face, by which target it is nearer."""
-    return spot_of(DOCK_TIP, DOCK_DIR) if (m_target.translation - M_DOCK.translation).length < (m_target.translation - M_FACE.translation).length \
-        else spot_of(FACE_TIP, FACE_DIR)
-
-
 def start_reach():
-    """Set the release targets from the AlertIdle pose (the reach starts there)."""
+    """Set the release targets from the AlertIdle pose (the reach starts there), and, once the dock is known, where the
+    IK leaves C01 when the reach goes over to the hand-laid arm."""
     apply(alert_idle(0.0))
     _start["m1"], _start["r1"], _start["rel2"] = let_go_targets()
+    RS.clear()
+    if "tau" in DK:
+        p = reach(REACH_FK[0]); p.fk = None
+        apply(p)
+        RS.update(H=whead("C01_wrist_00"), W=(wtail("C01_wrist_00") - whead("C01_wrist_00")).normalized(), tau=FK_LAST["tau"])
 
 
 def wrist_bend():
@@ -481,7 +811,7 @@ def wrist_bend():
 
 
 def fit_dock():
-    global M_DOCK, M_FACE
+    global M_DOCK
     def hold(m):
         global M_DOCK
         M_DOCK = m
@@ -489,17 +819,11 @@ def fit_dock():
     M_DOCK = fit_target(M_DOCK, DOCK_TIP, DOCK_DIR, hold)
     apply(reach_hold(0))
     print(f"dock: tip miss {(wtail('C01_f0_02') - DOCK_TIP).length:.4f}, wrist bend {wrist_bend():.1f} deg")
-    def face(m):
-        global M_FACE
-        M_FACE = m
-        return talk(0)
-    # four rounds: the arm stays on its low branch (hanging from the shoulder and up to the face); more rounds walk the
-    # target onto the branch where the arm loops over his head
-    M_FACE = fit_target(M_FACE, FACE_TIP, FACE_DIR, face, rounds=4)
+    capture_dock()
     apply(talk(0))
-    top = max(whead(b).z for b in ("C01_shoulder", "C01_seg02", "C01_seg03", "C01_seg04", "C01_elbow", "C01_seg06", "C01_seg07"))
-    print(f"face: arm top {top:.2f} (head {HEAD.z:.2f})")
-    print(f"face: tip miss {(wtail('C01_f0_02') - FACE_TIP).length:.4f}, wrist bend {wrist_bend():.1f} deg")
+    top = max(whead(b).z for b in ARM)
+    print(f"face: arm top {top:.2f} (head {HEAD.z:.2f}), tip miss {(wtail('C01_f0_02') - FACE_TIP).length:.4f}, "
+          f"wrist bend {wrist_bend():.1f} deg, twist {FK_LAST['tau']:.1f} deg, reach {FK_LAST['reach']:.2f}")
 
 
 CLIPS = [("Idle", 12.0, idle, True), ("Notice", NOTICE_LEN, notice, False), ("AlertIdle", 12.0, alert_idle, True),
@@ -545,9 +869,15 @@ def check(name, fn, length):
     """Worst IK misses over a clip (S hands on their rocks, C hands on their targets), units."""
     worst = {}
     for f in range(0, int(length * FPS) + 1, 5):
-        apply(fn(f / FPS))
+        p = fn(f / FPS)
+        apply(p)
         for s in ("S01", "S02", "S03", "C01", "C02"):
-            d = (wtail(s + "_wrist_00") - T[s].matrix_world.translation).length
+            if s == "C01" and p.fk and "tip" in p.fk:
+                d = (wtail("C01_f0_02") - p.fk["tip"]).length
+            elif s == "C01" and p.fk:
+                d = (whead("C01_wrist_00") - p.fk["H"]).length
+            else:
+                d = (wtail(s + "_wrist_00") - T[s].matrix_world.translation).length
             worst[s] = max(worst.get(s, 0), d)
     return {k: round(v, 3) for k, v in worst.items()}
 
@@ -555,6 +885,7 @@ def check(name, fn, length):
 if __name__ == "__main__":
     start_reach()
     fit_dock()
+    start_reach()
     report = {}
     baked = {}
     for name, length, fn, loop in CLIPS:
