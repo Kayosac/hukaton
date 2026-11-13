@@ -63,6 +63,12 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Rain hanging from the clouds (Hakaton/World Rain Veil).")]
         public Material rainVeil;
 
+        [Header("Rotten swamp")]
+        [Tooltip("Natural tar pools (SwampTarSpot in swamp chunks): the «Лужа смолы» card's puddle, with these numbers.")]
+        public TarPuddleZone tarPuddle;
+        [Tooltip("Natural tar: walking speed on it (times), burn time once lit (s), burn damage (units per second; 1 = ½ heart).")]
+        [Min(0)] public float tarSlow = .5f, tarBurnSeconds = 30, tarBurnDamage = 1;
+
         /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable ChestTable(int ring)
         {

@@ -19,17 +19,26 @@ namespace Hakaton.WorldAssembly.Unity
 
         public List<Entry> entries = new List<Entry>();
 
-        /// <summary>The exact variant, or any variant of the shape when that one is missing.</summary>
+        /// <summary>
+        /// The exact variant; a swamp scene without chunks of its own yet borrows its forest stand-in
+        /// (<see cref="TileShapes.StandIn"/>); otherwise any variant of the shape.
+        /// </summary>
         public ChunkView Find(string shape, string variant)
         {
-            ChunkView fallback = null;
+            var exact = FindExact(shape, variant);
+            if (exact) return exact;
+            string standIn = TileShapes.StandIn(variant);
+            if (standIn != null && (exact = FindExact(shape, standIn))) return exact;
             foreach (var e in entries)
-            {
-                if (e.shape != shape || !e.prefab) continue;
-                if (e.variant == variant) return e.prefab;
-                if (!fallback) fallback = e.prefab;
-            }
-            return fallback;
+                if (e.shape == shape && e.prefab) return e.prefab;
+            return null;
+        }
+
+        public ChunkView FindExact(string shape, string variant)
+        {
+            foreach (var e in entries)
+                if (e.shape == shape && e.variant == variant && e.prefab) return e.prefab;
+            return null;
         }
     }
 }

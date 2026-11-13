@@ -67,6 +67,13 @@ namespace Hakaton.WorldAssembly
             {
                 case "gap": case "boulders": case "gully": case "tower": case "thorns": case "pillar": return "rocks";
                 case "yard": return "ruins";
+                // The rotten swamp keeps the creatures of the places it is most like, until it has its own.
+                case "hummocks": case "breathing-bog": return "swamp";
+                case "log-road": return "river";
+                case "sunken-hut": case "drowned-graveyard": return "ruins";
+                case "tar-pit": return "hollow";
+                case "drowned-mill": return "farm";
+                case "deadwood-isle": return "pond";
                 default: return themes.ContainsKey(scene) ? scene : "rocks";
             }
         }

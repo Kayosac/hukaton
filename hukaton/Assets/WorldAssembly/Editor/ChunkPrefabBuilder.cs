@@ -60,6 +60,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var shape in TileShapes.All)
                 foreach (var variant in shape.Variants)
                 {
+                    // The rotten swamp gets chunks from its own art, not a blockout: until then its scenes borrow forest
+                    // ones (ChunkCatalog.Find).
+                    if (TileShapes.IsSwampScene(variant.Id)) continue;
                     var view = Build(shape, variant.Id);
                     catalogue.entries.Add(new ChunkCatalog.Entry { shape = shape.Id, variant = variant.Id, prefab = view });
                     stale.Remove(AssetDatabase.GetAssetPath(view.gameObject));
@@ -2099,6 +2102,11 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         // ---------- navigation ----------
 
+        /// <summary>Navigation area of shallow water (ProjectSettings/NavMeshAreas: «Shallow water», cost 3).</summary>
+        public const int ShallowWaterArea = 3;
+        /// <summary>Creatures wade in water up to this deep, m; deeper is not walkable for them.</summary>
+        public const float CreatureWadeDepth = .7f;
+
         static NavMeshData Bake(GameObject root, TileTerrain t, string name)
         {
             var triggers = root.GetComponentsInChildren<Collider>(true).Where(c => c.isTrigger && c.enabled).ToList();
@@ -2116,29 +2124,34 @@ namespace Hakaton.WorldAssembly.EditorTools
                     source.area = 1;
                     sources[i] = source;
                 }
-            // Water is not walkable for creatures: one box per run of deep cells along each row, so dry ground inside
-            // a river's bend stays walkable.
+            // Creatures wade (Kayospace «Биом: Гнилая топь»): shallow water is their own, dearer area, so they go in
+            // when they must and keep to dry ground when they can; deep water is not walkable. One box per run of
+            // like cells along each row, so dry ground inside a river's bend stays plain ground.
             if (t.Wet)
             {
                 int n = Mathf.RoundToInt(TileTerrain.Size / Step);
                 for (int j = 0; j < n; j++)
                 {
-                    int run = -1;
+                    int run = -1, runArea = 0;
                     for (int i = 0; i <= n; i++)
                     {
-                        bool wet = i < n && t.IsWater(new Vector2((i + .5f) * Step, (j + .5f) * Step));
-                        if (wet && run < 0) run = i;
-                        if (wet || run < 0) continue;
-                        float x0 = run * Step, x1 = i * Step, z = (j + .5f) * Step;
-                        sources.Add(new NavMeshBuildSource
+                        var p = new Vector2((i + .5f) * Step, (j + .5f) * Step);
+                        int area = i < n && t.IsWater(p) ? (TileTerrain.WaterLevel - t.Height(p) > CreatureWadeDepth ? 1 : ShallowWaterArea) : 0;
+                        if (run >= 0 && area == runArea) continue;
+                        if (run >= 0)
                         {
-                            shape = NavMeshBuildSourceShape.ModifierBox,
-                            // Up to just over the water: decks over it stay walkable.
-                            transform = Matrix4x4.Translate(new Vector3((x0 + x1) / 2 - 8, -1.75f, z - 8)),
-                            size = new Vector3(x1 - x0 + .1f, 3.6f, Step + .1f),
-                            area = 1,
-                        });
-                        run = -1;
+                            float x0 = run * Step, x1 = i * Step, z = (j + .5f) * Step;
+                            sources.Add(new NavMeshBuildSource
+                            {
+                                shape = NavMeshBuildSourceShape.ModifierBox,
+                                // Up to just over the water: decks over it stay plain walkable ground.
+                                transform = Matrix4x4.Translate(new Vector3((x0 + x1) / 2 - 8, -1.75f, z - 8)),
+                                size = new Vector3(x1 - x0 + .1f, 3.6f, Step + .1f),
+                                area = runArea,
+                            });
+                        }
+                        run = area != 0 ? i : -1;
+                        runArea = area;
                     }
                 }
             }

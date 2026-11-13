@@ -1,10 +1,43 @@
-# MG01: god animation (v6)
+# MG01: god animation (v7)
 
-The god's beats for the encounter on the summit, baked in Blender from procedural keys over IK, plus the rocks under
-his support hands. Previews: `MG01_rider.mp4` (riding the finger: the pull and the talk), `MG01_body.mp4` (the body up
-close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp4` is the v2 view from the lip.
+The god's beats for the encounter on the summit, baked in Blender from procedural keys (IK for the body, C01 laid by
+hand from the reach on, see v7), plus the rocks under his support hands. Preview: `MG01_v7.mp4` (the reach, the pull
+and the start of the talk from the front right). `MG01_rider.mp4`, `MG01_body.mp4`, `MG01_wide.mp4` and
+`MG01_first_person.mp4` show v2–v4 motion (the reach and the pull have changed since).
 
-## v6 (deeper sit, a longer pull, the hand out of the way at the face)
+## v7 (after the review of v6: the arm jerked and coiled)
+
+- Why: the reach, the pull and the face drove C01's eight-bone chain by IK. The solver has several answers for this
+  long arm and jumped between them (bones turned up to 138 deg and rolled up to 176 deg between two frames), and it put
+  the whole roll of the hand into the shoulder joint (96 deg).
+- From the reach on, C01 is laid by hand (`fk_c01` in `clips.py`): the arm lies along one smooth curve from the
+  shoulder to the wrist, bone after bone at its own length; every bone only swings from its parent, and the roll the
+  hand needs is spread along the arm (`TWIST_W`), followed frame by frame so that it never jumps to another answer.
+  Where the arm has slack it bows behind the hand, to his left and down: the elbow never comes in against his body and
+  never loops over his head. At the face it hangs from the shoulder in a U and comes up into the hand from below.
+- The finger keeps exactly the pose it had under the lip, only turned about the vertical: the player rides at a fixed
+  offset from the fingertip bone, so up on the finger stays up (0 deg of tilt through the pull and the talk). The hand
+  pitches about the knuckle; the finger bends there to stay level.
+- The pull is a new single stroke, 28 s: the finger draws back from under the lip (clear of its rocks) and rises,
+  swings out to his left and down over the cloud sea with the arm almost straight (about 1.6 km out from his shoulder), comes back up along
+  his left with the hand tipping up, and glides in to the front of his face. The finger turns once, through his front:
+  out with the arm, then across to his right and round to his face. No cross-over of the hand to his right, no spiral.
+- The reach keeps the IK only while the hands slide off the thighs (2.6 s), then goes over to the hand-laid arm on a
+  smooth arc to the lip; on the lip (ReachHold) the arm is laid by hand too. Idle, Notice, AlertIdle and the start of
+  the reach keep the IK, with its roll spread along the arm as well.
+- Checked in Blender: the largest turn of any C01 bone between two frames is 1.4 deg in the pull, 2.9 deg in the reach
+  (the hand in the swing), 0.3 deg in the talk (`jerk_all.py`); C01 comes no closer than 24 m to the rest of his body
+  in the pull and the talk (`clear.py`); stick views of the arm (`stick.py`).
+- Scenery: `sweep.py` writes C01's swept volume through the reach and the pull in Unity metres; `unity/GodSweep.cs`
+  (a temporary editor script) finds what it passes through in the scene and moved the four panorama peaks the hand
+  flew through (Вершина 12, 13, 14, 31) back from the god by 270–840 m. Left as they were: the rocks under the lip that
+  the finger already touched on the lip.
+- Unity: the summit's air is held while the player rides (`GodMountainsAtmosphere.Hold`, called on boarding). Out over
+  the cloud sea the nearest place on the walking route was the cloud, and the ride went purple.
+- Checked in Unity Play (world worktree): from the edge through the reach, the pull and into the talk; the god is in
+  view all the way, the face is clear at the talk.
+
+## v6 (deeper sit, a longer pull, the hand out of the way at the face; the pull and the face replaced in v7)
 
 - He sits deeper in the cradle (pelvis 125 m down instead of 70, hunched 8 deg); Notice is 4.4 s for the longer push up.
   The support hands stay on their rocks (IK misses 0); if the body now cuts into a rock, the rock is the one to move.
@@ -15,7 +48,8 @@ close until the finger waits at the lip), `MG01_wide.mp4`; `MG01_first_person.mp
 - At the face (Talk) the player stands 320 m in front of him and 160 m below his eyes, the index finger pointing at
   his face; the hand is turned so the arm hangs low from the shoulder and comes up from below and outside. Nothing of
   the hand is between the player and his face (`facesearch.py`: candidates scored by the share of the player's view
-  the hand covers and by how high the arm loops; the old pose looped the arm over his head).
+  the hand covers and by how high the arm loops; the old pose looped the arm over his head; removed in v7 with the IK
+  face pose).
 - `liftseq.py` — contact sheet of a clip: a wide view and the player's view every 2 s.
 
 ## v5 (after the review of v4: the caps looked like patches)

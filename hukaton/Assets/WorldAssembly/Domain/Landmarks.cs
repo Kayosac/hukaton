@@ -18,10 +18,12 @@ namespace Hakaton.WorldAssembly
         public bool HasFocus => FocusI >= 0;
         /// <summary>The part holding a reward only cards reach (the island of the lake), or none.</summary>
         public readonly int PocketI, PocketJ;
+        /// <summary>The land it stands in: the planner places it only where every part has this biome.</summary>
+        public readonly Biome Biome;
 
-        public LandmarkKind(string id, int size, int focusI = -1, int focusJ = -1, int pocketI = -1, int pocketJ = -1)
+        public LandmarkKind(string id, int size, int focusI = -1, int focusJ = -1, int pocketI = -1, int pocketJ = -1, Biome biome = Biome.Forest)
         {
-            Id = id; Size = size; FocusI = focusI; FocusJ = focusJ; PocketI = pocketI; PocketJ = pocketJ;
+            Id = id; Size = size; FocusI = focusI; FocusJ = focusJ; PocketI = pocketI; PocketJ = pocketJ; Biome = biome;
         }
 
         public string PartId(int i, int j) => $"{Id}-{i}{j}";
@@ -57,7 +59,8 @@ namespace Hakaton.WorldAssembly
             new LandmarkKind("giant-log", 2, 0, 0),
             new LandmarkKind("mesa", 2, 0, 1),
             new LandmarkKind("sinkhole", 2, 1, 0),
-            new LandmarkKind("swamp", 2, 1, 1),
+            // The old bog is the rotten swamp's own landmark now.
+            new LandmarkKind("swamp", 2, 1, 1, biome: Biome.Swamp),
             new LandmarkKind("lake", 2, 1, 1, 1, 1),
         };
 

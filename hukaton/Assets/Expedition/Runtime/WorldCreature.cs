@@ -999,6 +999,46 @@ namespace Hakaton.Expeditions
             gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// Pushed into a bog (<see cref="BogMire"/>): the creature goes under in <paramref name="seconds"/> and drowns;
+        /// its loot floats up at <paramref name="lootAt"/>, the bog's edge.
+        /// </summary>
+        public void SinkInMire(Vector3 lootAt, float seconds)
+        {
+            if (!Alive || !world) return;
+            Health = 0;
+            StartCoroutine(Sink(lootAt, Mathf.Max(.2f, seconds)));
+        }
+
+        IEnumerator Sink(Vector3 lootAt, float seconds)
+        {
+            if (stunStars) stunStars.Release(.2f);
+            dying = true;
+            State = CreatureState.Dying;
+            if (overhead) overhead.Clear();
+            navigator.enabled = false;
+            body.isKinematic = true;
+            body.detectCollisions = false;
+            world.Play(hurtCue, body.position, 1, .8f);
+            Vector3 start = transform.position;
+            Vector3 heading = transform.forward;
+            float depth = TopHeight + .3f;
+            float time = 0;
+            while (time < seconds)
+            {
+                time += Time.deltaTime;
+                float k = Mathf.Clamp01(time / seconds);
+                // Flailing as it goes down, faster at the end.
+                float shake = Mathf.Sin(time * 26) * .05f * (1 - k);
+                transform.position = start + Vector3.down * depth * k * k + transform.right * shake;
+                if (view) view.Present(k < .7f ? CreaturePose.Hurt : CreaturePose.Death, heading, Vector3.zero, new Vector2(1 + shake, 1 - shake), 0);
+                yield return null;
+            }
+            world.Play(deathCue, start);
+            DropLoot(lootAt + Vector3.up * .4f);
+            gameObject.SetActive(false);
+        }
+
         void OnCollisionEnter(Collision collision)
         {
             if (!world || !world.Running || !Alive) return;
@@ -1130,8 +1170,8 @@ namespace Hakaton.Expeditions
             }
         }
 
-        /// <summary>Rolls <see cref="drops"/>; every copy pops out of the body on its own arc.</summary>
-        void DropLoot()
+        /// <summary>Rolls <see cref="drops"/>; every copy pops out of the body (or <paramref name="at"/>) on its own arc.</summary>
+        void DropLoot(Vector3? at = null)
         {
             dropped.Clear();
             // the cave prologue gives no loot (its mushrooms are scenery and practice)
@@ -1139,7 +1179,7 @@ namespace Hakaton.Expeditions
             // «Мародёр»: a loot mark on the body rolls the table more than once (ILootRollBonus).
             for (int roll = LootRolls; roll > 0; roll--) drops.Roll(dropped);
             if (dropped.Count == 0) return;
-            Vector3 from = transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
+            Vector3 from = at ?? transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
             foreach (var item in dropped)
             {
                 var drop = world.SpawnLoot(item, from);

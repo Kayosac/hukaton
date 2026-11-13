@@ -19,6 +19,16 @@ namespace Hakaton.WorldAssembly
         /// <summary>Large forms are planned per district of this many chunks a side.</summary>
         public int District = 8;
 
+        /// <summary>Patches of rotten swamp (<see cref="BiomeField"/>); off: the whole world is forest.</summary>
+        public bool Swamp = true;
+        /// <summary>Swamp noise feature size, in chunks: bigger cells, bigger patches.</summary>
+        public int SwampNoiseCell = 7;
+        /// <summary>No swamp nearer than this to the start (metres, chunk centre); its share grows out to SwampFull.</summary>
+        public float SwampFrom = 72f, SwampFull = 176f;
+        /// <summary>Swamp noise above this makes swamp: near (at SwampFrom) and far (SwampFull and beyond). About a seventh
+        /// of ring 1 and over a quarter of ring 2.</summary>
+        public double SwampThresholdNear = .68, SwampThresholdFar = .6;
+
         public float PlateauHeight = 6f;
         /// <summary>Rain fronts and thunderstorms (<see cref="WorldWeather"/>).</summary>
         public WeatherRules Weather = new WeatherRules();
@@ -109,11 +119,13 @@ namespace Hakaton.WorldAssembly
         readonly WorldRules rules;
         readonly Dictionary<(int, int), int> levels = new Dictionary<(int, int), int>();
         readonly int maxLevel;
+        readonly BiomeField biomes;
 
-        public CornerField(int seed, WorldRules rules)
+        public CornerField(int seed, WorldRules rules, BiomeField biomes = null)
         {
             this.seed = seed;
             this.rules = rules;
+            this.biomes = biomes;
             foreach (var t in rules.LevelThresholds) maxLevel = Math.Max(maxLevel, t.Length);
             maxLevel = Math.Max(maxLevel, rules.StartLevel);
         }
@@ -155,6 +167,9 @@ namespace Hakaton.WorldAssembly
         int Wanted(int i, int j)
         {
             if (IsStartCorner(i, j)) return rules.StartLevel;
+            // The swamp is a basin: every corner of a swamp chunk stays low; the slopes round it are forest.
+            if (biomes != null && (biomes.IsSwamp(new ChunkCoord(i, j)) || biomes.IsSwamp(new ChunkCoord(i - 1, j)) ||
+                                   biomes.IsSwamp(new ChunkCoord(i, j - 1)) || biomes.IsSwamp(new ChunkCoord(i - 1, j - 1)))) return 0;
             double x = (i - .5) * rules.ChunkSize, y = (j - .5) * rules.ChunkSize;
             if (Math.Sqrt(x * x + y * y) < rules.FlatRadius) return 0;
             var thresholds = rules.LevelThresholds[rules.RingAt(x, y)];

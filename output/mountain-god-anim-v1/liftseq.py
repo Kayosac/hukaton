@@ -1,17 +1,16 @@
 """Contact sheet of the Lift: a wide view from the lip side and the view from the finger, every 2 s."""
 import sys, os, math
-sys.argv = ["clips.py", "/tmp/god/prev/tf_out"]
-sys.path.insert(0, "/tmp/god/prev"); sys.path.insert(0, "/home/claude/gm-art/god/anim")
+sys.argv = ["clips.py", "/tmp/mg01_clips"]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bpy
 from mathutils import Vector
 import clips as C
 import env
-C.start_reach(); C.fit_dock()
+C.start_reach(); C.fit_dock(); C.start_reach()
 env.textures()
 sc, cam = env.scene((480, 300))
 sc.display.shading.show_backface_culling = True
-out = sys.argv[-1] if len(sys.argv) > 1 and sys.argv[-1].startswith("/") else "/tmp/god/rb/liftseq"
-out = os.environ.get("OUT", "/tmp/god/rb/liftseq")
+out = os.environ.get("OUT", "liftseq")
 os.makedirs(out, exist_ok=True)
 for f in os.listdir(out): os.remove(os.path.join(out, f))
 clip = os.environ.get("CLIP", "Lift"); step = float(os.environ.get("STEP", "2"))
