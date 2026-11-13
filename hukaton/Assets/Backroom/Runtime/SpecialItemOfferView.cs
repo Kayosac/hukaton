@@ -11,9 +11,9 @@ namespace Hakaton.Backroom
 {
     /// <summary>
     /// A special item on the goblin dealer's table, in its own place left or right of the card row (board
-    /// «Спецпредметы»): always there once it is open and not bought. Deals in with the cards, lifts and shows its price
+    /// «Спецпредметы»): always there once it is open and not bought, as a black silhouette. Deals in with the cards, lifts and shows its price
     /// under the pointer, blinks while it is new (until the pointer first finds it), shakes on a refusal, and when
-    /// bought comes up to the middle of the screen and leaves into the bag.
+    /// bought shows its colours as it comes up to the middle of the screen, then leaves into the bag.
     /// </summary>
     public sealed class SpecialItemOfferView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
@@ -24,6 +24,8 @@ namespace Hakaton.Backroom
         public CanvasGroup group;
         public float hoverLift = 18;
         [Min(1)] public float hoverScale = 1.08f;
+        [Tooltip("Until it is bought the item on the table is only a black silhouette; bought, it shows its colours.")]
+        public Color silhouette = Color.black;
         [Tooltip("A new item blinks (its own picture) until the pointer first finds it.")]
         [Range(0, 1)] public float blinkMinimumAlpha = .35f;
         [Min(.1f)] public float blinkFrequency = 2.2f;
@@ -54,7 +56,7 @@ namespace Hakaton.Backroom
             IsNew = isNew;
             gameObject.SetActive(true);
             if (flight != null) { StopCoroutine(flight); flight = null; }
-            if (icon) { icon.sprite = item.tableSprite ? item.tableSprite : item.menuIcon; icon.color = Color.white; }
+            if (icon) { icon.sprite = item.tableSprite ? item.tableSprite : item.menuIcon; icon.color = silhouette; }
             if (price) price.text = "";
             if (group) { group.alpha = 1; group.interactable = group.blocksRaycasts = true; }
             hovering = false;
@@ -144,9 +146,9 @@ namespace Hakaton.Backroom
             if (icon && IsNew)
             {
                 float wave = .5f + .5f * Mathf.Cos(Time.unscaledTime * blinkFrequency * Mathf.PI * 2);
-                icon.color = new Color(1, 1, 1, Mathf.Lerp(blinkMinimumAlpha, 1, wave));
+                icon.color = new Color(silhouette.r, silhouette.g, silhouette.b, silhouette.a * Mathf.Lerp(blinkMinimumAlpha, 1, wave));
             }
-            else if (icon) icon.color = Color.white;
+            else if (icon) icon.color = silhouette;
             Apply();
         }
 
