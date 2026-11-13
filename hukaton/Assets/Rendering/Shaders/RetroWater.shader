@@ -48,6 +48,14 @@ Shader "Hukaton/Water/Retro Water"
         _ReflectionRoughness("Reflection Roughness", Range(0, 1)) = 0.15
         _Glint("Sun Glint", Range(0, 16)) = 4
         _GlintThreshold("Glint Sharpness", Range(0.9, 0.9999)) = 0.996
+
+        [Header(Mire)]
+        [ToggleUI] _MireBlend("Mire From Mesh UV1.x", Float) = 0
+        [HDR] _MireColor("Mire Color", Color) = (0.12, 0.08, 0.045, 1)
+        [HDR] _MireScum("Mire Scum Color", Color) = (0.32, 0.36, 0.12, 1)
+        _MireScale("Mire Pattern Scale", Range(0.1, 4)) = 0.8
+        _MireSpeed("Mire Churn Speed", Range(0, 1)) = 0.05
+        _MireScumAmount("Mire Scum Amount", Range(0, 1)) = 0.35
     }
 
     SubShader
@@ -99,12 +107,15 @@ Shader "Hukaton/Water/Retro Water"
             float4 _FoamColor;
             float _FoamDepth, _FoamSpeed, _ShoreFoam, _FlowFoam;
             float _Reflection, _ReflectionRoughness, _Glint, _GlintThreshold;
+            float _MireBlend, _MireScale, _MireSpeed, _MireScumAmount;
+            float4 _MireColor, _MireScum;
             CBUFFER_END
 
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float2 flow : TEXCOORD0;
+                float2 mire : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -114,6 +125,7 @@ Shader "Hukaton/Water/Retro Water"
                 float3 positionWS : TEXCOORD0;
                 float2 flow : TEXCOORD1;
                 float fog : TEXCOORD2;
+                float mire : TEXCOORD3;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -124,6 +136,8 @@ Shader "Hukaton/Water/Retro Water"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 o.positionWS = TransformObjectToWorld(v.positionOS.xyz);
                 o.positionCS = TransformWorldToHClip(o.positionWS);
+                // How much bog mire is here (swamp water meshes carry it in UV1; others opt out by the toggle).
+                o.mire = _MireBlend > 0.5 ? saturate(v.mire.x) : 0.0;
                 // Ordinary UVs are not flow vectors. Opt in for authored river meshes.
                 float2 flow = _UseMeshFlow > 0.5 ? v.flow : _FlowDirection.xy;
                 float3 flowWS = TransformObjectToWorldDir(float3(flow.x, 0, flow.y), false);
@@ -224,7 +238,9 @@ Shader "Hukaton/Water/Retro Water"
                 float3 viewVec = GetCameraPositionWS() - i.positionWS;
                 float viewDistance = length(viewVec);
                 float3 V = viewVec / max(viewDistance, 1e-4);
-                float rippleK = _RippleStrength * 0.1 * saturate(1.0 - viewDistance / _RippleFade);
+                float mire = i.mire;
+                // Mire is thick: barely a ripple.
+                float rippleK = _RippleStrength * 0.1 * saturate(1.0 - viewDistance / _RippleFade) * (1.0 - 0.8 * mire);
                 float3 N = normalize(float3(-grad.x * rippleK, 1.0, -grad.y * rippleK));
 
                 // Scene below: depth and colour, refracted along the ripple normal.
@@ -262,6 +278,18 @@ Shader "Hukaton/Water/Retro Water"
                 float3 color = scene * (1.0 + caustics * mainLight.color) * transmit * _ShallowTint.rgb
                     + _DeepColor.rgb * lighting * (1.0 - transmit);
 
+                // Bog mire: opaque brown slurry churning slowly, blotched darker, a sour green scum drifting on it.
+                if (mire > 0.001)
+                {
+                    float2 mp = cell * _MireScale;
+                    float mt = time * _MireSpeed;
+                    float churn = ValueNoise(mp * 1.3 + float2(mt, -mt * 0.7)) * 0.65 + ValueNoise(mp * 3.1 + float2(-mt * 1.3, mt)) * 0.35;
+                    float scum = step(1.0 - _MireScumAmount, ValueNoise(mp * 2.2 + float2(13.0 - mt * 0.6, 4.0 + mt * 0.4)));
+                    float3 slurry = _MireColor.rgb * lighting * (0.7 + 0.6 * churn);
+                    slurry = lerp(slurry, _MireScum.rgb * lighting, scum * 0.7 * smoothstep(0.35, 0.9, mire));
+                    color = lerp(color, slurry, smoothstep(0.0, 1.0, mire));
+                }
+
                 // Foam: broken bands rolling onto the shore, and streaks along the current.
                 float foamNoise = ValueNoise(cell * 3.0 + float2(0.3, -0.2) * t);
                 float edge = smoothstep(_FoamDepth, 0.0, depth);
@@ -276,13 +304,13 @@ Shader "Hukaton/Water/Retro Water"
 
                 // Sky reflection and pixel glints of the sun.
                 float NdotV = saturate(dot(N, V));
-                float fresnel = (0.02 + 0.98 * pow(1.0 - NdotV, 5.0)) * _Reflection;
+                float fresnel = (0.02 + 0.98 * pow(1.0 - NdotV, 5.0)) * _Reflection * (1.0 - 0.6 * mire);
                 float3 reflection = GlossyEnvironmentReflection(reflect(-V, N), i.positionWS, _ReflectionRoughness, 1.0, screenUV);
                 color = lerp(color, reflection, saturate(fresnel));
                 float3 H = normalize(mainLight.direction + V);
                 color += mainLight.color * step(_GlintThreshold, saturate(dot(N, H))) * _Glint * shadow;
 
-                color = lerp(color, _FoamColor.rgb * lighting, foam * 0.9);
+                color = lerp(color, _FoamColor.rgb * lighting, foam * 0.9 * (1.0 - mire));
                 color = Quantize(color, i.positionCS.xy);
                 color = MixFog(color, i.fog);
                 return float4(color, 1.0);

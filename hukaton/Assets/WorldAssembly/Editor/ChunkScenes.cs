@@ -1207,7 +1207,21 @@ namespace Hakaton.WorldAssembly.EditorTools
             return h;
         }
 
-        /// <summary>How far outside the nearest pool's banks, m (large without pools).</summary>
+        /// <summary>How far outside the nearest bog window's mire, m: negative inside it, the same edge as <see cref="InBog"/>.</summary>
+        public float BogDistance(TileTerrain t, Vector2 p)
+        {
+            float best = 99;
+            foreach (var pool in Pools)
+            {
+                if (!pool.Bog) continue;
+                float d = Vector2.Distance(p, pool.Centre) + t.Noise(p, 2f, 11) * .3f;
+                float edge = d - (pool.Radius + .35f);
+                if (pool.Island > 0) edge = Mathf.Max(edge, pool.Island - d);
+                best = Mathf.Min(best, edge);
+            }
+            return best;
+        }
+
         /// <summary>In a bog window: within the mire's own channel (where it is deeper than a hand).</summary>
         public bool InBog(TileTerrain t, Vector2 p)
         {
@@ -1221,6 +1235,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             return false;
         }
 
+        /// <summary>How far outside the nearest pool's banks, m (large without pools).</summary>
         public float PoolDistance(Vector2 p)
         {
             float d = 99;
