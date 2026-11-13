@@ -69,6 +69,27 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Natural tar: walking speed on it (times), burn time once lit (s), burn damage (units per second; 1 = ½ heart).")]
         [Min(0)] public float tarSlow = .5f, tarBurnSeconds = 30, tarBurnDamage = 1;
 
+        [Header("Swamp life (SwampLife, WillOWisp)")]
+        [Tooltip("The banks of ground fog that wander over the swamp (Hakaton/Ground Fog).")]
+        public Material groundFog;
+        [Tooltip("A fish's splash and a frog's plop.")]
+        public Hakaton.Feel.VfxBurst fishSplash;
+        public Hakaton.Feel.SfxCue fishCue, plopCue, frogCue;
+        [Tooltip("Particle clouds that hang round the camera in the swamp.")]
+        public GameObject dragonflies, midges;
+        [Tooltip("A will-o'-the-wisp: leads to treasure or into a bog.")]
+        public WillOWisp wisp;
+        [Tooltip("The swamp's own look (colour grading, vignette), weighted by how much swamp is round the player.")]
+        public UnityEngine.Rendering.VolumeProfile swampLook;
+
+        [Header("Sunken chests")]
+        [Tooltip("Share of chunks with deep water that hide a chest on its bed.")]
+        [Range(0, 1)] public float sunkenChance = .3f;
+        [Tooltip("A sunken chest pays this many times its tier's coins.")]
+        [Min(1)] public float sunkenRiches = 3;
+        [Tooltip("Bubbles rising from a sunken chest.")]
+        public GameObject sunkenBubbles;
+
         /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable ChestTable(int ring)
         {
