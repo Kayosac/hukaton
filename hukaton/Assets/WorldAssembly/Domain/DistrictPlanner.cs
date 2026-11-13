@@ -81,7 +81,8 @@ namespace Hakaton.WorldAssembly
             return (river, canyon);
         }
 
-        bool Usable(ChunkCoord c) => !WorldRules.IsStartArea(c) && corners.IsFlatLow(c);
+        /// <summary>Rivers and canyons keep to dry land: the swamp is water already.</summary>
+        bool Usable(ChunkCoord c) => !WorldRules.IsStartArea(c) && corners.IsFlatLow(c) && !Swamp(c);
         /// <summary>Canyons stay out of the swamp: it is a basin, not a gorge.</summary>
         bool CanyonAllowed(ChunkCoord c) => rules.RingOf(c) >= 1 && !Swamp(c);
 
@@ -311,6 +312,11 @@ namespace Hakaton.WorldAssembly
                 for (int x = ox; x < ox + n && ok; x++)
                     for (int y = oy; y < oy + n && ok; y++)
                         if (BiomeOf(new ChunkCoord(x, y)) != kind.Biome) ok = false;
+                // A swamp landmark stands in open water: every corner of it wet.
+                if (kind.Biome == Biome.Swamp)
+                    for (int x = ox; x <= ox + n && ok; x++)
+                        for (int y = oy; y <= oy + n && ok; y++)
+                            if (biomes == null || !biomes.Wet(x, y)) ok = false;
                 if (!ok) continue;
                 int level = corners.Level(ox, oy);
                 for (int x = ox; x <= ox + n && ok; x++)

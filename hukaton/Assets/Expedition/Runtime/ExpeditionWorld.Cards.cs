@@ -70,6 +70,7 @@ namespace Hakaton.Expeditions
         public void HideForOuting(GameObject sceneObject)
         {
             if (!sceneObject || !sceneObject.activeSelf) return;
+            MergedLooks.Unmerge(sceneObject);
             sceneObject.SetActive(false);
             RestoreAtOutingEnd(() => { if (sceneObject) sceneObject.SetActive(true); });
         }

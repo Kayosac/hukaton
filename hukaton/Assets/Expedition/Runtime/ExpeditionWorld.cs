@@ -95,6 +95,8 @@ namespace Hakaton.Expeditions
         int coinStreak;
         float lastCoinTime = -10;
         public string Notice { get; private set; }
+        /// <summary>How to use the special item in the hand (lines, bottom left of the HUD), or null with nothing in it.</summary>
+        public string HeldItemHint { get; set; }
         public float NoticeUntil { get; private set; }
         /// <summary>Raised for each item picked up.</summary>
         public event Action<LootItem> Collected;
@@ -174,6 +176,7 @@ namespace Hakaton.Expeditions
             ShedDummies();
             if (time) time.ResetTime();
             if (sfx && cues) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
+            OutingBegan?.Invoke();
         }
 
         void Update()
@@ -231,6 +234,19 @@ namespace Hakaton.Expeditions
             var target = FocusedInteractable;
             return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract && target.Interact();
         }
+
+        /// <summary>
+        /// Takes coins from this outing's purse (the phone's bet). False, and nothing taken, when it holds less.
+        /// </summary>
+        public bool TrySpendCoins(int amount)
+        {
+            if (!Running || amount < 0 || Coins < amount) return false;
+            Coins -= amount;
+            return true;
+        }
+
+        /// <summary>Raised once an outing (not the cave prologue) has begun: the player is in place, the hand dealt.</summary>
+        public event Action OutingBegan;
 
         /// <summary>Adds coins to this outing's purse (a chest's coin reaching the bag).</summary>
         public void CollectCoins(int amount, Color colour)

@@ -45,7 +45,23 @@ namespace Hakaton.Character
             upgrade.Changed += () => state.Resize(upgrade.Capacity);
         }
 
-        public bool TryJump() => state != null && state.TrySpend(jumpCost);
-        public void Tick(float deltaTime, bool sprinting) => state?.Tick(deltaTime, sprinting);
+        float unlimitedUntil = float.NegativeInfinity;
+        /// <summary>Seconds left of an endless-stamina boost (the phone's lightnings); 0 when none.</summary>
+        public float UnlimitedRemaining => Mathf.Max(0, unlimitedUntil - Time.time);
+        public bool Unlimited => Time.time < unlimitedUntil;
+
+        /// <summary>Endless stamina for <paramref name="seconds"/>: full at once, sprinting and jumping cost nothing meanwhile.</summary>
+        public void GrantUnlimited(float seconds)
+        {
+            Build();
+            unlimitedUntil = Mathf.Max(unlimitedUntil, Time.time + Mathf.Max(0, seconds));
+            state.Resize(state.Capacity);
+        }
+
+        /// <summary>Ends an endless-stamina boost at once (the outing is over).</summary>
+        public void ClearUnlimited() => unlimitedUntil = float.NegativeInfinity;
+
+        public bool TryJump() => state != null && (Unlimited || state.TrySpend(jumpCost));
+        public void Tick(float deltaTime, bool sprinting) => state?.Tick(deltaTime, sprinting && !Unlimited);
     }
 }

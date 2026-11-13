@@ -7,7 +7,8 @@ namespace Hakaton.WorldAssembly
     /// <summary>What it takes to move from one walkable region to another: walking, a one-way drop, or a card (Card: any of several — a rope, an updraft, a teleport, a branch bridge, a stone cube…).</summary>
     public enum Need { Walk = 0, Drop = 1, Ice = 2, Impulse = 3, Fire = 4, Card = 5 }
 
-    public enum ShapeKind { Plain, PlateauTop, Cliff, River, Canyon, Maze, Landmark }
+    /// <summary>Shore: the rim of a rotten swamp, where its water meets dry land (corners: 1 under water, 0 dry).</summary>
+    public enum ShapeKind { Plain, PlateauTop, Cliff, River, Canyon, Maze, Landmark, Shore }
 
     /// <summary>A walkable part of a chunk at one level. Pockets are the places only cards reach; they always hold a reward.</summary>
     public sealed class Region
@@ -114,6 +115,11 @@ namespace Hakaton.WorldAssembly
                 Maze("maze-bend", true, true, false, false),
                 Maze("maze-tee", true, true, true, false),
                 Maze("maze-cross", true, true, true, true),
+                Shore("shore-dry", new[] { 0, 0, 0, 0 }),
+                Shore("shore-corner", new[] { 1, 0, 0, 0 }),
+                Shore("shore-edge", new[] { 1, 1, 0, 0 }),
+                Shore("shore-saddle", new[] { 1, 0, 1, 0 }),
+                Shore("shore-inner", new[] { 1, 1, 1, 0 }),
             };
             // Parts of landmarks: flat low ground on every edge, one region open all round.
             foreach (var kind in Landmarks.All)
@@ -201,6 +207,14 @@ namespace Hakaton.WorldAssembly
             for (int s = 0; s < 4; s++) for (int g = 0; g < 3; g++) p[s, g] = region;
             return p;
         }
+
+        /// <summary>
+        /// The rim of a rotten swamp: its corners under water (1) or dry (0), the water's edge winding between them. All
+        /// of it is walked (the water is knee deep): one region open all round. Two looks of each.
+        /// </summary>
+        static TileShape Shore(string id, int[] wet) =>
+            new TileShape(id, ShapeKind.Shore, wet, NoMids, new[] { new Region("ground", 0) }, AllPorts(0), Array.Empty<Link>(),
+                new[] { new Variant("reeds"), new Variant("alders") });
 
         static TileShape Flat(string id, ShapeKind kind, int level, params Variant[] variants) =>
             new TileShape(id, kind, new[] { 0, 0, 0, 0 }, NoMids, new[] { new Region("ground", level) }, AllPorts(0), Array.Empty<Link>(), variants);

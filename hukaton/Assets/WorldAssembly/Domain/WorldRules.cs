@@ -28,6 +28,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>Swamp noise above this makes swamp: near (at SwampFrom) and far (SwampFull and beyond). About a seventh
         /// of ring 1 and over a quarter of ring 2.</summary>
         public double SwampThresholdNear = .68, SwampThresholdFar = .6;
+        /// <summary>Rise noise above this lifts the swamp one level (6 m) deep inside a patch: its raised terraces.</summary>
+        public double SwampRise = .56;
 
         public float PlateauHeight = 6f;
         /// <summary>Rain fronts and thunderstorms (<see cref="WorldWeather"/>).</summary>
@@ -167,11 +169,12 @@ namespace Hakaton.WorldAssembly
         int Wanted(int i, int j)
         {
             if (IsStartCorner(i, j)) return rules.StartLevel;
-            // The swamp is a basin: every corner of a swamp chunk stays low; the slopes round it are forest.
-            if (biomes != null && (biomes.IsSwamp(new ChunkCoord(i, j)) || biomes.IsSwamp(new ChunkCoord(i - 1, j)) ||
-                                   biomes.IsSwamp(new ChunkCoord(i, j - 1)) || biomes.IsSwamp(new ChunkCoord(i - 1, j - 1)))) return 0;
             double x = (i - .5) * rules.ChunkSize, y = (j - .5) * rules.ChunkSize;
             if (Math.Sqrt(x * x + y * y) < rules.FlatRadius) return 0;
+            // The swamp lies low and rises one level at most: terraces of swamp a cliff above the rest.
+            if (biomes != null && (biomes.IsSwamp(new ChunkCoord(i, j)) || biomes.IsSwamp(new ChunkCoord(i - 1, j)) ||
+                                   biomes.IsSwamp(new ChunkCoord(i, j - 1)) || biomes.IsSwamp(new ChunkCoord(i - 1, j - 1))))
+                return biomes.Raised(i, j) ? 1 : 0;
             var thresholds = rules.LevelThresholds[rules.RingAt(x, y)];
             double noise = Noise(i, j);
             int level = 0;

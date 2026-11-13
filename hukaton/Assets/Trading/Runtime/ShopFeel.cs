@@ -34,6 +34,11 @@ namespace Hakaton.Trading.Unity
         float voiceAt = -1;
         CustomerMood pendingMood;
         long greetedCustomer;
+        // The bulk buyer's speech: the line he has voiced last (-1: none yet) and when the pending line's phrase plays.
+        int voicedLine = -1;
+        float lineVoiceAt = -1;
+        /// <summary>His first line comes up with the greeting: its phrase waits for the greeting to finish.</summary>
+        const float AfterGreeting = .8f;
         // The visitor whose voice we heard last: still speaks while walking out.
         NpcAppearance voice;
         TextPunch walletPunch;
@@ -98,6 +103,25 @@ namespace Hakaton.Trading.Unity
                 greetedCustomer = customer.Id;
                 voice = trade.World.Customers.VisitorAppearance;
                 if (voice && voice.voiceArrive) sfx.Play(voice.voiceArrive);
+                voicedLine = -1;
+                lineVoiceAt = -1;
+            }
+
+            // A visitor who explains himself line by line (the bulk buyer) says each line in his own phrase.
+            if (customer != null && customer.IsBulkBuyer && customer.Id == greetedCustomer && voice && customer.Lines != null)
+            {
+                int line = trade.BulkLine;
+                if (line != voicedLine)
+                {
+                    lineVoiceAt = Time.unscaledTime + (voicedLine < 0 && voice.voiceArrive ? AfterGreeting : 0);
+                    voicedLine = line;
+                }
+                if (lineVoiceAt > 0 && Time.unscaledTime >= lineVoiceAt)
+                {
+                    lineVoiceAt = -1;
+                    var phrase = voice.VoiceLine(line, customer.Lines.Count);
+                    if (phrase) sfx.Play(phrase);
+                }
             }
 
             var deal = session.CurrentDeal;

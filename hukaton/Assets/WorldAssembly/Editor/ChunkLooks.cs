@@ -41,6 +41,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     var renderer = filter.GetComponent<MeshRenderer>();
                     if (!renderer || !renderer.enabled || !filter.sharedMesh || filter.gameObject.layer == 4) continue;
                     if (ground && filter.transform.IsChildOf(ground)) continue;
+                    // The merged look draws the pieces already measured one by one.
+                    if (filter.GetComponentInParent<MergedLook>()) continue;
                     string key = Key(filter.transform, root);
                     if (Soft(key)) continue;
                     var m = filter.transform.localToWorldMatrix;
@@ -82,8 +84,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             if (instance && instance.transform != root)
             {
                 string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instance);
-                const string art = "Assets/ForestArt/Prefabs/";
+                const string art = "Assets/ForestArt/Prefabs/", swampArt = "Assets/SwampArt/Prefabs/";
                 if (path.StartsWith(art)) path = path.Substring(art.Length);
+                else if (path.StartsWith(swampArt)) path = "Swamp/" + path.Substring(swampArt.Length);
                 path = path.Replace(".prefab", "");
                 return t == instance.transform ? path : path + "/" + Clean(t.name);
             }
@@ -105,12 +108,17 @@ namespace Hakaton.WorldAssembly.EditorTools
             "Plants/FA_VG08", "Plants/FA_VG09", "Plants/FA_VG11", "Plants/FA_VG12", "Plants/FA_VG13", "Plants/FA_VG14", "Plants/FA_VG17",
             "Plants/FA_VG18", "Plants/FA_VG19", "Plants/FA_VG20", "Special/FA_SP01", "Special/FA_SP02", "Special/FA_SP03",
             "Markers/FA_MK07", "Markers/FA_MK08", "Markers/FA_MK09", "Markers/FA_MK10", "Markers/FA_MK11", "Markers/FA_MK17", "Decals/", "VFX/",
+            // The rotten swamp: cattails, sedge, duckweed, lilies, pale mushrooms.
+            "Swamp/Plants/SM_SW02", "Swamp/Plants/SM_SW03", "Swamp/Plants/SM_SW04", "Swamp/Plants/SM_SW05", "Swamp/Plants/SM_SW06",
         };
+
+        /// <summary>A soft part of a solid piece: the grass, reeds, strands and nets of the swamp art ("SW01a_Plants").</summary>
+        public static bool SoftPart(string part) => part.Replace("(Clone)", "").Trim().EndsWith("_Plants");
 
         /// <summary>
         /// Things you walk through as you see them: grass, ferns, broad leaves, bushes, ivy, moss, cobwebs, cloth and
         /// charms on strings, decals, effects. Everything else drawn is solid.
         /// </summary>
-        public static bool Soft(string key) => key == "Water mesh" || SoftPieces.Any(key.StartsWith);
+        public static bool Soft(string key) => key == "Water mesh" || key.StartsWith("Merged look") || SoftPieces.Any(key.StartsWith) || SoftPart(key);
     }
 }

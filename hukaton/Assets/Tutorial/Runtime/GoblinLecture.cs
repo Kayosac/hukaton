@@ -105,9 +105,7 @@ namespace Hakaton.Tutorial
             if (GamePause.Suspended) { suspendedFrame = Time.frameCount; return; }
             // The key or click that closed a menu does not also close the line.
             if (Time.frameCount - suspendedFrame <= 1) return;
-            var keyboard = Keyboard.current;
-            var mouse = Mouse.current;
-            if ((keyboard != null && keyboard.eKey.wasPressedThisFrame) || (mouse != null && mouse.leftButton.wasPressedThisFrame)) Continue();
+            if (DialogueAdvance.Pressed) Continue();
         }
 
         /// <summary>Closes the line on screen, as E does; a press while it still types only finishes it.</summary>

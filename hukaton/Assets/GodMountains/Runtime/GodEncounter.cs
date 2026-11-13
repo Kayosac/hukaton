@@ -276,8 +276,7 @@ namespace Hakaton.GodMountains
                 while (true)
                 {
                     if (head) view.Guide(head.TransformPoint(Vector3.up * faceHeight));
-                    var keyboard = Keyboard.current;
-                    if (keyboard != null && keyboard.eKey.wasPressedThisFrame) Continue();
+                    if (DialogueAdvance.Pressed) Continue();
                     if (continueRequested) { continueRequested = false; break; }
                     yield return null;
                 }

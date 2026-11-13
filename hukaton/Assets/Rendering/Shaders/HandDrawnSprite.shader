@@ -29,6 +29,13 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         [ToggleUI] _ZWrite ("Write Depth", Float) = 1
         // A pulsing outline of hard cells around the drawing (hints: «Потяни меня» and its rope). Off by default:
         // ordinary sprites compile without it. Renderers fade it with _OutlineStrength in a MaterialPropertyBlock.
+        // Ordered (Bayer 4 × 4) dithering on the drawing's own texels: fewer colour levels, the old-console look.
+        // Off by default; the special items in the hand (the phone) turn it on.
+        [Header(Dithering)]
+        [Toggle(_DITHER)] _Dither ("Ordered Dithering", Float) = 0
+        _DitherLevels ("Colour Levels Per Channel", Range(2,32)) = 8
+        _DitherStrength ("Dither Strength", Range(0,1)) = 1
+        _DitherScale ("Dither Cell (pixel cells)", Range(1,4)) = 1
         [Header(Hint Outline)]
         [Toggle(_HINT_OUTLINE)] _HintOutline ("Pulsing Hint Outline", Float) = 0
         _OutlineColor ("Outline Colour", Color) = (1, 0.8, 0.35, 1)
@@ -66,7 +73,39 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             float _Speed, _Sway, _Breath, _Boil, _Anchor, _Seed;
             half4 _OutlineColor;
             float _OutlineCells, _OutlinePulseSpeed, _OutlineMinAlpha, _OutlineStrength;
+            float _DitherLevels, _DitherStrength, _DitherScale;
         CBUFFER_END
+
+        #if defined(_DITHER)
+        // Bayer 4 × 4 threshold of a texel (the same pattern as the full-screen dithering).
+        float DitherThreshold(uint2 cell)
+        {
+            uint rank = 0u;
+            [unroll] for (int bit = 0; bit < 2; bit++)
+            {
+                uint2 p = (cell >> bit) & 1u;
+                rank = rank * 4u + ((p.x ^ p.y) * 2u + p.y);
+            }
+            return (rank + .5) / 16.0;
+        }
+
+        // Quantize in display space with the texel's threshold, then back to the working colour space.
+        half3 Dither(half3 colour, float2 texel)
+        {
+            float3 c = max(colour, 0);
+            #if !defined(UNITY_COLORSPACE_GAMMA)
+                c = pow(c, 1.0 / 2.2);
+            #endif
+            uint2 cell = (uint2)max(floor(texel / max(_DitherScale, 1.0)), 0);
+            float threshold = lerp(.5, DitherThreshold(cell), _DitherStrength);
+            float levels = max(_DitherLevels, 2.0) - 1.0;
+            c = floor(saturate(c) * levels + threshold) / levels;
+            #if !defined(UNITY_COLORSPACE_GAMMA)
+                c = pow(c, 2.2);
+            #endif
+            return (half3)c;
+        }
+        #endif
 
         struct Attributes
         {
@@ -177,7 +216,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             // World grid, split by a power of two close up: the finer grid keeps every world-grid line.
             float2 worldCell = WorldPixelCell(localUV, input.positionRelativeWS);
             float2 cell = worldCell / max(input.refine, 1.0);
-            float2 uv = (floor(localUV / cell) + 0.5) * cell;
+            float2 cellIndex = floor(localUV / cell);
+            float2 uv = (cellIndex + 0.5) * cell;
             float t = floor(_Time.y * max(_AnimationFPS, 1.0)) / max(_AnimationFPS, 1.0);
             float phase = t * _Speed * 2.0 + _Seed;
             float height = saturate((uv.y - _Anchor) / max(1.0 - _Anchor, 0.01));
@@ -211,8 +251,13 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             // Hard pixels: one source texel per world pixel, no filtering or colour blending.
             half4 texel = SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_PointClamp, atlasUV, 0);
             clip(texel.a - _AlphaCutoff);
+            half3 colour = texel.rgb * input.color.rgb;
+            #if defined(_DITHER)
+            // On the drawing's own pixel cells, so the pattern sticks to the drawing as it moves and turns.
+            colour = Dither(colour, cellIndex);
+            #endif
             // Binary source coverage, with ordinary material/renderer fade still supported.
-            return half4(MixFog(texel.rgb * input.color.rgb, input.fogFactor), input.color.a);
+            return half4(MixFog(colour, input.fogFactor), input.color.a);
         }
         ENDHLSL
 
@@ -227,6 +272,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
             #pragma shader_feature_local_fragment _HINT_OUTLINE
+            #pragma shader_feature_local_fragment _DITHER
             ENDHLSL
         }
         Pass
@@ -240,6 +286,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
             #pragma shader_feature_local_fragment _HINT_OUTLINE
+            #pragma shader_feature_local_fragment _DITHER
             ENDHLSL
         }
     }

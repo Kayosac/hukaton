@@ -1425,6 +1425,114 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(Time.time - stepIn, Is.GreaterThan(3), "slowly, not at once");
         }
 
+        [UnityTest]
+        public IEnumerator MergedDressingComesApartWhenItBurnsOrWakes()
+        {
+            // The still dressing of a chunk draws as one mesh per material; its own renderers are kept from drawing.
+            var views = Object.FindObjectsByType<ChunkView>(FindObjectsSortMode.None);
+            var look = views.Select(v => v.GetComponentInChildren<MergedLook>()).FirstOrDefault(l => l && l.sources.Length > 0);
+            Assert.That(look, Is.Not.Null, "a loaded chunk with merged dressing");
+            Assert.That(look.sources.Where(r => r).All(r => r.forceRenderingOff), Is.True, "merged pieces do not draw themselves");
+
+            // Fire: the burning piece draws by its own renderers and is cut out of the merged mesh.
+            var piece = views.SelectMany(v => v.burnables).Where(b => b && b.GetComponent<MergedPiece>())
+                .OrderBy(b => Vector3.Distance(b.transform.position, world.motor.transform.position)).FirstOrDefault();
+            Assert.That(piece, Is.Not.Null, "a merged burnable near the start");
+            var merged = piece.GetComponent<MergedPiece>();
+            int source = merged.sources[0];
+            int slice = System.Array.IndexOf(merged.look.sliceSource, source);
+            var part = merged.look.parts[merged.look.slicePart[slice]];
+            Assert.That(streamer.fire.Ignite(piece, piece.transform.position), Is.True, "it catches");
+            yield return null;
+            Assert.That(merged.look.sources[source].forceRenderingOff, Is.False, "the burning piece draws itself");
+            var v0 = part.sharedMesh.vertices;
+            int start = merged.look.sliceStart[slice], count = merged.look.sliceCount[slice];
+            Assert.That(Enumerable.Range(start, count).All(i => v0[i] == v0[start]), Is.True, "and is gone from the merged mesh");
+
+            // An awakened tree: hidden for the outing, gone from the merged mesh too.
+            var tree = views.SelectMany(v => v.trees).FirstOrDefault(t => t && t.Standing && t.GetComponent<MergedPiece>());
+            if (tree)
+            {
+                var tp = tree.GetComponent<MergedPiece>();
+                world.HideForOuting(tree.gameObject);
+                int ts = System.Array.IndexOf(tp.look.sliceSource, tp.sources[0]);
+                var tv = tp.look.parts[tp.look.slicePart[ts]].sharedMesh.vertices;
+                int tStart = tp.look.sliceStart[ts];
+                Assert.That(Enumerable.Range(tStart, tp.look.sliceCount[ts]).All(i => tv[i] == tv[tStart]), Is.True, "an awakened tree is gone from the merged mesh");
+            }
+        }
+
+        /// <summary>
+        /// What the swamp costs to draw against the forest: batches, set-pass calls, triangles and shadow casters from
+        /// the player's eyes, four ways round the heart of the nearest swamp and round a forest spot as far out
+        /// (Logs/world-plans/render-cost.txt). A measurement, run by name.
+        /// </summary>
+        [UnityTest, Explicit("a measurement, run by name")]
+        public IEnumerator RenderCostOfTheSwampAgainstTheForest()
+        {
+            var map = streamer.Map;
+            ChunkCoord heart = default, forest = default;
+            int best = -1;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
+                    int around = 0;
+                    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
+                    int score = around * 100 - (x * x + y * y);
+                    if (score > best) { best = score; heart = new ChunkCoord(x, y); }
+                }
+            Assert.That(best, Is.GreaterThan(0), "a swamp within 14 chunks");
+            float ring = Mathf.Sqrt(heart.X * heart.X + heart.Y * heart.Y);
+            best = int.MaxValue;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    var c = new ChunkCoord(x, y);
+                    bool clear = true;
+                    for (int i = -3; i <= 3 && clear; i++) for (int j = -3; j <= 3 && clear; j++) clear = !map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j));
+                    if (!clear || map.Chunk(c).Shape.Kind != ShapeKind.Plain) continue;
+                    int score = (int)(Mathf.Abs(Mathf.Sqrt(x * x + y * y) - ring) * 100);
+                    if (score < best) { best = score; forest = c; }
+                }
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = map.Rules.ChunkSize;
+            var report = new System.Text.StringBuilder();
+            var batches = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Batches Count");
+            var setPass = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "SetPass Calls Count");
+            var draws = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Draw Calls Count");
+            var tris = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Triangles Count");
+            var casters = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Render, "Shadow Casters Count");
+            world.vitals.Immortal = true;
+            foreach (var (label, at) in new[] { ("swamp", heart), ("forest", forest) })
+            {
+                var plan = map.Chunk(at);
+                var spot = origin + new Vector3(at.X * size, plan.BaseLevel * map.Rules.PlateauHeight + 1.5f, at.Y * size);
+                long b = 0, sp = 0, d = 0, t = 0, sc = 0;
+                float ms = 0;
+                int frames = 0;
+                for (int k = 0; k < 4; k++)
+                {
+                    world.motor.Teleport(spot, Quaternion.Euler(0, k * 90, 0));
+                    yield return WaitFor(() => streamer.IsLoaded(at), 10);
+                    for (int f = 0; f < 40; f++) yield return null;
+                    for (int f = 0; f < 30; f++)
+                    {
+                        float before = Time.realtimeSinceStartup;
+                        yield return null;
+                        ms += (Time.realtimeSinceStartup - before) * 1000;
+                        b += batches.LastValue; sp += setPass.LastValue; d += draws.LastValue; t += tris.LastValue; sc += casters.LastValue;
+                        frames++;
+                    }
+                }
+                report.AppendLine($"{label} {at} ({plan}): batches {b / frames}, set-pass {sp / frames}, draw calls {d / frames}, triangles {t / frames}, shadow casters {sc / frames}, frame {ms / frames:0.0} ms, chunks loaded {streamer.LoadedCount}");
+            }
+            batches.Dispose(); setPass.Dispose(); draws.Dispose(); tris.Dispose(); casters.Dispose();
+            var file = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "render-cost.txt");
+            File.WriteAllText(file, report.ToString());
+            Debug.Log("[World] render cost\n" + report);
+        }
+
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
         {
             float end = Time.realtimeSinceStartup + seconds;

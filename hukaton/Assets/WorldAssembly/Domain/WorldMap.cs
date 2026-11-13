@@ -67,6 +67,7 @@ namespace Hakaton.WorldAssembly
             Rules = rules ?? new WorldRules();
             Biomes = new BiomeField(seed, Rules);
             Corners = new CornerField(seed, Rules, Biomes);
+            Biomes.Corners = Corners;
             districts = new DistrictPlanner(seed, Rules, Corners, Biomes);
             Guarantee();
         }
@@ -162,7 +163,9 @@ namespace Hakaton.WorldAssembly
             else if (feature != null && feature.Feature == Feature.Landmark)
                 Set(plan, TileShapes.Get(feature.Landmark.PartId(feature.PartI, feature.PartJ)), feature.LandmarkRotation);
             else if (max > min) MatchCliff(plan, relative);
-            else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
+            else if (plan.Biome == Biome.Swamp && !Biomes.Open(c)) MatchShore(plan);
+            // Open swamp is a swamp scene on whichever level it lies.
+            else if (feature == null || feature.Feature == Feature.None) Set(plan, TileShapes.Get(min == 0 || plan.Biome == Biome.Swamp ? "plain" : "plateau-top"), Hash.Range(Seed, 4, Salt.Rotation, c.X, c.Y));
             else MatchFeature(plan);
 
             ChooseVariant(plan, feature);
@@ -182,6 +185,20 @@ namespace Hakaton.WorldAssembly
                     if (shape.MatchesCorners(relative, r)) { Set(plan, shape, r); return; }
             }
             throw new InvalidOperationException($"No cliff shape for corners {string.Join(",", plan.Corners)} at {plan.Coord}");
+        }
+
+        /// <summary>The rim of the swamp: the shore shape whose wet corners, turned, are this chunk's.</summary>
+        void MatchShore(ChunkPlan plan)
+        {
+            var wet = new int[4];
+            Biomes.WetCorners(plan.Coord, wet);
+            foreach (var shape in TileShapes.All)
+            {
+                if (shape.Kind != ShapeKind.Shore) continue;
+                for (int r = 0; r < 4; r++)
+                    if (shape.MatchesCorners(wet, r)) { Set(plan, shape, r); return; }
+            }
+            throw new InvalidOperationException($"No shore shape for wet corners {string.Join(",", wet)} at {plan.Coord}");
         }
 
         void MatchFeature(ChunkPlan plan)
@@ -209,6 +226,13 @@ namespace Hakaton.WorldAssembly
                     break;
                 case "river-end":
                     id = roll < .45 ? "lake" : roll < .8 || plan.Ring == 0 ? "spring" : "island";
+                    break;
+                case "shore-dry":
+                case "shore-corner":
+                case "shore-edge":
+                case "shore-saddle":
+                case "shore-inner":
+                    id = roll < .5 ? "reeds" : "alders";
                     break;
                 case "river-straight":
                     if (feature != null && feature.Crossing) id = roll < .6 ? "bridge" : "ford";
@@ -310,6 +334,7 @@ namespace Hakaton.WorldAssembly
                     if (plan.Forest && plan.MazeHeart) chance = 1;
                     break;
                 case ShapeKind.River: theme = "river"; chance *= .6; break;
+                case ShapeKind.Shore: theme = "pond"; break;
                 case ShapeKind.Canyon: theme = "canyon"; chance *= 1.4; break;
                 case ShapeKind.PlateauTop: theme = plan.BaseLevel >= 2 ? "summit" : "plateau"; chance *= 1.2; break;
                 case ShapeKind.Landmark:
