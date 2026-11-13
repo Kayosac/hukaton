@@ -1,57 +1,89 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hakaton.GodMountains
 {
     /// <summary>
-    /// Z1, under the stone roof: grit and a creak, then a stone breaks off a few metres ahead, smashes on the floor and
-    /// shakes the view. The pieces settle as rubble beside the path.
+    /// Z1, the slot: high on the wall a few metres ahead dust bursts out and a boulder breaks away with a hail of small
+    /// stones; it drops down the face, smashes on the path in a cloud of dust and shakes the view. The pieces settle as
+    /// rubble by the path (small enough to walk over).
     /// </summary>
     public sealed class GodRoofStone : GodMoment
     {
-        [Tooltip("How far ahead along the route the stone drops, m.")]
-        public float ahead = 4f;
-        [Min(.1f)] public float size = .7f;
-        [Min(0)] public float warning = 1.1f;
-        [Min(0)] public int pieces = 4;
-        [Range(0, 1)] public float shake = .35f;
+        [Tooltip("Where along the route ahead it may happen (the spot must be in view), m.")]
+        public Vector2 ahead = new Vector2(3.5f, 10);
+        [Tooltip("How high on the wall it may break away, m above the path.")]
+        public Vector2 height = new Vector2(2.5f, 6);
+        [Min(.1f)] public float size = 1.1f;
+        [Min(0)] public float warning = .9f;
+        [Min(0)] public int hail = 6;
+        [Min(0)] public int pieces = 5;
+        [Range(0, 1)] public float shake = .4f;
 
         void Reset() => atMetres = 17;
 
+        Vector3 spot, spotNormal;
+
+        bool Locate(float progress, Vector3 eye, Vector3 forward) =>
+            Hub.VisibleSpot(progress, eye, forward, ahead, height, out spot, out spotNormal);
+
+        // waits (up to a few metres further) until a spot on the walls ahead is in view
+        protected override bool Ready => Hub.Progress > atMetres + 12 || Locate(Hub.Progress, Hub.Eye.position, Hub.Eye.forward);
+
+        public override void PreviewPoints(List<Vector3> points)
+        {
+            var v = PreviewView();
+            if (!Locate(atMetres, v.eye, v.forward)) return;
+            points.Add(spot);
+            points.Add(Hub.Floor(spot));
+        }
+
         protected override IEnumerator Play()
         {
-            Vector3 floor = Hub.RoutePoint(Hub.Progress + ahead);
-            var roof = Hub.Ceiling(floor + Vector3.up * 1.2f, 7);
-            if (!roof.HasValue) yield break;
-            Hub.Effect(Hub.gritEffect, roof.Value, Quaternion.identity, .8f, 4);
-            Hub.Sound(Hub.crumble, roof.Value, .9f, .75f);
-            Hub.Shake(.06f, roof.Value);
+            if (spot == default) yield break;
+            Vector3 at = spot, normal = spotNormal;
+            Hub.Dust(Hub.smokeMedium, at, 1.4f);
+            Hub.Sound(Hub.crumble, at, 1, .7f);
+            Hub.Shake(.08f, at);
+            for (int i = 0; i < 3; i++)
+            {
+                var s = Hub.Stone(at + Random.insideUnitSphere * .4f, Random.Range(.15f, .25f));
+                if (s) { s.linearVelocity = normal * .6f; StartCoroutine(Hub.Settle(s, 4)); }
+            }
             yield return new WaitForSeconds(warning);
-            Hub.Effect(Hub.gritEffect, roof.Value, Quaternion.identity, 1.2f, 4);
-            var stone = Hub.Stone(roof.Value - Vector3.up * size * .6f, size);
+            Hub.Dust(Hub.smokeMedium, at, 1.6f, 6);
+            var stone = Hub.Stone(at, size);
             if (!stone) yield break;
+            stone.linearVelocity = normal * 1.2f;
             stone.angularVelocity = Random.insideUnitSphere * 3;
+            for (int i = 0; i < hail; i++)
+            {
+                var s = Hub.Stone(at + Random.insideUnitSphere * .7f, Random.Range(.15f, .32f));
+                if (s) { s.linearVelocity = normal * Random.Range(.4f, 1.6f); StartCoroutine(Hub.Settle(s, 4)); }
+            }
             float time = 0;
-            while (time < 3 && stone)
+            while (time < 4 && stone)
             {
                 time += Time.deltaTime;
-                if (time > .15f && Physics.Raycast(stone.position, Vector3.down, size * .6f, ~(1 << 2), QueryTriggerInteraction.Ignore)) break;
+                if (time > .2f && Physics.Raycast(stone.position, Vector3.down, size * .55f, ~(1 << 2), QueryTriggerInteraction.Ignore)) break;
                 yield return null;
             }
             if (!stone) yield break;
-            Vector3 at = stone.position;
-            Hub.Effect(Hub.impactEffect, at, Quaternion.identity, .9f, 4);
-            Hub.Sound(Hub.rockImpact, at, 1, .8f);
-            Hub.Shake(shake, at);
+            Vector3 hit = stone.position;
+            Hub.Dust(Hub.smokeBig, hit + Vector3.up * .2f, 1.8f, 6);
+            Hub.Sound(Hub.crash, hit, 1, .8f);
+            Hub.Sound(Hub.rockImpact, hit, 1, .7f);
+            Hub.Shake(shake, hit);
             Destroy(stone.gameObject);
             for (int i = 0; i < pieces; i++)
             {
                 Vector3 offset = Quaternion.Euler(0, 360f * i / pieces + Random.Range(-25f, 25f), 0) * Vector3.forward * size * .3f;
-                var piece = Hub.Stone(at + offset + Vector3.up * .15f, size * Random.Range(.3f, .45f));
+                var piece = Hub.Stone(hit + offset + Vector3.up * .15f, size * Random.Range(.22f, .32f));
                 if (!piece) continue;
-                piece.linearVelocity = offset.normalized * Random.Range(.6f, 1.5f) + Vector3.up * Random.Range(1f, 2f);
+                piece.linearVelocity = offset.normalized * Random.Range(.8f, 2f) + Vector3.up * Random.Range(1f, 2.4f);
                 piece.angularVelocity = Random.insideUnitSphere * 8;
-                StartCoroutine(Hub.Settle(piece, 3.5f));
+                StartCoroutine(Hub.Settle(piece, 4));
             }
         }
     }

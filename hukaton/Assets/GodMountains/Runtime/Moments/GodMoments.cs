@@ -70,8 +70,16 @@ namespace Hakaton.GodMountains
         public GameObject dustEffect;
         public GameObject draftEffect;
         public GameObject leavesEffect;
-        [Tooltip("A stone of the kit for things that fall and roll.")]
+        [Tooltip("Pixel dust clouds, big to tiny: where stones hit, walls shed, the draft comes through.")]
+        public GameObject smokeBig, smokeMedium, smokeSmall, smokeTiny, smokeFlat;
+        [Tooltip("Rock dust: the pixel clouds are tinted to it (pale, see-through), not their own dark grey.")]
+        public Color dustColor = new Color(.8f, .72f, .82f, .55f);
+        [Tooltip("Cloud from the white shelf.")]
+        public Color cloudColor = new Color(.9f, .88f, .94f, .22f);
+        [Tooltip("A stone of the kit for things that fall and roll (fallback when Rock Models is empty).")]
         public GameObject rockModel;
+        [Tooltip("Stones of the kit that fall and roll; each is scaled to the size asked.")]
+        public GameObject[] rockModels = new GameObject[0];
 
         public bool Running { get; private set; }
         /// <summary>The furthest the player has come along the route, m (never jumps across walls).</summary>
@@ -181,11 +189,18 @@ namespace Hakaton.GodMountains
             gritThisBreath = true;
             if (Time.time < heldUntil || Metres < gritBetweenMetres.x || Metres > gritBetweenMetres.y) return;
             if (Random.value > gritChance) return;
-            var at = Ceiling(RoutePoint(Progress + Random.Range(1f, 3.5f)) + Vector3.up * 1.2f, 6);
-            if (at.HasValue)
+            Vector3 floor = RoutePoint(Progress + Random.Range(2.5f, 4.5f));
+            var side = Vector3.Cross(Vector3.up, RouteForward(Progress + 3)) * (Random.value < .5f ? 1 : -1);
+            if (Wall(floor + Vector3.up * Random.Range(3f, 4.5f), side, 4, out var hit, out var normal))
             {
-                Effect(gritEffect, at.Value, Quaternion.identity, Random.Range(.5f, .8f), 4);
-                Sound(crumble, at.Value, .35f, Random.Range(.7f, .9f));
+                Vector3 at = hit + normal * .35f;
+                Dust(smokeTiny, at, 1.2f, 4);
+                for (int i = 0; i < 2; i++)
+                {
+                    var s = Stone(at + Random.insideUnitSphere * .2f, Random.Range(.12f, .2f));
+                    if (s) { s.linearVelocity = normal * .4f; StartCoroutine(Settle(s, 3f)); Destroy(s.gameObject, 12); }
+                }
+                Sound(crumble, at, .45f, Random.Range(.8f, 1f));
             }
             Shake(gritShake * Mathf.Lerp(.6f, 1.6f, Mathf.InverseLerp(gritBetweenMetres.x, gritBetweenMetres.y, Metres)));
         }
@@ -219,6 +234,85 @@ namespace Hakaton.GodMountains
             var d = RoutePoint(metres + 1) - RoutePoint(metres - 1);
             d.y = 0;
             return d.sqrMagnitude > 1e-4f ? d.normalized : Vector3.forward;
+        }
+
+        /// <summary>The player's view at a place on the route (eye height, looking along it): for previews and placing.</summary>
+        public (Vector3 eye, Vector3 forward) ViewAt(float metres) => (RoutePoint(metres) + Vector3.up * 1.62f, RouteForward(metres + 1.5f));
+
+        /// <summary>A solid thing the player can see: the level's invisible safety walls (root "Colliders") do not count.</summary>
+        public static bool Seen(Collider c) => c && !c.isTrigger && c.transform.root.name != "Colliders";
+
+        /// <summary>The first visible surface along a ray: its point and normal.</summary>
+        public bool Wall(Vector3 from, Vector3 dir, float reach, out Vector3 point, out Vector3 normal)
+        {
+            point = normal = default;
+            var hits = Physics.RaycastAll(from, dir, reach, ~(1 << 2), QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            foreach (var h in hits)
+                if (Seen(h.collider) && h.distance < best && !(Player && h.collider.transform.IsChildOf(Player)))
+                { best = h.distance; point = h.point; normal = h.normal; }
+            return best < float.MaxValue;
+        }
+
+        /// <summary>
+        /// A spot on a wall ahead that the player will actually see: in front of the given view (within the cone, not too
+        /// high), with nothing in between. Searches the route from Min to Max Ahead metres, Min to Max Up above the path,
+        /// both walls, and takes the highest such spot nearest Prefer metres ahead.
+        /// </summary>
+        public bool VisibleSpot(float progress, Vector3 eye, Vector3 forward, Vector2 ahead, Vector2 up, out Vector3 at, out Vector3 normal,
+                                float prefer = 6, float cone = 26, float tilt = 14)
+        {
+            at = normal = default;
+            forward.y = 0; forward.Normalize();
+            float best = float.MaxValue;
+            for (float d = ahead.x; d <= ahead.y; d += .75f)
+            {
+                Vector3 floor = RoutePoint(progress + d);
+                var side = Vector3.Cross(Vector3.up, RouteForward(progress + d));
+                for (float h = up.x; h <= up.y; h += .5f)
+                    foreach (var s in new[] { side, -side })
+                    {
+                        if (!Wall(floor + Vector3.up * h, s, 5, out var p, out var n)) continue;
+                        Vector3 c = p + n * .5f;
+                        Vector3 to = c - eye;
+                        var flat = new Vector3(to.x, 0, to.z);
+                        if (flat.sqrMagnitude < 1 || Vector3.Angle(forward, flat) > cone) continue;
+                        if (Mathf.Atan2(to.y, flat.magnitude) * Mathf.Rad2Deg > tilt) continue;
+                        if (Wall(eye, to.normalized, to.magnitude - .4f, out _, out _)) continue;
+                        float score = Mathf.Abs(d - prefer) - h * 1.2f + Vector3.Angle(forward, flat) / 5;
+                        if (score < best) { best = score; at = c; normal = n; }
+                    }
+            }
+            return best < float.MaxValue;
+        }
+
+        /// <summary>Everything in the level's scene with this in its name (the plants sit outside the level root).</summary>
+        public List<Transform> Named(string part)
+        {
+            var list = new List<Transform>();
+            foreach (var root in gameObject.scene.GetRootGameObjects())
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name.Contains(part) && !(t.parent && t.parent.name.Contains(part))) list.Add(t);
+            return list;
+        }
+
+        /// <summary>The ground under a point.</summary>
+        public Vector3 Floor(Vector3 from) => Wall(from + Vector3.up * .2f, Vector3.down, 30, out var p, out _) ? p : from;
+
+        /// <summary>Rock dust bursting out at a point (tinted to <see cref="dustColor"/>).</summary>
+        public GameObject Dust(GameObject prefab, Vector3 at, float scale, float lifetime = 5) => Effect(prefab, at, Quaternion.identity, scale, lifetime, dustColor);
+
+        /// <summary>A cloud that drifts and fades on its own (no hard cut).</summary>
+        public void Drift(GameObject prefab, Vector3 at, Vector3 velocity, float scale, float seconds, Color? tint = null) => StartCoroutine(DriftRoutine(prefab, at, velocity, scale, seconds, tint));
+
+        IEnumerator DriftRoutine(GameObject prefab, Vector3 at, Vector3 velocity, float scale, float seconds, Color? tint)
+        {
+            var fx = Effect(prefab, at, Quaternion.identity, scale, seconds + 3, tint ?? cloudColor);
+            for (float t = 0; t < seconds && fx; t += Time.deltaTime)
+            {
+                fx.transform.position += velocity * Time.deltaTime;
+                yield return null;
+            }
         }
 
         /// <summary>The roof right above a point (a hit within reach), or nothing under the open sky.</summary>
@@ -264,11 +358,13 @@ namespace Hakaton.GodMountains
         }
 
         /// <summary>A self-playing effect (Retro Arsenal), removed after it plays.</summary>
-        public GameObject Effect(GameObject prefab, Vector3 at, Quaternion rotation, float scale = 1, float lifetime = 4)
+        public GameObject Effect(GameObject prefab, Vector3 at, Quaternion rotation, float scale = 1, float lifetime = 4, Color? tint = null)
         {
             if (!prefab) return null;
             var effect = Instantiate(prefab, at, rotation, transform);
             effect.transform.localScale *= scale;
+            if (tint.HasValue)
+                foreach (var ps in effect.GetComponentsInChildren<ParticleSystem>(true)) { var main = ps.main; main.startColor = tint.Value; }
             Destroy(effect, lifetime);
             return effect;
         }
@@ -276,9 +372,13 @@ namespace Hakaton.GodMountains
         /// <summary>A loose stone of the kit that falls and tumbles; it settles into rubble and stops costing anything.</summary>
         public Rigidbody Stone(Vector3 at, float size)
         {
-            if (!rockModel) return null;
-            var rock = Instantiate(rockModel, at, Random.rotation, transform);
-            rock.transform.localScale = Vector3.one * size;
+            var model = rockModels != null && rockModels.Length > 0 ? rockModels[Random.Range(0, rockModels.Length)] : rockModel;
+            if (!model) return null;
+            var rock = Instantiate(model, at, Random.rotation, transform);
+            // the size asked is the stone's diagonal, whatever the model's own
+            var mesh = rock.GetComponentInChildren<MeshFilter>();
+            float own = mesh && mesh.sharedMesh ? mesh.sharedMesh.bounds.size.magnitude * mesh.transform.lossyScale.x / Mathf.Max(1e-4f, rock.transform.lossyScale.x) : 1;
+            rock.transform.localScale = Vector3.one * size / Mathf.Max(.05f, own);
             foreach (var filter in rock.GetComponentsInChildren<MeshFilter>(true))
             {
                 if (!filter.sharedMesh) continue;

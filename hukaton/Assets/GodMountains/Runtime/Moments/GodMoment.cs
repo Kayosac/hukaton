@@ -14,9 +14,16 @@ namespace Hakaton.GodMountains
         public float atMetres;
 
         public bool Fired { get; private set; }
-        protected GodMoments Hub { get; private set; }
+        GodMoments hub;
+        protected GodMoments Hub => hub ? hub : hub = GetComponent<GodMoments>();
 
-        protected virtual void Awake() => Hub = GetComponent<GodMoments>();
+        protected virtual void Awake() { }
+
+        /// <summary>Where this moment happens, for the editor's shots: the view it is meant for and its key points.</summary>
+        public virtual (Vector3 eye, Vector3 forward) PreviewView() => Hub.ViewAt(atMetres);
+
+        /// <summary>The key points of the moment (where things fall, burst, drift), worked out the same way as in play.</summary>
+        public virtual void PreviewPoints(System.Collections.Generic.List<Vector3> points) { }
 
         protected virtual bool Ready => true;
 
