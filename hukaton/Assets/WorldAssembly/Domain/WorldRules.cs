@@ -30,6 +30,8 @@ namespace Hakaton.WorldAssembly
         public double SwampThresholdNear = .68, SwampThresholdFar = .6;
         /// <summary>Rise noise above this lifts the swamp one level (6 m) deep inside a patch: its raised terraces.</summary>
         public double SwampRise = .56;
+        /// <summary>The swamp's parts (<see cref="SwampZone"/>) lie round points this many chunks apart.</summary>
+        public int SwampZoneCell = 5;
 
         public float PlateauHeight = 6f;
         /// <summary>Rain fronts and thunderstorms (<see cref="WorldWeather"/>).</summary>

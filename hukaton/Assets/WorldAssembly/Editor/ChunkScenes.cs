@@ -72,6 +72,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// <summary>Rotten swamp: natural tar pools (centre, radius) and gas vents (where, which model, yaw).</summary>
         public readonly List<(Vector2 at, float radius)> TarSpots = new List<(Vector2, float)>();
         public readonly List<(Vector2 at, string asset, float yaw)> GasVents = new List<(Vector2, string, float)>();
+        /// <summary>Eternal flames: a gas mound (scale) burning for ever, seen far (never culled with the chunk's detail).</summary>
+        public readonly List<(Vector2 at, float scale)> Beacons = new List<(Vector2, float)>();
         public Rect? Thicket;
         /// <summary>Plants scattered over the rest: grass, ferns, trees.</summary>
         public int Grass = 10, Ferns, Trees = 3, Bushes = 6;
@@ -165,6 +167,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "drowned-graveyard": s.DrownedGraveyard(); break;
                 case "drowned-mill": s.DrownedMill(); break;
                 case "deadwood-isle": s.DeadwoodIsle(); break;
+                case "eternal-flame": s.EternalFlame(); break;
                 case "lake": s.Lake(); break;
             }
             all[id] = s;
@@ -1012,6 +1015,27 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put(SW + "Deadwood/SM_SW15_StakeRag", 12.6f, 12.4f, 0);
             Finds = new[] { V(12.6f, 12f), V(4.2f, 11.4f) };
             Creatures = new[] { V(3.4f, 3.6f), V(13.4f, 3.4f) };
+        }
+
+        /// <summary>
+        /// Вечный огонь: a column of marsh gas burning on an island since anyone remembers, blue-green, seen far over
+        /// the swamp in its fog; a ring of dead snags round it, finds at its foot and on an islet.
+        /// </summary>
+        void EternalFlame()
+        {
+            Isle(8f, 8f, 4.2f, 1.15f);
+            Isle(3.6f, 12.4f, 2.2f, 1);
+            Isle(12.8f, 3.8f, 2.4f, 1);
+            Beacons.Add((V(8f, 8f), 1.6f));
+            Sounds.Add((V(8f, 8f), "gas-roar", 1.2f));
+            string[] snags = { "SM_SW07_LongSnag", "SM_SW07_ForkSnag", "SM_SW07_DiagonalSnag", "SM_SW07_LongSnag", "SM_SW07_ForkSnag" };
+            for (int k = 0; k < snags.Length; k++)
+            {
+                float a = k * Mathf.PI * 2 / snags.Length + .4f;
+                Put(SW + "Trees/" + snags[k], 8 + Mathf.Cos(a) * 4.1f, 8 + Mathf.Sin(a) * 4.1f, k * 67, .9f);
+            }
+            Finds = new[] { V(9.8f, 6.4f), V(3.6f, 12.4f) };
+            Creatures = new[] { V(3.4f, 3.4f), V(13f, 12.8f) };
         }
 
         /// <summary>Утопшее кладбище: crooked crosses and grave fences standing in the water round a little graveyard isle.</summary>

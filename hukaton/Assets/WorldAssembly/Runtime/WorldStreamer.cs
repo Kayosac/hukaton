@@ -58,6 +58,7 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly List<(int index, WorldCreature creature)> creatures = new List<(int, WorldCreature)>();
             public readonly List<(int index, TarPuddleZone tar)> tar = new List<(int, TarPuddleZone)>();
             public TreasureChest chest;
+            public TreasureChest sunken;
             public BeastBrawl brawl;
             public Oddity oddity;
         }
@@ -74,6 +75,7 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> tarGone = new HashSet<int>();
             public readonly List<GameObject> loose = new List<GameObject>();
             public bool chestOpened;
+            public bool sunkenOpened;
             /// <summary>A mimic as it was left: shut, on guard where it last hid, killed or opened.</summary>
             public ChestMimic.Snapshot? mimic;
             public BeastBrawl.Save brawl;
@@ -213,7 +215,7 @@ namespace Hakaton.WorldAssembly.Unity
                 }
                 else line.In[k] = 0;
                 var plan = Map.Chunk(c);
-                var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, plan.Biome == Biome.Swamp ? ChunkCatalog.Swamp : "") : null;
+                var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, ChunkCatalog.Land(plan.Biome, plan.Zone)) : null;
                 if (k == 0 || k == last || plan.Shape.Kind == ShapeKind.River) line.Points.Add(centre);
                 else if (prefab && prefab.roadGuide.Length >= 2)
                 {
@@ -442,7 +444,7 @@ namespace Hakaton.WorldAssembly.Unity
         void Load(ChunkCoord coord)
         {
             var plan = Map.Chunk(coord);
-            var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, plan.Biome == Biome.Swamp ? ChunkCatalog.Swamp : "") : null;
+            var prefab = catalog ? catalog.Find(plan.Shape.Id, plan.Variant.Id, ChunkCatalog.Land(plan.Biome, plan.Zone)) : null;
             if (!prefab)
             {
                 Debug.LogWarning($"[World] no prefab for {plan.Shape.Id}/{plan.Variant.Id}");
@@ -501,6 +503,8 @@ namespace Hakaton.WorldAssembly.Unity
             SwampPieces(entry, mem);
             SpawnLoot(entry, mem);
             SpawnChest(entry, mem);
+            SpawnSunken(entry, mem);
+            SpawnWisp(entry);
             SpawnEvent(entry, mem);
             SpawnCreatures(entry, mem);
             PaintRoads(entry, coord);
@@ -565,6 +569,74 @@ namespace Hakaton.WorldAssembly.Unity
         /// from the seed and the chunk only. It stands on a find spot no find of this chunk uses; the start has none.
         /// An opened chest stays opened and empty when its chunk comes back.
         /// </summary>
+        /// <summary>
+        /// A chest on the bed of the chunk's deepest water (some chunks with deep water): the ring's richest chest,
+        /// paying <see cref="WorldContent.sunkenRiches"/> times over; reached with «Притяжение» (<see cref="SunkenChest"/>).
+        /// </summary>
+        void SpawnSunken(Loaded entry, Memory mem)
+        {
+            var plan = entry.plan;
+            var c = plan.Coord;
+            if (!content || !entry.view.hasSunkenSpot || WorldRules.IsStartArea(c)) return;
+            if (Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y, 7) >= content.sunkenChance) return;
+            var table = content.ChestTable(plan.Ring);
+            if (!table) return;
+            TreasureChest prefab = null;
+            foreach (var e in table.entries)
+                if (e.prefab && e.prefab.tier && !e.prefab.GetComponent<ChestMimic>() && (!prefab || e.prefab.tier.rank > prefab.tier.rank)) prefab = e.prefab;
+            if (!prefab) return;
+            var at = entry.view.transform.TransformPoint(entry.view.sunkenSpot);
+            float yaw = (float)Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 7) * 360;
+            var chest = Instantiate(prefab, at, Quaternion.Euler(0, yaw, 0), entry.view.transform);
+            chest.name = prefab.name + " (sunken)";
+            chest.world = world;
+            if (mem != null && mem.sunkenOpened) chest.SetEmpty();
+            else chest.ResetForOuting();
+            chest.CoinMultiplier = content.sunkenRiches;
+            var body = chest.GetComponent<Rigidbody>();
+            if (!body) body = chest.gameObject.AddComponent<Rigidbody>();
+            body.isKinematic = false;
+            body.mass = 2;
+            body.constraints = RigidbodyConstraints.FreezeRotation;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            var sunken = chest.gameObject.AddComponent<SunkenChest>();
+            sunken.level = entry.view.transform.position.y - .3f;
+            sunken.player = player;
+            if (content.sunkenBubbles && !chest.Opened)
+            {
+                sunken.bubbles = Instantiate(content.sunkenBubbles, at + Vector3.up * .4f, Quaternion.identity, chest.transform);
+                sunken.bubbles.name = "Bubbles";
+            }
+            entry.sunken = chest;
+        }
+
+        /// <summary>
+        /// A will-o'-the-wisp over some swamp chunks: it leads to the chunk's treasure (a find, its chest, its sunken
+        /// chest) or into one of its bog windows, by the seed.
+        /// </summary>
+        void SpawnWisp(Loaded entry)
+        {
+            var plan = entry.plan;
+            var c = plan.Coord;
+            if (!content || !content.wisp || plan.Biome != Biome.Swamp || plan.Shape.Kind == ShapeKind.Cliff) return;
+            if (Hash.Unit(Seed, Salt.Event + 9, c.X, c.Y) >= .3) return;
+            Vector3? treasure = null, bog = null;
+            if (entry.sunken && !entry.sunken.Opened) treasure = entry.sunken.transform.position;
+            else if (entry.chest && !entry.chest.Opened) treasure = entry.chest.transform.position;
+            else foreach (var (_, find) in entry.loot) if (find && find.Available) { treasure = find.transform.position; break; }
+            foreach (var o in entry.view.obstacles)
+                if (o && o.GetComponent<BogMire>()) { bog = o.HasSurface ? o.SurfaceBounds.center : o.transform.position; break; }
+            bool lure = Hash.Unit(Seed, Salt.Event + 10, c.X, c.Y) < .45;
+            var target = lure && bog.HasValue ? bog : treasure ?? bog;
+            if (!target.HasValue) return;
+            double a = Hash.Unit(Seed, Salt.Event + 11, c.X, c.Y) * Mathf.PI * 2;
+            var start = target.Value + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * 11 + Vector3.up * 1.3f;
+            var wisp = Instantiate(content.wisp, start, Quaternion.identity, entry.view.transform);
+            wisp.name = content.wisp.name;
+            wisp.Lead(world, player, start, target.Value);
+        }
+
         void SpawnChest(Loaded entry, Memory mem)
         {
             var plan = entry.plan;
@@ -820,6 +892,7 @@ namespace Hakaton.WorldAssembly.Unity
                 // Tar that caught fire is as good as burnt out.
                 foreach (var (index, tar) in entry.tar) if (!tar || tar.Phase != TarPhase.Tar) mem.tarGone.Add(index);
                 if (entry.chest && entry.chest.Opened) mem.chestOpened = true;
+                if (entry.sunken && entry.sunken.Opened) mem.sunkenOpened = true;
                 if (entry.chest && entry.chest.TryGetComponent<ChestMimic>(out var mimic)) mem.mimic = mimic.Capture();
                 if (entry.brawl) mem.brawl = entry.brawl.Capture();
                 if (entry.oddity) mem.oddity = entry.oddity.Capture();

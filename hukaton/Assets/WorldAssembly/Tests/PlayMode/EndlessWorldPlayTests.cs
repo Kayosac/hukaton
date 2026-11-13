@@ -1463,6 +1463,128 @@ namespace Hakaton.WorldAssembly.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator TheSwampHasFogBanksWispsAndItsOwnLook()
+        {
+            // Into the heart of the nearest swamp.
+            var map = streamer.Map;
+            ChunkCoord heart = default;
+            int best = -1;
+            for (int x = -14; x <= 14; x++)
+                for (int y = -14; y <= 14; y++)
+                {
+                    if (!map.Biomes.IsSwamp(new ChunkCoord(x, y))) continue;
+                    int around = 0;
+                    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) if (map.Biomes.IsSwamp(new ChunkCoord(x + i, y + j))) around++;
+                    int score = around * 100 - (x * x + y * y);
+                    if (score > best) { best = score; heart = new ChunkCoord(x, y); }
+                }
+            var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+            float size = map.Rules.ChunkSize;
+            world.vitals.Immortal = true;
+            world.motor.Teleport(origin + new Vector3(heart.X * size, map.Chunk(heart).BaseLevel * map.Rules.PlateauHeight + 1.5f, heart.Y * size), Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(heart), 10);
+            var air = streamer.GetComponent<WorldAtmosphere>();
+            var life = streamer.GetComponent<SwampLife>();
+            Assert.That(life, Is.Not.Null, "the swamp's life runs with the air");
+            yield return WaitFor(() => air.Strength(WorldAtmosphere.Swamp) > .8f && life.Banks >= 3, 12);
+            Assert.That(air.Strength(WorldAtmosphere.Swamp), Is.GreaterThan(.8f), "swamp air");
+            Assert.That(life.Banks, Is.GreaterThanOrEqualTo(3), "fog banks wander round the player");
+            var look = streamer.GetComponentsInChildren<UnityEngine.Rendering.Volume>().FirstOrDefault(v => v.name == "Swamp look");
+            Assert.That(look, Is.Not.Null, "the swamp's colour grading");
+            Assert.That(look.weight, Is.GreaterThan(.8f));
+
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            var bank = life.BankCentre(0);
+            var away = new Vector3(1, 0, .4f).normalized;
+            yield return Shot(dir, "play-swamp-look", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.2f + away * 10);
+            yield return Shot(dir, "play-swamp-fog-outside", bank + away * 17 + Vector3.up * 2.4f, bank + Vector3.up * .8f);
+            // The eternal flame, if one burns near enough: seen from a way off.
+            ChunkCoord flame = default;
+            bool burning = false;
+            for (int x = -20; x <= 20 && !burning; x++)
+                for (int y = -20; y <= 20 && !burning; y++)
+                    if (map.Chunk(x, y).Variant.Id == "eternal-flame") { flame = new ChunkCoord(x, y); burning = true; }
+            if (burning)
+            {
+                var at = origin + new Vector3(flame.X * size, map.Chunk(flame).BaseLevel * map.Rules.PlateauHeight, flame.Y * size);
+                yield return Shot(dir, "play-swamp-eternal-flame", at + new Vector3(-22, 4, -14), at + Vector3.up * 2);
+                yield return Shot(dir, "play-swamp-eternal-flame-near", at + new Vector3(-5, 1.9f, -3.5f), at + Vector3.up * 1.5f);
+                var beacon = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(l => l.name == "Beacon light");
+                Assert.That(beacon, Is.Not.Null, "the eternal flame's light");
+                Debug.Log($"[World] eternal flame at {flame}: light {beacon.transform.position}, chunk centre {at}, fire systems {beacon.transform.parent.GetComponentsInChildren<ParticleSystem>().Count(p => p.isPlaying)} playing");
+                yield return Shot(dir, "play-swamp-eternal-flame-light", beacon.transform.position + new Vector3(-4, .5f, -3), beacon.transform.position + Vector3.down * .8f);
+            }
+            // Walk into a fog bank: the world goes white.
+            bank = life.ThickestBank();
+            world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
+            yield return WaitFor(() => air.Strength(WorldAtmosphere.Mist) > .5f, 6);
+            Assert.That(air.Strength(WorldAtmosphere.Mist), Is.GreaterThan(.5f), "inside a fog bank the air is thick");
+            yield return Shot(dir, "play-swamp-fog-inside", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.4f + away * 10, world.motor.transform.position + Vector3.up * 1.6f);
+
+
+            // A will-o'-the-wisp drifts off towards where it leads as the player comes near.
+            WillOWisp wisp = null;
+            yield return WaitFor(() => (wisp = Object.FindObjectsByType<WillOWisp>(FindObjectsSortMode.None).FirstOrDefault()) != null, 2);
+            if (wisp)
+            {
+                var goal = wisp.Goal;
+                float before = Vector2.Distance(new Vector2(wisp.transform.position.x, wisp.transform.position.z), new Vector2(goal.x, goal.z));
+                world.motor.Teleport(wisp.transform.position + (wisp.transform.position - goal).normalized * 3 + Vector3.up * .5f, Quaternion.identity);
+                yield return new WaitForSeconds(2.5f);
+                if (wisp)
+                {
+                    float after = Vector2.Distance(new Vector2(wisp.transform.position.x, wisp.transform.position.z), new Vector2(goal.x, goal.z));
+                    Assert.That(after, Is.LessThan(before - 1), "the wisp drifts towards its goal");
+                }
+            }
+            else Debug.Log("[World] no wisp in the loaded swamp to follow");
+        }
+
+        [UnityTest]
+        public IEnumerator ASunkenChestFloatsUpWhenPulledAndPaysRichly()
+        {
+            var content = streamer.content;
+            float chance = content.sunkenChance;
+            content.sunkenChance = 1;
+            try
+            {
+                // The nearest chunk whose water hides a chest.
+                var map = streamer.Map;
+                ChunkCoord spot = default;
+                bool found = false;
+                for (int r = 1; r < 18 && !found; r++)
+                    for (int x = -r; x <= r && !found; x++)
+                        for (int y = -r; y <= r && !found; y++)
+                        {
+                            if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                            var plan = map.Chunk(x, y);
+                            var prefab = streamer.catalog.Find(plan.Shape.Id, plan.Variant.Id, ChunkCatalog.Land(plan.Biome, plan.Zone));
+                            if (prefab && prefab.hasSunkenSpot && content.ChestTable(plan.Ring)) { spot = new ChunkCoord(x, y); found = true; }
+                        }
+                Assert.That(found, Is.True, "deep water within 18 chunks");
+                var origin = streamer.root ? streamer.root.position : streamer.transform.position;
+                float size = map.Rules.ChunkSize;
+                world.vitals.Immortal = true;
+                world.motor.Teleport(origin + new Vector3(spot.X * size + 7, map.Chunk(spot).BaseLevel * map.Rules.PlateauHeight + 8, spot.Y * size + 7), Quaternion.identity);
+                yield return WaitFor(() => streamer.IsLoaded(spot), 10);
+                SunkenChest sunken = null;
+                yield return WaitFor(() => (sunken = Object.FindObjectsByType<SunkenChest>(FindObjectsSortMode.None).FirstOrDefault(s => streamer.CoordAt(s.transform.position).Equals(spot))) != null, 3);
+                Assert.That(sunken, Is.Not.Null, $"a chest on the bed at {spot} ({map.Chunk(spot)})");
+                var chest = sunken.GetComponent<TreasureChest>();
+                Assert.That(chest.transform.position.y, Is.LessThan(sunken.level - .5f), "under water");
+                Assert.That(chest.CoinMultiplier, Is.GreaterThan(1.5f), "rich");
+                for (int f = 0; f < 30; f++) yield return null;
+                // «Притяжение» tears it out of the silt: it floats up.
+                CardPhysics.Push(chest.GetComponent<Rigidbody>(), Vector3.up * 8);
+                yield return new WaitForSeconds(2.5f);
+                Assert.That(sunken.Afloat, Is.True, "loosened");
+                Assert.That(chest.GetComponent<Rigidbody>().worldCenterOfMass.y, Is.GreaterThan(sunken.level - .8f), "floats up to the surface");
+                Assert.That(chest.Open(), Is.True, "and opens");
+            }
+            finally { content.sunkenChance = chance; }
+        }
+
         /// <summary>
         /// What the swamp costs to draw against the forest: batches, set-pass calls, triangles and shadow casters from
         /// the player's eyes, four ways round the heart of the nearest swamp and round a forest spot as far out
