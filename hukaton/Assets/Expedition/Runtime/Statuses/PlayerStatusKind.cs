@@ -6,13 +6,13 @@ namespace Hakaton.Expeditions
     /// </summary>
     public enum PlayerStatusKind
     {
-        /// <summary>Замедление: walking and running speed × strength. Washed off by water.</summary>
+        /// <summary>Замедление: walking and running speed × strength. Universal: not tied to any substance.</summary>
         Slow,
         /// <summary>Яд: strength half hearts every interval seconds; can kill. The «Лечение» card cures it.</summary>
         Poison,
         /// <summary>Горение: strength half hearts every interval seconds; can kill. Water or rain puts it out; a wet player does not catch fire.</summary>
         Burn,
-        /// <summary>Оглушение: every sound muffled «behind a wall» (low-pass at strength Hz) and a ringing in the ears.</summary>
+        /// <summary>Оглушение: a white flash and a blow at once, then every sound muffled «behind a wall» (low-pass at strength Hz) and a ringing in the ears.</summary>
         Deafen,
         /// <summary>Слепота: the screen darkens from the edges, the world is seen only up to about strength metres.</summary>
         Blind,

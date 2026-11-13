@@ -11,7 +11,7 @@ namespace Hakaton.Expeditions
     /// enemy attacks and traps (<see cref="StatusInflict"/>), never by the player's own cards. Rules from the board:
     /// a repeat hit only refreshes the timer (Rot takes another heart instead), any number at once, no leniency (they
     /// land during the protection after a hit too), the Bubble keeps new ones off, some can be removed by an action
-    /// (water puts out Burn and washes off Slow, «Лечение» cures Poison), and everything ends when the outing ends.
+    /// (water puts out Burn, «Лечение» cures Poison), and everything ends when the outing ends.
     /// Lives on the player rig next to <see cref="PlayerVitals"/>; the HUD shows a badge per debuff
     /// (<see cref="PlayerStatusBadge"/>) and <see cref="PlayerStatusScreen"/> draws the screen effects.
     /// </summary>
@@ -229,6 +229,13 @@ namespace Hakaton.Expeditions
                     break;
                 case PlayerStatusKind.Deafen:
                     deafCutoff = Mathf.Clamp(entry.strength, 50, 20000);
+                    // The blow itself: the head snaps, the view reels (the white flash is on the HUD).
+                    if (world.feel)
+                    {
+                        world.feel.AddTrauma(.5f);
+                        world.feel.Kick(new Vector3(-70, UnityEngine.Random.Range(-40f, 40f), UnityEngine.Random.Range(-60f, 60f)));
+                        world.feel.PunchFov(-16);
+                    }
                     break;
                 case PlayerStatusKind.Warp:
                     warpStrength = Mathf.Max(0, entry.strength);
