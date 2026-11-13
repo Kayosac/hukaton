@@ -27,18 +27,35 @@ namespace Hakaton.Expeditions
         [Min(1)] public float homeAfter = 12;
         [Min(1)] public float flySpeed = 16;
         [Min(0)] public float sparkleScale = .25f;
+        [Header("Dropped (Leaky pocket)")]
+        [Tooltip("A coin that fell out of the player's pocket: seconds before it can be picked up again.")]
+        [Min(0)] public float droppedPickupDelay = 1.2f;
+        [Tooltip("A dropped coin is picked up only this close (the player walks back for it); it never flies home by itself.")]
+        [Min(0)] public float droppedPickupRadius = 1.4f;
 
         ExpeditionWorld world;
         float born;
+        bool dropped;
         public bool Taken { get; private set; }
         public int Value => value;
 
         void Reset() => body = GetComponent<Rigidbody>();
 
+        /// <summary>
+        /// Fell out of the player's pocket (Leaky pocket): lies where it lands until the player walks back over it; it
+        /// never flies to the bag by itself.
+        /// </summary>
+        public void Drop(ExpeditionWorld expedition, int worth, Vector3 velocity)
+        {
+            Launch(expedition, worth, velocity);
+            dropped = true;
+        }
+
         /// <summary>Thrown by a chest: sets what it is worth and sends it flying.</summary>
         public void Launch(ExpeditionWorld expedition, int worth, Vector3 velocity)
         {
             world = expedition;
+            dropped = false;
             value = Mathf.Max(1, worth);
             born = Time.time;
             if (!body) body = GetComponent<Rigidbody>();
@@ -57,17 +74,22 @@ namespace Hakaton.Expeditions
             if (Taken || !world) return;
             if (!world.Running) return;
             float age = Time.time - born;
+            if (dropped)
+            {
+                if (age >= droppedPickupDelay && InReach(droppedPickupRadius)) StartCoroutine(FlyIntoBag());
+                return;
+            }
             if (age < magnetDelay) return;
-            if (age >= homeAfter || InReach()) StartCoroutine(FlyIntoBag());
+            if (age >= homeAfter || InReach(magnetRadius)) StartCoroutine(FlyIntoBag());
         }
 
-        bool InReach()
+        bool InReach(float radius)
         {
             if (!world.motor || !world.viewCamera) return false;
             Vector3 feet = world.motor.transform.position, eye = world.viewCamera.transform.position;
             Vector3 axis = eye - feet;
             float t = axis.sqrMagnitude > .0001f ? Mathf.Clamp01(Vector3.Dot(transform.position - feet, axis) / axis.sqrMagnitude) : 0;
-            return (transform.position - (feet + axis * t)).sqrMagnitude <= magnetRadius * magnetRadius;
+            return (transform.position - (feet + axis * t)).sqrMagnitude <= radius * radius;
         }
 
         /// <summary>Speeds up towards the bag (just below the view), following the player, then credits itself.</summary>

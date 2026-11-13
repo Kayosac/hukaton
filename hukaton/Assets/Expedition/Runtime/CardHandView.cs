@@ -269,6 +269,9 @@ namespace Hakaton.Expeditions
                 * Mathf.Clamp01(speed / 3f);
             float airborne = onFoot ? 0 : Mathf.Clamp(world.motor.VerticalSpeed * -.004f, -.03f, .03f);
             Vector3 common = sway.Value + bob + Vector3.up * airborne;
+            // Crooked hands: the whole hand trembles.
+            float tremble = world.statuses ? world.statuses.HandTremble : 0;
+            if (tremble > 0) common += Random.insideUnitSphere * tremble;
             var fan = Fan(lastIds.Count);
 
             for (int i = 0; i < active.Count; i++)
@@ -301,6 +304,19 @@ namespace Hakaton.Expeditions
                 slot.view.SetGlow(glow, card.IsReturn ? returnGlow : world.Accent(card));
             }
 
+        }
+
+        /// <summary>
+        /// The Shuffle debuff mixed the hand up: every card jumps up and flies to its new place (the springs carry it).
+        /// </summary>
+        public void Flutter()
+        {
+            foreach (var slot in active)
+            {
+                if (slot.copyId == int.MinValue || !slot.view.Visible) continue;
+                slot.position.Kick(new Vector3(Random.Range(-.5f, .5f), Random.Range(1.2f, 1.8f), Random.Range(-.3f, .1f)));
+                slot.scale.Kick(Random.Range(-2f, 2f));
+            }
         }
 
         /// <summary>The fan for this many cards on a view of this aspect (width / height).</summary>

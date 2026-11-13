@@ -29,6 +29,8 @@ namespace Hakaton.Expeditions
         public RectTransform hearts;
         [Tooltip("Red glossy heart of each slot, filled from the left (a half heart is half of the frame).")]
         public Image[] heartFills;
+        [Tooltip("A heart Rot took off the maximum (debuff «Гниль»): its frame is tinted with this until the outing ends.")]
+        public Color rottenHeartColour = new Color(.4f, .5f, .2f, .85f);
 
         [Header("Wallet")]
         public TMP_Text wallet;
@@ -86,6 +88,8 @@ namespace Hakaton.Expeditions
         bool subscribed, hintedDiscard;
         float discardHintUntil;
         Vector2 heartsBase;
+        Image[][] heartFrames;
+        Color[][] heartFrameColours;
         readonly StringBuilder rows = new StringBuilder(), shadowRows = new StringBuilder();
 
         void Awake()
@@ -94,6 +98,16 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < heartScales.Length; i++) heartScales[i].Snap(1);
             ringScale.Snap(1);
             if (hearts) heartsBase = hearts.anchoredPosition;
+            // Every image of a heart slot except its red fill: tinted when Rot takes that heart.
+            heartFrames = new Image[heartFills.Length][];
+            heartFrameColours = new Color[heartFills.Length][];
+            for (int i = 0; i < heartFills.Length; i++)
+            {
+                var fill = heartFills[i];
+                var images = fill && fill.transform.parent ? fill.transform.parent.GetComponentsInChildren<Image>(true) : new Image[0];
+                heartFrames[i] = System.Array.FindAll(images, image => image != fill);
+                heartFrameColours[i] = System.Array.ConvertAll(heartFrames[i], image => image.color);
+            }
         }
 
         void OnEnable() => Subscribe(true);
@@ -194,6 +208,10 @@ namespace Hakaton.Expeditions
                 var fill = heartFills[i];
                 if (!fill) continue;
                 fill.fillAmount = Mathf.Clamp01((vitals.HalfHearts - i * 2) / 2f);
+                bool rotten = i * 2 >= vitals.MaximumHalfHearts;
+                if (heartFrames != null && i < heartFrames.Length)
+                    for (int f = 0; f < heartFrames[i].Length; f++)
+                        if (heartFrames[i][f]) heartFrames[i][f].color = rotten ? rottenHeartColour : heartFrameColours[i][f];
                 float scale = heartScales[i].Step(1, 6, .3f, dt);
                 if (vitals.Critical && vitals.HalfHearts > i * 2) scale *= 1 + Mathf.Max(0, Mathf.Sin(Time.time * 7)) * .12f;
                 fill.transform.parent.localScale = Vector3.one * scale;

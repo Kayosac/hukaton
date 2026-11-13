@@ -23,6 +23,8 @@ namespace Hakaton.Expeditions
         public FirstPersonMotor motor;
         public PlayerControlGate control;
         public PlayerVitals vitals;
+        [Tooltip("The player's debuffs (on the player rig next to the vitals).")]
+        public PlayerStatuses statuses;
         public Camera viewCamera;
         public CardThrower thrower;
         public ExpeditionHud hud;
@@ -247,6 +249,18 @@ namespace Hakaton.Expeditions
 
         /// <summary>Raised once an outing (not the cave prologue) has begun: the player is in place, the hand dealt.</summary>
         public event Action OutingBegan;
+
+        /// <summary>
+        /// Leaky pocket: up to <paramref name="amount"/> outing coins fall out of the purse (they lie on the ground as
+        /// <see cref="WorldCoin"/>s and can be picked up again). Returns how many actually fell.
+        /// </summary>
+        public int LoseCoins(int amount)
+        {
+            if (!Running || amount <= 0 || Coins <= 0) return 0;
+            int lost = Mathf.Min(amount, Coins);
+            Coins -= lost;
+            return lost;
+        }
 
         /// <summary>Adds coins to this outing's purse (a chest's coin reaching the bag).</summary>
         public void CollectCoins(int amount, Color colour)

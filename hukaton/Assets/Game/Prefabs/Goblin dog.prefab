@@ -346,6 +346,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  flying: 0
+  cruiseHeight: 1.8
+  windupClimb: 0.7
+  diveHeight: 0.9
+  climbSpeed: 4
+  climbAcceleration: 14
+  bobHeight: 0.12
+  bobFrequency: 0.9
+  jitter: 0
+  shadowSize: 0.4
+  shadowOpacity: 0.35
+  defendsKin: 1
+  kinWitnessRange: 12
+  kinGrudgeSeconds: 8
+  kinReactionDelay: {x: 0.15, y: 0.45}
+  ranged:
+    projectile: {fileID: 0}
+    range: 12
+    minRange: 3.5
+    aimSeconds: 0.6
+    cooldown: 2.2
+    recovery: 0.5
+    projectiles: 1
+    spreadAngle: 24
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.6
+    keepDistance: 8
+    retreatDistance: 4
+    retreatSpeed: 0.8
+    circleSpeed: 0
+    closeCombat: 0
+    shoveDamage: 1
   world: {fileID: 0}
   temperament: 2
   displayName: "\u0413\u043E\u0431\u043B\u0438\u043D-\u043F\u0451\u0441"
@@ -354,6 +388,7 @@ MonoBehaviour:
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
   size: 1.34
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.25
   stunStarsScale: 1.8
   drops:
@@ -375,6 +410,12 @@ MonoBehaviour:
   recovery: 1
   recoveryOnMiss: 1
   dash: 1
+  strikeShake: 0
+  strikeStatuses:
+  - status: {fileID: 11400000, guid: ac46865bba8ab4dfda55c9ea42e6cacc, type: 2}
+    chance: 0.5
+    seconds: 0
+    strength: 0
   sightRange: 15
   hearingRange: 5
   leash: 26
@@ -405,6 +446,9 @@ MonoBehaviour:
   stepDust: {fileID: 8209492253453965686}
   stepDustCount: 2
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
+  fireVulnerability: {fileID: 0}
+  flamesSize: 1
+  flamesHeight: 0.25
   alertCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   threatCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
   windupCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
