@@ -64,10 +64,11 @@ namespace Hakaton.WorldAssembly
             // Mantis men lie in wait in the reeds: one in ring 1, two further out.
             ["swamp-hummocks"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2),
             ["swamp-log-road"] = new Theme("snail-frog-mount", "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2),
-            ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2),
-            ["swamp-tar-pit"] = new Theme("purple-mushroom*3", "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1, "budding-troll|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2),
+            ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spider1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spider2),
+            ["swamp-graveyard"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spiders1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spiders2),
+            ["swamp-tar-pit"] = new Theme("purple-mushroom*3", "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Spider1, "budding-troll|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Spider2),
             ["swamp-bog"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Mantis1 + "|" + Leeches1, "budding-troll+snail-frog-mount|" + Mantis2 + "|" + Leeches2),
-            ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2),
+            ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1 + "|" + Spider1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2 + "|" + Spider2),
             ["swamp-mill"] = new Theme("rooster-baseball*2", "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1 + "|" + Mutant1 + "|" + Leeches1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2 + "|" + Mutant2 + "|" + Leeches2),
         };
 
@@ -77,6 +78,9 @@ namespace Hakaton.WorldAssembly
         const string Mutant1 = "swamp-mutant", Mutant2 = "swamp-mutant*1-2";
         // Giant leeches lie under the water of every part of the swamp: one or two, further out two or three.
         const string Leeches1 = "giant-swamp-leech*1-2", Leeches2 = "giant-swamp-leech*2-3";
+        // Giant swamp spiders hunt round snags, tar and huts: one, further out two; on the drowned graveyard they swarm.
+        const string Spider1 = "giant-swamp-spider", Spider2 = "giant-swamp-spider*2";
+        const string Spiders1 = "giant-swamp-spider*3", Spiders2 = "giant-swamp-spider*3-5";
 
         /// <summary>Theme of a scene id; plain rocky scenes share one.</summary>
         public static string ForScene(string scene)
@@ -89,7 +93,8 @@ namespace Hakaton.WorldAssembly
                 case "hummocks": return "swamp-hummocks";
                 case "breathing-bog": case "eternal-flame": return "swamp-bog";
                 case "log-road": return "swamp-log-road";
-                case "sunken-hut": case "drowned-graveyard": return "swamp-ruins";
+                case "sunken-hut": return "swamp-ruins";
+                case "drowned-graveyard": return "swamp-graveyard";
                 case "tar-pit": return "swamp-tar-pit";
                 case "drowned-mill": return "swamp-mill";
                 case "deadwood-isle": return "swamp-isle";
@@ -127,7 +132,7 @@ namespace Hakaton.WorldAssembly
         }
 
         /// <summary>Lairs (ruins, hollows and the swamp's like them) are busier than plain ground.</summary>
-        public static bool IsLair(string theme) => theme == "ruins" || theme == "hollow" || theme == "swamp-ruins" || theme == "swamp-tar-pit";
+        public static bool IsLair(string theme) => theme == "ruins" || theme == "hollow" || theme == "swamp-ruins" || theme == "swamp-graveyard" || theme == "swamp-tar-pit";
 
         /// <summary>Every creature id any theme names (the content asset must know them all).</summary>
         public static IEnumerable<string> AllCreatures()
