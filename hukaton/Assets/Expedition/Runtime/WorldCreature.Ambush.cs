@@ -52,7 +52,7 @@ namespace Hakaton.Expeditions
         /// <summary>It sits in cover waiting (not yet sprung, not fighting).</summary>
         public bool Lurking => ambush.enabled && IsCalm && State != CreatureState.Investigate;
 
-        float WindupSeconds => pouncing ? ambush.pounceWindup : tonguing ? tongue.windup
+        float WindupSeconds => blinkStrike ? blink.windup : pouncing ? ambush.pounceWindup : tonguing ? tongue.windup
             : followUp ? (afterTongue ? tongue.slamWindup : followUpWindup) : windup;
         bool afterTongue;
         float StrikeSeconds => pouncing ? ambush.pounceSeconds : strikeSeconds;
@@ -74,7 +74,7 @@ namespace Hakaton.Expeditions
 
         void EndAttack()
         {
-            pouncing = pounceArmed = followUp = chaining = lunging = false;
+            pouncing = pounceArmed = followUp = chaining = lunging = blinkStrike = false;
             tonguing = tongueArmed = afterTongue = false;
             followUpsLeft = 0;
         }
@@ -198,10 +198,17 @@ namespace Hakaton.Expeditions
         /// </summary>
         float Submerged(float dt)
         {
-            if (!ambush.submerge) return 0;
-            bool under = Lurking && !lured;
-            sunk = Mathf.MoveTowards(sunk, under ? 1 : 0, dt * (under ? 1.2f : 3.5f));
+            if (!ambush.submerge && !burrows) return 0;
+            // A burrower (the worm) digs in when it notices the player (WorldCreature.Tricks.cs).
+            bool under = burrows ? burrowed : Lurking && !lured;
+            sunk = Mathf.MoveTowards(sunk, under ? 1 : 0, dt * (under ? (burrows ? 2.2f : 1.2f) : 3.5f));
             bool through = sunk >= .6f && !dying;
+            if (burrows)
+            {
+                // Under the ground it has no body at all: nothing invisible to bump into or to hit.
+                if (through != passable) { passable = through; SetBurrowed(through); }
+                return sunk * (view ? view.height + .15f : 1.7f);
+            }
             if (through != passable && capsule && world && world.motor && world.motor.characterController)
             {
                 passable = through;

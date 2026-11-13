@@ -182,7 +182,7 @@ namespace Hakaton.Expeditions
             if (!flightShadow) return;
             Vector3 position = transform.position;
             float height = position.y - flightGround;
-            bool show = flightGroundFound && height < 12;
+            bool show = flightGroundFound && height < 12 && !blinking;
             if (flightShadow.gameObject.activeSelf != show) flightShadow.gameObject.SetActive(show);
             if (!show) return;
             float near = 1 - Mathf.Clamp01(height / 8);

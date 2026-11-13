@@ -365,6 +365,9 @@ namespace Hakaton.Expeditions
             Vector3? throwOrigin = null)
         {
             if (!Running || !definition) return;
+            // A batter (the rooster) knocks some cards away in a fight: they do nothing (WorldCreature.Tricks.cs).
+            var struck = target ? target.GetComponentInParent<WorldCreature>() : null;
+            if (struck && struck.TryDeflectCard(point)) return;
             Impacts++;
             var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
             if (definition.effectAsset is CardEffect effect) effect.Apply(context);

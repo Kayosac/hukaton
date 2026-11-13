@@ -55,6 +55,16 @@ namespace Hakaton.Expeditions
         [Tooltip("Knocks a creature off its feet (interrupts its attack). No effect on the player.")]
         [Min(0)] public float stunSeconds;
 
+        [Header("Puddle")]
+        [Tooltip("Leaves a puddle where it lands, this radius in metres (the dwarf's beer). 0: none.")]
+        [Min(0)] public float puddleRadius;
+        [Tooltip("How long the puddle lies, seconds.")]
+        [Min(.1f)] public float puddleSeconds = 3;
+        [Tooltip("Damage to the player standing in it (½ heart per unit), once per interval below.")]
+        [Min(0)] public int puddleDamage = 1;
+        [Min(.1f)] public float puddleInterval = 1;
+        public Color puddleColour = new Color(.86f, .62f, .2f, .6f);
+
         [Header("Cards")]
         [Tooltip("A thrown card that touches it knocks it out of the air; the card flies on.")]
         public bool cardsShootDown = true;
