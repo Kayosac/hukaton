@@ -1,8 +1,9 @@
 # MG01: god animation (v7)
 
 The god's beats for the encounter on the summit, baked in Blender from procedural keys (IK for the body, C01 laid by
-hand from the reach on, see v7), plus the rocks under his support hands. The previews `MG01_rider.mp4`,
-`MG01_body.mp4`, `MG01_wide.mp4` and `MG01_first_person.mp4` show v2–v4 motion (the reach and the pull have changed).
+hand from the reach on, see v7), plus the rocks under his support hands. Preview: `MG01_v7.mp4` (the reach, the pull
+and the start of the talk from the front right). `MG01_rider.mp4`, `MG01_body.mp4`, `MG01_wide.mp4` and
+`MG01_first_person.mp4` show v2–v4 motion (the reach and the pull have changed since).
 
 ## v7 (after the review of v6: the arm jerked and coiled)
 
@@ -24,7 +25,7 @@ hand from the reach on, see v7), plus the rocks under his support hands. The pre
 - The reach keeps the IK only while the hands slide off the thighs (2.6 s), then goes over to the hand-laid arm on a
   smooth arc to the lip; on the lip (ReachHold) the arm is laid by hand too. Idle, Notice, AlertIdle and the start of
   the reach keep the IK, with its roll spread along the arm as well.
-- Checked in Blender: the largest turn of any C01 bone between two frames is 1.3 deg in the pull, 2.9 deg in the reach
+- Checked in Blender: the largest turn of any C01 bone between two frames is 1.4 deg in the pull, 2.9 deg in the reach
   (the hand in the swing), 0.3 deg in the talk (`jerk_all.py`); C01 comes no closer than 24 m to the rest of his body
   in the pull and the talk (`clear.py`); stick views of the arm (`stick.py`).
 - Scenery: `sweep.py` writes C01's swept volume through the reach and the pull in Unity metres; `unity/GodSweep.cs`
