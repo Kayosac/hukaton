@@ -59,7 +59,6 @@ namespace Hakaton.GodMountains
             yield return new WaitForSeconds(.7f);
             Vector3 at = Under();
             Hub.Clip(Hub.groan, at, .8f, Random.Range(.85f, 1f), .9f, 2, 25);
-            Hub.Dust(Hub.smokeMedium, at, 1.3f);
             Hub.Shake(.08f, at);
             var s = Slab();
             if (s)
@@ -81,7 +80,6 @@ namespace Hakaton.GodMountains
             }
             yield return new WaitForSeconds(Mathf.Max(0, hold - .7f - shiverSeconds));
             Hub.Clip(Hub.thud, at, .6f, 1.1f, .5f, 5, 40);
-            Hub.Dust(Hub.smokeSmall, at, 1.3f, 4);
             Hub.Shake(.18f);
         }
     }

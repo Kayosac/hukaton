@@ -40,7 +40,6 @@ namespace Hakaton.GodMountains
         {
             var eye = Hub.Eye;
             if (!Locate(eye.position, eye.forward, out var at, out var normal)) yield break;
-            Hub.Dust(Hub.smokeMedium, at, 2.2f);
             Hub.Sound(Hub.crumble, at, .8f, .8f);
             Hub.Shake(.14f);
             for (int i = 0; i < stones; i++)
@@ -50,7 +49,6 @@ namespace Hakaton.GodMountains
                 yield return new WaitForSeconds(Random.Range(.06f, .18f));
             }
             yield return new WaitForSeconds(.6f);
-            Hub.Dust(Hub.smokeTiny, Hub.Floor(at) + Vector3.up * .2f, 1.6f, 4);
             Hub.Sound(Hub.crumble, at, .4f, 1.15f);
         }
     }

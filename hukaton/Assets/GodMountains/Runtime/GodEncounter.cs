@@ -85,6 +85,10 @@ namespace Hakaton.GodMountains
         public GodStage Stage { get; private set; } = GodStage.Path;
         /// <summary>The player is handed over and the encounter runs (the moments on the path wait for this).</summary>
         public bool Ready => ready;
+        /// <summary>He has seen the player (risen on his arms) — the reach may not have begun yet.</summary>
+        public bool Noticed => noticed;
+        /// <summary>A line of the talk went up on the plate (its index in <see cref="lines"/>).</summary>
+        public event System.Action<int> LineShown;
         /// <summary>The player, once handed over.</summary>
         public FirstPersonMotor PlayerMotor => motor;
 
@@ -267,6 +271,7 @@ namespace Hakaton.GodMountains
             {
                 continueRequested = false;
                 if (bubble) bubble.Say(lines[i], true);
+                LineShown?.Invoke(i);
                 yield return null;
                 while (true)
                 {

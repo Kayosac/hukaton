@@ -46,10 +46,8 @@ namespace Hakaton.GodMountains
             Locate(eye.position, forward, walls, out var roof);
             Hub.Clip(Hub.thud, eye.position, .95f, .9f, .3f, 3, 40);
             Hub.Shake(shake);
-            foreach (var w in walls) Hub.Dust(Hub.smokeMedium, w.at + w.normal * .3f, 1.2f);
             if (roof.HasValue)
             {
-                Hub.Dust(Hub.smokeSmall, roof.Value, 1.3f);
                 for (int i = 0; i < stones; i++)
                 {
                     var s = Hub.Stone(roof.Value + new Vector3(Random.Range(-.6f, .6f), 0, Random.Range(-.6f, .6f)), Random.Range(.12f, .26f));

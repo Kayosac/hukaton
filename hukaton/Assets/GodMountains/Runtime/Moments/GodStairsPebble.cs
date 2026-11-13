@@ -50,7 +50,6 @@ namespace Hakaton.GodMountains
                 if (Time.time < next || c.relativeVelocity.magnitude < .6f) return;
                 next = Time.time + .09f;
                 hub.Sound(hub.rockImpact, transform.position, volume, Random.Range(2f, 2.6f));
-                hub.Dust(hub.smokeTiny, transform.position, 1f, 3);
                 volume *= .85f;
             }
         }

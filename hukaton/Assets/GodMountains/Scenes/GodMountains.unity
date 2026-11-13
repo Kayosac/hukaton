@@ -61820,6 +61820,9 @@ GameObject:
   - component: {fileID: 731300015}
   - component: {fileID: 731300016}
   - component: {fileID: 731300017}
+  - component: {fileID: 731300020}
+  - component: {fileID: 731300021}
+  - component: {fileID: 731300022}
   m_Layer: 0
   m_Name: "\u041C\u043E\u043C\u0435\u043D\u0442\u044B \u043D\u0430 \u043F\u0443\u0442\u0438"
   m_TagString: Untagged
@@ -61876,11 +61879,6 @@ MonoBehaviour:
   draftEffect: {fileID: 4038003983209825891, guid: d851663c7b1a3a44fadd0bbc0bae0477, type: 3}
   leavesEffect: {fileID: 5554749187172601788, guid: 001202e266689954e810f8c8bd4135bf, type: 3}
   rockModel: {fileID: 919132149155446097, guid: 6bb50f30bfa874c6b9b4895d149350a6, type: 3}
-  smokeBig: {fileID: 2607243975110438964, guid: fc08c266430e6eb4db81cdb5228a9371, type: 3}
-  smokeMedium: {fileID: 407961043526710925, guid: a419fc5a3428bc240abc404d3476c672, type: 3}
-  smokeSmall: {fileID: 1504737753141467226, guid: bb08fcb9f793adc43a75ce5dee0ee2f2, type: 3}
-  smokeTiny: {fileID: 6039460803943172659, guid: 748755dd565b4144ca5898d27e2cb4a6, type: 3}
-  smokeFlat: {fileID: 7702514988112596808, guid: 8a2f03fb5946b1f47b743cb29f7908dd, type: 3}
   rockModels:
   - {fileID: 919132149155446097, guid: 6bb50f30bfa874c6b9b4895d149350a6, type: 3}
   - {fileID: 919132149155446097, guid: 9e3eab60c5af74d0082c50e2c15ffdf7, type: 3}
@@ -61998,3 +61996,60 @@ SceneRoots:
   - {fileID: 713992249}
   - {fileID: 106443836}
   - {fileID: 808745483}
+--- !u!114 &731300020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731300001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc6bd06d27734d5db6099245160ffdc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodWind
+  hub: {fileID: 731300003}
+  streakMaterial: {fileID: 2100000, guid: 0e396019391b4264bc19423430372f07, type: 2}
+--- !u!114 &731300021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731300001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b3639003e57476f9c09150ebb0e1baa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodSounds
+  encounter: {fileID: 1873006900}
+  output: {fileID: 0}
+  notice: {fileID: 8300000, guid: b5ee2007cc7e4b5ba6e0bf6f8ad30337, type: 3}
+  reach: {fileID: 8300000, guid: 862cb8ba4f7f40bda34f9e77f64d14a8, type: 3}
+  lift: {fileID: 8300000, guid: 091e2ce04eda442ab2010fa90cb2f10b, type: 3}
+  bodyVolume: 1
+  lines:
+  - {fileID: 8300000, guid: f52ee173bbe54ce3a3c4b6a37e62a954, type: 3}
+  - {fileID: 8300000, guid: d1a31bee907a4a17a130a06539620594, type: 3}
+  - {fileID: 8300000, guid: c89ac8af65f949d9aa8e607c526ea46a, type: 3}
+  - {fileID: 8300000, guid: e285e00fa4214710897b081fae69dff2, type: 3}
+  - {fileID: 8300000, guid: c1993e56e674499bb3dfb29c23829e60, type: 3}
+  - {fileID: 8300000, guid: abc5b4067c4e4a1fa4c48c2efde3b698, type: 3}
+  voiceVolume: 1
+--- !u!114 &731300022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731300001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71b3186660714c9dad5f1b6997a8166c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.GodMountains::Hakaton.GodMountains.GodMusic
+  hub: {fileID: 731300003}
+  sounds: {fileID: 731300021}
+  output: {fileID: 7301378859151632347, guid: cf0832003d3544ef7a4420e2158116fd, type: 2}
+  air: {fileID: 8300000, guid: 721673552a1b4b2092bfed29447091cd, type: 3}
+  might: {fileID: 8300000, guid: 6e24d5f2e22d4fc593dcb651221e2c72, type: 3}

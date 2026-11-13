@@ -70,12 +70,6 @@ namespace Hakaton.GodMountains
         public GameObject dustEffect;
         public GameObject draftEffect;
         public GameObject leavesEffect;
-        [Tooltip("Pixel dust clouds, big to tiny: where stones hit, walls shed, the draft comes through.")]
-        public GameObject smokeBig, smokeMedium, smokeSmall, smokeTiny, smokeFlat;
-        [Tooltip("Rock dust: the pixel clouds are tinted to it (pale, see-through), not their own dark grey.")]
-        public Color dustColor = new Color(.8f, .72f, .82f, .55f);
-        [Tooltip("Cloud from the white shelf.")]
-        public Color cloudColor = new Color(.9f, .88f, .94f, .22f);
         [Tooltip("A stone of the kit for things that fall and roll (fallback when Rock Models is empty).")]
         public GameObject rockModel;
         [Tooltip("Stones of the kit that fall and roll; each is scaled to the size asked.")]
@@ -87,6 +81,8 @@ namespace Hakaton.GodMountains
         /// <summary>Where along the route the player stands now, m.</summary>
         public float Metres { get; private set; }
         public float RunningFor => Running ? Time.time - startedAt : 0;
+        /// <summary>The silence of the throat (S7) is on right now.</summary>
+        public bool Silent => silenced && Time.time < silentUntil;
         public Transform Player => encounter && encounter.PlayerMotor ? encounter.PlayerMotor.transform : null;
         public Transform Eye => atmosphere && atmosphere.viewer ? atmosphere.viewer : Player;
 
@@ -194,7 +190,6 @@ namespace Hakaton.GodMountains
             if (Wall(floor + Vector3.up * Random.Range(3f, 4.5f), side, 4, out var hit, out var normal))
             {
                 Vector3 at = hit + normal * .35f;
-                Dust(smokeTiny, at, 1.2f, 4);
                 for (int i = 0; i < 2; i++)
                 {
                     var s = Stone(at + Random.insideUnitSphere * .2f, Random.Range(.12f, .2f));
@@ -299,21 +294,8 @@ namespace Hakaton.GodMountains
         /// <summary>The ground under a point.</summary>
         public Vector3 Floor(Vector3 from) => Wall(from + Vector3.up * .2f, Vector3.down, 30, out var p, out _) ? p : from;
 
-        /// <summary>Rock dust bursting out at a point (tinted to <see cref="dustColor"/>).</summary>
-        public GameObject Dust(GameObject prefab, Vector3 at, float scale, float lifetime = 5) => Effect(prefab, at, Quaternion.identity, scale, lifetime, dustColor);
 
-        /// <summary>A cloud that drifts and fades on its own (no hard cut).</summary>
-        public void Drift(GameObject prefab, Vector3 at, Vector3 velocity, float scale, float seconds, Color? tint = null) => StartCoroutine(DriftRoutine(prefab, at, velocity, scale, seconds, tint));
 
-        IEnumerator DriftRoutine(GameObject prefab, Vector3 at, Vector3 velocity, float scale, float seconds, Color? tint)
-        {
-            var fx = Effect(prefab, at, Quaternion.identity, scale, seconds + 3, tint ?? cloudColor);
-            for (float t = 0; t < seconds && fx; t += Time.deltaTime)
-            {
-                fx.transform.position += velocity * Time.deltaTime;
-                yield return null;
-            }
-        }
 
         /// <summary>The roof right above a point (a hit within reach), or nothing under the open sky.</summary>
         public Vector3? Ceiling(Vector3 from, float reach)

@@ -37,9 +37,6 @@ namespace Hakaton.GodMountains
             Vector3 along = Hub.RouteForward(Hub.Progress);
             Hub.Sound(Hub.gust, eye.position - along * 4, 1, .7f);
             Hub.BoostWind(.8f, seconds + 1);
-            for (int i = 0; i < 4; i++)
-                Hub.Drift(Hub.smokeBig, Hub.Floor(eye.position - along * 2 + Random.insideUnitSphere * 1.2f) + Vector3.up * .5f,
-                          along * Random.Range(3f, 4.5f), Random.Range(1f, 1.4f), 3);
             var shrubs = Shrubs(eye.position);
             var rest = new List<Quaternion>();
             foreach (var s in shrubs) rest.Add(s.rotation);

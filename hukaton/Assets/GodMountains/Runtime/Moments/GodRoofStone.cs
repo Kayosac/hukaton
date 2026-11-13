@@ -43,7 +43,6 @@ namespace Hakaton.GodMountains
         {
             if (spot == default) yield break;
             Vector3 at = spot, normal = spotNormal;
-            Hub.Dust(Hub.smokeMedium, at, 1.4f);
             Hub.Sound(Hub.crumble, at, 1, .7f);
             Hub.Shake(.08f, at);
             for (int i = 0; i < 3; i++)
@@ -52,7 +51,6 @@ namespace Hakaton.GodMountains
                 if (s) { s.linearVelocity = normal * .6f; StartCoroutine(Hub.Settle(s, 4)); }
             }
             yield return new WaitForSeconds(warning);
-            Hub.Dust(Hub.smokeMedium, at, 1.6f, 6);
             var stone = Hub.Stone(at, size);
             if (!stone) yield break;
             stone.linearVelocity = normal * 1.2f;
@@ -71,7 +69,6 @@ namespace Hakaton.GodMountains
             }
             if (!stone) yield break;
             Vector3 hit = stone.position;
-            Hub.Dust(Hub.smokeBig, hit + Vector3.up * .2f, 1.8f, 6);
             Hub.Sound(Hub.crash, hit, 1, .8f);
             Hub.Sound(Hub.rockImpact, hit, 1, .7f);
             Hub.Shake(shake, hit);
