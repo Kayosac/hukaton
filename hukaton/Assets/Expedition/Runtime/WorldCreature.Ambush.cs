@@ -12,7 +12,7 @@ namespace Hakaton.Expeditions
         [Tooltip("Lies in wait: does not wander, stands still in its cover and springs at the target once it comes close. " +
                  "It does not give itself away by the aggression pose before that.")]
         public bool enabled;
-        [Tooltip("Hides in water instead of plants (the leech): the nearest wadeable water round where it appears.")]
+        [Tooltip("Lives in water (the leech, the drowned swimmer): settles in the nearest wadeable water round where it appears, an ambusher or not.")]
         public bool inWater;
         [Tooltip("Lies under the surface while it waits: the drawing sinks out of sight and its body does not block the way.")]
         public bool submerge;
@@ -159,7 +159,7 @@ namespace Hakaton.Expeditions
         /// </summary>
         public void HideInWater(IEnumerable<WorldObstacle> waters, List<Vector3> taken, bool move)
         {
-            if (!ambush.enabled || !ambush.inWater || waters == null) return;
+            if (!ambush.inWater || waters == null) return;
             Vector3 from = home;
             Vector3? spot = null;
             for (float r = 0; r <= ambush.coverSearch && spot == null; r += 1.5f)

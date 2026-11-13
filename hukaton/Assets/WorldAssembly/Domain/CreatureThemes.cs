@@ -62,14 +62,14 @@ namespace Hakaton.WorldAssembly
             // The rotten swamp: the creatures of the place each scene is most like, and the swamp's own.
             // Giant dung beetles patrol the dry ground in squads: 3–4 in ring 1, 5–7 further out.
             // Mantis men lie in wait in the reeds: one in ring 1, two further out.
-            ["swamp-hummocks"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Toad1 + "|" + Agaric1 + "|" + Mosquitoes1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Toad2 + "|" + Agaric2 + "|" + Mosquitoes2),
-            ["swamp-log-road"] = new Theme("snail-frog-mount", "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Mosquitoes1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Mosquitoes2),
-            ["swamp-ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spider1 + "|" + Mosquitoes1 + "|" + Ghost1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spider2 + "|" + Mosquitoes2 + "|" + Ghost2),
-            ["swamp-graveyard"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spiders1 + "|" + Agaric1 + "|" + Mosquitoes1 + "|" + Ghosts1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spiders2 + "|" + Agaric2 + "|" + Mosquitoes2 + "|" + Ghosts2),
-            ["swamp-tar-pit"] = new Theme("purple-mushroom*3", "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Spider1 + "|" + Mosquitoes1, "budding-troll|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Spider2 + "|" + Mosquitoes2),
-            ["swamp-bog"] = new Theme("snail-frog-mount*2", "snail-frog-mount+rat-pumpkin*2|" + Mantis1 + "|" + Leeches1 + "|" + Toad1 + "|" + Mosquitoes1, "budding-troll+snail-frog-mount|" + Mantis2 + "|" + Leeches2 + "|" + Toad2 + "|" + Mosquitoes2),
-            ["swamp-isle"] = new Theme("snail-frog-mount", "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1 + "|" + Spider1 + "|" + Toad1 + "|" + Agaric1 + "|" + Mosquitoes1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2 + "|" + Spider2 + "|" + Toad2 + "|" + Agaric2 + "|" + Mosquitoes2),
-            ["swamp-mill"] = new Theme("rooster-baseball*2", "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Mosquitoes1 + "|" + Ghost1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Mosquitoes2 + "|" + Ghost2),
+            ["swamp-hummocks"] = new Theme("snail-frog-mount*2" + "|" + Drowned, "snail-frog-mount+rat-pumpkin*2|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Toad1 + "|" + Agaric1 + "|" + Mosquitoes1, "budding-troll+snail-frog-mount|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Toad2 + "|" + Agaric2 + "|" + Mosquitoes2),
+            ["swamp-log-road"] = new Theme("snail-frog-mount" + "|" + Drowned, "rat-pumpkin*2|snail-frog-mount*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Mosquitoes1, "goblin-dog*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Mosquitoes2),
+            ["swamp-ruins"] = new Theme("purple-mushroom*2" + "|" + Drowned, "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spider1 + "|" + Mosquitoes1 + "|" + Ghost1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spider2 + "|" + Mosquitoes2 + "|" + Ghost2),
+            ["swamp-graveyard"] = new Theme("purple-mushroom*2" + "|" + Drowned, "drunken-dwarf-robot|goblin-dog*2|" + Beetles1 + "|" + Mantis1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Spiders1 + "|" + Agaric1 + "|" + Mosquitoes1 + "|" + Ghosts1, "drunken-dwarf-robot*2|" + Beetles2 + "|" + Mantis2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Spiders2 + "|" + Agaric2 + "|" + Mosquitoes2 + "|" + Ghosts2),
+            ["swamp-tar-pit"] = new Theme("purple-mushroom*3" + "|" + Drowned, "purple-mushroom*2+hostile-bush|" + Beetles1 + "|" + Mantis1 + "|" + Leeches1 + "|" + Spider1 + "|" + Mosquitoes1, "budding-troll|" + Beetles2 + "|" + Mantis2 + "|" + Leeches2 + "|" + Spider2 + "|" + Mosquitoes2),
+            ["swamp-bog"] = new Theme("snail-frog-mount*2" + "|" + Drowned, "snail-frog-mount+rat-pumpkin*2|" + Mantis1 + "|" + Leeches1 + "|" + Toad1 + "|" + Mosquitoes1, "budding-troll+snail-frog-mount|" + Mantis2 + "|" + Leeches2 + "|" + Toad2 + "|" + Mosquitoes2),
+            ["swamp-isle"] = new Theme("snail-frog-mount" + "|" + Drowned, "snail-frog-mount*2|" + Mantis1 + "|" + Leeches1 + "|" + Spider1 + "|" + Toad1 + "|" + Agaric1 + "|" + Mosquitoes1, "snail-frog-mount+rat-pumpkin*2|" + Mantis2 + "|" + Leeches2 + "|" + Spider2 + "|" + Toad2 + "|" + Agaric2 + "|" + Mosquitoes2),
+            ["swamp-mill"] = new Theme("rooster-baseball*2" + "|" + Drowned, "rat-pumpkin*3|rat-pumpkin*2+rooster-baseball|" + Beetles1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Mosquitoes1 + "|" + Ghost1, "rat-pumpkin*4|goblin-dog*2+rat-pumpkin*2|" + Beetles2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Mosquitoes2 + "|" + Ghost2),
         };
 
         const string Beetles1 = "giant-dung-beetle*3-4", Beetles2 = "giant-dung-beetle*5-7";
@@ -88,6 +88,8 @@ namespace Hakaton.WorldAssembly
         const string Agaric1 = "raging-fly-agaric", Agaric2 = "raging-fly-agaric*1-2";
         // Mosquito swarms hang over the whole swamp, many at once: three to six, further out six to nine.
         const string Mosquitoes1 = "mosquito-swarm*3-6", Mosquitoes2 = "mosquito-swarm*6-9";
+        // Drowned swimmers drift in the water of every part of the swamp, from the start ring on (calm: thrice as many).
+        const string Drowned = "drowned-swimmer*1-2";
         // Sheet ghosts haunt the sunken hut and the mill (one, further out one or two) and the graveyard (two, then two or three).
         const string Ghost1 = "sheet-ghost", Ghost2 = "sheet-ghost*1-2", Ghosts1 = "sheet-ghost*2", Ghosts2 = "sheet-ghost*2-3";
 
@@ -161,6 +163,7 @@ namespace Hakaton.WorldAssembly
         /// <summary>Calm creatures — the peaceful and the timid ones: the only ones ring 0 may hold.</summary>
         public static bool IsCalm(string creature) =>
             creature == "purple-mushroom" || creature == "kind-little-worm" || creature == "rooster-baseball" ||
-            creature == "snail-frog-mount" || creature == "teen-leshy-skater" || creature == "zombie-beekeeper";
+            creature == "snail-frog-mount" || creature == "teen-leshy-skater" || creature == "zombie-beekeeper" ||
+            creature == "drowned-swimmer";
     }
 }

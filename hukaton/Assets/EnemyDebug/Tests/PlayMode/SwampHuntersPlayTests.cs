@@ -141,6 +141,22 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(1), "its dive hits for half a heart");
             Assert.That(ghost.view.spriteRenderer.color.a, Is.GreaterThan(.95f), "solid up close");
         }
+
+        [UnityTest]
+        public IEnumerator DrownedSwimmerTakesFrightAndRuns()
+        {
+            var drowned = Spawn("Drowned swimmer");
+            Assert.That(drowned.temperament, Is.EqualTo(Temperament.Timid));
+            var start = drowned.Position;
+            // Within earshot it notices the player on any side.
+            yield return Stand(drowned, 3);
+            float until = Time.time + 5;
+            while (Time.time < until && drowned.State != CreatureState.Flee) yield return null;
+            Assert.That(drowned.State, Is.EqualTo(CreatureState.Flee), "it takes fright and runs");
+            yield return Wait(2);
+            Assert.That(Vector3.Distance(drowned.Position, sandbox.motor.transform.position), Is.GreaterThan(6), "it gets away");
+            Assert.That(sandbox.ReceivedDamage, Is.Zero, "it never attacks");
+        }
     }
 }
 #endif

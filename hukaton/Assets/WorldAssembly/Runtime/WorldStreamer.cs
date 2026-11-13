@@ -853,11 +853,8 @@ namespace Hakaton.WorldAssembly.Unity
                     else creature.ResetForOuting(null);
                     // An ambusher (mantis man) settles in the nearest reeds round its spot.
                     // A leech goes under the nearest water instead.
-                    if (creature.ambush.enabled)
-                    {
-                        if (creature.ambush.inWater) creature.HideInWater(entry.view.obstacles, cover, !remembered);
-                        else creature.HideIn(entry.view.burnables, cover, !remembered);
-                    }
+                    if (creature.ambush.inWater) creature.HideInWater(entry.view.obstacles, cover, !remembered);
+                    else if (creature.ambush.enabled) creature.HideIn(entry.view.burnables, cover, !remembered);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
                     group.Add(creature);
