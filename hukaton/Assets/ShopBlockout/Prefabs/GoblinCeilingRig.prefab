@@ -261,6 +261,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5690609973497205836}
   - component: {fileID: 3459451131506623702}
+  - component: {fileID: 7429837152036885262}
   m_Layer: 0
   m_Name: GoblinCeilingRig
   m_TagString: Untagged
@@ -459,6 +460,42 @@ MonoBehaviour:
   sound: {fileID: 0}
   pullSound: {fileID: 0}
   arriveSound: {fileID: 0}
+--- !u!114 &7429837152036885262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5210407271220341449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2af5304de2fef4f279a15e106104e63f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.ShopBlockout.Runtime::Hakaton.ShopBlockout.SuspendedGoblinAudio
+  rig: {fileID: 3459451131506623702}
+  sfx: {fileID: 0}
+  ropePull: {fileID: 11400000, guid: dcef9ede13c9e460d897efe87c03b014, type: 2}
+  handleKnock: {fileID: 11400000, guid: e419d197faa8e4075b71becf37e4f790, type: 2}
+  cableCreak: {fileID: 11400000, guid: c33afa71cdf6b4f8faa67044606b4d90, type: 2}
+  ropePullVolume: 1
+  handleKnockVolume: 0.7
+  cableCreakVolume: 0.65
+  hatchUnlatch: {fileID: 11400000, guid: 2b27c7fd03b2d46a9bac1ab1470363ae, type: 2}
+  hatchKnock: {fileID: 11400000, guid: ef7dd1416dd784a1384af9d82cc690aa, type: 2}
+  hatchSlam: {fileID: 11400000, guid: bf39b77ca4185446ea8feda7765352b8, type: 2}
+  hatchUnlatchVolume: 0.8
+  hatchSlamVolume: 1
+  hatchKnockVolume: {x: 0.35, y: 1}
+  fullKnockOvershoot: 0.2
+  minKnockOvershoot: 0.015
+  winchLower: {fileID: 11400000, guid: e7e177e7fd3c84955bc9749e12b0bee1, type: 2}
+  winchRaise: {fileID: 11400000, guid: a531a74324b0c4b988df17d6f91eb0eb, type: 2}
+  winchStopDown: {fileID: 11400000, guid: 2f7fb0d1aafbd4e6d844f06804ad55d9, type: 2}
+  winchStopUp: {fileID: 11400000, guid: 02709757cf4ec4c23a63eddc20a7ac23, type: 2}
+  winchVolume: 0.75
+  winchStopVolume: 0.9
+  authoredTravelSeconds: 1.15
+  travelPitchLimits: {x: 0.8, y: 1.25}
 --- !u!1 &6071682640714775805
 GameObject:
   m_ObjectHideFlags: 0
