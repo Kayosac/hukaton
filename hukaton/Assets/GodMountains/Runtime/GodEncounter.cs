@@ -83,6 +83,10 @@ namespace Hakaton.GodMountains
         public UnityEvent finished = new UnityEvent();
 
         public GodStage Stage { get; private set; } = GodStage.Path;
+        /// <summary>The player is handed over and the encounter runs (the moments on the path wait for this).</summary>
+        public bool Ready => ready;
+        /// <summary>The player, once handed over.</summary>
+        public FirstPersonMotor Player => motor;
 
         static readonly int NoticeId = Animator.StringToHash("Notice");
         static readonly int ReachId = Animator.StringToHash("Reach");
