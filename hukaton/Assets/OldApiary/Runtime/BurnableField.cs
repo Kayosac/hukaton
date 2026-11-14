@@ -9,7 +9,8 @@ namespace Hakaton.OldApiary
 {
     /// <summary>
     /// Runs fire across the level's <see cref="Burnable"/>s. For every outing it registers them as card zones so Fire and
-    /// Lightning find them, passes flames on to neighbours and thorn thickets, chars them or burns them away, and when the
+    /// Lightning find them, passes flames on to neighbours, thorn thickets and card zones (powder barrel, tar, branch
+    /// bridge, gas, Scarecrow: <see cref="CardZoneRegistry.IgniteBox"/>), chars them or burns them away, and when the
     /// outing ends puts every one back as it was. Thickets burnt by a card light the kindling around them too.
     /// A streamed world (the endless world's chunks) brings its burnables and thickets in and takes them out as chunks
     /// load and unload: <see cref="Join(Burnable)"/>, <see cref="Leave(Burnable)"/>, <see cref="JoinThorns"/>.
@@ -29,6 +30,8 @@ namespace Hakaton.OldApiary
         [Range(0, 1)] public float spreadAt = .5f;
         [Tooltip("Thorn thickets this close to a burning thing catch fire too, m.")]
         [Min(0)] public float thornReach = 1.2f;
+        [Tooltip("Зоны карт (пороховая бочка, смола, ветвь-мост, газ, Чучело) так близко к горящему загораются от него, м.")]
+        [Min(0)] public float zoneReach = .3f;
         [Tooltip("At most this many burn at once; the rest catch fire in turn.")]
         [Min(1)] public int maxBurning = 40;
         [Tooltip("Ash only: how low the burning thing sinks before it is gone (share of its height).")]
@@ -275,6 +278,9 @@ namespace Hakaton.OldApiary
                     Ignite(other, Vector3.Lerp(look.center, other.Look.center, .5f));
             foreach (var kv in thorns)
                 if (!kv.Key.Resolved && Gap(look, kv.Value) <= thornReach) kv.Key.React(CardAction.Fire, look.center);
+            // Огонь горящего поджигает и зоны карт рядом — бочку, смолу, ветвь-мост, газ, Чучело (любой огонь игры
+            // поджигает бочку). Горючие этого поля поджигает оно само, выше.
+            world.Zones.IgniteBox(look, zoneReach, IgnitionSource.Fire, zone => zone is Burnable);
         }
 
         void CatchFromThorns()

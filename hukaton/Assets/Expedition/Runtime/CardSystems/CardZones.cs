@@ -145,6 +145,39 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
+        /// Поджиг зон горящей вещью-«ящиком»: горящей травой, ульем, забором, тростником (<c>BurnableField</c>) или
+        /// сгорающими колючими зарослями (<see cref="WorldObstacle"/>). Каждая <see cref="IIgnitable"/>-зона, чей ящик
+        /// подходит к <paramref name="box"/> не дальше <paramref name="reach"/>, получает ближайшую к ней точку горящего
+        /// (там, где ящики перекрываются, — точку внутри обоих) и сама решает по своим правилам: бочка взрывается, смола
+        /// и ветвь-мост загораются, газ вспыхивает. <paramref name="skip"/> — кого не трогать (горючие того же поля
+        /// поджигает само поле). Повторный поджиг ничего не делает, так что цепочки огня кончаются сами. Возвращает,
+        /// сколько загорелось.
+        /// </summary>
+        public int IgniteBox(Bounds box, float reach, IgnitionSource source, Predicate<ICardZone> skip = null)
+        {
+            int count = 0;
+            reach = Mathf.Max(0, reach);
+            var grown = box;
+            grown.Expand(reach * 2);
+            // Свой список из пула: поджиг внутри поджига не обрывает этот перебор.
+            using (ListPool<ICardZone>.Get(out var nearby))
+            {
+                Overlapping(grown, nearby);
+                foreach (var zone in nearby)
+                {
+                    if (!(zone is IIgnitable ignitable) || IsDead(zone) || (skip != null && skip(zone))) continue;
+                    var other = zone.Bounds;
+                    // Попеременные проекции между двумя ящиками сходятся к паре ближайших точек.
+                    Vector3 onBox = box.ClosestPoint(other.center);
+                    for (int i = 0; i < 4; i++) onBox = box.ClosestPoint(other.ClosestPoint(onBox));
+                    if (other.SqrDistance(onBox) > reach * reach + 1e-6f) continue;
+                    if (ignitable.Ignite(source, onBox)) count++;
+                }
+            }
+            return count;
+        }
+
+        /// <summary>
         /// <see cref="Ignite"/> for an upright body (a creature) standing at <paramref name="feet"/>,
         /// <paramref name="height"/> tall and <paramref name="radius"/> thick: full width at the feet, where tar,
         /// branches and grass are, rounded off at the top.
