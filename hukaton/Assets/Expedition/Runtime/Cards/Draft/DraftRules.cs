@@ -84,6 +84,18 @@ namespace Hakaton.Expeditions.Cards
             return Mathf.Abs(dx * direction.z - dz * direction.x) <= spread;
         }
 
+        /// <summary>
+        /// The speed the wind gives a creature, whatever it weighs: <paramref name="speed"/> m/s along the wind and
+        /// <paramref name="lift"/> × speed up (so it leaves the ground instead of scraping it).
+        /// </summary>
+        public static Vector3 CreatureBlow(Vector3 direction, float speed, float lift)
+        {
+            direction.y = 0;
+            direction = direction.sqrMagnitude > 1e-8f ? direction.normalized : Vector3.forward;
+            speed = Mathf.Max(0, speed);
+            return direction * speed + Vector3.up * (speed * Mathf.Max(0, lift));
+        }
+
         /// <summary>The point of a disc (puddle) nearest to <paramref name="from"/>, on the disc's level.</summary>
         public static Vector3 NearestOnDisc(Vector3 centre, float radius, Vector3 from)
         {

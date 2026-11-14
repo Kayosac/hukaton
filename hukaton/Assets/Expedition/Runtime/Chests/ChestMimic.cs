@@ -275,6 +275,61 @@ namespace Hakaton.Expeditions
             return true;
         }
 
+        /// <summary>
+        /// Blown away by the wind («Сквозняк»): it tumbles <paramref name="distance"/> along the wind (inside its circle,
+        /// out of card barriers). Shut and unsuspecting, it is now on guard and runs off as after a hit; frozen, it slides
+        /// in its ice and stays frozen. False when it cannot be blown (dead, opened).
+        /// </summary>
+        public bool Blow(Vector3 direction, float distance)
+        {
+            var world = World;
+            direction.y = 0;
+            if (!Alive || !world || !world.Running || distance <= 0 || direction.sqrMagnitude < 1e-6f) return false;
+            bool frozen = Frozen;
+            StopAllCoroutines();
+            EndShiver();
+            SetTongue(0);
+            if (overhead) overhead.SetAlert(0);
+            if (!frozen)
+            {
+                alert = true;
+                mode = Mode.Fleeing;
+                if (world.sfx) world.sfx.StopLoop(this);
+                if (recoverAt < Time.time + 4) recoverAt = Time.time + Random.Range(hideAfter.x, hideAfter.y);
+            }
+            StartCoroutine(Tumble(direction.normalized * distance, frozen));
+            return true;
+        }
+
+        IEnumerator Tumble(Vector3 offset, bool frozen)
+        {
+            var world = World;
+            Vector3 start = transform.position;
+            Vector3 end = Ground(KeptOut(Leashed(start + offset)));
+            float seconds = Mathf.Clamp(offset.magnitude / 7, .3f, .8f), height = Mathf.Max(hopHeight, .5f);
+            Quaternion from = transform.rotation;
+            Vector3 axis = Vector3.Cross(Vector3.up, offset.normalized);
+            if (!frozen) world.Play(rattleCue, Centre, 1, Random.Range(1.05f, 1.2f));
+            float time = 0;
+            while (time < seconds)
+            {
+                time += Time.deltaTime;
+                float k = Mathf.Clamp01(time / seconds);
+                transform.position = Vector3.Lerp(start, end, 1 - (1 - k) * (1 - k)) + Vector3.up * Mathf.Sin(k * Mathf.PI) * height;
+                // A tumble: one full roll over along the wind.
+                transform.rotation = Quaternion.AngleAxis(k * 360, axis) * from;
+                if (!frozen) { lidAngle = Mathf.Sin(k * Mathf.PI) * 25; ApplyLid(); }
+                yield return null;
+            }
+            transform.rotation = from;
+            SnapToGround();
+            world.Play(hopCue, transform.position, .9f);
+            if (frozen) yield break;
+            SetLid(0, true);
+            // Landed: on guard, it runs off as after a hit.
+            StartCoroutine(Flee());
+        }
+
         public void OnChestReset()
         {
             StopAllCoroutines();

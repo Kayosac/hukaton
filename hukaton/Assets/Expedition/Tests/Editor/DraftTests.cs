@@ -93,6 +93,16 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void EveryCreatureGetsTheSameBlowWhateverItWeighs()
+        {
+            var blow = DraftRules.CreatureBlow(new Vector3(0, -2, 3), 9, .35f);
+            Assert.That(Vector3.Distance(new Vector3(blow.x, 0, blow.z), new Vector3(0, 0, 9)), Is.LessThan(1e-4f),
+                "9 m/s along the horizontal wind: a speed, not an impulse, so mass does not matter.");
+            Assert.That(blow.y, Is.EqualTo(9 * .35f).Within(1e-4f), "Lifted off its feet.");
+            Assert.That(DraftRules.CreatureBlow(Vector3.forward, -1, .5f), Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
         public void TheCardCarriesTheBoardNumbers()
         {
             var card = AssetDatabase.LoadAssetAtPath<CardDefinition>("Assets/Game/Data/draft.asset");
@@ -103,6 +113,8 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(draft.gustSeconds, Is.EqualTo(1.5f));
             Assert.That(draft.fireReach, Is.EqualTo(4));
             Assert.That(draft.pushImpulse, Is.EqualTo(4));
+            Assert.That(draft.creatureBlowSpeed, Is.GreaterThan(0), "Every mob is blown away, heavy ones too.");
+            Assert.That(draft.creatureStagger, Is.EqualTo(1));
             Assert.That(draft.gustPrefab, Is.Not.Null);
             Assert.That(draft.gustPrefab.streams, Is.Not.Empty, "Visible wind streaks.");
             Assert.That(draft.impactVfx, Is.Not.Null);

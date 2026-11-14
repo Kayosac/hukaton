@@ -7,7 +7,7 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>
     /// «Сквозняк». A gust (<see cref="DraftGust"/>) along a strip from the ground under the impact in the horizontal
     /// direction of the throw: 8 / 12 / 16 m long (I / II / III), 3 m wide, about 1.5 s. In the strip: fog is blown
-    /// away (drifts off and thins out), rain clouds are carried to the far end (and rain on there), burning tar goes out
+    /// away (drifts off and thins out), every creature is blown away whatever it weighs, rain clouds are carried to the far end (and rain on there), burning tar goes out
     /// (the puddle stays and can be lit again), fire is carried downwind (what can burn and creatures up to 4 m downwind
     /// of something burning catch fire), the wet dry at once, and loose bodies get a light push along the wind.
     /// </summary>
@@ -37,7 +37,16 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Share of the push that lifts (so bodies leave the ground instead of scraping it).")]
         [Range(0, 1)] public float lift = .15f;
         [Tooltip("Creatures lose their footing this long, so their legs do not cancel the push, s.")]
-        [Min(0)] public float creatureStagger = .3f;
+        [Min(0)] public float creatureStagger = 1;
+
+        [Header("Creatures (any mob is blown away)")]
+        [Tooltip("Speed the wind gives every creature in the strip, whatever its weight (heavy ones too), m/s along the wind. " +
+                 "A burrowed one is pulled out first.")]
+        [Min(0)] public float creatureBlowSpeed = 9;
+        [Tooltip("Share of that speed that goes up, so the creature is lifted off its feet.")]
+        [Range(0, 1)] public float creatureLift = .35f;
+        [Tooltip("A chest mimic (no physical body) tumbles this far along the wind, within its circle, m.")]
+        [Min(0)] public float mimicBlowDistance = 3.5f;
 
         [Header("Fire")]
         [Tooltip("Things and creatures this far downwind of something burning catch fire, m.")]

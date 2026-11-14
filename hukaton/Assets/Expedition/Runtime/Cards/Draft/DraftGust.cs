@@ -197,6 +197,8 @@ namespace Hakaton.Expeditions.Cards
             foreach (var fighter in Fighters)
                 if (fighter.Root && (strip.Contains(fighter.Position) || strip.Contains(fighter.Centre)) && Dry(fighter.Root)) Dried++;
 
+            BlowCreatures();
+
             Vector3 push = (strip.Direction + Vector3.up * numbers.lift).normalized * numbers.pushImpulse;
             int count = Physics.OverlapBoxNonAlloc(strip.Centre, strip.HalfExtents, Hits, strip.Rotation, ~0, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
@@ -205,8 +207,6 @@ namespace Hakaton.Expeditions.Cards
                 if (!body || body.isKinematic || !pushed.Add(body)) continue;
                 if (Dry(body)) Dried++;
                 if (numbers.pushImpulse <= 0) continue;
-                var creature = body.GetComponent<WorldCreature>();
-                if (creature && creature.Alive && numbers.creatureStagger > 0) creature.Stagger(numbers.creatureStagger, body.position - strip.Direction);
                 CardPhysics.Push(body, push);
                 Pushed++;
             }
@@ -216,6 +216,32 @@ namespace Hakaton.Expeditions.Cards
                 pushedPlayer = true;
                 motor.ApplyNormalizedImpulse(push);
                 Pushed++;
+            }
+        }
+
+        /// <summary>
+        /// Every mob in the strip is blown away, once per gust: the same speed whatever it weighs (Δv, not an impulse),
+        /// knocked off its feet so its legs do not fight it; a burrowed one is pulled out first, a chest mimic tumbles off.
+        /// </summary>
+        void BlowCreatures()
+        {
+            if (numbers.creatureBlowSpeed <= 0 && numbers.mimicBlowDistance <= 0) return;
+            Vector3 velocity = DraftRules.CreatureBlow(strip.Direction, numbers.creatureBlowSpeed, numbers.creatureLift);
+            foreach (var fighter in Fighters)
+            {
+                if (ReferenceEquals(fighter, world.Player) || !Combat.IsAlive(fighter) || !fighter.Root) continue;
+                if (!strip.Contains(fighter.Position) && !strip.Contains(fighter.Centre)) continue;
+                if (fighter is WorldCreature creature)
+                {
+                    if (!creature || numbers.creatureBlowSpeed <= 0 || !handled.Add(creature)) continue;
+                    if (creature.body) pushed.Add(creature.body);
+                    if (creature.Blow(velocity, numbers.creatureStagger, creature.Position - strip.Direction)) Pushed++;
+                }
+                else if (fighter is ChestMimic mimic)
+                {
+                    if (!mimic || numbers.mimicBlowDistance <= 0 || !handled.Add(mimic)) continue;
+                    if (mimic.Blow(strip.Direction, numbers.mimicBlowDistance)) Pushed++;
+                }
             }
         }
 

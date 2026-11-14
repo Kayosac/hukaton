@@ -844,6 +844,29 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>
+        /// Blown away by the wind («Сквозняк»): gets this speed whatever it weighs, and is knocked off its feet for
+        /// <paramref name="staggerSeconds"/> so its legs do not cancel it. A burrowed one is pulled out of the ground first;
+        /// in its shell it flies off shelled. False when there is nothing to blow (dead, no free body).
+        /// </summary>
+        public bool Blow(Vector3 velocity, float staggerSeconds, Vector3 from)
+        {
+            if (!Alive || dying || !body || body.isKinematic) return false;
+            if (burrowed)
+            {
+                burrowed = peeking = false;
+                sunk = 0;
+                passable = false;
+                SetBurrowed(false);
+            }
+            if (staggerSeconds > 0) Stagger(staggerSeconds, from);
+            velocity *= ImpulseScale;
+            var current = body.linearVelocity;
+            // The wind's speed replaces its own run (charging into the wind does not cancel the gust).
+            body.linearVelocity = new Vector3(velocity.x, Mathf.Max(current.y, velocity.y), velocity.z);
+            return true;
+        }
+
         /// <summary>Full freeze by the player's cards: interrupts the attack; physics still applies.</summary>
         public void Freeze(float seconds) => Freeze(seconds, null);
 
