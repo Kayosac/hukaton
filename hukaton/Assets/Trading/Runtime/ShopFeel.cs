@@ -56,12 +56,12 @@ namespace Hakaton.Trading.Unity
 
         void OnEnable()
         {
-            if (trade) { trade.ItemPlaced += OnPlaced; trade.ItemTaken += OnTaken; trade.SlotHovered += OnHovered; }
+            if (trade) { trade.ItemPlaced += OnPlaced; trade.ItemTaken += OnTaken; trade.SlotHovered += OnHovered; trade.ItemInspected += OnTaken; trade.ItemReturned += OnPlaced; }
         }
 
         void OnDisable()
         {
-            if (trade) { trade.ItemPlaced -= OnPlaced; trade.ItemTaken -= OnTaken; trade.SlotHovered -= OnHovered; }
+            if (trade) { trade.ItemPlaced -= OnPlaced; trade.ItemTaken -= OnTaken; trade.SlotHovered -= OnHovered; trade.ItemInspected -= OnTaken; trade.ItemReturned -= OnPlaced; }
             if (sfx) sfx.StopLoop(this);
         }
 
