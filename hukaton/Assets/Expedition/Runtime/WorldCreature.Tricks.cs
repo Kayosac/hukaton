@@ -199,6 +199,25 @@ namespace Hakaton.Expeditions
             Voice(VoiceKind.Alert, offspring.sound, body.position);
         }
 
+        /// <summary>
+        /// A creature let out by the world (bees out of a broken hive) at <paramref name="at"/>, under
+        /// <paramref name="parent"/> (the chunk it came out in: it goes with it and is not remembered), going for the
+        /// player at once.
+        /// </summary>
+        public static WorldCreature Release(WorldCreature prefab, ExpeditionWorld world, Vector3 at, Transform parent)
+        {
+            if (!prefab || !world) return null;
+            if (NavMesh.SamplePosition(at, out var hit, 2.5f, NavMesh.AllAreas)) at = hit.position + Vector3.up * .15f;
+            var creature = Instantiate(prefab, at, Quaternion.Euler(0, Random.value * 360, 0), parent);
+            creature.world = world;
+            creature.spawnPoints = null;
+            creature.spawnedHere = true;
+            creature.ResetForOuting(null);
+            world.creatures.Add(creature);
+            creature.JoinFight(world.Player);
+            return creature;
+        }
+
         /// <summary>Goes for <paramref name="target"/> at once: a bud or a swarm called in, a bee roused by the beekeeper.</summary>
         public void JoinFight(ICombatant target)
         {

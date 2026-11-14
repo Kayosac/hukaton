@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// How one kind of loose thing breaks (a clay pot, a crate, a bottle, a lantern): how hard a blow it takes, what
-    /// it falls apart into, how it sounds and what may be inside. One asset per kind in Game/Data/Breakables.
+    /// How one kind of loose thing breaks (a clay pot, a crate, a bottle, a lantern, a hive): how hard a blow it takes,
+    /// what it falls apart into, how it sounds and what may be inside or come out of it. One asset per kind in Game/Data/Breakables.
     /// Speeds are the change of the body's speed in m/s (a card's knock, a blast, a crash against something).
     /// </summary>
     [CreateAssetMenu(menuName = "Hakaton/Expedition/Breakable kind")]
@@ -43,5 +43,10 @@ namespace Hakaton.Expeditions
         public Vector2Int coins = new Vector2Int(1, 3);
         [Range(0, 1)] public float itemChance;
         public LootPool items;
+
+        [Header("Let out (rolled once, when it breaks)")]
+        [Tooltip("A creature that comes out of it now and then (a bee swarm out of a hive) and goes for the player at once.")]
+        public WorldCreature release;
+        [Range(0, 1)] public float releaseChance;
     }
 }

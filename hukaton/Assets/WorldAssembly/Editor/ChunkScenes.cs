@@ -652,7 +652,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Props/FA_PR02_LanternGround", 11, 7.6f, 0);
             Put("Structures/FA_ST12_Bench", 8.4f, 3.6f, 80);
             Deco("VFX/Insects/Flies", 6.6f, 11.5f, 0, 1.2f, 1);
-            Deco("VFX/Insects/Flies", 4.4f, 13.4f, 0, 1, 1);
+            Deco("VFX/Insects/Flies", 5.5f, 13.7f, 0, 1, 1);
             Trails.Add(new[] { V(8, 1), V(7.6f, 6), V(6.4f, 8.4f), V(6.6f, 11.5f) });
             Trails.Add(new[] { V(15, 8.4f), V(11.4f, 7.2f), V(7.6f, 6) });
             Finds = new[] { V(12.2f, 9.6f), V(2.6f, 3) };

@@ -5,7 +5,7 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// A loose thing that breaks (<see cref="BreakableKind"/>): a hard enough blow or crash and it is gone — pieces fly,
-    /// dust, a crack, and now and then a few coins or a find out of it. Blows come through <see cref="PropPhysics"/>
+    /// dust, a crack, and now and then a few coins, a find or a bee swarm out of it. Blows come through <see cref="PropPhysics"/>
     /// (cards, blasts, landings, creatures) and crashes from its <see cref="PhysicsProp"/>. A broken one stays broken
     /// when its chunk comes back (the streamer remembers it) and is whole again at the start of the next outing.
     /// </summary>
@@ -59,6 +59,8 @@ namespace Hakaton.Expeditions
                 var velocity = TryGetComponent(out Rigidbody body) && !body.isKinematic ? body.linearVelocity : Vector3.zero;
                 PropDebris.Shatter(world, kind, bounds, direction, velocity);
                 if (loot) Spill(world, bounds.center);
+                if (loot && kind.release && kind.releaseChance > 0 && Random.value < kind.releaseChance)
+                    WorldCreature.Release(kind.release, world, bounds.center, transform.parent ? transform.parent : world.spawnedObjects);
             }
             // What stood on it falls (found while its colliders are still there).
             PhysicsProp.WakeResting(transform);

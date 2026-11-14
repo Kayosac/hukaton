@@ -683,6 +683,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             ["FA_PR09_PotLow"] = "Clay pot", ["FA_PR10_Pitcher"] = "Clay pot", ["FA_PR06_BottleSquat"] = "Bottle", ["FA_PR07_BottleTall"] = "Bottle",
             ["FA_PR13_CrateClosed"] = "Crate", ["FA_PR14_CrateOpen"] = "Crate", ["FA_PR02_LanternGround"] = "Lantern",
+            ["FA_SP04_Beehive"] = "Beehive",
         };
 
         /// <summary>What a loose thing knocks like (PropImpacts); wood when not listed.</summary>
@@ -837,7 +838,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             var ground = root.Find("Ground");
             Physics.SyncTransforms();
             var spots = new List<Vector3>();
-            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/")) spots.Add(go.transform.position);
+            // Flies and bees hang in the air over a yard, not on a thing: they do not hold it.
+            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/") && !asset.StartsWith("VFX/Insects/")) spots.Add(go.transform.position);
             foreach (var spot in root.GetComponentsInChildren<AmbientSpot>(true)) spots.Add(spot.transform.position);
             foreach (var light in root.GetComponentsInChildren<Light>(true))
                 if (!light.GetComponentInParent<PhysicsProp>()) spots.Add(light.transform.position);
@@ -895,7 +897,8 @@ namespace Hakaton.WorldAssembly.EditorTools
             Physics.SyncTransforms();
             // What burns or sounds on it: effects and the scene's sound places, a hand's breadth round them.
             var spots = new List<Vector3>();
-            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/")) spots.Add(go.transform.position);
+            // Flies and bees hang in the air over a yard, not on a thing: they do not hold it.
+            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/") && !asset.StartsWith("VFX/Insects/")) spots.Add(go.transform.position);
             foreach (var spot in view.GetComponentsInChildren<AmbientSpot>(true)) spots.Add(spot.transform.position);
             foreach (var light in view.GetComponentsInChildren<Light>(true)) spots.Add(light.transform.position);
             foreach (var at in spots)

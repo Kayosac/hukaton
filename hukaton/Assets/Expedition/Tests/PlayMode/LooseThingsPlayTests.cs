@@ -141,6 +141,42 @@ namespace Hakaton.Expeditions.Tests
             Object.Destroy(pot);
         }
 
+        [UnityTest]
+        public IEnumerator ABrokenHiveNowAndThenLetsOutBeesThatGoForThePlayer()
+        {
+            var hive = Object.Instantiate(AssetDatabase.LoadAssetAtPath<BreakableKind>("Assets/Game/Data/Breakables/Beehive.asset"));
+            Assert.That(hive.release, Is.Not.Null);
+            Assert.That(hive.releaseChance, Is.InRange(.05f, .95f), "now and then, not always");
+            for (int round = 0; round < 2; round++)
+            {
+                bool out_ = round == 0;
+                hive.releaseChance = out_ ? 1 : 0;
+                var crate = Crate(Spot(6, round * 2 - 1));
+                yield return Settle(crate.body);
+                var breakable = crate.gameObject.AddComponent<Breakable>();
+                breakable.kind = hive;
+                int before = world.creatures.Count;
+                Assert.That(PropPhysics.Nudge(crate.body, crate.body.worldCenterOfMass, Vector3.forward, hive.hitSpeed * 2), Is.True);
+                Assert.That(breakable.Broken, Is.True);
+                yield return null;
+                if (!out_)
+                {
+                    Assert.That(world.creatures.Count, Is.EqualTo(before), "an empty hive");
+                    continue;
+                }
+                Assert.That(world.creatures.Count, Is.EqualTo(before + 1), "a swarm comes out");
+                var bees = world.creatures[world.creatures.Count - 1];
+                // Straight for the player: chasing, or already aiming its sting when the player is that close.
+                Assert.That(new[] { CreatureState.Chase, CreatureState.Aim, CreatureState.Windup, CreatureState.Strike }, Does.Contain(bees.State), "and goes for the player at once");
+                Assert.That(Vector3.Distance(bees.Position, crate.transform.position), Is.LessThan(3), "out of the hive");
+                // Gone with its place: it leaves the world's list by itself.
+                Object.Destroy(bees.gameObject);
+                yield return null;
+                Assert.That(world.creatures.Count, Is.EqualTo(before));
+            }
+            Object.Destroy(hive);
+        }
+
         /// <summary>A record to look at (Logs/world-plans/break-*.png): a pot and a crate breaking, not a pass/fail on looks.</summary>
         [UnityTest]
         public IEnumerator PhotographBreaking()
