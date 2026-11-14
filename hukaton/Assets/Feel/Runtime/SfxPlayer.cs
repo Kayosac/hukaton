@@ -51,6 +51,10 @@ namespace Hakaton.Feel
         [Range(0, 1)] public float masterVolume = 1;
         [Tooltip("Where the ears are (the gameplay camera). Set by the game layer that owns the camera; without it managed buses skip distance culling.")]
         public Transform listener;
+        [Tooltip("Low-pass cutoff of a fully muffled voice ('from behind a wall'), Hz. Needs an AudioLowPassFilter on the pool sources (desktop; WebGL has no audio filters).")]
+        [Range(200, 22000)] public float muffledCutoff = 900;
+        [Tooltip("Volume of a fully muffled voice: on WebGL, where there is no filter, this is all the muffling there is.")]
+        [Range(0, 1)] public float muffledVolume = .55f;
         [Tooltip("Fade used when a managed voice is replaced or a loop goes quiet, seconds.")]
         [Min(.01f)] public float fadeSeconds = .08f;
         public SfxBusRules[] buses =
@@ -63,9 +67,10 @@ namespace Hakaton.Feel
         sealed class Voice
         {
             public SfxBus bus;
-            public Object owner;
+            public Object owner, group;
             public SfxCue cue;
-            public float priority, baseVolume, spatialBlend, fade = 1, fadeTarget = 1;
+            public AudioLowPassFilter filter;
+            public float priority, baseVolume, spatialBlend, muffle, fade = 1, fadeTarget = 1;
             public bool loop;
             public LoopRequest request;
             public bool Managed => bus != SfxBus.General;
@@ -103,7 +108,11 @@ namespace Hakaton.Feel
                 if (voices == null || voices.Length != pool.Length)
                 {
                     voices = new Voice[pool.Length];
-                    for (int i = 0; i < voices.Length; i++) voices[i] = new Voice();
+                    for (int i = 0; i < voices.Length; i++)
+                    {
+                        voices[i] = new Voice { filter = pool[i] ? pool[i].GetComponent<AudioLowPassFilter>() : null };
+                        if (voices[i].filter) voices[i].filter.enabled = false;
+                    }
                 }
                 return voices;
             }
@@ -167,7 +176,10 @@ namespace Hakaton.Feel
         /// A one-shot in a managed bus. <paramref name="priority"/> 0..1 says how much it matters to the player
         /// (an attack on him ~1, a calm creature's grunt ~.2); it decides who gets a voice when the bus is full.
         /// </summary>
-        public AudioSource Play(SfxCue cue, Vector3 position, SfxBus bus, Object owner, float priority, float volumeScale = 1, float pitchScale = 1)
+        /// <param name="group">Several owners heard as one (a brawl): together they get at most <paramref name="groupVoices"/> voices.</param>
+        /// <param name="muffle">0 = open, 1 = as from behind a wall (low-pass and quieter).</param>
+        public AudioSource Play(SfxCue cue, Vector3 position, SfxBus bus, Object owner, float priority, float volumeScale = 1, float pitchScale = 1,
+            Object group = null, int groupVoices = 0, float muffle = 0)
         {
             if (bus == SfxBus.General) return Play(cue, position, volumeScale, pitchScale);
             if (!cue || pool == null || pool.Length == 0) return null;
@@ -179,7 +191,8 @@ namespace Hakaton.Feel
             bool background = priority < rules.backgroundPriority;
             if (background && now - bs.lastBackground < rules.backgroundInterval) return null;
             float reach = Mathf.Max(cue.minDistance + .1f, cue.maxDistance * (background ? rules.backgroundReach : 1));
-            float volume = cue.volume * volumeScale * masterVolume;
+            muffle = Mathf.Clamp01(muffle);
+            float volume = cue.volume * volumeScale * masterVolume * Mathf.Lerp(1, muffledVolume, muffle);
             float gain = Audibility(cue.spatialBlend, cue.minDistance, reach, position, volume);
             if (gain < rules.minAudibleGain) return null;
             float score = priority * gain;
@@ -194,6 +207,11 @@ namespace Hakaton.Feel
                         replace = i;
                         break;
                     }
+            if (replace < 0 && group && groupVoices > 0 && CountGroup(group) >= groupVoices)
+            {
+                replace = WeakestInGroup(group);
+                if (replace < 0 || score <= Score(replace)) return null;
+            }
             if (replace < 0 && Count(bus, cue) >= rules.maxPerCue)
             {
                 replace = Weakest(bus, cue);
@@ -214,6 +232,8 @@ namespace Hakaton.Feel
             if (background) bs.lastBackground = now;
             var source = pool[index];
             Claim(index, bus, owner, cue, priority, volume, false);
+            all[index].group = group;
+            Muffle(index, muffle);
             source.transform.position = position;
             source.spatialBlend = listener ? EdgeBlend(cue.spatialBlend, Vector3.Distance(listener.position, position), reach) : cue.spatialBlend;
             source.rolloffMode = AudioRolloffMode.Linear;
@@ -454,6 +474,38 @@ namespace Hakaton.Feel
             return count;
         }
 
+        int CountGroup(Object group)
+        {
+            var all = Voices;
+            int count = 0;
+            for (int i = 0; i < all.Length; i++) if (all[i].group == group && !all[i].loop && Sounding(i)) count++;
+            return count;
+        }
+
+        int WeakestInGroup(Object group)
+        {
+            var all = Voices;
+            int weakest = -1;
+            float lowest = float.MaxValue;
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].group != group || all[i].loop || !Sounding(i)) continue;
+                float score = Score(i);
+                if (score < lowest) { lowest = score; weakest = i; }
+            }
+            return weakest;
+        }
+
+        void Muffle(int index, float muffle)
+        {
+            var voice = Voices[index];
+            voice.muffle = muffle;
+            if (!voice.filter) return;
+            voice.filter.enabled = muffle > .01f;
+            // Logarithmic: halfway muffled sounds halfway, not almost open.
+            voice.filter.cutoffFrequency = Mathf.Exp(Mathf.Lerp(Mathf.Log(22000), Mathf.Log(muffledCutoff), muffle));
+        }
+
         int Weakest(SfxBus bus, SfxCue cue)
         {
             var all = Voices;
@@ -487,6 +539,8 @@ namespace Hakaton.Feel
             voice.bus = bus;
             voice.owner = owner;
             voice.cue = cue;
+            voice.group = null;
+            if (voice.muffle > 0 || (voice.filter && voice.filter.enabled)) Muffle(index, 0);
             voice.priority = priority;
             voice.baseVolume = baseVolume;
             voice.spatialBlend = cue ? cue.spatialBlend : 0;
