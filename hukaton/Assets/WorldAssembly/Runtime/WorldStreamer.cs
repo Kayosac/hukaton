@@ -871,7 +871,7 @@ namespace Hakaton.WorldAssembly.Unity
                 var prefab = content.Creature(spawn.Creature, Pick(plan.Coord, 50 + g));
                 var socket = sockets[(Pick(plan.Coord, 60) + (uint)g) % (uint)sockets.Length];
                 float turn = Pick(plan.Coord, 70 + g) % 628 / 100f;
-                // More groups than spots (the calm ones come in threes): the later ones settle a few metres off.
+                // More groups than spots: the later ones settle a few metres off.
                 int lap = g / sockets.Length;
                 var centre = socket.position;
                 if (lap > 0)

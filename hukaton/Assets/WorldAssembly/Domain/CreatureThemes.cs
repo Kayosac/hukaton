@@ -100,7 +100,7 @@ namespace Hakaton.WorldAssembly
         const string Agaric1 = "raging-fly-agaric", Agaric2 = "raging-fly-agaric*1-2";
         // Mosquito swarms hang over the whole swamp, many at once: three to six, further out six to nine.
         const string Mosquitoes1 = "mosquito-swarm*3-6", Mosquitoes2 = "mosquito-swarm*6-9";
-        // Drowned swimmers are of the rotten swamp only (calm: thrice as many): one option among the creatures of every
+        // Drowned swimmers are of the rotten swamp only: one option among the creatures of every
         // part of the swamp and of its landmarks, in every ring the swamp reaches.
         const string Drowned = "drowned-swimmer*1-2";
         // Sheet ghosts haunt the sunken hut and the mill (one, further out one or two) and the graveyard (two, then two or three).

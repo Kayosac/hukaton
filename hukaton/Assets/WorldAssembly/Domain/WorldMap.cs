@@ -359,12 +359,8 @@ namespace Hakaton.WorldAssembly
             plan.Theme = theme;
             if (theme != null && creatureRoll < chance)
             {
-                var picked = CreatureThemes.Pick(theme, ring, pick);
-                plan.Spawns.AddRange(picked);
-                // The peaceful and the timid are thrice as many: their groups again, round the chunk's other spots.
-                foreach (var spawn in picked)
-                    if (CreatureThemes.IsCalm(spawn.Creature))
-                        for (int i = 1; i < Rules.CalmCrowd; i++) plan.Spawns.Add(spawn);
+                // Each picked group comes once: no extra copies for the peaceful and the timid.
+                plan.Spawns.AddRange(CreatureThemes.Pick(theme, ring, pick));
             }
 
             double findRoll = Hash.Unit(Seed, Salt.Loot, c.X, c.Y);
