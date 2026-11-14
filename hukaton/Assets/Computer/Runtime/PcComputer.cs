@@ -36,6 +36,8 @@ namespace Hakaton.Computer
         public PcDesktop desktop;
         public PcCardsWindow cards;
         public PcUpgradesWindow upgrades;
+        [Tooltip("«Склад»: what the shop holds (optional).")]
+        public PcStorageWindow storage;
 
         [Header("Sound")]
         public SfxPlayer sfx;
