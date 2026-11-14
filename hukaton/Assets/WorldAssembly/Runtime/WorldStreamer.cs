@@ -17,7 +17,7 @@ namespace Hakaton.WorldAssembly.Unity
     /// restored when it loads again. Chunks are as alive as the Old Apiary: what burns there burns here (through
     /// <see cref="fire"/>), its trees can be awakened, its loose props pushed about.
     /// </summary>
-    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld
+    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld, IOutingLocation
     {
         [Header("Content")]
         public ChunkCatalog catalog;
@@ -383,6 +383,52 @@ namespace Hakaton.WorldAssembly.Unity
 
         public ChunkCoord CoordAt(Vector3 position) =>
             new ChunkCoord(Mathf.RoundToInt((position.x - Origin.x) / Size), Mathf.RoundToInt((position.z - Origin.z) / Size));
+
+        // ---------- debug ----------
+
+        /// <summary>For the cheat menu: the chunk under <paramref name="position"/> as the map planned it.</summary>
+        public string DescribeLocation(Vector3 position)
+        {
+            if (!Active || Map == null) return "Бесконечный мир не загружен.";
+            var rules = Map.Rules;
+            var c = CoordAt(position);
+            var plan = Map.Chunk(c);
+            float dx = position.x - Origin.x, dz = position.z - Origin.z, dy = position.y - Origin.y;
+            float metres = Mathf.Sqrt(dx * dx + dz * dz);
+            string ringSpan = plan.Ring == 0 ? $"0–{rules.InnerRadius:0} м"
+                : plan.Ring == 1 ? $"{rules.InnerRadius:0}–{rules.MiddleRadius:0} м" : $"от {rules.MiddleRadius:0} м";
+            var sb = new System.Text.StringBuilder();
+            sb.Append("Бесконечный мир, сид ").Append(Seed).Append('\n');
+            sb.Append("От центра: ").Append(metres.ToString("0")).Append(" м, высота ").Append(dy.ToString("0.0")).Append(" м\n");
+            sb.Append("Кольцо: ").Append(plan.Ring).Append(" (").Append(ringSpan).Append(")\n");
+            sb.Append("Биом: ").Append(BiomeName(plan)).Append('\n');
+            sb.Append("Чанк: ").Append(c.X).Append(", ").Append(c.Y);
+            if (WorldRules.IsStartArea(c)) sb.Append(" (старт)");
+            sb.Append('\n');
+            sb.Append("Заготовка: ").Append(plan.Shape.Id).Append(" / ").Append(plan.Variant.Id)
+                .Append(", поворот ").Append(plan.Rotation * 90).Append("°, уровень ").Append(plan.BaseLevel).Append('\n');
+            sb.Append("Тип: ").Append(plan.Shape.Kind);
+            if (plan.Forest) sb.Append(", чаща");
+            if (plan.MazeHeart) sb.Append(", сердце лабиринта");
+            if (!string.IsNullOrEmpty(plan.Theme)) sb.Append("\nЖители: ").Append(plan.Theme).Append(" (групп ").Append(plan.Spawns.Count).Append(')');
+            if (!string.IsNullOrEmpty(plan.Event)) sb.Append("\nСобытие: ").Append(plan.Event);
+            if (!string.IsNullOrEmpty(plan.PocketReward)) sb.Append("\nНаграда в кармане: ").Append(plan.PocketReward);
+            if (plan.Loot.Count > 0) sb.Append("\nНаходки: ").Append(string.Join(", ", plan.Loot));
+            return sb.ToString();
+        }
+
+        static string BiomeName(ChunkPlan plan)
+        {
+            if (plan.Biome != Biome.Swamp) return "Лес";
+            switch (plan.Zone)
+            {
+                case SwampZone.Reach: return "Болото — плёс";
+                case SwampZone.Drowned: return "Болото — утопленный лес";
+                case SwampZone.Moss: return "Болото — моховые поля";
+                case SwampZone.Burnt: return "Болото — гарь";
+                default: return "Болото — топь";
+            }
+        }
 
         void Stream(Vector3 centre, int budget)
         {

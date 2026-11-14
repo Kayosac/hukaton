@@ -26,12 +26,16 @@ namespace Hakaton.Game
         [Min(1)] public int pixelScale = 1;
         public Vector2Int panelPosition = new Vector2Int(16, 16);
         public Vector2Int panelSize = new Vector2Int(460, 560);
+        [Tooltip("Width of the location plate shown at the top right while the menu is open.")]
+        public int locationWidth = 460;
 
         public bool IsOpen { get; private set; }
         string status = string.Empty;
         NewGameStart? armedRestart;
         int grantLevel = 1;
         Vector2 scroll;
+        string whereabouts = string.Empty;
+        float whereaboutsAt = -1;
         GUIStyle title, body, button, box;
         readonly System.Random picker = new System.Random();
 
@@ -80,6 +84,7 @@ namespace Hakaton.Game
         {
             if (IsOpen == open) return;
             IsOpen = open;
+            whereaboutsAt = -1;
             var control = game && game.player ? game.player.control : null;
             if (control) control.SetBlocked(this, open);
             if (open) status = string.Empty;
@@ -255,6 +260,23 @@ namespace Hakaton.Game
             game.StartOver(from);
         }
 
+        /// <summary>Where the player is: shop, cave, the god's mountains, or the outing world's own report.</summary>
+        public string DescribeWhereabouts()
+        {
+            if (!game || !game.Ready) return "Игра не готова.";
+            if (game.InCave) return "Пещера (обучение)";
+            if (game.InGodMountains) return "Горы бога";
+            var world = game.expedition;
+            if (game.Phase == GamePhase.Expedition && world && world.Running)
+            {
+                var position = game.player ? game.player.transform.position : Vector3.zero;
+                return world.OutingWorld is Expeditions.IOutingLocation location
+                    ? location.DescribeLocation(position)
+                    : "Вылазка: мир не сообщает, где вы.";
+            }
+            return "Лавка";
+        }
+
         // ---------- Presentation ----------
 
         void BuildStyles()
@@ -269,12 +291,31 @@ namespace Hakaton.Game
             body.normal.textColor = new Color(.92f, .9f, .84f);
         }
 
+        void DrawWhereabouts(float scale)
+        {
+            if (Time.unscaledTime - whereaboutsAt > .2f || whereaboutsAt < 0)
+            {
+                whereabouts = DescribeWhereabouts();
+                whereaboutsAt = Time.unscaledTime;
+            }
+            float width = locationWidth, inner = width - 24;
+            float height = title.CalcHeight(new GUIContent("Где вы"), inner) + body.CalcHeight(new GUIContent(whereabouts), inner) + 20;
+            var rect = new Rect(Screen.width / scale - width - panelPosition.x, panelPosition.y, width, height);
+            GUI.Box(rect, GUIContent.none, box);
+            GUI.Box(rect, GUIContent.none, box);
+            GUILayout.BeginArea(new Rect(rect.x + 12, rect.y + 8, inner, height - 16));
+            GUILayout.Label("Где вы", title);
+            GUILayout.Label(whereabouts, body);
+            GUILayout.EndArea();
+        }
+
         void OnGUI()
         {
             if (!IsOpen || !Available) return;
             BuildStyles();
             float scale = pixelScale * Hakaton.Feel.UiReference.ScreenScale; // laid out for Full HD
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
+            DrawWhereabouts(scale);
             var rect = new Rect(panelPosition.x, panelPosition.y, panelSize.x, panelSize.y);
             GUI.Box(rect, GUIContent.none, box);
             GUI.Box(rect, GUIContent.none, box); // second pass darkens the translucent default skin

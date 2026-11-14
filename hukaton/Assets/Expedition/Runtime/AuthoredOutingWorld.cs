@@ -7,7 +7,7 @@ namespace Hakaton.Expeditions
     /// A ready-made location (the Old Apiary): the same place every outing, its finds, obstacles, props and creatures
     /// reset each time. It sits in the scene switched off and is switched on only for an outing that chose it.
     /// </summary>
-    public sealed class AuthoredOutingWorld : MonoBehaviour, IOutingWorld
+    public sealed class AuthoredOutingWorld : MonoBehaviour, IOutingWorld, IOutingLocation
     {
         [Tooltip("Shown in the departure title and on the choice at the door.")]
         public string placeName = "Старая пасека";
@@ -22,6 +22,15 @@ namespace Hakaton.Expeditions
 
         ExpeditionWorld world;
         int outings;
+
+        /// <summary>For the cheat menu: a ready-made location has no rings or chunks, only where you are in it.</summary>
+        public string DescribeLocation(Vector3 position)
+        {
+            var o = transform.position;
+            float dx = position.x - o.x, dz = position.z - o.z;
+            return "Готовая локация: " + placeName + "\nОт её центра: " + Mathf.Sqrt(dx * dx + dz * dz).ToString("0") + " м"
+                + "\nПозиция: " + position.x.ToString("0") + ", " + position.y.ToString("0") + ", " + position.z.ToString("0");
+        }
 
         public Pose BeginOuting(ExpeditionWorld expedition)
         {
