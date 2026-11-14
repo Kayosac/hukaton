@@ -114,6 +114,15 @@ namespace Hakaton.Trading
         public bool BulkBuyerCameThisShift { get; private set; }
         /// <summary>Debug/cheat: the next generated visitor is the bulk buyer, whatever the chance, goal or shift.</summary>
         public bool ForceBulkBuyerNext { get; set; }
+        /// <summary>
+        /// His promised visit is due (the game loop: once the endless world has opened): the first shift opened with a
+        /// full display starts with him, whatever the chance. Happens once (<see cref="BulkBuyerPromiseKept"/>).
+        /// </summary>
+        public bool BulkBuyerPromised { get; set; }
+        /// <summary>The promised visit has happened; saved.</summary>
+        public bool BulkBuyerPromiseKept { get; private set; }
+        /// <summary>Every display slot holds an item.</summary>
+        public bool DisplayFull => DisplayCount == slots.Length;
         /// <summary>Chance upgrades bought on the PC (0: the base chance).</summary>
         public int BulkBuyerLevel { get; private set; }
         public int BulkBuyerSteps => Settings.BulkBuyerUpgradeChances.Length;
@@ -235,6 +244,61 @@ namespace Hakaton.Trading
             return chance > 0 && random.NextDouble() < chance;
         }
 
+        // ---------- the last visitor of a shift (the stranger) ----------
+
+        /// <summary>
+        /// Asked once a shift, at the moment the shop would close by itself (time is up, or the display has sold out):
+        /// terms returned walk in as one more visitor before it closes (the game loop's stranger, a talker); null closes
+        /// as usual. Never asked on a manual close or after the bulk buyer took everything.
+        /// </summary>
+        public Func<CustomerTerms> ClosingVisitor { get; set; }
+        // Asked this shift already; the terms waiting for the counter to free up; what the shop says once he is gone.
+        bool closingVisitorAsked;
+        CustomerTerms closingVisitor;
+        string closingMessage;
+
+        /// <summary>
+        /// The shop is about to close by itself: true (stay open) while a closing visitor is on his way. Asks
+        /// <see cref="ClosingVisitor"/> the first time in a shift.
+        /// </summary>
+        bool HoldForClosingVisitor(string message)
+        {
+            if (closingVisitor != null) return true;
+            if (closingVisitorAsked || ClosingVisitor == null || CustomerScript != null || ClockPaused) return false;
+            closingVisitorAsked = true;
+            closingVisitor = ClosingVisitor();
+            if (closingVisitor == null) return false;
+            closingMessage = message;
+            LastMessage = message;
+            Touch();
+            return true;
+        }
+
+        /// <summary>Closes by itself, unless a closing visitor is still to come.</summary>
+        void FinishShiftOrHold(string message)
+        {
+            if (!HoldForClosingVisitor(message)) FinishShift(message);
+        }
+
+        /// <summary>
+        /// The next line of a talker at the counter; after his last he goes, and if he came to close the shift, it ends.
+        /// False if he is not the visitor at the counter.
+        /// </summary>
+        public bool ReadOnTalker(long customerId)
+        {
+            var customer = CurrentCustomer;
+            if (!IsOpen || customer == null || customer.Id != customerId || !customer.IsTalker) return false;
+            if (customer.Line < customer.Lines.Count - 1) { customer.Line++; Touch(); return true; }
+            RecordDeparture(CustomerOutcome.Talked);
+            CurrentDeal = null; CurrentCustomer = null;
+            LastMessage = string.Empty;
+            Touch();
+            if (RemainingSeconds <= 0 || DisplayCount == 0 || closingMessage != null)
+                FinishShift(closingMessage ?? (RemainingSeconds <= 0 ? "Время смены закончилось." : "Витрина пуста. Лавка закрыта для выкладки."));
+            closingMessage = null;
+            return true;
+        }
+
         public TradingSession(TradeSettings settings = null, int seed = 1, CoinWallet wallet = null)
         {
             Settings = (settings ?? new TradeSettings()).ValidatedCopy();
@@ -299,7 +363,10 @@ namespace Hakaton.Trading
             if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Вернитесь из вылазки с новой добычей."; return false; }
             if (DisplayCount == 0) { LastMessage = "Сначала выставьте хотя бы один предмет."; return false; }
             IsOpen = true; Touch();
-            AdvanceCustomer();
+            // The promised bulk buyer: the first shift opened with a full display (never in the tutorial) starts with him.
+            bool promised = BulkBuyerPromised && !BulkBuyerPromiseKept && DisplayFull && CustomerScript == null && !ClockPaused;
+            AdvanceCustomer(promised ? new CustomerTerms { Name = "Скупщик", BulkBuyer = true } : null);
+            if (promised && CurrentCustomer != null && CurrentCustomer.IsBulkBuyer) { BulkBuyerPromiseKept = true; Touch(); }
             return true;
         }
 
@@ -308,6 +375,7 @@ namespace Hakaton.Trading
             if (!IsOpen) return;
             RecordDeparture(CustomerOutcome.ShopClosed);
             IsOpen = false; CurrentCustomer = null; CurrentDeal = null;
+            closingVisitorAsked = false; closingVisitor = null; closingMessage = null;
             LastMessage = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
             Touch();
         }
@@ -319,7 +387,7 @@ namespace Hakaton.Trading
             if (!IsOpen || ClockPaused) return;
             RemainingSeconds = Math.Max(0, RemainingSeconds - elapsedSeconds);
             // A visitor already at the counter is served to the end of the conversation.
-            if (RemainingSeconds <= 0 && CurrentCustomer == null) FinishShift("Время смены закончилось.");
+            if (RemainingSeconds <= 0 && CurrentCustomer == null) FinishShiftOrHold("Время смены закончилось.");
         }
 
         /// <summary>
@@ -331,8 +399,11 @@ namespace Hakaton.Trading
             if (!IsOpen || CurrentCustomer != null) return false;
             if (RemainingSeconds <= 0 || DisplayCount == 0)
             {
-                FinishShift(RemainingSeconds <= 0 ? "Время смены закончилось." : "Витрина пуста. Лавка закрыта для выкладки.");
-                return false;
+                string closing = RemainingSeconds <= 0 ? "Время смены закончилось." : "Витрина пуста. Лавка закрыта для выкладки.";
+                if (!HoldForClosingVisitor(closing)) { FinishShift(closing); return false; }
+                // The last visitor of the shift walks in before it closes.
+                terms = closingVisitor;
+                closingVisitor = null;
             }
             var nextTerms = terms ?? CustomerScript?.Invoke();
             // Now and then (never in the tutorial) the visitor is the bulk buyer instead of a random one.
@@ -340,6 +411,13 @@ namespace Hakaton.Trading
                 nextTerms = BulkBuyerComes() ? new CustomerTerms { Name = "Скупщик", BulkBuyer = true } : GenerateCustomer();
             ValidateCustomerTerms(nextTerms);
             CurrentCustomer = new Customer(++nextCustomerId, nextTerms);
+            if (CurrentCustomer.IsTalker)
+            {
+                // He only talks: no item, no deal; his lines are read on (ReadOnTalker).
+                LastMessage = CurrentCustomer.Lines[0];
+                Touch();
+                return true;
+            }
             if (CurrentCustomer.IsBulkBuyer)
             {
                 // He offers for the whole display as it stands; the display cannot change until he leaves.
@@ -475,6 +553,8 @@ namespace Hakaton.Trading
         public bool Refuse(long customerId)
         {
             if (!IsOpen || CurrentCustomer == null || CurrentCustomer.Id != customerId) return false;
+            // A talker is a conversation, not an offer: nothing to refuse, he is read to the end.
+            if (CurrentCustomer.IsTalker) return false;
             if (CurrentCustomer.IsBulkBuyer)
             {
                 // A refusal is an answer too: he has been met and leaves calmly, the goods stay where they are.
@@ -556,7 +636,8 @@ namespace Hakaton.Trading
             var save = new TradingSave {
                 remainingSeconds = RemainingSeconds, grossRevenue = GrossRevenue, salesCount = SalesCount,
                 nextItemId = nextItemId, nextExpeditionId = nextExpeditionId, shiftLevel = ShiftLevel,
-                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift
+                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift,
+                bulkBuyerPromiseKept = BulkBuyerPromiseKept
             };
             foreach (var item in inventory)
                 save.items.Add(new TradingItemSave { instanceId = item.Id, definitionId = item.Definition.Id });
@@ -607,6 +688,7 @@ namespace Hakaton.Trading
             RemainingSeconds = Math.Min(save.remainingSeconds, ShiftLength);
             BulkBuyerLevel = Math.Min(save.bulkBuyerLevel, BulkBuyerSteps);
             BulkBuyerMet = save.bulkBuyerMet; BulkBuyerCameThisShift = save.bulkBuyerThisShift;
+            BulkBuyerPromiseKept = save.bulkBuyerPromiseKept;
             GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;
             nextItemId = save.nextItemId; nextExpeditionId = save.nextExpeditionId;
             CurrentCustomer = null; CurrentDeal = null; LastSoldItem = null; LastDeparture = null;
@@ -638,26 +720,30 @@ namespace Hakaton.Trading
             CurrentDeal = null; CurrentCustomer = null; Touch();
             LastMessage = $"Продано: {deal.Item.Definition.Name} за {price} монет.";
             if (RemainingSeconds <= 0 || DisplayCount == 0)
-                FinishShift(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
+                FinishShiftOrHold(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
         }
 
         private void EndWithoutSale(string message, CustomerOutcome outcome)
         {
             RecordDeparture(outcome);
             CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Touch();
-            if (RemainingSeconds <= 0) FinishShift(message + " Смена окончена.");
+            if (RemainingSeconds <= 0) FinishShiftOrHold(message + " Смена окончена.");
         }
 
         private void FinishShift(string message)
         {
             RecordDeparture(CustomerOutcome.ShopClosed);
-            IsOpen = false; CurrentDeal = null; CurrentCustomer = null; LastMessage = message; Touch();
+            IsOpen = false; CurrentDeal = null; CurrentCustomer = null; LastMessage = message;
+            // Every shift ends here or in Close: the next one may ask for a closing visitor again.
+            closingVisitorAsked = false; closingVisitor = null; closingMessage = null;
+            Touch();
         }
 
         private void RecordDeparture(CustomerOutcome outcome)
         {
             if (CurrentCustomer == null) return;
-            LastDeparture = new CustomerDeparture(CurrentCustomer.Id, outcome, ++DepartureSequence, CurrentCustomer.IsBulkBuyer);
+            LastDeparture = new CustomerDeparture(CurrentCustomer.Id, outcome, ++DepartureSequence, CurrentCustomer.IsBulkBuyer,
+                CurrentCustomer.IsTalker, CurrentCustomer.LineMood);
         }
 
         private CustomerTerms GenerateCustomer()
@@ -685,6 +771,13 @@ namespace Hakaton.Trading
 
         private void ValidateCustomerTerms(CustomerTerms terms)
         {
+            if (!terms.BulkBuyer && terms.Talk != null && terms.Talk.Length > 0)
+            {
+                // A talker names no item and never haggles: a name and lines to say.
+                if (string.IsNullOrWhiteSpace(terms.Name) || Array.Exists(terms.Talk, line => line == null))
+                    throw new ArgumentException("A talking visitor needs a name and lines.", nameof(terms));
+                return;
+            }
             if (terms.BulkBuyer)
             {
                 // He names no item and never haggles: only a name and something on the display to buy.

@@ -194,7 +194,7 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
-        public void PeacefulAndTimidCreaturesComeThriceOver()
+        public void PeacefulAndTimidCreaturesAreNotMultiplied()
         {
             int calm = 0, fierce = 0;
             for (int seed = 1; seed <= 10; seed++)
@@ -207,7 +207,7 @@ namespace Hakaton.WorldAssembly.Tests
                     {
                         if (CreatureThemes.IsCalm(group.Key.Creature))
                         {
-                            Assert.That(group.Count() % 3, Is.Zero, $"seed {seed}: {p} holds {group.Key.Creature}×{group.Key.Count} in {group.Count()} groups");
+                            Assert.That(group.Count(), Is.EqualTo(1), $"seed {seed}: {p} holds {group.Key.Creature}×{group.Key.Count} in {group.Count()} groups");
                             calm += group.Count() * group.Key.Count;
                         }
                         else fierce += group.Count() * group.Key.Count;

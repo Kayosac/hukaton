@@ -26,6 +26,10 @@ namespace Hakaton.Game
         public OutingMapSave map;
         /// <summary>The god in the mountains has been met (his «?» is gone from the map). False in older saves.</summary>
         public bool godMet;
+        /// <summary>An outing into the endless world has come back (the stranger may come after it). False in older saves.</summary>
+        public bool endlessVisited;
+        /// <summary>The stranger at the end of a shift has come (once per save). False in older saves.</summary>
+        public bool strangerVisited;
         /// <summary>Special items: bought ones, the dealer's introductions, the phone's battery steps. Null in old saves.</summary>
         public Hakaton.SpecialItems.SpecialItemsSave specialItems;
         /// <summary>The first-open guides of the brazier and the PC: shown ones, where a half-shown one stopped. Null in old saves.</summary>

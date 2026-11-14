@@ -53,6 +53,17 @@ namespace Hakaton.Expeditions
         [Tooltip("Normal impact speed for 1 / 2 / 4 damage: 6 / 9 / 12 m/s.")]
         [Min(0)] public float collisionDamageSpeed = 6;
         [Min(.1f)] public float collisionDamageStep = 3;
+        [Header("Brawl sound (beasts fighting each other)")]
+        [Tooltip("The whole brawl is heard as at most this many voices at once.")]
+        [Min(1)] public int brawlVoices = 2;
+        [Tooltip("Volume of the beasts' strikes and hits on each other (deaths stay at full volume).")]
+        [Range(0, 1)] public float brawlVolume = .6f;
+        [Tooltip("Posturing growls of the whole brawl: one beast at a time, once in this many seconds.")]
+        public Vector2 brawlGrowlEvery = new Vector2(3, 5);
+        [Tooltip("Closer than this to the brawl it sounds open; further it gets muffled, as from behind a wall (metres).")]
+        [Min(0)] public float brawlClearDistance = 10;
+        [Tooltip("From this distance on the brawl is fully muffled (metres).")]
+        [Min(0)] public float brawlMuffledDistance = 16;
         [Header("Transitions")]
         [Min(.05f)] public float returnFadeSeconds = .7f;
         [Min(.05f)] public float arriveFadeSeconds = .55f;

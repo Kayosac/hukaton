@@ -50,7 +50,23 @@ namespace Hakaton.Expeditions
         {
             if (!world || !cue) return null;
             var bus = kind == VoiceKind.Step ? SfxBus.CreatureStep : SfxBus.Creature;
-            return world.PlayIn(bus, this, VoicePriority(kind), cue, at, volume, pitch);
+            // Beasts fighting each other (a beast brawl, «Раздор») are heard as one fight, not as every beast at once.
+            var brawl = Brawling ? Referee as Object : null;
+            if (!brawl || !world.settings) return world.PlayIn(bus, this, VoicePriority(kind), cue, at, volume, pitch);
+            var settings = world.settings;
+            if (kind != VoiceKind.Death) volume *= settings.brawlVolume;
+            return world.PlayIn(bus, this, VoicePriority(kind), cue, at, volume, pitch, brawl, settings.brawlVoices, BrawlMuffle);
+        }
+
+        /// <summary>From afar the brawl sounds as from behind a wall; it opens up as the player comes close.</summary>
+        float BrawlMuffle
+        {
+            get
+            {
+                var settings = world.settings;
+                float distance = Flat(PlayerPosition - arenaCentre).magnitude;
+                return Mathf.SmoothStep(0, 1, Mathf.InverseLerp(settings.brawlClearDistance, Mathf.Max(settings.brawlClearDistance + .1f, settings.brawlMuffledDistance), distance));
+            }
         }
 
         /// <summary>The body loop (a swarm's buzz) as a request: only the few loudest that matter really sound.</summary>

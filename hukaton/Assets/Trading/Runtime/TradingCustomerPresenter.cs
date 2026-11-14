@@ -97,13 +97,15 @@ namespace Hakaton.Trading.Unity
                         var result = session.LastDeparture;
                         bool theirs = result != null && result.CustomerId == pair.Value;
                         bool sold = theirs && result.Outcome == CustomerOutcome.Purchased;
-                        // The bulk buyer takes a refusal calmly: no anger, he just goes.
+                        // The bulk buyer takes a refusal calmly: no anger, he just goes. A talker goes with the face of his last line.
                         bool calm = theirs && result.BulkBuyer;
-                        visitor.Leave(sold ? NpcExpression.Happy : calm ? NpcExpression.Neutral : NpcExpression.Angry);
+                        bool talker = theirs && result.Talker;
+                        visitor.Leave(sold ? NpcExpression.Happy : talker ? ExpressionFor(result.Mood)
+                            : calm ? NpcExpression.Neutral : NpcExpression.Angry);
                     }
                 }
                 else if (visitor.ReadyForTrade && !HoldExpression)
-                    visitor.SetExpression(ExpressionFor(session.CurrentDeal?.Mood ?? CustomerMood.Neutral));
+                    visitor.SetExpression(ExpressionFor(current.IsTalker ? current.LineMood : session.CurrentDeal?.Mood ?? CustomerMood.Neutral));
             }
             foreach (var done in finished) presented.Remove(done);
 
@@ -112,8 +114,9 @@ namespace Hakaton.Trading.Unity
                 var free = Idle();
                 if (!free || !roster) return;
                 bag ??= new VisitorBag(() => roster ? roster.visitors : null);
-                // The bulk buyer has his own look (Visitor roster → Bulk Buyer) and is no part of the shuffled round.
-                var special = current.IsBulkBuyer ? roster.bulkBuyer : null;
+                // The bulk buyer has his own look (Visitor roster → Bulk Buyer) and is no part of the shuffled round; so does
+                // the stranger who only talks (Visitor roster → Stranger).
+                var special = current.IsBulkBuyer ? roster.bulkBuyer : current.IsTalker ? roster.stranger : null;
                 var appearance = special ? special : bag.Peek();
                 if (appearance && free.BeginVisit(appearance))
                 {

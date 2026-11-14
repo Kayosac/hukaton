@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hakaton.Expeditions
@@ -169,6 +170,19 @@ namespace Hakaton.Expeditions
             hurtByCrash = false;
         }
 
+        static readonly Dictionary<IBrawlReferee, float> nextBrawlGrowl = new Dictionary<IBrawlReferee, float>();
+
+        /// <summary>True when it is this beast's turn to growl for its brawl (shared by all the brawl's beasts).</summary>
+        bool BrawlGrowlTurn()
+        {
+            if (Referee == null || !world || !world.settings) return true;
+            if (nextBrawlGrowl.TryGetValue(Referee, out float at) && Time.time < at) return false;
+            if (nextBrawlGrowl.Count > 32) nextBrawlGrowl.Clear();
+            var every = world.settings.brawlGrowlEvery;
+            nextBrawlGrowl[Referee] = Time.time + Random.Range(Mathf.Min(every.x, every.y), Mathf.Max(every.x, every.y));
+            return true;
+        }
+
         float FromArenaCentre => Flat(body.position - arenaCentre).magnitude;
 
         /// <summary>Decisions while brawling, instead of the temperament's.</summary>
@@ -182,7 +196,8 @@ namespace Hakaton.Expeditions
                 if (Time.time >= nextPosture)
                 {
                     nextPosture = Time.time + Random.Range(1.1f, 1.9f);
-                    Voice(VoiceKind.Threat, threatCue, body.position, 1, Random.Range(.92f, 1.1f));
+                    // The whole brawl growls one beast at a time, now and then; the others only bristle.
+                    if (BrawlGrowlTurn()) Voice(VoiceKind.Threat, threatCue, body.position, 1, Random.Range(.92f, 1.1f));
                     squash.Kick(-2.5f);
                 }
                 return;

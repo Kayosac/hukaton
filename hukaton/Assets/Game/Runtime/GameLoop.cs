@@ -60,6 +60,36 @@ namespace Hakaton.Game
             "Но ладно, в этот раз прощаю, я видел по бухгалтерии. От тебя есть польза.",
             "А у меня есть для тебя кое-что интересное. Заглядывай."
         };
+        [Header("The stranger at the end of a shift")]
+        [Tooltip("Once the first outing into the endless world is back, each shift that ends by itself (time up or the display " +
+                 "sold out) brings one more visitor with this chance — once per save: a stranger (Visitor roster → Stranger, " +
+                 "the blacksmith's look) who buys nothing and only talks, his lines read on like any visitor's.")]
+        [Range(0, 1)] public float strangerChance = .3f;
+        [TextArea] public string[] strangerLines =
+        {
+            "Странно, эта лавка так давно пустовала.",
+            "А ты кто такой?",
+            "Где прежний хозяин, знаешь?",
+            "...",
+            "Не хочешь со мной говорить?",
+            "Я бы на твоём месте был поаккуратнее."
+        };
+        [Tooltip("His face (and voice) on each of his lines, in order; missing entries are neutral.")]
+        public CustomerMood[] strangerMoods =
+        {
+            CustomerMood.Neutral, CustomerMood.Neutral, CustomerMood.Neutral,
+            CustomerMood.Displeased, CustomerMood.Displeased, CustomerMood.Angry
+        };
+        [Tooltip("When the shift is over after him, the goblin poofs in on the counter (the shop tutorial's goblin), the view " +
+                 "turns to him, he says these lines (E or a click) and poofs away.")]
+        [TextArea] public string[] strangerGoblinLines =
+        {
+            "Кто это был?",
+            "Не слушай этого идиота.",
+            "За работу, партнёр!"
+        };
+        [Tooltip("Seconds from the shift's end (the view back from the counter) to the goblin's puff.")]
+        [Min(0)] public float strangerGoblinDelay = .6f;
         public FirstPersonMotor player;
         [Tooltip("Special items (board «Спецпредметы»): sold by the goblin dealer once open, kept forever, used on outings with Q.")]
         public SpecialItemsHost specialItems;
@@ -134,6 +164,13 @@ namespace Hakaton.Game
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
         public bool DrownLectureGiven => drownLectureGiven;
         bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet, godLectureRunning;
+        // The stranger: an endless outing is back; he has come (saved); sent for this closing; the goblin's word after him.
+        bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning;
+        float strangerGoblinAt;
+        /// <summary>The stranger has come (saved): he does not come again.</summary>
+        public bool StrangerVisited => strangerVisited;
+        /// <summary>An outing into the endless world has come back (saved): from now on the stranger may come.</summary>
+        public bool EndlessVisited => endlessVisited;
         // The return notice waits until the goblin has had his say.
         string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
@@ -172,6 +209,8 @@ namespace Hakaton.Game
             // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
             // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
             trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
+            // A shift that ends by itself may bring the stranger as its last visitor.
+            trade.Session.ClosingVisitor = StrangerAtClosing;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
@@ -239,12 +278,15 @@ namespace Hakaton.Game
         void LateUpdate()
         {
             if (!Ready) return;
+            // Once the endless world is open, the first shift opened with a full display starts with the bulk buyer.
+            trade.Session.BulkBuyerPromised = EndlessWorldUnlocked;
             TrackShift();
             // The whole tutorial is behind the player: a later new game may skip it.
             if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
             if (tutorialWasRunning && GoalGiven) ArmGoalBanner();
             tutorialWasRunning = !GoalGiven;
             TryShowGoalBanner();
+            TrackStranger();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen && !LectureActive)
@@ -268,6 +310,52 @@ namespace Hakaton.Game
             if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
             shopWasOpen = open;
         }
+        /// <summary>
+        /// The shop is about to close by itself: after the first endless outing, once per save, with <see cref="strangerChance"/>
+        /// (or the cheat), one more visitor — the stranger who only talks. Null: the shop closes as usual.
+        /// </summary>
+        CustomerTerms StrangerAtClosing()
+        {
+            if (tutorial.Active || InCave || strangerLines == null || strangerLines.Length == 0) return null;
+            if (!strangerForced && (!endlessVisited || strangerVisited || UnityEngine.Random.value >= strangerChance)) return null;
+            strangerForced = false;
+            strangerSent = true;
+            return new CustomerTerms { Name = "Незнакомец", Talk = strangerLines, TalkMoods = strangerMoods };
+        }
+
+        /// <summary>
+        /// The stranger at the counter counts as come (saved). Once the shift has really ended after him (the shop closed, the
+        /// view back from the counter, nothing in front), the goblin poofs in on the counter with his word.
+        /// </summary>
+        void TrackStranger()
+        {
+            var customer = trade.Session.CurrentCustomer;
+            if (strangerSent && customer != null && customer.IsTalker)
+            {
+                strangerSent = false;
+                strangerGoblinDue = true;
+                if (!strangerVisited) { strangerVisited = true; dirty = true; }
+            }
+            if (!strangerGoblinDue) return;
+            if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.ViewTransitioning || services.IsOpen || LectureActive
+                || GamePause.Suspended || expedition.Returning || departing)
+            {
+                strangerGoblinAt = Time.unscaledTime + strangerGoblinDelay;
+                return;
+            }
+            if (Time.unscaledTime < strangerGoblinAt) return;
+            strangerGoblinDue = false;
+            if (lecture && tutorial.goblin && !tutorial.Active && strangerGoblinLines != null && strangerGoblinLines.Length > 0)
+                strangerLectureRunning = lecture.Play(strangerGoblinLines, tutorial.goblin, true);
+        }
+
+        /// <summary>Cheats: the next shift that ends by itself brings the stranger (and the goblin after him), whatever was before.</summary>
+        public void ForceStrangerNext()
+        {
+            strangerForced = true;
+            MarkDirty();
+        }
+
         void ArmGoalBanner()
         {
             goalBannerPending = true;
@@ -473,6 +561,8 @@ namespace Hakaton.Game
             SetPhase(GamePhase.Shop);
             restoring = false;
             cardShop.Visits.OutingReturned();
+            // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
+            if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             int kept = delivery.Sum(x => x.count);
             string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
@@ -487,6 +577,8 @@ namespace Hakaton.Game
 
         void OnLectureFinished()
         {
+            // The goblin's word after the stranger: nothing to record.
+            if (strangerLectureRunning) { strangerLectureRunning = false; return; }
             // The goblin's word after the god: the special items open now (UnlockCheck), not the drowning lecture.
             if (godLectureRunning) { godLectureRunning = false; dirty = true; return; }
             drownLectureGiven = true;
@@ -610,6 +702,7 @@ namespace Hakaton.Game
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet,
+            endlessVisited = endlessVisited, strangerVisited = strangerVisited,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null
         };
@@ -630,6 +723,8 @@ namespace Hakaton.Game
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
             godMet = save.godMet;
+            endlessVisited = save.endlessVisited;
+            strangerVisited = save.strangerVisited;
             if (outingMap)
             {
                 outingMap.Restore(save.map);

@@ -32,11 +32,15 @@ namespace Hakaton.Trading.Unity
         [Tooltip("The tock between two ticks: pitch and loudness relative to the tick.")]
         [Range(.5f, 1.5f)] public float tockPitch = .8f;
         [Range(0, 1)] public float tockVolume = .7f;
+        [Header("Bulk buyer («Скупщик») arrival")]
+        [Tooltip("Seconds into the arrival sting where its big stab lands: the camera punches then.")]
+        [Min(0)] public float bulkStabAt = .68f;
+        public float bulkFovPunch = -12, bulkTrauma = .25f;
 
         long seenCustomer;
         int seenSettlement, seenDeparture, seenRevision = -1, lastTick = -1, displayedGold;
         bool seenOpen;
-        float voiceAt = -1;
+        float voiceAt = -1, bulkStab = -1;
         CustomerMood pendingMood;
         long greetedCustomer;
         // The bulk buyer's speech: the line he has voiced last (-1: none yet) and when the pending line's phrase plays.
@@ -62,6 +66,21 @@ namespace Hakaton.Trading.Unity
         }
 
         static SfxCue Voice(SfxCue own, SfxCue common) => own ? own : common;
+
+        /// <summary>
+        /// A talker's phrase for a line: his own line phrases when he has them, else his voice by the line's mood (angry, or
+        /// thinking). A silent line (no letters, «...») is not voiced.
+        /// </summary>
+        SfxCue TalkerVoice(Customer customer, int line)
+        {
+            if (line < 0 || line >= customer.Lines.Count) return null;
+            bool silent = true;
+            foreach (char c in customer.Lines[line]) if (char.IsLetter(c)) { silent = false; break; }
+            if (silent) return null;
+            if (voice.voiceLines != null && voice.voiceLines.Length > 0) return voice.VoiceLine(line, customer.Lines.Count);
+            return line < customer.LineMoods.Count && customer.LineMoods[line] == CustomerMood.Angry
+                ? Voice(voice.voiceAngry, cues.npcAngry) : Voice(voice.voiceThinking, cues.npcNeutral);
+        }
 
         void OnPlaced(int slot) => sfx?.Play(cues ? cues.placeItem : null, trade.World.SlotAnchors[slot].position);
         void OnTaken(int slot) => sfx?.Play(cues ? cues.takeItem : null, trade.World.SlotAnchors[slot].position);
@@ -100,6 +119,17 @@ namespace Hakaton.Trading.Unity
                 seenCustomer = customer.Id;
                 sfx.Play(cues.doorBell);
                 seenRevision = -1;
+                // The bulk buyer is rare and worth a whole display: a sting the player cannot miss, the camera punches on its stab.
+                if (customer.IsBulkBuyer && cues.bulkBuyerArrive)
+                {
+                    sfx.Play(cues.bulkBuyerArrive);
+                    bulkStab = Time.unscaledTime + bulkStabAt;
+                }
+            }
+            if (bulkStab > 0 && Time.unscaledTime >= bulkStab)
+            {
+                bulkStab = -1;
+                if (feel) { feel.PunchFov(bulkFovPunch); feel.AddTrauma(bulkTrauma); }
             }
 
             // The visitor greets the shopkeeper in their own voice once they reach the counter.
@@ -113,9 +143,10 @@ namespace Hakaton.Trading.Unity
             }
 
             // A visitor who explains himself line by line (the bulk buyer) says each line in his own phrase.
-            if (customer != null && customer.IsBulkBuyer && customer.Id == greetedCustomer && voice && customer.Lines != null)
+            if (customer != null && (customer.IsBulkBuyer || customer.IsTalker) && customer.Id == greetedCustomer && voice
+                && customer.Lines != null)
             {
-                int line = trade.BulkLine;
+                int line = customer.IsTalker ? customer.Line : trade.BulkLine;
                 if (line != voicedLine)
                 {
                     lineVoiceAt = Time.unscaledTime + (voicedLine < 0 && voice.voiceArrive ? AfterGreeting : 0);
@@ -124,7 +155,7 @@ namespace Hakaton.Trading.Unity
                 if (lineVoiceAt > 0 && Time.unscaledTime >= lineVoiceAt)
                 {
                     lineVoiceAt = -1;
-                    var phrase = voice.VoiceLine(line, customer.Lines.Count);
+                    var phrase = customer.IsTalker ? TalkerVoice(customer, line) : voice.VoiceLine(line, customer.Lines.Count);
                     if (phrase) sfx.Play(phrase);
                 }
             }
