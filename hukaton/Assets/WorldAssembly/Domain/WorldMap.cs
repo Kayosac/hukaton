@@ -354,6 +354,8 @@ namespace Hakaton.WorldAssembly
                     break;
                 }
             }
+            // The rotten swamp keeps only its own creatures: its shores, channels and terraces take swamp themes too.
+            if (plan.Biome == Biome.Swamp && theme != null && !CreatureThemes.IsSwampTheme(theme)) theme = CreatureThemes.SwampFallback(plan.Shape.Kind);
             plan.Theme = theme;
             if (theme != null && creatureRoll < chance)
             {
