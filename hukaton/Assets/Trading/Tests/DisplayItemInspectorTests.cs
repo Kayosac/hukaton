@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Hakaton.Trading.Tests
 {
-    /// <summary>The close look at a displayed model: its framing, zoom and spin arithmetic, and what counts as a model.</summary>
+    /// <summary>The close look at a displayed item: its framing, zoom and spin arithmetic, and what can be looked at.</summary>
     public sealed class DisplayItemInspectorTests
     {
         static readonly float Tan60 = Mathf.Tan(30 * Mathf.Deg2Rad);
@@ -101,24 +101,35 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void OnlyModelsCanBeLookedAtNotDrawings()
+        public void ModelsAndDrawingsCanBeLookedAtButNotEmptyThings()
         {
             var model = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var texture = new Texture2D(4, 4);
             var drawing = new GameObject("drawing");
-            drawing.AddComponent<SpriteRenderer>();
-            drawing.AddComponent<LootSpriteView>();
+            var picture = new GameObject("picture").AddComponent<SpriteRenderer>();
+            picture.transform.SetParent(drawing.transform, false);
+            picture.sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), new Vector2(.5f, 0), 4);
+            drawing.AddComponent<LootSpriteView>().spriteRenderer = picture;
+            var blank = new GameObject("blank drawing");
+            blank.AddComponent<SpriteRenderer>();
             var empty = new GameObject("empty");
             try
             {
-                Assert.That(DisplayItemInspector.IsModel(model), Is.True);
-                Assert.That(DisplayItemInspector.IsModel(drawing), Is.False);
-                Assert.That(DisplayItemInspector.IsModel(empty), Is.False);
-                Assert.That(DisplayItemInspector.IsModel(null), Is.False);
+                Assert.That(DisplayItemInspector.IsInspectable(model), Is.True);
+                Assert.That(DisplayItemInspector.IsDrawing(model), Is.False);
+                Assert.That(DisplayItemInspector.IsInspectable(drawing), Is.True);
+                Assert.That(DisplayItemInspector.IsDrawing(drawing), Is.True);
+                Assert.That(DisplayItemInspector.IsInspectable(blank), Is.False, "A sprite renderer without a picture.");
+                Assert.That(DisplayItemInspector.IsInspectable(empty), Is.False);
+                Assert.That(DisplayItemInspector.IsInspectable(null), Is.False);
             }
             finally
             {
+                Object.DestroyImmediate(picture.sprite);
+                Object.DestroyImmediate(texture);
                 Object.DestroyImmediate(model);
                 Object.DestroyImmediate(drawing);
+                Object.DestroyImmediate(blank);
                 Object.DestroyImmediate(empty);
             }
         }

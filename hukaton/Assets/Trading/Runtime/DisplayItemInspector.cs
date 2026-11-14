@@ -8,8 +8,9 @@ using UnityEngine.Rendering;
 namespace Hakaton.Trading.Unity
 {
     /// <summary>
-    /// A close look at a 3D item on the display. In the closed shop R on an aimed-at model lifts a copy of it from the
-    /// shelf to the middle of the view (the original only hides meanwhile: its pose stays the shop's), over a dimmed
+    /// A close look at an item on the display, a 3D model or a drawing alike. In the closed shop R on an aimed-at item lifts
+    /// a copy of it from the shelf to the middle of the view (a drawing stops turning to the camera and turns as a flat card
+    /// with the mouse; its material draws both sides) (the original only hides meanwhile: its pose stays the shop's), over a dimmed
     /// backdrop and in its own soft light. The mouse turns it (it follows smoothly and coasts after a flick), the wheel
     /// brings it closer or takes it away; R, the right button or Escape fly it back. Movement and look are held like
     /// under any window (<see cref="PlayerControlGate"/>), the held stock is lowered. Ends at once when the item leaves
@@ -19,20 +20,21 @@ namespace Hakaton.Trading.Unity
     [DisallowMultipleComponent, DefaultExecutionOrder(610)]
     public sealed class DisplayItemInspector : MonoBehaviour
     {
-        /// <summary>Added to the aim's prompt on a model that can be looked at.</summary>
+        /// <summary>Added to the aim's prompt on a displayed item that can be looked at.</summary>
         public const string PromptSuffix = " · R Рассмотреть";
         /// <summary>The hint line while looking.</summary>
         public const string Hint = "Мышь — крутить · Колесо — ближе · R / ПКМ — вернуть";
 
         [Header("Framing")]
         [Tooltip("Share of the view's height the item's bounding sphere spans at rest.")]
-        [Range(.2f, .9f)] public float heightShare = .52f;
-        [Tooltip("How far in front of the eye the item is held, metres, when nothing in view is closer.")]
-        [Min(.05f)] public float holdDistance = .5f;
+        [Range(.2f, .9f)] public float heightShare = .58f;
+        [Tooltip("How far in front of the eye the item is held, metres, when nothing in view is closer. The picture is the same " +
+                 "at any distance (the size follows it); nearer keeps decor without colliders from standing in front of the backdrop.")]
+        [Min(.05f)] public float holdDistance = .3f;
         [Tooltip("Never nearer than this, metres, however close the shelf or a wall is (the picture is the same at any distance).")]
         [Min(.02f)] public float minHoldDistance = .1f;
         [Tooltip("Wheel: the nearest and the farthest the item comes, as multiples of the hold distance.")]
-        public Vector2 zoomRange = new Vector2(.62f, 1.3f);
+        public Vector2 zoomRange = new Vector2(.75f, 1.35f);
         [Tooltip("Each wheel notch multiplies the distance by this (closer) or divides by it (farther).")]
         [Range(.5f, .99f)] public float zoomStep = .9f;
         [Tooltip("How quickly the item follows the wheel, per second.")]
@@ -91,7 +93,7 @@ namespace Hakaton.Trading.Unity
         Texture2D vignette;
         Light key, rim;
         GameObject checkedObject;
-        bool checkedIsModel;
+        bool checkedIsModel, drawing;
         readonly List<Vector3> vertices = new List<Vector3>();
 
         /// <summary>Lifting, held or turning in front of the eye (not on the way back).</summary>
@@ -107,26 +109,30 @@ namespace Hakaton.Trading.Unity
         Camera Eye => World ? World.ViewCamera : null;
 
         /// <summary>The aim rests on this display slot: is there a model on it that can be looked at now?</summary>
-        public bool CanInspect(int displaySlot) => phase == Phase.Idle && ShownModel(displaySlot) != null;
+        public bool CanInspect(int displaySlot) => phase == Phase.Idle && ShownItem(displaySlot) != null;
 
-        GameObject ShownModel(int displaySlot)
+        GameObject ShownItem(int displaySlot)
         {
             if (!trade || trade.Session == null || displaySlot < 0 || displaySlot >= trade.Session.Slots.Count) return null;
             var shown = trade.DisplayedObject(displaySlot);
             if (!shown || !shown.activeInHierarchy || trade.Session.Slots[displaySlot] == null) return null;
-            if (shown != checkedObject) { checkedObject = shown; checkedIsModel = IsModel(shown); }
+            if (shown != checkedObject) { checkedObject = shown; checkedIsModel = IsInspectable(shown); }
             return checkedIsModel ? shown : null;
         }
 
-        /// <summary>A 3D model (the collectible curios), not a drawing standing on the shelf.</summary>
-        public static bool IsModel(GameObject shown)
+        /// <summary>Something to look at: a 3D model (the collectible curios) or a drawing standing on the shelf.</summary>
+        public static bool IsInspectable(GameObject shown)
         {
-            if (!shown || shown.GetComponentInChildren<LootSpriteView>(true)) return false;
+            if (!shown) return false;
             foreach (var renderer in shown.GetComponentsInChildren<Renderer>())
                 if (renderer is MeshRenderer && renderer.TryGetComponent(out MeshFilter filter) && filter.sharedMesh
-                    || renderer is SkinnedMeshRenderer skinned && skinned.sharedMesh) return true;
+                    || renderer is SkinnedMeshRenderer skinned && skinned.sharedMesh
+                    || renderer is SpriteRenderer sprite && sprite.sprite) return true;
             return false;
         }
+
+        /// <summary>A drawing (<see cref="LootSpriteView"/>), not a model.</summary>
+        public static bool IsDrawing(GameObject shown) => shown && shown.GetComponentInChildren<LootSpriteView>(true);
 
         /// <summary>Starts the look at the model on this slot; false when there is none or the player is busy.</summary>
         public bool TryBegin(int displaySlot)
@@ -136,7 +142,7 @@ namespace Hakaton.Trading.Unity
             // Free walk in the closed shop with nothing else holding the player (a window, the tutorial's lines).
             if (phase != Phase.Idle || session == null || session.IsOpen || session.ExpeditionId != 0 || !World.Control
                 || World.Control.HasModalOwner || trade.ViewTransitioning || GamePause.Suspended || !eye || eye.orthographic) return false;
-            var shown = ShownModel(displaySlot);
+            var shown = ShownItem(displaySlot);
             if (!shown || !Measure(shown, out centre, out float localRadius)) return false;
             EnsureRig();
 
@@ -150,7 +156,10 @@ namespace Hakaton.Trading.Unity
             holder.localScale = Vector3.one * sourceScale;
             var copy = Instantiate(shown, holder, false);
             copy.name = shown.name + " (рассматривается)";
-            Strip(copy);
+            Strip(copy, shown);
+            drawing = IsDrawing(shown);
+            // A drawing no longer turns to the camera: it is turned as a flat card, like a model.
+            foreach (var view in copy.GetComponentsInChildren<LootSpriteView>(true)) view.faceCamera = false;
             var relative = source.lossyScale / sourceScale;
             copy.transform.localRotation = Quaternion.identity;
             copy.transform.localScale = relative;
@@ -303,6 +312,10 @@ namespace Hakaton.Trading.Unity
             Vector3 front = Vector3.ProjectOnPlane(-source.right, Vector3.up);
             if (front.sqrMagnitude < 1e-4f) front = Vector3.ProjectOnPlane(eye.position - source.position, Vector3.up);
             if (front.sqrMagnitude < 1e-4f) front = Vector3.forward;
+            // A drawing shows its face straight to the eye, as on the shelf (it faces away from its viewer there).
+            if (drawing) return Quaternion.LookRotation(eye.forward, eye.up) * Quaternion.Inverse(Quaternion.LookRotation(
+                Vector3.ProjectOnPlane(source.forward, Vector3.up).sqrMagnitude > 1e-4f ? Vector3.ProjectOnPlane(source.forward, Vector3.up) : Vector3.forward,
+                Vector3.up)) * source.rotation;
             var shelfFrame = Quaternion.LookRotation(front.normalized, Vector3.up);
             var viewFrame = Quaternion.LookRotation(-eye.forward, eye.up);
             var turn = Quaternion.AngleAxis(presentTurn.x, eye.up) * Quaternion.AngleAxis(presentTurn.y, eye.right);
@@ -405,11 +418,18 @@ namespace Hakaton.Trading.Unity
             var points = new List<Vector3>();
             foreach (var renderer in shown.GetComponentsInChildren<Renderer>())
             {
+                if (!renderer.enabled) continue;
+                var toRoot = root * renderer.transform.localToWorldMatrix;
+                if (renderer is SpriteRenderer sprite)
+                {
+                    Outline(sprite, vertices);
+                    foreach (var v in vertices) points.Add(toRoot.MultiplyPoint3x4(v));
+                    continue;
+                }
                 Mesh mesh = null;
                 if (renderer is MeshRenderer && renderer.TryGetComponent(out MeshFilter filter)) mesh = filter.sharedMesh;
                 else if (renderer is SkinnedMeshRenderer skinned) mesh = skinned.sharedMesh;
-                if (!mesh || !renderer.enabled) continue;
-                var toRoot = root * renderer.transform.localToWorldMatrix;
+                if (!mesh) continue;
                 vertices.Clear();
                 if (mesh.isReadable) mesh.GetVertices(vertices);
                 else
@@ -430,15 +450,47 @@ namespace Hakaton.Trading.Unity
             return reach > 1e-5f;
         }
 
-        /// <summary>The copy only shows: no colliders, no behaviour of its own, no shadows across the shop.</summary>
-        static void Strip(GameObject copy)
+        /// <summary>
+        /// A drawing's imported outline (transparent margins excluded; its bounds without one), in the renderer's space.
+        /// </summary>
+        static void Outline(SpriteRenderer sprite, List<Vector3> points)
+        {
+            points.Clear();
+            if (!sprite.sprite) return;
+            var outline = new List<Vector2>();
+            for (int shape = 0; shape < sprite.sprite.GetPhysicsShapeCount(); shape++)
+            {
+                sprite.sprite.GetPhysicsShape(shape, outline);
+                foreach (var point in outline) points.Add(new Vector3(sprite.flipX ? -point.x : point.x, sprite.flipY ? -point.y : point.y, 0));
+            }
+            if (points.Count > 0) return;
+            var box = sprite.sprite.bounds;
+            for (int corner = 0; corner < 4; corner++)
+                points.Add(new Vector3((corner & 1) == 0 ? box.min.x : box.max.x, (corner & 2) == 0 ? box.min.y : box.max.y, 0));
+        }
+
+        /// <summary>
+        /// The copy only shows: no colliders, no behaviour of its own, no shadows across the shop. It keeps the original's
+        /// per-renderer properties (a drawing's sprite rectangle and wobble) and is drawn over the backdrop.
+        /// </summary>
+        static void Strip(GameObject copy, GameObject original)
         {
             foreach (var collider in copy.GetComponentsInChildren<Collider>(true)) { collider.enabled = false; Destroy(collider); }
             foreach (var behaviour in copy.GetComponentsInChildren<MonoBehaviour>(true)) behaviour.enabled = false;
-            foreach (var renderer in copy.GetComponentsInChildren<Renderer>(true))
+            var sources = original.GetComponentsInChildren<Renderer>(true);
+            var copies = copy.GetComponentsInChildren<Renderer>(true);
+            var properties = new MaterialPropertyBlock();
+            for (int i = 0; i < copies.Length; i++)
             {
+                var renderer = copies[i];
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
+                renderer.sortingOrder = short.MaxValue;
+                if (i < sources.Length && sources[i].HasPropertyBlock())
+                {
+                    sources[i].GetPropertyBlock(properties);
+                    renderer.SetPropertyBlock(properties);
+                }
             }
             copy.SetActive(true);
         }
@@ -461,8 +513,9 @@ namespace Hakaton.Trading.Unity
             backdrop.receiveShadows = false;
             backdrop.lightProbeUsage = LightProbeUsage.Off;
             backdrop.reflectionProbeUsage = ReflectionProbeUsage.Off;
-            // Drawn last among the scene's sorted transparencies (sprites, effects): over everything behind it.
-            backdrop.sortingOrder = short.MaxValue;
+            // Drawn last among the scene's sorted transparencies (sprites, effects): over everything behind it, under the
+            // looked-at copy (a drawing is transparent too).
+            backdrop.sortingOrder = short.MaxValue - 1;
             var shader = Shader.Find("Sprites/Default");
             if (!shader) shader = Shader.Find("UI/Default");
             backdropMaterial = new Material(shader) { name = "Inspection backdrop", renderQueue = 3000 };

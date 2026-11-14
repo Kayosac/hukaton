@@ -13,7 +13,7 @@ using UnityEngine.TestTools;
 namespace Hakaton.Game.Tests
 {
     /// <summary>
-    /// A close look at a model on the display (DisplayItemInspector) in the real shop: it lifts a copy while the shelf
+    /// A close look at an item on the display (DisplayItemInspector) in the real shop: it lifts a copy while the shelf
     /// original hides, holds the player, and puts everything back; it ends at once when the item leaves the display.
     /// The player's own save files are moved aside for the run and put back afterwards.
     /// </summary>
@@ -58,7 +58,7 @@ namespace Hakaton.Game.Tests
             var inspector = trade.Inspector;
             Assert.That(inspector, Is.Not.Null, "The shop makes its inspector itself.");
             Assert.That(inspector.CanInspect(0), Is.True, "A curio model can be looked at.");
-            Assert.That(inspector.CanInspect(1), Is.False, "A drawing cannot.");
+            Assert.That(inspector.CanInspect(1), Is.True, "A drawing too.");
             Assert.That(inspector.CanInspect(2), Is.False, "Nor an empty slot.");
             yield return Aim(trade, 0);
 
@@ -81,9 +81,16 @@ namespace Hakaton.Game.Tests
             var middle = eye.WorldToViewportPoint(bounds.center);
             Assert.That(middle.x, Is.EqualTo(.5f).Within(.06f), "In the middle of the view.");
             Assert.That(middle.y, Is.EqualTo(.5f).Within(.06f), "In the middle of the view.");
-            float tall = eye.WorldToViewportPoint(bounds.center + eye.transform.up * bounds.extents.magnitude).y
-                         - eye.WorldToViewportPoint(bounds.center - eye.transform.up * bounds.extents.magnitude).y;
-            Assert.That(tall, Is.InRange(.3f, .8f), "A comfortable share of the view.");
+            float low = 1, high = 0;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                var point = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
+                    (corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
+                float y = eye.WorldToViewportPoint(point).y;
+                low = Mathf.Min(low, y);
+                high = Mathf.Max(high, y);
+            }
+            Assert.That(high - low, Is.InRange(.3f, .85f), "A comfortable share of the view (its box seen from the eye).");
             Assert.That(middle.z, Is.LessThan(.55f), "Close in front of the eye.");
             Assert.That(original.transform.position, Is.EqualTo(shelfPosition), "The shelf original never moves.");
             yield return null;
@@ -100,6 +107,49 @@ namespace Hakaton.Game.Tests
             Assert.That(Copy(inspector), Is.Null, "The copy is gone.");
             Assert.That(control.HasModalOwner, Is.False, "Control is back.");
             Assert.That(trade.World.HeldStock.Suppressed, Is.False);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator ADrawingIsLookedAtAsAFlatCardThatTurns()
+        {
+            var trade = Prepare();
+            var inspector = trade.Inspector;
+            yield return Aim(trade, 1);
+            var original = trade.DisplayedObject(1);
+            Assert.That(inspector.TryBegin(1), Is.True);
+            Assert.That(original.activeSelf, Is.False);
+            yield return WaitFor(() => false, .8f);
+            var copy = Copy(inspector);
+            Assert.That(copy, Is.Not.Null);
+            var view = copy.GetComponentInChildren<Hakaton.Loot.LootSpriteView>(true);
+            Assert.That(view.faceCamera, Is.False, "The copy no longer turns to the camera by itself.");
+            var picture = copy.GetComponentInChildren<SpriteRenderer>();
+            Assert.That(picture.sharedMaterial, Is.SameAs(original.GetComponentInChildren<SpriteRenderer>(true).sharedMaterial),
+                "The shared hand-drawn material, no copy of it.");
+            Assert.That(picture.sharedMaterial.shader.name, Does.Contain("Hand Drawn"));
+            var eye = trade.World.ViewCamera;
+            Assert.That(Vector3.Dot(picture.transform.forward, eye.transform.forward), Is.GreaterThan(.9f),
+                $"Face to the eye. picture {picture.transform.forward} root {copy.transform.forward} eye {eye.transform.forward} original {original.transform.rotation.eulerAngles} picture local {picture.transform.localRotation.eulerAngles}");
+            var middle = eye.WorldToViewportPoint(WorldBounds(copy).center);
+            Assert.That(middle.x, Is.EqualTo(.5f).Within(.06f));
+            Assert.That(middle.y, Is.EqualTo(.5f).Within(.06f));
+            // The drawing's own rectangle (with its transparent margins) as the eye sees it.
+            var box = picture.sprite.bounds;
+            float low = 1, high = 0;
+            for (int corner = 0; corner < 4; corner++)
+            {
+                var point = picture.transform.TransformPoint(new Vector3((corner & 1) == 0 ? box.min.x : box.max.x,
+                    (corner & 2) == 0 ? box.min.y : box.max.y, 0));
+                float y = eye.WorldToViewportPoint(point).y;
+                low = Mathf.Min(low, y);
+                high = Mathf.Max(high, y);
+            }
+            Assert.That(high - low, Is.InRange(.25f, .85f), "The same share of the view as a model.");
+            inspector.Return();
+            yield return WaitFor(() => !inspector.Active, 1);
+            Assert.That(original.activeSelf, Is.True);
+            Assert.That(trade.World.Control.HasModalOwner, Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -183,8 +233,8 @@ namespace Hakaton.Game.Tests
                 if (view) view.ResetPose(look);
                 break;
             }
-            yield return null;
-            yield return null;
+            // Let the view settle on the new pose (look smoothing, the step after a teleport).
+            yield return WaitFor(() => false, .3f);
         }
 
         internal static GameObject Copy(DisplayItemInspector inspector)

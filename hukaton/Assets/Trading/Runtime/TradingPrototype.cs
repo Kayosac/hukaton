@@ -91,9 +91,9 @@ namespace Hakaton.Trading.Unity
         /// <summary>When set, the shop does not open and this is said instead (the tutorial wants both wares out first).</summary>
         public string OpenRefusal { get; set; }
         public event System.Action<int> ItemPlaced, ItemTaken, SlotHovered;
-        /// <summary>A model on this display slot is lifted for a close look (R) / is back on the shelf.</summary>
+        /// <summary>The item on this display slot is lifted for a close look (R) / is back on the shelf.</summary>
         public event System.Action<int> ItemInspected, ItemReturned;
-        /// <summary>The close look at a displayed model (created with the shop, nothing to wire).</summary>
+        /// <summary>The close look at a displayed item, model or drawing (created with the shop, nothing to wire).</summary>
         public DisplayItemInspector Inspector { get; private set; }
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
