@@ -2,6 +2,13 @@
 
 - By default work directly in the user's open main project (`/Users/kayosac/hukaton`) and its already open Unity Editor. Before creating your own worktree, clone, branch copy or separate Unity project, ASK the user and wait for a clear yes; never create one on your own initiative.
 
+# Documentation format — hard user rule (2026-11-12)
+
+- ALL project documentation must be authored and delivered ONLY as Markdown (`.md`): descriptions, guides, specifications, concept-pack documentation, reports, instructions and archive entry points.
+- NEVER create or include PDF documentation. Do not substitute HTML, DOCX or TXT documentation for Markdown, and do not add PDF exports, print versions or PDF previews to deliverables or archives.
+- Keep illustrations and diagrams as separate image assets linked from Markdown. Documentation archives must use a `README.md` entry point and Markdown documents.
+- This explicit user rule overrides conflicting format defaults in skills, templates, previous packages and project documentation. Do not ask to generate a PDF unless the user explicitly changes this rule.
+
 # Project art direction
 
 For shop visitors and NPC character illustrations, use the user-approved style in `output/shop-visitors/style-current.json`.
@@ -60,7 +67,7 @@ Keep this style by default unless the user explicitly changes it. This direction
 
 - The separate native **Hakaton — таблица всех карт** table is `tb_hakaton-cards`, URL `kayospace://board/tb_hakaton-cards`, in the Hakaton project. It contains the user-requested 26 cards: 22 main cards, 3 story instructions and «Пора домой». Table, row, column and image IDs are recorded in `docs/cards/kayospace-registry.json`; update existing rows when maintaining this catalogue.
 - Use `Assets/Game/Data/Cards.asset` and its referenced `CardDefinition`, `effectAsset` and artwork assets as the source. Read current runtime behavior for units and special cases; older design documents and comments contain outdated two-level numbers. Keep card levels I / II / III distinct from rarity ranks. Do not invent a combat/exploration split. Story and return cards are not sold; a zero serialized price does not mean a free shop offer.
-- Keep full artwork PNGs as native attachments in «Изображение». The table shows effect descriptions, I / II / III parameters, uses per outing and ONLY the full purchase price (`CardDefinition.purchasePrice`) in coins; omit blind/discounted prices as the user requested. Keep «Не продаётся» for story and return cards. The initial layout uses 220 px rows and explicit column widths; preserve subsequent user adjustments. Verification records are under `output/card-catalog/`; stored-data and PNG verification do not constitute a screenshot review or Unity Play-mode validation.
+- Keep full artwork PNGs as native attachments in «Изображение». The table shows effect descriptions, I / II / III parameters, uses per outing and ONLY the full purchase price (`CardDefinition.purchasePrice`) in coins; omit blind/discounted prices as the user requested. Keep «Не продаётся» for story and return cards. The «Редкость (шанс у гоблина)» column (added 13.11.2026 at the user's request) shows `CardDefinition.rank` with the goblin's rank-roll weight, e.g. «3 (15 %)» (weights from `GoblinOffer.RankWeights`); «—» for story and return cards. Keep it current when a card's rank or the weights change. The initial layout uses 220 px rows and explicit column widths; preserve subsequent user adjustments. Verification records are under `output/card-catalog/`; stored-data and PNG verification do not constitute a screenshot review or Unity Play-mode validation.
 
 # Enemy loot sprites — required interactive workflow
 

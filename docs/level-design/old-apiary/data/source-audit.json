@@ -1,0 +1,66 @@
+{
+  "checked": "2026-11-09",
+  "sources": [
+    {
+      "id": "S01",
+      "name": "Kayospace Hakaton Concept Doc",
+      "path": "kayospace://board/hakaton-f5xwo",
+      "scope": "Фреймы: единая колода 01M6XW2BPW9RGMMMFP3FFB1JE5; открытый мир 01M6XZ499DKR5PESH91F0B27H4; подробные карты 01M6YJ35HZ67T08Y2GHGY1D69P; расширенный каталог 01M6YRCD8RA3RAES9B2MXENRDP. Сверка 09.11.2026, 768 элементов."
+    },
+    {
+      "id": "S02",
+      "name": "Игра и вылазка",
+      "path": "../../../hukaton/Assets/Game/README.md",
+      "scope": "Дополнительно Assets/Expedition/README.md. Общий цикл и существующие компоненты; старое перечисление шести карт в Game README дополнено фактическим каталогом."
+    },
+    {
+      "id": "S03",
+      "name": "Колода и определения карт",
+      "path": "../../../hukaton/Assets/Game/Data/Cards.asset",
+      "scope": "Decks/Domain/DeckModel.cs; Game/Data/*.asset. Сохранённые параметры имеют приоритет над значениями конструктора по умолчанию."
+    },
+    {
+      "id": "S04",
+      "name": "Вылазка, подбор и препятствия",
+      "path": "../../../hukaton/Assets/Expedition/Runtime/ExpeditionWorld.cs",
+      "scope": "WorldObstacle.cs, FreezeEffect.cs, HealEffect.cs, WorldLoot.cs и Game/Data/Expedition.asset. Подбор 3,2 м; сфера 0,35 м; обнаруженное отсутствие проверки заслона."
+    },
+    {
+      "id": "S05",
+      "name": "Новые карты и последние решения",
+      "path": "../../../tmp/new-cards/DECISIONS.md",
+      "scope": "Expedition/Runtime/Cards/, Runtime/CardSystems/ и Game/Data/Effects/*.asset. Подмена сохраняет собственные скорости; верёвка передаёт силы; дерево теряет старую верёвку при оживлении."
+    },
+    {
+      "id": "S06",
+      "name": "Общий контроллер игрока",
+      "path": "../../../hukaton/Assets/Character/Runtime/FirstPersonMotor.cs",
+      "scope": "Character/Prefabs/FirstPersonPlayer.prefab. Нормализация импульса; реальная g=25; шаг 4; спринт 6,5; прыжок 1,2; капсула 1,8 × 0,56 м. ApplyImpulse прибавляет положительную скорость прыжка; начальная скорость прыжка не уменьшается Луной. Раздел 7.22."
+    },
+    {
+      "id": "S07",
+      "name": "Forest Art Pack V1",
+      "path": "../../../output/forest-art-pack-v1/06-catalog-and-prompts/assets.json",
+      "scope": "README.txt и модельные карточки. 119 будущих ассетов, 44 листа, 16 грунтовых текстур, 21 декаль. Готовые меши и вода в поставку не входили."
+    },
+    {
+      "id": "S08",
+      "name": "Монстры и трофеи",
+      "path": "../../../hukaton/Assets/Game/Prefabs",
+      "scope": "Purple mushroom, Goblin dog, Budding troll, Hostile bush и Trophy *.prefab. Снимок текущих HP, масс, поведения и стоимости."
+    },
+    {
+      "id": "S09",
+      "name": "Утверждённый стиль и состояния",
+      "path": "../../../output/monsters/style-current.json",
+      "scope": "Утверждённые mushroom и goblin-dog masters/approval. Также руководство по стилю Kayospace 01M700AECF87JXTFV3KXFXM3SP."
+    },
+    {
+      "id": "S10",
+      "name": "Правила авторинга проекта",
+      "path": "../../../AGENTS.md",
+      "scope": "Редактируемые сцены и префабы, serialized-ссылки, общий модуль персонажа, сдержанный HUD, утверждённые шрифты."
+    }
+  ],
+  "relative_path_base": "docs/level-design/old-apiary (directory of LEVEL_DESIGN.md)"
+}
