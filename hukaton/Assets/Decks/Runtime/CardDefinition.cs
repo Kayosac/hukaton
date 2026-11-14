@@ -45,7 +45,8 @@ namespace Hakaton.Decks.Unity
         EvilEye = 38,
         Crows = 39,
         PowderBarrel = 40,
-        Boomerang = 41
+        Boomerang = 41,
+        Fan = 42
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]

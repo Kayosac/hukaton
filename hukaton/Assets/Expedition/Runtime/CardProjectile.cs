@@ -28,6 +28,8 @@ namespace Hakaton.Expeditions
         bool resolved;
         Pose? handPose;
         ICardFlightPath path;
+        CardVolley volley;
+        float loopVolume = 1;
 
         static readonly System.Collections.Generic.List<CardProjectile> active = new System.Collections.Generic.List<CardProjectile>();
         /// <summary>Cards in flight (creatures' projectiles check them: a card knocks a projectile out of the air).</summary>
@@ -44,6 +46,19 @@ namespace Hakaton.Expeditions
         public Vector3 LaunchPosition => launchPosition;
         /// <summary>The card's own flight (<see cref="ICustomFlight"/>: Бумеранг), or null for the ordinary ballistic one.</summary>
         public ICardFlightPath Path => path;
+        /// <summary>The cards thrown together with this one (<see cref="ICardVolley"/>: Веер), or null for a single card.</summary>
+        public CardVolley Volley => volley;
+
+        /// <summary>
+        /// Joins the volley of one throw (Веер): the copy's attempt settles once, after the last card of it.
+        /// <paramref name="flightLoopVolume"/> scales its flutter (0: it flies silent, the volley's other cards flutter).
+        /// </summary>
+        internal void JoinVolley(CardVolley shared, float flightLoopVolume)
+        {
+            volley = shared;
+            loopVolume = Mathf.Max(0, flightLoopVolume);
+            shared?.Add(this);
+        }
 
         public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, Pose? fromHand)
         {
@@ -94,7 +109,7 @@ namespace Hakaton.Expeditions
             age += Time.deltaTime;
             if (!resolved && age > world.settings.projectileLife) { if (path != null) Drop(); else Fizzle(); }
             var loop = path?.FlightLoop ?? (world.cues ? world.cues.cardFlutter : null);
-            if (!resolved) world.sfx?.Loop(this, loop, transform.position, Mathf.Clamp01(velocity.magnitude / 18f));
+            if (!resolved && loopVolume > 0) world.sfx?.Loop(this, loop, transform.position, Mathf.Clamp01(velocity.magnitude / 18f) * loopVolume);
         }
 
         void LateUpdate() { if (!resolved) UpdateVisual(Time.deltaTime); }
@@ -212,7 +227,9 @@ namespace Hakaton.Expeditions
             if (world.sfx) world.sfx.StopLoop(this);
             // The attempt is over (hit, miss or gone): a card with uses left (Teleport II / III) returns to the hand;
             // one that could only come back by being caught (Бумеранг) and was not goes to the spent pile.
-            if (card != null && world.workshop && world.workshop.Model != null) world.workshop.Model.Current?.Settle(card.Id);
+            // A volley (Веер) settles its one copy once, after its last card.
+            if (card != null && world.workshop && world.workshop.Model != null && (volley == null || volley.Finish(this)))
+                world.workshop.Model.Current?.Settle(card.Id);
         }
     }
 }
