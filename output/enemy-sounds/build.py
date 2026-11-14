@@ -132,7 +132,7 @@ for e in enemies:
         if k in seen: continue
         seen.add(k); rr.append(r)
     out.append(dict(ru=e['ru'],prefab=e['prefab'],type=TYPES.get(e['type'],e['type']),img=e['sprite'][0],w=e['sprite'][1][0],h=e['sprite'][1][1],photo=e.get('photo',False),
-        sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),
+        sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),vol=float(r['cue']['volume'] or 1),
                      clips=[dict(a=enc(c),file=os.path.relpath(c,A)) for c in r['cue']['clips']]) for r in rr]))
 PRJ={'Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
 for e in out:
