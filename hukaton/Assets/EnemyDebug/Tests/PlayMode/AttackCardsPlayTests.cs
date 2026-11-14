@@ -421,7 +421,11 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         {
             // Пёс у своего дома (там, где его ставит отладочная сцена): вдали от дома он бы шёл домой, а не нападал.
             var preview = sandbox.Previews.First(p => p.source && p.source.name == "Goblin dog");
+            // Псы приходят стаей: остальные из стаи кусали бы игрока, пока вороны клюют этого. Здесь нужен один пёс.
+            int squad = sandbox.squadSize;
+            sandbox.squadSize = 1;
             var dog = sandbox.Spawn(preview);
+            sandbox.squadSize = squad;
             Vector3 front = dog.Position + Vector3.back * 3.5f;
             sandbox.motor.Teleport(front + Vector3.up * .05f, Quaternion.LookRotation(dog.Position - front));
             float until = Time.time + 8;
