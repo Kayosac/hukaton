@@ -286,6 +286,8 @@ namespace Hakaton.Expeditions
             if (State == CreatureState.Frozen) Recover(.35f);
             if (Time.time < stunnedUntil) { if (State != CreatureState.Stunned) Enter(CreatureState.Stunned); Halt(); return; }
             if (State == CreatureState.Stunned) Recover(.2f);
+            // Отвлечён (Вороньё, WorldCreature.Distraction.cs): ни на кого не нападает, пока не отпустит.
+            if (ThinkDistracted()) { UpdateOverhead(); return; }
             // It saw the player's side attack its kin (WorldCreature.Kin.cs): the start is over, it turns on the attacker.
             if (kinAlarmed && Time.time >= kinAlarmAt) RiseForKin();
 

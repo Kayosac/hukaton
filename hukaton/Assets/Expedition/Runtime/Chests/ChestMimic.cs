@@ -16,7 +16,7 @@ namespace Hakaton.Expeditions
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(TreasureChest))]
-    public sealed class ChestMimic : MonoBehaviour, ICardCreature, IChestOccupant
+    public sealed class ChestMimic : MonoBehaviour, ICardCreature, IChestOccupant, IDistractable
     {
         /// <summary>What survives an unload: shut and unsuspecting, shut and on guard, killed, opened while frozen.</summary>
         public enum State { Closed, Alert, Dead, Opened }
@@ -112,6 +112,17 @@ namespace Hakaton.Expeditions
         public int Bites { get; private set; }
         public bool Busy => mode == Mode.Warning || mode == Mode.Biting || mode == Mode.Fleeing || mode == Mode.Recovering;
 
+        // Отвлечение (Вороньё): пока отвлечён, не кусает — от удара и открытия только убегает, начатый укус щёлкает впустую.
+        float distractedUntil;
+        public bool Distracted => Alive && Time.time < distractedUntil;
+        public bool Distract(float seconds)
+        {
+            if (!Alive || seconds <= 0) return false;
+            distractedUntil = Mathf.Max(distractedUntil, Time.time + seconds);
+            return true;
+        }
+        public void EndDistraction() => distractedUntil = 0;
+
         // ICombatant
         public Faction Faction => Faction.Wild;
         public bool Alive => mode != Mode.Dead && mode != Mode.Opened;
@@ -199,7 +210,9 @@ namespace Hakaton.Expeditions
             }
             if (mode != Mode.Disguised) return true;
             EndShiver();
-            StartCoroutine(Bite());
+            // Отвлечён воронами: не кусает, а удирает.
+            if (Distracted) { alert = true; StartCoroutine(Flee()); }
+            else StartCoroutine(Bite());
             return true;
         }
 
@@ -339,7 +352,7 @@ namespace Hakaton.Expeditions
             if (mode == Mode.Disguised)
             {
                 alert = true;
-                if (PlayerDistance() <= biteReach + .4f) StartCoroutine(Bite());
+                if (!Distracted && PlayerDistance() <= biteReach + .4f) StartCoroutine(Bite());
                 else StartCoroutine(Flee());
             }
             else if (mode == Mode.Recovering) StartCoroutine(Flee());
@@ -478,7 +491,8 @@ namespace Hakaton.Expeditions
         {
             var world = World;
             world.Play(biteCue, Centre);
-            if (world.vitals == null) return;
+            // Отвлечён воронами: челюсти щёлкают по воронам, не по игроку.
+            if (world.vitals == null || Distracted) return;
             Vector3 mouth = Centre - transform.forward * .3f;
             if (Vector3.Distance(mouth, world.vitals.Centre) > biteReach) return;
             Vector3 push = Flat(world.vitals.Centre - transform.position);
