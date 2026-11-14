@@ -29,20 +29,21 @@ namespace Hakaton.WorldAssembly
 
         static readonly Dictionary<string, Theme> themes = new Dictionary<string, Theme>
         {
-            // Scenes of flat chunks.
-            ["apiary"] = new Theme("zombie-beekeeper", "bee-swarm*3|bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm", "enraged-bee-mutant+bee-swarm*2|bee-swarm*4"),
-            ["farm"] = new Theme("rooster-baseball*2", Rats + "|" + Rats + "+rooster-baseball", Rats + "|" + Dogs2 + "+" + Rats),
+            // Scenes of flat chunks. Ring 0 is calm but for a pinch of bee swarms and pumpkin rats (about 2% of its
+            // creatures each); leshy skaters and baseball roosters come about equally in rings 0 and 1.
+            ["apiary"] = new Theme("zombie-beekeeper|bee-swarm", "bee-swarm*3|bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm", "enraged-bee-mutant+bee-swarm*2|bee-swarm*4"),
+            ["farm"] = new Theme("rooster-baseball*2|rooster-baseball|rooster-baseball|rat-pumpkin*1-2", Rats + "|" + Rats + "+rooster-baseball*2", Rats + "|" + Dogs2 + "+" + Rats),
             ["camp"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Rats, Dogs2 + "+drunken-dwarf-robot|goblin-dog*3"),
             // The floating clown turns up alone in odd places, in ring 1 only: the ruins (and the yard), the fort.
             ["ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|" + Rats + "|" + Clown, "drunken-dwarf-robot*2"),
             // Wild bee swarms now and then hang about the grove and the grassy knolls.
-            ["grove"] = new Theme("teen-leshy-skater", "hostile-bush*2|teen-leshy-skater*2|hostile-bush*2|bee-swarm*2", "sinister-living-tree+hostile-bush*2"),
+            ["grove"] = new Theme("teen-leshy-skater*2|teen-leshy-skater*2|teen-leshy-skater+bee-swarm", "hostile-bush*2|teen-leshy-skater*2|hostile-bush*2|bee-swarm*2", "sinister-living-tree+hostile-bush*2"),
             ["hollow"] = new Theme("purple-mushroom*3", "purple-mushroom*3" + "|" + Agaric1, "purple-mushroom*3+" + Dogs1 + "|" + Agaric2),
             ["pond"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|snail-frog-mount+bee-swarm*2"),
-            ["knoll"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|" + Rats, Dogs2),
-            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2", Dogs1 + "|" + Dogs1 + "|budding-troll|bee-swarm*2|hostile-bush*2", "budding-troll|" + Dogs2),
+            ["knoll"] = new Theme("kind-little-worm*2|teen-leshy-skater*2|bee-swarm", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|" + Rats, Dogs2),
+            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2|teen-leshy-skater*2", Dogs1 + "|" + Dogs1 + "|budding-troll|bee-swarm*2|hostile-bush*2", "budding-troll|" + Dogs2),
             // Other shapes.
-            ["maze"] = new Theme("kind-little-worm", "hostile-bush*2", "hostile-bush*3"),
+            ["maze"] = new Theme("kind-little-worm|teen-leshy-skater*2", "hostile-bush*2", "hostile-bush*3"),
             ["forest"] = new Theme("teen-leshy-skater", "hostile-bush*2|teen-leshy-skater*2|sinister-living-tree", "sinister-living-tree+hostile-bush*2|sinister-living-tree*2"),
             ["river"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|hostile-bush*2"),
             ["canyon"] = new Theme("", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|hostile-bush*2", Dogs2),

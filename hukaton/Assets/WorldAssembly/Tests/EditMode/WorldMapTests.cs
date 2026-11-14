@@ -94,7 +94,10 @@ namespace Hakaton.WorldAssembly.Tests
                     {
                         if (!WorldRules.IsStartArea(c) && Math.Max(Math.Abs(c.X), Math.Abs(c.Y)) > 2)
                             Assert.AreEqual(0, p.Corners.Max(), $"seed {seed} {p}: ring 0 is low but for the start");
-                        foreach (var spawn in p.Spawns) Assert.IsTrue(CreatureThemes.IsCalm(spawn.Creature), $"seed {seed} {p}: {spawn} in ring 0");
+                        // Calm, but for a pinch of the weakest: bee swarms and pumpkin rats.
+                        foreach (var spawn in p.Spawns)
+                            Assert.IsTrue(CreatureThemes.IsCalm(spawn.Creature) || spawn.Creature == "bee-swarm" || spawn.Creature == "rat-pumpkin",
+                                $"seed {seed} {p}: {spawn} in ring 0");
                         Assert.AreNotEqual(ShapeKind.Canyon, p.Shape.Kind, $"seed {seed} {p}");
                         Assert.AreNotEqual("island", p.Variant.Id, $"seed {seed} {p}");
                     }
