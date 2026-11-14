@@ -110,6 +110,10 @@ namespace Hakaton.Game
         [Min(.5f)] public float goalBannerSeconds = 2.8f;
         [Tooltip("Heading size of the «new goal» banner against the location title's (big letters).")]
         [Min(1)] public float goalBannerScale = 1.5f;
+        [Tooltip("Size of the «Новая цель лавки» line against the banner's heading (1 = as big).")]
+        [Range(.3f, 1.2f)] public float goalCaptionScale = .85f;
+        [Tooltip("Colour of the «Новая цель лавки» line; while the banner holds it pulses toward white.")]
+        public Color goalCaptionColour = new Color(1, .8f, .1f, 1);
         [Tooltip("Celebration burst in front of the player when the revenue goal is reached.")]
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
@@ -372,8 +376,8 @@ namespace Hakaton.Game
                 || services.IsOpen || trade.Session.IsOpen || expedition.Returning || departing || !fade || fade.Busy) return;
             goalBannerPending = false;
             if (sfx) sfx.Play(titleCue);
-            fade.StartCoroutine(fade.ShowTitle(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
-                "Новая цель лавки", goalBannerSeconds, goalBannerScale));
+            fade.StartCoroutine(fade.ShowBanner(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
+                "Новая цель лавки", goalBannerSeconds, goalBannerScale, goalCaptionScale, goalCaptionColour));
         }
         static string Coins(int n)
         {
