@@ -810,7 +810,7 @@ namespace Hakaton.Expeditions
             {
                 var hit = Hits[i];
                 if (hit.collider.transform.IsChildOf(transform) || hit.distance >= best) continue;
-                if (hit.collider.attachedRigidbody && !hit.collider.attachedRigidbody.isKinematic) continue;
+                if (PropPhysics.Movable(hit.collider.attachedRigidbody)) continue;
                 best = hit.distance;
                 ground = hit.point;
                 normal = hit.normal;

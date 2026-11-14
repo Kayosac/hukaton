@@ -964,7 +964,7 @@ namespace Hakaton.WorldAssembly.Unity
                 if (!apart) continue;
                 int n = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f, .35f, spawnHits, ~(1 << 4), QueryTriggerInteraction.Ignore);
                 bool clear = true;
-                for (int i = 0; i < n; i++) if (!spawnHits[i].attachedRigidbody || spawnHits[i].attachedRigidbody.isKinematic) { clear = false; break; }
+                for (int i = 0; i < n; i++) if (!PropPhysics.Movable(spawnHits[i].attachedRigidbody)) { clear = false; break; }
                 if (clear) return at;
             }
             return null;

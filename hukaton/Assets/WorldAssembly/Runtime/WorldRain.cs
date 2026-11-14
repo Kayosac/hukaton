@@ -139,7 +139,7 @@ namespace Hakaton.WorldAssembly.Unity
                 var hit = hits[i].collider;
                 if (!hit || (body && hit.transform.IsChildOf(body))) continue;
                 // A loose thing flying overhead is no roof.
-                if (hit.attachedRigidbody && !hit.attachedRigidbody.isKinematic) continue;
+                if (PropPhysics.Movable(hit.attachedRigidbody)) continue;
                 return true;
             }
             return false;

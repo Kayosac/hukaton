@@ -555,17 +555,24 @@ namespace Hakaton.Expeditions.Events
         static readonly RaycastHit[] groundHits = new RaycastHit[8];
 
         /// <summary>The ground under a point (ignoring the event's own beasts), on the navigation when there is some near.</summary>
+        /// <summary>
+        /// The ground under a point at about its own height: the surface nearest that height, not the top of a rock or a
+        /// tree crown above it (a beast set down up there is off the navigation), then the nearest navigation.
+        /// </summary>
         Vector3 Ground(Vector3 point)
         {
             int count = Physics.RaycastNonAlloc(point + Vector3.up * 6, Vector3.down, groundHits, 14, ~(1 << 2), QueryTriggerInteraction.Ignore);
-            float best = float.MaxValue;
+            float best = float.MaxValue, height = point.y;
             for (int i = 0; i < count; i++)
             {
                 var hit = groundHits[i];
-                if (hit.rigidbody && (!hit.rigidbody.isKinematic || hit.rigidbody.GetComponent<WorldCreature>())) continue;
-                if (hit.distance < best) { best = hit.distance; point.y = hit.point.y; }
+                if (hit.rigidbody && (PropPhysics.Movable(hit.rigidbody) || hit.rigidbody.GetComponent<WorldCreature>())) continue;
+                if (hit.collider.name.EndsWith("_Crown")) continue;
+                float off = Mathf.Abs(hit.point.y - height);
+                if (off < best) { best = off; point.y = hit.point.y; }
             }
             if (NavMesh.SamplePosition(point, out var nav, 1.5f, NavMesh.AllAreas)) point = nav.position;
+            else if (NavMesh.SamplePosition(new Vector3(point.x, height, point.z), out nav, 4, NavMesh.AllAreas)) point = nav.position;
             return point;
         }
 

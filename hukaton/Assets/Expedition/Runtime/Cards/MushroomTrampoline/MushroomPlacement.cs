@@ -347,7 +347,7 @@ namespace Hakaton.Expeditions.Cards
                 var hit = Overlaps[i];
                 if (!hit || hit == support) continue;
                 var body = hit.attachedRigidbody;
-                if (body && (body == supportBody || !body.isKinematic)) continue;
+                if (body && (body == supportBody || PropPhysics.Movable(body))) continue;
                 return false;
             }
             return true;

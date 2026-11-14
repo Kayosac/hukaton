@@ -36,7 +36,7 @@ namespace Hakaton.Expeditions.Cards
         public override void Apply(in ImpactContext c)
         {
             Vector3 position = c.Point;
-            bool onBody = (c.Body && !c.Body.isKinematic) || c.Creature != null || c.HitCombatant != null;
+            bool onBody = PropPhysics.Movable(c.Body) || c.Creature != null || c.HitCombatant != null;
             if ((c.Normal.y < floorNormal || onBody) && FindGround(c.Point + c.Normal * .15f, groundSearch, out var ground)) position = ground;
             var column = c.World.SpawnForOuting(columnPrefab, position, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
             if (!column) { Feedback(c, false); return; }
@@ -51,7 +51,7 @@ namespace Hakaton.Expeditions.Cards
             float best = float.MaxValue;
             foreach (var hit in Physics.RaycastAll(from, Vector3.down, distance, ~(1 << 2), QueryTriggerInteraction.Ignore))
             {
-                if (hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (PropPhysics.Movable(hit.rigidbody)) continue;
                 if (hit.distance < best) { best = hit.distance; point = hit.point; }
             }
             return best < float.MaxValue;

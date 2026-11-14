@@ -38,7 +38,7 @@ namespace Hakaton.Expeditions.Cards
         public override void Apply(in ImpactContext c)
         {
             var target = c.Target;
-            bool movable = c.Body && !c.Body.isKinematic;
+            bool movable = PropPhysics.Movable(c.Body);
             if (!branchPrefab || !target || target.isTrigger || movable || c.Creature || c.HitCombatant != null)
             {
                 if (!branchPrefab) Debug.LogWarning("BranchBridgeEffect: no branch prefab assigned.", this);
@@ -79,7 +79,7 @@ namespace Hakaton.Expeditions.Cards
                 var hit = Hits[i];
                 // Overlaps at the start (the surface it grows from) are reported with distance 0 and no point.
                 if (hit.distance <= 0 && hit.point == Vector3.zero) continue;
-                if (hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (PropPhysics.Movable(hit.rigidbody)) continue;
                 if (!nearest.HasValue || hit.distance < nearest.Value) nearest = hit.distance;
             }
             return nearest;

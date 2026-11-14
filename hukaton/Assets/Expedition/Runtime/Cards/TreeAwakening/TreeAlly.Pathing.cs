@@ -622,13 +622,13 @@ namespace Hakaton.Expeditions.Cards
                 face = Nearest(count, out wall) && wall.normal.y < MinGroundNormal;
             }
             // Creatures and loose props are pushed, not climbed.
-            if (!face || (wall.rigidbody && !wall.rigidbody.isKinematic)) return;
+            if (!face || PropPhysics.Movable(wall.rigidbody)) return;
             float reach = ledgeHop + .3f;
             Vector3 above = wall.point + direction * .15f;
             above.y = body.position.y + reach;
             count = Physics.RaycastNonAlloc(above, Vector3.down, Hits, reach + .05f, SolidMask, QueryTriggerInteraction.Ignore);
             if (!Nearest(count, out var top) || top.normal.y < MinGroundNormal) return;
-            if (top.rigidbody && !top.rigidbody.isKinematic) return;
+            if (PropPhysics.Movable(top.rigidbody)) return;
             float rise = top.point.y - body.position.y;
             if (rise < .04f || rise > ledgeHop) return;
             if (!CapsuleFree(top.point + Vector3.up * .03f, r * .95f)) return;

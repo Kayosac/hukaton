@@ -347,7 +347,7 @@ namespace Hakaton.Expeditions.Cards
         void FixedUpdate()
         {
             if (pendingImpulse.sqrMagnitude < 1e-10f) return;
-            if (Attached && anchorBody && !anchorBody.isKinematic)
+            if (Attached && anchorBody && PropPhysics.Ready(anchorBody))
             {
                 // Real impulse (player gravity) → body units (bodies fall with the board's g).
                 float toBody = motor ? motor.referenceGravity / Mathf.Max(.1f, motor.gravity) : 9.81f / 25f;

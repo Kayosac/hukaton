@@ -37,6 +37,8 @@ namespace Hakaton.Expeditions
         public void ResetForOuting()
         {
             if (TryGetComponent(out Breakable breakable)) breakable.Restore();
+            // A ready-made place starts every outing as it was made: dormant things asleep again where they were.
+            if (dormant) Rest();
             if (!body.isKinematic) body.linearVelocity = body.angularVelocity = Vector3.zero;
             body.position = start;
             body.rotation = rotation;

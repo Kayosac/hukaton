@@ -16,7 +16,7 @@ namespace Hakaton.Expeditions.Cards
         {
             if (!collider || collider.isTrigger) return false;
             var body = collider.attachedRigidbody;
-            if (body && !body.isKinematic) return false;
+            if (PropPhysics.Movable(body)) return false;
             if (Combat.Of(collider) != null || collider.GetComponentInParent<CardProjectile>()) return false;
             return Vector3.Angle(normal, Vector3.up) <= maxSlope;
         }

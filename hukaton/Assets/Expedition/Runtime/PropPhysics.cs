@@ -30,6 +30,13 @@ namespace Hakaton.Expeditions
         public static int AwakeCount => Stirring.Count;
 
         /// <summary>
+        /// A body that is not ground: it moves, or it may (a dormant prop is still only until something touches it).
+        /// Placement, landing and roof checks skip these — a beast is not set down on a boulder that may roll away.
+        /// </summary>
+        public static bool Movable(Rigidbody body) =>
+            body && (!body.isKinematic || body.TryGetComponent(out PhysicsProp prop) && prop.dormant);
+
+        /// <summary>
         /// The body can take a push: a real body already, or a dormant prop woken for it. Use instead of a bare
         /// kinematic test wherever loose bodies are moved.
         /// </summary>

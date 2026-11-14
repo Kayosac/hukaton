@@ -698,7 +698,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < count; i++)
             {
                 var hit = groundHits[i];
-                if (hit.rigidbody == body || hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (hit.rigidbody == body || PropPhysics.Movable(hit.rigidbody)) continue;
                 if (hit.distance < best) { best = hit.distance; point.y = hit.point.y; }
             }
             return point;

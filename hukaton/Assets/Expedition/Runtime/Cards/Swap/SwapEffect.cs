@@ -44,7 +44,7 @@ namespace Hakaton.Expeditions.Cards
         {
             if (!body) return Refusal.NoObject;
             if (body.GetComponentInParent<WorldCreature>() || body.GetComponentInParent<ICombatant>() != null) return Refusal.Living;
-            if (body.isKinematic) return Refusal.Fixed;
+            if (body.isKinematic && !PropPhysics.Movable(body)) return Refusal.Fixed;
             if (body.mass > maxMass + .001f) return Refusal.TooHeavy;
             if (Vector3.Distance(playerCentre, body.worldCenterOfMass) > Range(level) + .001f) return Refusal.TooFar;
             return Refusal.None;
@@ -79,6 +79,8 @@ namespace Hakaton.Expeditions.Cards
                 return;
             }
 
+            // A dormant prop becomes a real body before it is moved (cut out of its chunk's look, falls where it lands).
+            PropPhysics.Ready(body);
             Vector3 objectFrom = body.worldCenterOfMass;
             Vector3 objectTo = ObjectPlace(body, playerFeet, motor);
             // Exchange positions only: the motor keeps the player's velocity, the body keeps its own.

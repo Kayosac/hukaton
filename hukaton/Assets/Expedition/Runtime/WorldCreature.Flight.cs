@@ -87,7 +87,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < count; i++)
             {
                 var hit = flightHits[i];
-                if (hit.rigidbody == body || hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (hit.rigidbody == body || PropPhysics.Movable(hit.rigidbody)) continue;
                 // Started inside it, or it is a slope or a top the flyer simply rises over.
                 if (hit.distance <= 0 || hit.normal.y > .6f) continue;
                 if (hit.distance < nearest) { nearest = hit.distance; normal = hit.normal; }
@@ -140,7 +140,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < count; i++)
             {
                 var hit = groundHits[i];
-                if (hit.rigidbody == body || hit.rigidbody && !hit.rigidbody.isKinematic) continue;
+                if (hit.rigidbody == body || PropPhysics.Movable(hit.rigidbody)) continue;
                 if (hit.distance < best) { best = hit.distance; height = hit.point.y; }
             }
             return best < float.MaxValue;

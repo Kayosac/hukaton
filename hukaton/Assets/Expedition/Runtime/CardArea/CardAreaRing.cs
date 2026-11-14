@@ -159,7 +159,7 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < hits; i++)
             {
                 var body = Hits[i].rigidbody;
-                if (body && !body.isKinematic) continue;
+                if (PropPhysics.Movable(body)) continue;
                 if (Hits[i].distance < best)
                 {
                     best = Hits[i].distance;
