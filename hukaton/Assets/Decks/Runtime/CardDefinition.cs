@@ -43,7 +43,8 @@ namespace Hakaton.Decks.Unity
         WaterJet = 36,
         Rockfall = 37,
         EvilEye = 38,
-        Crows = 39
+        Crows = 39,
+        PowderBarrel = 40
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]

@@ -10,7 +10,8 @@ namespace Hakaton.Expeditions.Cards
     /// «Струя» (Вода · АТАКА, ранг 2, 130 монет). Прямое попадание в зверя: урон 2 / 3 / 5, лёгкий отброс по
     /// направлению броска (импульс 4 / 5 / 6), цель становится мокрой на 30 с (<see cref="WetStatus"/>: Молния ×2,
     /// Лёд заковывает), горящий зверь гаснет (<see cref="WorldCreature.Douse"/>). Мимо зверя — всплеск: всех бойцов
-    /// (и игрока) в радиусе <see cref="splashRadius"/> мочит и тушит, горящую смолу там гасит, без урона.
+    /// (и игрока) в радиусе <see cref="splashRadius"/> мочит и тушит, горящую смолу там гасит, без урона. Пороховую бочку (<see cref="ISoakable"/>) мочит и при
+    /// прямом попадании, и всплеском: мокрая не взрывается.
     /// </summary>
     public sealed class WaterJetEffect : CardEffect, ICardStatLine, ICardArea
     {
@@ -55,6 +56,7 @@ namespace Hakaton.Expeditions.Cards
                 meaningful = true;
             }
             else meaningful = Splash(c);
+            if (SoakThings(c)) meaningful = true;
             Feedback(c, meaningful, direct ? 1 : splashScale);
         }
 
@@ -76,6 +78,23 @@ namespace Hakaton.Expeditions.Cards
             world.Zones.Near(c.Point, splashRadius, Zones, CardZoneKind.TarPuddle);
             foreach (var zone in Zones)
                 if (zone is TarPuddleZone tar && tar && tar.Extinguish()) any = true;
+            return any;
+        }
+
+        /// <summary>
+        /// Мочит то, что мокнет от воды (<see cref="ISoakable"/>: пороховая бочка): попавшее прямо и всё в радиусе
+        /// всплеска. Мокрое не горит, горящий фитиль гаснет.
+        /// </summary>
+        bool SoakThings(in ImpactContext c)
+        {
+            bool any = false;
+            var direct = c.TargetAs<ISoakable>();
+            if (direct != null && direct.Soak(c.World, wetSeconds)) any = true;
+            Zones.Clear();
+            c.World.Zones.Near(c.Point, splashRadius, Zones);
+            foreach (var zone in Zones)
+                if (zone is ISoakable soakable && !ReferenceEquals(soakable, direct)
+                    && soakable.Soak(c.World, wetSeconds)) any = true;
             return any;
         }
 

@@ -20,7 +20,9 @@ namespace Hakaton.Expeditions
         StoneCube,
         Other,
         /// <summary>A sheet of ice on water (<see cref="IcePatch"/>).</summary>
-        Ice
+        Ice,
+        /// <summary>Пороховая бочка (<see cref="Cards.PowderBarrel"/>): взрывается от огня.</summary>
+        PowderBarrel
     }
 
     /// <summary>
