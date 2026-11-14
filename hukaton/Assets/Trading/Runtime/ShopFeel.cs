@@ -26,8 +26,8 @@ namespace Hakaton.Trading.Unity
         [Tooltip("Sales at or above this price use the big coin cascade.")]
         [Min(1)] public int bigSale = 100;
         public Color walletFlash = new Color(1f, .84f, .45f);
-        [Tooltip("The clock ticks over the last this many seconds of a shift: tick on each whole second, tock between " +
-                 "(the HUD clock shakes over the same seconds, TradingHud.countdownSeconds).")]
+        [Tooltip("Used only without a HUD: the clock ticks over the last this many seconds of a shift. With a HUD its " +
+                 "Countdown Seconds rule both the ticking and the shaking.")]
         [Min(0)] public float tickingSeconds = 3;
         [Tooltip("The tock between two ticks: pitch and loudness relative to the tick.")]
         [Range(.5f, 1.5f)] public float tockPitch = .8f;
@@ -173,19 +173,21 @@ namespace Hakaton.Trading.Unity
             }
 
             // The last seconds of a shift: tick on each whole second, tock on each half, louder towards the end.
-            if (TradingHud.InCountdown(session, tickingSeconds))
+            float countdown = hud ? hud.countdownSeconds : tickingSeconds;
+            if (!TradingHud.InCountdownWindow(session, countdown)) lastTick = -1;
+            // Closed or paused within the window: the beat goes on from where it was when the clock runs again.
+            else if (TradingHud.InCountdown(session, countdown))
             {
                 int half = Mathf.CeilToInt(session.RemainingSeconds * 2);
                 if (half != lastTick)
                 {
                     lastTick = half;
                     bool tick = half % 2 == 0;
-                    float urgency = Mathf.Lerp(.75f, 1, 1 - session.RemainingSeconds / Mathf.Max(.01f, tickingSeconds));
+                    float urgency = Mathf.Lerp(.75f, 1, 1 - session.RemainingSeconds / Mathf.Max(.01f, countdown));
                     sfx.Play(cues.shiftCountdown ? cues.shiftCountdown : cues.clockTick, null,
                         urgency * (tick ? 1 : tockVolume), tick ? 1 : tockPitch);
                 }
             }
-            else lastTick = -1;
 
             // Wallet counts up instead of jumping, with a coin tick per step and a punch.
             if (displayedGold != session.Gold)

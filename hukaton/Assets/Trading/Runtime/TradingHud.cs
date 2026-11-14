@@ -45,7 +45,7 @@ namespace Hakaton.Trading.Unity
         [Tooltip("White resting face over the faded clock when the shift has ended (outside Clock Body, never faded).")]
         public GameObject clockRestingFace;
         [Range(0, 1)] public float endedClockAlpha = .38f;
-        [Tooltip("Over the last this many seconds of a running shift the clock shakes (and ShopFeel ticks).")]
+        [Tooltip("Over the last this many seconds of a running shift the clock shakes and ShopFeel ticks (one setting for both).")]
         [Min(0)] public float countdownSeconds = 3;
         [Tooltip("How far the clock jumps about at the very end, in layout units (whole units: crisp pixels).")]
         [Min(0)] public float shakeDistance = 3;
@@ -54,7 +54,7 @@ namespace Hakaton.Trading.Unity
         [Tooltip("New shake offsets per second (not every frame, so the jumps read at any frame rate).")]
         [Min(1)] public float shakeRate = 30;
         [Tooltip("Swell on each whole second (the tick), shrinking back over Tick Punch Seconds.")]
-        [Min(0)] public float tickPunch = .22f;
+        [Min(0)] public float tickPunch = .15f;
         [Min(.01f)] public float tickPunchSeconds = .16f;
 
         [Header("Conversation")]
@@ -170,6 +170,10 @@ namespace Hakaton.Trading.Unity
             => session != null && session.ExpeditionId == 0
                && (session.IsOpen || session.RemainingSeconds > 0 && session.RemainingSeconds < session.ShiftLength);
 
+        /// <summary>Time left is within the last <paramref name="seconds"/> (whether the clock runs now or not).</summary>
+        public static bool InCountdownWindow(TradingSession session, float seconds)
+            => session != null && session.RemainingSeconds > 0 && session.RemainingSeconds <= seconds;
+
         /// <summary>The clock is running out: open, ticking, within the last <paramref name="seconds"/>.</summary>
         public static bool InCountdown(TradingSession session, float seconds)
             => session != null && session.IsOpen && !session.ClockPaused && session.RemainingSeconds > 0
@@ -237,7 +241,7 @@ namespace Hakaton.Trading.Unity
         {
             bool shown = ShiftClockShown(session);
             shiftClock.SetActive(shown);
-            if (!shown) { StopShake(); return; }
+            if (!shown) { StopShake(true); return; }
             bool ended = session.RemainingSeconds <= 0;
             clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
             // The cross closes an open shop; away from the counter there is nothing to close.
@@ -254,7 +258,12 @@ namespace Hakaton.Trading.Unity
         /// </summary>
         void ShakeClock(TradingSession session)
         {
-            if (!InCountdown(session, countdownSeconds)) { StopShake(); return; }
+            if (!InCountdown(session, countdownSeconds))
+            {
+                // Closed or paused within the last seconds: the beat goes on from where it was when the clock runs again.
+                StopShake(!InCountdownWindow(session, countdownSeconds));
+                return;
+            }
             if (!clockRect) clockRect = (RectTransform)shiftClock.transform;
             if (!clockShaking) { clockShaking = true; clockRest = clockRect.anchoredPosition; nextShake = 0; }
             float now = Time.unscaledTime;
@@ -281,9 +290,9 @@ namespace Hakaton.Trading.Unity
             clockRect.anchoredPosition = clockRest + shakeOffset + centre - moved;
         }
 
-        void StopShake()
+        void StopShake(bool forgetBeat)
         {
-            countdownSecond = -1;
+            if (forgetBeat) countdownSecond = -1;
             punchAt = -1;
             if (!clockShaking) return;
             clockShaking = false;

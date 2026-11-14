@@ -91,8 +91,9 @@ namespace Hakaton.Game
         public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
         /// <summary>Map points marked «after the revenue goal» (the god's «?») appear only once it is reached.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
-        /// <summary>The endless (procedural) world opens only once the god has been met.</summary>
-        public bool EndlessWorldUnlocked => godMet;
+        /// <summary>The endless (procedural) world opens only once the god has been met (in a scene without the god's
+        /// trip, with the revenue goal).</summary>
+        public bool EndlessWorldUnlocked => godMet || !godVisit && PlaceChoiceUnlocked;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", EditorSaveFile ?? saveFile);
 #if UNITY_EDITOR
         /// <summary>

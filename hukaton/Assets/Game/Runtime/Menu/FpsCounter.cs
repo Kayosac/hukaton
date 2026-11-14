@@ -36,6 +36,7 @@ namespace Hakaton.Game
 
         static readonly string[] Readouts = new string[1000];
         readonly Vector3[] corners = new Vector3[4];
+        Vector2 lastInset = new Vector2(-1, -1);
         bool shown;
         int frames;
         float seconds;
@@ -92,6 +93,8 @@ namespace Hakaton.Game
         Vector2 Inset()
         {
             if (!clearOf || !clearOfLayout || !layout || !canvas) return cornerInset;
+            // The shift clock shakes over its last seconds (turned, swollen): the readout stays where it was meanwhile.
+            if (lastInset.x >= 0 && (clearOf.localRotation != Quaternion.identity || clearOf.localScale != Vector3.one)) return lastInset;
             var hud = (RectTransform)clearOfLayout.transform;
             var hudRect = hud.rect;
             clearOf.GetWorldCorners(corners);
@@ -103,7 +106,7 @@ namespace Hakaton.Game
             var screen = ((RectTransform)canvas.transform).rect.size;
             float units = clearOfLayout.ScaleFor(screen) / layout.ScaleFor(screen);
             // Whole units: with a whole-number magnification the text stays on the pixel grid.
-            return new Vector2(Mathf.Round(right * units), Mathf.Max(cornerInset.y, Mathf.Ceil(depth * units + gapBelow - .01f)));
+            return lastInset = new Vector2(Mathf.Round(right * units), Mathf.Max(cornerInset.y, Mathf.Ceil(depth * units + gapBelow - .01f)));
         }
 
         /// <summary>Average frame rate of <paramref name="frameCount"/> frames over <paramref name="elapsed"/> real seconds,
