@@ -486,6 +486,6 @@
 - Код игры:
   - `Assets/Tutorial/Runtime/Cave/CaveTutorial.cs` — образец сценария, разговора и передачи «Пора домой»;
   - `Assets/Expedition/Runtime/ExpeditionWorld.cs` — пролог и возврат;
-  - `Assets/Game/Runtime/GameLoop.cs` — дверь и цель 666 монет;
+  - `Assets/Game/Runtime/GameLoop.cs` — дверь и цель 404 монеты;
   - `Assets/Character/Runtime/` — мотор, взгляд, владение управлением.
 - Настройки игрока: префаб `FirstPersonPlayer` — капсула 1,8 × 0,28 м, ступень 0,28 м, уклон 48°, FOV 75°; ходьба 4 м/с.

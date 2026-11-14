@@ -43,8 +43,8 @@ namespace Hakaton.Trading.Tests
             int changes = 0;
             session.Changed += () => changes++;
 
-            Assert.That(session.CompleteRevenueGoal(666), Is.True);
-            Assert.That(session.GrossRevenue, Is.EqualTo(666));
+            Assert.That(session.CompleteRevenueGoal(404), Is.True);
+            Assert.That(session.GrossRevenue, Is.EqualTo(404));
             Assert.That(changes, Is.EqualTo(1));
             Assert.That(session.Gold, Is.EqualTo(75));
             Assert.That(session.SalesCount, Is.Zero);
@@ -55,15 +55,15 @@ namespace Hakaton.Trading.Tests
             Assert.That(session.Slots[0], Is.SameAs(stock));
             Assert.That(session.Inventory, Is.EqualTo(inventory));
             Assert.That(session.RemainingSeconds, Is.EqualTo(clock));
-            Assert.That(session.CompleteRevenueGoal(666), Is.False);
-            Assert.That(session.CompleteRevenueGoal(500), Is.False);
+            Assert.That(session.CompleteRevenueGoal(404), Is.False);
+            Assert.That(session.CompleteRevenueGoal(300), Is.False);
             Assert.That(session.CompleteRevenueGoal(-1), Is.False);
-            Assert.That(session.GrossRevenue, Is.EqualTo(666));
+            Assert.That(session.GrossRevenue, Is.EqualTo(404));
             Assert.That(changes, Is.EqualTo(1), "Repeated clicks never reduce progress or create extra changes.");
 
             var restored = Create(wallet);
             Assert.That(restored.TryRestore(session.Save()), Is.True);
-            Assert.That(restored.GrossRevenue, Is.EqualTo(666));
+            Assert.That(restored.GrossRevenue, Is.EqualTo(404));
             Assert.That(restored.Gold, Is.EqualTo(75));
             Assert.That(restored.SalesCount, Is.Zero);
         }

@@ -78,7 +78,7 @@ namespace Hakaton.Game
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
-        [Min(1)] public int revenueGoal = 666;
+        [Min(1)] public int revenueGoal = 404;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]

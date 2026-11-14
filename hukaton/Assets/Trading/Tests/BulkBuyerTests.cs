@@ -35,12 +35,12 @@ namespace Hakaton.Trading.Tests
             return session;
         }
 
-        /// <summary>Unlocked as the game loop does it: the first revenue goal (666), reached by the cheat.</summary>
+        /// <summary>Unlocked as the game loop does it: the first revenue goal (404), reached by the cheat.</summary>
         static void ReachGoal(TradingSession session)
         {
-            session.BulkBuyerUnlockRevenue = 666;
+            session.BulkBuyerUnlockRevenue = 404;
             Assert.That(session.BulkBuyerUnlocked, Is.False);
-            Assert.That(session.CompleteRevenueGoal(666), Is.True);
+            Assert.That(session.CompleteRevenueGoal(404), Is.True);
             Assert.That(session.BulkBuyerUnlocked, Is.True);
         }
 
