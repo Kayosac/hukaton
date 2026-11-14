@@ -49,6 +49,8 @@ namespace Hakaton.WorldAssembly.Tests
             world = Object.FindAnyObjectByType<ExpeditionWorld>();
             streamer = Object.FindAnyObjectByType<WorldStreamer>();
             streamer.fixedSeed = 2;
+            // The compact world (ring 0 out to 64 m): what the tests look for lies close to the start.
+            streamer.ringScale = 1;
             game.SkipTutorial();
             Assert.That(game.TryDepart(), Is.True);
             yield return WaitFor(() => world.Running, 3);

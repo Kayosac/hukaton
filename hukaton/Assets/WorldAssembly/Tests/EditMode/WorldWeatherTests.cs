@@ -11,7 +11,7 @@ namespace Hakaton.WorldAssembly.Tests
     /// </summary>
     public sealed class WorldWeatherTests
     {
-        static readonly WorldRules Rules = new WorldRules();
+        static readonly WorldRules Rules = new WorldRules { RingScale = 1 };
         static WeatherRules W => Rules.Weather;
 
         static (double x, double y) Point(Random rnd, double from, double to)

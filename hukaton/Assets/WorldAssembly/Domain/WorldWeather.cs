@@ -64,9 +64,9 @@ namespace Hakaton.WorldAssembly
         {
             var w = rules.Weather;
             double d = Math.Sqrt(x * x + y * y);
-            double near = SmoothStep(rules.InnerRadius * .9, rules.InnerRadius + 24, d);
+            double near = SmoothStep(rules.InnerRadius * .9, rules.InnerRadius + 24 * rules.RingScale, d);
             if (near <= 0) return 0;
-            double far = SmoothStep(rules.MiddleRadius - 8, rules.MiddleRadius + 48, d);
+            double far = SmoothStep(rules.MiddleRadius - 8 * rules.RingScale, rules.MiddleRadius + 48 * rules.RingScale, d);
             double spell = Lerp(w.SpellDry, w.SpellWet, SpellAt(seed, w, seconds));
             return Math.Min(.85, near * Lerp(w.CoverMiddle, w.CoverFar, far) * spell);
         }
@@ -83,7 +83,7 @@ namespace Hakaton.WorldAssembly
             double q = Rank(Front(seed, px, py, pt));
             double rain = Clamp01((q - (1 - cover)) / w.Edge);
             if (rain <= 0) return default;
-            double far = SmoothStep(rules.MiddleRadius - 8, rules.MiddleRadius + 48, Math.Sqrt(x * x + y * y));
+            double far = SmoothStep(rules.MiddleRadius - 8 * rules.RingScale, rules.MiddleRadius + 48 * rules.RingScale, Math.Sqrt(x * x + y * y));
             double stormCover = cover * w.StormShare * far;
             double storm = stormCover > 0 ? Clamp01((q - (1 - stormCover)) / (w.Edge * .8)) : 0;
             return new Sky((float)rain, (float)storm);

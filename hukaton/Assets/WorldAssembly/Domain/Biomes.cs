@@ -16,7 +16,7 @@ namespace Hakaton.WorldAssembly
     /// <summary>
     /// Where the biomes lie (Kayospace «Биом: Гнилая топь»): patches of rotten swamp of every size, from a few chunks
     /// to more than a district, from ring 2 outwards and more of them further out (about 20% of 112–176 m, 40% of
-    /// 176–240 m, 60% further out); never in rings 0 and 1 or at the start.
+    /// 176–240 m, 60% further out, times <see cref="WorldRules.RingScale"/>); never in rings 0 and 1 or at the start.
     /// A pure function of the seed and the chunk, so neighbours always agree. A swamp chunk is flat and low (the
     /// corner field presses its corners down), so the swamp is a basin rimmed by forested slopes.
     /// </summary>

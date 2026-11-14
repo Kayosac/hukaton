@@ -10,6 +10,10 @@ namespace Hakaton.WorldAssembly.Tests
     {
         const int Area = 22;
 
+        /// <summary>The compact world (ring 0 out to 64 m): the rules are the same at any ring scale, and the areas here
+        /// stay small enough to check whole.</summary>
+        static WorldRules Compact => new WorldRules { RingScale = 1 };
+
         static IEnumerable<ChunkCoord> Square(int r)
         {
             for (int x = -r; x <= r; x++)
@@ -22,8 +26,8 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 10; seed++)
             {
-                var a = new WorldMap(seed);
-                var b = new WorldMap(seed);
+                var a = new WorldMap(seed, Compact);
+                var b = new WorldMap(seed, Compact);
                 var far = Square(Area).ToList();
                 var reversed = Enumerable.Reverse(far).ToList();
                 foreach (var c in reversed) b.Chunk(c);
@@ -36,7 +40,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 40; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var a = map.Chunk(c);
@@ -65,7 +69,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 40; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -86,7 +90,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 40; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -118,7 +122,7 @@ namespace Hakaton.WorldAssembly.Tests
             int bridged = 0;
             for (int seed = 1; seed <= 300; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 Assert.IsFalse(map.Diagnostics.Any(d => d.StartsWith("guarantee not met")), $"seed {seed}: {string.Join("; ", map.Diagnostics)}");
                 bridged += map.Diagnostics.Count;
                 var graph = new WalkGraph(map, -9, -9, 9, 9);
@@ -142,7 +146,7 @@ namespace Hakaton.WorldAssembly.Tests
             int seeds = 60, longRivers = 0, plateaus = 0, canyons = 0, mazes = 0, summits = 0;
             for (int seed = 1; seed <= seeds; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 var all = Square(Area).Select(map.Chunk).ToList();
                 if (LargestComponent(map, all, p => p.Shape.Kind == ShapeKind.River) >= 8) longRivers++;
                 if (LargestComponent(map, all, p => p.Corners.Max() >= 1) >= 6) plateaus++;
@@ -163,7 +167,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 60; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 var seen = new HashSet<ChunkCoord>();
                 foreach (var c in Square(Area))
                 {
@@ -195,7 +199,7 @@ namespace Hakaton.WorldAssembly.Tests
             int calm = 0, fierce = 0;
             for (int seed = 1; seed <= 10; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -221,8 +225,8 @@ namespace Hakaton.WorldAssembly.Tests
             var kinds = new Dictionary<string, int>();
             for (int seed = 1; seed <= 20; seed++)
             {
-                var map = new WorldMap(seed);
-                var again = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
+                var again = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -262,7 +266,7 @@ namespace Hakaton.WorldAssembly.Tests
             int worlds = 0, forests = 0, biggest = 0, deadfall = 0, hollow = 0;
             for (int seed = 1; seed <= 40; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 var seen = new HashSet<ChunkCoord>();
                 bool any = false;
                 foreach (var c in Square(Area))
@@ -309,7 +313,7 @@ namespace Hakaton.WorldAssembly.Tests
             int roads = 0;
             for (int seed = 1; seed <= 6; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 var seen = new HashSet<int>();
                 foreach (var c in Square(Area))
                     foreach (var road in map.RoadsThrough(c))
@@ -348,7 +352,7 @@ namespace Hakaton.WorldAssembly.Tests
             int found = 0;
             for (int seed = 1; seed <= 40; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -379,7 +383,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             for (int seed = 1; seed <= 60; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var p = map.Chunk(c);
@@ -387,6 +391,19 @@ namespace Hakaton.WorldAssembly.Tests
                     if (WorldRules.IsStartArea(c)) { Assert.IsEmpty(p.Spawns); Assert.IsEmpty(p.Loot); }
                 }
             }
+        }
+
+        [Test]
+        public void TheMiddleOfRingTwoIsAboutFiveMinutesOfRunningAway()
+        {
+            var rules = new WorldRules();
+            // The middle of ring 2's middle band (176–240 m in the compact world); plain running with the base stamina
+            // averages about 5 m/s (sprint 6.5 m/s for 5 s, walk 4 m/s while it refills).
+            double seconds = 208 * rules.RingScale / 5.0;
+            Assert.That(seconds, Is.InRange(270.0, 330.0), "about five minutes of running");
+            var compact = Compact;
+            Assert.AreEqual(compact.InnerRadius / compact.MiddleRadius, rules.InnerRadius / rules.MiddleRadius, 1e-6, "the rings keep their proportions");
+            Assert.AreEqual(compact.SwampFull / compact.MiddleRadius, rules.SwampFull / rules.MiddleRadius, 1e-6, "and so does the swamp");
         }
 
         [Test]
@@ -445,7 +462,7 @@ namespace Hakaton.WorldAssembly.Tests
             int bigPatches = 0;
             for (int seed = 1; seed <= 30; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 var cells = new HashSet<ChunkCoord>();
                 foreach (var c in Square(Area))
                 {
@@ -499,7 +516,7 @@ namespace Hakaton.WorldAssembly.Tests
             int raised = 0;
             for (int seed = 1; seed <= 30; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     var plan = map.Chunk(c);
@@ -554,7 +571,7 @@ namespace Hakaton.WorldAssembly.Tests
             int swamp = 0, foggy = 0;
             for (int seed = 1; seed <= 20; seed++)
             {
-                var map = new WorldMap(seed);
+                var map = new WorldMap(seed, Compact);
                 foreach (var c in Square(Area))
                 {
                     if (!map.Biomes.IsSwamp(c)) { Assert.IsFalse(map.Biomes.Foggy(c), $"fog off the swamp {c}"); continue; }
@@ -569,7 +586,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void WithoutTheSwampTheWorldIsAllForest()
         {
-            var map = new WorldMap(3, new WorldRules { Swamp = false });
+            var map = new WorldMap(3, new WorldRules { Swamp = false, RingScale = 1 });
             foreach (var c in Square(Area)) Assert.AreEqual(Biome.Forest, map.Chunk(c).Biome, c.ToString());
         }
     }
