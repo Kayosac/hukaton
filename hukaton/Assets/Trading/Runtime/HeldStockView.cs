@@ -9,6 +9,8 @@ namespace Hakaton.Trading.Unity
     /// view: a drawing by its imported outline, a model by its silhouette as the camera sees it (its mesh points in
     /// perspective), so a model takes about as much of the screen as a drawing. A model is held close to the eye: its
     /// nearest point just in front of it, so it never pokes into a shelf or a wall the player stands against.
+    /// The hand is up only near the display (the shop's slots, <see cref="TradingSceneBindings"/>): it slides up from below
+    /// the bottom edge when the shopkeeper comes close and back down when he walks away or while <see cref="Suppressed"/>.
     /// </summary>
     [DisallowMultipleComponent, DefaultExecutionOrder(600)]
     public sealed class HeldStockView : MonoBehaviour
@@ -24,6 +26,15 @@ namespace Hakaton.Trading.Unity
         [Min(.1f)] public float distance = .45f;
         [Tooltip("Models: how far in front of the eye their nearest point is (kept past the camera's near plane).")]
         [Min(.01f)] public float modelNearest = .14f;
+        [Header("Near the display")]
+        [Tooltip("The hand comes up when the eye is this close to the display, measured across the floor (height ignored) " +
+                 "to the nearest slot: its collider's bounds, or its anchor while the collider is off. Display slots are " +
+                 "aimed at from up to 2 m, so the hand is up wherever a slot can be stocked.")]
+        [Min(0)] public float showDistance = 2f;
+        [Tooltip("The hand goes down again beyond this distance. Further than Show Distance so it does not flicker on the edge.")]
+        [Min(0)] public float hideDistance = 2.5f;
+        [Tooltip("Seconds the hand takes to come up from below the screen, or to go back down (unscaled time).")]
+        [Min(.01f)] public float slideSeconds = .28f;
 
         GameObject visual;
         LootItem shownItem;
@@ -35,8 +46,29 @@ namespace Hakaton.Trading.Unity
         // The model's fit for a view (normalised to depth 1): scale per unit of depth and the centre's offsets.
         float fittedFov = -1, fittedAspect = -1, fitScale, fitNearest;
         Vector2 fitCentre;
+        // The model's drop (per unit of depth) that takes its whole silhouette below the bottom edge.
+        float fitDrop;
+        // 0 lowered out of view .. 1 up in the corner; eased into the slide.
+        float raise;
+        bool rootShown;
+        TradingSceneBindings display;
+        float nextDisplaySearch;
 
         public bool IsConfigured => viewCamera && visualRoot;
+
+        /// <summary>There is stock to hold and the shopkeeper is free to act (set by the shop every frame). Off: the hand
+        /// goes down. The hand is shown only when this is on, the display is near and nothing suppresses it.</summary>
+        public bool Wanted { get; set; }
+
+        /// <summary>While set, the hand is lowered out of view whatever the distance to the display (e.g. while an item on
+        /// the display is being inspected up close).</summary>
+        public bool Suppressed { get; set; }
+
+        /// <summary>The shopkeeper is close to the display (with hysteresis: see showDistance and hideDistance).</summary>
+        public bool NearDisplay { get; private set; }
+
+        /// <summary>How far the hand is up: 0 out of view, 1 fully up.</summary>
+        public float Raised => raise;
 
         public void Show(LootCatalog catalog, LootItem item)
         {
@@ -48,6 +80,17 @@ namespace Hakaton.Trading.Unity
                 Destroy(visual);
             }
             shownItem = item;
+            // Made and measured with the hand's root active even while it is down, so the visual sets itself up as
+            // on the shelf; the root's own state is restored right after (before anything is drawn).
+            var root = visualRoot.gameObject;
+            bool wasActive = root.activeSelf;
+            if (!wasActive) root.SetActive(true);
+            try { Build(catalog, item); }
+            finally { if (!wasActive) root.SetActive(false); }
+        }
+
+        void Build(LootCatalog catalog, LootItem item)
+        {
             visual = catalog.CreateVisual(item, visualRoot, true);
             if (!visual) return;
 
@@ -75,7 +118,76 @@ namespace Hakaton.Trading.Unity
             Frame();
         }
 
-        void LateUpdate() => Frame();
+        void LateUpdate()
+        {
+            if (!visualRoot) return;
+            var root = visualRoot.gameObject;
+            // Hidden from outside (the game loop does on leaving the shop): down at once, until the shop asks again.
+            if (rootShown && !root.activeSelf)
+            {
+                rootShown = false;
+                raise = 0;
+                Wanted = false;
+            }
+            NearDisplay = NextNear(NearDisplay, DisplayDistance(), showDistance, hideDistance);
+            raise = Slide(raise, Wanted && NearDisplay && !Suppressed, Time.unscaledDeltaTime, slideSeconds);
+            bool show = raise > 0 && visual;
+            if (show != root.activeSelf) root.SetActive(show);
+            rootShown = show;
+            if (show) Frame();
+        }
+
+        /// <summary>Across the floor from the eye to the nearest display slot; 0 (always near) without a shop display.</summary>
+        float DisplayDistance()
+        {
+            if (!viewCamera) return 0;
+            if (!display && Time.unscaledTime >= nextDisplaySearch)
+            {
+                nextDisplaySearch = Time.unscaledTime + 1;
+                foreach (var bindings in FindObjectsByType<TradingSceneBindings>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    if (bindings.HeldStock == this) { display = bindings; break; }
+            }
+            if (!display) return 0;
+            var eye = viewCamera.transform.position;
+            float nearest = float.MaxValue;
+            int count = Mathf.Max(display.SlotAnchors?.Length ?? 0, display.SlotColliders?.Length ?? 0);
+            for (int i = 0; i < count; i++)
+            {
+                var collider = display.SlotColliders != null && i < display.SlotColliders.Length ? display.SlotColliders[i] : null;
+                var anchor = display.SlotAnchors != null && i < display.SlotAnchors.Length ? display.SlotAnchors[i] : null;
+                if (collider && collider.enabled && collider.gameObject.activeInHierarchy)
+                    nearest = Mathf.Min(nearest, HorizontalDistance(eye, collider.bounds));
+                else if (anchor)
+                    nearest = Mathf.Min(nearest, HorizontalDistance(eye, new Bounds(anchor.position, Vector3.zero)));
+            }
+            return nearest == float.MaxValue ? 0 : nearest;
+        }
+
+        /// <summary>Distance across the floor (x and z) from a point to a box; 0 inside its footprint.</summary>
+        public static float HorizontalDistance(Vector3 from, Bounds bounds)
+        {
+            float dx = Mathf.Max(bounds.min.x - from.x, 0, from.x - bounds.max.x);
+            float dz = Mathf.Max(bounds.min.z - from.z, 0, from.z - bounds.max.z);
+            return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+
+        /// <summary>Near with hysteresis: comes near within <paramref name="show"/>, stays near up to <paramref name="hide"/>.</summary>
+        public static bool NextNear(bool near, float distance, float show, float hide) =>
+            distance <= (near ? Mathf.Max(show, hide) : show);
+
+        /// <summary>The hand's progress towards up (or down), linear in time; the slide's look is <see cref="Ease"/>.</summary>
+        public static float Slide(float raise, bool up, float deltaTime, float seconds) =>
+            Mathf.MoveTowards(raise, up ? 1 : 0, Mathf.Max(0, deltaTime) / Mathf.Max(.0001f, seconds));
+
+        /// <summary>
+        /// The share of the slide done: quick off the bottom edge and settling into the corner on the way up, so on the way
+        /// down it eases out of the corner and drops away. Reverses smoothly midway.
+        /// </summary>
+        public static float Ease(float raise)
+        {
+            float rest = 1 - Mathf.Clamp01(raise);
+            return 1 - rest * rest * rest;
+        }
 
         void Frame()
         {
@@ -94,8 +206,10 @@ namespace Hakaton.Trading.Unity
                 height * viewportSize.y / Mathf.Max(.0001f, localBounds.size.y));
 
             var size = localBounds.size * scale;
+            // Down: the drawing's top edge goes just past the bottom of the view.
+            float drop = (1 - Ease(raise)) * (viewportInset.y + size.y / height + .02f);
             var centre = new Vector3(1 - viewportInset.x - size.x / (2 * width),
-                viewportInset.y + size.y / (2 * height), depth);
+                viewportInset.y + size.y / (2 * height) - drop, depth);
             transform.SetPositionAndRotation(viewCamera.ViewportToWorldPoint(centre), viewCamera.transform.rotation);
             visual.transform.localScale = sourceScale * scale;
             visual.transform.localPosition = -localBounds.center * scale;
@@ -115,12 +229,15 @@ namespace Hakaton.Trading.Unity
                 fittedAspect = aspect;
                 float tanV = Mathf.Tan(fov * .5f * Mathf.Deg2Rad);
                 Fit(silhouette, tanV * aspect, tanV, viewportSize, viewportInset, out fitScale, out fitCentre, out fitNearest);
+                fitDrop = DropBelowView(silhouette, fitScale, fitCentre.y, tanV);
             }
             float nearest = Mathf.Max(modelNearest, viewCamera.nearClipPlane + .02f);
             float depth = nearest / Mathf.Max(.05f, fitNearest);
             float scale = fitScale * depth;
             var eye = viewCamera.transform;
-            transform.SetPositionAndRotation(eye.TransformPoint(new Vector3(fitCentre.x * depth, fitCentre.y * depth, depth)), eye.rotation);
+            // Down: lowered along the view's vertical until its whole silhouette is past the bottom edge.
+            float drop = (1 - Ease(raise)) * fitDrop;
+            transform.SetPositionAndRotation(eye.TransformPoint(new Vector3(fitCentre.x * depth, (fitCentre.y - drop) * depth, depth)), eye.rotation);
             visual.transform.localScale = sourceScale * scale;
             visual.transform.localPosition = -localBounds.center * scale;
         }
@@ -154,6 +271,21 @@ namespace Hakaton.Trading.Unity
             scale = low;
             centre = new Vector2(bestA, bestB);
             nearest = 1 + low * minZ;
+        }
+
+        /// <summary>
+        /// How far (per unit of depth, along the view's vertical) the fitted silhouette has to go down for every point of
+        /// it to be below the bottom edge, with a small margin; nearer points drop through the view faster.
+        /// </summary>
+        public static float DropBelowView(IReadOnlyList<Vector3> points, float scale, float centreY, float tanV)
+        {
+            float drop = 0;
+            foreach (var p in points)
+            {
+                float w = 1 + scale * p.z;
+                drop = Mathf.Max(drop, centreY + scale * p.y + w * tanV * 1.04f);
+            }
+            return drop;
         }
 
         /// <summary>

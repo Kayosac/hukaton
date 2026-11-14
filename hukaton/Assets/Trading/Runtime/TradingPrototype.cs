@@ -115,7 +115,6 @@ namespace Hakaton.Trading.Unity
         public StartingStock[] startingStock = new StartingStock[0];
         GameObject[] displayed;
         long[] displayedIds;
-        GameObject heldItem;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
@@ -186,7 +185,6 @@ namespace Hakaton.Trading.Unity
                 enabled = false;
                 return;
             }
-            heldItem = World.HeldItem;
             Session = new TradingSession(new TradeSettings {
                 SlotCount = 6, ShiftSeconds = shiftSeconds,
                 ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
@@ -562,7 +560,8 @@ namespace Hakaton.Trading.Unity
                 else World.SlotRenderers[i].SetPropertyBlock(null);
             }
             PresentDealItem();
-            heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
+            // The hand comes up only near the display and slides away elsewhere (HeldStockView).
+            World.HeldStock.Wanted = GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0;
             if (Session.Inventory.Count > 0) World.HeldStock.Show(lootCatalog, Item(Session.Inventory[selectedInventory].Definition.Id));
         }
 
