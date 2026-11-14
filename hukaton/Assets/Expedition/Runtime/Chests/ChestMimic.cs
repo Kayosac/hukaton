@@ -370,7 +370,7 @@ namespace Hakaton.Expeditions
             StopAllCoroutines();
             home = snapshot.home;
             homed = true;
-            transform.SetPositionAndRotation(snapshot.position, snapshot.rotation);
+            chest.Place(snapshot.position, snapshot.rotation);
             SnapToGround();
             switch (snapshot.state)
             {
@@ -378,7 +378,7 @@ namespace Hakaton.Expeditions
                 case State.Alert:
                     chest.ResetForOuting(); // calls OnChestReset; the chest puts back its spawn pose, so place it again
                     alert = snapshot.state == State.Alert;
-                    transform.SetPositionAndRotation(snapshot.position, snapshot.rotation);
+                    chest.Place(snapshot.position, snapshot.rotation);
                     SnapToGround();
                     break;
                 case State.Opened:
@@ -795,7 +795,8 @@ namespace Hakaton.Expeditions
 
         void SnapToGround()
         {
-            if (TryGround(transform.position, out var ground, out _)) transform.position = ground;
+            if (!TryGround(transform.position, out var ground, out _)) return;
+            if (chest) chest.Place(ground, transform.rotation); else transform.position = ground;
         }
 
         /// <summary>The first solid surface under the point that is not this chest, a coin or water.</summary>

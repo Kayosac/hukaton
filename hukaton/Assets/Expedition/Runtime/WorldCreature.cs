@@ -1163,7 +1163,7 @@ namespace Hakaton.Expeditions
                 normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, collision.GetContact(i).normal));
             int damage = ExpeditionEffectRules.ImpactDamage(normalSpeed, world.settings.collisionDamageSpeed, world.settings.collisionDamageStep);
             // Rock, or a loose thing too heavy to be knocked aside (a boulder, a gravestone).
-            bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && (!collision.rigidbody || collision.rigidbody.mass > 5);
+            bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && (!collision.rigidbody || collision.rigidbody.mass > 5 && collision.rigidbody.TryGetComponent<PhysicsProp>(out _));
             if (damage > 0)
             {
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, collision.GetContact(0).point, Quaternion.identity, new Color(.8f, .72f, .6f), 1);
