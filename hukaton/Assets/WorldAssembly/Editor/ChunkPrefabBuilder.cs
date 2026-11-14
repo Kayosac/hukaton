@@ -753,6 +753,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var burnables = new List<Burnable>();
             var trees = new List<AwakenableTree>();
             var props = new List<PhysicsProp>();
+            var pinned = Pinned(view);
             foreach (var (go, asset) in placed)
             {
                 if (!go || asset.StartsWith("VFX/") || go.GetComponentInParent<WorldObstacle>()) continue;
@@ -771,7 +772,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 if ((asset.StartsWith("Trees/") || asset.StartsWith("Swamp/Trees/")) && colliders.Length > 0) trees.Add(go.AddComponent<AwakenableTree>());
                 // What makes a wall stays put: a log that rolled off would open it.
-                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform)
+                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform) && !pinned.Contains(go)
                     && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
                     && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
                 // A body set into a rock, a trunk or a shed as they are drawn would stick there or jump out of it: it
@@ -799,9 +800,148 @@ namespace Hakaton.WorldAssembly.EditorTools
                         go.AddComponent<Breakable>().kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kindName}.asset");
                 }
             }
+            // What turned out to hold something that stays put (decided above: in a wall, too big, could not be eased
+            // out) stays put too; that in turn may hold the next one, so round again until nothing changes.
+            for (int round = 0; round < 6; round++)
+            {
+                var holding = Holding(props);
+                if (holding.Count == 0) break;
+                foreach (var prop in holding)
+                {
+                    props.Remove(prop);
+                    var go = prop.gameObject;
+                    if (go.TryGetComponent(out Breakable breakable)) Object.DestroyImmediate(breakable);
+                    var body = prop.body;
+                    Object.DestroyImmediate(prop);
+                    if (body) Object.DestroyImmediate(body);
+                    foreach (var c in go.GetComponentsInChildren<MeshCollider>()) c.convex = false;
+                }
+                Physics.SyncTransforms();
+            }
             view.burnables = burnables.ToArray();
             view.trees = trees.ToArray();
             view.props = props.ToArray();
+        }
+
+        /// <summary>
+        /// Loose props that something fixed depends on: a flame, smoke, light or sound on them, a fixed piece resting on
+        /// them (straight down from under it) or stuck into them.
+        /// </summary>
+        static List<PhysicsProp> Holding(List<PhysicsProp> props)
+        {
+            var result = new List<PhysicsProp>();
+            if (props.Count == 0) return result;
+            var loose = new Dictionary<Collider, PhysicsProp>();
+            foreach (var prop in props) foreach (var c in prop.GetComponentsInChildren<Collider>()) if (!c.isTrigger) loose[c] = prop;
+            var root = props[0].GetComponentInParent<ChunkView>().transform;
+            var ground = root.Find("Ground");
+            Physics.SyncTransforms();
+            var spots = new List<Vector3>();
+            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/")) spots.Add(go.transform.position);
+            foreach (var spot in root.GetComponentsInChildren<AmbientSpot>(true)) spots.Add(spot.transform.position);
+            foreach (var light in root.GetComponentsInChildren<Light>(true))
+                if (!light.GetComponentInParent<PhysicsProp>()) spots.Add(light.transform.position);
+            var marked = new HashSet<PhysicsProp>();
+            foreach (var kv in loose)
+            {
+                var b = kv.Key.bounds;
+                b.Expand(new Vector3(.5f, 1.4f, .5f));
+                foreach (var at in spots) if (b.Contains(at)) marked.Add(kv.Value);
+            }
+            foreach (var c in root.GetComponentsInChildren<Collider>())
+            {
+                if (c.isTrigger || loose.ContainsKey(c) || ground && c.transform.IsChildOf(ground)) continue;
+                if (c.attachedRigidbody && c.attachedRigidbody.GetComponent<PhysicsProp>()) continue;
+                var b = c.bounds;
+                if (b.size.y > 2.5f) continue;
+                if (Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)) < 1.5f)
+                    foreach (var kv in loose)
+                        if (kv.Key.bounds.Intersects(b)
+                            && Physics.ComputePenetration(c, c.transform.position, c.transform.rotation, kv.Key, kv.Key.transform.position, kv.Key.transform.rotation, out _, out float depth)
+                            && depth > .02f)
+                            marked.Add(kv.Value);
+                foreach (var dx in new[] { -.3f, 0, .3f })
+                foreach (var dz in new[] { -.3f, 0, .3f })
+                {
+                    var from = new Vector3(b.center.x + b.extents.x * dx * 2, b.min.y + .08f, b.center.z + b.extents.z * dz * 2);
+                    foreach (var hit in Physics.RaycastAll(from, Vector3.down, .5f, ~(1 << 4), QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+                    {
+                        if (hit.collider == c || hit.collider.transform.IsChildOf(c.transform)) continue;
+                        if (loose.TryGetValue(hit.collider, out var under)) marked.Add(under);
+                        break;
+                    }
+                }
+            }
+            result.AddRange(marked);
+            return result;
+        }
+
+        /// <summary>
+        /// Loose candidates that must stay put because something else depends on them where they lie: a fire, its smoke
+        /// or a sound burns on them (a campfire's sticks), or a piece that is not loose rests on them (a hatchet on a
+        /// log). Thrown off, they would leave the flame in the air or the hatchet floating.
+        /// </summary>
+        static HashSet<GameObject> Pinned(ChunkView view)
+        {
+            var pinned = new HashSet<GameObject>();
+            var candidates = new Dictionary<Collider, GameObject>();
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || asset.StartsWith("VFX/")) continue;
+                if (!LooseMass.ContainsKey(asset.Substring(asset.LastIndexOf('/') + 1))) continue;
+                foreach (var c in go.GetComponentsInChildren<Collider>()) if (!c.isTrigger) candidates[c] = go;
+            }
+            if (candidates.Count == 0) return pinned;
+            Physics.SyncTransforms();
+            // What burns or sounds on it: effects and the scene's sound places, a hand's breadth round them.
+            var spots = new List<Vector3>();
+            foreach (var (go, asset) in placed) if (go && asset.StartsWith("VFX/")) spots.Add(go.transform.position);
+            foreach (var spot in view.GetComponentsInChildren<AmbientSpot>(true)) spots.Add(spot.transform.position);
+            foreach (var light in view.GetComponentsInChildren<Light>(true)) spots.Add(light.transform.position);
+            foreach (var at in spots)
+                foreach (var kv in candidates)
+                {
+                    var b = kv.Key.bounds;
+                    b.Expand(new Vector3(.5f, 1.4f, .5f));
+                    if (b.Contains(at)) pinned.Add(kv.Value);
+                }
+            // What rests on it: straight down from under each piece that stays put for sure (not loose by kind, or set
+            // into a wall, too big, part of an obstacle), the first thing hit.
+            bool Fixed(GameObject go, string asset)
+            {
+                if (!LooseMass.ContainsKey(asset.Substring(asset.LastIndexOf('/') + 1))) return true;
+                var s = go.transform.lossyScale;
+                return InWall(go.transform) || go.GetComponentInParent<WorldObstacle>() || charred.Contains(go)
+                    || Mathf.Max(s.x, Mathf.Max(s.y, s.z)) > 1.6f;
+            }
+            foreach (var (go, asset) in placed)
+            {
+                if (!go || asset.StartsWith("VFX/") || !Fixed(go, asset)) continue;
+                foreach (var c in go.GetComponentsInChildren<Collider>())
+                {
+                    if (c.isTrigger) continue;
+                    var b = c.bounds;
+                    // A small piece stuck into it (a hatchet in a log) goes nowhere without it.
+                    if (Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)) < 1.5f)
+                        foreach (var kv in candidates)
+                            if (kv.Value != go && kv.Key.bounds.Intersects(b)
+                                && Physics.ComputePenetration(c, c.transform.position, c.transform.rotation, kv.Key, kv.Key.transform.position, kv.Key.transform.rotation, out _, out float depth)
+                                && depth > .02f)
+                                pinned.Add(kv.Value);
+                    foreach (var dx in new[] { -.3f, 0, .3f })
+                    foreach (var dz in new[] { -.3f, 0, .3f })
+                    {
+                        var from = new Vector3(b.center.x + b.extents.x * dx * 2, b.min.y + .08f, b.center.z + b.extents.z * dz * 2);
+                        foreach (var hit in Physics.RaycastAll(from, Vector3.down, .5f, ~(1 << 4), QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+                        {
+                            if (hit.collider.transform.IsChildOf(go.transform)) continue;
+                            if (candidates.TryGetValue(hit.collider, out var under)) pinned.Add(under);
+                            break;
+                        }
+                    }
+                }
+            }
+            return pinned;
         }
 
         static readonly Collider[] easeHits = new Collider[32];
@@ -830,6 +970,22 @@ namespace Hakaton.WorldAssembly.EditorTools
                 go.transform.position += push;
             }
             return false;
+        }
+
+        /// <summary>Tips a piece over onto its side and sets it down on whatever is under it.</summary>
+        static void LayDown(GameObject go)
+        {
+            go.transform.rotation *= Quaternion.Euler(0, 0, 90);
+            Physics.SyncTransforms();
+            var renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            var b = renderers[0].bounds;
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+            float ground = b.min.y;
+            foreach (var hit in Physics.RaycastAll(new Vector3(b.center.x, b.max.y + 1, b.center.z), Vector3.down, b.size.y + 3, ~(1 << 4), QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+                if (!hit.collider.transform.IsChildOf(go.transform)) { ground = hit.point.y; break; }
+            go.transform.position += Vector3.up * (ground - b.min.y + .01f);
+            Physics.SyncTransforms();
         }
 
         static bool InWall(Transform t)
@@ -1425,6 +1581,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     Physics.SyncTransforms();
                 }
                 if (prop.Lift != 0) go.transform.position += Vector3.up * prop.Lift;
+                if (prop.Lying) LayDown(go);
                 // The drowned mill's wheel turns by itself, with no current to turn it.
                 var wheel = go.transform.Find("Wheel");
                 if (wheel && prop.Asset.EndsWith("SM_SW20_DrownedMill")) wheel.gameObject.AddComponent<SwampSpin>();

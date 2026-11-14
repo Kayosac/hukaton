@@ -29,7 +29,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// (a sunken hut, a hummock, a tree standing in the water); <see cref="OnWater"/>: floats on the surface (duckweed,
         /// lily pads).
         /// </summary>
-        public struct Prop { public string Asset; public Vector2 At; public float Yaw; public Vector3 Scale; public float Lift; public bool NoCollider; public float? WaterLine; public bool OnWater; }
+        public struct Prop { public string Asset; public Vector2 At; public float Yaw; public Vector3 Scale; public float Lift; public bool NoCollider; public float? WaterLine; public bool OnWater; public bool Lying; }
         /// <summary>A sloped strip from A at HeightA to B at HeightB that fills the ground up to it (never cuts it).</summary>
         public struct Ramp { public Vector2 A, B; public float HeightA, HeightB, Half, Run; }
         /// <summary>Open water: a bed sunk below the water level, Deep at the middle, its banks at Bank.</summary>
@@ -106,6 +106,10 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         void PutScaled(string asset, float x, float y, float yaw, Vector3 scale) =>
             Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = scale });
+
+        /// <summary>A thing laid on its side on the ground (a hatchet dropped by the fire), not standing on its end.</summary>
+        void PutLying(string asset, float x, float y, float yaw) =>
+            Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = Vector3.one, Lying = true });
 
         void Deco(string asset, float x, float y, float yaw = 0, float scale = 1, float lift = 0) =>
             Props.Add(new Prop { Asset = asset, At = V(x, y), Yaw = yaw, Scale = Vector3.one * scale, NoCollider = true, Lift = lift });
@@ -284,7 +288,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             Put("Props/FA_PR14_CrateOpen", 12, 9.6f, 70);
             Put("Props/FA_PR12_SackLarge", 6.2f, 10.6f, 0);
             Put("Props/FA_PR02_LanternGround", 6.6f, 8.8f, 0);
-            Put("Props/FA_PR16_HatchetRusty", 9.2f, 6.2f, 40);
+            PutLying("Props/FA_PR16_HatchetRusty", 9.2f, 6.2f, 40);
             Put("Structures/FA_ST01_FenceSection", 3.6f, 4.3f, 90);
             Put("Structures/FA_ST01_FenceSection", 3.6f, 10.6f, 90);
             Put("Structures/FA_ST01_FenceSection", 3.6f, 12.7f, 90);

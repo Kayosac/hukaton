@@ -60,6 +60,8 @@ namespace Hakaton.Expeditions
                 PropDebris.Shatter(world, kind, bounds, direction, velocity);
                 if (loot) Spill(world, bounds.center);
             }
+            // What stood on it falls (found while its colliders are still there).
+            PhysicsProp.WakeResting(transform);
             MergedLooks.Unmerge(gameObject);
             gameObject.SetActive(false);
         }

@@ -64,7 +64,32 @@ namespace Hakaton.Expeditions
             body.maxDepenetrationVelocity = 2;
             body.WakeUp();
             StillFor = 0;
+            WakeResting(transform);
             return true;
+        }
+
+        static readonly Collider[] Above = new Collider[24];
+
+        /// <summary>
+        /// Dormant props lying on <paramref name="under"/> (a pile, a pot on a crate) wake with it: left asleep they
+        /// would hang in the air when it goes.
+        /// </summary>
+        public static void WakeResting(Transform under)
+        {
+            Bounds b = default;
+            bool any = false;
+            foreach (var c in under.GetComponentsInChildren<Collider>())
+                if (c && c.enabled && !c.isTrigger) { if (any) b.Encapsulate(c.bounds); else { b = c.bounds; any = true; } }
+            if (!any) return;
+            var centre = new Vector3(b.center.x, b.max.y, b.center.z);
+            int n = Physics.OverlapBoxNonAlloc(centre, new Vector3(b.extents.x + .05f, .12f, b.extents.z + .05f), Above, Quaternion.identity, ~(1 << 4), QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var body = Above[i].attachedRigidbody;
+                Above[i] = null;
+                if (!body || !body.isKinematic || body.transform.IsChildOf(under) || under.IsChildOf(body.transform)) continue;
+                if (body.TryGetComponent(out PhysicsProp prop) && prop.dormant && prop.transform.position.y > b.min.y) prop.Wake();
+            }
         }
 
         /// <summary>Out of the merged mesh, with shapes a moving body may have (a hull instead of the exact mesh).</summary>
