@@ -49,7 +49,7 @@ main{padding:18px 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,
   <select id="cue"><option value="">Любой звук</option></select>
   <label class="vol">Громкость <input type="range" id="vol" min="0" max="1" step=".05" value="1"></label>
   <button class="btn" id="stop">Стоп (Esc)</button>
-  <span class="note">Громкость — как в игре (с учётом громкости ассета). Клик по имени звука — все враги с ним. Цифры — варианты.</span>
+  <span class="note">Громкость и высота — как в игре. Клик по имени звука — все враги с ним. Цифры — варианты.</span>
 </header>
 <main id="grid"></main>
 <script>
@@ -57,13 +57,13 @@ const DATA=__DATA__;
 const $=s=>document.querySelector(s);
 let cur=null,curBtn=null,queue=[];
 function stop(){queue=[];if(cur){cur.pause();cur=null}document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'))}
-function play(id,btn,onend,vol=1){
-  stop();const a=new Audio(DATA.audio[id]);a.cueVol=vol;a.volume=Math.min(1,vol*$('#vol').value);cur=a;
+function play(id,btn,onend,vol=1,pitch=[1,1]){
+  stop();const a=new Audio(DATA.audio[id]);a.cueVol=vol;a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false;a.playbackRate=pitch[0]+Math.random()*(pitch[1]-pitch[0]);a.volume=Math.min(1,vol*$('#vol').value);cur=a;
   if(btn)btn.classList.add('on');
   a.onended=()=>{if(btn)btn.classList.remove('on');if(cur===a)cur=null;onend&&onend()};
   a.play();
 }
-function playSeq(items){stop();queue=items.slice();const next=()=>{const it=queue.shift();if(!it)return;const q=queue;play(it.id,it.btn,()=>{queue=q;setTimeout(next,250)},it.vol);queue=q};next()}
+function playSeq(items){stop();queue=items.slice();const next=()=>{const it=queue.shift();if(!it)return;const q=queue;play(it.id,it.btn,()=>{queue=q;setTimeout(next,250)},it.vol,it.pitch);queue=q};next()}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function render(){
   const q=$('#q').value.trim().toLowerCase(),t=$('#type').value,c=$('#cue').value;
@@ -79,14 +79,14 @@ function render(){
     e.sounds.forEach((s,si)=>{
       if(s.group!==lastG){html+=`<div class="grp">${esc(s.group)}</div>`;lastG=s.group}
       const sh=s.shared>1?`<span class="shared">общий у ${s.shared}</span>`:`<span class="uniq">свой</span>`;
-      const vars=s.clips.map((x,vi)=>`<span class="v" data-vol="${s.vol}" data-a="${x.a}" title="${esc(x.file)} · ${DATA.dur[x.a].toFixed(2)} с">${vi+1}</span>`).join('');
+      const vars=s.clips.map((x,vi)=>`<span class="v" data-vol="${s.vol}" data-pitch="${JSON.stringify(s.pitch)}" data-a="${x.a}" title="${esc(x.file)} · ${DATA.dur[x.a].toFixed(2)} с">${vi+1}</span>`).join('');
       html+=`<div class="row"><button class="play" data-s="${si}" title="Случайный вариант">▶</button><div><div class="ttl">${esc(s.title)}<span class="cue" data-cue="${esc(s.cue)}" title="Показать всех с этим звуком">${esc(s.cue)}</span>${sh}</div><div class="desc">${esc(s.desc)}<span class="vars">${vars}</span></div></div></div>`;
     });
     card.innerHTML=html+'</div>';
-    card.querySelectorAll('.play').forEach(b=>b.onclick=()=>{const s=e.sounds[+b.dataset.s];const x=s.clips[Math.floor(Math.random()*s.clips.length)];b.classList.contains('on')?stop():play(x.a,b,null,s.vol)});
-    card.querySelectorAll('.v').forEach(b=>b.onclick=()=>play(b.dataset.a,b,null,+b.dataset.vol));
+    card.querySelectorAll('.play').forEach(b=>b.onclick=()=>{const s=e.sounds[+b.dataset.s];const x=s.clips[Math.floor(Math.random()*s.clips.length)];b.classList.contains('on')?stop():play(x.a,b,null,s.vol,s.pitch)});
+    card.querySelectorAll('.v').forEach(b=>b.onclick=()=>play(b.dataset.a,b,null,+b.dataset.vol,JSON.parse(b.dataset.pitch)));
     card.querySelectorAll('.cue').forEach(b=>b.onclick=()=>{$('#cue').value=$('#cue').value===b.dataset.cue?'':b.dataset.cue;render();scrollTo({top:0})});
-    card.querySelector('.playall').onclick=()=>playSeq([...card.querySelectorAll('.play')].map((b,i)=>({id:e.sounds[i].clips[0].a,btn:b,vol:e.sounds[i].vol})));
+    card.querySelector('.playall').onclick=()=>playSeq([...card.querySelectorAll('.play')].map((b,i)=>({id:e.sounds[i].clips[0].a,btn:b,vol:e.sounds[i].vol,pitch:e.sounds[i].pitch})));
     g.appendChild(card);
   });
   if(!n)g.innerHTML='<div class="empty">Ничего не нашлось</div>';

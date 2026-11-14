@@ -47,6 +47,7 @@ FIELD={
  ('WorldCreature','hurtCue'):('Получил урон','Попадание по врагу. Тот же звук, тише и выше, — стук по оболочке; ниже — когда тонет.'),
  ('WorldCreature','deathCue'):('Смерть','Гибель (и конец утопания в трясине).'),
  ('WorldCreature','stepCue'):('Шаги','При движении, тихо, только если игрок ближе 18 м.'),
+ ('WorldCreature','sound'):('Почкование','Из тела вырывается отросток — на половине и на четверти здоровья.'),
  ('WorldCreature','bodyLoop'):('Постоянный звук тела','Луп, пока враг жив и игрок рядом; спокойный — тише, во льду — молчит.'),
  ('EnemyProjectileProfile','fireCue'):('Выстрел','Враг выпускает снаряд «{p}».'),
  ('EnemyProjectileProfile','impactCue'):('Попадание снаряда','Снаряд «{p}» во что-то врезался.'),
@@ -64,7 +65,7 @@ FIELD={
  ('ChestMimic','hurtCue'):('Получил урон','Попадание по мимику.'),
  ('ChestMimic','deathCue'):('Смерть','Гибель мимика.'),
 }
-ORDER=['bodyLoop','alertCue','threatCue','windupCue','strikeCue','fireCue','flightLoop','impactCue','shotDownCue','startCue','tickCue','endCue','removedCue','hurtCue','deathCue','stepCue','breath','warnCue','biteCue','hopCue','rattleCue']
+ORDER=['bodyLoop','alertCue','threatCue','windupCue','strikeCue','fireCue','flightLoop','impactCue','shotDownCue','startCue','tickCue','endCue','removedCue','hurtCue','deathCue','sound','stepCue','breath','warnCue','biteCue','hopCue','rattleCue']
 GROUP={'WorldCreature':'Тело','ChestMimic':'Тело','EnemyProjectileProfile':'Снаряд','PlayerStatusDefinition':'Дебафф на игроке'}
 
 audio={}
@@ -132,7 +133,7 @@ for e in enemies:
         if k in seen: continue
         seen.add(k); rr.append(r)
     out.append(dict(ru=e['ru'],prefab=e['prefab'],type=TYPES.get(e['type'],e['type']),img=e['sprite'][0],w=e['sprite'][1][0],h=e['sprite'][1][1],photo=e.get('photo',False),
-        sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),vol=float(r['cue']['volume'] or 1),
+        sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),vol=float(r['cue']['volume'] or 1),pitch=[float(v) for v in re.findall(r'[\d.]+',r['cue']['pitch'] or '1 1')][:2],
                      clips=[dict(a=enc(c),file=os.path.relpath(c,A)) for c in r['cue']['clips']]) for r in rr]))
 PRJ={'Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
 for e in out:
