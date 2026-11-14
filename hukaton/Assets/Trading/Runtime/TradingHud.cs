@@ -194,11 +194,19 @@ namespace Hakaton.Trading.Unity
             var item = controller.FocusedItem;
             var deal = session.CurrentDeal;
             bool haggling = session.IsOpen && deal != null && controller.CustomerReady && !controller.ViewTransitioning;
-            bool showItem = haggling || (item != null && session.ExpeditionId == 0 && exploring && controller.GameplayActive);
+            // A displayed model lifted for a close look: its card and the hint how to turn it stay up while it is held.
+            var inspector = controller.Inspector;
+            var inspected = inspector && inspector.Presenting && exploring ? inspector.Item : null;
+            bool showItem = haggling || inspected != null || (item != null && session.ExpeditionId == 0 && exploring && controller.GameplayActive);
             if (haggling)
             {
                 selectedItemTitle.text = deal.Item.Definition.Name;
                 selectedItemDetail.text = $"Базовая цена: {deal.R}";
+            }
+            else if (inspected != null)
+            {
+                selectedItemTitle.text = inspected.Definition.Name;
+                selectedItemDetail.text = $"Базовая цена: {inspected.Definition.RecommendedPrice}";
             }
             else if (showItem)
             {
@@ -212,13 +220,15 @@ namespace Hakaton.Trading.Unity
                 selectedItemDetail.text = $"Базовая цена: {item.Definition.RecommendedPrice}";
             }
             Fade(selectedVisibility, showItem);
-            bool hasContext = exploring && controller.GameplayActive && !string.IsNullOrEmpty(controller.ContextPrompt);
+            bool hasContext = inspected != null || exploring && controller.GameplayActive && !string.IsNullOrEmpty(controller.ContextPrompt);
             if (hasContext)
             {
-                contextPrompt.text = controller.ContextPrompt;
-                contextDetail.text = controller.ContextDetail;
+                string prompt = inspected != null ? DisplayItemInspector.Hint : controller.ContextPrompt;
+                string detail = inspected != null ? string.Empty : controller.ContextDetail;
+                contextPrompt.text = prompt;
+                contextDetail.text = detail;
                 contextPanel.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-                    string.IsNullOrEmpty(controller.ContextDetail) ? contextHeight : contextHeightWithDetail);
+                    string.IsNullOrEmpty(detail) ? contextHeight : contextHeightWithDetail);
             }
             Fade(contextVisibility, hasContext);
             contextProgressFill.fillAmount = Mathf.Clamp01(controller.ContextProgress);
