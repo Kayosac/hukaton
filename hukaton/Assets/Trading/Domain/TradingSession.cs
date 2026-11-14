@@ -620,6 +620,7 @@ namespace Hakaton.Trading
             RemainingSeconds = Math.Min(save.remainingSeconds, ShiftLength);
             BulkBuyerLevel = Math.Min(save.bulkBuyerLevel, BulkBuyerSteps);
             BulkBuyerMet = save.bulkBuyerMet; BulkBuyerCameThisShift = save.bulkBuyerThisShift;
+            BulkBuyerPromiseKept = save.bulkBuyerPromiseKept;
             GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;
             nextItemId = save.nextItemId; nextExpeditionId = save.nextExpeditionId;
             CurrentCustomer = null; CurrentDeal = null; LastSoldItem = null; LastDeparture = null;
@@ -688,7 +689,6 @@ namespace Hakaton.Trading
             return new CustomerTerms
             {
                 Name = new[] { "Охотник", "Собиратель", "Путник", "Сосед" }[random.Next(4)],
-            BulkBuyerPromiseKept = save.bulkBuyerPromiseKept;
                 RequestedSlot = selected,
                 AsksPrice = asksPrice,
                 OpeningRatio = openingRatio,

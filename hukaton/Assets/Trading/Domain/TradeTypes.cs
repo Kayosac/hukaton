@@ -127,6 +127,8 @@ namespace Hakaton.Trading
         public bool bulkBuyerMet;
         /// <summary>The bulk buyer has already come during the current shift.</summary>
         public bool bulkBuyerThisShift;
+        /// <summary>His promised visit (first full-display shift after the endless world opened) has happened.</summary>
+        public bool bulkBuyerPromiseKept;
         public List<TradingItemSave> items = new List<TradingItemSave>();
     }
 
@@ -136,8 +138,6 @@ namespace Hakaton.Trading
         public long instanceId;
         public string definitionId;
         // Inventory entries retain their list order; nonnegative values identify display slots.
-        /// <summary>His promised visit (first full-display shift after the endless world opened) has happened.</summary>
-        public bool bulkBuyerPromiseKept;
         public int slot = -1;
     }
 
