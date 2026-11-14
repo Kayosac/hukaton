@@ -21,6 +21,13 @@ CBUFFER_START(UnityPerMaterial)
     half _Flash, _Glow, _Cutoff, _Alpha;
 CBUFFER_END
 
+// Card art is stored stretched to a power of two (1024x2048 for a 2:3 card) so it compresses with mipmaps. A texel of
+// the drawing is measured by the width, exactly as on the 1024x1536 original (and on any 2:3 texture).
+float2 CardTexel(float2 texelSize)
+{
+    return float2(texelSize.x, texelSize.x * (2.0 / 3.0));
+}
+
 float2 CardDrawingUV(float2 uv, float2 texelSize, float sideEnabled)
 {
     UNITY_BRANCH

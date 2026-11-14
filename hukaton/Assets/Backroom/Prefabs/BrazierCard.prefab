@@ -285,6 +285,7 @@ GameObject:
   - component: {fileID: 2073213793594057186}
   - component: {fileID: 4571892863098580553}
   - component: {fileID: 4039954921415866697}
+  - component: {fileID: 924337937577118056}
   m_Layer: 5
   m_Name: Face
   m_TagString: Untagged
@@ -342,7 +343,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: 0}
   m_Type: 0
-  m_PreserveAspect: 1
+  m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -350,6 +351,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &924337937577118056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2732708982187706063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c644cf592c5c94441958864195ce49bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Decks.Runtime::Hakaton.Decks.Unity.CardArtAspect
 --- !u!1 &2826260416723864968
 GameObject:
   m_ObjectHideFlags: 0
@@ -570,8 +583,10 @@ MonoBehaviour:
   badge: {fileID: 8176873629665944796}
   levelMark: {fileID: 7812224521659855374}
   group: {fileID: 8338033473739281176}
+  hitArea: {fileID: 0}
   hoverLift: 26
   raiseOnHover: 0
+  trembleOnHover: 0
 --- !u!1001 &4810147922281187824
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -683,5 +698,5 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI

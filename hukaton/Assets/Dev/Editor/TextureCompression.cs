@@ -8,7 +8,8 @@ namespace Hakaton.Dev
     /// <summary>
     /// Shipping size: every texture imported as "None" (raw RGBA32, 4 bytes a pixel) is switched to
     /// "High Quality" compression — BC7 on desktop, 1 byte a pixel, visually the same, hard pixels stay hard.
-    /// Textures whose sides are not multiples of 4 cannot be BC7: Unity keeps them raw by itself.
+    /// Textures whose sides are not multiples of 4 cannot be BC7: Unity keeps them raw by itself; card art first goes to a
+    /// power of two (CardArtPot), since Unity also keeps raw any non-power-of-two texture with mipmaps.
     /// Platform overrides with an explicit format are left alone. Idempotent: the Windows/macOS builds run it first,
     /// so a texture added later as "None" is caught before shipping (menu Hakaton/Build/Compress Textures, or the
     /// bridge: invoke Hakaton.Dev.TextureCompression.Apply).
@@ -25,6 +26,7 @@ namespace Hakaton.Dev
 
         public static string Apply(string _)
         {
+            string cards = CardArtPot.Apply("");
             string cursor = PlayerSettings.defaultCursor ? AssetDatabase.GetAssetPath(PlayerSettings.defaultCursor) : "";
             var targets = new List<string>();
             int changed = 0;
@@ -64,7 +66,7 @@ namespace Hakaton.Dev
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 forced++;
             }
-            return $"OK compressed {changed} textures, reimported {forced} stale";
+            return $"OK compressed {changed} textures, reimported {forced} stale; {cards}";
         }
 
         /// <summary>The imported format of each given texture (paths split by ';') — to check what a build will carry.</summary>

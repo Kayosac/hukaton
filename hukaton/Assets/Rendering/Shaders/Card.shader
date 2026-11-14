@@ -165,7 +165,7 @@ Shader "Hakaton/Card"
                 if (original.a >= _Cutoff)
                 {
                     float2 uv = front ? input.uv : float2(1.0 - input.uv.x, input.uv.y);
-                    float2 texelSize = front ? _MainTex_TexelSize.xy : _BackTex_TexelSize.xy;
+                    float2 texelSize = CardTexel(front ? _MainTex_TexelSize.xy : _BackTex_TexelSize.xy);
                     bool backStyle = !front || _FrontIsBack > 0.5;
                     float2 animatedUV = CardDrawingUV(uv, texelSize, backStyle ? _MotionOnBack : 1.0);
                     if (front)
