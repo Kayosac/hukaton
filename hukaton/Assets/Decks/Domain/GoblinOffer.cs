@@ -121,9 +121,9 @@ namespace Hakaton.Decks
     }
 
     /// <summary>
-    /// When the goblin can be called. The first call is open at once; after a visit the next one needs an outing that
-    /// came home and a worked shift (at least one sale, then the shift closed). The ten cards are rolled when he comes
-    /// down and kept until the next call, saves included. The first conversation's lines are read once.
+    /// When the goblin can be called: always, with no conditions — every pull of the rope brings him down with a fresh
+    /// ten. (The outing/shift marks are still tracked and saved, but no longer gate the call.) The ten cards are rolled
+    /// when he comes down and kept until the next call, saves included. The first conversation's lines are read once.
     /// </summary>
     public sealed class GoblinVisits
     {
@@ -136,8 +136,8 @@ namespace Hakaton.Decks
         /// <summary>He has been called down at least once in this game (saved; a new game starts without it).</summary>
         public bool Visited => visited;
 
-        /// <summary>The rope calls him down (a fresh ten) only when the conditions are met.</summary>
-        public bool CanCall => !visited || outingSince && shiftSince;
+        /// <summary>The rope always calls him down (a fresh ten): no outing or shift is required between visits.</summary>
+        public bool CanCall => true;
 
         public void OutingReturned()
         {

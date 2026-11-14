@@ -242,7 +242,7 @@ namespace Hakaton.Game
             }
             RefreshProgress();
         }
-        /// <summary>A worked shift (a sale, then the shop closed) lets the goblin card dealer come again.</summary>
+        /// <summary>Notes a worked shift (a sale, then the shop closed) for the goblin dealer's save; it no longer gates his call.</summary>
         void TrackShift()
         {
             bool open = trade.Session.IsOpen;

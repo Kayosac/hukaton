@@ -103,18 +103,13 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void TheGoblinComesBackAfterAnOutingAndAWorkedShift()
+        public void TheGoblinCanBeCalledAnyTimeWithoutConditions()
         {
             var visits = new GoblinVisits();
             Assert.That(visits.CanCall, Is.True, "The first call is open at once.");
             Assert.That(visits.Call(Specs, new Random(1)), Is.True);
             var first = visits.Offer;
-            Assert.That(visits.CanCall, Is.False);
-            visits.ShiftClosed(false);
-            visits.OutingReturned();
-            Assert.That(visits.CanCall, Is.False, "Opening and closing without a sale is not a worked shift.");
-            visits.ShiftClosed(true);
-            Assert.That(visits.CanCall, Is.True);
+            Assert.That(visits.CanCall, Is.True, "No outing or shift is needed before the next call.");
             Assert.That(visits.Call(Specs, new Random(2)), Is.True);
             Assert.That(visits.Offer, Is.Not.SameAs(first), "A new visit, a new ten.");
         }
@@ -135,9 +130,7 @@ namespace Hakaton.Decks.Tests
             Assert.That(restored.Offer.Save().cards, Is.EqualTo(visits.Offer.Save().cards));
             Assert.That((restored.Offer.Revealed, restored.Offer.IsSold(2), restored.Offer.IsSold(1)), Is.EqualTo((true, true, false)));
             Assert.That(restored.IntroductionRead, Is.EqualTo(1));
-            Assert.That(restored.CanCall, Is.False, "The shift is still owed.");
-            restored.ShiftClosed(true);
-            Assert.That(restored.CanCall, Is.True);
+            Assert.That(restored.CanCall, Is.True, "A restored game can call him at once.");
             Assert.That(restored.TryRestore(new GoblinSave { offer = new GoblinOfferSave { cards = { "nope" } } }, id => false), Is.False);
         }
     }
