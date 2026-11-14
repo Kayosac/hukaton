@@ -107,7 +107,7 @@ namespace Hakaton.WorldAssembly
         public double FallsChance = .3;
 
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
-        public double[] CreatureChance = { .12, .2, .33 };
+        public double[] CreatureChance = { .25, .2, .33 };
         /// <summary>Chance of a beast brawl on a chunk where one fits (roomy flat scenes) by ring; any ring.</summary>
         public double[] BrawlChance = { .12, .12, .165 };
         /// <summary>Chance of a payphone or a television on a chunk where one fits, by ring: very rare, never in ring 0.</summary>
