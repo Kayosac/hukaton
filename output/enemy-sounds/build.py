@@ -20,7 +20,7 @@ def yname(s):
     return s
 def cue(p):
     t=txt(p)
-    clips=[guid2path[g] for g in re.findall(r'guid: ([0-9a-f]{32}), type: 3',t) if g in guid2path]
+    clips=[guid2path[g] for g in re.findall(r'fileID: 8300000, guid: ([0-9a-f]{32}), type: 3',t) if g in guid2path]
     return dict(id=os.path.basename(p)[:-6],clips=clips,volume=field(t,'volume'),pitch=field(t,'pitch'))
 def scan(p,chain=(),depth=0):
     out=[];cls=None;last=None

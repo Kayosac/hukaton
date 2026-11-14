@@ -55,15 +55,39 @@ main{padding:18px 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,
 <script>
 const DATA=__DATA__;
 const $=s=>document.querySelector(s);
-let cur=null,curBtn=null,queue=[];
-function stop(){queue=[];if(cur){cur.pause();cur=null}document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'))}
-function play(id,btn,onend,vol=1,pitch=[1,1]){
-  stop();const a=new Audio(DATA.audio[id]);a.cueVol=vol;a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false;a.playbackRate=pitch[0]+Math.random()*(pitch[1]-pitch[0]);a.volume=Math.min(1,vol*$('#vol').value);cur=a;
-  if(btn)btn.classList.add('on');
-  a.onended=()=>{if(btn)btn.classList.remove('on');if(cur===a)cur=null;onend&&onend()};
-  a.play();
+let ctx=null,master=null,cur=null,seqToken=0;const bufs={};
+function ac(){
+  if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.connect(ctx.destination)}
+  if(ctx.state!=='running')ctx.resume();
+  master.gain.value=+$('#vol').value;return ctx;
 }
-function playSeq(items){stop();queue=items.slice();const next=()=>{const it=queue.shift();if(!it)return;const q=queue;play(it.id,it.btn,()=>{queue=q;setTimeout(next,250)},it.vol,it.pitch);queue=q};next()}
+function buf(id){
+  if(!bufs[id]){
+    const bin=atob(DATA.audio[id].split(',')[1]);const u=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+    bufs[id]=new Promise((res,rej)=>ac().decodeAudioData(u.buffer,res,rej));
+    bufs[id].catch(()=>{delete bufs[id]});
+  }
+  return bufs[id];
+}
+function clearOn(){document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'))}
+function stopSrc(){if(cur){try{cur.onended=null;cur.stop()}catch(e){}cur=null}clearOn()}
+function stop(){seqToken++;stopSrc()}
+async function start(id,btn,vol,pitch,token,onend){
+  ac();if(btn)btn.classList.add('on');
+  let b;try{b=await buf(id)}catch(e){console.error('decode failed',id,e);if(btn)btn.classList.remove('on');if(token===seqToken&&onend)onend();return}
+  if(token!==seqToken)return;
+  stopSrc();if(btn)btn.classList.add('on');
+  if(ctx.state!=='running'){try{await ctx.resume()}catch(e){}}
+  const src=ctx.createBufferSource();src.buffer=b;
+  src.playbackRate.value=pitch[0]+Math.random()*(pitch[1]-pitch[0]);
+  const g=ctx.createGain();g.gain.value=Math.min(1,vol);src.connect(g);g.connect(master);
+  cur=src;
+  src.onended=()=>{if(cur===src){cur=null;if(btn)btn.classList.remove('on');onend&&onend()}};
+  src.start();
+}
+function play(id,btn,onend,vol=1,pitch=[1,1]){stop();start(id,btn,vol,pitch,seqToken,onend)}
+function playSeq(items){stop();const tk=seqToken;let i=0;const next=()=>{if(tk!==seqToken||i>=items.length)return;const it=items[i++];start(it.id,it.btn,it.vol,it.pitch,tk,()=>setTimeout(next,250))};next()}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function render(){
   const q=$('#q').value.trim().toLowerCase(),t=$('#type').value,c=$('#cue').value;
@@ -83,7 +107,7 @@ function render(){
       html+=`<div class="row"><button class="play" data-s="${si}" title="Случайный вариант">▶</button><div><div class="ttl">${esc(s.title)}<span class="cue" data-cue="${esc(s.cue)}" title="Показать всех с этим звуком">${esc(s.cue)}</span>${sh}</div><div class="desc">${esc(s.desc)}<span class="vars">${vars}</span></div></div></div>`;
     });
     card.innerHTML=html+'</div>';
-    card.querySelectorAll('.play').forEach(b=>b.onclick=()=>{const s=e.sounds[+b.dataset.s];const x=s.clips[Math.floor(Math.random()*s.clips.length)];b.classList.contains('on')?stop():play(x.a,b,null,s.vol,s.pitch)});
+    card.querySelectorAll('.play').forEach(b=>b.onclick=()=>{const s=e.sounds[+b.dataset.s];const x=s.clips[Math.floor(Math.random()*s.clips.length)];play(x.a,b,null,s.vol,s.pitch)});
     card.querySelectorAll('.v').forEach(b=>b.onclick=()=>play(b.dataset.a,b,null,+b.dataset.vol,JSON.parse(b.dataset.pitch)));
     card.querySelectorAll('.cue').forEach(b=>b.onclick=()=>{$('#cue').value=$('#cue').value===b.dataset.cue?'':b.dataset.cue;render();scrollTo({top:0})});
     card.querySelector('.playall').onclick=()=>playSeq([...card.querySelectorAll('.play')].map((b,i)=>({id:e.sounds[i].clips[0].a,btn:b,vol:e.sounds[i].vol,pitch:e.sounds[i].pitch})));
@@ -96,7 +120,7 @@ function render(){
 const cues={};DATA.enemies.forEach(e=>e.sounds.forEach(s=>{(cues[s.cue]=cues[s.cue]||new Set).add(e.ru)}));
 Object.keys(cues).sort().forEach(k=>$('#cue').insertAdjacentHTML('beforeend',`<option value="${esc(k)}">${esc(k)} (${cues[k].size})</option>`));
 $('#q').oninput=render;$('#type').onchange=render;$('#cue').onchange=render;$('#stop').onclick=stop;
-$('#vol').oninput=()=>{if(cur)cur.volume=Math.min(1,(cur.cueVol||1)*$('#vol').value)};
+$('#vol').oninput=()=>{if(master)master.gain.value=+$('#vol').value};
 addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
 render();
 </script></body></html>
