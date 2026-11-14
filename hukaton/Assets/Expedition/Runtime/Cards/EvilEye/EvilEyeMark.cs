@@ -62,6 +62,8 @@ namespace Hakaton.Expeditions.Cards
         public float PopAt => popAt;
         /// <summary>Метка уже лопнула или пропала.</summary>
         public bool Done => done;
+        /// <summary>Место знака над головой: 0 — нижнее, дальше — выше на шаг.</summary>
+        public int Slot => slot;
 
         /// <summary>Сколько живых меток висит на этом существе.</summary>
         public static int CountOn(ICombatant fighter)
@@ -72,12 +74,22 @@ namespace Hakaton.Expeditions.Cards
             return count;
         }
 
+        /// <summary>Первое свободное место знака над этим существом (места лопнувших меток освобождаются).</summary>
+        public static int FreeSlot(ICombatant fighter)
+        {
+            var taken = new List<int>();
+            foreach (var mark in Active)
+                if (mark && !mark.done && ReferenceEquals(mark.target, fighter)) taken.Add(mark.slot);
+            return EvilEyeRules.FirstFreeSlot(taken);
+        }
+
         public void OnSpawned(ExpeditionWorld owner) => world = owner;
 
         /// <summary>Вешает метку: урон <paramref name="amount"/>, лопнет в момент <paramref name="popTime"/>.</summary>
         public void Attach(ICombatant fighter, int amount, float popTime, float now)
         {
-            slot = CountOn(fighter);
+            Active.Remove(this);
+            slot = FreeSlot(fighter);
             target = fighter;
             damage = Mathf.Max(0, amount);
             startAt = now;

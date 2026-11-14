@@ -146,6 +146,24 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void ANewMarkTakesTheFirstFreePlaceAboveTheHead()
+        {
+            Assert.That(EvilEyeRules.FirstFreeSlot(new int[0]), Is.Zero);
+            Assert.That(EvilEyeRules.FirstFreeSlot(new[] { 0, 1 }), Is.EqualTo(2));
+            Assert.That(EvilEyeRules.FirstFreeSlot(new[] { 1 }), Is.Zero, "нижнее место свободно — туда");
+            Assert.That(EvilEyeRules.FirstFreeSlot(new[] { 0, 2 }), Is.EqualTo(1));
+            var beast = NewDummy();
+            var low = NewMark(beast, 5, 2, 0);
+            var high = NewMark(beast, 5, 3, .5f);
+            Assert.That((low.Slot, high.Slot), Is.EqualTo((0, 1)));
+            Assert.That(low.Tick(2), Is.EqualTo(EvilEyeRules.Step.Pop), "нижняя лопнула");
+            var fresh = NewMark(beast, 5, 4, 2.1f);
+            Assert.That(fresh.Slot, Is.Zero, "новая встала на освободившееся место, а не поверх висящей");
+            Assert.That(fresh.Slot, Is.Not.EqualTo(high.Slot));
+            Assert.That(NewMark(beast, 5, 5, 2.2f).Slot, Is.EqualTo(2));
+        }
+
+        [Test]
         public void OnlyLivingBeastsAndCardCreaturesCanBeMarked()
         {
             var beast = NewDummy();

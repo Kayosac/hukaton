@@ -81,6 +81,18 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Частота пульса знака, Гц: учащается к взрыву.</summary>
         public static float PulseRate(float progress, float from, float to) => Mathf.Lerp(from, to, progress * progress);
 
+        /// <summary>
+        /// Место для новой метки: первое свободное (0 — у самой головы, 1 — выше на шаг…), а не число меток: лопнула
+        /// нижняя — новая встаёт на её место, а не поверх ещё висящей.
+        /// </summary>
+        public static int FirstFreeSlot(System.Collections.Generic.IEnumerable<int> taken)
+        {
+            var used = new System.Collections.Generic.HashSet<int>(taken);
+            int slot = 0;
+            while (used.Contains(slot)) slot++;
+            return slot;
+        }
+
         /// <summary>Знак над головой зверя: верх тела (по ногам и середине) плюс зазор, следующая метка — выше на шаг.</summary>
         public static Vector3 SignPosition(Vector3 feet, Vector3 centre, float gap, int slot, float slotStep)
         {
