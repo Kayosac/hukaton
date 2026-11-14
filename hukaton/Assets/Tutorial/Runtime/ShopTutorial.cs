@@ -107,8 +107,16 @@ namespace Hakaton.Tutorial
             Session.ClockPaused = on;
             Session.CustomerScript = on ? NextVisitor : null;
             trade.OpenRefusal = on && Stage < ShopTutorialStage.Trading ? bothFirst : null;
+            // While the visitor talks the goblin's comments hang over his own head, clear of the visitor's lines.
+            if (bubble)
+            {
+                bool over = on && Stage == ShopTutorialStage.Trading && goblin && goblin.face;
+                bubble.FollowOverHead(over ? goblin.face.spriteRenderer : null, over ? ViewCamera : null);
+            }
             if (!on) SetBlocking(false);
         }
+
+        Camera ViewCamera => goblin.viewer && goblin.viewer.TryGetComponent(out Camera own) ? own : Camera.main;
 
         bool Has(string id) => Session.Inventory.Any(i => i.Definition.Id == id) || Session.Slots.Any(i => i != null && i.Definition.Id == id);
         int SlotOf(string id)
@@ -280,6 +288,7 @@ namespace Hakaton.Tutorial
             {
                 trade.ExitsLocked = false;
                 trade.OpenRefusal = null;
+                if (bubble) bubble.FollowOverHead(null, null);
                 if (Session != null) { Session.ClockPaused = false; Session.CustomerScript = null; }
             }
         }
