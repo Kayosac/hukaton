@@ -651,6 +651,11 @@ namespace Hakaton.WorldAssembly.Unity
             var sunken = chest.gameObject.AddComponent<SunkenChest>();
             sunken.level = entry.view.transform.position.y - .3f;
             sunken.player = player;
+            if (content.sunkenBubbles && !chest.Opened)
+            {
+                sunken.bubbles = Instantiate(content.sunkenBubbles, at + Vector3.up * .4f, Quaternion.identity, chest.transform);
+                sunken.bubbles.name = "Bubbles";
+            }
             entry.sunken = chest;
         }
 

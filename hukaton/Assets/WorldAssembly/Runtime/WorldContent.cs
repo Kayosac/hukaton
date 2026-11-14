@@ -106,6 +106,8 @@ namespace Hakaton.WorldAssembly.Unity
         public ChestSpawnTable[] sunkenTables = new ChestSpawnTable[3];
         [Tooltip("A sunken chest pays this many times its tier's coins.")]
         [Min(1)] public float sunkenRiches = 3;
+        [Tooltip("Bubbles rising from a sunken chest.")]
+        public GameObject sunkenBubbles;
 
         /// <summary>The sunken chests' table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable SunkenTable(int ring)
