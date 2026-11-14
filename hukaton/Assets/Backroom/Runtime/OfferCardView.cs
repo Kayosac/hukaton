@@ -11,7 +11,8 @@ namespace Hakaton.Backroom
     /// One card on the goblin's table, drawn over the game view. Deals in from below, lifts on hover, flips with a
     /// squash, shakes on a refusal and flies off when bought. Purely presentation: the shop decides what happens.
     /// </summary>
-    public sealed class OfferCardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    public sealed class OfferCardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler,
+        IPointerDownHandler, IPointerUpHandler
     {
         public RectTransform body;
         public Image face;
@@ -34,7 +35,12 @@ namespace Hakaton.Backroom
         [Tooltip("The brazier: under the pointer the card shivers, as if afraid of the fire.")]
         public bool trembleOnHover;
 
+        [Tooltip("The brazier: the colour the face glows towards while it is held over the fire (see Heat).")]
+        public Color heatColour = new Color(1f, .5f, .2f, 1);
+
         public event Action<OfferCardView> Clicked, Hovered, Unhovered;
+        /// <summary>The left button went down / up on the card (the brazier burns a card held long enough).</summary>
+        public event Action<OfferCardView> Pressed, Released;
         public int Slot { get; set; }
         public bool Hovering { get; private set; }
 
@@ -49,6 +55,11 @@ namespace Hakaton.Backroom
         RectTransform guard;
 
         int restingIndex = -1;
+        // Held over the fire: 0 cold, 1 about to burn. Set every frame while held; cools down by itself after.
+        float heat;
+        int heatFrame = -10;
+        Color faceRest = Color.white;
+        bool heatShown;
 
         /// <summary>How much bigger the card is under the pointer.</summary>
         const float HoverScale = 1.08f;
@@ -58,7 +69,23 @@ namespace Hakaton.Backroom
         const float PopAgainAfter = .15f;
         float leftAt = float.NegativeInfinity;
 
-        void Awake() => home = body.anchoredPosition;
+        void Awake()
+        {
+            home = body.anchoredPosition;
+            if (face) faceRest = face.color;
+        }
+
+        /// <summary>
+        /// How close the held card is to burning (0..1): the face glows towards the fire, the shiver and the size
+        /// grow. Call every frame while held; let go and it cools down on its own.
+        /// </summary>
+        public void HoldHeat(float amount)
+        {
+            heat = Mathf.Clamp01(amount);
+            heatFrame = Time.frameCount;
+        }
+
+        public float Heat => heat;
 
         /// <summary>Puts the card back on the table: face down or up, with a staggered deal from below.</summary>
         public void Deal(Sprite art, bool up, float delay, int level = 1)
@@ -67,6 +94,8 @@ namespace Hakaton.Backroom
             gameObject.SetActive(true);
             face.sprite = art;
             Hakaton.Decks.Unity.CardLevelPresentation.SetMark(levelMark, level);
+            heat = 0;
+            heatFrame = -10;
             SetDimmed(false);
             SetGuarded(false);
             faceUp = up;
@@ -294,6 +323,23 @@ namespace Hakaton.Backroom
         }
         public void OnPointerClick(PointerEventData e) { if (!flying) Clicked?.Invoke(this); }
 
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (!flying && (e == null || e.button == PointerEventData.InputButton.Left)) Pressed?.Invoke(this);
+        }
+
+        public void OnPointerUp(PointerEventData e)
+        {
+            if (e == null || e.button == PointerEventData.InputButton.Left) Released?.Invoke(this);
+        }
+
+        /// <summary>The guide's pretend pointer: the card reacts as if the pointer came in or left.</summary>
+        public void PretendHover(bool on)
+        {
+            if (on) OnPointerEnter(null);
+            else OnPointerExit(null);
+        }
+
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
@@ -302,6 +348,7 @@ namespace Hakaton.Backroom
             scale.Step(Hovering ? HoverScale : 1, 11, .45f, dt);
             shake.Step(0, 18, .25f, dt);
             fear = Mathf.MoveTowards(fear, trembleOnHover && Hovering && !flying ? 1 : 0, dt * 6);
+            if (Time.frameCount - heatFrame > 1) heat = Mathf.MoveTowards(heat, 0, dt * 3);
             flip.Step(flipTarget, 14, .7f, dt);
             if (flipTarget < 0 && flip.Value <= 0)
             {
@@ -346,12 +393,23 @@ namespace Hakaton.Backroom
             {
                 if (fearSeed == 0) fearSeed = UnityEngine.Random.Range(1f, 100f);
                 float time = Time.unscaledTime * 34 + fearSeed;
-                shiver = new Vector2(Mathf.PerlinNoise(time, 0) - .5f, Mathf.PerlinNoise(0, time) - .5f) * (9 * fear);
-                tilt = (Mathf.PerlinNoise(time * .8f, time) - .5f) * 6 * fear;
+                float panic = fear * (1 + 1.6f * heat);
+                shiver = new Vector2(Mathf.PerlinNoise(time, 0) - .5f, Mathf.PerlinNoise(0, time) - .5f) * (9 * panic);
+                tilt = (Mathf.PerlinNoise(time * .8f, time) - .5f) * 6 * panic;
             }
             body.anchoredPosition = home + new Vector2(shake.Value * .35f, lift.Value) + shiver;
             float sx = Mathf.Abs(flip.Value);
-            body.localScale = new Vector3(Mathf.Max(.02f, sx) * scale.Value, scale.Value, 1);
+            float swell = scale.Value * (1 + .07f * heat);
+            body.localScale = new Vector3(Mathf.Max(.02f, sx) * swell, swell, 1);
+            if (face && (heat > 0 || heatShown))
+            {
+                // Held over the fire: the face glows towards the flame (on top of its shade, if shaded).
+                var rest = shadeBase != null && shadeBase.TryGetValue(face, out var b) ? (dimmed ? Shaded(b) : b) : faceRest;
+                var glow = heatColour;
+                glow.a = rest.a;
+                face.color = Color.Lerp(rest, glow, heat * .75f);
+                heatShown = heat > 0;
+            }
             body.localRotation = Quaternion.Euler(0, 0, -shake.Value * .08f + tilt + (flying && flyTime > 0 ? flyTime * 40 : 0));
             face.enabled = faceUp;
             if (levelMark) levelMark.transform.parent.gameObject.SetActive(faceUp && levelMark.text.Length > 0);

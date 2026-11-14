@@ -22,8 +22,8 @@ namespace Hakaton.Loot.EditorTools
         const string Template = "Assets/ShopArt/Materials/M_Stock.mat";
         const string CatalogPath = "Assets/Loot/Loot catalog.asset";
         const string Category = "Диковины";
-        const string CommonFind = "Assets/Loot/Prefabs/Finds/Find common_find.prefab";
-        const string SpecialFind = "Assets/Loot/Prefabs/Finds/Find special_find.prefab";
+        const string CommonFind = "Assets/Loot/Prefabs/Finds/Find ordinary.prefab";
+        const string SpecialFind = "Assets/Loot/Prefabs/Finds/Find valuable.prefab";
         const string CrystalFind = "Assets/Loot/Prefabs/Finds/Find crystal.prefab";
         const float WorldScale = 2;
         const string WorldContentPath = "Assets/WorldAssembly/World content.asset";

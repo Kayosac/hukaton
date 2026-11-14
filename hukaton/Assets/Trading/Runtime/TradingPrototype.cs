@@ -91,6 +91,10 @@ namespace Hakaton.Trading.Unity
         /// <summary>When set, the shop does not open and this is said instead (the tutorial wants both wares out first).</summary>
         public string OpenRefusal { get; set; }
         public event System.Action<int> ItemPlaced, ItemTaken, SlotHovered;
+        /// <summary>The item on this display slot is lifted for a close look (R) / is back on the shelf.</summary>
+        public event System.Action<int> ItemInspected, ItemReturned;
+        /// <summary>The close look at a displayed item, model or drawing (created with the shop, nothing to wire).</summary>
+        public DisplayItemInspector Inspector { get; private set; }
         public int HoveredSlot => hoveredSlot;
         public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
@@ -115,7 +119,6 @@ namespace Hakaton.Trading.Unity
         public StartingStock[] startingStock = new StartingStock[0];
         GameObject[] displayed;
         long[] displayedIds;
-        GameObject heldItem;
         int selectedInventory, hoveredSlot = -1, pressedSlot = -1, lastHovered = -1;
         bool autoFilling, previousOpen;
         float pressStarted, nextPlaceAt, actionReadyAt, revealAt;
@@ -191,7 +194,6 @@ namespace Hakaton.Trading.Unity
                 enabled = false;
                 return;
             }
-            heldItem = World.HeldItem;
             Session = new TradingSession(new TradeSettings {
                 SlotCount = 6, ShiftSeconds = shiftSeconds,
                 ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
@@ -211,6 +213,9 @@ namespace Hakaton.Trading.Unity
             displayed = new GameObject[6];
             displayedIds = new long[6];
             itemMotion = new Coroutine[6];
+            Inspector = GetComponent<DisplayItemInspector>();
+            if (!Inspector) Inspector = gameObject.AddComponent<DisplayItemInspector>();
+            Inspector.Bind(this);
             if (World.ShopView) World.ShopView.Bind(this);
             hud.Bind(this);
             RefreshWorld();
@@ -258,6 +263,8 @@ namespace Hakaton.Trading.Unity
                 {
                     if (Session.RemoveItem(hoveredSlot)) ItemTaken?.Invoke(hoveredSlot);
                 }
+                if (keyboard != null && keyboard.rKey.wasPressedThisFrame && hoveredSlot >= 0 && Inspector.TryBegin(hoveredSlot))
+                    ClearFocus();
             }
             else
             {
@@ -369,7 +376,8 @@ namespace Hakaton.Trading.Unity
                 {
                     // Same presentation as stocking: one bare hint line, the item itself on the paper card.
                     FocusedItem = item;
-                    ContextPrompt = "F Забрать" + (World.openFromDisplaySlots && Session.RemainingSeconds > 0 ? " · E Открыть лавку" : string.Empty);
+                    ContextPrompt = "F Забрать" + (World.openFromDisplaySlots && Session.RemainingSeconds > 0 ? " · E Открыть лавку" : string.Empty)
+                        + (Inspector && Inspector.CanInspect(hoveredSlot) ? DisplayItemInspector.PromptSuffix : string.Empty);
                     ContextDetail = string.Empty;
                 }
                 else
@@ -576,7 +584,8 @@ namespace Hakaton.Trading.Unity
                 else World.SlotRenderers[i].SetPropertyBlock(null);
             }
             PresentDealItem();
-            heldItem.SetActive(GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0);
+            // The hand comes up only near the display and slides away elsewhere (HeldStockView).
+            World.HeldStock.Wanted = GameplayActive && Session.ExpeditionId == 0 && Session.Inventory.Count > 0;
             if (Session.Inventory.Count > 0) World.HeldStock.Show(lootCatalog, Item(Session.Inventory[selectedInventory].Definition.Id));
         }
 
@@ -680,6 +689,14 @@ namespace Hakaton.Trading.Unity
             var item = lootCatalog.Find(id);
             if (!item) throw new System.InvalidOperationException("Missing loot item in the catalogue: " + id);
             return item;
+        }
+
+        /// <summary>The shelf object showing the item on this display slot, or null.</summary>
+        public GameObject DisplayedObject(int slot) => displayed != null && slot >= 0 && slot < displayed.Length ? displayed[slot] : null;
+
+        internal void ReportInspection(int slot, bool began)
+        {
+            if (began) ItemInspected?.Invoke(slot); else ItemReturned?.Invoke(slot);
         }
 
         /// <summary>The catalogue item behind a shop definition id, or null.</summary>

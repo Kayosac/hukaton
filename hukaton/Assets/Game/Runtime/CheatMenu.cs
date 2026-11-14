@@ -212,6 +212,15 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>The brazier's and the PC's first-open guides come again.</summary>
+        public bool ResetGuides()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.ForgetGuides();
+            status = "Экскурсии по жаровне и ПК покажутся при следующем открытии.";
+            return true;
+        }
+
         /// <summary>The god's «?» comes back on the map (once the revenue goal is reached) for another trip.</summary>
         public bool ResetGodMeeting()
         {
@@ -354,6 +363,8 @@ namespace Hakaton.Game
             if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
             GUI.enabled = game.Ready && game.DrownLectureGiven;
             if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
+            GUI.enabled = game.Ready && game.guides;
+            if (GUILayout.Button("Экскурсии жаровни и ПК — ещё раз", button)) ResetGuides();
             GUI.enabled = game.Ready && game.GodMet && !game.InGodMountains;
             if (GUILayout.Button("Бог — ещё раз («?» на карте)", button)) ResetGodMeeting();
             GUI.enabled = game.Ready && !game.GodMet && !game.InGodMountains;

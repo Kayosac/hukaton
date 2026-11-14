@@ -45,6 +45,8 @@ namespace Hakaton.Game
         public GodMountainsVisit godVisit;
         [Tooltip("The goblin's word in the shop after the first drowning (once per save). Empty: just the notice.")]
         public GoblinLecture lecture;
+        [Tooltip("The record of the brazier's and the PC's first-open guides (saved with the game).")]
+        public Hakaton.Guide.GuideBook guides;
         [TextArea] public string[] drownLecture =
         {
             "Когда-нибудь ты научишься плавать, но не сегодня.",
@@ -108,6 +110,10 @@ namespace Hakaton.Game
         [Min(.5f)] public float goalBannerSeconds = 2.8f;
         [Tooltip("Heading size of the «new goal» banner against the location title's (big letters).")]
         [Min(1)] public float goalBannerScale = 1.5f;
+        [Tooltip("Size of the «Новая цель лавки» line against the banner's heading (1 = as big).")]
+        [Range(.3f, 1.2f)] public float goalCaptionScale = .85f;
+        [Tooltip("Colour of the «Новая цель лавки» line; while the banner holds it pulses toward white.")]
+        public Color goalCaptionColour = new Color(1, .8f, .1f, 1);
         [Tooltip("Celebration burst in front of the player when the revenue goal is reached.")]
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
@@ -218,6 +224,7 @@ namespace Hakaton.Game
             tutorial.Changed += MarkDirty;
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
             if (lecture) lecture.Finished += OnLectureFinished;
+            if (guides) guides.Progress.Changed += MarkDirty;
             restoring = true;
             string warning = null;
             bool loaded = false;
@@ -266,6 +273,7 @@ namespace Hakaton.Game
             if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
             if (specialItems) specialItems.Inventory.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
+            if (guides) guides.Progress.Changed -= MarkDirty;
         }
         void OnApplicationQuit() { SaveNow(); }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
@@ -368,8 +376,8 @@ namespace Hakaton.Game
                 || services.IsOpen || trade.Session.IsOpen || expedition.Returning || departing || !fade || fade.Busy) return;
             goalBannerPending = false;
             if (sfx) sfx.Play(titleCue);
-            fade.StartCoroutine(fade.ShowTitle(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
-                "Новая цель лавки", goalBannerSeconds, goalBannerScale));
+            fade.StartCoroutine(fade.ShowBanner(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
+                "Новая цель лавки", goalBannerSeconds, goalBannerScale, goalCaptionScale, goalCaptionColour));
         }
         static string Coins(int n)
         {
@@ -589,6 +597,12 @@ namespace Hakaton.Game
             drownLectureGiven = false;
             MarkDirty();
         }
+
+        /// <summary>The brazier's and the PC's first-open guides come again at their next opening.</summary>
+        public void ForgetGuides()
+        {
+            if (guides) guides.Progress.Forget();
+        }
         /// <summary>The prologue runs in the expedition phase: nothing is saved there, quitting starts the cave again.</summary>
         void EnterCave()
         {
@@ -693,12 +707,25 @@ namespace Hakaton.Game
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet,
             endlessVisited = endlessVisited, strangerVisited = strangerVisited,
-            specialItems = specialItems ? specialItems.Inventory.Save() : null
+            specialItems = specialItems ? specialItems.Inventory.Save() : null,
+            guides = guides ? guides.Progress.Save() : null
         };
-        public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
-            && save.cards != null && save.shop != null && save.cards.coins == save.coins
-            && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
-            && (save.player == null || save.player.staminaLevel >= 0);
+        /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
+        static readonly string[] RetiredItems = { "common_find", "special_find" };
+        static void DropRetiredItems(GameSave save)
+        {
+            if (save?.shop?.items == null) return;
+            save.shop.items.RemoveAll(entry => entry != null && Array.IndexOf(RetiredItems, entry.definitionId) >= 0);
+        }
+
+        public bool ValidateSave(GameSave save)
+        {
+            DropRetiredItems(save);
+            return save != null && save.version == 1 && save.coins >= 0
+                && save.cards != null && save.shop != null && save.cards.coins == save.coins
+                && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
+                && (save.player == null || save.player.staminaLevel >= 0);
+        }
         public bool Restore(GameSave save)
         {
             if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.Session.ExpeditionId != 0
@@ -722,6 +749,7 @@ namespace Hakaton.Game
                 else outingMap.Forget(outingMap.SiteFor(OutingPlace.Endless));
             }
             if (specialItems) specialItems.Restore(save.specialItems);
+            if (guides) guides.Progress.Restore(save.guides);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

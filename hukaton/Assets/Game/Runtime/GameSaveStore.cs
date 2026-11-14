@@ -32,6 +32,8 @@ namespace Hakaton.Game
         public bool strangerVisited;
         /// <summary>Special items: bought ones, the dealer's introductions, the phone's battery steps. Null in old saves.</summary>
         public Hakaton.SpecialItems.SpecialItemsSave specialItems;
+        /// <summary>The first-open guides of the brazier and the PC: shown ones, where a half-shown one stopped. Null in old saves.</summary>
+        public Hakaton.Guide.GuideSave guides;
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;

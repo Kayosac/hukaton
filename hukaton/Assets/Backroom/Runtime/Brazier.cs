@@ -18,8 +18,9 @@ namespace Hakaton.Backroom
     /// copies. The burner is off until someone comes to it: interacting clicks it alight (a campfire grows in the bowl)
     /// and lays every owned copy over the game view in a scrolling grid of four: copies in the deck as they are, the
     /// rest shaded. Under the pointer a card shivers with fear and a plate over it names the gas tax (what burning it
-    /// pays). A click burns it at once: the list fades, the card flies a real arc through the room into the bowl and
-    /// burns there with a flare, and the list comes back for the next one. The three starting copies cannot burn: they
+    /// costs). Holding the left button on it heats it up; held to the end (<see cref="holdSeconds"/>) it burns: the list
+    /// fades, the card flies a real arc through the room into the bowl and burns there with a flare, and the list comes
+    /// back for the next one. Let go early and it cools down: nothing is burnt or paid. The three starting copies cannot burn: they
     /// are shaded under the ministry's sign and do not answer the pointer. Leaving turns the burner off and the fire dies down.
     /// 75% of what was paid, rounded up — the rule lives in <see cref="DeckWorkshop.Burn"/>.
     /// </summary>
@@ -73,6 +74,26 @@ namespace Hakaton.Backroom
         [Tooltip("The old confirmation group: kept hidden. The gas tax plate over the card under the pointer is a " +
                  "plain linen button made from the close button, beside it in the same scaled layout.")]
         [FormerlySerializedAs("confirmGroup")] public CanvasGroup taxGroup;
+        [Tooltip("The line in the bottom-left corner: how to burn, what the shades mean.")]
+        public TMP_Text legend;
+
+        [Header("Hold to burn")]
+        [Tooltip("Seconds the left button is held on a card before it burns; let go earlier and nothing happens.")]
+        [Min(.05f)] public float holdSeconds = .6f;
+        [Tooltip("The fear chatter's pitch at the end of the hold (against 1).")]
+        [Min(1)] public float heldFearPitch = 1.6f;
+        [Tooltip("The gas tax plate's sum when the coins are not enough.")]
+        public Color unaffordableColour = new Color(.75f, .1f, .05f, 1);
+
+        /// <summary>A guide is on: Esc and the right button do not close the list (the guide has them).</summary>
+        public bool Guided { get; set; }
+        /// <summary>Nothing can be burnt (a guide is talking).</summary>
+        public bool BurnLocked { get; set; }
+        public event System.Action Opened, Closed;
+        /// <summary>The card whose gas tax is shown (under the pointer), or null.</summary>
+        public OfferCardView TaxShownFor { get; private set; }
+        /// <summary>A card is on its way into the fire (the list has stepped aside).</summary>
+        public bool Throwing => flying > 0;
 
         public bool IsOpen { get; private set; }
         DeckWorkshop Model => workshop.Model;
@@ -91,6 +112,11 @@ namespace Hakaton.Backroom
         SpringFloat jump;
         float fireTarget;
         readonly List<OfferCardView> tiles = new List<OfferCardView>();
+        OfferCardView holding;
+        float holdTime;
+        Color taxColour = Color.black;
+        bool taxColourKnown;
+        float fearPitchBase = 1;
 
         /// <summary>The cards currently in the list (tests, tools).</summary>
         public IReadOnlyList<OfferCardView> Tiles => tiles;
@@ -164,6 +190,7 @@ namespace Hakaton.Backroom
             }
             Lay(true);
             if (scroll) scroll.verticalNormalizedPosition = 1;
+            Opened?.Invoke();
             return true;
         }
 
@@ -177,7 +204,9 @@ namespace Hakaton.Backroom
             // The burner is turned off: a click and the fire dies down.
             Play(extinguishSound);
             fireTarget = 0;
+            CancelHold();
             if (control) control.SetBlocked(this, false);
+            Closed?.Invoke();
         }
 
         void Update()
@@ -196,6 +225,9 @@ namespace Hakaton.Backroom
             }
             if (fearVoice)
             {
+                // Held over the fire, the chatter climbs.
+                float held = holding ? Mathf.Clamp01(holdTime / holdSeconds) : 0;
+                if (holding) fearVoice.pitch = Mathf.Lerp(1, heldFearPitch, held) * fearPitchBase;
                 // Quick in and out, so stopping never clicks.
                 fearVoice.volume = Mathf.MoveTowards(fearVoice.volume, fearing && IsOpen ? fearVolume : 0, Time.unscaledDeltaTime * 12);
                 if (!fearing && fearVoice.volume <= 0 && fearVoice.isPlaying) fearVoice.Stop();
@@ -213,8 +245,9 @@ namespace Hakaton.Backroom
             }
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
+            Hold(mouse);
             bool back = keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame;
-            if (back) Close();
+            if (back && !Guided) Close();
         }
 
         // ---------- the list ----------
@@ -226,9 +259,10 @@ namespace Hakaton.Backroom
             {
                 var tile = Instantiate(tilePrefab, content);
                 tile.name = "Card " + (tiles.Count + 1);
-                tile.Clicked += OnTileClicked;
+                tile.Pressed += OnTilePressed;
+                tile.Released += OnTileReleased;
                 tile.Hovered += OnTileHovered;
-                tile.Unhovered += _ => { HideTax(); fearing = false; };
+                tile.Unhovered += t => { if (holding == t) CancelHold(); HideTax(); fearing = false; };
                 // The card shivers under the pointer: hover is read from its still slot, not the moving card.
                 tile.UseStillHitArea();
                 tiles.Add(tile);
@@ -259,11 +293,17 @@ namespace Hakaton.Backroom
             var copy = Model.Find(tile.Slot);
             if (copy == null || copy.Protected || flying > 0) return;
             ShowTax(tile, Model.BurnPrice(copy));
+            Chatter();
+        }
+
+        /// <summary>The teeth chatter for as long as the pointer stays on the card (a seamless loop).</summary>
+        void Chatter()
+        {
             if (fearSound && audioSource)
             {
-                // The teeth chatter for as long as the pointer stays on the card (a seamless loop).
                 if (!fearVoice) fearVoice = MakeVoice(true);
-                fearVoice.pitch = Random.Range(.96f, 1.05f);
+                fearPitchBase = Random.Range(.96f, 1.05f);
+                fearVoice.pitch = fearPitchBase;
                 if (fearVoice.clip != fearSound || !fearVoice.isPlaying)
                 {
                     fearVoice.clip = fearSound;
@@ -284,6 +324,13 @@ namespace Hakaton.Backroom
             var layout = taxPlate.GetComponent<DialogueBubbleLayout>();
             if (layout) layout.SetText(label);
             else if (taxPlate.Label) taxPlate.Label.text = label;
+            if (taxPlate.Label)
+            {
+                if (!taxColourKnown) { taxColour = taxPlate.Label.color; taxColourKnown = true; }
+                // Not enough coins: the sum is red (holding the card then only shakes it).
+                taxPlate.Label.color = price > Model.Coins ? unaffordableColour : taxColour;
+            }
+            TaxShownFor = tile;
             // Over the card's top edge, in the plate's parent space (the list is a screen overlay).
             var corners = new Vector3[4];
             tile.body.GetWorldCorners(corners);
@@ -323,13 +370,54 @@ namespace Hakaton.Backroom
         void HideTax()
         {
             if (taxView) taxView.alpha = 0;
+            TaxShownFor = null;
         }
 
         // ---------- the throw ----------
 
-        void OnTileClicked(OfferCardView tile)
+        void OnTilePressed(OfferCardView tile)
         {
-            if (!IsOpen || flying > 0) return;
+            if (!IsOpen || flying > 0 || BurnLocked) return;
+            var copy = Model.Find(tile.Slot);
+            if (copy == null || copy.Protected) return;
+            if (Model.CanBurn(copy) != null)
+            {
+                // Not enough coins (the sum on the plate is red): the card shakes, nothing happens.
+                tile.Refuse();
+                Play(refuseSound);
+                return;
+            }
+            holding = tile;
+            holdTime = 0;
+        }
+
+        void OnTileReleased(OfferCardView tile)
+        {
+            if (holding == tile) CancelHold();
+        }
+
+        void CancelHold()
+        {
+            holding = null;
+            holdTime = 0;
+            if (fearVoice) fearVoice.pitch = fearPitchBase;
+        }
+
+        /// <summary>The held card heats up; held to the end, it burns.</summary>
+        void Hold(Mouse mouse)
+        {
+            if (!holding) return;
+            if (BurnLocked || flying > 0 || !holding.Hovering || mouse == null || !mouse.leftButton.isPressed) { CancelHold(); return; }
+            holdTime += Time.unscaledDeltaTime;
+            holding.HoldHeat(holdTime / holdSeconds);
+            if (holdTime < holdSeconds) return;
+            var tile = holding;
+            CancelHold();
+            Burn(tile);
+        }
+
+        void Burn(OfferCardView tile)
+        {
             var copy = Model.Find(tile.Slot);
             if (copy == null || copy.Protected) return;
             if (Model.CanBurn(copy) != null || Model.Burn(copy.Id) != null)
@@ -338,11 +426,19 @@ namespace Hakaton.Backroom
                 Play(refuseSound);
                 return;
             }
+            title.text = $"{Model.Owned.Count}/{Model.CollectionLimit}";
+            Throw(tile, copy.Level);
+        }
+
+        /// <summary>
+        /// The card leaves the list where it lay and flies into the bowl in the room. The list's card holds still and
+        /// fades out with the list over the world card; then its place closes up in the grid (the order is laid again
+        /// on the next opening).
+        /// </summary>
+        void Throw(OfferCardView tile, int level)
+        {
             HideTax();
             fearing = false;
-            title.text = $"{Model.Owned.Count}/{Model.CollectionLimit}";
-
-            // The card leaves the list where it lay and flies into the bowl in the room.
             // Where the card lies, as fractions of the screen, read in the list's own root canvas.
             var corners = new Vector3[4];
             tile.body.GetWorldCorners(corners);
@@ -356,13 +452,62 @@ namespace Hakaton.Backroom
             float width = Fraction(corners[3]).x - Fraction(corners[0]).x;
             var camera = viewCamera ? viewCamera : Camera.main;
             var thrown = BrazierThrow.Launch(worldCardPrefab, tile.face.sprite ? tile.face.sprite.texture : null, tile.back ? tile.back.texture : null,
-                copy.Level, camera, screen, width, firePoint.position + Vector3.up * .04f, cardBurnFx, Landed, HandOver, tile.ShadeTint);
-            // The list's card holds still and fades out with the list over the world card; then its place closes
-            // up in the grid (the order is laid again on the next opening).
+                level, camera, screen, width, firePoint.position + Vector3.up * .04f, cardBurnFx, Landed, HandOver, tile.ShadeTint);
             tile.trembleOnHover = false;
             flying++;
             if (thrown) handingOver = tile;
             else { tile.Hide(); Landed(); }
+        }
+
+        // ---------- the guide's pretend card ----------
+
+        /// <summary>A card that is not in the collection, laid at the end of the list for the guide to burn for show.
+        /// It does not answer the real pointer.</summary>
+        public OfferCardView AddPretendCard(Sprite art, int level)
+        {
+            if (!tilePrefab || !content) return null;
+            var tile = Instantiate(tilePrefab, content);
+            tile.name = "Pretend card";
+            tile.UseStillHitArea();
+            tile.Deal(art, true, 0, level);
+            tile.SetBadge("");
+            tile.SetPrice(null);
+            tile.trembleOnHover = true;
+            tile.transform.SetAsLastSibling();
+            if (title) title.transform.SetAsLastSibling();
+            tile.group.blocksRaycasts = false;
+            return tile;
+        }
+
+        /// <summary>The pretend pointer on (or off) a card: it shivers and the plate names its gas tax.</summary>
+        public void PretendHover(OfferCardView tile, bool on, int price)
+        {
+            if (!tile) return;
+            tile.PretendHover(on);
+            if (on) { ShowTax(tile, price); Chatter(); }
+            else { HideTax(); fearing = false; }
+        }
+
+        /// <summary>The pretend card held over the fire for this long (0..1).</summary>
+        public void PretendHeat(OfferCardView tile, float amount)
+        {
+            if (tile) tile.HoldHeat(amount);
+            if (fearVoice) fearVoice.pitch = Mathf.Lerp(1, heldFearPitch, amount) * fearPitchBase;
+        }
+
+        /// <summary>The pretend card flies into the fire like a real one; the collection is not touched.</summary>
+        public void PretendBurn(OfferCardView tile, int level)
+        {
+            if (!tile || !IsOpen) return;
+            Throw(tile, level);
+        }
+
+        public void RemovePretendCard(OfferCardView tile)
+        {
+            if (!tile) return;
+            if (handingOver == tile) handingOver = null;
+            if (TaxShownFor == tile) HideTax();
+            Destroy(tile.gameObject);
         }
 
         /// <summary>The card reached the bowl: the fire flares up and it burns; the list comes back after.</summary>

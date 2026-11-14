@@ -18,6 +18,13 @@ namespace Hakaton.Character
             && Cursor.lockState == CursorLockMode.Locked;
         public bool CapturedThisFrame => captureFrame == Time.frameCount;
         public bool HasModalOwner => blockers.Count > 0;
+        /// <summary>Someone besides <paramref name="owner"/> holds a claim (a window or the tutorial took over).</summary>
+        public bool HeldByOthers(Object owner)
+        {
+            foreach (var other in blockers) if (other && other != owner) return true;
+            return false;
+        }
+
         /// <summary>
         /// The pause menu may open over the current claims: none, or only owners that allow it (a conversation at the
         /// counter, tutorial lines). Windows with an Escape of their own (the PC, the workshop, the card dealer) do not.

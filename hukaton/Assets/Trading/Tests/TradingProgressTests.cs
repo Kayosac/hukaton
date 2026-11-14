@@ -7,7 +7,7 @@ namespace Hakaton.Trading.Tests
 {
     public sealed class TradingProgressTests
     {
-        static readonly ItemDefinition Find = new ItemDefinition("common_find", "Обычная находка", "Находки", 20);
+        static readonly ItemDefinition Find = new ItemDefinition("test_find", "Тестовая находка", "Находки", 20);
         static readonly ItemDefinition Tusk = new ItemDefinition("boar_tusk", "Кабаний клык", "Трофеи", 120);
 
         static TradingSession Create(CoinWallet wallet = null, TradeSettings settings = null)

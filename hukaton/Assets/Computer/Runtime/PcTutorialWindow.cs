@@ -21,6 +21,11 @@ namespace Hakaton.Computer
         public PcWindow window;
         public PcComputer computer;
         public Tab[] tabs = Array.Empty<Tab>();
+        [Tooltip("«Показать экскурсию снова»: the first-open guides of the PC and the brazier come again.")]
+        public Button replayButton;
+
+        /// <summary>The player asked for the guides again.</summary>
+        public event Action ReplayRequested;
 
         [Header("Tab appearance")]
         public Sprite activeTab, inactiveTab;
@@ -38,6 +43,7 @@ namespace Hakaton.Computer
             if (initialized) return;
             initialized = true;
             if (window) window.Opened += Refresh;
+            if (replayButton) replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             if (tabs == null) return;
 
             for (int i = 0; i < tabs.Length; i++)
