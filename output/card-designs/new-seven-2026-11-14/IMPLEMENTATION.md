@@ -90,6 +90,13 @@
   (Instantiate префаба + `world = …`, `ResetForOuting(null)`, `world.creatures.Add`); агрессивный сразу бежит на игрока —
   для кадра его замораживать (`Freeze`). Две команды `shot` ближе ~0,3 с друг к другу — второй кадр теряется.
 
+- Отвлечение зверя (найдено на Вороньё): интерфейс `IDistractable` (CardSystems/Distraction.cs) у `WorldCreature`
+  (WorldCreature.Distraction.cs) и `ChestMimic`. Источник продлевает `Distract(seconds)` каждый шаг и снимает
+  `EndDistraction()`, уходя. Отвлечённый зверь в Update после заморозки/оглушения уходит в Recover (атака, выстрел,
+  захват прерываются), стоит и дёргается; пугливый бегает как обычно, подманенный Манком идёт к шуму. Мимик не кусает
+  (удирает). Манок/Чучело/Раздор не тронуты. Готовых спрайтов птиц и звука карканья в проекте нет: вороны нарисованы
+  PIL-скриптом (64×48, PPU 100 = сетка), карканье — frog_croak с pitch 1.45–1.7, клевок — wolf_snap с pitch 1.6–1.9.
+
 ## Статус
 
 | Карта | Статус |
@@ -97,7 +104,7 @@
 | Струя | готово (adb4640f0): WaterJetEffect, тесты WaterJetTests 7/7, вживую в EnemyDebug — checks/water_jet-*.png; таблица KayoSpace — за пользователем |
 | Камнепад | готово (a6122059b): RockfallEffect + зона RockfallZone, тесты RockfallTests 8/8, вживую в EnemyDebug — checks/rockfall-*.png; таблица KayoSpace — за пользователем |
 | Сглаз | готово (efbc46f62): EvilEyeEffect + метка EvilEyeMark, тесты EvilEyeTests 9/9, вживую в EnemyDebug (две метки через Эхо на замороженном звере, взрыв, промах) — checks/evil_eye-*.png; таблица KayoSpace — за пользователем |
-| Вороньё | — |
+| Вороньё | готово (870336b98): CrowsEffect + стая CrowFlock, отвлечение IDistractable (WorldCreature, ChestMimic), тесты CrowsTests 14/14, вживую в EnemyDebug (болотный мутант L2: 4 с без урона игроку, 16→8 HP, потом снова нападает; пёс L3 — смерть, вороны разлетаются; промах) — checks/crows-*.png; таблица KayoSpace — за пользователем |
 | Пороховая бочка | — |
 | Бумеранг | — |
 | Веер | — |
