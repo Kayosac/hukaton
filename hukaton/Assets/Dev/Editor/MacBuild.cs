@@ -23,6 +23,7 @@ namespace Hakaton.Dev
 
         public static string Build(string _)
         {
+            TextureCompression.Apply("");
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneOSX))
                 return "FAILED the macOS build module is not installed for this Unity version";
             string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));

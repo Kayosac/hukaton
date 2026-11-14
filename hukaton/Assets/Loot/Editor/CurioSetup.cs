@@ -109,7 +109,7 @@ namespace Hakaton.Loot.EditorTools
             importer.textureType = TextureImporterType.Default;
             importer.sRGBTexture = true;
             importer.filterMode = FilterMode.Point;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
             importer.mipmapEnabled = true;
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.maxTextureSize = 1024;

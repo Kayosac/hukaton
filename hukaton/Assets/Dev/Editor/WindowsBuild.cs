@@ -18,6 +18,7 @@ namespace Hakaton.Dev
 
         public static string Build(string _)
         {
+            TextureCompression.Apply("");
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64))
                 return "FAILED the Windows build module is not installed for this Unity version";
             string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
