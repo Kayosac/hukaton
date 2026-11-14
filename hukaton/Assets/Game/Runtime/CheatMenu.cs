@@ -175,6 +175,15 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>Where the stranger stands: not yet possible, the closings counted toward his guaranteed visit, or come.</summary>
+        string StrangerProgress()
+        {
+            if (game.StrangerVisited) return "Незнакомец уже приходил.";
+            if (!game.EndlessVisited) return "Незнакомец: ждёт первой вылазки в бесконечный мир.";
+            return "Незнакомец: смен закрылось само — " + game.StrangerChances + "; на " + Mathf.Max(1, game.strangerGuaranteedAt)
+                + "-й придёт наверняка.";
+        }
+
         /// <summary>
         /// The next shift that ends by itself (time up or the display sold out) brings the stranger who only talks, then the
         /// goblin on the counter — whatever the chance, the first endless outing or an earlier visit.
@@ -391,6 +400,7 @@ namespace Hakaton.Game
             if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
             if (GUILayout.Button("Незнакомец в конце смены", button)) StrangerAtShiftEnd();
             GUI.enabled = true;
+            GUILayout.Label(StrangerProgress(), body);
             GUILayout.Space(8);
 
             GUILayout.Label("Карта в руку", title);

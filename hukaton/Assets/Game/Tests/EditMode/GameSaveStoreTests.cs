@@ -241,6 +241,37 @@ namespace Hakaton.Game.Tests
             Assert.That(older.drownLectureGiven, Is.False);
         }
 
+        /// <summary>The stranger's bad-luck guard counts closings across saves; older saves start it from zero.</summary>
+        [Test]
+        public void StrangerChancesRoundTripAndOlderSavesStartFromZero()
+        {
+            var domains = new Domains();
+            var captured = domains.Capture();
+            Assert.That(captured.strangerChances, Is.Zero);
+            captured.endlessVisited = true;
+            captured.strangerChances = 4;
+            Save(captured);
+            Assert.That(GameSaveStore.Load(path, domains.Validate, out var loaded, out var warning), Is.True, warning);
+            Assert.That((loaded.endlessVisited, loaded.strangerVisited, loaded.strangerChances), Is.EqualTo((true, false, 4)));
+
+            var older = JsonUtility.FromJson<GameSave>("{\"version\":1,\"coins\":0,\"endlessVisited\":true}");
+            Assert.That((older.endlessVisited, older.strangerChances), Is.EqualTo((true, 0)));
+        }
+
+        /// <summary>Each shift that ends by itself rolls the chance; the guaranteed one brings him whatever the roll.</summary>
+        [Test]
+        public void StrangerComesByChanceAndForSureOnTheGuaranteedClosing()
+        {
+            for (int closing = 1; closing < 6; closing++)
+            {
+                Assert.That(GameLoop.StrangerComes(closing, 6, .3f, .29f), Is.True, "A lucky roll brings him at closing " + closing);
+                Assert.That(GameLoop.StrangerComes(closing, 6, .3f, .3f), Is.False, "An unlucky roll keeps him away at closing " + closing);
+            }
+            Assert.That(GameLoop.StrangerComes(6, 6, .3f, .99f), Is.True, "The sixth closing brings him for sure.");
+            Assert.That(GameLoop.StrangerComes(9, 6, 0, 1), Is.True, "Past the guard (an older save, a changed setting): still for sure.");
+            Assert.That(GameLoop.StrangerComes(1, 0, 0, 1), Is.True, "A guard below one acts as one.");
+        }
+
         /// <summary>«Выносливость» is the player's own section; saves from before it load as nothing bought.</summary>
         [Test]
         public void StaminaLevelRoundTripsAndOlderSavesHaveNoneBought()
