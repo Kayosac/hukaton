@@ -175,6 +175,18 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>
+        /// The next shift that ends by itself (time up or the display sold out) brings the stranger who only talks, then the
+        /// goblin on the counter — whatever the chance, the first endless outing or an earlier visit.
+        /// </summary>
+        public bool StrangerAtShiftEnd()
+        {
+            if (!game.Ready || game.Phase != GamePhase.Shop) { status = "Незнакомец приходит только в лавку."; return false; }
+            game.ForceStrangerNext();
+            status = "Незнакомец придёт в конце смены (время вышло или витрина пуста).";
+            return true;
+        }
+
         public bool AddThousandCoins()
         {
             bool granted = game.AddThousandCoins();
@@ -366,6 +378,7 @@ namespace Hakaton.Game
             if (GUILayout.Button("Случайные товары на все пустые слоты", button)) StockDisplayRandomly();
             GUI.enabled = game.Phase == GamePhase.Shop;
             if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
+            if (GUILayout.Button("Незнакомец в конце смены", button)) StrangerAtShiftEnd();
             GUI.enabled = true;
             GUILayout.Space(8);
 

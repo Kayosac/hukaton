@@ -38,6 +38,20 @@ namespace Hakaton.Tutorial
         /// <summary>Gone in a puff of smoke, as big as he is (the floor-standing instances are scaled up).</summary>
         public void Poof()
         {
+            Puff();
+            gameObject.SetActive(false);
+        }
+
+        /// <summary>Out of a puff of smoke: the same puff as his leaving, then he is there.</summary>
+        public void PoofIn()
+        {
+            gameObject.SetActive(true);
+            Puff();
+            bounce.Kick(9);
+        }
+
+        void Puff()
+        {
             VfxBurst.Spawn(poofVfx, face.transform.position, Quaternion.identity, null, new Color(.7f, .9f, .5f), Mathf.Max(.01f, transform.lossyScale.y));
             if (audioSource && poofSound)
             {
@@ -51,7 +65,6 @@ namespace Hakaton.Tutorial
                 puff.Play();
                 Destroy(puff.gameObject, poofSound.length + .1f);
             }
-            gameObject.SetActive(false);
         }
 
         void LateUpdate()

@@ -16,7 +16,9 @@ namespace Hakaton.Trading
         Purchased,
         Refused,
         WalkedAway,
-        ShopClosed
+        ShopClosed,
+        /// <summary>A visitor who only talked (<see cref="Customer.IsTalker"/>) has said everything and goes.</summary>
+        Talked
     }
 
     /// <summary>The last completed visit, retained after its customer and deal are cleared.</summary>
@@ -27,13 +29,20 @@ namespace Hakaton.Trading
         public int Sequence { get; }
         /// <summary>The visitor was the bulk buyer («Скупщик»): he takes a refusal calmly.</summary>
         public bool BulkBuyer { get; }
+        /// <summary>The visitor only talked (<see cref="Customer.IsTalker"/>): no anger, he goes with the face of his last line.</summary>
+        public bool Talker { get; }
+        /// <summary>The face a talker leaves with: the mood of the line he was at. Neutral for other visitors.</summary>
+        public CustomerMood Mood { get; }
 
-        internal CustomerDeparture(long customerId, CustomerOutcome outcome, int sequence, bool bulkBuyer = false)
+        internal CustomerDeparture(long customerId, CustomerOutcome outcome, int sequence, bool bulkBuyer = false,
+            bool talker = false, CustomerMood mood = CustomerMood.Neutral)
         {
             CustomerId = customerId;
             Outcome = outcome;
             Sequence = sequence;
             BulkBuyer = bulkBuyer;
+            Talker = talker;
+            Mood = mood;
         }
     }
 
@@ -127,6 +136,8 @@ namespace Hakaton.Trading
         public bool bulkBuyerMet;
         /// <summary>The bulk buyer has already come during the current shift.</summary>
         public bool bulkBuyerThisShift;
+        /// <summary>His promised visit (first full-display shift after the endless world opened) has happened.</summary>
+        public bool bulkBuyerPromiseKept;
         public List<TradingItemSave> items = new List<TradingItemSave>();
     }
 
@@ -136,8 +147,6 @@ namespace Hakaton.Trading
         public long instanceId;
         public string definitionId;
         // Inventory entries retain their list order; nonnegative values identify display slots.
-        /// <summary>His promised visit (first full-display shift after the endless world opened) has happened.</summary>
-        public bool bulkBuyerPromiseKept;
         public int slot = -1;
     }
 
@@ -191,6 +200,14 @@ namespace Hakaton.Trading
         /// discount. The item and haggle terms above are ignored for him.
         /// </summary>
         public bool BulkBuyer { get; set; }
+        /// <summary>
+        /// A visitor who only talks (the stranger at the end of a shift): he names no item, buys nothing and cannot be
+        /// refused; these lines are read on one by one (as the bulk buyer's explanation), after the last he goes. The item
+        /// and haggle terms above are ignored for him. Null or empty: an ordinary visitor.
+        /// </summary>
+        public string[] Talk { get; set; }
+        /// <summary>His face (and voice) on each line of <see cref="Talk"/>; missing entries are neutral.</summary>
+        public CustomerMood[] TalkMoods { get; set; }
     }
 
     /// <summary>
@@ -235,14 +252,34 @@ namespace Hakaton.Trading
         /// offer; later only the offer. The last line is always the offer. Empty for other visitors.
         /// </summary>
         public IReadOnlyList<string> Lines { get; internal set; } = Array.Empty<string>();
+        /// <summary>
+        /// He only talks (<see cref="CustomerTerms.Talk"/>): no item, no deal, no refusal. <see cref="Lines"/> holds his
+        /// speech, <see cref="Line"/> the one on screen; after the last he goes.
+        /// </summary>
+        public bool IsTalker { get; }
+        /// <summary>A talker's face on each of his lines (as many as <see cref="Lines"/>).</summary>
+        public IReadOnlyList<CustomerMood> LineMoods { get; } = Array.Empty<CustomerMood>();
+        /// <summary>The talker's line on screen (index into <see cref="Lines"/>); 0 for other visitors.</summary>
+        public int Line { get; internal set; }
+        /// <summary>The talker's face on the line on screen; neutral for other visitors.</summary>
+        public CustomerMood LineMood => IsTalker && Line < LineMoods.Count ? LineMoods[Line] : CustomerMood.Neutral;
 
         internal Customer(long id, CustomerTerms terms)
         {
             Id = id; Name = terms.Name;
             IsBulkBuyer = terms.BulkBuyer;
-            RequestedSlot = terms.BulkBuyer ? -1 : terms.RequestedSlot; AsksPrice = terms.AsksPrice;
+            IsTalker = !terms.BulkBuyer && terms.Talk != null && terms.Talk.Length > 0;
+            bool noDeal = terms.BulkBuyer || IsTalker;
+            RequestedSlot = noDeal ? -1 : terms.RequestedSlot; AsksPrice = terms.AsksPrice;
             MaxPrice = terms.MaxPrice; InitialPatience = terms.Patience; OpeningRatio = terms.OpeningRatio;
-            Script = terms.BulkBuyer ? null : terms.Script;
+            Script = noDeal ? null : terms.Script;
+            if (IsTalker)
+            {
+                Lines = Array.AsReadOnly((string[])terms.Talk.Clone());
+                var moods = new CustomerMood[terms.Talk.Length];
+                for (int i = 0; i < moods.Length && terms.TalkMoods != null && i < terms.TalkMoods.Length; i++) moods[i] = terms.TalkMoods[i];
+                LineMoods = Array.AsReadOnly(moods);
+            }
         }
     }
 

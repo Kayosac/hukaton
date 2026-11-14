@@ -166,6 +166,11 @@ namespace Hakaton.Trading.Unity
                 return customer != null && customer.IsBulkBuyer && !BulkBuyerExplaining;
             }
         }
+        /// <summary>
+        /// A visitor who only talks stands at the counter (the stranger at the end of a shift): E, Space, Enter or a click
+        /// read on through his lines; there is nothing to sell him or refuse.
+        /// </summary>
+        public bool TalkerSpeaking => Session?.CurrentCustomer != null && Session.CurrentCustomer.IsTalker;
         Coroutine[] itemMotion;
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
@@ -236,6 +241,7 @@ namespace Hakaton.Trading.Unity
                     {
                         // E reads on through the bulk buyer's explanation, as it does through the goblins' lines.
                         if (BulkBuyerExplaining && CustomerReady) ReadOnBulkBuyer();
+                        else if (TalkerSpeaking && CustomerReady) ReadOnTalker();
                         // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
                         else if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
                         else CloseShop();
@@ -268,6 +274,14 @@ namespace Hakaton.Trading.Unity
             var deal = Session.CurrentDeal;
             var customer = Session.CurrentCustomer;
             if (customer == null) return;
+            if (customer.IsTalker)
+            {
+                // A conversation: Space, Enter or a click read on (E is handled with the shop keys); Backspace does nothing.
+                var mouse = Mouse.current;
+                if (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame
+                    || mouse != null && mouse.leftButton.wasPressedThisFrame) ReadOnTalker();
+                return;
+            }
             if (keyboard.backspaceKey.wasPressedThisFrame) { RefuseCustomer(customer.Id); return; }
             if (customer.IsBulkBuyer)
             {
@@ -778,6 +792,15 @@ namespace Hakaton.Trading.Unity
             bulkLine++;
             // The offer is a decision about the whole display: a moment's pause so a reading press never sells by accident.
             actionReadyAt = Time.unscaledTime + (BulkOfferShown ? .45f : .12f);
+        }
+
+        /// <summary>The talker's next line; after his last he goes. A press while the line still types only finishes it.</summary>
+        void ReadOnTalker()
+        {
+            if (!ActionsReady || !TalkerSpeaking || hud.SkipSpeechTyping()) return;
+            if (!Session.ReadOnTalker(Session.CurrentCustomer.Id)) return;
+            actionReadyAt = Time.unscaledTime + .12f;
+            World.Customers.Sync(Session);
         }
 
         /// <summary>The green answer to the bulk buyer: he takes the whole display for his offer.</summary>
