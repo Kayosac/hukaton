@@ -24,6 +24,13 @@ namespace Hakaton.Expeditions
             body.angularVelocity = spin;
         }
 
+        /// <summary>Starts shrinking away now (too many pieces lie about).</summary>
+        public void Expire()
+        {
+            if (dieAt <= 0) scale = transform.localScale;
+            dieAt = Mathf.Min(dieAt > 0 ? dieAt : float.MaxValue, Time.time);
+        }
+
         void Update()
         {
             if (dieAt <= 0 || Time.time < dieAt) return;

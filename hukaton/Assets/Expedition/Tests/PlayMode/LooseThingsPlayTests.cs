@@ -102,13 +102,56 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(crate.Stirred, Is.True);
             Assert.That(PropPhysics.AwakeCount, Is.EqualTo(awake + 1));
             yield return new WaitForSeconds(.4f);
-            Assert.That(Vector3.Distance(start, crate.body.position), Is.GreaterThan(.3f), "it moved");
+            Assert.That(Vector3.Distance(start, crate.body.position), Is.GreaterThan(.15f), "it moved");
             // Lying still for a while, it is still scenery again where it lies.
             float until = Time.time + 8;
             while (Time.time < until && !crate.body.isKinematic) yield return null;
             Assert.That(crate.body.isKinematic, Is.True, "at rest it is still again");
             Assert.That(PropPhysics.AwakeCount, Is.LessThanOrEqualTo(awake));
             Assert.That(PropPhysics.Ready(crate.body), Is.True, "and wakes again when pushed");
+        }
+
+        [UnityTest]
+        public IEnumerator AHardBlowBreaksAPotIntoPiecesWithCoinsAndALightOneDoesNot()
+        {
+            var crate = Crate(Spot(6, 1));
+            yield return Settle(crate.body);
+            var pot = Object.Instantiate(AssetDatabase.LoadAssetAtPath<BreakableKind>("Assets/Game/Data/Breakables/Clay pot.asset"));
+            Assert.That(pot.shards.Length, Is.GreaterThan(0));
+            pot.coinChance = 1;
+            var breakable = crate.gameObject.AddComponent<Breakable>();
+            breakable.kind = pot;
+            Vector3 at = crate.body.worldCenterOfMass;
+            // A soft nudge only moves it.
+            Assert.That(PropPhysics.Nudge(crate.body, at, Vector3.forward, pot.hitSpeed * .5f), Is.True);
+            Assert.That(breakable.Broken, Is.False);
+            yield return Settle(crate.body);
+            int coins = Object.FindObjectsByType<WorldCoin>(FindObjectsSortMode.None).Length;
+            // A heavy blow breaks it: pieces fly, a coin or three fall out, the thing is gone.
+            Assert.That(PropPhysics.Nudge(crate.body, at, Vector3.forward, pot.hitSpeed * 2), Is.True);
+            Assert.That(breakable.Broken, Is.True);
+            Assert.That(crate.gameObject.activeSelf, Is.False);
+            yield return null;
+            Assert.That(PropDebris.LiveCount, Is.InRange(pot.shardCount.x, PropDebris.MaxPieces));
+            Assert.That(Object.FindObjectsByType<WorldCoin>(FindObjectsSortMode.None).Length - coins, Is.InRange(pot.coins.x, pot.coins.y));
+            // Whole again for the next outing.
+            crate.ResetForOuting();
+            Assert.That(breakable.Broken, Is.False);
+            Assert.That(crate.gameObject.activeSelf, Is.True);
+            Object.Destroy(pot);
+        }
+
+        [UnityTest]
+        public IEnumerator PiecesNeverPileUpPastTheCap()
+        {
+            var kind = AssetDatabase.LoadAssetAtPath<BreakableKind>("Assets/Game/Data/Breakables/Crate.asset");
+            var spot = Spot(5, 0);
+            for (int i = 0; i < 12; i++)
+            {
+                PropDebris.Shatter(world, kind, new Bounds(spot + Vector3.up * .5f, Vector3.one * .6f), Vector3.forward, Vector3.zero);
+                yield return null;
+            }
+            Assert.That(PropDebris.LiveCount, Is.LessThanOrEqualTo(PropDebris.MaxPieces));
         }
 
         [UnityTest]

@@ -107,6 +107,7 @@ namespace Hakaton.Expeditions
                 direction.y = Mathf.Max(0, direction.y);
                 direction = (direction + Vector3.up * lift).normalized;
                 float change = speed * Mathf.Lerp(1, .33f, Mathf.Clamp01(distance / radius)) * Mathf.Min(1, ReferenceMass / body.mass);
+                if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, body.worldCenterOfMass, direction)) { moved++; continue; }
                 CardPhysics.Push(body, direction * (change * body.mass));
                 // A little spin: things tumble instead of sliding off like pucks.
                 body.AddTorque(Random.insideUnitSphere * (change * body.mass * .12f), ForceMode.Impulse);
@@ -122,6 +123,7 @@ namespace Hakaton.Expeditions
             if (speed <= 0 || !IsLoose(body)) return false;
             if (direction.sqrMagnitude < .0001f || !Ready(body)) return false;
             float change = speed * Mathf.Min(1, ReferenceMass / body.mass);
+            if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, point, direction)) return true;
             body.AddForceAtPosition(direction.normalized * (change * body.mass * BodyModifierStatus.ImpulseScaleOf(body)), point, ForceMode.Impulse);
             return true;
         }

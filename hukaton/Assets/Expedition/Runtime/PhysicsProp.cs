@@ -35,6 +35,7 @@ namespace Hakaton.Expeditions
 
         public void ResetForOuting()
         {
+            if (TryGetComponent(out Breakable breakable)) breakable.Restore();
             if (!body.isKinematic) body.linearVelocity = body.angularVelocity = Vector3.zero;
             body.position = start;
             body.rotation = rotation;
@@ -105,6 +106,13 @@ namespace Hakaton.Expeditions
                 if (dormant && other && !other.isKinematic && Time.time >= quietUntil
                     && other.mass * collision.relativeVelocity.magnitude > body.mass * .3f) Wake();
                 return;
+            }
+            if (Time.time >= quietUntil && TryGetComponent(out Breakable breakable))
+            {
+                // The change of its own speed: a coin or a shard bouncing off it does not break a pot.
+                float speed = collision.impulse.magnitude / body.mass;
+                var point = collision.contactCount > 0 ? collision.GetContact(0).point : body.worldCenterOfMass;
+                if (breakable.Crash(speed, point, body.linearVelocity)) return;
             }
             PropImpacts.Collided(body, surface, collision, ref quietUntil);
         }

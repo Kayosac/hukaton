@@ -25,7 +25,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             typeof(Transform), typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider), typeof(SphereCollider),
             typeof(CapsuleCollider), typeof(MeshCollider), typeof(Burnable), typeof(AwakenableTree),
             // A dormant prop is still scenery until touched (its body is kinematic): merged, cut out when it wakes.
-            typeof(Rigidbody), typeof(PhysicsProp),
+            typeof(Rigidbody), typeof(PhysicsProp), typeof(Breakable),
         };
 
         static readonly string[] Apart = { "Ground", "Water", "Bog", "Merged look" };

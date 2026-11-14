@@ -52,3 +52,26 @@ save('prop_clay_01', clay(21, 1180)); save('prop_clay_02', clay(22, 960))
 save('prop_stone_01', stone(31, 640)); save('prop_stone_02', stone(32, 520))
 save('prop_metal_01', metal(41, 1450)); save('prop_metal_02', metal(42, 1120))
 save('prop_soft_01', soft(51, 92)); save('prop_soft_02', soft(52, 78))
+
+# Breaking (Breakable): a clay pot bursting, a crate splitting.
+def burst_clay(seed):
+    r = np.random.default_rng(seed); n = int(SR * .55); y = np.zeros(n)
+    y[:int(SR*.09)] += stone(seed, 380)[:int(SR*.09)] * .9                      # the crack
+    for k in range(int(r.integers(14, 20))):                                  # shards ringing as they land
+        at = int(SR * (.01 + r.exponential(.07)));
+        if at >= n - 4000: continue
+        piece = clay(seed * 10 + k, r.uniform(1400, 3600)) * r.uniform(.15, .55)
+        y[at:at+len(piece)] += piece[:n-at]
+    y += click(.55, 1800, 9, r, .25)[:n]                                     # grit
+    return y
+def burst_wood(seed):
+    r = np.random.default_rng(seed); n = int(SR * .6); y = np.zeros(n)
+    snap = mix(click(.06, 5000, 70, r, 2.6), modal(.25, [(150, 1, 18), (310, .6, 26), (720, .35, 40)], r))
+    y[:len(snap)] += snap[:n]
+    for k in range(int(r.integers(5, 8))):                                    # planks clattering down
+        at = int(SR * (.06 + r.uniform(0, .35)))
+        piece = wood(seed * 10 + k, r.uniform(180, 330)) * r.uniform(.25, .6)
+        y[at:at+len(piece)] += piece[:n-at]
+    return y
+save('prop_break_clay_01', burst_clay(61)); save('prop_break_clay_02', burst_clay(62))
+save('prop_break_wood_01', burst_wood(71)); save('prop_break_wood_02', burst_wood(72))

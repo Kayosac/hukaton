@@ -72,6 +72,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> resolved = new HashSet<int>();
             public readonly Dictionary<int, (Vector3 position, Quaternion rotation)> props = new Dictionary<int, (Vector3, Quaternion)>();
             public readonly HashSet<int> burnt = new HashSet<int>();
+            /// <summary>Props broken to pieces: they do not come back (nor what was inside).</summary>
+            public readonly HashSet<int> broken = new HashSet<int>();
             public readonly HashSet<int> awakened = new HashSet<int>();
             /// <summary>Natural tar pools burnt out or washed away: they do not come back.</summary>
             public readonly HashSet<int> tarGone = new HashSet<int>();
@@ -524,6 +526,7 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 var p = view.props[i];
                 if (!p) continue;
+                if (mem != null && mem.broken.Contains(i) && p.TryGetComponent(out Breakable breakable)) { breakable.MarkBroken(); continue; }
                 // A prop that fell out of the world comes back where it was made.
                 if (mem != null && mem.props.TryGetValue(i, out var pose) && pose.position.y > position.y - 20)
                     p.Restore(pose.position, pose.rotation);
@@ -993,6 +996,7 @@ namespace Hakaton.WorldAssembly.Unity
                 {
                     // A dormant prop nobody touched is where it was made: nothing to remember.
                     var p = entry.view.props[i];
+                    if (p && p.TryGetComponent(out Breakable breakable) && breakable.Broken) { mem.broken.Add(i); continue; }
                     if (p && (!p.dormant || p.Stirred)) mem.props[i] = (p.transform.position, p.transform.rotation);
                 }
                 for (int i = 0; i < entry.view.burnables.Length; i++)

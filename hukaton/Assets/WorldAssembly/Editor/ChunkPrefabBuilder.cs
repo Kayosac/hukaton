@@ -678,6 +678,13 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["SM_SW24_WoodenCrossTall"] = 3, ["SM_SW24_WoodenCrossHeavy"] = 4, ["SM_SW24_WoodenCrossThinBroken"] = 2,
         };
 
+        /// <summary>Loose things that break (Breakable), with their kind in Game/Data/Breakables.</summary>
+        static readonly Dictionary<string, string> BreakKind = new Dictionary<string, string>
+        {
+            ["FA_PR09_PotLow"] = "Clay pot", ["FA_PR10_Pitcher"] = "Clay pot", ["FA_PR06_BottleSquat"] = "Bottle", ["FA_PR07_BottleTall"] = "Bottle",
+            ["FA_PR13_CrateClosed"] = "Crate", ["FA_PR14_CrateOpen"] = "Crate", ["FA_PR02_LanternGround"] = "Lantern",
+        };
+
         /// <summary>What a loose thing knocks like (PropImpacts); wood when not listed.</summary>
         static PropSurface SurfaceOf(string id) =>
             id.Contains("_RK") || id.Contains("_SP05") || id.Contains("_SP06") || id.Contains("_SP07") || id.Contains("_MK05") ? PropSurface.Stone
@@ -788,6 +795,8 @@ namespace Hakaton.WorldAssembly.EditorTools
                     prop.dormant = true;
                     prop.surface = SurfaceOf(id);
                     props.Add(prop);
+                    if (BreakKind.TryGetValue(id, out var kindName))
+                        go.AddComponent<Breakable>().kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kindName}.asset");
                 }
             }
             view.burnables = burnables.ToArray();
