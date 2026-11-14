@@ -1185,6 +1185,8 @@ namespace Hakaton.Expeditions
             if (appliedSize != CurrentSize) ApplySize();
             // An ambusher in disguise shows its 3D look instead of its drawing (WorldCreature.Ambush.cs).
             UpdateDisguise();
+            // A grip on the player shows up close on his screen (WorldCreature.Grab.cs).
+            UpdateGripPicture(Time.deltaTime);
             if (flying) UpdateShadow();
             Fire.Tick();
             if (!world || dying || !view) return;
@@ -1209,6 +1211,7 @@ namespace Hakaton.Expeditions
             // Frozen: the drawing and its squash stay exactly as the ice caught them (it only keeps facing the player).
             if (!frozen)
             {
+                view.Override(SpecialPicture);
                 pose = PoseForState();
                 float hopScale = State == CreatureState.Flee ? 2.6f : 1;
                 float hop = flying ? 0 : Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
@@ -1224,7 +1227,7 @@ namespace Hakaton.Expeditions
             if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);
             // In its shell: a dull stony grey, so it is plain that hitting it now does nothing (WorldCreature.Tricks.cs).
-            else if (InShell) Tint(new Color(.62f, .66f, .74f), .55f);
+            else if (InShell && !shellPicture) Tint(new Color(.62f, .66f, .74f), .55f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
             // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).

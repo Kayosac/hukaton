@@ -84,6 +84,8 @@ namespace Hakaton.Expeditions
         [Min(0)] public float emergeSeconds = 2.5f;
         [Tooltip("A hit sends it into its shell for this long, seconds: nothing hurts it there and it does not move. 0: no shell.")]
         [Min(0)] public float shellSeconds;
+        [Tooltip("Its drawing while it hides in the shell. Empty: the usual drawing, flattened and greyed.")]
+        public Sprite shellPicture;
 
         [Header("Batter")]
         [Tooltip("In a fight it knocks this share of the cards thrown at it away with its bat: they do nothing.")]
@@ -100,6 +102,8 @@ namespace Hakaton.Expeditions
         [Header("Ram")]
         [Tooltip("Its dash runs through the target instead of stopping at it: it rams, goes on past, turns round and rams again.")]
         public bool ramThrough;
+        [Tooltip("Its drawing while it rams (riding straight at the camera). Empty: the attack pose.")]
+        public Sprite ramPicture;
 
         [Header("Blink")]
         public BlinkSettings blink = new BlinkSettings();
@@ -234,10 +238,14 @@ namespace Hakaton.Expeditions
             world.Spawn(deflectVfx, point, Quaternion.identity, Color.white, .5f);
         }
 
-        /// <summary>The drawing flattens into the shell and back: x and y scale.</summary>
+        /// <summary>A drawing of its own for the state it is in (in the shell, riding a ram), or null for the poses.</summary>
+        Sprite SpecialPicture => InShell && shellPicture ? shellPicture
+            : State == CreatureState.Strike && ramming && ramPicture ? ramPicture : null;
+
+        /// <summary>The drawing flattens into the shell and back: x and y scale (not with a shell drawing of its own).</summary>
         Vector2 ShellScale(float dt)
         {
-            if (shellSeconds <= 0) return Vector2.one;
+            if (shellSeconds <= 0 || shellPicture) return Vector2.one;
             shellShape = Mathf.MoveTowards(shellShape, InShell ? 1 : 0, dt * 7);
             return new Vector2(1 + .2f * shellShape, 1 - .5f * shellShape);
         }

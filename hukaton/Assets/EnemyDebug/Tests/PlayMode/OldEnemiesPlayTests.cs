@@ -95,7 +95,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(Buds(), Is.EqualTo(2), "at a quarter another");
             var bud = sandbox.world.creatures.First(c => c && c.name.StartsWith("Budding troll bud"));
             Assert.That(bud.maximumHealth, Is.EqualTo(4));
-            Assert.That(bud.Size, Is.LessThan(troll.Size * .7f), "a bud is small");
+            Assert.That(bud.view.height * bud.Size, Is.LessThan(troll.view.height * troll.Size * .5f), "a bud is small");
             Assert.That(Calm(bud), Is.False, "a bud goes for the player at once");
         }
 
@@ -339,6 +339,71 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(bush.Disguised, Is.True, "it appears in disguise");
             int looks = sandbox.liveRoot.GetComponentsInChildren<Transform>().Count(t => t.parent == sandbox.liveRoot && t.name.StartsWith("FA_VG0"));
             Assert.That(looks, Is.GreaterThanOrEqualTo(3), "among real bushes, to judge the disguise");
+        }
+
+        [UnityTest]
+        public IEnumerator GrippersSnapOntoTheScreenWhileTheyHold()
+        {
+            foreach (var name in new[] { "Swamp mutant", "Giant swamp leech" })
+            {
+                sandbox.ClearLive();
+                yield return null;
+                var gripper = Spawn(name);
+                var picture = gripper.grab.screenPicture;
+                Assert.That(picture, Is.Not.Null, name + " has a picture for the player's screen");
+                Assert.That(picture.gameObject.activeSelf, Is.False, "nothing on the screen before the grip");
+                yield return Stand(gripper, 2);
+                float until = Time.time + 6;
+                while (Time.time < until && !gripper.Holding) yield return null;
+                Assert.That(gripper.Holding, Is.True, name + " grabs");
+                yield return Wait(.2f);
+                Assert.That(picture.gameObject.activeSelf, Is.True, "up close on the screen while it holds");
+                Assert.That(gripper.view.spriteRenderer.enabled, Is.False, "its drawing in the world is hidden meanwhile");
+                var eye = sandbox.world.viewCamera.transform;
+                Assert.That(Vector3.Distance(picture.transform.position, eye.position), Is.LessThan(1), "right in front of the eyes");
+                until = Time.time + 4;
+                while (Time.time < until && gripper.Holding) yield return null;
+                yield return Wait(.3f);
+                Assert.That(picture.gameObject.activeSelf, Is.False, "gone when it lets go");
+                Assert.That(gripper.view.spriteRenderer.enabled, Is.True);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SnailShowsItsHiddenDrawingInTheShell()
+        {
+            var snail = Spawn("Snail frog mount");
+            Assert.That(snail.shellPicture, Is.Not.Null);
+            yield return null;
+            snail.Damage(1, Vector3.zero, snail.Centre, 0);
+            yield return null;
+            yield return null;
+            Assert.That(snail.view.spriteRenderer.sprite, Is.SameAs(snail.shellPicture), "hidden in the shell, the frog peeking out");
+            yield return Wait(2.3f);
+            Assert.That(snail.view.spriteRenderer.sprite, Is.Not.SameAs(snail.shellPicture));
+        }
+
+        [UnityTest]
+        public IEnumerator LeshyRidesAtTheCameraWhenItRams()
+        {
+            var leshy = Spawn("Teen leshy skater");
+            Assert.That(leshy.ramPicture, Is.Not.Null);
+            yield return Stand(leshy, 9);
+            leshy.Damage(0, Vector3.zero, leshy.Centre, 0);
+            bool rode = false;
+            float until = Time.time + 6;
+            while (Time.time < until && !rode) { yield return null; rode = leshy.State == CreatureState.Strike && leshy.view.spriteRenderer.sprite == leshy.ramPicture; }
+            Assert.That(rode, Is.True, "it rides at the camera on its board");
+        }
+
+        [UnityTest]
+        public IEnumerator BudIsTheSmallTroll()
+        {
+            var bud = Spawn("Budding troll bud");
+            yield return null;
+            Assert.That(bud.view.idle.name, Does.StartWith("BuddingTrollSmall"), "its own drawing, not a shrunk grown troll");
+            var troll = sandbox.Previews.First(p => p.source && p.source.name == "Budding troll").source;
+            Assert.That(bud.view.height * bud.size, Is.InRange(troll.view.height * troll.size / 4, troll.view.height * troll.size / 2), "a third of the grown one");
         }
 
         [UnityTest]
