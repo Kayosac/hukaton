@@ -8,7 +8,8 @@ using UnityEngine;
 namespace Hakaton.Expeditions
 {
     /// <summary>
-    /// A treasure chest lying in an outing. Aim at it and press E: it rattles, the lid flies open and coins burst
+    /// A treasure chest lying in an outing. It is a physical body (cards push it, toss it, blow it away); while
+    /// something animates it (its own rattle, the Gilding show, a mimic at work) the body is held still (kinematic). Aim at it and press E: it rattles, the lid flies open and coins burst
     /// out, scattered around and then pulled into the bag (<see cref="WorldCoin"/>). Everything about the tier —
     /// payout, coin kinds, Retro Arsenal effects, sounds — lives in its <see cref="ChestTier"/>. The model and lid
     /// come from ChestArt; this component sits on a prefab variant of the art prefab.
@@ -27,6 +28,9 @@ namespace Hakaton.Expeditions
         void OnChestReset();
         /// <summary>The chest was set opened and empty (<see cref="TreasureChest.SetEmpty"/>).</summary>
         void OnChestEmptied();
+        /// <summary>True while the occupant moves the chest itself (biting, running, shivering, frozen, dead): its body
+        /// stops being physical meanwhile. False: it lies as a plain chest and is pushed about like one.</summary>
+        bool HoldsBody { get; }
     }
 
     [DisallowMultipleComponent]
@@ -56,17 +60,60 @@ namespace Hakaton.Expeditions
         bool focused;
         float focusPulse;
         Quaternion rest;
-        Vector3 restScale;
+        Vector3 restScale, restPosition;
         bool recorded;
         readonly List<(WorldCoin prefab, int value)> pieces = new List<(WorldCoin, int)>();
         readonly List<LootItem> extras = new List<LootItem>();
+
+        [Header("Body")]
+        [Tooltip("Mass of the chest's rigidbody (a closed crate is 1.6).")]
+        [Min(.1f)] public float mass = 2.5f;
+
+        /// <summary>The chest's physical body (added at wake when the prefab has none).</summary>
+        public Rigidbody Body { get; private set; }
+        readonly HashSet<object> holders = new HashSet<object>();
+        bool rattling, bodyHeld;
 
         Vector3 Mouth => mouth ? mouth.position : transform.position + transform.up * .3f;
 
         void Awake()
         {
-            Record();
             Occupant = GetComponent<IChestOccupant>();
+            // One body for every chest, a mimic's too: a mimic lying still must weigh and fly exactly like a plain one.
+            Body = GetComponent<Rigidbody>();
+            if (!Body) Body = gameObject.AddComponent<Rigidbody>();
+            Body.mass = mass;
+            Body.angularDamping = .2f;
+            Body.interpolation = RigidbodyInterpolation.Interpolate;
+            Body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            bodyHeld = Body.isKinematic;
+            Record();
+            ApplyBody();
+        }
+
+        /// <summary>
+        /// Holds the body still (kinematic) while <paramref name="owner"/> moves the chest by hand (the Gilding show);
+        /// let go and it is physical again.
+        /// </summary>
+        public void Hold(object owner, bool held)
+        {
+            if (owner == null) return;
+            if (held) holders.Add(owner); else holders.Remove(owner);
+            ApplyBody();
+        }
+
+        void ApplyBody()
+        {
+            if (!Body) return;
+            bool held = rattling || holders.Count > 0 || Occupant != null && Occupant.HoldsBody;
+            if (held == bodyHeld && Body.isKinematic == held) return;
+            bodyHeld = held;
+            if (!held && Body.isKinematic) { Body.isKinematic = false; Body.WakeUp(); }
+            else if (held && !Body.isKinematic)
+            {
+                Body.linearVelocity = Body.angularVelocity = Vector3.zero;
+                Body.isKinematic = true;
+            }
         }
 
         void Start() => ShowMarker();
@@ -90,6 +137,7 @@ namespace Hakaton.Expeditions
             recorded = true;
             rest = transform.localRotation;
             restScale = transform.localScale;
+            restPosition = transform.localPosition;
         }
 
         /// <summary>Shut again, as new: for a location that reuses its chests between outings.</summary>
@@ -100,8 +148,14 @@ namespace Hakaton.Expeditions
             Opened = false;
             LastPayout = 0;
             CoinMultiplier = 1;
+            rattling = false;
+            holders.Clear();
+            // Back where it was laid out, even if cards threw it about last time.
+            if (Body && !Body.isKinematic) Body.linearVelocity = Body.angularVelocity = Vector3.zero;
+            transform.localPosition = restPosition;
             transform.localRotation = rest;
             transform.localScale = restScale;
+            Physics.SyncTransforms();
             if (lid) lid.SetOpen(false, true);
             ShowMarker();
             Occupant?.OnChestReset();
@@ -180,18 +234,24 @@ namespace Hakaton.Expeditions
         {
             focused = false;
             world.Play(tier.rattleCue, transform.position);
+            // The rattle shakes the chest by hand, from however it lies now (cards may have tipped it).
+            rattling = true;
+            ApplyBody();
+            var lying = transform.localRotation;
             float time = 0;
             while (time < tier.rattleSeconds)
             {
                 time += Time.deltaTime;
                 float fade = 1 - time / tier.rattleSeconds;
                 float angle = Mathf.Sin(time * 70) * tier.rattleAngle * fade;
-                transform.localRotation = rest * Quaternion.Euler(0, angle * .5f, angle);
+                transform.localRotation = lying * Quaternion.Euler(0, angle * .5f, angle);
                 transform.localScale = restScale * (1 + Mathf.Abs(Mathf.Sin(time * 35)) * .04f * fade);
                 yield return null;
             }
-            transform.localRotation = rest;
+            transform.localRotation = lying;
             transform.localScale = restScale;
+            rattling = false;
+            ApplyBody();
 
             if (marker) marker.Release(.4f);
             marker = null;
@@ -268,10 +328,12 @@ namespace Hakaton.Expeditions
             coin.Launch(world, value, LaunchVelocity());
         }
 
-        /// <summary>Up and a little towards the front of the chest (-z), inside the tier's cone.</summary>
+        /// <summary>Up and a little towards the front of the chest (-z), inside the tier's cone. A chest knocked onto
+        /// its side or lid still spews upwards.</summary>
         Vector3 LaunchVelocity()
         {
-            Vector3 axis = (transform.up + -transform.forward * .35f).normalized;
+            Vector3 up = transform.up.y > .5f ? transform.up : Vector3.up;
+            Vector3 axis = (up + -transform.forward * .35f).normalized;
             Vector3 direction = Quaternion.AngleAxis(Random.Range(0, 360f), axis)
                                 * Quaternion.AngleAxis(Random.Range(0, tier.spreadAngle), Vector3.Cross(axis, transform.right).normalized)
                                 * axis;
@@ -280,6 +342,7 @@ namespace Hakaton.Expeditions
 
         void Update()
         {
+            ApplyBody();
             if (Opened || !recorded) return;
             // An occupant that is busy (running, biting) moves the chest itself.
             if (Occupant != null && !Occupant.CanBeOpened) { focused = false; return; }

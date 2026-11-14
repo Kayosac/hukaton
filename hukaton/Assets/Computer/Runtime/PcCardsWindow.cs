@@ -42,6 +42,8 @@ namespace Hakaton.Computer
         DeckPrototype Workshop => computer.workshop;
         DeckWorkshop Model => Workshop.Model;
         public IReadOnlyList<PcCardTile> Tiles => tiles;
+        /// <summary>No merging (a guide is talking): a drag is put straight back.</summary>
+        public bool MergeLocked { get; set; }
         public PcSortMode Sort => sort;
 
         void Awake()
@@ -193,7 +195,7 @@ namespace Hakaton.Computer
 
         void OnDragStarted(PcCardTile tile)
         {
-            if (!Ready || ShowPlaying)
+            if (!Ready || ShowPlaying || MergeLocked)
             {
                 // A drag that starts mid-show was aimed at the old grid: skip the show and let the player pick again.
                 if (ShowPlaying) mergeShow.Finish();

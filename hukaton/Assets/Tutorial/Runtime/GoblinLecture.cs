@@ -30,6 +30,8 @@ namespace Hakaton.Tutorial
         [Min(0)] public float delayAfterFade = .55f;
         [Tooltip("The view is held on this point, metres above his feet: he stands low in the frame, the plate keeps the top.")]
         [Min(0)] public float lookHeight = .9f;
+        [Tooltip("Appearing out of a puff in plain sight (the stranger's aftermath): seconds from the puff to the first line.")]
+        [Min(0)] public float poofInBeat = .6f;
 
         /// <summary>He is in the shop and talking (or about to): movement is held, the door stays shut.</summary>
         public bool Active { get; private set; }
@@ -48,34 +50,42 @@ namespace Hakaton.Tutorial
         /// As <see cref="Play(string[])"/>, but <paramref name="standing"/> (when given) talks instead of the lecture's own
         /// goblin, where he stands (on the counter), the view held on his face.
         /// </summary>
-        public bool Play(string[] lines, CounterGoblin standing)
+        public bool Play(string[] lines, CounterGoblin standing) => Play(lines, standing, false);
+
+        /// <summary>
+        /// As <see cref="Play(string[], CounterGoblin)"/>; with <paramref name="poofIn"/> the goblin appears out of a puff
+        /// in plain sight and the view turns to him smoothly (no snap: the screen is not dark), the first line after
+        /// <see cref="poofInBeat"/>.
+        /// </summary>
+        public bool Play(string[] lines, CounterGoblin standing, bool poofIn)
         {
             if (Active || lines == null || lines.Length == 0 || !isActiveAndEnabled || !bubble) return false;
             if (!standing && (!goblin || !spot)) return false;
-            StartCoroutine(Run(lines, standing));
+            StartCoroutine(Run(lines, standing, poofIn));
             return true;
         }
 
-        IEnumerator Run(string[] lines, CounterGoblin standing)
+        IEnumerator Run(string[] lines, CounterGoblin standing, bool poofIn)
         {
             Active = true;
             Line = -1;
             continueRequested = false;
             var who = standing ? standing : goblin;
             if (!standing) goblin.transform.SetPositionAndRotation(spot.position, spot.rotation);
-            who.Show(true);
+            if (poofIn) who.PoofIn();
+            else who.Show(true);
             if (control) { control.AllowPause(this, true); control.SetBlocked(this, true); }
             Vector3 look = standing ? standing.face.transform.position : spot.position + Vector3.up * lookHeight;
             if (view)
             {
-                // Out of the dark already facing him; then the view stays on him while he talks.
+                // Out of the dark already facing him (in plain sight the view turns to him); then it stays on him while he talks.
                 Vector3 toGoblin = look - view.pitchPivot.position;
-                if (toGoblin.sqrMagnitude > .0001f) view.ResetPose(Quaternion.LookRotation(toGoblin));
+                if (!poofIn && toGoblin.sqrMagnitude > .0001f) view.ResetPose(Quaternion.LookRotation(toGoblin));
                 view.Guide(look);
             }
-            // The first line starts typing as the picture comes back.
-            float waited = 0;
-            while (waited < delayAfterFade)
+            // The first line starts typing as the picture comes back (or once the puff has cleared a little).
+            float waited = 0, delay = poofIn ? poofInBeat : delayAfterFade;
+            while (waited < delay)
             {
                 if (!GamePause.Suspended) waited += Time.unscaledDeltaTime;
                 yield return null;

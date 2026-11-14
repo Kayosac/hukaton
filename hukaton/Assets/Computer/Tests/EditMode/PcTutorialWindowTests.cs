@@ -229,7 +229,7 @@ namespace Hakaton.Computer.Tests
         }
 
         [Test]
-        public void TutorialIsANestedReusablePrefabWithNineDistinctAuthoredTabs()
+        public void TutorialIsANestedReusablePrefabWithEightDistinctAuthoredTabs()
         {
             Inspect(PcPath, prefab =>
             {
@@ -238,10 +238,10 @@ namespace Hakaton.Computer.Tests
                 Assert.That(app.window, Is.Not.Null);
                 Assert.That(app.window.group, Is.Not.Null);
                 Assert.That(app.window.closeButton, Is.Not.Null);
-                Assert.That(app.tabs, Has.Length.EqualTo(9));
+                Assert.That(app.tabs, Has.Length.EqualTo(8));
                 Assert.That(app.tabs.Select(t => t.title).ToArray(), Is.EqualTo(new[]
                 {
-                    "Начало", "Карты", "Вылазка", "Стихии", "Возврат", "Торговля", "Развитие", "Находки", "Предметы",
+                    "Начало", "Карты", "Вылазка", "Стихии", "Возврат", "Торговля", "Развитие", "Находки",
                 }), "«Стихии» follows «Вылазка»");
                 foreach (var tab in app.tabs)
                 {

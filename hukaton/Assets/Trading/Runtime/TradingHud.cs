@@ -332,6 +332,11 @@ namespace Hakaton.Trading.Unity
                 RefreshBulkBuyer(customer, ready);
                 return;
             }
+            if (customer.IsTalker)
+            {
+                RefreshTalker(customer);
+                return;
+            }
             // Every visitor names an item on the display himself and the haggle over it starts at once: the offer
             // group never shows for him.
             offerActions.SetActive(false);
@@ -370,6 +375,27 @@ namespace Hakaton.Trading.Unity
             accept.interactable = ready && offer;
             acceptKey.SetActive(offer);
             refuseDeal.interactable = ready;
+        }
+
+        /// <summary>
+        /// A visitor who only talks (the stranger at the end of a shift): his lines follow one another on the speech plate,
+        /// a press reads on; no prices, no answers. The plate hops on each new line and shakes on an angry one.
+        /// </summary>
+        void RefreshTalker(Customer customer)
+        {
+            dealActions.SetActive(false);
+            offerActions.SetActive(false);
+            lastOfferMark.SetActive(false);
+            if (customer.Lines.Count == 0) return;
+            int line = Mathf.Clamp(customer.Line, 0, customer.Lines.Count - 1);
+            if (customer.Id != bulkSpeaker) { bulkSpeaker = customer.Id; bulkLineShown = line; }
+            else if (line != bulkLineShown)
+            {
+                bulkLineShown = line;
+                speechPunch.Hop(answerHop);
+                if (customer.LineMood == CustomerMood.Angry) speechPunch.Shake(.35f, 1);
+            }
+            TypedLine.Say(speech, customer.Lines[line]);
         }
 
         /// <summary>

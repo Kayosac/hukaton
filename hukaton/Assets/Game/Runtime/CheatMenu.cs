@@ -175,6 +175,18 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>
+        /// The next shift that ends by itself (time up or the display sold out) brings the stranger who only talks, then the
+        /// goblin on the counter — whatever the chance, the first endless outing or an earlier visit.
+        /// </summary>
+        public bool StrangerAtShiftEnd()
+        {
+            if (!game.Ready || game.Phase != GamePhase.Shop) { status = "Незнакомец приходит только в лавку."; return false; }
+            game.ForceStrangerNext();
+            status = "Незнакомец придёт в конце смены (время вышло или витрина пуста).";
+            return true;
+        }
+
         public bool AddThousandCoins()
         {
             bool granted = game.AddThousandCoins();
@@ -197,6 +209,15 @@ namespace Hakaton.Game
             if (!game.Ready) { status = "Игра не готова."; return false; }
             game.ForgetDrownLecture();
             status = "Гоблин снова встретит в лавке после того, как утонете.";
+            return true;
+        }
+
+        /// <summary>The brazier's and the PC's first-open guides come again.</summary>
+        public bool ResetGuides()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.ForgetGuides();
+            status = "Экскурсии по жаровне и ПК покажутся при следующем открытии.";
             return true;
         }
 
@@ -342,6 +363,8 @@ namespace Hakaton.Game
             if (GUILayout.Button("Выполнить активную цель", button)) CompleteActiveGoal();
             GUI.enabled = game.Ready && game.DrownLectureGiven;
             if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
+            GUI.enabled = game.Ready && game.guides;
+            if (GUILayout.Button("Экскурсии жаровни и ПК — ещё раз", button)) ResetGuides();
             GUI.enabled = game.Ready && game.GodMet && !game.InGodMountains;
             if (GUILayout.Button("Бог — ещё раз («?» на карте)", button)) ResetGodMeeting();
             GUI.enabled = game.Ready && !game.GodMet && !game.InGodMountains;
@@ -366,6 +389,7 @@ namespace Hakaton.Game
             if (GUILayout.Button("Случайные товары на все пустые слоты", button)) StockDisplayRandomly();
             GUI.enabled = game.Phase == GamePhase.Shop;
             if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
+            if (GUILayout.Button("Незнакомец в конце смены", button)) StrangerAtShiftEnd();
             GUI.enabled = true;
             GUILayout.Space(8);
 

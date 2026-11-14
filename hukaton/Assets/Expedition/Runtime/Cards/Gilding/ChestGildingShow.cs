@@ -47,6 +47,7 @@ namespace Hakaton.Expeditions.Cards
             this.chest = chest;
             this.look = look;
             if (!world || !chest) { Destroy(gameObject); return; }
+            chest.Hold(this, true);
             rest = chest.transform.localRotation;
             seed = Random.value * 10;
             running = true;
@@ -107,6 +108,7 @@ namespace Hakaton.Expeditions.Cards
             running = false;
             // An opened chest is the opening's to move; the scale goes back with the chest's own Update.
             if (chest && !chest.Opened) chest.transform.localRotation = rest;
+            if (chest) chest.Hold(this, false);
             if (loop) loop.Release(.8f);
             Destroy(gameObject);
         }

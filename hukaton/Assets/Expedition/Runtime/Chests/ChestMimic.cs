@@ -194,6 +194,10 @@ namespace Hakaton.Expeditions
 
         public bool CanBeOpened => Alive && (Frozen || mode == Mode.Disguised);
 
+        /// <summary>Lying still as a chest it is as physical as one; whenever it moves itself (a tell, the bite, the run,
+        /// frozen, dead) its body is held.</summary>
+        public bool HoldsBody => mode != Mode.Disguised || Frozen || shiverUntil >= 0 || startled;
+
         public bool InterceptOpen()
         {
             if (!Alive) return true;
