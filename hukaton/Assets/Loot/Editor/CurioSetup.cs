@@ -127,7 +127,7 @@ namespace Hakaton.Loot.EditorTools
             importer.importNormals = ModelImporterNormals.Import;
             importer.globalScale = 1;
             importer.useFileScale = true;
-            importer.isReadable = false;
+            importer.isReadable = true; // The shopkeeper's hand frames a curio by its silhouette (HeldStockView): its vertices, also in a build.
             importer.SaveAndReimport();
         }
 

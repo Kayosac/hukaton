@@ -570,7 +570,8 @@ namespace Hakaton.WorldAssembly.Unity
         /// An opened chest stays opened and empty when its chunk comes back.
         /// </summary>
         /// <summary>
-        /// A chest on the bed of the chunk's deepest water (some chunks with deep water): the ring's richest chest,
+        /// A chest on the bed of the chunk's deepest water (some chunks with deep water): the ring's sunken table rolls
+        /// whether there is one and its tier (rich, but no legendary one in the centre and a very rare one in the middle),
         /// paying <see cref="WorldContent.sunkenRiches"/> times over; reached with «Притяжение» (<see cref="SunkenChest"/>).
         /// </summary>
         void SpawnSunken(Loaded entry, Memory mem)
@@ -578,13 +579,11 @@ namespace Hakaton.WorldAssembly.Unity
             var plan = entry.plan;
             var c = plan.Coord;
             if (!content || !entry.view.hasSunkenSpot || WorldRules.IsStartArea(c)) return;
-            if (Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y, 7) >= content.sunkenChance) return;
-            var table = content.ChestTable(plan.Ring);
+            var table = content.SunkenTable(plan.Ring);
             if (!table) return;
-            TreasureChest prefab = null;
-            foreach (var e in table.entries)
-                if (e.prefab && e.prefab.tier && !e.prefab.GetComponent<ChestMimic>() && (!prefab || e.prefab.tier.rank > prefab.tier.rank)) prefab = e.prefab;
-            if (!prefab) return;
+            var prefab = table.Roll(Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y, 7), Hash.Unit(Seed, Salt.ChestTier, c.X, c.Y, 7));
+            // No mimic lies under water.
+            if (!prefab || prefab.GetComponent<ChestMimic>()) return;
             var at = entry.view.transform.TransformPoint(entry.view.sunkenSpot);
             float yaw = (float)Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 7) * 360;
             var chest = Instantiate(prefab, at, Quaternion.Euler(0, yaw, 0), entry.view.transform);

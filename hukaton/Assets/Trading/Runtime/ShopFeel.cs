@@ -6,7 +6,8 @@ namespace Hakaton.Trading.Unity
 {
     /// <summary>
     /// Sound and juice for the shop, driven only by observing the trade session: bells, visitor voices,
-    /// coin bursts and a punchy wallet on sales, a ticking clock at the end of the shift, placement clacks.
+    /// coin bursts and a punchy wallet on sales, a loud tick-tock over the last seconds of the shift (the clock on the
+    /// HUD shakes along, TradingHud), placement clacks.
     /// Never changes trade state.
     /// </summary>
     public sealed class ShopFeel : MonoBehaviour
@@ -25,8 +26,12 @@ namespace Hakaton.Trading.Unity
         [Tooltip("Sales at or above this price use the big coin cascade.")]
         [Min(1)] public int bigSale = 100;
         public Color walletFlash = new Color(1f, .84f, .45f);
-        [Tooltip("The clock ticks audibly over the last this many seconds of a shift (the shift starts at 30 s).")]
-        [Min(0)] public float tickingSeconds = 5;
+        [Tooltip("The clock ticks over the last this many seconds of a shift: tick on each whole second, tock between " +
+                 "(the HUD clock shakes over the same seconds, TradingHud.countdownSeconds).")]
+        [Min(0)] public float tickingSeconds = 3;
+        [Tooltip("The tock between two ticks: pitch and loudness relative to the tick.")]
+        [Range(.5f, 1.5f)] public float tockPitch = .8f;
+        [Range(0, 1)] public float tockVolume = .7f;
 
         long seenCustomer;
         int seenSettlement, seenDeparture, seenRevision = -1, lastTick = -1, displayedGold;
@@ -167,11 +172,18 @@ namespace Hakaton.Trading.Unity
                 }
             }
 
-            // The last seconds of a shift tick audibly.
-            if (session.IsOpen && session.RemainingSeconds > 0 && session.RemainingSeconds <= tickingSeconds)
+            // The last seconds of a shift: tick on each whole second, tock on each half, louder towards the end.
+            if (TradingHud.InCountdown(session, tickingSeconds))
             {
-                int second = Mathf.CeilToInt(session.RemainingSeconds);
-                if (second != lastTick) { lastTick = second; sfx.Play(cues.clockTick, null, second <= 3 ? 1 : .6f); }
+                int half = Mathf.CeilToInt(session.RemainingSeconds * 2);
+                if (half != lastTick)
+                {
+                    lastTick = half;
+                    bool tick = half % 2 == 0;
+                    float urgency = Mathf.Lerp(.75f, 1, 1 - session.RemainingSeconds / Mathf.Max(.01f, tickingSeconds));
+                    sfx.Play(cues.shiftCountdown ? cues.shiftCountdown : cues.clockTick, null,
+                        urgency * (tick ? 1 : tockVolume), tick ? 1 : tockPitch);
+                }
             }
             else lastTick = -1;
 

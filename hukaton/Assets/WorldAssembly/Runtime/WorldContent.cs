@@ -83,12 +83,21 @@ namespace Hakaton.WorldAssembly.Unity
         public UnityEngine.Rendering.VolumeProfile swampLook;
 
         [Header("Sunken chests")]
-        [Tooltip("Share of chunks with deep water that hide a chest on its bed.")]
-        [Range(0, 1)] public float sunkenChance = .3f;
+        [Tooltip("Per ring (1 centre, 2 middle, 3 far; the last one goes on): the chance that a chunk's deep water hides a " +
+                 "chest on its bed, and which tier it is. Richer than the ring's land chests, but no legendary one in the " +
+                 "centre and a very rare one in the middle (Game/Data/Chests/Chests sunken ring …).")]
+        public ChestSpawnTable[] sunkenTables = new ChestSpawnTable[3];
         [Tooltip("A sunken chest pays this many times its tier's coins.")]
         [Min(1)] public float sunkenRiches = 3;
         [Tooltip("Bubbles rising from a sunken chest.")]
         public GameObject sunkenBubbles;
+
+        /// <summary>The sunken chests' table of a ring (clamped to the tables there are); null when none is set.</summary>
+        public ChestSpawnTable SunkenTable(int ring)
+        {
+            if (sunkenTables == null || sunkenTables.Length == 0) return null;
+            return sunkenTables[Mathf.Clamp(ring, 0, sunkenTables.Length - 1)];
+        }
 
         /// <summary>The chest table of a ring (clamped to the tables there are); null when none is set.</summary>
         public ChestSpawnTable ChestTable(int ring)

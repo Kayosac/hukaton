@@ -16,9 +16,9 @@ namespace Hakaton.SpecialItems
     /// The phone (board «Спецпредметы», frames «Телефон»): a worn pink flip phone in the left hand, bottom left, with a
     /// one-armed bandit on its screen, played alongside the cards. Tab pulls the lever, Tab again stops the reels (they
     /// stop by themselves after a while); the outcome is drawn first and the reels are made to show it, so stopping is
-    /// pure chance. A spin costs the bet (the outing's purse first, then the shop wallet) and one charge of the battery,
-    /// which is full at the start of every outing. Money goes where the outing's coins go; the card prize goes straight
-    /// into the hand, one-use, over the hand's limit.
+    /// pure chance. A spin costs the bet, taken straight from the player's balance, and one charge of the battery, which is
+    /// full at the start of every outing. Money won goes straight into the balance too (never lost on a defeat); the card
+    /// prize goes straight into the hand, one-use, over the hand's limit.
     /// </summary>
     public sealed class PhoneTool : SpecialItemTool
     {
@@ -297,7 +297,7 @@ namespace Hakaton.SpecialItems
                 return false;
             }
             int price = Settings.bet;
-            if (!World.TrySpendCoins(price) && !World.workshop.Model.Wallet.TrySpend(price))
+            if (!World.workshop.Model.Wallet.TrySpend(price))
             {
                 World.Play(refuseSound);
                 World.Announce("Не хватает монет на ставку", 2);
@@ -392,7 +392,7 @@ namespace Hakaton.SpecialItems
 
         void Money(int coins, bool jackpot, bool shown)
         {
-            World.CollectCoins(coins, coinColour);
+            World.CreditCoins(coins, coinColour);
             World.Play(jackpot ? jackpotSound : winSound);
             var eye = World.viewCamera.transform;
             Vector3 front = eye.position + eye.forward * 1.6f - eye.right * .55f - eye.up * .35f;

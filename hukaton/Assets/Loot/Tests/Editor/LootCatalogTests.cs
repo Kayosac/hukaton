@@ -45,6 +45,24 @@ namespace Hakaton.Loot.Tests
         }
 
         [Test]
+        public void HeldModelsHaveReadableMeshes()
+        {
+            // The shopkeeper's hand frames a model by its silhouette, from its vertices (HeldStockView); in a build an
+            // unreadable mesh gives only its box, and the model is held too small. Fix: the FBX's Read/Write on.
+            var problems = new List<string>();
+            foreach (var item in Catalog().items.Where(item => item && item.ShelfModel))
+                foreach (var renderer in item.ShelfModel.GetComponentsInChildren<Renderer>(true))
+                {
+                    var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
+                        : renderer.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
+                    string path = mesh ? AssetDatabase.GetAssetPath(mesh) : null;
+                    if (!mesh || mesh.isReadable || string.IsNullOrEmpty(path) || path.StartsWith("Library/")) continue;
+                    problems.Add($"{AssetDatabase.GetAssetPath(item)}: {path} ({mesh.name})");
+                }
+            Assert.That(problems.Distinct(), Is.Empty, "Turn Read/Write on for these meshes");
+        }
+
+        [Test]
         public void ItemsAreComplete()
         {
             var catalog = Catalog();

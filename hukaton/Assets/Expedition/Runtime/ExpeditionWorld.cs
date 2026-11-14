@@ -237,16 +237,6 @@ namespace Hakaton.Expeditions
             return target != null && !(target is UnityEngine.Object gone && !gone) && target.CanInteract && target.Interact();
         }
 
-        /// <summary>
-        /// Takes coins from this outing's purse (the phone's bet). False, and nothing taken, when it holds less.
-        /// </summary>
-        public bool TrySpendCoins(int amount)
-        {
-            if (!Running || amount < 0 || Coins < amount) return false;
-            Coins -= amount;
-            return true;
-        }
-
         /// <summary>Raised once an outing (not the cave prologue) has begun: the player is in place, the hand dealt.</summary>
         public event Action OutingBegan;
 
@@ -267,6 +257,22 @@ namespace Hakaton.Expeditions
         {
             if (!Running || amount <= 0) return;
             Coins = checked(Coins + amount);
+            CoinsArrived(amount, colour);
+        }
+
+        /// <summary>
+        /// Coins straight into the player's balance (the phone's winnings): shown on the HUD at once and never lost on a
+        /// defeat, with the same sound and line as coins reaching the bag.
+        /// </summary>
+        public void CreditCoins(int amount, Color colour)
+        {
+            if (!Running || amount <= 0) return;
+            workshop.Model.Wallet.Credit(amount);
+            CoinsArrived(amount, colour);
+        }
+
+        void CoinsArrived(int amount, Color colour)
+        {
             coinStreak = Time.time - lastCoinTime < .35f ? coinStreak + 1 : 0;
             lastCoinTime = Time.time;
             Play(cues ? cues.coinPickup : null, null, 1, 1 + Mathf.Min(coinStreak, 14) * .035f);

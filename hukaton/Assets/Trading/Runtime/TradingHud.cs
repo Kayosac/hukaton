@@ -33,7 +33,8 @@ namespace Hakaton.Trading.Unity
         public Color reticleFocused = Color.white;
 
         [Header("Shift clock")]
-        [Tooltip("Shown while the shop is open.")]
+        [Tooltip("Shown the whole shift: from the first opening until the time is up, at the counter and away from it " +
+                 "(while the shop is closed the clock stands still and the cross is hidden).")]
         public GameObject shiftClock;
         [Tooltip("Dial, fill, frame and cross: faded together once the shift is over.")]
         public CanvasGroup clockBody;
@@ -44,6 +45,17 @@ namespace Hakaton.Trading.Unity
         [Tooltip("White resting face over the faded clock when the shift has ended (outside Clock Body, never faded).")]
         public GameObject clockRestingFace;
         [Range(0, 1)] public float endedClockAlpha = .38f;
+        [Tooltip("Over the last this many seconds of a running shift the clock shakes (and ShopFeel ticks).")]
+        [Min(0)] public float countdownSeconds = 3;
+        [Tooltip("How far the clock jumps about at the very end, in layout units (whole units: crisp pixels).")]
+        [Min(0)] public float shakeDistance = 3;
+        [Tooltip("How far it turns about its centre at the very end, degrees.")]
+        [Min(0)] public float shakeAngle = 7;
+        [Tooltip("New shake offsets per second (not every frame, so the jumps read at any frame rate).")]
+        [Min(1)] public float shakeRate = 30;
+        [Tooltip("Swell on each whole second (the tick), shrinking back over Tick Punch Seconds.")]
+        [Min(0)] public float tickPunch = .22f;
+        [Min(.01f)] public float tickPunchSeconds = .16f;
 
         [Header("Conversation")]
         [Tooltip("Everything shown only while a visitor stands at the counter.")]
@@ -105,6 +117,13 @@ namespace Hakaton.Trading.Unity
         int revealedRevision = -1;
         long bulkSpeaker;
         int bulkLineShown = -1;
+        RectTransform clockRect;
+        Vector2 clockRest;
+        bool clockShaking;
+        int countdownSecond = -1;
+        float punchAt = -1, nextShake;
+        Vector2 shakeOffset;
+        float shakeTurn;
 
         public void Bind(TradingPrototype value)
         {
@@ -142,6 +161,19 @@ namespace Hakaton.Trading.Unity
         /// <summary>Radial fill of the shift clock: the remaining share of the shift.</summary>
         public static float ClockFill(float remainingSeconds, float shiftSeconds)
             => shiftSeconds > 0 ? Mathf.Clamp01(remainingSeconds / shiftSeconds) : 0;
+
+        /// <summary>
+        /// The shift is on: it has begun (the shop was opened, so time has run) and is not over, or the shop is open now
+        /// (also the last visitor after time is up). Away from the counter the clock stands still but stays in view.
+        /// </summary>
+        public static bool ShiftClockShown(TradingSession session)
+            => session != null && session.ExpeditionId == 0
+               && (session.IsOpen || session.RemainingSeconds > 0 && session.RemainingSeconds < session.ShiftLength);
+
+        /// <summary>The clock is running out: open, ticking, within the last <paramref name="seconds"/>.</summary>
+        public static bool InCountdown(TradingSession session, float seconds)
+            => session != null && session.IsOpen && !session.ClockPaused && session.RemainingSeconds > 0
+               && session.RemainingSeconds <= seconds;
 
         void Refresh()
         {
@@ -203,14 +235,61 @@ namespace Hakaton.Trading.Unity
         /// </summary>
         void RefreshClock(TradingSession session)
         {
-            shiftClock.SetActive(session.IsOpen);
-            if (!session.IsOpen) return;
+            bool shown = ShiftClockShown(session);
+            shiftClock.SetActive(shown);
+            if (!shown) { StopShake(); return; }
             bool ended = session.RemainingSeconds <= 0;
             clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
-            clockClose.gameObject.SetActive(!ended);
+            // The cross closes an open shop; away from the counter there is nothing to close.
+            clockClose.gameObject.SetActive(session.IsOpen && !ended);
             clockClose.interactable = !controller.ViewTransitioning;
             clockBody.alpha = ended ? endedClockAlpha : 1;
             clockRestingFace.SetActive(ended);
+            ShakeClock(session);
+        }
+
+        /// <summary>
+        /// The last seconds: the clock jumps and turns about its centre harder and harder, and swells on every whole
+        /// second (when ShopFeel ticks). Back at rest once the countdown is over.
+        /// </summary>
+        void ShakeClock(TradingSession session)
+        {
+            if (!InCountdown(session, countdownSeconds)) { StopShake(); return; }
+            if (!clockRect) clockRect = (RectTransform)shiftClock.transform;
+            if (!clockShaking) { clockShaking = true; clockRest = clockRect.anchoredPosition; nextShake = 0; }
+            float now = Time.unscaledTime;
+            int second = Mathf.CeilToInt(session.RemainingSeconds);
+            if (second != countdownSecond) { countdownSecond = second; punchAt = now; }
+            // From a third of the full shake at the start of the countdown to all of it at the end.
+            float strength = Mathf.Lerp(.35f, 1, 1 - session.RemainingSeconds / Mathf.Max(.01f, countdownSeconds));
+            if (now >= nextShake)
+            {
+                nextShake = now + 1 / shakeRate;
+                var jump = Random.insideUnitCircle * shakeDistance * strength;
+                shakeOffset = new Vector2(Mathf.Round(jump.x), Mathf.Round(jump.y));
+                shakeTurn = Random.Range(-1f, 1f) * shakeAngle * strength;
+            }
+            float punch = punchAt < 0 ? 0 : Mathf.Clamp01(1 - (now - punchAt) / tickPunchSeconds);
+            float scale = 1 + tickPunch * punch * punch;
+            // Turn and swell about the dial's centre, not the top-right pivot the clock hangs from.
+            var size = clockRect.rect.size;
+            var centre = new Vector2(size.x * (.5f - clockRect.pivot.x), size.y * (.5f - clockRect.pivot.y));
+            var turn = Quaternion.Euler(0, 0, shakeTurn);
+            Vector2 moved = turn * (centre * scale);
+            clockRect.localRotation = turn;
+            clockRect.localScale = new Vector3(scale, scale, 1);
+            clockRect.anchoredPosition = clockRest + shakeOffset + centre - moved;
+        }
+
+        void StopShake()
+        {
+            countdownSecond = -1;
+            punchAt = -1;
+            if (!clockShaking) return;
+            clockShaking = false;
+            clockRect.anchoredPosition = clockRest;
+            clockRect.localRotation = Quaternion.identity;
+            clockRect.localScale = Vector3.one;
         }
 
         void Fade(CanvasGroup group, bool visible)

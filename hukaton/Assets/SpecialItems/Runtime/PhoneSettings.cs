@@ -55,7 +55,7 @@ namespace Hakaton.SpecialItems
     public sealed class PhoneSettings : ScriptableObject
     {
         [Header("Bet and battery")]
-        [Tooltip("Coins a spin costs: from the outing's purse first, then from the shop wallet.")]
+        [Tooltip("Coins a spin costs, taken straight from the player's balance (wins go straight back into it).")]
         [Min(0)] public int bet = 10;
         [Tooltip("Spins per outing before any battery step. The battery is full at the start of every outing.")]
         [Min(1)] public int baseSpins = 10;
