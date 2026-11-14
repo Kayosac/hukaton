@@ -32,11 +32,15 @@ namespace Hakaton.Trading.Unity
         [Tooltip("The tock between two ticks: pitch and loudness relative to the tick.")]
         [Range(.5f, 1.5f)] public float tockPitch = .8f;
         [Range(0, 1)] public float tockVolume = .7f;
+        [Header("Bulk buyer («Скупщик») arrival")]
+        [Tooltip("Seconds into the arrival sting where its big stab lands: the camera punches then.")]
+        [Min(0)] public float bulkStabAt = .68f;
+        public float bulkFovPunch = -12, bulkTrauma = .25f;
 
         long seenCustomer;
         int seenSettlement, seenDeparture, seenRevision = -1, lastTick = -1, displayedGold;
         bool seenOpen;
-        float voiceAt = -1;
+        float voiceAt = -1, bulkStab = -1;
         CustomerMood pendingMood;
         long greetedCustomer;
         // The bulk buyer's speech: the line he has voiced last (-1: none yet) and when the pending line's phrase plays.
@@ -115,6 +119,17 @@ namespace Hakaton.Trading.Unity
             // A visitor who explains himself line by line (the bulk buyer) says each line in his own phrase.
             if (customer != null && customer.IsBulkBuyer && customer.Id == greetedCustomer && voice && customer.Lines != null)
             {
+                // The bulk buyer is rare and worth a whole display: a sting the player cannot miss, the camera punches on its stab.
+                if (customer.IsBulkBuyer && cues.bulkBuyerArrive)
+                {
+                    sfx.Play(cues.bulkBuyerArrive);
+                    bulkStab = Time.unscaledTime + bulkStabAt;
+                }
+            }
+            if (bulkStab > 0 && Time.unscaledTime >= bulkStab)
+            {
+                bulkStab = -1;
+                if (feel) { feel.PunchFov(bulkFovPunch); feel.AddTrauma(bulkTrauma); }
                 int line = trade.BulkLine;
                 if (line != voicedLine)
                 {

@@ -18,5 +18,7 @@ namespace Hakaton.Trading.Unity
         public SfxCue takeItem, slotHover, clockTick, shopOpen, shopClose, priceTap, ambience;
         [Tooltip("The last seconds of a shift: a loud, flat (2D) tick on each whole second and a lower tock between.")]
         public SfxCue shiftCountdown;
+        [Tooltip("The bulk buyer («Скупщик») walks in: a flat (2D) sting over the door bell so the player turns to the counter.")]
+        public SfxCue bulkBuyerArrive;
     }
 }

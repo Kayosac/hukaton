@@ -274,6 +274,8 @@ namespace Hakaton.Game
         /// <summary>The first goal is given: its name comes up in big letters over the shop, once nothing else holds the screen.</summary>
         void TryShowGoalBanner()
         {
+            // Once the endless world is open, the first shift opened with a full display starts with the bulk buyer.
+            trade.Session.BulkBuyerPromised = EndlessWorldUnlocked;
             if (!goalBannerPending) return;
             if (GoalReached) { goalBannerPending = false; return; }
             if (Time.unscaledTime < goalBannerAt || Phase != GamePhase.Shop || !GoalGiven || GamePause.Suspended || LectureActive

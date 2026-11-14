@@ -114,6 +114,15 @@ namespace Hakaton.Trading
         public bool BulkBuyerCameThisShift { get; private set; }
         /// <summary>Debug/cheat: the next generated visitor is the bulk buyer, whatever the chance, goal or shift.</summary>
         public bool ForceBulkBuyerNext { get; set; }
+        /// <summary>
+        /// His promised visit is due (the game loop: once the endless world has opened): the first shift opened with a
+        /// full display starts with him, whatever the chance. Happens once (<see cref="BulkBuyerPromiseKept"/>).
+        /// </summary>
+        public bool BulkBuyerPromised { get; set; }
+        /// <summary>The promised visit has happened; saved.</summary>
+        public bool BulkBuyerPromiseKept { get; private set; }
+        /// <summary>Every display slot holds an item.</summary>
+        public bool DisplayFull => DisplayCount == slots.Length;
         /// <summary>Chance upgrades bought on the PC (0: the base chance).</summary>
         public int BulkBuyerLevel { get; private set; }
         public int BulkBuyerSteps => Settings.BulkBuyerUpgradeChances.Length;
@@ -299,7 +308,10 @@ namespace Hakaton.Trading
             if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Вернитесь из вылазки с новой добычей."; return false; }
             if (DisplayCount == 0) { LastMessage = "Сначала выставьте хотя бы один предмет."; return false; }
             IsOpen = true; Touch();
-            AdvanceCustomer();
+            // The promised bulk buyer: the first shift opened with a full display (never in the tutorial) starts with him.
+            bool promised = BulkBuyerPromised && !BulkBuyerPromiseKept && DisplayFull && CustomerScript == null && !ClockPaused;
+            AdvanceCustomer(promised ? new CustomerTerms { Name = "Скупщик", BulkBuyer = true } : null);
+            if (promised && CurrentCustomer != null && CurrentCustomer.IsBulkBuyer) { BulkBuyerPromiseKept = true; Touch(); }
             return true;
         }
 
@@ -556,7 +568,8 @@ namespace Hakaton.Trading
             var save = new TradingSave {
                 remainingSeconds = RemainingSeconds, grossRevenue = GrossRevenue, salesCount = SalesCount,
                 nextItemId = nextItemId, nextExpeditionId = nextExpeditionId, shiftLevel = ShiftLevel,
-                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift
+                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift,
+                bulkBuyerPromiseKept = BulkBuyerPromiseKept
             };
             foreach (var item in inventory)
                 save.items.Add(new TradingItemSave { instanceId = item.Id, definitionId = item.Definition.Id });
@@ -675,6 +688,7 @@ namespace Hakaton.Trading
             return new CustomerTerms
             {
                 Name = new[] { "Охотник", "Собиратель", "Путник", "Сосед" }[random.Next(4)],
+            BulkBuyerPromiseKept = save.bulkBuyerPromiseKept;
                 RequestedSlot = selected,
                 AsksPrice = asksPrice,
                 OpeningRatio = openingRatio,

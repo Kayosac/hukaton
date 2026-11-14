@@ -313,6 +313,43 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
+        public void PromisedVisitWaitsForAFullDisplayThenComesFirstOnceWhateverTheChance()
+        {
+            var session = Shop(5, Settings(chance: 0, upgrades: false));
+            session.BulkBuyerPromised = true;
+            // Five of six slots: an ordinary visitor (zero chance, goal not even reached).
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.False);
+            Assert.That(session.BulkBuyerPromiseKept, Is.False);
+            session.Close();
+            Assert.That(session.PlaceItem(0, 5), Is.True);
+            Assert.That(session.DisplayFull, Is.True);
+            // A full display: the very first visitor of the opened shift is him.
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.True);
+            Assert.That(session.CurrentCustomer.BulkCount, Is.EqualTo(6));
+            Assert.That(session.BulkBuyerPromiseKept, Is.True);
+            Assert.That(session.Refuse(session.CurrentCustomer.Id), Is.True);
+            session.Close();
+            // Once only: the next full-display opening is an ordinary visitor again.
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.False);
+            session.Close();
+            var restored = Shop(0);
+            Assert.That(restored.TryRestore(JsonUtility.FromJson<TradingSave>(JsonUtility.ToJson(session.Save()))), Is.True);
+            Assert.That(restored.BulkBuyerPromiseKept, Is.True);
+        }
+
+        [Test]
+        public void PromisedVisitWaitsUntilTheGameLoopPromisesHim()
+        {
+            var session = Shop(6, Settings(chance: 0, upgrades: false));
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.False, "No promise before the endless world opens.");
+            Assert.That(session.BulkBuyerPromiseKept, Is.False);
+        }
+
+        [Test]
         public void LevelMeetingAndShiftVisitRoundTripAndOldSavesLoadAtDefaults()
         {
             var wallet = new CoinWallet(5000);
@@ -333,7 +370,7 @@ namespace Hakaton.Trading.Tests
             Assert.That(restored.BulkBuyerUpgradePrice, Is.EqualTo(2000));
 
             // A save written before the bulk buyer existed has none of his fields.
-            string old = Regex.Replace(json, ",?\"bulkBuyer(Level|Met|ThisShift)\":(\\d+|true|false)", "");
+            string old = Regex.Replace(json, ",?\"bulkBuyer(Level|Met|ThisShift|PromiseKept)\":(\\d+|true|false)", "");
             Assert.That(old, Does.Not.Contain("bulkBuyer"));
             var oldSave = JsonUtility.FromJson<TradingSave>(old);
             var fromOld = Shop(0, wallet: wallet);
