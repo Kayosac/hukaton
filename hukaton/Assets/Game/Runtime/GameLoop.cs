@@ -711,7 +711,7 @@ namespace Hakaton.Game
             guides = guides ? guides.Progress.Save() : null
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
-        static readonly string[] RetiredItems = { "common_find", "special_find" };
+        static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
         static void DropRetiredItems(GameSave save)
         {
             if (save?.shop?.items == null) return;
