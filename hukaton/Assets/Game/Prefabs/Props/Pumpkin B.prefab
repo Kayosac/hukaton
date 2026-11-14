@@ -100,6 +100,9 @@ GameObject:
   m_Component:
   - component: {fileID: 6215954817045639014}
   - component: {fileID: 885873609173802667}
+  - component: {fileID: 4500556686256202482}
+  - component: {fileID: 4146604408012926936}
+  - component: {fileID: 6650849470921617874}
   m_Layer: 0
   m_Name: Pumpkin B
   m_TagString: Untagged
@@ -144,3 +147,58 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.9430376, y: 0.659, z: 0.91303205}
   m_Center: {x: -0.003037274, y: 0.3295, z: 0.0065900385}
+--- !u!54 &4500556686256202482
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8931136883350687069}
+  serializedVersion: 5
+  m_Mass: 6
+  m_LinearDamping: 0
+  m_AngularDamping: 0.3
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &4146604408012926936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8931136883350687069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
+  body: {fileID: 4500556686256202482}
+  surface: 4
+  dormant: 1
+--- !u!114 &6650849470921617874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8931136883350687069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 815d618b9def34c7c8adb758eb5180a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.Breakable
+  kind: {fileID: 11400000, guid: 02ead2dc87c5f411fa0995b8d912e3e4, type: 2}

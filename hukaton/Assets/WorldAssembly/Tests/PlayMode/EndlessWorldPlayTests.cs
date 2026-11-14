@@ -205,6 +205,57 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(PropPhysics.AwakeCount, Is.LessThan(10), "at rest they are still scenery again");
         }
 
+        /// <summary>
+        /// Pumpkins of a farm or village patch are dormant bodies that break: one broken and one moved, the chunk unloaded
+        /// and loaded again — the broken one is still gone, the moved one lies where it was left.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator PumpkinsBreakAndComeBackAsLeft()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            ChunkPlan farm = null;
+            for (int r = 0; r <= 30 && farm == null; r++)
+                for (int x = -r; x <= r && farm == null; x++)
+                    for (int y = -r; y <= r && farm == null; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                        var p = map.Chunk(x, y);
+                        if (p.Theme == "farm" || p.Theme == "village") farm = p;
+                    }
+            Assert.That(farm, Is.Not.Null, "a farm or village within 480 m");
+            Vector3 Centre() => streamer.root.position + new Vector3(farm.Coord.X * size, farm.BaseLevel * map.Rules.PlateauHeight, farm.Coord.Y * size);
+            List<Breakable> Pumpkins() => Object.FindObjectsByType<Breakable>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(b => b.kind && b.kind.name == "Pumpkin" && b.GetComponentInParent<ChunkView>(true) && streamer.CoordAt(b.GetComponentInParent<ChunkView>(true).transform.position).Equals(farm.Coord))
+                .OrderBy(b => b.transform.GetSiblingIndex()).ToList();
+            world.motor.Teleport(Centre() + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(farm.Coord), 10);
+            for (int f = 0; f < 30; f++) yield return null;
+            var pumpkins = Pumpkins();
+            if (pumpkins.Count < 2) Assert.Inconclusive($"{farm} laid {pumpkins.Count} pumpkins");
+            var broken = pumpkins[0];
+            var movedProp = pumpkins[1].GetComponent<PhysicsProp>();
+            Assert.That(movedProp.dormant && movedProp.body.isKinematic, "a pumpkin lies still until touched");
+            var brokenAt = broken.transform.position;
+            Assert.That(PropPhysics.Nudge(broken.GetComponent<Rigidbody>(), broken.transform.position, Vector3.forward, 12), Is.True);
+            Assert.That(broken.Broken, Is.True, "a hard blow breaks it");
+            Assert.That(PropPhysics.Ready(movedProp.body), Is.True);
+            movedProp.body.AddForce(new Vector3(3, 1, 0), ForceMode.VelocityChange);
+            yield return new WaitForSeconds(3);
+            var left = movedProp.transform.position;
+            // Far away and back.
+            world.motor.Teleport(Centre() + new Vector3(12 * size, 6, 0), Quaternion.identity);
+            yield return WaitFor(() => !streamer.IsLoaded(farm.Coord), 10);
+            world.motor.Teleport(Centre() + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(farm.Coord), 20);
+            for (int f = 0; f < 10; f++) yield return null;
+            var again = Pumpkins();
+            Assert.That(again.Count, Is.EqualTo(pumpkins.Count), "the same patch is laid");
+            Assert.That(again.Any(b => b.gameObject.activeSelf && Vector3.Distance(b.transform.position, brokenAt) < .1f), Is.False, "the broken pumpkin stays broken");
+            Assert.That(again.Any(b => b.gameObject.activeSelf && Vector3.Distance(b.transform.position, left) < .2f), Is.True, "the moved one lies where it was left");
+        }
+
         [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {
@@ -601,7 +652,8 @@ namespace Hakaton.WorldAssembly.Tests
 
             // A giant tree of the wall: it stops a body as it looks, with the trunks and thorns round it that are its;
             // woken, it takes them along and nothing is left where it stood.
-            var tree = view.trees.First(t => t && t.Standing && t.transform.parent && t.transform.parent.name == "Giant trees");
+            // A solid trunk: a hollow one has nothing to stop a body at its middle, by design.
+            var tree = view.trees.First(t => t && t.Standing && t.transform.parent && t.transform.parent.name == "Giant trees" && !t.name.Contains("Hollow"));
             var piece = tree.GetComponentsInChildren<Collider>().Where(c => !c.isTrigger).ToArray();
             var spot = tree.transform.position + Vector3.up * 1.2f;
             bool Blocked() => Physics.OverlapSphere(spot, .3f, ~(1 << 4), QueryTriggerInteraction.Ignore)

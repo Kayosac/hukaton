@@ -61,6 +61,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly List<(int index, TarPuddleZone tar)> tar = new List<(int, TarPuddleZone)>();
             public TreasureChest chest;
             public TreasureChest sunken;
+            /// <summary>The prop patches' things laid on this load, in laying order.</summary>
+            public readonly List<GameObject> patch = new List<GameObject>();
             public BeastBrawl brawl;
             public Oddity oddity;
         }
@@ -74,6 +76,9 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> burnt = new HashSet<int>();
             /// <summary>Props broken to pieces: they do not come back (nor what was inside).</summary>
             public readonly HashSet<int> broken = new HashSet<int>();
+            /// <summary>The prop patches' things (pumpkins) by the order they are laid in: broken ones, and where moved ones lie.</summary>
+            public readonly HashSet<int> patchBroken = new HashSet<int>();
+            public readonly Dictionary<int, (Vector3 position, Quaternion rotation)> patchMoved = new Dictionary<int, (Vector3, Quaternion)>();
             public readonly HashSet<int> awakened = new HashSet<int>();
             /// <summary>Natural tar pools burnt out or washed away: they do not come back.</summary>
             public readonly HashSet<int> tarGone = new HashSet<int>();
@@ -555,6 +560,14 @@ namespace Hakaton.WorldAssembly.Unity
             SpawnEvent(entry, mem);
             SpawnCreatures(entry, mem);
             LayPatches(entry);
+            // The patches are laid again the same way: what was broken stays broken, what was moved lies where it was left.
+            for (int i = 0; i < entry.patch.Count && mem != null; i++)
+            {
+                var thing = entry.patch[i];
+                if (!thing) continue;
+                if (mem.patchBroken.Contains(i) && thing.TryGetComponent(out Breakable gone)) gone.MarkBroken();
+                else if (mem.patchMoved.TryGetValue(i, out var pose) && thing.TryGetComponent(out PhysicsProp moved)) moved.Restore(pose.position, pose.rotation);
+            }
             PaintRoads(entry, coord);
             if (mem != null)
             {
@@ -924,12 +937,16 @@ namespace Hakaton.WorldAssembly.Unity
             var plan = entry.plan;
             var sockets = entry.view.creatureSockets;
             if (!content || string.IsNullOrEmpty(plan.Theme) || sockets.Length == 0) return;
+            float half = Map.Rules.ChunkSize * .5f;
+            var inside = new Bounds(entry.view.transform.position, new Vector3(half * 2 - .2f, 1000, half * 2 - .2f));
             foreach (var kind in content.patches)
             {
                 if (kind.themes == null || System.Array.IndexOf(kind.themes, plan.Theme) < 0 || kind.props == null || kind.props.Length == 0) continue;
                 var random = new System.Random((int)(Pick(plan.Coord, 110) & 0x7fffffff));
+                // Kept apart from where the creatures appear, not from where they wander now: the patch must come out the
+                // same every time the chunk loads (its broken and moved things are remembered by laying order).
                 var taken = new List<Vector3>();
-                foreach (var (_, creature) in entry.creatures) if (creature) taken.Add(creature.Position);
+                foreach (var socket in sockets) if (socket) taken.Add(socket.position);
                 int low = Mathf.Min(kind.patches.x, kind.patches.y), high = Mathf.Max(kind.patches.x, kind.patches.y);
                 int patches = low + random.Next(high - low + 1);
                 for (int i = 0; i < patches; i++)
@@ -937,9 +954,12 @@ namespace Hakaton.WorldAssembly.Unity
                     var socket = sockets[random.Next(sockets.Length)];
                     double a = random.NextDouble() * System.Math.PI * 2, r = 4 + random.NextDouble() * 5;
                     var probe = socket.position + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * (float)r;
-                    if (!NavMesh.SamplePosition(probe, out var hit, 3, NavMesh.AllAreas)) continue;
+                    // Kept inside the chunk: near its edge the navigation found would depend on whether the neighbour has loaded.
+                    probe.x = Mathf.Clamp(probe.x, inside.min.x + 1, inside.max.x - 1);
+                    probe.z = Mathf.Clamp(probe.z, inside.min.z + 1, inside.max.z - 1);
+                    if (!NavMesh.SamplePosition(probe, out var hit, 3, NavMesh.AllAreas) || !inside.Contains(new Vector3(hit.position.x, inside.center.y, hit.position.z))) continue;
                     int lowP = Mathf.Min(kind.perPatch.x, kind.perPatch.y), highP = Mathf.Max(kind.perPatch.x, kind.perPatch.y);
-                    PropPatch.Lay(kind.props, hit.position, kind.radius, kind.spacing, lowP + random.Next(highP - lowP + 1), entry.view.transform, random, taken);
+                    PropPatch.Lay(kind.props, hit.position, kind.radius, kind.spacing, lowP + random.Next(highP - lowP + 1), entry.view.transform, random, taken, entry.patch, inside);
                 }
             }
         }
@@ -1004,6 +1024,13 @@ namespace Hakaton.WorldAssembly.Unity
                 // A tree that came alive walks on as an ally; its chunk keeps the empty place.
                 for (int i = 0; i < entry.view.trees.Length; i++)
                     if (entry.view.trees[i] && !entry.view.trees[i].gameObject.activeSelf) mem.awakened.Add(i);
+                for (int i = 0; i < entry.patch.Count; i++)
+                {
+                    var thing = entry.patch[i];
+                    if (!thing) continue;
+                    if (thing.TryGetComponent(out Breakable gone) && gone.Broken) mem.patchBroken.Add(i);
+                    else if (thing.TryGetComponent(out PhysicsProp moved) && moved.Stirred) mem.patchMoved[i] = (thing.transform.position, thing.transform.rotation);
+                }
                 HideLoose(coord, mem);
             }
             if (fire)

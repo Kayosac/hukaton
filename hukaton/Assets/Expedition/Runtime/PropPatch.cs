@@ -13,7 +13,7 @@ namespace Hakaton.Expeditions
     {
         /// <summary>Lays up to <paramref name="count"/> props round <paramref name="centre"/>; returns how many it laid.</summary>
         public static int Lay(IReadOnlyList<GameObject> props, Vector3 centre, float radius, float spacing, int count,
-            Transform parent, System.Random random, List<Vector3> taken)
+            Transform parent, System.Random random, List<Vector3> taken, List<GameObject> laidOut = null, Bounds? within = null)
         {
             if (props == null || props.Count == 0 || count <= 0) return 0;
             int laid = 0;
@@ -23,7 +23,10 @@ namespace Hakaton.Expeditions
                 // Denser in the middle: the patch reads as a heap, not a ring.
                 double r = radius * System.Math.Sqrt(random.NextDouble());
                 var probe = centre + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * (float)r;
+                // Only inside the given area (a chunk): what lies beyond depends on what else has loaded.
+                if (within.HasValue && !Inside(within.Value, probe)) continue;
                 if (!NavMesh.SamplePosition(probe, out var hit, 1, NavMesh.AllAreas)) continue;
+                if (within.HasValue && !Inside(within.Value, hit.position)) continue;
                 bool free = true;
                 if (taken != null)
                     foreach (var other in taken)
@@ -38,9 +41,13 @@ namespace Hakaton.Expeditions
                 var copy = Object.Instantiate(prefab, hit.position, Quaternion.Euler(0, (float)random.NextDouble() * 360, 0), parent);
                 copy.transform.localScale *= .85f + (float)random.NextDouble() * .3f;
                 taken?.Add(hit.position);
+                laidOut?.Add(copy);
                 laid++;
             }
             return laid;
         }
+
+        static bool Inside(Bounds area, Vector3 point) =>
+            point.x >= area.min.x && point.x <= area.max.x && point.z >= area.min.z && point.z <= area.max.z;
     }
 }
