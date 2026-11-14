@@ -97,6 +97,18 @@
   (удирает). Манок/Чучело/Раздор не тронуты. Готовых спрайтов птиц и звука карканья в проекте нет: вороны нарисованы
   PIL-скриптом (64×48, PPU 100 = сетка), карканье — frog_croak с pitch 1.45–1.7, клевок — wolf_snap с pitch 1.6–1.9.
 
+- Поджиг (найдено на Пороховой бочке): общая система — `ICardZone` + `IIgnitable` в `world.Zones`; поджигают
+  `world.Ignite(collider, point, reach, source)` (Огонь, Молния), `world.Ignite(feet, height, radius, reach)` (горящий
+  уязвимый к огню или осмолённый зверь, CreatureFire), `Zones.Ignite(...)` (вспышка газа GasVent, вспыхнувшее Чучело,
+  взрыв бочки), Сквозняк — всем `IIgnitable` по ветру. Горящая смола раньше соседей НЕ поджигала — теперь поджигает
+  (`TarPuddleZone.SpreadFire`, раз в 0,25 с, досягаемость 0,3 м). Обычный (не уязвимый) горящий зверь касанием ничего
+  не поджигает — бочка сама проверяет горящих зверей вплотную. Мокрота у горючих зон раньше была только «дождь
+  смывает/гасит» (`IWashable`); добавлен `ISoakable` (Струя мочит), бочка мокнет через общий `WetStatus` (30 с).
+- Модели: болотный кит Blender (`output/biomes/rotten-swamp/models-v1/_kit/sk.py`) работает в облачном контейнере с
+  `pip install bpy==5.3.0` (на Маке/VM Blender нет); папка `_kit/tex` слишком глубоко для device_stage_files —
+  копировать во временную папку выше. Бочка: `powder_barrel-model/build.py` (+ card.jpg).
+- EnemyDebug лечит игрока сразу после урона; полученный урон виден в HUD («Получено урона»).
+
 ## Статус
 
 | Карта | Статус |
@@ -105,6 +117,6 @@
 | Камнепад | готово (a6122059b): RockfallEffect + зона RockfallZone, тесты RockfallTests 8/8, вживую в EnemyDebug — checks/rockfall-*.png; таблица KayoSpace — за пользователем |
 | Сглаз | готово (efbc46f62): EvilEyeEffect + метка EvilEyeMark, тесты EvilEyeTests 9/9, вживую в EnemyDebug (две метки через Эхо на замороженном звере, взрыв, промах) — checks/evil_eye-*.png; таблица KayoSpace — за пользователем |
 | Вороньё | готово (870336b98): CrowsEffect + стая CrowFlock, отвлечение IDistractable (WorldCreature, ChestMimic), тесты CrowsTests 14/14, вживую в EnemyDebug (болотный мутант L2: 4 с без урона игроку, 16→8 HP, потом снова нападает; пёс L3 — смерть, вороны разлетаются; промах) — checks/crows-*.png; таблица KayoSpace — за пользователем |
-| Пороховая бочка | — |
+| Пороховая бочка | готово (57ff0cd31): PowderBarrelEffect + бочка PowderBarrel (зона IIgnitable/IWashable/ISoakable, Rigidbody), своя кривая модель SM_PowderBarrel (болотный кит), тесты PowderBarrelTests 12/12, вживую в EnemyDebug (удар и Камнепад не взрывают; Огонь — фитиль 0,4 с и взрыв: звери −5 HP, горят, отброшены; цепь из двух бочек; мокрая не горит; игрок рядом −5 и отброшен) — checks/powder_barrel-*.png; таблица KayoSpace — за пользователем |
 | Бумеранг | — |
 | Веер | — |
