@@ -346,6 +346,114 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  strikesPerAttack: 1
+  followUpWindup: 0.2
+  followUpStep: 5
+  ambush:
+    enabled: 0
+    inWater: 0
+    submerge: 0
+    springs: 1
+    cover:
+    - SM_SW02_
+    - SM_SW03_
+    coverSearch: 9
+    coverSpacing: 3
+    pounceRange: 6
+    pounceWindup: 0.25
+    pounceSpeed: 13
+    pounceSeconds: 0.45
+  flying: 0
+  cruiseHeight: 1.8
+  windupClimb: 0.7
+  diveHeight: 0.9
+  climbSpeed: 4
+  climbAcceleration: 14
+  bobHeight: 0.12
+  bobFrequency: 0.9
+  jitter: 0
+  shadowSize: 0.4
+  phasing: 0
+  farOpacity: 1
+  solidWithin: 6
+  shadowOpacity: 0.35
+  grab:
+    enabled: 0
+    holdSeconds: 1.5
+    squeezeHalfHearts: 1
+    squeezeInterval: 0.75
+    drainHeal: 0
+    slip: 0.8
+  defendsKin: 1
+  kinWitnessRange: 12
+  kinGrudgeSeconds: 8
+  kinReactionDelay: {x: 0.15, y: 0.45}
+  patrol:
+    enabled: 0
+    points: 4
+    radius: {x: 4, y: 7}
+    pause: {x: 2, y: 4}
+    spacing: 1.6
+    straggle: 4
+    hurry: 1.6
+    flank: 0
+    flankRadius: 3.4
+  ranged:
+    projectile: {fileID: 11400000, guid: dc4f956a67021472fb30491001c4889e, type: 2}
+    range: 11
+    minRange: 4
+    aimSeconds: 0.7
+    cooldown: 3
+    recovery: 0.5
+    projectiles: 1
+    spreadAngle: 24
+    burst: 1
+    burstInterval: 0.2
+    muzzle: {fileID: 0}
+    muzzleHeight: 0.6
+    keepDistance: 0
+    retreatDistance: 0
+    retreatSpeed: 0.8
+    circleSpeed: 0
+    closeCombat: 0
+    shoveDamage: 1
+  tongue:
+    enabled: 0
+    minRange: 2.5
+    maxRange: 6
+    windup: 0.6
+    pull: 9
+    pullUp: 3
+    cooldown: 4
+    slamWindup: 0.5
+  offspring:
+    enabled: 0
+    prefab: {fileID: 0}
+    atHealth:
+    - 0.5
+    - 0.25
+    count: 1
+    scatter: 1.6
+  burrows: 0
+  emergeSeconds: 2.5
+  shellSeconds: 0
+  deflectCards: 0
+  deflectVfx: {fileID: 0}
+  staggerAngle: 35
+  staggerFrequency: 0.6
+  ramThrough: 0
+  blink:
+    enabled: 0
+    minRange: 4
+    maxRange: 14
+    cooldown: 4.5
+    vanishSeconds: 0.45
+    appearDistance: 2.6
+    windup: 0.35
+    puff: {fileID: 0}
+  smoker: 0
+  smokeRadius: 14
+  calmedBySmoke: 0
   world: {fileID: 0}
   temperament: 2
   displayName: "\u0420\u043E\u0431\u043E\u0442 \u043F\u044C\u044F\u043D\u044B\u0445
@@ -355,6 +463,7 @@ MonoBehaviour:
   view: {fileID: 5575971519960316659}
   overhead: {fileID: 8210072996031927245}
   size: 1
+  spawnSizeRange: {x: 0.9, y: 1.2}
   stunStarsHeight: 0.32
   stunStarsScale: 3
   drops:
@@ -377,7 +486,7 @@ MonoBehaviour:
       min: 1
       max: 1
   spawnPoints: []
-  maximumHealth: 30
+  maximumHealth: 24
   attackHalfHearts: 4
   windup: 1.1
   strikeSeconds: 0.55
@@ -385,6 +494,11 @@ MonoBehaviour:
   recoveryOnMiss: -1
   dash: 0
   strikeShake: 0.5
+  strikeStatuses:
+  - status: {fileID: 11400000, guid: a5f34cb3b00804ba9b17bc64b8a3aa24, type: 2}
+    chance: 0.3
+    seconds: 0
+    strength: 0
   sightRange: 16
   hearingRange: 5
   leash: 24
@@ -415,15 +529,17 @@ MonoBehaviour:
   stepDust: {fileID: 8209492253453965686}
   stepDustCount: 4
   dustColour: {r: 0.86, g: 0.78, b: 0.64, a: 1}
+  fireVulnerability: {fileID: 0}
   flamesSize: 0.35
   flamesHeight: 0.34
-  alertCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
-  threatCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
-  windupCue: {fileID: 11400000, guid: 2d3be978e2e684de883c617730e7aed5, type: 2}
-  strikeCue: {fileID: 11400000, guid: 79ac7a687d7714618943787d54d35c4b, type: 2}
-  hurtCue: {fileID: 11400000, guid: ef04ee52d152a4dd3934f14a138a5b6d, type: 2}
-  deathCue: {fileID: 11400000, guid: d2541dfba8ddf4187b296f0b01a3f33e, type: 2}
-  stepCue: {fileID: 11400000, guid: b45324b93f90e4141828746111ad16d3, type: 2}
+  alertCue: {fileID: 11400000, guid: 76fd4459874844059abe75b7e6b7c211, type: 2}
+  threatCue: {fileID: 11400000, guid: 1ed526a60fd448d68cca9cde91e0cefb, type: 2}
+  windupCue: {fileID: 11400000, guid: 687ea5df32074e059428b16e92caf8f0, type: 2}
+  strikeCue: {fileID: 11400000, guid: 4339c43d10f94cac9fada3471ccc4c78, type: 2}
+  hurtCue: {fileID: 11400000, guid: 73892f2954164eb6948320f8c0bc780f, type: 2}
+  deathCue: {fileID: 11400000, guid: 966e1a42bbc540bbbf10ab8520fc06f9, type: 2}
+  stepCue: {fileID: 11400000, guid: c6cdfcdefef34b3fa7f506e7270d32df, type: 2}
+  bodyLoop: {fileID: 11400000, guid: 346b00e47ad949afb4478bee8be4b582, type: 2}
 --- !u!54 &4728948868572293746
 Rigidbody:
   m_ObjectHideFlags: 0

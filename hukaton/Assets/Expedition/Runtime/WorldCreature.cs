@@ -98,6 +98,8 @@ namespace Hakaton.Expeditions
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
+        [Tooltip("Optional: a sound this body makes all the time while alive (a swarm's buzz). Heard within the cue's max distance, a little quieter while calm, muted while frozen.")]
+        public SfxCue bodyLoop;
 
         public int Health { get; private set; }
         public bool Alive => Health > 0 && !dying;
@@ -196,7 +198,7 @@ namespace Hakaton.Expeditions
         }
 #endif
 
-        void OnDisable() => fire?.PutOut(0);
+        void OnDisable() { fire?.PutOut(0); smokers.Remove(this); if (world && world.sfx) world.sfx.StopLoop(this); }
 
         void Awake()
         {
@@ -237,6 +239,7 @@ namespace Hakaton.Expeditions
             squad = null;
             EndAttack();
             holding = false;
+            ResetTricks();
             // One that waits under water is there already when the place comes into view.
             sunk = ambush.submerge ? 1 : 0;
             body.isKinematic = false;
@@ -290,6 +293,10 @@ namespace Hakaton.Expeditions
             if (ThinkDistracted()) { UpdateOverhead(); return; }
             // It saw the player's side attack its kin (WorldCreature.Kin.cs): the start is over, it turns on the attacker.
             if (kinAlarmed && Time.time >= kinAlarmAt) RiseForKin();
+            // A card about to hit it: a last-moment dodge (WorldCreature.Tricks.cs).
+            ThinkDodge();
+            // Hiding in its shell it does nothing else (WorldCreature.Tricks.cs).
+            if (ThinkShell()) { UpdateOverhead(); return; }
 
             if (lured && State != CreatureState.Investigate) lured = false;
             if (Brawling) ThinkBrawl();
@@ -353,6 +360,7 @@ namespace Hakaton.Expeditions
             squad?.Raise(this, next);
             // A grip lasts through the strike and the recovery after it; anything else lets go (WorldCreature.Grab.cs).
             if (next != CreatureState.Recover && next != CreatureState.Strike) holding = false;
+            if (next != CreatureState.Strike) RamThrough(false);
             switch (next)
             {
                 case CreatureState.Idle: idleDuration = Random.Range(1.2f, 2.8f); Halt(); break;
@@ -388,6 +396,7 @@ namespace Hakaton.Expeditions
                     world.Play(strikeCue, body.position);
                     squash.Kick(6);
                     lunging = !tonguing && (pouncing || (followUp ? followUpStep > 0 : dash));
+                    RamThrough(lunging && ramThrough);
                     if (tonguing) LashTongue();
                     if (lunging) KickDust(stepDustCount * 3);
                     if (strikeShake > 0)
@@ -429,6 +438,8 @@ namespace Hakaton.Expeditions
 
         void ThinkTimid()
         {
+            // A burrower dives into the ground instead of running off (WorldCreature.Tricks.cs).
+            if (ThinkBurrow()) return;
             float distance = PlayerDistance;
             if (IsCalm)
             {
@@ -500,6 +511,8 @@ namespace Hakaton.Expeditions
             if (IsCalm)
             {
                 if (Provoked) { Aggro(); return; }
+                // Bees by a calm beekeeper leave the player be (WorldCreature.Tricks.cs).
+                if (Smoked) { ThinkIdle(false); return; }
                 // An ambusher lies low in its cover until the target is close enough to spring at (WorldCreature.Ambush.cs).
                 if (ThinkLurk()) return;
                 if (sees && TargetDistance < sightRange) { Aggro(); return; }
@@ -536,6 +549,8 @@ namespace Hakaton.Expeditions
         {
             float distance = TargetDistance;
             float fromHome = Flat(body.position - home).magnitude;
+            // Gone in a puff, about to reappear by the target (WorldCreature.Tricks.cs).
+            if (TryBlink()) return;
             // Holding the player in its grip (WorldCreature.Grab.cs).
             if (ThinkHold()) return;
             // A sticky tongue from a few metres (WorldCreature.Tongue.cs).
@@ -549,8 +564,11 @@ namespace Hakaton.Expeditions
                     if (temperament == Temperament.Peaceful && !Provoked) { Enter(CreatureState.Return); break; }
                     if (!sees) { Enter(CreatureState.Search); break; }
                     if (HasRangedAttack) { ChaseWithRanged(distance); break; }
-                    Go(TargetPosition, speed);
-                    if (distance <= attackRange) Enter(CreatureState.Windup);
+                    // A pack spreads round the target instead of crowding in from one side (WorldCreature.Patrol.cs):
+                    // a flanker first runs for its side and only attacks from there.
+                    bool flanking = Flanking(distance, out var flank);
+                    Go(flanking ? flank : TargetPosition, speed);
+                    if (!flanking && distance <= attackRange) Enter(CreatureState.Windup);
                     break;
                 case CreatureState.Search:
                     Go(lastSeen, speed * .8f);
@@ -626,7 +644,7 @@ namespace Hakaton.Expeditions
             }
             Vector3 steer = navigator.desiredVelocity;
             steer.y = 0;
-            desired = steer.sqrMagnitude > .01f ? steer.normalized * moveSpeed : Vector3.zero;
+            desired = Stagger(steer.sqrMagnitude > .01f ? steer.normalized * moveSpeed : Vector3.zero);
             if (desired.sqrMagnitude > .01f) Face(desired);
         }
 
@@ -721,7 +739,8 @@ namespace Hakaton.Expeditions
             // A grab holds instead of pushing away (WorldCreature.Grab.cs).
             bool grabs = grab.enabled && ReferenceEquals(victim, world.Player);
             // A blow with more of the combo to come only nudges: the next one must still reach.
-            Vector3 knockback = grabs ? Vector3.zero : followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
+            Vector3 knockback = grabs ? Vector3.zero : followUpsLeft > 0 ? strikeDirection * 1.5f + Vector3.up
+                : ramming ? RamKnock(victim.Position) : strikeDirection * (lunging ? 7 : 4) + Vector3.up * 2.5f;
             victim.TakeDamage(new DamageInfo(ScaledDamage(StrikeDamage, DamageScale), knockback, aim, body.position, DamageKind.Hit, this, followUp));
             if (grabs) { StartHold(); desired = Vector3.zero; }
             // Debuffs land even during the protection after a previous hit (no leniency).
@@ -760,6 +779,10 @@ namespace Hakaton.Expeditions
         public void Damage(int amount, Vector3 impulse, Vector3 point, float burnSeconds, DamageKind kind)
         {
             if (!Alive) return;
+            // In its shell or under the ground nothing reaches it (WorldCreature.Tricks.cs).
+            if (InShell) { ShellKnock(point); return; }
+            if (burrowed && sunk >= .6f) return;
+            int before = Health;
             ScaleFireHit(ref amount, ref burnSeconds);
             amount = IceEncasement.ResolveHit(this, amount, kind, impulse, point, Health);
             Health = Mathf.Max(0, Health - amount);
@@ -779,6 +802,10 @@ namespace Hakaton.Expeditions
             if (provoking) provokedUntil = Time.time + 8;
             lastSeen = PlayerPosition;
             if (lured) { lured = false; lureDeafUntil = investigateUntil; }
+            // Buds and called swarms come out as health runs down; a hit that landed sends a shelled one in.
+            ReleaseOffspring(before);
+            if (amount > 0) ShellUp();
+            if (smoker && source == BrawlHurtSource.Player) RouseBees();
             if (Health == 0) StartCoroutine(Die(impulse));
             // A peaceful one shrugs off a creature's stray shot; the others bristle at any hit.
             else if ((provoking || temperament != Temperament.Peaceful) && (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat))
@@ -1134,6 +1161,7 @@ namespace Hakaton.Expeditions
         /// <summary>Which drawing the current state reads as.</summary>
         CreaturePose PoseForState()
         {
+            if (Time.time < swingUntil) return CreaturePose.Attack;
             if (Time.time < hurtUntil || State == CreatureState.Stunned) return CreaturePose.Hurt;
             if (holding) return CreaturePose.Attack;
             switch (State)
@@ -1156,11 +1184,25 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>Keeps <see cref="bodyLoop"/> going near the player; stops it when dead, frozen or out of earshot.</summary>
+        void UpdateBodyLoop()
+        {
+            if (!bodyLoop || !world || !world.sfx) return;
+            bool sounding = !dying && Health > 0 && State != CreatureState.Frozen && PlayerDistance < bodyLoop.maxDistance;
+            if (sounding) world.sfx.Loop(this, bodyLoop, Centre, IsCalm ? .75f : 1);
+            else world.sfx.StopLoop(this);
+        }
+
         void LateUpdate()
         {
             if (appliedSize != CurrentSize) ApplySize();
+            // An ambusher in disguise shows its 3D look instead of its drawing (WorldCreature.Ambush.cs).
+            UpdateDisguise();
+            // A grip on the player shows up close on his screen (WorldCreature.Grab.cs).
+            UpdateGripPicture(Time.deltaTime);
             if (flying) UpdateShadow();
             Fire.Tick();
+            UpdateBodyLoop();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;
@@ -1183,6 +1225,7 @@ namespace Hakaton.Expeditions
             // Frozen: the drawing and its squash stay exactly as the ice caught them (it only keeps facing the player).
             if (!frozen)
             {
+                view.Override(SpecialPicture);
                 pose = PoseForState();
                 float hopScale = State == CreatureState.Flee ? 2.6f : 1;
                 float hop = flying ? 0 : Mathf.Abs(Mathf.Sin(gaitPhase)) * hopHeight * hopScale * Mathf.Clamp01(planarSpeed / 1.2f);
@@ -1190,13 +1233,15 @@ namespace Hakaton.Expeditions
                 float stretch = State == CreatureState.Strike ? 1.12f : 1;
                 float roll = State == CreatureState.Stunned ? Mathf.Sin(Time.time * 22) * 10 : 0;
                 view.Present(pose, transform.forward, Vector3.up * (hop - Submerged(dt)) + tremble + FlightSway(),
-                    new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), roll);
+                    Vector2.Scale(new Vector2(stretch / Mathf.Sqrt(sq) * (1 + crouch * .06f), sq * (1 - crouch * .16f)), ShellScale(dt)), roll);
             }
             // Frozen, the drawing still turns to the player: never seen flat from the side, in a shell or not.
             else view.FaceViewer();
             // Colour: red flash on hit, icy while frozen, flickering orange while burning.
             if (Time.time < flashUntil) Tint(hitTint, 1);
             else if (frozen) Tint(frozenTint, .65f);
+            // In its shell: a dull stony grey, so it is plain that hitting it now does nothing (WorldCreature.Tricks.cs).
+            else if (InShell && !shellPicture) Tint(new Color(.62f, .66f, .74f), .55f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
             else Tint(Color.white, 0);
             // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).

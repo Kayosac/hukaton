@@ -507,6 +507,7 @@ namespace Hakaton.WorldAssembly.Unity
             SpawnWisp(entry);
             SpawnEvent(entry, mem);
             SpawnCreatures(entry, mem);
+            LayPatches(entry);
             PaintRoads(entry, coord);
             if (mem != null)
             {
@@ -570,7 +571,8 @@ namespace Hakaton.WorldAssembly.Unity
         /// An opened chest stays opened and empty when its chunk comes back.
         /// </summary>
         /// <summary>
-        /// A chest on the bed of the chunk's deepest water (some chunks with deep water): the ring's richest chest,
+        /// A chest on the bed of the chunk's deepest water (some chunks with deep water): the ring's sunken table rolls
+        /// whether there is one and its tier (rich, but no legendary one in the centre and a very rare one in the middle),
         /// paying <see cref="WorldContent.sunkenRiches"/> times over; reached with «Притяжение» (<see cref="SunkenChest"/>).
         /// </summary>
         void SpawnSunken(Loaded entry, Memory mem)
@@ -578,13 +580,11 @@ namespace Hakaton.WorldAssembly.Unity
             var plan = entry.plan;
             var c = plan.Coord;
             if (!content || !entry.view.hasSunkenSpot || WorldRules.IsStartArea(c)) return;
-            if (Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y, 7) >= content.sunkenChance) return;
-            var table = content.ChestTable(plan.Ring);
+            var table = content.SunkenTable(plan.Ring);
             if (!table) return;
-            TreasureChest prefab = null;
-            foreach (var e in table.entries)
-                if (e.prefab && e.prefab.tier && !e.prefab.GetComponent<ChestMimic>() && (!prefab || e.prefab.tier.rank > prefab.tier.rank)) prefab = e.prefab;
-            if (!prefab) return;
+            var prefab = table.Roll(Hash.Unit(Seed, Salt.ChestPresence, c.X, c.Y, 7), Hash.Unit(Seed, Salt.ChestTier, c.X, c.Y, 7));
+            // No mimic lies under water.
+            if (!prefab || prefab.GetComponent<ChestMimic>()) return;
             var at = entry.view.transform.TransformPoint(entry.view.sunkenSpot);
             float yaw = (float)Hash.Unit(Seed, Salt.ChestSpot, c.X, c.Y, 7) * 360;
             var chest = Instantiate(prefab, at, Quaternion.Euler(0, yaw, 0), entry.view.transform);
@@ -859,8 +859,41 @@ namespace Hakaton.WorldAssembly.Unity
                     world.creatures.Add(creature);
                     group.Add(creature);
                 }
+                // Ambushers that hide among props like their disguise (rat pumpkins) lie in a patch of them.
+                if (prefab && prefab.ambush.patch.Length > 0 && group.Count > 0)
+                    group[0].LayOutPatch(centre, entry.view.transform, new System.Random((int)(Pick(plan.Coord, 90 + g) & 0x7fffffff)), taken);
                 // Squad creatures (giant dung beetles) walk a route round their spot together.
                 if (prefab && prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, (int)(Pick(plan.Coord, 80 + g) & 0x7fffffff));
+            }
+        }
+
+        /// <summary>
+        /// Empty prop patches of the place (pumpkin patches on farms and in villages, WorldContent.patches): laid the same
+        /// way every time the chunk loads, round its creature spots but apart from the creatures, so a patch alone gives
+        /// nothing away.
+        /// </summary>
+        void LayPatches(Loaded entry)
+        {
+            var plan = entry.plan;
+            var sockets = entry.view.creatureSockets;
+            if (!content || string.IsNullOrEmpty(plan.Theme) || sockets.Length == 0) return;
+            foreach (var kind in content.patches)
+            {
+                if (kind.themes == null || System.Array.IndexOf(kind.themes, plan.Theme) < 0 || kind.props == null || kind.props.Length == 0) continue;
+                var random = new System.Random((int)(Pick(plan.Coord, 110) & 0x7fffffff));
+                var taken = new List<Vector3>();
+                foreach (var (_, creature) in entry.creatures) if (creature) taken.Add(creature.Position);
+                int low = Mathf.Min(kind.patches.x, kind.patches.y), high = Mathf.Max(kind.patches.x, kind.patches.y);
+                int patches = low + random.Next(high - low + 1);
+                for (int i = 0; i < patches; i++)
+                {
+                    var socket = sockets[random.Next(sockets.Length)];
+                    double a = random.NextDouble() * System.Math.PI * 2, r = 4 + random.NextDouble() * 5;
+                    var probe = socket.position + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * (float)r;
+                    if (!NavMesh.SamplePosition(probe, out var hit, 3, NavMesh.AllAreas)) continue;
+                    int lowP = Mathf.Min(kind.perPatch.x, kind.perPatch.y), highP = Mathf.Max(kind.perPatch.x, kind.perPatch.y);
+                    PropPatch.Lay(kind.props, hit.position, kind.radius, kind.spacing, lowP + random.Next(highP - lowP + 1), entry.view.transform, random, taken);
+                }
             }
         }
 

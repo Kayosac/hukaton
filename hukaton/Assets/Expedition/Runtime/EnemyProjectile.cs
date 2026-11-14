@@ -31,6 +31,8 @@ namespace Hakaton.Expeditions
         ICombatant target;
         Vector3 velocity, launchPosition;
         float gravity, travelled, roll;
+        Vector3 pictureScale;
+        bool pictureScaleTaken;
         bool ended;
         // Sticky hour card: the projectile's own clock runs slower inside the zone (same path, N times slower). 1 normally.
         TimedModifier timeScale;
@@ -70,6 +72,7 @@ namespace Hakaton.Expeditions
             travelled = 0;
             ended = false;
             roll = Random.Range(0, 360f);
+            if (picture && !pictureScaleTaken) { pictureScale = picture.transform.localScale; pictureScaleTaken = true; }
             PreparePicture();
             UpdatePicture();
         }
@@ -125,9 +128,14 @@ namespace Hakaton.Expeditions
             if (!ended) UpdatePicture();
         }
 
+        /// <summary>How many times its size it is now: it spreads out over the first metres of flight (<see cref="EnemyProjectileProfile.growTo"/>).</summary>
+        public float Growth => profile ? Mathf.Lerp(1, profile.growTo, Mathf.Clamp01(travelled / profile.growDistance)) : 1;
+        float Radius => profile.radius * Growth;
+
         void UpdatePicture()
         {
             if (!picture) return;
+            if (pictureScaleTaken) picture.transform.localScale = pictureScale * Growth;
             roll += spin * Time.deltaTime;
             var viewer = world && world.viewCamera ? world.viewCamera : Camera.main;
             if (!viewer) return;
@@ -145,7 +153,7 @@ namespace Hakaton.Expeditions
             float length = delta.magnitude;
             if (length < 1e-5f) return false;
             float nearest = float.MaxValue;
-            int count = Physics.SphereCastNonAlloc(from, profile.radius, delta / length, hits, length, CardFlight.CollisionMask, QueryTriggerInteraction.Ignore);
+            int count = Physics.SphereCastNonAlloc(from, Radius, delta / length, hits, length, CardFlight.CollisionMask, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
             {
                 var hit = hits[i];
@@ -167,7 +175,7 @@ namespace Hakaton.Expeditions
             {
                 float distance = EnemyProjectileFlight.SegmentDistance(from, to, bottom, top, out float s, out float t);
                 float along = s * length;
-                if (distance <= playerRadius + profile.radius && along < nearest)
+                if (distance <= playerRadius + Radius && along < nearest)
                 {
                     nearest = along;
                     point = Vector3.Lerp(bottom, top, t) + (from + delta * s - Vector3.Lerp(bottom, top, t)).normalized * playerRadius;
@@ -197,7 +205,7 @@ namespace Hakaton.Expeditions
         bool TouchesCard(Vector3 from, Vector3 to, float dt)
         {
             var cards = CardProjectile.Active;
-            float reach = profile.radius + (world.settings ? world.settings.cardRadius : .1f) + .12f;
+            float reach = Radius + (world.settings ? world.settings.cardRadius : .1f) + .12f;
             for (int i = 0; i < cards.Count; i++)
             {
                 var card = cards[i];
@@ -231,6 +239,7 @@ namespace Hakaton.Expeditions
                     Hit(fighter, point, away.sqrMagnitude > .01f ? away.normalized : flight);
                 }
             }
+            if (profile.puddle && profile.puddleRadius > 0) EnemyPuddle.Spawn(world, point, profile, shooter);
             world.Spawn(profile.impact, point + normal * .05f, Quaternion.LookRotation(normal.sqrMagnitude > 1e-4f ? normal : Vector3.up), profile.impactTint, profile.effectScale);
             world.Play(profile.impactCue, point);
             End();

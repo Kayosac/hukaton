@@ -13,7 +13,8 @@ namespace Hakaton.Game
     {
         [Tooltip("On the map from the start.")] Always,
         [Tooltip("Appears once the shop has made its revenue goal.")] RevenueGoal,
-        [Tooltip("Appears with the revenue goal and leaves the map for good once the god has been met (the «?»).")] GodMeeting
+        [Tooltip("Appears with the revenue goal and leaves the map for good once the god has been met (the «?»).")] GodMeeting,
+        [Tooltip("Appears once the god has been met (the endless world).")] AfterGod
     }
 
     /// <summary>

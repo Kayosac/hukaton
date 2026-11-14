@@ -346,10 +346,65 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08dd400444b994bb19045a39e7203293, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.WorldCreature
+  strikesPerAttack: 1
+  followUpWindup: 0.2
+  followUpStep: 5
+  ambush:
+    enabled: 0
+    inWater: 0
+    submerge: 0
+    springs: 1
+    cover:
+    - SM_SW02_
+    - SM_SW03_
+    coverSearch: 9
+    coverSpacing: 3
+    pounceRange: 6
+    pounceWindup: 0.25
+    pounceSpeed: 13
+    pounceSeconds: 0.45
+    disguises: []
+    besideCover: 1.3
+    patch: []
+    patchExtra: {x: 3, y: 5}
+    patchRadius: 3
+    patchSpacing: 1.1
+    revealVfx: {fileID: 0}
+  flying: 1
+  cruiseHeight: 0.6
+  windupClimb: 0.6
+  diveHeight: 0.9
+  climbSpeed: 3
+  climbAcceleration: 10
+  bobHeight: 0.18
+  bobFrequency: 0.6
+  jitter: 0
+  shadowSize: 0.35
+  phasing: 1
+  farOpacity: 0.45
+  solidWithin: 6
+  shadowOpacity: 0.25
+  grab:
+    enabled: 0
+    holdSeconds: 1.5
+    squeezeHalfHearts: 1
+    squeezeInterval: 0.75
+    drainHeal: 0
+    slip: 0.8
   defendsKin: 1
   kinWitnessRange: 12
   kinGrudgeSeconds: 8
   kinReactionDelay: {x: 0.15, y: 0.45}
+  patrol:
+    enabled: 0
+    points: 4
+    radius: {x: 4, y: 7}
+    pause: {x: 2, y: 4}
+    spacing: 1.6
+    straggle: 4
+    hurry: 1.6
+    flank: 0
+    flankRadius: 5
   ranged:
     projectile: {fileID: 0}
     range: 12
@@ -369,6 +424,56 @@ MonoBehaviour:
     circleSpeed: 0
     closeCombat: 0
     shoveDamage: 1
+  tongue:
+    enabled: 0
+    minRange: 2.5
+    maxRange: 6
+    windup: 0.6
+    pull: 9
+    pullUp: 3
+    cooldown: 4
+    slamWindup: 0.5
+  offspring:
+    enabled: 0
+    prefab: {fileID: 0}
+    atHealth:
+    - 0.5
+    - 0.25
+    count: 1
+    scatter: 1.6
+  burrows: 0
+  emergeSeconds: 2.5
+  shellSeconds: 0
+  deflectCards: 0
+  deflectVfx: {fileID: 0}
+  staggerAngle: 0
+  staggerFrequency: 0.8
+  ramThrough: 1
+  blink:
+    enabled: 0
+    minRange: 4
+    maxRange: 14
+    cooldown: 4.5
+    vanishSeconds: 0.45
+    appearDistance: 2.6
+    showSeconds: 1
+    windup: 0.45
+    puff: {fileID: 0}
+    puffScale: 1
+  dodge:
+    enabled: 0
+    chance: 0.35
+    warning: 0.25
+    blink: 0
+    hopSpeed: 11
+    blinkDistance: 4.5
+    cooldown: 1.2
+  burrowDistance: {x: 2, y: 9}
+  peekAfter: {x: 1.8, y: 3.2}
+  peekSeconds: 1.3
+  smoker: 0
+  smokeRadius: 14
+  calmedBySmoke: 0
   world: {fileID: 0}
   temperament: 2
   displayName: "\u041F\u0430\u0440\u044F\u0449\u0438\u0439 \u043F\u0440\u0438\u0437\u0440\u0430\u043A-\u043F\u0440\u043E\u0441\u0442\u044B\u043D\u044F"
@@ -391,11 +496,16 @@ MonoBehaviour:
   maximumHealth: 8
   attackHalfHearts: 1
   windup: 0.5
-  strikeSeconds: 0.4
+  strikeSeconds: 0.55
   recovery: 0.9
   recoveryOnMiss: 1
   dash: 1
   strikeShake: 0
+  strikeStatuses:
+  - status: {fileID: 11400000, guid: d12bb20d773f842e183eeaa0318f1b48, type: 2}
+    chance: 0.4
+    seconds: 0
+    strength: 0
   sightRange: 16
   hearingRange: 6
   leash: 25
@@ -436,25 +546,6 @@ MonoBehaviour:
   hurtCue: {fileID: 11400000, guid: ef04ee52d152a4dd3934f14a138a5b6d, type: 2}
   deathCue: {fileID: 11400000, guid: d2541dfba8ddf4187b296f0b01a3f33e, type: 2}
   stepCue: {fileID: 11400000, guid: b45324b93f90e4141828746111ad16d3, type: 2}
-  strikeStatuses:
-  - status: {fileID: 11400000, guid: d12bb20d773f842e183eeaa0318f1b48, type: 2}
-    chance: 0.4
-    seconds: 0
-    strength: 0
-  flying: 1
-  cruiseHeight: 0.6
-  windupClimb: 0.6
-  diveHeight: 0.9
-  climbSpeed: 3
-  climbAcceleration: 10
-  bobHeight: 0.18
-  bobFrequency: 0.6
-  jitter: 0
-  shadowSize: 0.35
-  shadowOpacity: 0.25
-  phasing: 1
-  farOpacity: 0.45
-  solidWithin: 6
 --- !u!54 &4728948868572293746
 Rigidbody:
   m_ObjectHideFlags: 0

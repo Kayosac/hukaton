@@ -39,6 +39,10 @@ namespace Hakaton.Expeditions
         public DamageKind kind = DamageKind.Hit;
         [Tooltip("Push along the flight and upward on a hit (impulse units, as the melee attacks).")]
         [Min(0)] public float knockback = 3, knockbackUp = 1.5f;
+        [Tooltip("Spreads out as it flies (the spider's web): picture and hit radius grow to this many times their size...")]
+        [Min(1)] public float growTo = 1;
+        [Tooltip("...over this many metres of flight.")]
+        [Min(.1f)] public float growDistance = 8;
         [Tooltip("Hits every fighter within this radius of the impact as well, metres. 0: only what it hits directly.")]
         [Min(0)] public float splashRadius;
         [Tooltip("Hits other creatures on its way (but never the one that shot it).")]
@@ -54,6 +58,18 @@ namespace Hakaton.Expeditions
         [Min(0)] public float freezeSeconds;
         [Tooltip("Knocks a creature off its feet (interrupts its attack). No effect on the player.")]
         [Min(0)] public float stunSeconds;
+
+        [Header("Puddle")]
+        [Tooltip("The puddle it leaves where it lands (a prefab with EnemyPuddle). Empty: none.")]
+        public EnemyPuddle puddle;
+        [Tooltip("Leaves a puddle where it lands, this radius in metres (the dwarf's beer). 0: none.")]
+        [Min(0)] public float puddleRadius;
+        [Tooltip("How long the puddle lies, seconds.")]
+        [Min(.1f)] public float puddleSeconds = 3;
+        [Tooltip("Damage to the player standing in it (½ heart per unit), once per interval below.")]
+        [Min(0)] public int puddleDamage = 1;
+        [Min(.1f)] public float puddleInterval = 1;
+        public Color puddleColour = new Color(.86f, .62f, .2f, .6f);
 
         [Header("Cards")]
         [Tooltip("A thrown card that touches it knocks it out of the air; the card flies on.")]

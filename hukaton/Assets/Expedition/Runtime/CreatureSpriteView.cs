@@ -40,7 +40,7 @@ namespace Hakaton.Expeditions
         static readonly int Anchor = Shader.PropertyToID("_Anchor");
         static readonly int Seed = Shader.PropertyToID("_Seed");
         MaterialPropertyBlock properties;
-        Sprite shown;
+        Sprite shown, special;
         float seed;
         bool mirrored;
         Camera viewer;
@@ -126,8 +126,15 @@ namespace Hakaton.Expeditions
 
         public void Tint(Color colour) { if (spriteRenderer) spriteRenderer.color = colour; }
 
+        /// <summary>
+        /// A drawing of its own state shown instead of the poses (the snail hidden in its shell, the leshy riding at the
+        /// camera); null goes back to the poses.
+        /// </summary>
+        public void Override(Sprite sprite) => special = sprite;
+
         Sprite Pick(CreaturePose pose)
         {
+            if (special && pose != CreaturePose.Death) return special;
             bool back = ShowingBack;
             switch (pose)
             {

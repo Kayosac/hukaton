@@ -152,6 +152,73 @@ namespace Hakaton.WorldAssembly.EditorTools
             return true;
         }
 
+        /// <summary>
+        /// The vertices in a compact layout: positions stay full floats; normals and tangents as halves; colours as bytes
+        /// when they lie in 0..1; texture coordinates in 0..1 as 16-bit fractions. A channel whose values do not fit keeps
+        /// full floats — the wind's UV2 among them (1000 + amplitude: a half would round it to half a metre).
+        /// </summary>
+        static void Pack(Mesh mesh, List<Vector3> positions, List<Vector3> normals, List<Vector4> tangents, List<Color> colors, List<Vector4>[] uvs, int[] dims)
+        {
+            int count = positions.Count;
+            var layout = new List<VertexAttributeDescriptor> { new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3) };
+            layout.Add(new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float16, 4));
+            if (tangents != null) layout.Add(new VertexAttributeDescriptor(VertexAttribute.Tangent, VertexAttributeFormat.Float16, 4));
+            bool colorBytes = colors != null && colors.All(c => c.r >= 0 && c.r <= 1 && c.g >= 0 && c.g <= 1 && c.b >= 0 && c.b <= 1 && c.a >= 0 && c.a <= 1);
+            if (colors != null) layout.Add(new VertexAttributeDescriptor(VertexAttribute.Color, colorBytes ? VertexAttributeFormat.UNorm8 : VertexAttributeFormat.Float32, 4));
+            var unit = new bool[4];
+            int[] dim = new int[4];
+            for (int c = 0; c < 4; c++)
+            {
+                if (dims[c] == 0) continue;
+                unit[c] = uvs[c].All(u => u.x >= 0 && u.x <= 1 && u.y >= 0 && u.y <= 1 && u.z >= 0 && u.z <= 1 && u.w >= 0 && u.w <= 1);
+                // 16-bit values come in pairs (a 4-byte stride); 3 becomes 4.
+                dim[c] = unit[c] ? (dims[c] <= 2 ? 2 : 4) : Mathf.Max(2, dims[c]);
+                layout.Add(new VertexAttributeDescriptor(VertexAttribute.TexCoord0 + c, unit[c] ? VertexAttributeFormat.UNorm16 : VertexAttributeFormat.Float32, dim[c]));
+            }
+            int stride = 0;
+            foreach (var a in layout) stride += Size(a.format) * a.dimension;
+            var data = new byte[count * stride];
+            using (var stream = new System.IO.MemoryStream(data))
+            using (var w = new System.IO.BinaryWriter(stream))
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var p = positions[i];
+                    w.Write(p.x); w.Write(p.y); w.Write(p.z);
+                    var n = normals[i];
+                    Half(w, n.x); Half(w, n.y); Half(w, n.z); Half(w, 0);
+                    if (tangents != null) { var t = tangents[i]; Half(w, t.x); Half(w, t.y); Half(w, t.z); Half(w, t.w); }
+                    if (colors != null)
+                    {
+                        var col = colors[i];
+                        if (colorBytes) { w.Write(Byte(col.r)); w.Write(Byte(col.g)); w.Write(Byte(col.b)); w.Write(Byte(col.a)); }
+                        else { w.Write(col.r); w.Write(col.g); w.Write(col.b); w.Write(col.a); }
+                    }
+                    for (int c = 0; c < 4; c++)
+                    {
+                        if (dims[c] == 0) continue;
+                        var u = uvs[c][i];
+                        for (int k = 0; k < dim[c]; k++)
+                        {
+                            // A component the art does not have reads as a missing one would: (0, 0, 0, 1).
+                            float value = k < dims[c] ? u[k] : k == 3 ? 1 : 0;
+                            if (unit[c]) w.Write((ushort)Mathf.RoundToInt(Mathf.Clamp01(value) * 65535));
+                            else w.Write(value);
+                        }
+                    }
+                }
+            }
+            mesh.SetVertexBufferParams(count, layout.ToArray());
+            mesh.SetVertexBufferData(data, 0, 0, data.Length);
+        }
+
+        static int Size(VertexAttributeFormat f) =>
+            f == VertexAttributeFormat.Float32 ? 4 : f == VertexAttributeFormat.Float16 || f == VertexAttributeFormat.UNorm16 ? 2 : 1;
+
+        static void Half(System.IO.BinaryWriter w, float v) => w.Write(Mathf.FloatToHalf(v));
+
+        static byte Byte(float v) => (byte)Mathf.RoundToInt(Mathf.Clamp01(v) * 255);
+
         /// <summary>One mesh of the slices, in chunk space; each slice's vertices are contiguous (start, count).</summary>
         static Mesh Build(List<(int source, Mesh mesh, int sub, Matrix4x4 m)> slices, string name, out List<(int source, int start, int count)> ranges)
         {
@@ -215,17 +282,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             }
             var merged = new Mesh { name = name };
             if (positions.Count > 65000) merged.indexFormat = IndexFormat.UInt32;
-            merged.SetVertices(positions);
-            merged.SetNormals(normals);
-            if (anyTangent) merged.SetTangents(tangents);
-            if (anyColor) merged.SetColors(colors);
-            for (int c = 0; c < 4; c++)
-            {
-                if (dims[c] == 0) continue;
-                if (dims[c] <= 2) merged.SetUVs(c, uvs[c].Select(u => new Vector2(u.x, u.y)).ToList());
-                else if (dims[c] == 3) merged.SetUVs(c, uvs[c].Select(u => new Vector3(u.x, u.y, u.z)).ToList());
-                else merged.SetUVs(c, uvs[c]);
-            }
+            Pack(merged, positions, normals, anyTangent ? tangents : null, anyColor ? colors : null, uvs, dims);
             merged.SetTriangles(indices, 0);
             merged.RecalculateBounds();
             return merged;
