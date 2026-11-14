@@ -177,6 +177,7 @@ namespace Hakaton.Expeditions
             hand.Deal();
             ShedDummies();
             if (time) time.ResetTime();
+            if (sfx) sfx.listener = viewCamera.transform;
             if (sfx && cues) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             OutingBegan?.Invoke();
         }
@@ -315,6 +316,10 @@ namespace Hakaton.Expeditions
 
         public AudioSource Play(SfxCue cue, Vector3? position = null, float volume = 1, float pitch = 1)
             => sfx && cue ? sfx.Play(cue, position, volume, pitch) : null;
+
+        /// <summary>A sound in a managed mix bus (creatures): rationed by priority so a crowd never becomes a din.</summary>
+        public AudioSource PlayIn(SfxBus bus, UnityEngine.Object owner, float priority, SfxCue cue, Vector3 position, float volume = 1, float pitch = 1)
+            => sfx && cue ? sfx.Play(cue, position, bus, owner, priority, volume, pitch) : null;
 
         public VfxBurst Spawn(VfxBurst prefab, Vector3 position, Quaternion rotation, Color tint, float scale = 1)
             => VfxBurst.Spawn(prefab, position, rotation, spawnedObjects, tint, scale);

@@ -135,7 +135,7 @@ namespace Hakaton.Expeditions
             nextSqueeze += grab.squeezeInterval;
             squash.Kick(-2.5f);
             gripJolt = 1;
-            world.Play(strikeCue, body.position, .7f);
+            Voice(VoiceKind.Attack, strikeCue, body.position, .7f);
             if (grab.squeezeHalfHearts <= 0) return;
             bool landed = target.TakeDamage(new DamageInfo(ScaledDamage(grab.squeezeHalfHearts, DamageScale), Vector3.zero,
                 target.Position + Vector3.up * .9f, body.position, DamageKind.Hit, this, true));

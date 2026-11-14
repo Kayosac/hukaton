@@ -196,7 +196,7 @@ namespace Hakaton.Expeditions
             world.creatures.Add(child);
             child.JoinFight(Target);
             world.Spawn(world.vfx ? world.vfx.dustPuff : null, at, Quaternion.identity, bodyColour, Mathf.Clamp(child.TopHeight, .5f, 1.2f));
-            world.Play(offspring.sound, body.position);
+            Voice(VoiceKind.Alert, offspring.sound, body.position);
         }
 
         /// <summary>Goes for <paramref name="target"/> at once: a bud or a swarm called in, a bee roused by the beekeeper.</summary>
@@ -209,7 +209,7 @@ namespace Hakaton.Expeditions
             if (temperament == Temperament.Timid) return;
             if (IsCalm || State == CreatureState.Alert || State == CreatureState.Threat)
             {
-                world.Play(threatCue, body.position);
+                Voice(VoiceKind.Threat, threatCue, body.position);
                 squash.Kick(-3);
                 Enter(CreatureState.Chase);
             }
@@ -237,7 +237,7 @@ namespace Hakaton.Expeditions
         void ShellKnock(Vector3 point)
         {
             squash.Kick(-2);
-            world.Play(hurtCue, body.position, .6f, 1.6f);
+            Voice(VoiceKind.Hurt, hurtCue, body.position, .6f, 1.6f);
             world.Spawn(deflectVfx, point, Quaternion.identity, Color.white, .5f);
         }
 
@@ -271,7 +271,7 @@ namespace Hakaton.Expeditions
                 if (!near) return false;
                 if (State != CreatureState.Idle) Enter(CreatureState.Idle);
                 Halt();
-                world.Play(alertCue, body.position, 1, 1.15f);
+                Voice(VoiceKind.Alert, alertCue, body.position, 1, 1.15f);
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, body.position, Quaternion.identity, dustColour, Mathf.Clamp(TopHeight, .5f, 1));
                 burrowed = true;
                 peeking = false;
@@ -286,7 +286,7 @@ namespace Hakaton.Expeditions
             if (peeking)
             {
                 // Peeking: the player moves close by — back under at once; time's up — under again, or out if he has gone.
-                if (!still && distance < burrowNerve + 1.5f || Provoked) { peeking = false; stillFor = 0; world.Play(alertCue, body.position, .8f, 1.3f); }
+                if (!still && distance < burrowNerve + 1.5f || Provoked) { peeking = false; stillFor = 0; Voice(VoiceKind.Alert, alertCue, body.position, .8f, 1.3f); }
                 else if (Time.time >= peekUntil)
                 {
                     peeking = false;
@@ -345,7 +345,7 @@ namespace Hakaton.Expeditions
             swingUntil = Time.time + .3f;
             Face(point - body.position);
             squash.Kick(5);
-            world.Play(strikeCue, body.position, 1, 1.25f);
+            Voice(VoiceKind.Attack, strikeCue, body.position, 1, 1.25f);
             world.Spawn(deflectVfx, point, Quaternion.identity, Color.white, .8f);
             return true;
         }
@@ -429,7 +429,7 @@ namespace Hakaton.Expeditions
                 blinkAt = Time.time + Mathf.Max(.2f, blink.vanishSeconds * .7f);
                 nextBlink = Mathf.Max(nextBlink, Time.time + 1.5f);
                 world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
-                world.Play(threatCue, body.position, 1, 1.25f);
+                Voice(VoiceKind.Threat, threatCue, body.position, 1, 1.25f);
                 SetHidden(true);
                 Halt();
                 if (State != CreatureState.Chase && State != CreatureState.Search) Enter(CreatureState.Chase);
@@ -439,7 +439,7 @@ namespace Hakaton.Expeditions
             body.linearVelocity = side * dodge.hopSpeed + Vector3.up * 2.5f;
             squash.Kick(5);
             KickDust(stepDustCount * 3);
-            world.Play(alertCue, body.position, .9f, 1.2f);
+            Voice(VoiceKind.Alert, alertCue, body.position, .9f, 1.2f);
         }
 
         // ---------------- blink ----------------
@@ -465,7 +465,7 @@ namespace Hakaton.Expeditions
             blinkAt = Time.time + blink.vanishSeconds;
             nextBlink = blinkAt + blink.cooldown;
             world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
-            world.Play(threatCue, body.position, 1, 1.1f);
+            Voice(VoiceKind.Threat, threatCue, body.position, 1, 1.1f);
             SetHidden(true);
             Halt();
             return true;
@@ -489,7 +489,7 @@ namespace Hakaton.Expeditions
                 Face(target - air);
                 SetHidden(false);
                 world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
-                world.Play(alertCue, body.position, 1, 1.3f);
+                Voice(VoiceKind.Alert, alertCue, body.position, 1, 1.3f);
                 Enter(CreatureState.Chase);
                 return;
             }
@@ -518,7 +518,7 @@ namespace Hakaton.Expeditions
             transform.rotation = facing;
             SetHidden(false);
             world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
-            world.Play(alertCue, body.position, 1, 1.2f);
+            Voice(VoiceKind.Alert, alertCue, body.position, 1, 1.2f);
             blinkStrike = true;
             Enter(CreatureState.Windup);
         }

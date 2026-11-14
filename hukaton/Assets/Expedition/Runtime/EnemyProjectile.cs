@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Hakaton.Character;
+using Hakaton.Feel;
 using UnityEngine;
 
 namespace Hakaton.Expeditions
@@ -60,6 +61,9 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>Sends it off. <paramref name="gravity"/> comes from <see cref="EnemyProjectileFlight.Launch"/>.</summary>
+        /// <summary>Flying at the player: its sounds are as sharp as an attack gets in the mix.</summary>
+        bool AtPlayer => world && ReferenceEquals(target, world.Player);
+
         public void Launch(ExpeditionWorld owner, EnemyProjectileProfile settings, WorldCreature from, ICombatant aimedAt, Vector3 initialVelocity, float shotGravity)
         {
             world = owner;
@@ -120,7 +124,7 @@ namespace Hakaton.Expeditions
         void Update()
         {
             if (ended || !world || !profile || !world.sfx || !profile.flightLoop) return;
-            world.sfx.Loop(this, profile.flightLoop, transform.position);
+            world.sfx.Loop(this, profile.flightLoop, transform.position, 1, SfxBus.CreatureLoop, AtPlayer ? 1 : .55f);
         }
 
         void LateUpdate()
@@ -241,7 +245,7 @@ namespace Hakaton.Expeditions
             }
             if (profile.puddle && profile.puddleRadius > 0) EnemyPuddle.Spawn(world, point, profile, shooter);
             world.Spawn(profile.impact, point + normal * .05f, Quaternion.LookRotation(normal.sqrMagnitude > 1e-4f ? normal : Vector3.up), profile.impactTint, profile.effectScale);
-            world.Play(profile.impactCue, point);
+            world.PlayIn(SfxBus.Creature, this, AtPlayer ? 1 : .55f, profile.impactCue, point);
             End();
         }
 

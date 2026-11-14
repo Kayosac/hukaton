@@ -367,18 +367,18 @@ namespace Hakaton.Expeditions
                 case CreatureState.Graze: idleDuration = Random.Range(1.5f, 3.2f); Halt(); break;
                 case CreatureState.Wander: wanderTarget = RandomPointNear(home, territoryRadius); break;
                 case CreatureState.Investigate: squash.Kick(-2); break;
-                case CreatureState.Alert: world.Play(alertCue, body.position); squash.Kick(-3); break;
+                case CreatureState.Alert: Voice(VoiceKind.Alert, alertCue, body.position); squash.Kick(-3); break;
                 case CreatureState.Threat: nextThreatSound = 0; provokeTimer = 0; break;
-                case CreatureState.Flee: ChooseFleeDirection(); world.Play(alertCue, body.position, 1, 1.15f); KickDust(stepDustCount * 2); break;
+                case CreatureState.Flee: ChooseFleeDirection(); Voice(VoiceKind.Alert, alertCue, body.position, 1, 1.15f); KickDust(stepDustCount * 2); break;
                 case CreatureState.Windup:
                     // A new attack (not the next blow of a combo) starts its series of strikes (WorldCreature.Ambush.cs).
                     if (!chaining) BeginAttack();
                     chaining = false;
-                    if (!followUp) world.Play(windupCue, body.position);
+                    if (!followUp) Voice(VoiceKind.Attack, windupCue, body.position);
                     squash.Kick(followUp ? -2 : -4);
                     break;
                 case CreatureState.Aim:
-                    world.Play(windupCue, body.position);
+                    Voice(VoiceKind.Attack, windupCue, body.position);
                     squash.Kick(-3);
                     break;
                 case CreatureState.Shoot:
@@ -393,7 +393,7 @@ namespace Hakaton.Expeditions
                     strikeDirection = to.sqrMagnitude > .01f ? to.normalized : transform.forward;
                     facing = Quaternion.LookRotation(strikeDirection);
                     hitThisStrike = false;
-                    world.Play(strikeCue, body.position);
+                    Voice(VoiceKind.Attack, strikeCue, body.position);
                     squash.Kick(6);
                     lunging = !tonguing && (pouncing || (followUp ? followUpStep > 0 : dash));
                     RamThrough(lunging && ramThrough);
@@ -494,7 +494,7 @@ namespace Hakaton.Expeditions
                 case CreatureState.Threat:
                     Halt();
                     Face(ToTarget);
-                    if (Time.time >= nextThreatSound) { nextThreatSound = Time.time + 1.3f; world.Play(threatCue, body.position); squash.Kick(-2.5f); }
+                    if (Time.time >= nextThreatSound) { nextThreatSound = Time.time + 1.3f; Voice(VoiceKind.Threat, threatCue, body.position); squash.Kick(-2.5f); }
                     if (distance < aggroRange) provokeTimer += Time.deltaTime;
                     else provokeTimer = Mathf.Max(0, provokeTimer - Time.deltaTime);
                     if (Provoked || provokeTimer > provokeSeconds) Enter(CreatureState.Chase);
@@ -539,7 +539,7 @@ namespace Hakaton.Expeditions
 
         void Aggro()
         {
-            world.Play(threatCue, body.position);
+            Voice(VoiceKind.Threat, threatCue, body.position);
             squash.Kick(-3);
             Enter(CreatureState.Chase);
         }
@@ -791,7 +791,7 @@ namespace Hakaton.Expeditions
                 flashUntil = Time.time + .1f;
                 hurtUntil = Time.time + hurtSeconds;
                 squash.Kick(-6);
-                world.Play(hurtCue, body.position, 1, Random.Range(.95f, 1.15f));
+                Voice(VoiceKind.Hurt, hurtCue, body.position, 1, Random.Range(.95f, 1.15f));
                 if (overhead) overhead.ShowHealth(Health, maximumHealth);
             }
             if (impulse.sqrMagnitude > 0) CardPhysics.Push(body, impulse);
@@ -1046,7 +1046,7 @@ namespace Hakaton.Expeditions
             State = CreatureState.Dying;
             if (overhead) overhead.Clear();
             navigator.enabled = false;
-            world.Play(deathCue, body.position);
+            Voice(VoiceKind.Death, deathCue, body.position);
             if (world.time) world.time.HitStop(.09f);
             body.isKinematic = true;
             // The body no longer stops cards or the player.
@@ -1107,7 +1107,7 @@ namespace Hakaton.Expeditions
             navigator.enabled = false;
             body.isKinematic = true;
             body.detectCollisions = false;
-            world.Play(hurtCue, body.position, 1, .8f);
+            Voice(VoiceKind.Hurt, hurtCue, body.position, 1, .8f);
             Vector3 start = transform.position;
             Vector3 heading = transform.forward;
             float depth = TopHeight + .3f;
@@ -1122,7 +1122,7 @@ namespace Hakaton.Expeditions
                 if (view) view.Present(k < .7f ? CreaturePose.Hurt : CreaturePose.Death, heading, Vector3.zero, new Vector2(1 + shake, 1 - shake), 0);
                 yield return null;
             }
-            world.Play(deathCue, start);
+            Voice(VoiceKind.Death, deathCue, start);
             DropLoot(lootAt + Vector3.up * .4f);
             gameObject.SetActive(false);
         }
@@ -1189,7 +1189,7 @@ namespace Hakaton.Expeditions
         {
             if (!bodyLoop || !world || !world.sfx) return;
             bool sounding = !dying && Health > 0 && State != CreatureState.Frozen && PlayerDistance < bodyLoop.maxDistance;
-            if (sounding) world.sfx.Loop(this, bodyLoop, Centre, IsCalm ? .75f : 1);
+            if (sounding) SoundBodyLoop(IsCalm ? .75f : 1);
             else world.sfx.StopLoop(this);
         }
 
@@ -1215,7 +1215,7 @@ namespace Hakaton.Expeditions
                 if (Mathf.FloorToInt(previous / Mathf.PI) != Mathf.FloorToInt(gaitPhase / Mathf.PI))
                 {
                     squash.Kick(-1.2f);
-                    if (planarSpeed > 1 && PlayerDistance < 18) world.Play(stepCue, body.position, .35f);
+                    if (planarSpeed > 1 && PlayerDistance < 18) Voice(VoiceKind.Step, stepCue, body.position, .35f);
                     if (planarSpeed > .5f) KickDust(stepDustCount);
                 }
             }

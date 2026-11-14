@@ -122,7 +122,7 @@ namespace Hakaton.Expeditions
             if (!ambush.enabled || State == CreatureState.Investigate) return false;
             if (sees && TargetDistance < ambush.pounceRange)
             {
-                world.Play(threatCue, body.position);
+                Voice(VoiceKind.Threat, threatCue, body.position);
                 if (!ambush.springs) { squash.Kick(-3); Enter(CreatureState.Chase); return true; }
                 pounceArmed = true;
                 Enter(CreatureState.Windup);

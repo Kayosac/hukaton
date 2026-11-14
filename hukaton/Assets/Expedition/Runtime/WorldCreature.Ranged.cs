@@ -228,7 +228,7 @@ namespace Hakaton.Expeditions
             }
             Vector3 flat = Flat(toAim);
             world.Spawn(p.muzzleFlash, from, Quaternion.LookRotation(flat.sqrMagnitude > .01f ? flat : transform.forward), p.impactTint, p.effectScale);
-            world.Play(p.fireCue, from, 1, Random.Range(.95f, 1.08f));
+            Voice(VoiceKind.Attack, p.fireCue, from, 1, Random.Range(.95f, 1.08f));
             squash.Kick(5);
         }
 

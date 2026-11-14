@@ -182,7 +182,7 @@ namespace Hakaton.Expeditions
                 if (Time.time >= nextPosture)
                 {
                     nextPosture = Time.time + Random.Range(1.1f, 1.9f);
-                    world.Play(threatCue, body.position, 1, Random.Range(.92f, 1.1f));
+                    Voice(VoiceKind.Threat, threatCue, body.position, 1, Random.Range(.92f, 1.1f));
                     squash.Kick(-2.5f);
                 }
                 return;

@@ -59,7 +59,7 @@ namespace Hakaton.Expeditions
             back.y = 0;
             if (back.magnitude > tongue.maxRange + 1) return;
             world.motor.ApplyNormalizedImpulse(back.normalized * tongue.pull + Vector3.up * tongue.pullUp);
-            world.Play(strikeCue, target.Position, .8f, .7f);
+            Voice(VoiceKind.Attack, strikeCue, target.Position, .8f, .7f);
         }
     }
 }
