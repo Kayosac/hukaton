@@ -83,8 +83,11 @@ namespace Hakaton.Expeditions.Cards
             Shake(centre, any);
         }
 
-        /// <summary>Ранит всех бойцов в зоне, мелких зверей оглушает. True, если кого-то задело.</summary>
-        bool HitEveryoneInside(Vector3 centre)
+        /// <summary>
+        /// Ранит всех бойцов в зоне (игрока — его числом, в Пузыре — никак), мелких зверей оглушает. True, если
+        /// кого-то задело.
+        /// </summary>
+        public bool HitEveryoneInside(Vector3 centre)
         {
             var world = World;
             bool any = false;
@@ -97,8 +100,12 @@ namespace Hakaton.Expeditions.Cards
                 bool player = ReferenceEquals(fighter, world.Player);
                 if (!player && !numbers.hurtAllies && fighter.Faction == Faction.Player) continue;
                 if (!RockfallRules.Reaches(centre, radius, depth, height, fighter.Position)) continue;
+                // Игрок в Пузыре неуязвим к своему обвалу: ни урона, ни толчка.
+                if (player && CardBarriers.ShieldsPlayer(world, fighter.Position)) continue;
                 var push = RockfallRules.Push(centre, fighter.Position, numbers.knockback, numbers.lift);
-                fighter.TakeDamage(new DamageInfo(numbers.damage, push, fighter.Centre, above, DamageKind.Hit));
+                // Игроку — своё число в половинках сердца (Хрупкость и защита после удара — как у любого удара).
+                int amount = player ? numbers.playerDamage : numbers.damage;
+                fighter.TakeDamage(new DamageInfo(amount, push, fighter.Centre, above, DamageKind.Hit));
                 any = true;
                 if (fighter is WorldCreature creature && creature.Alive && creature.body
                     && RockfallRules.IsSmall(creature.body.mass, numbers.smallMaxMass) && numbers.smallStunSeconds > 0)

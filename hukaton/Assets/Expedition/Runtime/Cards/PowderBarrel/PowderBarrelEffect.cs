@@ -8,15 +8,18 @@ namespace Hakaton.Expeditions.Cards
     /// «Пороховая бочка» (Огонь · ЛОВУШКА, ранг 3, 220 монет). Карта ставит на землю в точке попадания пороховую бочку
     /// (<see cref="PowderBarrel"/>): попала в зверя или в стену — бочка встаёт на землю под точкой; место занято —
     /// ближайшее свободное рядом (<see cref="PowderBarrelPlacement"/>), совсем негде — пшик. Бочка стоит до конца
-    /// вылазки и взрывается только от огня (общая система поджига карт): урон 5 / 8 / 12 всем в радиусе 3 / 4 / 5 м
-    /// (зверям, мимикам, союзникам и игроку), поджигает их и отбрасывает от центра (отброс 10 / 13 / 16).
+    /// вылазки и взрывается только от огня (общая система поджига карт): урон 5 / 8 / 12 зверям, мимикам и союзникам в
+    /// радиусе 3 / 4 / 5 м, поджигает их и отбрасывает от центра (отброс 10 / 13 / 16). Игроку — своё число:
+    /// 2 / 3 / 4 половинки сердца и отброс, без горения; в Пузыре игрок неуязвим к взрыву.
     /// Кольцо при прицеливании показывает радиус будущего взрыва.
     /// </summary>
     public sealed class PowderBarrelEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Числа таблицы (I / II / III)")]
-        [Tooltip("Урон взрыва каждому бойцу в радиусе, HP (игроку — столько же половинок сердца).")]
+        [Tooltip("Урон взрыва каждому зверю, мимику и союзнику в радиусе, HP.")]
         public LevelInt damage = new LevelInt(5, 8, 12);
+        [Tooltip("Урон взрыва игроку, половинки сердца (своё число, меньше звериного; Хрупкость удваивает, как любой удар).")]
+        public LevelInt playerDamage = new LevelInt(2, 3, 4);
         [Tooltip("Радиус взрыва, м.")]
         public LevelFloat radius = new LevelFloat(3, 4, 5);
         [Tooltip("Отброс вплотную к бочке (единицы импульса, Δv для массы 1); к краю радиуса слабее.")]
@@ -77,7 +80,7 @@ namespace Hakaton.Expeditions.Cards
             var barrel = c.World.SpawnForOuting(barrelPrefab, spot + Vector3.up * .02f, rotation);
             if (barrel)
             {
-                barrel.Setup(new PowderBarrelBlast { damage = c.At(damage), radius = c.At(radius), knockback = c.At(knockback) });
+                barrel.Setup(new PowderBarrelBlast { damage = c.At(damage), playerDamage = c.At(playerDamage), radius = c.At(radius), knockback = c.At(knockback) });
                 c.World.Spawn(appearVfx, spot + Vector3.up * .05f, Quaternion.identity, appearTint, .8f);
             }
             Feedback(c, barrel);

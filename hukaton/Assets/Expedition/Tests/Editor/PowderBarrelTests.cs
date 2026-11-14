@@ -44,7 +44,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect.barrelPrefab, Is.Not.Null, "У эффекта есть префаб бочки.");
             var barrel = Object.Instantiate(effect.barrelPrefab, at, Quaternion.identity);
             spawned.Add(barrel.gameObject);
-            barrel.Setup(new PowderBarrelBlast { damage = effect.damage.At(level), radius = effect.radius.At(level), knockback = effect.knockback.At(level) });
+            barrel.Setup(new PowderBarrelBlast { damage = effect.damage.At(level), playerDamage = effect.playerDamage.At(level), radius = effect.radius.At(level), knockback = effect.knockback.At(level) });
             Physics.SyncTransforms();
             return barrel;
         }
@@ -71,6 +71,57 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect.TryGetStat(out var label, out var values, out _), Is.True);
             Assert.That(label, Is.EqualTo("Урон"));
             Assert.That((values.i, values.ii, values.iii), Is.EqualTo((5f, 8f, 12f)), "ПК показывает урон.");
+        }
+
+        [Test]
+        public void ThePlayerTakesHisOwnSmallerNumberInHalfHearts()
+        {
+            var effect = Effect();
+            Assert.That((effect.playerDamage.At(1), effect.playerDamage.At(2), effect.playerDamage.At(3)), Is.EqualTo((2, 3, 4)),
+                "решение пользователя: игроку 2 / 3 / 4 половинки сердца");
+            Assert.That((effect.damage.At(1), effect.damage.At(2), effect.damage.At(3)), Is.EqualTo((5, 8, 12)), "зверям — прежний урон");
+            var barrel = Barrel(new Vector3(0, 100, 0), 3);
+            Assert.That((barrel.Numbers.damage, barrel.Numbers.playerDamage), Is.EqualTo((12, 4)), "бочка получает оба числа своего уровня");
+            Assert.That(typeof(PowderBarrel).GetField("playerBurn"), Is.Null, "игрока взрыв не поджигает: статуса «Горение» у бочки нет");
+        }
+
+        [Test]
+        public void BurningGrassAndThicketsSetTheBarrelOff()
+        {
+            var barrel = Barrel(new Vector3(0, 100, 0));
+            var far = Barrel(new Vector3(6, 100, 0));
+            var registry = new CardZoneRegistry();
+            registry.Add(barrel);
+            registry.Add(far);
+            // Горящий куст травы вплотную к бочке (ящик его вида в 0,2 м от бочки).
+            var grass = new Bounds(barrel.Bounds.center + Vector3.left * (barrel.Bounds.extents.x + .45f), new Vector3(.5f, .6f, .5f));
+            Assert.That(registry.IgniteBox(grass, .3f, IgnitionSource.Fire), Is.EqualTo(1));
+            Assert.That(barrel.Lit, Is.True, "любой огонь игры поджигает бочку");
+            Assert.That(far.Lit, Is.False, "дальняя — нет");
+            Assert.That(registry.IgniteBox(grass, .3f, IgnitionSource.Fire), Is.Zero, "уже горит: повторный поджиг ничего не делает, цепочки огня кончаются");
+            // Горючие того же поля поле поджигает само (skip).
+            var other = Barrel(new Vector3(-6, 100, 0));
+            registry.Add(other);
+            var near = new Bounds(other.Bounds.center, Vector3.one);
+            Assert.That(registry.IgniteBox(near, .3f, IgnitionSource.Fire, zone => ReferenceEquals(zone, other)), Is.Zero);
+            Assert.That(other.Lit, Is.False);
+        }
+
+        [Test]
+        public void TheBlastPushesEveryLooseThingNoMatterHowMany()
+        {
+            var at = new Vector3(4000, 300, -4000);
+            var barrel = Barrel(at);
+            for (int i = 0; i < 150; i++)
+            {
+                var crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                spawned.Add(crate);
+                crate.transform.localScale = Vector3.one * .1f;
+                crate.transform.position = at + Quaternion.Euler(0, i * 137.5f, 0) * Vector3.forward * (.6f + i % 10 * .2f) + Vector3.up * (.2f + i / 10 * .1f);
+                crate.AddComponent<Rigidbody>().useGravity = false;
+            }
+            Physics.SyncTransforms();
+            Assert.That(barrel.PushLooseBodies(barrel.Centre), Is.EqualTo(150), "больше старого буфера на 64 — никого не пропустить");
         }
 
         [Test]

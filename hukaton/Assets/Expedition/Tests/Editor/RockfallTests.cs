@@ -49,6 +49,16 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void ThePlayerTakesHisOwnSmallerNumberInHalfHearts()
+        {
+            var effect = AssetDatabase.LoadAssetAtPath<DeckPrototypeConfig>("Assets/Game/Data/Cards.asset").Find("rockfall").effectAsset as RockfallEffect;
+            Assert.That(effect, Is.Not.Null);
+            Assert.That((effect.playerDamage.At(1), effect.playerDamage.At(2), effect.playerDamage.At(3)), Is.EqualTo((1, 2, 3)),
+                "решение пользователя: игроку 1 / 2 / 3 половинки сердца");
+            Assert.That((effect.damage.At(1), effect.damage.At(2), effect.damage.At(3)), Is.EqualTo((3, 4, 6)), "зверям — прежний урон");
+        }
+
+        [Test]
         public void AimRingFollowsTheLevelAndTheZoneOutlinesItself()
         {
             ICardArea area = Effect();

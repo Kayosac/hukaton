@@ -19,10 +19,12 @@ namespace Hakaton.Expeditions.Cards
     /// </para>
     /// <para>
     /// Подожжённая бочка вспыхивает и шипит короткий фитиль (<see cref="fuseSeconds"/>), контур взрыва виден на
-    /// земле, потом бум: ранит всех бойцов в радиусе — зверей, мимиков, союзников и игрока, — поджигает их,
-    /// отбрасывает от центра, поджигает горючее вокруг (смола, ветвь-мост, газ) и взрывает соседние бочки с
-    /// маленькой задержкой (<see cref="chainDelay"/>). Мокрая бочка (<see cref="WetStatus"/>: Струя, дождь) не
-    /// загорается, пока мокрая; вода гасит и уже горящий фитиль.
+    /// земле, потом бум: ранит всех бойцов в радиусе — зверей, мимиков и союзников поджигает и отбрасывает от
+    /// центра; игрока ранит своим числом (<see cref="PowderBarrelBlast.playerDamage"/>, половинки сердца) и
+    /// отбрасывает, но не поджигает, а в Пузыре не трогает вовсе. Поджигает горючее вокруг (смола, ветвь-мост, газ)
+    /// и взрывает соседние бочки с маленькой задержкой (<see cref="chainDelay"/>). Мокрая бочка (<see cref="WetStatus"/>:
+    /// Струя, дождь, вода озера или топи) не загорается, пока мокрая; вода гасит и уже горящий фитиль.
+    /// Чанк выгрузился, пока горел фитиль, — фитиль гаснет (<see cref="OnDisable"/>).
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
@@ -76,19 +78,17 @@ namespace Hakaton.Expeditions.Cards
         [Range(0, 1)] public float pushAtEdge = .5f;
         [Tooltip("Доля отброса вверх.")]
         [Range(0, 1)] public float lift = .45f;
-        [Tooltip("Сколько секунд горят подожжённые звери (уязвимые к огню — дольше, по их правилам).")]
+        [Tooltip("Сколько секунд горят подожжённые звери (уязвимые к огню — дольше, по их правилам). Игрока взрыв не поджигает.")]
         [Min(0)] public float creatureBurnSeconds = 3;
-        [Tooltip("Горение игрока (статус «Горение»); мокрый игрок не загорается. Пусто — игрока только ранит.")]
-        public PlayerStatusDefinition playerBurn;
-        [Min(0)] public float playerBurnSeconds = 3;
         [Tooltip("Ранит ли взрыв союзников (ожившее дерево, Чучело). Порох не разбирает сторон.")]
         public bool hurtAllies = true;
 
         static readonly List<ICombatant> Fighters = new List<ICombatant>();
-        static readonly Collider[] Overlaps = new Collider[64];
+        // Растёт, если вещей в радиусе больше (свалка ящиков и лута): ни одну не пропустить.
+        static Collider[] overlaps = new Collider[128];
 
         readonly BarrelFuse fuse = new BarrelFuse();
-        PowderBarrelBlast numbers = new PowderBarrelBlast { damage = 5, radius = 3, knockback = 10 };
+        PowderBarrelBlast numbers = new PowderBarrelBlast { damage = 5, playerDamage = 2, radius = 3, knockback = 10 };
         VfxBurst tipFlames, bodyFlames;
         float nextTouch, lastFizzle = float.NegativeInfinity;
 
@@ -171,6 +171,17 @@ namespace Hakaton.Expeditions.Cards
 
         // ---------------- кадр ----------------
 
+        /// <summary>
+        /// Бочку спрятали (чанк выгрузился, <c>WorldStreamer.HideLoose</c>) с горящим фитилём: фитиль гаснет, бочка
+        /// вернётся целой и снова будет ждать огня. Иначе срок фитиля прошёл бы, пока чанка нет, и бочка взорвалась бы
+        /// сразу по возвращении.
+        /// </summary>
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            if (fuse.Douse()) StopFuse(false);
+        }
+
         void Update()
         {
             if (fuse.Blown) return;
@@ -247,17 +258,21 @@ namespace Hakaton.Expeditions.Cards
                 if (!PowderBarrelRules.Reaches(centre, numbers.radius, fighter.Position, fighter.Centre)) continue;
                 bool player = ReferenceEquals(fighter, world.Player);
                 if (!player && !hurtAllies && fighter.Faction == Faction.Player) continue;
+                // Игрок в Пузыре неуязвим к своей бочке: ни урона, ни отброса.
+                if (player && CardBarriers.ShieldsPlayer(world, fighter.Position)) continue;
                 var push = PowderBarrelRules.Push(centre, fighter.Centre, numbers.radius, numbers.knockback, pushAtEdge, lift);
                 any = true;
                 if (player)
                 {
-                    fighter.TakeDamage(new DamageInfo(numbers.damage, Vector3.zero, fighter.Centre, centre, DamageKind.Fire));
-                    if (world.motor)
+                    // Игроку — своё число в половинках сердца (Хрупкость и защита после удара — как у любого удара),
+                    // без горения. Отброс — только если урон прошёл: в цепочке бочек защита после первого взрыва
+                    // гасит и следующие толчки, импульсы не складываются.
+                    bool hurt = fighter.TakeDamage(new DamageInfo(numbers.playerDamage, Vector3.zero, fighter.Centre, centre, DamageKind.Fire));
+                    if (hurt && world.motor)
                     {
                         world.motor.ApplyNormalizedImpulse(push);
                         world.OnPlayerLaunched(push);
                     }
-                    if (playerBurn && world.statuses) world.statuses.Apply(playerBurn, playerBurnSeconds);
                 }
                 else if (fighter is WorldCreature creature)
                     creature.Damage(numbers.damage, push, creature.Centre, creatureBurnSeconds, DamageKind.Fire);
@@ -267,20 +282,32 @@ namespace Hakaton.Expeditions.Cards
             return any;
         }
 
-        /// <summary>Отбрасывает и вещи без здоровья: ящики, каменный куб, лут, другие бочки.</summary>
-        void PushLooseBodies(Vector3 centre)
+        /// <summary>
+        /// Отбрасывает и вещи без здоровья: ящики, каменный куб, лут, другие бочки — сколько их ни будь в радиусе.
+        /// Возвращает, скольким телам дан толчок.
+        /// </summary>
+        public int PushLooseBodies(Vector3 centre)
         {
-            int count = Physics.OverlapSphereNonAlloc(centre, numbers.radius, Overlaps, ~0, QueryTriggerInteraction.Ignore);
+            int pushed = 0;
+            int count = Physics.OverlapSphereNonAlloc(centre, numbers.radius, overlaps, ~0, QueryTriggerInteraction.Ignore);
+            // Буфер полон — значит, вещей могло быть больше: удвоить и спросить заново.
+            while (count == overlaps.Length)
+            {
+                overlaps = new Collider[overlaps.Length * 2];
+                count = Physics.OverlapSphereNonAlloc(centre, numbers.radius, overlaps, ~0, QueryTriggerInteraction.Ignore);
+            }
             using (HashSetPool<Rigidbody>.Get(out var seen))
             {
                 for (int i = 0; i < count; i++)
                 {
-                    var hit = Overlaps[i];
+                    var hit = overlaps[i];
                     var rb = hit ? hit.attachedRigidbody : null;
                     if (!rb || rb == body || rb.isKinematic || !seen.Add(rb) || Combat.Of(hit) != null) continue;
                     CardPhysics.Push(rb, PowderBarrelRules.Push(centre, rb.worldCenterOfMass, numbers.radius, numbers.knockback, pushAtEdge, lift));
+                    pushed++;
                 }
             }
+            return pushed;
         }
 
         void Feel(ExpeditionWorld world, Vector3 centre, bool hitSomeone)
@@ -348,7 +375,10 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>Числа взрыва одной бочки (по уровню карты), передаются бочке при появлении.</summary>
     public struct PowderBarrelBlast
     {
+        /// <summary>Урон зверям, мимикам и союзникам, HP.</summary>
         public int damage;
+        /// <summary>Урон игроку, половинки сердца.</summary>
+        public int playerDamage;
         public float radius, knockback;
     }
 }

@@ -6,16 +6,19 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>
     /// «Камнепад» (Земля · АТАКА, ранг 2, 170 монет). Карта попадает в точку (в зверя или в землю) и ставит на земле
     /// под ней зону обвала (<see cref="RockfallZone"/>): сверху сразу начинают падать камни, контур зоны виден на
-    /// земле, и через <see cref="delay"/> с камни обрушиваются — ранят на 3 / 4 / 6 всех бойцов в радиусе 3 / 4 / 5 м:
-    /// зверей, мимиков, союзников и самого игрока, если он внутри. Мелких зверей (масса μ не больше
+    /// земле, и через <see cref="delay"/> с камни обрушиваются — ранят на 3 / 4 / 6 зверей, мимиков и союзников в
+    /// радиусе 3 / 4 / 5 м, а самого игрока, если он внутри, — на 1 / 2 / 3 половинки сердца (в Пузыре игрок
+    /// неуязвим к обвалу). Мелких зверей (масса μ не больше
     /// <see cref="smallMaxMass"/>, то есть не тяжелее игрока) ещё и оглушает на <see cref="smallStunSeconds"/> с.
     /// Камни — только частицы: после обвала в мире не остаётся ни объектов, ни коллайдеров.
     /// </summary>
     public sealed class RockfallEffect : CardEffect, ICardStatLine, ICardArea
     {
         [Header("Числа таблицы (I / II / III)")]
-        [Tooltip("Урон каждому бойцу в зоне, HP (игроку — столько же половинок сердца).")]
+        [Tooltip("Урон каждому зверю, мимику и союзнику в зоне, HP.")]
         public LevelInt damage = new LevelInt(3, 4, 6);
+        [Tooltip("Урон игроку в зоне, половинки сердца (своё число; Хрупкость удваивает, как любой удар).")]
+        public LevelInt playerDamage = new LevelInt(1, 2, 3);
         [Tooltip("Радиус зоны обвала, м.")]
         public LevelFloat radius = new LevelFloat(3, 4, 5);
         [Tooltip("Через сколько секунд после попадания обрушиваются камни.")]
@@ -56,6 +59,7 @@ namespace Hakaton.Expeditions.Cards
                 zone.Setup(new RockfallStrike
                 {
                     damage = c.At(damage),
+                    playerDamage = c.At(playerDamage),
                     radius = c.At(radius),
                     delay = delay,
                     smallStunSeconds = smallStunSeconds,
@@ -88,7 +92,8 @@ namespace Hakaton.Expeditions.Cards
     /// <summary>Числа одного обвала, передаются зоне при появлении.</summary>
     public struct RockfallStrike
     {
-        public int damage;
+        /// <summary>Урон зверям, мимикам и союзникам, HP; <see cref="playerDamage"/> — игроку, половинки сердца.</summary>
+        public int damage, playerDamage;
         public float radius, delay, smallStunSeconds, smallMaxMass, knockback, lift;
         public bool hurtAllies;
     }
