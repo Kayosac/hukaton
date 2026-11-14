@@ -115,7 +115,7 @@ namespace Hakaton.SpecialItems
         /// <summary>A short Q: the last chosen item goes in or out of the hand.</summary>
         public void Tap()
         {
-            var owned = items.OwnedItems();
+            var owned = items.OutingItems();
             if (owned.Count == 0) return;
             if (Current && Current.IsOut) { Current.Stow(); Current = null; return; }
             var last = items.Find(items.Inventory.LastSelected);
@@ -125,7 +125,7 @@ namespace Hakaton.SpecialItems
         /// <summary>Takes <paramref name="item"/> out (another one in the hand is put away first).</summary>
         public void Take(SpecialItemDefinition item)
         {
-            if (!item || !items.Owns(item)) return;
+            if (!item || !items.Owns(item) || !item.OnOutings) return;
             items.Inventory.Select(item.id);
             var tool = ToolFor(item);
             if (!tool) { Debug.LogWarning($"No tool on the player for the special item '{item.id}'.", this); return; }
@@ -142,7 +142,7 @@ namespace Hakaton.SpecialItems
 
         void OpenMenu()
         {
-            var owned = items.OwnedItems();
+            var owned = items.OutingItems();
             if (owned.Count == 0 || !menu) return;
             menu.Open(owned, Current && Current.IsOut ? Current.definition : null);
             world.motor.input.SetLookBlocked(this, true);

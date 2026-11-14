@@ -86,7 +86,8 @@ namespace Hakaton.Game
         {
             "Кто это был?",
             "Не слушай этого идиота.",
-            "За работу, партнёр!"
+            "За работу, партнёр!",
+            "И загляни ко мне. Нашёл тут кое-что от прежнего хозяина."
         };
         [Tooltip("Seconds from the shift's end (the view back from the counter) to the goblin's puff.")]
         [Min(0)] public float strangerGoblinDelay = .6f;
@@ -205,7 +206,9 @@ namespace Hakaton.Game
             {
                 specialItems.UnlockCheck = unlock => unlock == SpecialItemUnlock.Always || unlock == SpecialItemUnlock.FirstGoal && GoalReached
                     // The goblin's word after the god ends with «у меня есть для тебя кое-что интересное»: the items open then.
-                    || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning;
+                    || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning
+                    // The goblin's word after the stranger ends with «загляни ко мне…»: the хаPAY account opens then.
+                    || unlock == SpecialItemUnlock.AfterStranger && strangerVisited && !strangerGoblinDue && !strangerLectureRunning;
                 cardShop.SpecialItems = specialItems;
                 if (services.computer) services.computer.SpecialItems = specialItems;
                 specialItems.Inventory.Changed += MarkDirty;
