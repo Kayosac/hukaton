@@ -138,5 +138,36 @@ namespace Hakaton.Expeditions.Tests
             foreach (var source in zone.crashVfx.GetComponentsInChildren<AudioSource>(true))
                 Assert.That(source.enabled && source.playOnAwake, Is.False, "Звук обвала — только SfxCue зоны.");
         }
+
+        [Test]
+        public void StonesAreCrookedWorldRocksFallingStraightIntoTheRing()
+        {
+            var zone = Effect().zonePrefab;
+            var renderer = zone.stones.GetComponent<ParticleSystemRenderer>();
+            Assert.That(renderer.renderMode, Is.EqualTo(ParticleSystemRenderMode.Mesh), "Камни — объёмные, не плоские спрайты.");
+            Assert.That(renderer.meshCount, Is.GreaterThanOrEqualTo(3), "Несколько разных кривых камней.");
+            var meshes = new Mesh[renderer.meshCount];
+            renderer.GetMeshes(meshes);
+            foreach (var mesh in meshes)
+            {
+                Assert.That(mesh, Is.Not.Null);
+                Assert.That(mesh.bounds.center.magnitude, Is.LessThan(.01f), mesh.name + ": крутится вокруг своей середины.");
+            }
+            Assert.That(renderer.sharedMaterial.name, Is.EqualTo("M_Forest_Rock"), "Материал — как у камней мира.");
+            Assert.That(zone.stones.main.startRotation3D, Is.True);
+            Assert.That(zone.stones.rotationOverLifetime.enabled, Is.True, "Камни крутятся в полёте.");
+
+            // Отвесно и не дальше кольца: без конуса и сферического разлёта, с запасом на крупный камень и пыль.
+            var shape = zone.stones.shape;
+            Assert.That(shape.angle, Is.Zero);
+            Assert.That(shape.sphericalDirectionAmount, Is.Zero);
+            Assert.That(shape.randomDirectionAmount, Is.Zero);
+            Assert.That(zone.stonesSpread, Is.LessThanOrEqualTo(.75f));
+            Assert.That(zone.stones.main.startSize.constantMax * .5f + zone.stonesSpread * 3, Is.LessThan(3 - .4f),
+                "Край крупного камня у самого маленького кольца (3 м) — с запасом на обломки и пыль.");
+            // Коснувшись земли, камень пропадает (пыль и обломки), не отскакивает за кольцо и не остаётся.
+            Assert.That(zone.stones.collision.enabled, Is.True);
+            Assert.That(zone.stones.collision.lifetimeLoss.constant, Is.EqualTo(1));
+        }
     }
 }
