@@ -141,6 +141,18 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AnyCardDamageKillsItWhileShut()
+        {
+            var mimic = Lab(5);
+            world.motor.Teleport(mimic.transform.position + new Vector3(0, 0, -12), Quaternion.identity);
+            yield return null;
+            Assume.That(mimic.Health, Is.GreaterThan(1));
+            Assert.That(mimic.TakeDamage(new DamageInfo(1, Vector3.zero, mimic.Centre)), Is.True);
+            Assert.That(mimic.Current, Is.EqualTo(ChestMimic.State.Dead), "half a heart into the shut lid is enough");
+            Assert.That(ChestMimic.ClosedKill(false, null), Is.False, "awake (biting, running, panting) it takes damage as usual");
+        }
+
+        [UnityTest]
         public IEnumerator CardsReachItLikeACreature()
         {
             var mimic = Lab(5);

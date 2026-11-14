@@ -47,10 +47,22 @@ namespace Hakaton.Feel
             Busy = false;
         }
 
-        /// <summary>Shows a location title over the scene: rises in, holds, fades out.</summary>
-        public IEnumerator ShowTitle(string heading, string caption, float hold = 1.6f)
+        /// <summary>
+        /// Shows a location title over the scene: rises in, holds, fades out. <paramref name="headingScale"/> enlarges the
+        /// heading for this one showing (the «new goal» banner) and widens its line so it stays on one row.
+        /// </summary>
+        public IEnumerator ShowTitle(string heading, string caption, float hold = 1.6f, float headingScale = 1)
         {
             if (!titleGroup) yield break;
+            if (scaled) RestoreHeading();
+            if (headingScale > 1.001f)
+            {
+                scaled = true;
+                headingSize = title.fontSize;
+                headingRect = title.rectTransform.sizeDelta;
+                title.fontSize = headingSize * headingScale;
+                title.rectTransform.sizeDelta = new Vector2(headingRect.x * Mathf.Max(1, headingScale * 1.2f), headingRect.y * headingScale);
+            }
             title.text = heading;
             if (subtitle) subtitle.text = caption ?? "";
             var rect = (RectTransform)titleGroup.transform;
@@ -75,7 +87,18 @@ namespace Hakaton.Feel
             }
             titleGroup.alpha = 0;
             rect.anchoredPosition = basePosition;
+            if (scaled) RestoreHeading();
             Set(Amount);
+        }
+
+        bool scaled;
+        float headingSize;
+        Vector2 headingRect;
+        void RestoreHeading()
+        {
+            scaled = false;
+            title.fontSize = headingSize;
+            title.rectTransform.sizeDelta = headingRect;
         }
     }
 }

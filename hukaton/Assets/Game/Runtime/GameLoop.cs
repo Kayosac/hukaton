@@ -74,6 +74,10 @@ namespace Hakaton.Game
         public ScreenFade fade;
         public SfxPlayer sfx;
         public SfxCue departCue, titleCue, goalCue;
+        [Tooltip("How long the big «new goal» banner holds once the first goal is given (the shop tutorial is over).")]
+        [Min(.5f)] public float goalBannerSeconds = 2.8f;
+        [Tooltip("Heading size of the «new goal» banner against the location title's (big letters).")]
+        [Min(1)] public float goalBannerScale = 1.5f;
         [Tooltip("Celebration burst in front of the player when the revenue goal is reached.")]
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
@@ -89,6 +93,8 @@ namespace Hakaton.Game
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
         public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
+        /// <summary>The first goal is the player's once the cave and the shop tutorial are behind him: only then is it listed.</summary>
+        public bool GoalGiven => !InCave && !tutorial.Active;
         /// <summary>Map points marked «after the revenue goal» (the god's «?») appear only once it is reached.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
         /// <summary>The endless (procedural) world opens only once the god has been met (in a scene without the god's
@@ -135,6 +141,10 @@ namespace Hakaton.Game
         bool shopWasOpen;
         int salesAtOpen;
         float noticeUntil, nextTimedSave;
+        // The big «new goal» banner: armed when the tutorial ends in front of the player (or a new game starts after it),
+        // shown once the screen is free. A loaded save never shows it again.
+        bool goalBannerPending, tutorialWasRunning;
+        float goalBannerAt;
 
         void Start()
         {
@@ -195,7 +205,8 @@ namespace Hakaton.Game
             }
             pendingStart = null;
             restoring = false; Ready = true;
-            if (afterTutorial) dirty = true;
+            if (afterTutorial) { dirty = true; ArmGoalBanner(); }
+            tutorialWasRunning = !GoalGiven;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
             else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
@@ -227,6 +238,9 @@ namespace Hakaton.Game
             TrackShift();
             // The whole tutorial is behind the player: a later new game may skip it.
             if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
+            if (tutorialWasRunning && GoalGiven) ArmGoalBanner();
+            tutorialWasRunning = !GoalGiven;
+            TryShowGoalBanner();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen && !LectureActive)
@@ -250,6 +264,32 @@ namespace Hakaton.Game
             if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
             shopWasOpen = open;
         }
+        void ArmGoalBanner()
+        {
+            goalBannerPending = true;
+            // Lets the goblin's poof settle first.
+            goalBannerAt = Time.unscaledTime + 1;
+        }
+
+        /// <summary>The first goal is given: its name comes up in big letters over the shop, once nothing else holds the screen.</summary>
+        void TryShowGoalBanner()
+        {
+            if (!goalBannerPending) return;
+            if (GoalReached) { goalBannerPending = false; return; }
+            if (Time.unscaledTime < goalBannerAt || Phase != GamePhase.Shop || !GoalGiven || GamePause.Suspended || LectureActive
+                || services.IsOpen || trade.Session.IsOpen || expedition.Returning || departing || !fade || fade.Busy) return;
+            goalBannerPending = false;
+            if (sfx) sfx.Play(titleCue);
+            fade.StartCoroutine(fade.ShowTitle(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
+                "Новая цель лавки", goalBannerSeconds, goalBannerScale));
+        }
+        static string Coins(int n)
+        {
+            int tens = n % 100, ones = n % 10;
+            if (tens >= 11 && tens <= 14) return "монет";
+            return ones == 1 ? "монета" : ones >= 2 && ones <= 4 ? "монеты" : "монет";
+        }
+
         bool progressHudLost;
         void RefreshProgress()
         {
@@ -267,8 +307,9 @@ namespace Hakaton.Game
             }
             progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
             // A completed goal leaves the list. The revenue goal is the only one, so its title goes too (the block, not the
-            // labels: their shadows mirror activeSelf). An older save below the goal lists it again.
-            bool goalListed = !GoalReached;
+            // labels: their shadows mirror activeSelf). An older save below the goal lists it again. During the tutorial
+            // the goal is not the player's yet, so nothing is listed until it ends (with the big banner).
+            bool goalListed = GoalGiven && !GoalReached;
             if (goalsBlock.activeSelf != goalListed) goalsBlock.SetActive(goalListed);
             if (goalListed) objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;

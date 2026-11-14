@@ -396,6 +396,8 @@ namespace Hakaton.Expeditions
             if (!Alive || !world || !world.Running || damage.Amount <= 0) return false;
             // Encased in ice: a physical hit shatters the shell and lands twice as hard, fire melts it.
             int amount = IceEncasement.ResolveHit(this, damage.Amount, damage.Kind, damage.Impulse, damage.Point, Health);
+            // Shut and playing chest (frozen or not): any damage from the player's cards kills it outright.
+            if (ClosedKill(mode == Mode.Disguised, damage.Instigator)) amount = Health;
             Health = Mathf.Max(0, Health - amount);
             if (overhead) overhead.ShowHealth(Health, maxHealth);
             world.Play(hurtCue, Centre);
@@ -413,6 +415,13 @@ namespace Hakaton.Expeditions
             else if (mode == Mode.Recovering) StartCoroutine(Flee());
             return true;
         }
+
+        /// <summary>
+        /// Pure rule (tests): a hit kills it outright while it is shut and playing chest, when the hit is the player's
+        /// (his cards: no instigator, or one of his side).
+        /// </summary>
+        public static bool ClosedKill(bool shut, ICombatant instigator) =>
+            shut && (instigator == null || instigator.Faction == Faction.Player);
 
         public void Freeze(float seconds)
         {

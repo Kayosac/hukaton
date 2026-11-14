@@ -142,7 +142,7 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator StrikeOnAnEncasedMimicShattersForDoubleDamage()
+        public IEnumerator StrikeOnAnEncasedShutMimicShattersAndKillsIt()
         {
             yield return Lab();
             var lab = Object.FindFirstObjectByType<ExpeditionWorld>();
@@ -153,9 +153,9 @@ namespace Hakaton.Expeditions.Tests.PlayMode
             int before = mimic.Health;
             Assume.That(before, Is.GreaterThan(2));
             mimic.TakeDamage(new DamageInfo(1, Vector3.forward, mimic.Centre));
-            Assert.That(before - mimic.Health, Is.EqualTo(2));
+            Assert.That(mimic.Health, Is.Zero, "a card into a shut mimic kills it outright");
+            Assert.That(mimic.Current, Is.EqualTo(ChestMimic.State.Dead));
             Assert.That(IceEncasement.IsEncased(mimic), Is.False);
-            Assert.That(mimic.Frozen, Is.False, "free once the shell is gone");
             yield return null;
             Assert.That(Object.FindObjectsByType<IceShard>(FindObjectsSortMode.None).Length, Is.GreaterThan(0), "shards fly");
         }
