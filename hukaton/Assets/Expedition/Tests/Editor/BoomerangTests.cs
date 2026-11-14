@@ -97,6 +97,36 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void PreviewShowsTheWholeTurnButEndsTheReturnAFewMetresAway([Values(1, 2, 3)] int level)
+        {
+            var effect = Effect();
+            Assert.That(effect.previewReturnStop, Is.InRange(3f, 4f), "Обратный путь в превью — до ~3–4 м от игрока.");
+            var path = Throw(effect, level, new Vector3(0, 0, 14));
+            Vector3 chest = new Vector3(0, -.2f, 0);
+            float farthest = 0;
+            Vector3 end = default;
+            bool ended = false;
+            // Шаги, как у превью (128 точек на весь срок полёта).
+            float step = path.Lifetime / 127;
+            for (int i = 0; i < 127 && !ended; i++)
+            {
+                Vector3 from = path.Position;
+                BoomerangRules.Advance(ref path, chest, step);
+                farthest = Mathf.Max(farthest, Vector3.Dot(path.Position - path.Origin, path.Forward));
+                ended = BoomerangRules.PreviewReturnEnds(path, from, chest, effect.previewReturnStop, out end);
+            }
+            Assert.That(ended, Is.True, "Превью кончается на обратном пути, а не у груди.");
+            Assert.That(farthest, Is.EqualTo(effect.range.At(level)).Within(.75f), "Путь туда и разворот — целиком.");
+            end.y = 0;
+            Assert.That(end.magnitude, Is.EqualTo(effect.previewReturnStop).Within(.01f), "Конец — ровно на границе.");
+            // На пути туда граница не срабатывает, хотя карта начинает у самого игрока.
+            var start = Throw(effect, level, new Vector3(0, 0, 14));
+            Vector3 was = start.Position;
+            BoomerangRules.Advance(ref start, chest, step);
+            Assert.That(BoomerangRules.PreviewReturnEnds(start, was, chest, effect.previewReturnStop, out _), Is.False);
+        }
+
+        [Test]
         public void TheSamePathWhateverTheStep()
         {
             var effect = Effect();

@@ -124,6 +124,28 @@ namespace Hakaton.Expeditions.Cards
             path.Elapsed += dt;
         }
 
+        /// <summary>
+        /// Превью у прицела: обратный путь рисуется только до <paramref name="stop"/> м от игрока по горизонтали — у
+        /// самой камеры путь к груди уходит круто вниз и читается непонятной «Г». True, если шаг
+        /// <paramref name="from"/> → <c>path.Position</c> на обратном пути дошёл до этой границы; <paramref name="end"/> —
+        /// точка шага ровно на ней.
+        /// </summary>
+        public static bool PreviewReturnEnds(in BoomerangPath path, Vector3 from, Vector3 player, float stop, out Vector3 end)
+        {
+            end = path.Position;
+            if (!path.Returning || stop <= 0 || Flat(path.Position, player) > stop) return false;
+            float before = Flat(from, player), after = Flat(path.Position, player);
+            float t = before > after + 1e-5f ? Mathf.Clamp01((before - stop) / (before - after)) : 1;
+            end = Vector3.Lerp(from, path.Position, t);
+            return true;
+        }
+
+        static float Flat(Vector3 a, Vector3 b)
+        {
+            a.y = b.y = 0;
+            return Vector3.Distance(a, b);
+        }
+
         /// <summary>Время вышло: бумеранг не долетел (его не поймали), он падает.</summary>
         public static bool TimedOut(in BoomerangPath path) => path.Elapsed >= path.Lifetime;
 

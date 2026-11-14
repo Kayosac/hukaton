@@ -133,7 +133,8 @@ namespace Hakaton.Expeditions.Cards
 
         /// <summary>
         /// Путь для превью у прицела: те же правила, что у настоящего полёта, до препятствия или до поимки (игрок
-        /// стоит, где стоит). Возвращает число точек.
+        /// стоит, где стоит); обратный путь — только до <see cref="BoomerangEffect.previewReturnStop"/> м от игрока.
+        /// Возвращает число точек.
         /// </summary>
         public static int Preview(BoomerangEffect effect, in CardFlightLaunch launch, Vector3[] points)
         {
@@ -151,6 +152,8 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 from = path.Position;
                 BoomerangRules.Advance(ref path, chest, step);
                 if (SweepSolid(from, path.Position, radius, out var hit)) { points[used++] = hit.point; break; }
+                // Обратный путь — только до нескольких метров от игрока: дальше он тает (концы полосы прозрачны).
+                if (BoomerangRules.PreviewReturnEnds(path, from, chest, effect.previewReturnStop, out var end)) { points[used++] = end; break; }
                 points[used++] = path.Position;
                 if (BoomerangRules.Caught(path, bottom, top, effect.catchRadius) || BoomerangRules.TimedOut(path)) break;
             }
