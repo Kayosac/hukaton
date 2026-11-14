@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Hakaton.Decks.Unity;
 using Hakaton.Expeditions.Cards;
 using NUnit.Framework;
@@ -132,6 +133,44 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void APeckDealsDamagePerSecondTimesTheIntervalWithoutLosingAny()
+        {
+            float owed = 0;
+            var pecks = new List<int>();
+            for (int i = 0; i < 8; i++) pecks.Add(CrowsRules.PeckDamage(ref owed, 3, .5f));
+            Assert.That(pecks, Is.EqualTo(new[] { 1, 2, 1, 2, 1, 2, 1, 2 }), "3 HP/с раз в 0,5 с: остаток копится");
+            owed = 0;
+            Assert.That(CrowsRules.PeckDamage(ref owed, 2, 1), Is.EqualTo(2), "раз в секунду — урон в секунду");
+            owed = 0;
+            Assert.That(CrowsRules.PeckDamage(ref owed, 1, 2), Is.EqualTo(2), "раз в 2 с — вдвое больше");
+
+            // Стая с клевком раз в 0,5 с наносит за 4 с ровно 3 × 4 = 12.
+            var beast = NewDummy();
+            var flock = NewFlock();
+            flock.peckInterval = .5f;
+            flock.Attach(beast, 3, 4, 0);
+            Run(flock, 0, 4.2f);
+            Assert.That(beast.Hits.Count, Is.EqualTo(8));
+            Assert.That(beast.Taken, Is.EqualTo(12));
+        }
+
+        [Test]
+        public void TheFlockFliesAlongWithTheBeastAndAHiddenOneIsGone()
+        {
+            var beast = NewDummy();
+            var flock = NewFlock();
+            flock.Attach(beast, 1, 4, 0);
+            beast.root.position = new Vector3(30, 0, -12);
+            flock.Tick(.1f);
+            var head = CrowsRules.HeadTop(beast.Position, beast.Centre, flock.headGap);
+            Assert.That(Vector3.Distance(flock.transform.position, head), Is.LessThan(1e-3f),
+                "корень стаи — над зверем: выгружается вместе с его чанком, а не там, куда попала карта");
+            Assert.That(CrowFlock.On(beast), Is.SameAs(flock));
+            flock.gameObject.SetActive(false);
+            Assert.That(CrowFlock.On(beast), Is.Null, "спрятанную стаю новое попадание не продлит — позовёт новых ворон");
+        }
+
+        [Test]
         public void BeastIsDistractedWhilePeckedAndReleasedWhenTheCrowsLeave()
         {
             var beast = NewDummy();
@@ -249,6 +288,13 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(prefab.frames.Length, Is.GreaterThanOrEqualTo(2), "Машут крыльями.");
             var shared = AssetDatabase.LoadAssetAtPath<Material>("Assets/Rendering/Materials/HandDrawnSprite.mat");
             float grid = shared.GetFloat("_PixelsPerUnit");
+            // Правило AGENTS.md «World sprite density»: все кадры — в одном атласе степени двойки, не больше 2048.
+            var atlas = prefab.frames[0].texture;
+            foreach (var frame in prefab.frames) Assert.That(frame.texture, Is.SameAs(atlas), "все кадры взмаха в одном атласе");
+            Assert.That(Mathf.IsPowerOfTwo(atlas.width) && Mathf.IsPowerOfTwo(atlas.height), Is.True, $"атлас {atlas.width}×{atlas.height} — степень двойки");
+            Assert.That(Mathf.Max(atlas.width, atlas.height), Is.LessThanOrEqualTo(2048));
+            Assert.That(AssetDatabase.GetAssetPath(atlas), Is.EqualTo("Assets/Game/Prefabs/Cards/Crows/CrowFlapAtlas.png"));
+            Assert.That(prefab.frames.Select(f => f.name), Is.EqualTo(new[] { "Crow flap 0", "Crow flap 1", "Crow flap 2" }), "кадры по порядку взмаха");
             foreach (var crow in prefab.crows)
             {
                 Assert.That(crow, Is.Not.Null);

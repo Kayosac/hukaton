@@ -74,6 +74,19 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Клевок в срок <paramref name="peckAt"/> положен: настал и не позже конца стаи (с допуском).</summary>
         public static bool PeckDue(float now, float peckAt, float endAt) => now >= peckAt - 1e-4f && peckAt <= endAt + 1e-3f;
 
+        /// <summary>
+        /// Урон одного ранящего клевка: урон в секунду × интервал клевков. Дробная часть копится в
+        /// <paramref name="owed"/> и выдаётся следующими клевками, так что за срок стая наносит ровно
+        /// урон в секунду × срок (интервал 0,5 с при 3 HP/с — клевки 1, 2, 1, 2…).
+        /// </summary>
+        public static int PeckDamage(ref float owed, int perSecond, float interval)
+        {
+            owed += Mathf.Max(0, perSecond) * Mathf.Max(0, interval);
+            int amount = Mathf.FloorToInt(owed + 1e-4f);
+            owed = Mathf.Max(0, owed - amount);
+            return amount;
+        }
+
         /// <summary>Урон в секунду после повторного попадания: больший из двух.</summary>
         public static int RenewedDamage(int current, int fresh) => Mathf.Max(current, fresh);
 

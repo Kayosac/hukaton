@@ -12,6 +12,11 @@ namespace Hakaton.Expeditions.Cards
     /// (<see cref="IDistractable"/>). Существо умерло или выгрузилось — вороны разлетаются; срок вышел — улетают и
     /// отвлечение снимается. Без цели (промах) вороны кружат над местом и улетают. На одном существе — одна стая:
     /// повторное попадание её продлевает (<see cref="Renew"/>).
+    /// <para>
+    /// Корень стаи летит за существом (над его головой), так что стая всегда в том же чанке, что и зверь. Если стаю
+    /// всё же спрятали (чанк выгрузился, <c>WorldStreamer.HideLoose</c>), она считается улетевшей: отвлечение снято,
+    /// <see cref="On"/> её больше не находит (новое попадание позовёт новых ворон), а вернувшись, она удаляется.
+    /// </para>
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class CrowFlock : MonoBehaviour, IOutingSpawned
@@ -43,7 +48,7 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float arriveFrom = 5;
 
         [Header("Клевки")]
-        [Tooltip("Раз в столько секунд клевок ранит (урон в секунду × интервал).")]
+        [Tooltip("Раз в столько секунд клевок ранит: урон в секунду × интервал (дробный остаток копится, итог за срок не теряется).")]
         [Min(.05f)] public float peckInterval = 1;
         [Tooltip("Сколько пике (с ранящим) на один интервал: остальные — без урона, для вида.")]
         [Min(1)] public int divesPerInterval = 3;
@@ -76,7 +81,7 @@ namespace Hakaton.Expeditions.Cards
         IDistractable distractable;
         Phase phase;
         int damagePerSecond, dives;
-        float startAt, endAt, nextPeckAt, leaveAt, doneAt, nextCaw, spin;
+        float startAt, endAt, nextPeckAt, leaveAt, doneAt, nextCaw, spin, owed;
         Vector3 anchor;
         Vector3[] from, leaveFrom, leaveDirection, previous;
 
@@ -91,11 +96,11 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>Вороны улетают (или уже улетели).</summary>
         public bool Leaving => phase == Phase.Leaving || phase == Phase.Done;
 
-        /// <summary>Стая, которая сейчас клюёт это существо, или null.</summary>
+        /// <summary>Стая, которая сейчас клюёт это существо, или null. Спрятанную (неактивную) стаю не находит.</summary>
         public static CrowFlock On(ICombatant fighter)
         {
             foreach (var flock in Active)
-                if (flock && flock.phase == Phase.Pecking && ReferenceEquals(flock.target, fighter)) return flock;
+                if (flock && flock.isActiveAndEnabled && flock.phase == Phase.Pecking && ReferenceEquals(flock.target, fighter)) return flock;
             return null;
         }
 
@@ -110,6 +115,7 @@ namespace Hakaton.Expeditions.Cards
             startAt = now;
             endAt = now + Mathf.Max(0, seconds);
             nextPeckAt = now + peckInterval;
+            owed = 0;
             phase = Phase.Pecking;
             if (!Active.Contains(this)) Active.Add(this);
             distractable?.Distract(endAt - now);
@@ -140,6 +146,7 @@ namespace Hakaton.Expeditions.Cards
         void Begin(Vector3 centre, float now)
         {
             anchor = centre;
+            transform.position = centre;
             spin = Random.Range(0f, 360f);
             int count = crows.Length;
             from = new Vector3[count];
@@ -174,6 +181,9 @@ namespace Hakaton.Expeditions.Cards
                 case Phase.Pecking:
                 {
                     if (!TargetAlive()) { Leave(now); return CrowsRules.Step.Leave; }
+                    // Корень стаи — над головой зверя: стая выгружается вместе с ним, а не там, куда попала карта.
+                    anchor = Head();
+                    transform.position = anchor;
                     bool pecked = false;
                     while (CrowsRules.PeckDue(now, nextPeckAt, endAt))
                     {
@@ -206,7 +216,8 @@ namespace Hakaton.Expeditions.Cards
         {
             Vector3 head = Head();
             Vector3 point = Vector3.Lerp(target.Centre, head, .6f);
-            target.TakeDamage(new DamageInfo(damagePerSecond, Vector3.zero, point, point + Vector3.up, DamageKind.Hit));
+            int amount = CrowsRules.PeckDamage(ref owed, damagePerSecond, peckInterval);
+            if (amount > 0) target.TakeDamage(new DamageInfo(amount, Vector3.zero, point, point + Vector3.up, DamageKind.Hit));
             if (!world) return;
             float height = Height();
             world.Spawn(peckVfx, point, Quaternion.identity, Color.white, peckScale * Mathf.Max(.6f, height));
@@ -251,6 +262,23 @@ namespace Hakaton.Expeditions.Cards
             Active.Remove(this);
             if (Application.isPlaying) Destroy(gameObject);
             else DestroyImmediate(gameObject);
+        }
+
+        /// <summary>
+        /// Стаю спрятали (чанк выгрузился) — вороны улетели: отвлечение с живого зверя снимается, <see cref="On"/> её
+        /// больше не находит. Вернувшись (<see cref="OnEnable"/>), стая удаляется.
+        /// </summary>
+        void OnDisable()
+        {
+            if (phase == Phase.Idle || phase == Phase.Done) return;
+            if (phase == Phase.Pecking && TargetAlive()) distractable?.EndDistraction();
+            phase = Phase.Done;
+            Active.Remove(this);
+        }
+
+        void OnEnable()
+        {
+            if (phase == Phase.Done && Application.isPlaying) Destroy(gameObject);
         }
 
         void OnDestroy()
