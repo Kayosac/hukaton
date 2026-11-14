@@ -710,10 +710,22 @@ namespace Hakaton.Game
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null
         };
-        public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
-            && save.cards != null && save.shop != null && save.cards.coins == save.coins
-            && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
-            && (save.player == null || save.player.staminaLevel >= 0);
+        /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
+        static readonly string[] RetiredItems = { "common_find", "special_find" };
+        static void DropRetiredItems(GameSave save)
+        {
+            if (save?.shop?.items == null) return;
+            save.shop.items.RemoveAll(entry => entry != null && Array.IndexOf(RetiredItems, entry.definitionId) >= 0);
+        }
+
+        public bool ValidateSave(GameSave save)
+        {
+            DropRetiredItems(save);
+            return save != null && save.version == 1 && save.coins >= 0
+                && save.cards != null && save.shop != null && save.cards.coins == save.coins
+                && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
+                && (save.player == null || save.player.staminaLevel >= 0);
+        }
         public bool Restore(GameSave save)
         {
             if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.Session.ExpeditionId != 0

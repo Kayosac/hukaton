@@ -12,7 +12,7 @@ namespace Hakaton.Game.Tests
     /// <summary>Uses an isolated temporary directory; never reads or changes the player's save.</summary>
     public sealed class GameSaveStoreTests
     {
-        static readonly ItemDefinition Find = new ItemDefinition("common_find", "Обычная находка", "Находки", 20);
+        static readonly ItemDefinition Find = new ItemDefinition("test_find", "Тестовая находка", "Находки", 20);
         static readonly ItemDefinition Tusk = new ItemDefinition("boar_tusk", "Кабаний клык", "Трофеи", 120);
         static readonly CardSpec[] Cards = {
             new CardSpec("wind", "Импульс", 30),

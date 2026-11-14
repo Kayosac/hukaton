@@ -13,7 +13,7 @@ namespace Hakaton.Trading.Tests
     /// </summary>
     public sealed class TradingShiftUpgradeTests
     {
-        static readonly ItemDefinition Find = new ItemDefinition("common_find", "Обычная находка", "Находки", 20);
+        static readonly ItemDefinition Find = new ItemDefinition("test_find", "Тестовая находка", "Находки", 20);
 
         static TradeSettings Settings() => new TradeSettings {
             ShiftSeconds = 30, ShiftUpgradeSeconds = new[] { 10f, 10f, 10f }, ShiftUpgradePrices = new[] { 150, 250, 400 }
