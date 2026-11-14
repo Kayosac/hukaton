@@ -135,7 +135,7 @@ for e in enemies:
     out.append(dict(ru=e['ru'],prefab=e['prefab'],type=TYPES.get(e['type'],e['type']),img=e['sprite'][0],w=e['sprite'][1][0],h=e['sprite'][1][1],photo=e.get('photo',False),
         sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),vol=float(r['cue']['volume'] or 1),pitch=[float(v) for v in re.findall(r'[\d.]+',r['cue']['pitch'] or '1 1')][:2],
                      clips=[dict(a=enc(c),file=os.path.relpath(c,A)) for c in r['cue']['clips']]) for r in rr]))
-PRJ={'Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Beer mug':'пивная кружка','Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
+PRJ={'Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Beer mug':'пивная кружка','Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
 for e in out:
     if ' — ' in e['ru'] and not e['ru'].endswith('отросток'): e['ru']=e['ru'].split(' — ')[0]
     for s in e['sounds']:
