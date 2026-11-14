@@ -35,7 +35,7 @@ namespace Hakaton.WorldAssembly.Unity
         [Min(1)] public int loadsPerFrame = 2;
         [Tooltip("0: a new random world every outing. Any other value: always this world (testing).")]
         public int fixedSeed;
-        [Tooltip("0: the world rules' own ring scale. Any other value: the rings stretched by this instead (tests use 1, the compact world).")]
+        [Tooltip("0: the world rules' own ring scale. Any other value: the rings stretched by this instead (tests use 1, the compact world, ring 0 at its full 64 m).")]
         public float ringScale;
 
         public WorldMap Map { get; private set; }
@@ -104,7 +104,7 @@ namespace Hakaton.WorldAssembly.Unity
             EndOuting();
             world = expedition;
             Seed = fixedSeed != 0 ? fixedSeed : new System.Random().Next(1, int.MaxValue);
-            Map = new WorldMap(Seed, ringScale > 0 ? new WorldRules { RingScale = ringScale } : null);
+            Map = new WorldMap(Seed, ringScale > 0 ? new WorldRules { RingScale = ringScale, RingZeroScale = ringScale == 1 ? 1 : new WorldRules().RingZeroScale } : null);
             Active = true;
             world.finds.Clear();
             world.obstacles.Clear();

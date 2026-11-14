@@ -13,12 +13,19 @@ namespace Hakaton.WorldAssembly
         /// <summary>
         /// Stretches every distance from the start at once (the rings, the flat start, where the swamp begins and where it
         /// reaches its full share, where rain and storms begin), keeping all their shares. 1 is the first, compact world
-        /// (ring 0 out to 64 m, ring 1 to 112 m); 7.25 puts the middle of ring 2 (208 m at 1, the middle of its 176–240 m
-        /// band) about five minutes of plain running from the start (sprinting on the base stamina averages about 5 m/s).
+        /// (ring 0 out to 64 m, ring 1 to 112 m); 7.25, with ring 0 halved and the rest moved in (<see cref="RingZeroScale"/>),
+        /// puts the middle of ring 2 (208 m at 1, the middle of its 176–240 m band) about four minutes of plain running
+        /// from the start (sprinting on the base stamina averages about 5 m/s).
         /// Forms, districts, swamp patches and the chances per chunk do not change: each ring keeps its density, there is
         /// just more of it, and the way from the calm start to the wild far reaches is longer.
         /// </summary>
         public float RingScale = 7.25f;
+        /// <summary>Ring 0 shrinks by this on top of <see cref="RingScale"/>, and everything beyond it moves in by as many
+        /// metres (<see cref="ShiftIn"/>), keeping its width: .5 makes the calm start 232 m in radius, not 464 m; ring 1
+        /// then runs 232–580 m, the swamp begins at 580 m, the middle of ring 2 is ~1276 m (~4¼ min of running).</summary>
+        public float RingZeroScale = .5f;
+        /// <summary>How far in everything beyond ring 0 moves: the metres ring 0 lost to <see cref="RingZeroScale"/>.</summary>
+        public float ShiftIn => InnerRadiusBase * RingScale * (1 - RingZeroScale);
         /// <summary>Ring 0 ends here at <see cref="RingScale"/> 1 (metres from the start, chunk centre).</summary>
         public float InnerRadiusBase = 64f;
         /// <summary>Ring 1 ends here at <see cref="RingScale"/> 1; ring 2 goes on forever.</summary>
@@ -26,11 +33,11 @@ namespace Hakaton.WorldAssembly
         /// <summary>Corners closer than this (at <see cref="RingScale"/> 1) stay low, so every ring 0 chunk is flat.</summary>
         public float FlatRadiusBase = 76f;
         /// <summary>Ring 0 ends here (metres from the start, chunk centre).</summary>
-        public float InnerRadius => InnerRadiusBase * RingScale;
+        public float InnerRadius => InnerRadiusBase * RingScale * RingZeroScale;
         /// <summary>Ring 1 ends here; ring 2 goes on forever.</summary>
-        public float MiddleRadius => MiddleRadiusBase * RingScale;
-        /// <summary>Corners closer than this stay low, so every ring 0 chunk is flat.</summary>
-        public float FlatRadius => FlatRadiusBase * RingScale;
+        public float MiddleRadius => MiddleRadiusBase * RingScale - ShiftIn;
+        /// <summary>Corners closer than this stay low, so every ring 0 chunk is flat (a chunk's reach past ring 0's edge).</summary>
+        public float FlatRadius => InnerRadius + (FlatRadiusBase - InnerRadiusBase) * RingScale;
         /// <summary>Large forms are planned per district of this many chunks a side.</summary>
         public int District = 8;
 
@@ -41,8 +48,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>No swamp nearer than this to the start at <see cref="RingScale"/> 1 (metres, chunk centre): the swamp
         /// begins with ring 2, rings 0 and 1 are all forest; its share grows linearly out to SwampFullBase.</summary>
         public float SwampFromBase = 112f, SwampFullBase = 272f;
-        public float SwampFrom => SwampFromBase * RingScale;
-        public float SwampFull => SwampFullBase * RingScale;
+        public float SwampFrom => SwampFromBase * RingScale - ShiftIn;
+        public float SwampFull => SwampFullBase * RingScale - ShiftIn;
         /// <summary>Share of chunks that are swamp at SwampFrom and at SwampFull and beyond, growing linearly between
         /// (<see cref="BiomeField.ThresholdForShare"/> turns a share into the swamp noise threshold): about 20% of
         /// 112–176 m, 40% of 176–240 m, 60% from 240 m on (times <see cref="RingScale"/>).</summary>

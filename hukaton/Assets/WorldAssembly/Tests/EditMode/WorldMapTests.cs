@@ -12,7 +12,7 @@ namespace Hakaton.WorldAssembly.Tests
 
         /// <summary>The compact world (ring 0 out to 64 m): the rules are the same at any ring scale, and the areas here
         /// stay small enough to check whole.</summary>
-        static WorldRules Compact => new WorldRules { RingScale = 1 };
+        static WorldRules Compact => new WorldRules { RingScale = 1, RingZeroScale = 1 };
 
         static IEnumerable<ChunkCoord> Square(int r)
         {
@@ -394,16 +394,20 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
-        public void TheMiddleOfRingTwoIsAboutFiveMinutesOfRunningAway()
+        public void TheMiddleOfRingTwoIsMinutesOfRunningAway()
         {
             var rules = new WorldRules();
-            // The middle of ring 2's middle band (176–240 m in the compact world); plain running with the base stamina
-            // averages about 5 m/s (sprint 6.5 m/s for 5 s, walk 4 m/s while it refills).
-            double seconds = 208 * rules.RingScale / 5.0;
-            Assert.That(seconds, Is.InRange(270.0, 330.0), "about five minutes of running");
             var compact = Compact;
-            Assert.AreEqual(compact.InnerRadius / compact.MiddleRadius, rules.InnerRadius / rules.MiddleRadius, 1e-6, "the rings keep their proportions");
-            Assert.AreEqual(compact.SwampFull / compact.MiddleRadius, rules.SwampFull / rules.MiddleRadius, 1e-6, "and so does the swamp");
+            // Ring 0 is the smaller for its own scale, and everything beyond moves in by the metres it lost.
+            Assert.AreEqual(compact.InnerRadius * rules.RingScale * rules.RingZeroScale, rules.InnerRadius, 1e-3);
+            Assert.AreEqual(compact.MiddleRadius * rules.RingScale - rules.ShiftIn, rules.MiddleRadius, 1e-3);
+            Assert.AreEqual((compact.MiddleRadius - compact.InnerRadius) * rules.RingScale, rules.MiddleRadius - rules.InnerRadius, 1e-3, "ring 1 keeps its width");
+            Assert.AreEqual(rules.MiddleRadius, rules.SwampFrom, 1e-3, "the swamp still begins with ring 2");
+            Assert.Greater(rules.FlatRadius, rules.InnerRadius + rules.ChunkSize * .7, "every ring 0 chunk is still flat");
+            // The middle of ring 2's middle band (176–240 m in the compact world); plain running with the base stamina
+            // averages about 5 m/s (sprint 6.5 m/s for 5 s, walk 4 m/s while it refills): about four minutes.
+            double seconds = (208 * rules.RingScale - rules.ShiftIn) / 5.0;
+            Assert.That(seconds, Is.InRange(230.0, 290.0), "minutes of running, not seconds");
         }
 
         [Test]
@@ -586,7 +590,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void WithoutTheSwampTheWorldIsAllForest()
         {
-            var map = new WorldMap(3, new WorldRules { Swamp = false, RingScale = 1 });
+            var map = new WorldMap(3, new WorldRules { Swamp = false, RingScale = 1, RingZeroScale = 1 });
             foreach (var c in Square(Area)) Assert.AreEqual(Biome.Forest, map.Chunk(c).Biome, c.ToString());
         }
     }
