@@ -32,30 +32,30 @@ namespace Hakaton.WorldAssembly
             // Scenes of flat chunks.
             ["apiary"] = new Theme("zombie-beekeeper", "bee-swarm*3|bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm", "enraged-bee-mutant+bee-swarm*2|bee-swarm*4"),
             ["farm"] = new Theme("rooster-baseball*2", Rats + "|" + Rats + "+rooster-baseball", Rats + "|" + Dogs2 + "+" + Rats),
-            ["camp"] = new Theme("kind-little-worm*2", Dogs1, Dogs2 + "+drunken-dwarf-robot|goblin-dog*3"),
+            ["camp"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Rats, Dogs2 + "+drunken-dwarf-robot|goblin-dog*3"),
             // The floating clown turns up alone in odd places, in ring 1 only: the ruins (and the yard), the fort.
-            ["ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|" + Dogs1 + "|" + Clown, "drunken-dwarf-robot*2"),
+            ["ruins"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot|" + Rats + "|" + Clown, "drunken-dwarf-robot*2"),
             // Wild bee swarms now and then hang about the grove and the grassy knolls.
             ["grove"] = new Theme("teen-leshy-skater", "hostile-bush*2|teen-leshy-skater*2|hostile-bush*2|bee-swarm*2", "sinister-living-tree+hostile-bush*2"),
             ["hollow"] = new Theme("purple-mushroom*3", "purple-mushroom*3" + "|" + Agaric1, "purple-mushroom*3+" + Dogs1 + "|" + Agaric2),
             ["pond"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|snail-frog-mount+bee-swarm*2"),
-            ["knoll"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Dogs1 + "|bee-swarm*2", Dogs2),
-            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2", Dogs1 + "|budding-troll", "budding-troll|" + Dogs2),
+            ["knoll"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|" + Rats, Dogs2),
+            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2", Dogs1 + "|" + Dogs1 + "|budding-troll|bee-swarm*2|hostile-bush*2", "budding-troll|" + Dogs2),
             // Other shapes.
             ["maze"] = new Theme("kind-little-worm", "hostile-bush*2", "hostile-bush*3"),
             ["forest"] = new Theme("teen-leshy-skater", "hostile-bush*2|teen-leshy-skater*2|sinister-living-tree", "sinister-living-tree+hostile-bush*2|sinister-living-tree*2"),
             ["river"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|hostile-bush*2"),
-            ["canyon"] = new Theme("", Dogs1, Dogs2),
+            ["canyon"] = new Theme("", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|hostile-bush*2", Dogs2),
             ["plateau"] = new Theme("kind-little-worm", "budding-troll", "budding-troll|budding-troll+hostile-bush*2"),
             ["summit"] = new Theme("", "drunken-dwarf-robot", "drunken-dwarf-robot+" + Dogs1),
             // Landmarks: their rewards are guarded by these.
             ["fort"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot+" + Dogs1 + "|" + Clown, "drunken-dwarf-robot*2"),
             ["crater"] = new Theme("purple-mushroom*3", "budding-troll", "budding-troll+purple-mushroom*2"),
-            ["watchhill"] = new Theme("kind-little-worm*2", Dogs1, Dogs2 + "|goblin-dog*3"),
+            ["watchhill"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*3", Dogs2 + "|goblin-dog*3"),
             ["beeyard"] = new Theme("zombie-beekeeper*2", "bee-swarm*3+zombie-beekeeper|enraged-bee-mutant+bee-swarm*2", "enraged-bee-mutant+bee-swarm*3"),
             ["village"] = new Theme("rooster-baseball*2", Rats + "+rooster-baseball", Dogs2 + "+" + Rats),
             ["stone-forest"] = new Theme("teen-leshy-skater", "teen-leshy-skater*2", Dogs2),
-            ["mesa"] = new Theme("kind-little-worm*2", Dogs1, Dogs2 + "|goblin-dog*3"),
+            ["mesa"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*3", Dogs2 + "|goblin-dog*3"),
             ["sinkhole"] = new Theme("purple-mushroom*3", "purple-mushroom*3" + "|" + Agaric1, "purple-mushroom*3+" + Dogs1 + "|" + Agaric2),
             ["lake"] = new Theme("snail-frog-mount", "snail-frog-mount*2", Dogs1 + "+snail-frog-mount"),
             ["flooded-village"] = new Theme("rooster-baseball*2", Rats + "+snail-frog-mount", Mutant2 + "+" + Rats),
@@ -74,9 +74,10 @@ namespace Hakaton.WorldAssembly
             ["swamp-mill"] = new Theme(Drowned, Beetles1 + "|" + Mutant1 + "|" + Leeches1 + "|" + Mosquitoes1 + "|" + Ghost1, Beetles2 + "|" + Mutant2 + "|" + Leeches2 + "|" + Mosquitoes2 + "|" + Ghost2),
         };
 
-        // Goblin dogs hunt in packs of two or three in every ring, at their own places only: the camp, the rocks, the
-        // canyon, the ruins, the knoll, the watch hill, the mesa and the like — not at ponds, rivers or on plateaus,
-        // and never in the rotten swamp.
+        // Goblin dogs hunt in packs of two or three, at their own places only (the camp, the rocks, the canyon, the
+        // knoll, the watch hill, the mesa and the like), not at ponds, rivers or on plateaus, and never in the rotten
+        // swamp. In ring 1 they share those places with weaker beasts: bee swarms, pumpkin rats and hostile bushes
+        // (dogs about a quarter of ring 1's hostile creatures, a fifth of ring 2's).
         const string Dogs1 = "goblin-dog*2-3", Dogs2 = "goblin-dog*2-3";
         const string Clown = "floating-clown-emoji";
         // Rat pumpkins lie in a pumpkin patch: one to five of its pumpkins are rats (the rest are pumpkins).
