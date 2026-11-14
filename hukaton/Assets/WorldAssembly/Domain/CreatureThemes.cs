@@ -41,13 +41,13 @@ namespace Hakaton.WorldAssembly
             ["hollow"] = new Theme("purple-mushroom*3", "purple-mushroom*3" + "|" + Agaric1, "purple-mushroom*3+" + Dogs1 + "|" + Agaric2),
             ["pond"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|snail-frog-mount+bee-swarm*2"),
             ["knoll"] = new Theme("kind-little-worm*2|teen-leshy-skater*2|bee-swarm", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|" + Rats, Dogs2),
-            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2|teen-leshy-skater*2", Dogs1 + "|" + Dogs1 + "|budding-troll|bee-swarm*2|hostile-bush*2", "budding-troll|" + Dogs2),
+            ["rocks"] = new Theme("kind-little-worm*2|purple-mushroom*2|teen-leshy-skater*2", Dogs1 + "|" + Dogs1 + "|budding-troll|bee-swarm*2|hostile-bush*2", "budding-troll|" + Dogs2 + "|hostile-bush*2"),
             // Other shapes.
             ["maze"] = new Theme("kind-little-worm|teen-leshy-skater*2", "hostile-bush*2", "hostile-bush*3"),
             ["forest"] = new Theme("teen-leshy-skater", "hostile-bush*2|teen-leshy-skater*2|sinister-living-tree", "sinister-living-tree+hostile-bush*2|sinister-living-tree*2"),
-            ["river"] = new Theme("snail-frog-mount", "snail-frog-mount*2", "snail-frog-mount*2|hostile-bush*2"),
+            ["river"] = new Theme("snail-frog-mount", "snail-frog-mount*2|kind-little-worm*2|purple-mushroom*2", "snail-frog-mount*2|hostile-bush*2"),
             ["canyon"] = new Theme("", Dogs1 + "|" + Dogs1 + "|bee-swarm*2|hostile-bush*2", Dogs2),
-            ["plateau"] = new Theme("kind-little-worm", "budding-troll", "budding-troll|budding-troll+hostile-bush*2"),
+            ["plateau"] = new Theme("kind-little-worm", "budding-troll|hostile-bush*2|bee-swarm*2", "budding-troll|hostile-bush*3|bee-swarm*3"),
             ["summit"] = new Theme("", "drunken-dwarf-robot", "drunken-dwarf-robot+" + Dogs1),
             // Landmarks: their rewards are guarded by these.
             ["fort"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot+" + Dogs1 + "|" + Clown, "drunken-dwarf-robot*2"),
