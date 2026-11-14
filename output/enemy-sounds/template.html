@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Звуки врагов — PENUS</title>
+<style>
+:root{--bg:#15130f;--card:#201d17;--line:#3a342a;--ink:#efe6d2;--dim:#a39880;--acc:#e0b04a;--red:#d5604a;--grn:#7fae5a;--blu:#6fa3c7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:#15130fee;backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+h1{font-size:17px;margin:0 8px 0 0;letter-spacing:.02em}
+h1 small{color:var(--dim);font-weight:400;margin-left:6px}
+input,select{background:#100e0b;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:inherit}
+input[type=search]{width:220px}
+label.vol{display:flex;gap:6px;align-items:center;color:var(--dim)}
+.btn{background:#2c271f;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 11px;cursor:pointer;font:inherit}
+.btn:hover{border-color:var(--acc)}
+main{padding:18px 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:16px;max-width:1700px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:190px 1fr;align-items:start}
+.card.hl{border-color:var(--acc)}
+.pic{background:repeating-conic-gradient(#2a251e 0 25%,#231f19 0 50%) 0 0/16px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 10px;gap:10px;border-radius:10px 0 0 10px;position:sticky;top:64px;min-height:220px}
+.pic img{image-rendering:pixelated;image-rendering:crisp-edges}
+.pic img.photo{image-rendering:auto;border-radius:6px}
+.body{padding:12px 14px 12px}
+.name{font-weight:700;font-size:15px}
+.meta{color:var(--dim);font-size:12px;margin:2px 0 8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tag{border:1px solid var(--line);border-radius:20px;padding:1px 8px}
+.t-агрессивный{color:var(--red);border-color:#6a3328}.t-мирный{color:var(--grn);border-color:#3d5a2c}.t-пугливый{color:var(--blu)}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:10px 0 4px}
+.grp:first-of-type{margin-top:2px}
+.row{display:grid;grid-template-columns:28px 1fr;gap:9px;padding:5px 0;align-items:start;border-top:1px dashed #2f2a22}
+.play{width:28px;height:28px;font-size:11px;border-radius:50%;border:1px solid var(--line);background:#2c271f;color:var(--acc);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.play:hover,.play.on{background:var(--acc);color:#1a160f;border-color:var(--acc)}
+.ttl{font-weight:600;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px}.ttl>*{white-space:nowrap}
+.ttl .cue{font-weight:400;color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:12px;cursor:pointer;border-bottom:1px dotted #5a5040}
+.ttl .cue:hover{color:var(--acc)}
+.desc{color:#cfc4ab;font-size:12.5px;line-height:1.35}
+.vars{display:inline-flex;gap:3px;margin-left:6px;vertical-align:1px}
+.v{font:11px ui-monospace,Menlo,monospace;background:#16130f;border:1px solid var(--line);color:var(--dim);border-radius:4px;padding:1px 6px;cursor:pointer}
+.v:hover,.v.on{color:#1a160f;background:var(--acc);border-color:var(--acc)}
+.shared{font-size:11px;color:#c98a3a;margin-left:4px}
+.uniq{font-size:11px;color:var(--grn);margin-left:4px}
+.playall{font-size:12px;padding:4px 9px}
+.empty{grid-column:1/-1;color:var(--dim);text-align:center;padding:40px}
+.note{color:var(--dim);font-size:12px;margin-left:auto}
+</style></head><body>
+<header>
+  <h1>Звуки врагов<small id="count"></small></h1>
+  <input type="search" id="q" placeholder="Поиск: имя, звук, файл…">
+  <select id="type"><option value="">Все типы</option></select>
+  <select id="cue"><option value="">Любой звук</option></select>
+  <label class="vol">Громкость <input type="range" id="vol" min="0" max="1" step=".05" value=".8"></label>
+  <button class="btn" id="stop">Стоп (Esc)</button>
+  <span class="note">Клик по имени звука — показать всех врагов с ним. Цифры — варианты клипа.</span>
+</header>
+<main id="grid"></main>
+<script>
+const DATA=__DATA__;
+const $=s=>document.querySelector(s);
+let cur=null,curBtn=null,queue=[];
+function stop(){queue=[];if(cur){cur.pause();cur=null}document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'))}
+function play(id,btn,onend){
+  stop();const a=new Audio(DATA.audio[id]);a.volume=+$('#vol').value;cur=a;
+  if(btn)btn.classList.add('on');
+  a.onended=()=>{if(btn)btn.classList.remove('on');if(cur===a)cur=null;onend&&onend()};
+  a.play();
+}
+function playSeq(items){stop();queue=items.slice();const next=()=>{const it=queue.shift();if(!it)return;const q=queue;play(it.id,it.btn,()=>{queue=q;setTimeout(next,250)});queue=q};next()}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+  const q=$('#q').value.trim().toLowerCase(),t=$('#type').value,c=$('#cue').value;
+  const g=$('#grid');g.innerHTML='';let n=0;
+  DATA.enemies.forEach((e,ei)=>{
+    if(t&&e.type!==t)return;
+    if(c&&!e.sounds.some(s=>s.cue===c))return;
+    if(q){const hay=(e.ru+' '+e.prefab+' '+e.sounds.map(s=>s.title+' '+s.desc+' '+s.cue+' '+s.clips.map(x=>x.file).join(' ')).join(' ')).toLowerCase();if(!hay.includes(q))return}
+    n++;
+    const card=document.createElement('div');card.className='card'+(c?' hl':'');
+    let html=`<div class="pic"><img class="${e.photo?'photo':''}" src="${e.img}" style="width:${Math.round(e.w*Math.min(e.photo?1:4,170/e.w,190/e.h))}px" alt=""><button class="btn playall">▶ все звуки</button></div><div class="body"><div class="name">${esc(e.ru)}</div><div class="meta"><span class="tag t-${esc(e.type)}">${esc(e.type)}</span><span>${esc(e.prefab)}</span><span>${e.sounds.length} звук.</span></div>`;
+    let lastG='';
+    e.sounds.forEach((s,si)=>{
+      if(s.group!==lastG){html+=`<div class="grp">${esc(s.group)}</div>`;lastG=s.group}
+      const sh=s.shared>1?`<span class="shared">общий у ${s.shared}</span>`:`<span class="uniq">свой</span>`;
+      const vars=s.clips.map((x,vi)=>`<span class="v" data-a="${x.a}" title="${esc(x.file)} · ${DATA.dur[x.a].toFixed(2)} с">${vi+1}</span>`).join('');
+      html+=`<div class="row"><button class="play" data-s="${si}" title="Случайный вариант">▶</button><div><div class="ttl">${esc(s.title)}<span class="cue" data-cue="${esc(s.cue)}" title="Показать всех с этим звуком">${esc(s.cue)}</span>${sh}</div><div class="desc">${esc(s.desc)}<span class="vars">${vars}</span></div></div></div>`;
+    });
+    card.innerHTML=html+'</div>';
+    card.querySelectorAll('.play').forEach(b=>b.onclick=()=>{const s=e.sounds[+b.dataset.s];const x=s.clips[Math.floor(Math.random()*s.clips.length)];b.classList.contains('on')?stop():play(x.a,b)});
+    card.querySelectorAll('.v').forEach(b=>b.onclick=()=>play(b.dataset.a,b));
+    card.querySelectorAll('.cue').forEach(b=>b.onclick=()=>{$('#cue').value=$('#cue').value===b.dataset.cue?'':b.dataset.cue;render();scrollTo({top:0})});
+    card.querySelector('.playall').onclick=()=>playSeq([...card.querySelectorAll('.play')].map((b,i)=>({id:e.sounds[i].clips[0].a,btn:b})));
+    g.appendChild(card);
+  });
+  if(!n)g.innerHTML='<div class="empty">Ничего не нашлось</div>';
+  $('#count').textContent=`${n} из ${DATA.enemies.length}`;
+}
+[...new Set(DATA.enemies.map(e=>e.type))].forEach(t=>$('#type').insertAdjacentHTML('beforeend',`<option>${esc(t)}</option>`));
+const cues={};DATA.enemies.forEach(e=>e.sounds.forEach(s=>{(cues[s.cue]=cues[s.cue]||new Set).add(e.ru)}));
+Object.keys(cues).sort().forEach(k=>$('#cue').insertAdjacentHTML('beforeend',`<option value="${esc(k)}">${esc(k)} (${cues[k].size})</option>`));
+$('#q').oninput=render;$('#type').onchange=render;$('#cue').onchange=render;$('#stop').onclick=stop;
+$('#vol').oninput=()=>{if(cur)cur.volume=+$('#vol').value};
+addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+render();
+</script></body></html>
