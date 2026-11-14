@@ -228,8 +228,9 @@ namespace Hakaton.Expeditions
         {
             if (!ambush.submerge && !burrows) return 0;
             // A burrower (the worm) digs in when it notices the player (WorldCreature.Tricks.cs).
-            bool under = burrows ? burrowed : Lurking && !lured;
-            sunk = Mathf.MoveTowards(sunk, under ? 1 : 0, dt * (under ? (burrows ? 2.2f : 1.2f) : 3.5f));
+            // A burrower (the worm) digs in when it notices the player and peeks out now and then (WorldCreature.Tricks.cs).
+            float depth = burrows ? BurrowDepth : Lurking && !lured ? 1 : 0;
+            sunk = Mathf.MoveTowards(sunk, depth, dt * (depth > sunk ? (burrows ? 2.2f : 1.2f) : 3.5f));
             bool through = sunk >= .6f && !dying;
             if (burrows)
             {

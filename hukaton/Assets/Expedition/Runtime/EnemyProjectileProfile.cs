@@ -39,6 +39,10 @@ namespace Hakaton.Expeditions
         public DamageKind kind = DamageKind.Hit;
         [Tooltip("Push along the flight and upward on a hit (impulse units, as the melee attacks).")]
         [Min(0)] public float knockback = 3, knockbackUp = 1.5f;
+        [Tooltip("Spreads out as it flies (the spider's web): picture and hit radius grow to this many times their size...")]
+        [Min(1)] public float growTo = 1;
+        [Tooltip("...over this many metres of flight.")]
+        [Min(.1f)] public float growDistance = 8;
         [Tooltip("Hits every fighter within this radius of the impact as well, metres. 0: only what it hits directly.")]
         [Min(0)] public float splashRadius;
         [Tooltip("Hits other creatures on its way (but never the one that shot it).")]

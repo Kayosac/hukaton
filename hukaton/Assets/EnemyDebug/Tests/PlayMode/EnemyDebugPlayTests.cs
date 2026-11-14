@@ -98,7 +98,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(sandbox.LiveCreatures.Count, Is.EqualTo(1));
             var creature = sandbox.LiveCreatures[0];
             Assert.That(creature.world, Is.SameAs(sandbox.world));
-            Assert.That(Vector3.Distance(creature.transform.position,preview.transform.position), Is.LessThan(.5f));
+            // In front of its drawing, not inside it.
+            float apart = Vector3.Distance(creature.transform.position, preview.transform.position);
+            Assert.That(apart, Is.InRange(1f, sandbox.spawnAhead + .6f));
             Assert.That(creature.body.isKinematic, Is.False);
             Assert.That(creature.navigator.isOnNavMesh, Is.True);
             Assert.That(creature.view.idle, Is.SameAs(preview.source.view.idle));
@@ -116,8 +118,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             foreach (var preview in sandbox.Previews)
             {
                 var instance = sandbox.Spawn(preview);
-                Assert.That(instance.transform.position.x, Is.EqualTo(preview.transform.position.x).Within(.01f));
-                Assert.That(instance.transform.position.z, Is.EqualTo(preview.transform.position.z).Within(.01f));
+                var apart = instance.transform.position - preview.transform.position;
+                apart.y = 0;
+                Assert.That(apart.magnitude, Is.LessThan(sandbox.spawnAhead + 6.5f), preview.source.name + " appears by its preview");
                 Assert.That(instance.navigator.isOnNavMesh, Is.True, preview.source.name);
                 Assert.That(instance.Health, Is.EqualTo(instance.maximumHealth));
                 if (!preview.HasAttack) Assert.That(preview.PlayPose(CreaturePose.Attack), Is.False);
@@ -245,7 +248,8 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             }
             Assert.That(attacked, Is.True, "Real hostile AI must reach the attack sequence.");
             Assert.That(sandbox.ReceivedDamage, Is.GreaterThan(0), "Real damage and knockback must run.");
-            Assert.That(sandbox.world.vitals.HalfHearts, Is.EqualTo(sandbox.world.vitals.MaximumHalfHearts));
+            // The hearts show the hit for a while; the debug player never falls.
+            Assert.That(sandbox.world.vitals.HalfHearts, Is.GreaterThan(0));
             Assert.That(sandbox.world.Running, Is.True);
             sandbox.ClearLive(); yield return null;
             var timid = sandbox.Previews.First(p => p.source.name == "Purple mushroom");

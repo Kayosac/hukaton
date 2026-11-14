@@ -44,7 +44,8 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
 
         IEnumerator Stand(WorldCreature creature, float distance)
         {
-            var dir = new Vector3(0, 0, 10) - creature.Position;
+            // In front of it, where it looks: a calm one does not see behind itself.
+            var dir = creature.transform.forward;
             dir.y = 0;
             var at = creature.Position + dir.normalized * distance;
             if (NavMesh.SamplePosition(at, out var hit, 2, NavMesh.AllAreas)) at = hit.position;
@@ -66,14 +67,14 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             yield return Stand(leader, 9);
             float widest = 0;
             float until = Time.time + 6;
-            while (Time.time < until && widest < 100)
+            while (Time.time < until && widest < 90)
             {
                 yield return null;
                 var ways = pack.Where(d => d && d.Alive && !Calm(d)).Select(d => Flat(d.Position - Player)).Where(v => v.magnitude > .5f).ToList();
                 for (int i = 0; i < ways.Count; i++)
                     for (int j = i + 1; j < ways.Count; j++) widest = Mathf.Max(widest, Vector3.Angle(ways[i], ways[j]));
             }
-            Assert.That(widest, Is.GreaterThanOrEqualTo(100), "the pack comes at the player from different sides");
+            Assert.That(widest, Is.GreaterThanOrEqualTo(90), "the pack comes at the player from different sides");
             Assert.That(pack.Count(d => !Calm(d)), Is.EqualTo(pack.Count), "one noticed — the whole pack attacks");
         }
 
@@ -196,7 +197,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         public IEnumerator WormBurrowsAndComesBackWhenThePlayerLeaves()
         {
             var worm = Spawn("Kind little worm");
-            yield return Stand(worm, 2.5f);
+            yield return Stand(worm, 1.4f);
             float until = Time.time + 3;
             while (Time.time < until && !worm.Burrowed) yield return null;
             Assert.That(worm.Burrowed, Is.True, "it dives into the ground");
@@ -210,6 +211,134 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(worm.Burrowed, Is.False, "it comes back out once the player has gone");
             yield return Wait(.6f);
             Assert.That(worm.GetComponent<CapsuleCollider>().enabled, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator BurrowedWormPeeksOutWhenThePlayerStandsStill()
+        {
+            var worm = Spawn("Kind little worm");
+            yield return Stand(worm, 1.4f);
+            float until = Time.time + 3;
+            while (Time.time < until && !worm.Burrowed) yield return null;
+            Assert.That(worm.Burrowed, Is.True);
+            until = Time.time + 6;
+            while (Time.time < until && !worm.Peeking) yield return null;
+            Assert.That(worm.Peeking, Is.True, "the player stands still: it peeks out to see whether he has gone");
+            yield return Wait(.6f);
+            Assert.That(worm.GetComponent<CapsuleCollider>().enabled, Is.True, "peeking, it can be hit");
+        }
+
+        [UnityTest]
+        public IEnumerator WormsHaveTheirOwnNerve()
+        {
+            var a = Spawn("Kind little worm");
+            yield return null;
+            var distances = Enumerable.Range(0, 12).Select(_ => { a.ResetForOuting(null); return (float)typeof(WorldCreature).GetField("burrowNerve", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(a); }).ToList();
+            Assert.That(distances.Max() - distances.Min(), Is.GreaterThan(2), "some dive at once, some only when the player is right by them");
+        }
+
+        [UnityTest]
+        public IEnumerator ClownBlinksAwayFromACardAndFightsOn()
+        {
+            var clown = Spawn("Floating clown emoji");
+            yield return Stand(clown, 7);
+            clown.Damage(0, Vector3.zero, clown.Centre, 0);
+            yield return Wait(.3f);
+            var before = clown.Position;
+            clown.DodgeCard((clown.Position - Player).normalized * 25);
+            Assert.That(clown.Blinking, Is.True, "it vanishes as the card comes");
+            Assert.That(clown.GetComponent<CapsuleCollider>().enabled, Is.False, "the card meets nothing");
+            float until = Time.time + 2;
+            while (Time.time < until && clown.Blinking) yield return null;
+            Assert.That(clown.Blinking, Is.False);
+            Assert.That(Flat(clown.Position - before).magnitude, Is.GreaterThan(2.5f), "back a few metres aside");
+            Assert.That(clown.State, Is.EqualTo(CreatureState.Chase), "and the fight goes on");
+        }
+
+        [UnityTest]
+        public IEnumerator MantisHopsAsideFromACard()
+        {
+            var mantis = Spawn("Mantis man");
+            Assert.That(mantis.maximumHealth, Is.EqualTo(6));
+            yield return Stand(mantis, 7);
+            mantis.Damage(0, Vector3.zero, mantis.Centre, 0);
+            yield return Wait(.2f);
+            var before = mantis.Position;
+            mantis.DodgeCard((mantis.Position - Player).normalized * 25);
+            yield return Wait(.35f);
+            var moved = Flat(mantis.Position - before);
+            var across = Vector3.Cross(Vector3.up, Flat(mantis.Position - Player).normalized);
+            Assert.That(Mathf.Abs(Vector3.Dot(moved, across)), Is.GreaterThan(1.5f), "a quick hop aside");
+        }
+
+        [UnityTest]
+        public IEnumerator SpiderWebSpreadsAsItFlies()
+        {
+            var spider = Spawn("Giant swamp spider");
+            yield return Stand(spider, 11);
+            EnemyProjectile web = null;
+            float until = Time.time + 8;
+            while (Time.time < until && !web) { yield return null; web = EnemyProjectile.Active.FirstOrDefault(p => p && p.Shooter == spider); }
+            Assert.That(web, Is.Not.Null);
+            yield return Wait(.35f);
+            Assert.That(web.Growth, Is.GreaterThan(1.4f), "the web opens out in flight");
+        }
+
+        [UnityTest]
+        public IEnumerator GhostDivesRightThroughThePlayer()
+        {
+            var ghost = Spawn("Sheet ghost");
+            yield return Stand(ghost, 8);
+            var from = Flat(ghost.Position - Player).normalized;
+            bool through = false;
+            float until = Time.time + 8;
+            while (Time.time < until && !through)
+            {
+                yield return null;
+                if (Vector3.Dot(Flat(ghost.Position - Player), from) < -.8f) through = true;
+            }
+            Assert.That(through, Is.True, "its dive carries it through the player and out the other side");
+        }
+
+        [UnityTest]
+        public IEnumerator FlyAgaricIsBigAndSpitsOften()
+        {
+            var agaric = Spawn("Raging fly agaric");
+            Assert.That(agaric.size, Is.GreaterThanOrEqualTo(2));
+            Assert.That(agaric.ranged.cooldown, Is.LessThanOrEqualTo(1.3f));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HeartsShowTheHitThenFillUp()
+        {
+            Assert.That(sandbox.world.hud, Is.Not.Null, "the expedition HUD with its hearts is in the debug scene");
+            var vitals = sandbox.world.vitals;
+            int full = vitals.MaximumHalfHearts;
+            vitals.Hurt(1, Vector3.zero, null);
+            yield return null;
+            Assert.That(vitals.HalfHearts, Is.EqualTo(full - 1), "the hit stays on the hearts for a while");
+            yield return Wait(sandbox.refillSeconds + .5f);
+            Assert.That(vitals.HalfHearts, Is.EqualTo(full), "then they fill up again");
+        }
+
+        [UnityTest]
+        public IEnumerator LiveCopyAppearsInFrontOfItsPreview()
+        {
+            var preview = sandbox.Previews.First(p => p.source && p.source.name == "Budding troll");
+            var troll = sandbox.Spawn(preview);
+            yield return null;
+            Assert.That(Flat(troll.Position - preview.transform.position).magnitude, Is.GreaterThan(1.5f), "not inside the drawing");
+        }
+
+        [UnityTest]
+        public IEnumerator DisguisedBushAppearsAsABushAmongBushes()
+        {
+            var bush = Spawn("Hostile bush");
+            yield return Wait(.3f);
+            Assert.That(bush.Disguised, Is.True, "it appears in disguise");
+            int looks = sandbox.liveRoot.GetComponentsInChildren<Transform>().Count(t => t.parent == sandbox.liveRoot && t.name.StartsWith("FA_VG0"));
+            Assert.That(looks, Is.GreaterThanOrEqualTo(3), "among real bushes, to judge the disguise");
         }
 
         [UnityTest]

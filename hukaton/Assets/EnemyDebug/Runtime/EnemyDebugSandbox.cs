@@ -28,6 +28,14 @@ namespace Hakaton.EnemyDebug
         [Min(1)] public float focusReach = 14;
         [Tooltip("E on a creature that only comes in squads (Patrol) brings a whole squad of this many, walking its route.")]
         [Min(1)] public int squadSize = 4;
+        [Tooltip("A live copy appears this far in front of its preview (towards the player), not inside the drawing.")]
+        [Min(0)] public float spawnAhead = 3;
+        [Tooltip("A creature in disguise (the hostile bush) appears among this many copies of its look, to judge the disguise.")]
+        [Min(0)] public int disguiseDressing = 4;
+        [Header("Hearts")]
+        [Tooltip("The hearts show the hits; this many seconds after the last one, or when only this many half hearts are left, they fill up again — the debug player never falls.")]
+        [Min(0)] public float refillSeconds = 3;
+        [Min(1)] public int refillAtHalfHearts = 2;
 
         readonly List<EnemyDebugPreview> previews = new List<EnemyDebugPreview>();
         readonly List<WorldCreature> live = new List<WorldCreature>();
@@ -35,6 +43,7 @@ namespace Hakaton.EnemyDebug
         public IReadOnlyList<WorldCreature> LiveCreatures => live;
         public EnemyDebugPreview Focused { get; private set; }
         public int ReceivedDamage { get; private set; }
+        float lastHurt = -1;
 
         void Start()
         {
@@ -53,7 +62,9 @@ namespace Hakaton.EnemyDebug
         {
             if (delta >= 0) return;
             ReceivedDamage -= delta;
-            world.vitals.Heal(world.vitals.MaximumHalfHearts);
+            lastHurt = Time.time;
+            // Nearly out (or out): straight back to full, so the debug player never falls.
+            if (world.vitals.HalfHearts <= refillAtHalfHearts) world.vitals.Heal(world.vitals.MaximumHalfHearts);
         }
 
         public Vector3 GridPosition(int index) => gridOrigin + new Vector3(index % Mathf.Max(1, columns) * spacing, 0,
@@ -79,6 +90,11 @@ namespace Hakaton.EnemyDebug
 
         void LateUpdate()
         {
+            if (lastHurt >= 0 && Time.time - lastHurt > refillSeconds)
+            {
+                lastHurt = -1;
+                world.vitals.Heal(world.vitals.MaximumHalfHearts);
+            }
             if (motor.transform.position.y < -4)
             {
                 motor.Teleport(startPose.position, startPose.rotation);
@@ -115,18 +131,66 @@ namespace Hakaton.EnemyDebug
         public WorldCreature Spawn(EnemyDebugPreview preview)
         {
             if (!preview || !preview.source) return null;
-            var origin = preview.transform.position;
-            if (!preview.source.patrol.enabled) return SpawnOne(preview.source, origin, preview.transform.rotation);
+            var origin = SpawnPoint(preview);
+            var rotation = preview.transform.rotation;
+            if (!preview.source.patrol.enabled) return SpawnOne(preview.source, origin, rotation);
             // A squad creature comes as a squad, side by side, and walks its route round the spot as in the world.
             var group = new List<WorldCreature>();
             for (int i = 0; i < squadSize; i++)
             {
                 float a = i * 2.4f;
                 var at = origin + (i == 0 ? Vector3.zero : new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (1.4f + .45f * i));
-                group.Add(SpawnOne(preview.source, at, preview.transform.rotation));
+                group.Add(SpawnOne(preview.source, at, rotation));
             }
             PatrolSquad.Form(group, origin, live.Count * 7919 + 17);
             return group[0];
+        }
+
+        /// <summary>
+        /// In front of the preview, towards the player, on the ground — not inside the drawing. A creature in disguise
+        /// keeps out of its spring range, so it appears in disguise.
+        /// </summary>
+        Vector3 SpawnPoint(EnemyDebugPreview preview)
+        {
+            var at = preview.transform.position;
+            var toPlayer = motor.transform.position - at;
+            toPlayer.y = 0;
+            float ahead = spawnAhead;
+            var source = preview.source;
+            if (source.ambush.enabled && source.ambush.disguises.Length > 0)
+                ahead = Mathf.Min(ahead, Mathf.Max(0, toPlayer.magnitude - source.ambush.pounceRange - 3));
+            if (toPlayer.sqrMagnitude > .01f) at += toPlayer.normalized * Mathf.Min(ahead, toPlayer.magnitude * .5f);
+            if (UnityEngine.AI.NavMesh.SamplePosition(at, out var hit, 2, UnityEngine.AI.NavMesh.AllAreas)) at = hit.position;
+            return at;
+        }
+
+        /// <summary>
+        /// A creature in disguise without a patch of its own (the hostile bush) gets a few copies of its look round it
+        /// and settles by one, as it would among the forest's bushes.
+        /// </summary>
+        void DressDisguise(WorldCreature creature)
+        {
+            var looks = creature.ambush.disguises;
+            if (!creature.ambush.enabled || looks.Length == 0 || creature.ambush.patch.Length > 0 || disguiseDressing <= 0) return;
+            var random = new System.Random(live.Count * 17 + 3);
+            var placed = new List<Component>();
+            var toPlayer = motor.transform.position - creature.Position;
+            toPlayer.y = 0;
+            toPlayer = toPlayer.sqrMagnitude > .01f ? toPlayer.normalized : Vector3.forward;
+            for (int i = 0; i < disguiseDressing; i++)
+            {
+                // Round it but not on the way in from the player.
+                float turn = Mathf.Lerp(50, 310, disguiseDressing == 1 ? .5f : i / (float)(disguiseDressing - 1));
+                var at = creature.Position + Quaternion.Euler(0, turn, 0) * toPlayer * (2.4f + (float)random.NextDouble() * 1.4f);
+                var look = looks[random.Next(looks.Length)];
+                if (!look) continue;
+                var copy = Instantiate(look, at, Quaternion.Euler(0, (float)random.NextDouble() * 360, 0), liveRoot);
+                copy.name = look.name;
+                copy.transform.localScale = look.transform.lossyScale * (1 + (float)random.NextDouble() * .25f);
+                copy.SetActive(true);
+                placed.Add(copy.transform);
+            }
+            creature.HideIn(placed, new List<Vector3>(), true);
         }
 
         WorldCreature SpawnOne(WorldCreature source, Vector3 position, Quaternion rotation)
@@ -138,6 +202,7 @@ namespace Hakaton.EnemyDebug
             creature.ResetForOuting(null);
             // An ambusher that hides among props like its disguise (the rat pumpkin's patch) brings them along.
             creature.LayOutPatch(position, liveRoot, new System.Random(live.Count * 31 + 5), new List<Vector3> { position });
+            DressDisguise(creature);
             live.Add(creature);
             world.creatures.Clear();
             world.creatures.AddRange(live);

@@ -46,6 +46,26 @@ namespace Hakaton.Expeditions
         [Min(.01f)] public float puffScale = 1;
     }
 
+    /// <summary>A last-moment dodge of a thrown card: a hop aside (the mantis) or a blink away in a puff (the clown).</summary>
+    [Serializable]
+    public sealed class DodgeSettings
+    {
+        [Tooltip("In a fight, while not winding up or striking, it may dodge a card thrown at it at the last moment.")]
+        public bool enabled;
+        [Tooltip("The chance to dodge each card that would hit it.")]
+        [Range(0, 1)] public float chance = .35f;
+        [Tooltip("It reacts this many seconds before the card would reach it.")]
+        [Min(.05f)] public float warning = .25f;
+        [Tooltip("Blink: vanishes in its puff (Blink settings) and reappears a few metres aside. Off: hops aside.")]
+        public bool blink;
+        [Tooltip("The hop aside: speed, m/s.")]
+        [Min(0)] public float hopSpeed = 11;
+        [Tooltip("The blink: it reappears this far aside, metres.")]
+        [Min(1)] public float blinkDistance = 4.5f;
+        [Tooltip("Seconds after a dodge before the next one.")]
+        [Min(0)] public float cooldown = 1.2f;
+    }
+
     /// <summary>
     /// The small tricks of the forest's creatures: buds and summoned swarms (<see cref="offspring"/>), burrowing and the
     /// shell (<see cref="burrows"/>, <see cref="shellSeconds"/>), a bat that knocks cards away (<see cref="deflectCards"/>),
@@ -84,6 +104,17 @@ namespace Hakaton.Expeditions
         [Header("Blink")]
         public BlinkSettings blink = new BlinkSettings();
 
+        [Header("Dodge")]
+        public DodgeSettings dodge = new DodgeSettings();
+
+        [Header("Burrow nerve")]
+        [Tooltip("A burrower dives when the player it sees comes this close: each picks its own distance between these two, metres (a bold one waits till you are right by it).")]
+        public Vector2 burrowDistance = new Vector2(2, 9);
+        [Tooltip("Under the ground, when the player stands still this long (seconds, picked between these two) it peeks out to see whether he has gone.")]
+        public Vector2 peekAfter = new Vector2(1.8f, 3.2f);
+        [Tooltip("How long a peek lasts, seconds; in it the head is out and it can be hit.")]
+        [Min(.2f)] public float peekSeconds = 1.3f;
+
         [Header("Smoke")]
         [Tooltip("The beekeeper: while it lives and is not angry, bees within the radius below stay calm. Hurt it and they all go for the player.")]
         public bool smoker;
@@ -93,8 +124,10 @@ namespace Hakaton.Expeditions
 
         static readonly List<WorldCreature> smokers = new List<WorldCreature>();
 
-        bool spawnedHere, burrowed, ramming, blinking, blinkStrike;
-        float shellUntil, shellShape, clearFor, nextBlink, blinkAt, swingUntil, nextMound;
+        bool spawnedHere, burrowed, ramming, blinking, blinkStrike, dodgeBlink, peeking;
+        float shellUntil, shellShape, clearFor, nextBlink, blinkAt, swingUntil, nextMound, nextDodge, burrowNerve, stillFor, peekWait, peekUntil;
+        Vector3 dodgeSide;
+        readonly HashSet<CardProjectile> weighedCards = new HashSet<CardProjectile>();
 
         /// <summary>In its shell: nothing hurts it.</summary>
         public bool InShell => Time.time < shellUntil;
@@ -102,6 +135,8 @@ namespace Hakaton.Expeditions
         public bool Burrowed => burrowed;
         /// <summary>Gone in a puff, about to reappear by its target.</summary>
         public bool Blinking => blinking;
+        /// <summary>A burrower peeking out of the ground to see whether the player has gone.</summary>
+        public bool Peeking => peeking;
 
         void OnEnable() { if (smoker && !smokers.Contains(this)) smokers.Add(this); }
 
@@ -117,8 +152,12 @@ namespace Hakaton.Expeditions
             shellShape = 0;
             clearFor = 0;
             nextBlink = blinkAt = swingUntil = 0;
-            blinkStrike = false;
-            if (burrowed) SetBurrowed(false);
+            blinkStrike = dodgeBlink = peeking = false;
+            nextDodge = stillFor = 0;
+            weighedCards.Clear();
+            burrowNerve = Random.Range(Mathf.Min(burrowDistance.x, burrowDistance.y), Mathf.Max(burrowDistance.x, burrowDistance.y));
+            peekWait = Random.Range(Mathf.Min(peekAfter.x, peekAfter.y), Mathf.Max(peekAfter.x, peekAfter.y));
+            if (burrowed) { burrowed = false; SetBurrowed(false); }
             if (blinking) { blinking = false; SetHidden(false); }
             RamThrough(false);
         }
@@ -213,22 +252,48 @@ namespace Hakaton.Expeditions
         {
             if (!burrows) return false;
             float distance = PlayerDistance;
+            float dt = Time.deltaTime;
+            // Each has its own nerve: a timid one dives as soon as it sees the player, a bold one only when he is right by it.
+            bool near = Provoked || (sees || distance < hearingRange) && distance < Mathf.Min(burrowNerve, alertRange);
             if (!burrowed)
             {
-                if (!Provoked && !(sees && distance < alertRange)) return false;
+                if (!near) return false;
                 if (State != CreatureState.Idle) Enter(CreatureState.Idle);
                 Halt();
                 world.Play(alertCue, body.position, 1, 1.15f);
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, body.position, Quaternion.identity, dustColour, Mathf.Clamp(TopHeight, .5f, 1));
                 burrowed = true;
-                clearFor = 0;
+                peeking = false;
+                clearFor = stillFor = 0;
                 return true;
             }
             if (State != CreatureState.Idle) Enter(CreatureState.Idle);
             Halt();
             // A little dust now and then shows where it sits.
             if (sunk >= .95f && Time.time >= nextMound) { nextMound = Time.time + 1.3f; KickDust(1); }
-            if (distance > fleeRange && !Provoked) clearFor += Time.deltaTime;
+            bool still = !world.motor || Flat(world.motor.Velocity).sqrMagnitude < .25f;
+            if (peeking)
+            {
+                // Peeking: the player moves close by — back under at once; time's up — under again, or out if he has gone.
+                if (!still && distance < burrowNerve + 1.5f || Provoked) { peeking = false; stillFor = 0; world.Play(alertCue, body.position, .8f, 1.3f); }
+                else if (Time.time >= peekUntil)
+                {
+                    peeking = false;
+                    stillFor = 0;
+                    peekWait = Random.Range(Mathf.Min(peekAfter.x, peekAfter.y), Mathf.Max(peekAfter.x, peekAfter.y));
+                }
+                return true;
+            }
+            // The player stands still for a while: it peeks out to see whether he has gone.
+            stillFor = still ? stillFor + dt : 0;
+            if (stillFor >= peekWait && sunk >= .95f)
+            {
+                peeking = true;
+                peekUntil = Time.time + peekSeconds;
+                KickDust(stepDustCount);
+                return true;
+            }
+            if (distance > fleeRange && !Provoked) clearFor += dt;
             else clearFor = 0;
             if (clearFor >= emergeSeconds)
             {
@@ -238,13 +303,15 @@ namespace Hakaton.Expeditions
             return true;
         }
 
+        /// <summary>How deep a burrower wants to be: all the way under, its head out while it peeks, or up.</summary>
+        float BurrowDepth => !burrowed ? 0 : peeking ? .45f : 1;
+
         /// <summary>
         /// Under the ground the body has no collider (nothing to hit that cannot be seen) and hangs where it is;
         /// out again, it is solid and falls as usual.
         /// </summary>
         void SetBurrowed(bool under)
         {
-            if (!under) burrowed = false;
             if (capsule) capsule.enabled = !under;
             if (body)
             {
@@ -301,6 +368,69 @@ namespace Hakaton.Expeditions
             return side * 5 + strikeDirection * 1.5f + Vector3.up * 2.5f;
         }
 
+        // ---------------- dodge ----------------
+
+        /// <summary>
+        /// In a fight and not mid-attack: a card about to hit it may be dodged — one roll per card, at the last moment.
+        /// </summary>
+        void ThinkDodge()
+        {
+            if (!dodge.enabled || dying || blinking || Time.time < nextDodge || !world) return;
+            if (IsCalm && !Provoked) return;
+            if (State == CreatureState.Windup || State == CreatureState.Strike || State == CreatureState.Aim || State == CreatureState.Shoot) return;
+            var cards = CardProjectile.Active;
+            if (cards.Count == 0) { if (weighedCards.Count > 0) weighedCards.Clear(); return; }
+            Vector3 centre = Centre;
+            float reach = CapsuleRadius + .55f;
+            for (int i = 0; i < cards.Count; i++)
+            {
+                var card = cards[i];
+                if (!card || card.Resolved) continue;
+                Vector3 v = card.Velocity;
+                float speed2 = v.sqrMagnitude;
+                if (speed2 < 1) continue;
+                Vector3 p = card.transform.position;
+                float t = Vector3.Dot(centre - p, v) / speed2;
+                if (t < 0 || t > dodge.warning) continue;
+                if ((p + v * t - centre).magnitude > reach) continue;
+                if (!weighedCards.Add(card)) continue;
+                if (Random.value >= dodge.chance) continue;
+                DodgeCard(v);
+                return;
+            }
+        }
+
+        /// <summary>Dodges a card flying with <paramref name="cardVelocity"/>: a hop aside or a blink away (Dodge settings).</summary>
+        public void DodgeCard(Vector3 cardVelocity)
+        {
+            if (!dodge.enabled || !world || dying) return;
+            nextDodge = Time.time + dodge.cooldown;
+            Vector3 side = Vector3.Cross(Vector3.up, cardVelocity);
+            side = side.sqrMagnitude > .01f ? side.normalized : transform.right;
+            if (Random.value < .5f) side = -side;
+            // Prefer the side with ground to land on.
+            if (!NavMesh.SamplePosition(body.position + side * 3, out _, 1.5f, NavMesh.AllAreas)) side = -side;
+            dodgeSide = side;
+            if (dodge.blink)
+            {
+                dodgeBlink = true;
+                blinking = true;
+                blinkAt = Time.time + Mathf.Max(.2f, blink.vanishSeconds * .7f);
+                nextBlink = Mathf.Max(nextBlink, Time.time + 1.5f);
+                world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
+                world.Play(threatCue, body.position, 1, 1.25f);
+                SetHidden(true);
+                Halt();
+                if (State != CreatureState.Chase && State != CreatureState.Search) Enter(CreatureState.Chase);
+                return;
+            }
+            // A hop aside, low and quick.
+            body.linearVelocity = side * dodge.hopSpeed + Vector3.up * 2.5f;
+            squash.Kick(5);
+            KickDust(stepDustCount * 3);
+            world.Play(alertCue, body.position, .9f, 1.2f);
+        }
+
         // ---------------- blink ----------------
 
         /// <summary>
@@ -309,7 +439,7 @@ namespace Hakaton.Expeditions
         /// </summary>
         bool TryBlink()
         {
-            if (!blink.enabled) return false;
+            if (!blink.enabled && !dodgeBlink) return false;
             if (blinking)
             {
                 Halt();
@@ -334,6 +464,24 @@ namespace Hakaton.Expeditions
         {
             blinking = false;
             Vector3 target = TargetPosition;
+            if (dodgeBlink)
+            {
+                // Dodged a card: back a few metres aside, and the fight goes on.
+                dodgeBlink = false;
+                Vector3 to = body.position + dodgeSide * dodge.blinkDistance;
+                Vector3 land = NavMesh.SamplePosition(to, out var near, 2.5f, NavMesh.AllAreas) ? near.position : body.position;
+                Vector3 air = land + Vector3.up * (flying ? cruiseHeight : .15f);
+                body.position = air;
+                transform.position = air;
+                body.linearVelocity = Vector3.zero;
+                if (navigator.isOnNavMesh) navigator.Warp(land);
+                Face(target - air);
+                SetHidden(false);
+                world.Spawn(blink.puff, Centre, Quaternion.identity, Color.white, blink.puffScale * Mathf.Clamp(TopHeight, .6f, 1.4f));
+                world.Play(alertCue, body.position, 1, 1.3f);
+                Enter(CreatureState.Chase);
+                return;
+            }
             // Beside or behind the target as it looks: the player's view, or the way from this creature for anyone else.
             Vector3 look = ReferenceEquals(Target, world.Player) && world.motor ? Flat(world.motor.transform.forward) : Flat(target - body.position);
             look = look.sqrMagnitude > .01f ? look.normalized : Vector3.forward;

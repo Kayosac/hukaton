@@ -289,6 +289,8 @@ namespace Hakaton.Expeditions
             if (State == CreatureState.Stunned) Recover(.2f);
             // It saw the player's side attack its kin (WorldCreature.Kin.cs): the start is over, it turns on the attacker.
             if (kinAlarmed && Time.time >= kinAlarmAt) RiseForKin();
+            // A card about to hit it: a last-moment dodge (WorldCreature.Tricks.cs).
+            ThinkDodge();
             // Hiding in its shell it does nothing else (WorldCreature.Tricks.cs).
             if (ThinkShell()) { UpdateOverhead(); return; }
 
