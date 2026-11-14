@@ -141,6 +141,55 @@ namespace Hakaton.Expeditions.Tests
             Object.Destroy(pot);
         }
 
+        /// <summary>A record to look at (Logs/world-plans/break-*.png): a pot and a crate breaking, not a pass/fail on looks.</summary>
+        [UnityTest]
+        public IEnumerator PhotographBreaking()
+        {
+            string dir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            System.IO.Directory.CreateDirectory(dir);
+            var cam = world.viewCamera;
+            foreach (var (name, side) in new[] { ("Clay pot", -.7f), ("Crate", .7f) })
+            {
+                var thing = Crate(Spot(3.2f, side));
+                yield return Settle(thing.body);
+                var kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{name}.asset");
+                thing.gameObject.AddComponent<Breakable>().kind = kind;
+                if (name == "Clay pot") thing.transform.localScale *= .6f;
+                yield return Settle(thing.body);
+                var eye = cam.transform.position;
+                var look = thing.body.worldCenterOfMass;
+                yield return Photo(cam, dir, $"break-{name}-0", eye, look);
+                PropPhysics.Nudge(thing.body, look, world.motor.transform.forward, kind.hitSpeed * 2);
+                for (int f = 0; f < 4; f++) yield return null;
+                yield return Photo(cam, dir, $"break-{name}-1", eye, look);
+                yield return new WaitForSeconds(.35f);
+                yield return Photo(cam, dir, $"break-{name}-2", eye, look);
+                yield return new WaitForSeconds(1.2f);
+                yield return Photo(cam, dir, $"break-{name}-3", eye, look);
+            }
+        }
+
+        static IEnumerator Photo(Camera cam, string dir, string name, Vector3 eye, Vector3 look)
+        {
+            yield return new WaitForEndOfFrame();
+            var saved = (cam.transform.position, cam.transform.rotation);
+            cam.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
+            var rt = new RenderTexture(960, 540, 24);
+            var previous = cam.targetTexture;
+            cam.targetTexture = rt;
+            cam.Render();
+            cam.targetTexture = previous;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(dir, name + ".png"), tex.EncodeToPNG());
+            Object.Destroy(tex);
+            rt.Release();
+            cam.transform.SetPositionAndRotation(saved.Item1, saved.Item2);
+        }
+
         [UnityTest]
         public IEnumerator PiecesNeverPileUpPastTheCap()
         {
