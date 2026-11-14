@@ -364,8 +364,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             Deco("Plants/FA_VG05_GrassTall", 12.6f, 3.2f, 90, 1.2f);
             Deco("Plants/FA_VG05_GrassTall", 12.4f, 7.6f, 30, 1.4f);
             // A spring stirs the middle of the pond (see TileTerrain.PondCentre).
-            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 10.4f, 5.2f, 0, .8f, 0);
-            Sounds.Add((V(10.4f, 5.2f), "bubbles", 0));
             Trails.Add(new[] { V(1, 10), V(5.6f, 9.6f), V(9, 10), V(15, 12.4f) });
             Finds = new[] { V(6.4f, 6.4f), V(3.6f, 13.4f) };
             Creatures = new[] { V(9.6f, 11.6f), V(14, 13.6f) };
@@ -999,7 +997,7 @@ namespace Hakaton.WorldAssembly.EditorTools
 
         /// <summary>
         /// Дышащая топь: two gas vents on islands puff marsh gas; a spark sets them off. A tar pool by the round vent
-        /// catches from its flash; a bog window bubbles in the corner.
+        /// catches from its flash.
         /// </summary>
         void BreathingBog()
         {
@@ -1010,8 +1008,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             GasVents.Add((V(5f, 10.8f), SW + "Deadwood/SM_SW27_GasVentRound", 20));
             GasVents.Add((V(9.8f, 5.2f), SW + "Deadwood/SM_SW27_GasVentSlit", 110));
             TarSpots.Add((V(6.8f, 9f), 1f));
-            Deco("VFX/Bubbles/Boiling/ToxicBoilingBubbles", 12, 9, 0, .8f);
-            Sounds.Add((V(12f, 9f), "bubbles", 0));
             Put(SW + "Deadwood/SM_SW15_StakeRag", 12.6f, 12.4f, 0);
             Finds = new[] { V(12.6f, 12f), V(4.2f, 11.4f) };
             Creatures = new[] { V(3.4f, 3.6f), V(13.4f, 3.4f) };
@@ -1146,8 +1142,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             Deco("Markers/FA_MK16_StoneCircle", 16.4f, 16.4f, 0, .9f);
             Deco("VFX/Smoke/White/SmokeFlatWhite", 10.6f, 11, 0, 1.8f, .1f);
             Deco("VFX/Smoke/White/SmokeFlatWhite", 22, 11.4f, 0, 1.6f, .1f);
-            Deco("VFX/Bubbles/Stream/WaterBubbleStream", 11.2f, 21, 0, .8f, 0);
-            Sounds.Add((V(11.2f, 21), "bubbles", 0));
             // The fisher's corner on the north-east shore.
             Put("Structures/FA_ST13_Shelter", 26.8f, 27.4f, 225);
             Put("Props/FA_PR13_CrateClosed", 24.4f, 28.4f, 20);
