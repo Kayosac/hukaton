@@ -6,9 +6,10 @@ using UnityEngine;
 namespace Hakaton.Computer
 {
     /// <summary>
-    /// Pictures for «Склад»: an item with its own <see cref="LootItem.icon"/> shows it; a 3D-only item (the curios, the
-    /// forest finds) shows a pixel icon baked from its shelf model, listed here by item id
-    /// (Assets/Computer/Art/Stock, baker: output/pc-computer/bake_stock_icons.cs).
+    /// Pictures for «Склад»: one 32 px pixel icon per catalogue item, all baked by one pipeline so the list looks of a
+    /// piece — from the shelf model for 3D items, from <see cref="LootItem.icon"/> for drawings (same fit, premultiplied
+    /// averaging, hard alpha, 1 px dark contour). Listed here by item id (Assets/Computer/Art/Stock, baker:
+    /// output/pc-computer/bake_stock_icons.cs). The item's own drawing is only a fallback for an item not baked yet.
     /// </summary>
     [CreateAssetMenu(menuName = "Hakaton/ПК/Значки склада", fileName = "PcStockIcons")]
     public sealed class PcStockIcons : ScriptableObject
@@ -20,7 +21,7 @@ namespace Hakaton.Computer
             public Sprite icon;
         }
 
-        [Tooltip("Запечённые значки предметов без своего рисунка: id предмета → спрайт.")]
+        [Tooltip("Запечённые значки склада для всех предметов каталога: id предмета → спрайт.")]
         public List<Entry> baked = new List<Entry>();
 
         public Sprite Baked(string id)
@@ -30,11 +31,12 @@ namespace Hakaton.Computer
             return null;
         }
 
-        /// <summary>The item's own drawing, else its baked icon, else null.</summary>
+        /// <summary>The baked icon, else (not baked yet) the item's own drawing, else null.</summary>
         public Sprite For(LootItem item)
         {
             if (!item) return null;
-            return item.icon ? item.icon : Baked(item.id);
+            var baked = Baked(item.id);
+            return baked ? baked : item.icon;
         }
     }
 }

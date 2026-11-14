@@ -22,7 +22,7 @@ namespace Hakaton.Computer
         public PcWindow window;
         [Tooltip("Names, rarities and pictures of the items (Assets/Loot/Loot catalog.asset).")]
         public LootCatalog catalog;
-        [Tooltip("Baked pictures for the items without their own drawing.")]
+        [Tooltip("Baked pixel icons of every catalogue item.")]
         public PcStockIcons icons;
 
         [Header("List")]
@@ -39,6 +39,8 @@ namespace Hakaton.Computer
         public TMP_Text storedTotal, shelvedTotal, kindsTotal;
         [Tooltip("«ещё N находок в пути»: loot of the current outing that has not reached the storeroom yet.")]
         public TMP_Text pending;
+        [Tooltip("The list's bottom edge in the window body: down to the status bar, or above the «в пути» line when it shows.")]
+        public float listBottom = 24, listBottomWithPending = 40;
 
         [Header("Sorting")]
         public Button sortButton;
@@ -97,12 +99,13 @@ namespace Hakaton.Computer
             window.SetStatus("Сортировка: " + PcStock.Label(sort) + ".");
         }
 
-        /// <summary>The kind's picture: its own drawing or the baked one.</summary>
+        /// <summary>The kind's baked pixel icon (the item's own drawing only if it has not been baked).</summary>
         public Sprite PictureOf(string id)
         {
+            var baked = icons ? icons.Baked(id) : null;
+            if (baked) return baked;
             var item = catalog ? catalog.Find(id) : null;
-            if (item && item.icon) return item.icon;
-            return icons ? icons.Baked(id) : null;
+            return item ? item.icon : null;
         }
 
         PcStockInfo Info(string id)
@@ -162,6 +165,11 @@ namespace Hakaton.Computer
             {
                 pending.gameObject.SetActive(waiting > 0);
                 pending.text = waiting > 0 ? $"Ещё {PcStock.Finds(waiting)} с вылазки в пути: попадут на склад, когда вернёшься в лавку." : "";
+            }
+            if (scroll)
+            {
+                var list = (RectTransform)scroll.transform;
+                list.offsetMin = new Vector2(list.offsetMin.x, waiting > 0 ? listBottomWithPending : listBottom);
             }
             if (sortLabel) sortLabel.text = "Сортировка: " + PcStock.Label(sort);
         }

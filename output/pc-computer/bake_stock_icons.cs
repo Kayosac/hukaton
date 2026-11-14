@@ -47,8 +47,15 @@ public static class WhStockIconBaker
 
             foreach (var item in catalog.items)
             {
-                if (!item || item.icon) continue;
+                if (!item) continue;
                 if (!string.IsNullOrEmpty(only) && item.id != only) continue;
+                if (item.icon)
+                {
+                    // A drawing: the same pipeline from the sprite's own pixels (fit, premultiplied averaging, hard alpha, contour).
+                    var sb = FromSprite(item.icon, out var sw, out int sside);
+                    Save(item.id, Downsample(sb, sw, sside), made, true);
+                    continue;
+                }
                 var source = item.ShelfModel;
                 if (!source) continue;
                 var go = Object.Instantiate(source);
@@ -96,15 +103,7 @@ public static class WhStockIconBaker
                 var w = Render(pru, Color.white, out _);
                 Object.DestroyImmediate(go);
 
-                var pixels = Downsample(b, w, side);
-                AddOutline(pixels);
-                var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-                tex.SetPixels32(pixels);
-                tex.Apply();
-                string path = $"{Folder}/stock_{item.id}.png";
-                File.WriteAllBytes(path, tex.EncodeToPNG());
-                Object.DestroyImmediate(tex);
-                made.Add((item.id, path));
+                Save(item.id, Downsample(b, w, side), made, false);
             }
         }
         finally
@@ -146,6 +145,77 @@ public static class WhStockIconBaker
         EditorUtility.SetDirty(icons);
         AssetDatabase.SaveAssets();
         return $"baked {made.Count}: " + string.Join(", ", made.Select(m => m.id));
+    }
+
+    /// <summary>
+    /// A model gets its contour outside the silhouette (29 px + 1 px each side = 31). A drawing already carries a drawn
+    /// dark contour: it is fitted to 31 px and its outermost ring becomes the same 1 px contour, so both read alike.
+    /// </summary>
+    static void Save(string id, Color32[] pixels, List<(string id, string path)> made, bool drawing)
+    {
+        if (drawing) RecolourRing(pixels); else AddOutline(pixels);
+        var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        string path = $"{Folder}/stock_{id}.png";
+        File.WriteAllBytes(path, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        made.Add((id, path));
+    }
+
+    /// <summary>
+    /// A drawing laid out like a rendered model: its visible part (alpha ≥ 8) fitted by the longer side into
+    /// Size − 1 px (its own contour is the outer ring), centred, on a Size*Super canvas; bilinear on premultiplied colour. Returns the "over black" and
+    /// "over white" images the downsampler expects. Reads the source PNG itself (the import may be unreadable or smaller).
+    /// </summary>
+    static Color32[] FromSprite(Sprite sprite, out Color32[] overWhite, out int big)
+    {
+        string path = AssetDatabase.GetAssetPath(sprite.texture);
+        var src = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+        src.LoadImage(File.ReadAllBytes(path));
+        float k = src.width / (float)sprite.texture.width;
+        var r = sprite.rect;
+        int rx = Mathf.RoundToInt(r.x * k), ry = Mathf.RoundToInt(r.y * k), rw = Mathf.RoundToInt(r.width * k), rh = Mathf.RoundToInt(r.height * k);
+        int W = src.width;
+        var px = src.GetPixels32();
+        Object.DestroyImmediate(src);
+        int x0 = int.MaxValue, y0 = int.MaxValue, x1 = -1, y1 = -1;
+        for (int y = ry; y < ry + rh; y++)
+            for (int x = rx; x < rx + rw; x++)
+                if (px[y * W + x].a >= 8) { x0 = Mathf.Min(x0, x); y0 = Mathf.Min(y0, y); x1 = Mathf.Max(x1, x); y1 = Mathf.Max(y1, y); }
+        big = Size * Super;
+        var black = new Color32[big * big];
+        overWhite = new Color32[big * big];
+        for (int i = 0; i < overWhite.Length; i++) overWhite[i] = new Color32(255, 255, 255, 255);
+        if (x1 < 0) return black;
+        float bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+        float scale = (Size - 1f) * Super / Mathf.Max(bw, bh);       // canvas pixels per source pixel: 31 px, the contour included
+        // Centred on whole output pixels, so the edges do not smear across two of them.
+        float ox = Mathf.Round((big - bw * scale) * .5f / Super) * Super, oy = Mathf.Round((big - bh * scale) * .5f / Super) * Super;
+        Vector4 Sample(float sx, float sy)   // premultiplied, bilinear, outside = clear
+        {
+            int ix = Mathf.FloorToInt(sx), iy = Mathf.FloorToInt(sy);
+            float fx = sx - ix, fy = sy - iy;
+            Vector4 Get(int x, int y)
+            {
+                if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return Vector4.zero;
+                var c = px[y * W + x];
+                float a = c.a / 255f;
+                return new Vector4(c.r * a, c.g * a, c.b * a, a);
+            }
+            return Vector4.Lerp(Vector4.Lerp(Get(ix, iy), Get(ix + 1, iy), fx), Vector4.Lerp(Get(ix, iy + 1), Get(ix + 1, iy + 1), fx), fy);
+        }
+        for (int y = 0; y < big; y++)
+            for (int x = 0; x < big; x++)
+            {
+                float sx = x0 + (x + .5f - ox) / scale - .5f, sy = y0 + (y + .5f - oy) / scale - .5f;
+                var c = Sample(sx, sy);
+                byte R = (byte)Mathf.Clamp(c.x, 0, 255), G = (byte)Mathf.Clamp(c.y, 0, 255), B = (byte)Mathf.Clamp(c.z, 0, 255);
+                black[y * big + x] = new Color32(R, G, B, 255);
+                float bgw = (1 - c.w) * 255;
+                overWhite[y * big + x] = new Color32((byte)Mathf.Clamp(c.x + bgw, 0, 255), (byte)Mathf.Clamp(c.y + bgw, 0, 255), (byte)Mathf.Clamp(c.z + bgw, 0, 255), 255);
+            }
+        return black;
     }
 
     /// <summary>
@@ -194,6 +264,24 @@ public static class WhStockIconBaker
                 result[y * Size + x] = new Color32((byte)(c.r * 255), (byte)(c.g * 255), (byte)(c.b * 255), 255);
             }
         return result;
+    }
+
+    /// <summary>The outermost opaque pixels (touching transparency or the frame) take the contour colour.</summary>
+    static void RecolourRing(Color32[] p)
+    {
+        var copy = (Color32[])p.Clone();
+        for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+            {
+                if (copy[y * Size + x].a == 0) continue;
+                bool edge = false;
+                for (int d = 0; d < 4 && !edge; d++)
+                {
+                    int nx = x + (d == 0 ? 1 : d == 1 ? -1 : 0), ny = y + (d == 2 ? 1 : d == 3 ? -1 : 0);
+                    edge = nx < 0 || ny < 0 || nx >= Size || ny >= Size || copy[ny * Size + nx].a == 0;
+                }
+                if (edge) p[y * Size + x] = Outline;
+            }
     }
 
     /// <summary>A 1 px dark contour around the silhouette (like the world's loot drawings).</summary>
