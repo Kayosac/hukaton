@@ -13,6 +13,8 @@ namespace Hakaton.Decks
         readonly Queue<CardCopy> stock;
         readonly List<CardCopy> hand = new List<CardCopy>(), discard = new List<CardCopy>(), held = new List<CardCopy>();
         readonly Dictionary<int, int> heldSlots = new Dictionary<int, int>();
+        /// <summary>Held cards that come back only by being caught (Бумеранг), not merely because they have uses left.</summary>
+        readonly HashSet<int> catchOnly = new HashSet<int>();
         public int Capacity { get; }
         public int Total { get; }
         public int StockCount => stock.Count;
@@ -64,6 +66,7 @@ namespace Hakaton.Decks
             if (!(Prologue && card.Spec.Mergeable)) card.UsesLeft = Math.Max(0, card.UsesLeft - 1);
             if (card.UsesLeft > 0 || mayComeBack) { held.Add(card); heldSlots[card.Id] = slot; }
             else discard.Add(card);
+            if (mayComeBack) catchOnly.Add(card.Id);
             Fill();
             return card;
         }
@@ -76,7 +79,8 @@ namespace Hakaton.Decks
         {
             var card = held.Find(c => c.Id == id);
             if (card == null) return false;
-            if (card.UsesLeft <= 0)
+            // A card that comes back only by being caught and was not caught goes to the spent pile, uses or not.
+            if (catchOnly.Remove(id) || card.UsesLeft <= 0)
             {
                 held.Remove(card);
                 heldSlots.Remove(id);
@@ -89,14 +93,23 @@ namespace Hakaton.Decks
         }
 
         /// <summary>
-        /// A held card was caught on its way back (Бумеранг): the use its throw took is given back and the same copy
-        /// returns to its place in the hand. False when it was not held.
+        /// A held card was caught on its way back (Бумеранг): with uses left the same copy returns to its place in the
+        /// hand (the throw still spent its use: uses are the number of throws, so the returns are one fewer); caught on
+        /// its last use it goes to the spent pile. False when it was not held or did not come back to the hand.
         /// </summary>
         internal bool Catch(int id)
         {
             var card = held.Find(c => c.Id == id);
             if (card == null) return false;
-            if (card.UsesLeft < int.MaxValue) card.UsesLeft++;
+            catchOnly.Remove(id);
+            if (card.UsesLeft <= 0)
+            {
+                held.Remove(card);
+                heldSlots.Remove(id);
+                discard.Add(card);
+                Fill();
+                return false;
+            }
             BackToHand(card);
             return true;
         }

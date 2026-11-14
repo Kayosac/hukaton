@@ -180,7 +180,22 @@ namespace Hakaton.Expeditions.Cards
         readonly System.Collections.Generic.HashSet<object> there = new System.Collections.Generic.HashSet<object>(),
             back = new System.Collections.Generic.HashSet<object>();
 
-        /// <summary>True, если этого ещё не ранили на этом отрезке (и теперь он отмечен).</summary>
-        public bool TryHit(object target, bool returning) => target != null && (returning ? back : there).Add(target);
+        readonly System.Collections.Generic.HashSet<object> anyone = new System.Collections.Generic.HashSet<object>();
+
+        /// <summary>Сколько разных существ ранено за полёт.</summary>
+        public int Distinct => anyone.Count;
+
+        /// <summary>
+        /// True, если этого ещё не ранили на этом отрезке (и теперь он отмечен). Новое существо — только пока разных
+        /// раненых меньше <paramref name="maxTargets"/>; уже раненого можно задеть и на обратном пути.
+        /// </summary>
+        public bool TryHit(object target, bool returning, int maxTargets = int.MaxValue)
+        {
+            if (target == null) return false;
+            if (!anyone.Contains(target) && anyone.Count >= maxTargets) return false;
+            if (!(returning ? back : there).Add(target)) return false;
+            anyone.Add(target);
+            return true;
+        }
     }
 }
