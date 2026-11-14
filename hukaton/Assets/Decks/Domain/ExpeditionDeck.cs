@@ -49,7 +49,12 @@ namespace Hakaton.Decks
             if (!Prologue && stock.Count == 0 && hand.Count == 0 && held.Count == 0) hand.Add(CardCopy.Return());
         }
 
-        internal CardCopy Release(int id)
+        /// <param name="mayComeBack">
+        /// The throw itself may bring the card back (Бумеранг, caught on its way back): the card is held while it flies
+        /// even with no uses left, so nothing is drawn into its place; <see cref="Catch"/> returns it to the hand,
+        /// <see cref="Settle"/> without a catch sends it to the spent pile.
+        /// </param>
+        internal CardCopy Release(int id, bool mayComeBack = false)
         {
             var card = hand.Find(c => c.Id == id && !c.IsReturn);
             if (card == null) return null;
@@ -57,23 +62,62 @@ namespace Hakaton.Decks
             hand.Remove(card);
             // In the prologue a spell is never used up: it comes back once its throw is over.
             if (!(Prologue && card.Spec.Mergeable)) card.UsesLeft = Math.Max(0, card.UsesLeft - 1);
-            if (card.UsesLeft > 0) { held.Add(card); heldSlots[card.Id] = slot; }
+            if (card.UsesLeft > 0 || mayComeBack) { held.Add(card); heldSlots[card.Id] = slot; }
             else discard.Add(card);
             Fill();
             return card;
         }
 
-        /// <summary>Brings a held card back to the hand. False when it was not held (already back, or spent).</summary>
+        /// <summary>
+        /// The attempt of a held card is over: with uses left it comes back to the hand; a card that could only come
+        /// back by being caught (no uses left) goes to the spent pile. False when it was not held (already back, or spent).
+        /// </summary>
         internal bool Settle(int id)
         {
             var card = held.Find(c => c.Id == id);
             if (card == null) return false;
+            if (card.UsesLeft <= 0)
+            {
+                held.Remove(card);
+                heldSlots.Remove(id);
+                discard.Add(card);
+                Fill();
+                return false;
+            }
+            BackToHand(card);
+            return true;
+        }
+
+        /// <summary>
+        /// A held card was caught on its way back (Бумеранг): the use its throw took is given back and the same copy
+        /// returns to its place in the hand. False when it was not held.
+        /// </summary>
+        internal bool Catch(int id)
+        {
+            var card = held.Find(c => c.Id == id);
+            if (card == null) return false;
+            if (card.UsesLeft < int.MaxValue) card.UsesLeft++;
+            BackToHand(card);
+            return true;
+        }
+
+        void BackToHand(CardCopy card)
+        {
             held.Remove(card);
             hand.RemoveAll(c => c.IsReturn);
             // Back to the place it left from, so the fan does not reshuffle under the player's fingers.
-            int slot = heldSlots.TryGetValue(id, out var at) ? at : hand.Count;
-            heldSlots.Remove(id);
+            int slot = heldSlots.TryGetValue(card.Id, out var at) ? at : hand.Count;
+            heldSlots.Remove(card.Id);
             hand.Insert(Math.Min(slot, hand.Count), card);
+        }
+
+        /// <summary>Takes a copy out of the hand without playing it (a debug tool swapping its temporary card).</summary>
+        internal bool Withdraw(int id)
+        {
+            var card = hand.Find(c => c.Id == id && !c.IsReturn);
+            if (card == null) return false;
+            hand.Remove(card);
+            Fill();
             return true;
         }
 
@@ -153,10 +197,11 @@ namespace Hakaton.Decks
 
         public bool Prologue => Deck.Prologue;
 
-        public CardCopy Release(int id)
+        /// <param name="mayComeBack">The throw may bring the card back by itself (Бумеранг): see <see cref="Catch"/>.</param>
+        public CardCopy Release(int id, bool mayComeBack = false)
         {
             if (Completed) return null;
-            var card = Deck.Release(id);
+            var card = Deck.Release(id, mayComeBack);
             if (card == null) return null;
             PlayedCount++;
             CardReleased?.Invoke(card);
@@ -165,6 +210,18 @@ namespace Hakaton.Decks
 
         /// <summary>The thrown card's attempt is over (hit, miss or gone): a card with uses left returns to the hand.</summary>
         public bool Settle(int id) => !Completed && Deck.Settle(id);
+
+        /// <summary>
+        /// A card that flew back was caught (Бумеранг): the same copy returns to the hand with the use its throw took.
+        /// False when it was not in the air or the outing is over.
+        /// </summary>
+        public bool Catch(int id) => !Completed && Deck.Catch(id);
+
+        /// <summary>
+        /// Takes a temporary copy (<see cref="GrantToHand"/>) out of the hand without playing it: debug tools swap their
+        /// card this way. Owned copies are refused.
+        /// </summary>
+        public bool Withdraw(int id) => !Completed && id <= -1000 && Deck.Withdraw(id);
 
         /// <summary>The Shuffle debuff: the hand's order is mixed up. False with fewer than two cards or after the end.</summary>
         public bool ShuffleHand(Random random) => !Completed && Deck.ShuffleHand(random);

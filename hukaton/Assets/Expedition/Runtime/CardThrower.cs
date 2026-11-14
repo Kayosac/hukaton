@@ -62,12 +62,12 @@ namespace Hakaton.Expeditions
         int selectedId = int.MinValue, selectedIndex;
         float returnReadyAt, nextDiscard;
         bool returnWasInHand, fullChargeCued;
-        readonly Vector3[] previewPoints = new Vector3[64];
+        readonly Vector3[] previewPoints = new Vector3[128];
         readonly Gradient previewGradient = new Gradient();
         readonly GradientColorKey[] previewColours = new GradientColorKey[2];
         readonly GradientAlphaKey[] previewAlphas = new GradientAlphaKey[6];
         // The preview as drawn: one vertex per piece, a fixed screen length apart.
-        const int MaxDashPoints = 256, WidthKeys = 24;
+        const int MaxDashPoints = 512, WidthKeys = 24;
         readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
         // Length of the drawn line from its start to each dash point, metres (the LineRenderer keys width and colour by it).
         readonly float[] dashLengths = new float[MaxDashPoints];
@@ -180,7 +180,9 @@ namespace Hakaton.Expeditions
                 if (crooked) world.Play(crooked.tickCue);
             }
             Cancel();
-            if (world.workshop.Model.Current.Release(card.Id) == null) return null;
+            // A card whose throw may bring it back (Бумеранг) is held while it flies.
+            bool mayComeBack = CustomFlight(card) is ICustomFlight custom && custom.MayComeBack;
+            if (world.workshop.Model.Current.Release(card.Id, mayComeBack) == null) return null;
             world.hand.Take(card.Id, out var handPose, out var handView);
             var projectile = world.Launch(card, origin, velocity, handView, handView ? handPose : (Pose?)null);
 
@@ -296,6 +298,25 @@ namespace Hakaton.Expeditions
             trajectory.enabled = show;
             if (!show) return;
             ComputeLaunch(Preparation.Charge, out var position, out var velocity);
+            int used;
+            // A card with its own flight (Бумеранг) shows that whole path, there and back.
+            if (CustomFlight(card) is ICustomFlight custom)
+                used = Mathf.Clamp(custom.PreviewPath(new CardFlightLaunch(world, card, world.workshop.config.Find(card.Spec.Id), position, velocity), previewPoints), 1, previewPoints.Length);
+            else used = BallisticPreview(position, velocity);
+            DrawPreview(card, used);
+        }
+
+        /// <summary>The effect of the card's definition when it flies its own way, else null.</summary>
+        ICustomFlight CustomFlight(CardCopy card)
+        {
+            if (card == null || card.IsReturn) return null;
+            var definition = world.workshop.config.Find(card.Spec.Id);
+            return definition ? definition.effectAsset as ICustomFlight : null;
+        }
+
+        /// <summary>The first moments of the ordinary ballistic flight, up to the first contact.</summary>
+        int BallisticPreview(Vector3 position, Vector3 velocity)
+        {
             float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge);
             int count = Mathf.Clamp(Mathf.CeilToInt(seconds / (1f / 50f)), 2, previewPoints.Length);
             float step = seconds / (count - 1);
@@ -314,6 +335,11 @@ namespace Hakaton.Expeditions
                 velocity = nextVelocity;
                 previewPoints[used++] = position;
             }
+            return used;
+        }
+
+        void DrawPreview(CardCopy card, int used)
+        {
             var view = world.viewCamera;
             used = TrimStart(used, previewStartOffset);
             int dashes = view ? LayOutDashes(view, used) : 0;
