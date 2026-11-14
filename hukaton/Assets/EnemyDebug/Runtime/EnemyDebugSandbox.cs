@@ -136,6 +136,8 @@ namespace Hakaton.EnemyDebug
             creature.name = source.name + " [live]";
             creature.world = world;
             creature.ResetForOuting(null);
+            // An ambusher that hides among copies of its disguise (the rat pumpkin's patch) brings them along.
+            creature.LayOutCompanions(liveRoot, new System.Random(live.Count * 31 + 5), null);
             live.Add(creature);
             world.creatures.Clear();
             world.creatures.AddRange(live);

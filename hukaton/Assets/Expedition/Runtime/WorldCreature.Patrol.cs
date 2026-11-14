@@ -243,18 +243,19 @@ namespace Hakaton.Expeditions
             goal = target;
             if (squad == null || !patrol.flank || distance <= contactRange) return false;
             int place = 0, fighting = 0;
-            Vector3 centre = Vector3.zero;
+            WorldCreature head = null;
             foreach (var mate in squad.Members)
             {
                 if (!mate || !mate.Alive || !mate.isActiveAndEnabled || mate.IsCalm) continue;
                 if (mate == this) place = fighting;
+                if (!head) head = mate;
                 fighting++;
-                centre += mate.Position;
             }
-            if (fighting < 2) return false;
+            if (fighting < 2 || !head) return false;
             float turn = flankTurns[place % flankTurns.Length];
             if (turn == 0) return false;
-            Vector3 from = Flat(centre / fighting - target);
+            // The sides are taken round the one that comes head on: it runs straight at the target, so its line holds still.
+            Vector3 from = Flat(head.Position - target);
             if (from.sqrMagnitude < .01f) from = Flat(body.position - target);
             if (from.sqrMagnitude < .01f) return false;
             Vector3 side = Quaternion.Euler(0, turn, 0) * from.normalized;

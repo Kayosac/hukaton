@@ -56,6 +56,8 @@ namespace Hakaton.Expeditions
         [Min(0)] public float stunSeconds;
 
         [Header("Puddle")]
+        [Tooltip("The puddle it leaves where it lands (a prefab with EnemyPuddle). Empty: none.")]
+        public EnemyPuddle puddle;
         [Tooltip("Leaves a puddle where it lands, this radius in metres (the dwarf's beer). 0: none.")]
         [Min(0)] public float puddleRadius;
         [Tooltip("How long the puddle lies, seconds.")]

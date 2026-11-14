@@ -128,6 +128,38 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator HostileBushWearsAForestBushUntilItSprings()
+        {
+            var bush = Spawn("Hostile bush");
+            yield return Stand(bush, 6);
+            yield return Wait(.5f);
+            Assert.That(bush.Disguised, Is.True, "lying in wait it is a bush");
+            Assert.That(bush.view.gameObject.activeSelf, Is.False, "its drawing is hidden");
+            var worn = bush.ambush.disguises.Single(d => d.activeSelf);
+            Assert.That(worn.name, Does.StartWith("FA_VG0"), "it wears one of the forest's own bushes");
+            Assert.That(worn.GetComponentsInChildren<Collider>().Length, Is.Zero, "the look has no body of its own");
+            yield return Stand(bush, 2.4f);
+            float until = Time.time + 3;
+            while (Time.time < until && bush.Disguised) yield return null;
+            Assert.That(bush.Disguised, Is.False, "close up it throws the disguise off");
+            Assert.That(bush.view.gameObject.activeSelf, Is.True);
+            Assert.That(worn.activeSelf, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator RatPumpkinLiesInAPatchOfRealPumpkins()
+        {
+            var rat = Spawn("Rat pumpkin");
+            yield return Stand(rat, 6);
+            yield return Wait(.5f);
+            Assert.That(rat.Disguised, Is.True, "lying in wait it is a pumpkin");
+            Assert.That(rat.view.gameObject.activeSelf, Is.False);
+            var mesh = rat.ambush.disguises[0].GetComponentInChildren<MeshFilter>(true).sharedMesh;
+            int pumpkins = Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Count(m => m.sharedMesh == mesh && m.gameObject.activeInHierarchy);
+            Assert.That(pumpkins, Is.GreaterThanOrEqualTo(3), "its own pumpkin among at least two real ones");
+        }
+
+        [UnityTest]
         public IEnumerator ClownVanishesAndDivesFromTheSide()
         {
             var clown = Spawn("Floating clown emoji");

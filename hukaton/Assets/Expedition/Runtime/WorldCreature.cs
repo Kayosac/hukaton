@@ -1181,6 +1181,8 @@ namespace Hakaton.Expeditions
         void LateUpdate()
         {
             if (appliedSize != CurrentSize) ApplySize();
+            // An ambusher in disguise shows its 3D look instead of its drawing (WorldCreature.Ambush.cs).
+            UpdateDisguise();
             if (flying) UpdateShadow();
             Fire.Tick();
             if (!world || dying || !view) return;

@@ -231,7 +231,7 @@ namespace Hakaton.Expeditions
                     Hit(fighter, point, away.sqrMagnitude > .01f ? away.normalized : flight);
                 }
             }
-            if (profile.puddleRadius > 0) EnemyPuddle.Spawn(world, point, profile, shooter);
+            if (profile.puddle && profile.puddleRadius > 0) EnemyPuddle.Spawn(world, point, profile, shooter);
             world.Spawn(profile.impact, point + normal * .05f, Quaternion.LookRotation(normal.sqrMagnitude > 1e-4f ? normal : Vector3.up), profile.impactTint, profile.effectScale);
             world.Play(profile.impactCue, point);
             End();

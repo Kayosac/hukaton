@@ -855,6 +855,8 @@ namespace Hakaton.WorldAssembly.Unity
                     // A leech goes under the nearest water instead.
                     if (creature.ambush.inWater) creature.HideInWater(entry.view.obstacles, cover, !remembered);
                     else if (creature.ambush.enabled) creature.HideIn(entry.view.burnables, cover, !remembered);
+                    // One hiding among copies of its disguise (the rat pumpkin's patch) lays them out round its spot.
+                    if (creature.ambush.companion) creature.LayOutCompanions(entry.view.transform, new System.Random((int)(Pick(plan.Coord, 90 + k) & 0x7fffffff)), taken);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
                     group.Add(creature);
