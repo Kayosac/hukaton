@@ -15,7 +15,8 @@ namespace Hakaton.WorldAssembly
 
     /// <summary>
     /// Where the biomes lie (Kayospace «Биом: Гнилая топь»): patches of rotten swamp of every size, from a few chunks
-    /// to more than a district, from ring 1 outwards and more of them further out; never in ring 0 or at the start.
+    /// to more than a district, from ring 2 outwards and more of them further out (about 20% of 112–176 m, 40% of
+    /// 176–240 m, 60% further out); never in rings 0 and 1 or at the start.
     /// A pure function of the seed and the chunk, so neighbours always agree. A swamp chunk is flat and low (the
     /// corner field presses its corners down), so the swamp is a basin rimmed by forested slopes.
     /// </summary>
@@ -159,13 +160,39 @@ namespace Hakaton.WorldAssembly
                 if (d >= rules.SwampFrom)
                 {
                     double t = Math.Min(1, Math.Max(0, (d - rules.SwampFrom) / Math.Max(1, rules.SwampFull - rules.SwampFrom)));
-                    double threshold = rules.SwampThresholdNear + (rules.SwampThresholdFar - rules.SwampThresholdNear) * t;
-                    swamp = Noise(c.X, c.Y) > threshold;
+                    double share = rules.SwampShareNear + (rules.SwampShareFar - rules.SwampShareNear) * t;
+                    swamp = Noise(c.X, c.Y) > ThresholdForShare(share);
                 }
             }
             raw[c] = swamp;
             return swamp;
         }
+
+        /// <summary>
+        /// Swamp noise threshold that leaves about <paramref name="share"/> of the chunks swamp once lone chunks are
+        /// trimmed and patches take their corners (<see cref="At"/>). Measured with the generator over 30 worlds for
+        /// the default noise cells (<see cref="WorldRules.SwampNoiseCell"/> 7): remeasure if those change.
+        /// </summary>
+        public static double ThresholdForShare(double share)
+        {
+            share = Math.Max(0, Math.Min(1, share));
+            if (share <= ShareCurve[0].share) return ShareCurve[0].threshold;
+            for (int i = 1; i < ShareCurve.Length; i++)
+                if (share <= ShareCurve[i].share)
+                {
+                    var (s0, t0) = ShareCurve[i - 1];
+                    var (s1, t1) = ShareCurve[i];
+                    return t0 + (t1 - t0) * (share - s0) / (s1 - s0);
+                }
+            return ShareCurve[ShareCurve.Length - 1].threshold;
+        }
+
+        static readonly (double share, double threshold)[] ShareCurve =
+        {
+            (.021, .8), (.035, .775), (.053, .75), (.077, .725), (.106, .7), (.141, .675), (.18, .65), (.225, .625),
+            (.273, .6), (.326, .575), (.38, .55), (.436, .525), (.494, .5), (.551, .475), (.609, .45), (.664, .425),
+            (.718, .4), (.767, .375), (.81, .35), (.849, .325), (.884, .3),
+        };
 
         /// <summary>Swamp noise in [0, 1]: large blobs with a finer ragged edge.</summary>
         public double Noise(int x, int y)

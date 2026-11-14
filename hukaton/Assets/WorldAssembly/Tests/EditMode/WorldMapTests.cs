@@ -439,7 +439,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void SwampLiesInPatchesFromRingTwoOutward()
         {
-            int[] swamp = new int[3], total = new int[3];
+            int[] swamp = new int[3], total = new int[3], bandSwamp = new int[3], bandTotal = new int[3];
             int bigPatches = 0;
             for (int seed = 1; seed <= 30; seed++)
             {
@@ -449,8 +449,12 @@ namespace Hakaton.WorldAssembly.Tests
                 {
                     var plan = map.Chunk(c);
                     total[plan.Ring]++;
+                    double metres = Math.Sqrt(c.X * c.X + c.Y * c.Y) * map.Rules.ChunkSize;
+                    int band = metres < 112 ? -1 : metres < 176 ? 0 : metres < 240 ? 1 : 2;
+                    if (band >= 0) bandTotal[band]++;
                     if (plan.Biome != Biome.Swamp) continue;
                     swamp[plan.Ring]++;
+                    if (band >= 0) bandSwamp[band]++;
                     cells.Add(c);
                     Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: swamp at the start {c}");
                     // No lone swamp chunk.
@@ -479,8 +483,11 @@ namespace Hakaton.WorldAssembly.Tests
             }
             Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
             Assert.AreEqual(0, swamp[1], "no swamp in ring 1: it begins with ring 2");
-            double ring2 = swamp[2] / (double)total[2];
-            Assert.That(ring2, Is.InRange(.15, .45), "swamp patches in ring 2");
+            // Its share grows linearly with distance: about 20% of 112–176 m, 40% of 176–240 m, 60% further out.
+            double near = bandSwamp[0] / (double)bandTotal[0], middle = bandSwamp[1] / (double)bandTotal[1], far = bandSwamp[2] / (double)bandTotal[2];
+            Assert.That(near, Is.InRange(.12, .28), "about a fifth of 112–176 m is swamp");
+            Assert.That(middle, Is.InRange(.32, .48), "about two fifths of 176–240 m");
+            Assert.That(far, Is.InRange(.52, .68), "about three fifths from 240 m on");
             Assert.Greater(bigPatches, 0, "some patches are bigger than a district");
         }
 
