@@ -41,14 +41,14 @@ namespace Hakaton.Expeditions
         public GameObject[] disguises = new GameObject[0];
         [Tooltip("In disguise it stands next to its cover instead of inside it: this far from the plant's middle, metres, per unit of the plant's scale.")]
         [Min(0)] public float besideCover = 1.3f;
-        [Tooltip("Copies of its disguise laid out round where it appears (a pumpkin patch), so it is one among many.")]
-        public GameObject companion;
-        [Tooltip("How many copies each one lays out: from and to.")]
-        public Vector2Int companions = new Vector2Int(1, 2);
-        [Tooltip("The copies lie this far from it at most, metres.")]
-        [Min(.5f)] public float companionRadius = 2.6f;
-        [Tooltip("The copies keep at least this far from each other and from creatures, metres.")]
-        [Min(.2f)] public float companionSpacing = 1.1f;
+        [Tooltip("Props like its disguise laid out round its group where it appears (a pumpkin patch), so it is one among many. Empty: none.")]
+        public GameObject[] patch = new GameObject[0];
+        [Tooltip("Props in the patch besides the creatures themselves: from and to.")]
+        public Vector2Int patchExtra = new Vector2Int(3, 5);
+        [Tooltip("The patch lies this far round its centre at most, metres.")]
+        [Min(.5f)] public float patchRadius = 3;
+        [Tooltip("Props keep at least this far from each other and from creatures, metres.")]
+        [Min(.2f)] public float patchSpacing = 1.1f;
         [Tooltip("The burst when it throws off its disguise (leaves for a bush). Empty: a puff of dust.")]
         public VfxBurst revealVfx;
     }
@@ -312,31 +312,16 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
-        /// Lays out copies of its disguise round its home (a pumpkin patch), away from <paramref name="taken"/> spots
-        /// (other creatures and copies), under <paramref name="parent"/>. Returns how many it laid.
+        /// Lays out its group's patch (<see cref="AmbushSettings.patch"/>) round <paramref name="centre"/>, away from
+        /// <paramref name="taken"/> spots (the creatures of the group and anything already laid), under <paramref name="parent"/>.
+        /// Returns how many props it laid.
         /// </summary>
-        public int LayOutCompanions(Transform parent, System.Random random, List<Vector3> taken)
+        public int LayOutPatch(Vector3 centre, Transform parent, System.Random random, List<Vector3> taken)
         {
-            if (!ambush.companion) return 0;
-            int low = Mathf.Min(ambush.companions.x, ambush.companions.y), high = Mathf.Max(ambush.companions.x, ambush.companions.y);
-            int count = low + (int)(random.NextDouble() * (high - low + 1));
-            int laid = 0;
-            for (int n = 0, tries = 0; n < count && tries < count * 10; tries++)
-            {
-                double a = random.NextDouble() * Math.PI * 2, r = ambush.companionSpacing + random.NextDouble() * (ambush.companionRadius - ambush.companionSpacing);
-                var probe = home + new Vector3((float)Math.Cos(a), 0, (float)Math.Sin(a)) * (float)r;
-                if (!NavMesh.SamplePosition(probe, out var hit, 1, NavMesh.AllAreas)) continue;
-                bool free = true;
-                if (taken != null) foreach (var other in taken) if (Flat(other - hit.position).magnitude < ambush.companionSpacing) { free = false; break; }
-                if (Flat(home - hit.position).magnitude < ambush.companionSpacing) free = false;
-                if (!free) continue;
-                var copy = Instantiate(ambush.companion, hit.position, Quaternion.Euler(0, (float)random.NextDouble() * 360, 0), parent);
-                copy.transform.localScale *= .85f + (float)random.NextDouble() * .3f;
-                taken?.Add(hit.position);
-                n++;
-                laid++;
-            }
-            return laid;
+            if (ambush.patch == null || ambush.patch.Length == 0) return 0;
+            int low = Mathf.Min(ambush.patchExtra.x, ambush.patchExtra.y), high = Mathf.Max(ambush.patchExtra.x, ambush.patchExtra.y);
+            int count = low + random.Next(high - low + 1);
+            return PropPatch.Lay(ambush.patch, centre, ambush.patchRadius, ambush.patchSpacing, count, parent, random, taken);
         }
 
         bool IsCover(string name)

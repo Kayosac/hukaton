@@ -507,6 +507,7 @@ namespace Hakaton.WorldAssembly.Unity
             SpawnWisp(entry);
             SpawnEvent(entry, mem);
             SpawnCreatures(entry, mem);
+            LayPatches(entry);
             PaintRoads(entry, coord);
             if (mem != null)
             {
@@ -855,14 +856,45 @@ namespace Hakaton.WorldAssembly.Unity
                     // A leech goes under the nearest water instead.
                     if (creature.ambush.inWater) creature.HideInWater(entry.view.obstacles, cover, !remembered);
                     else if (creature.ambush.enabled) creature.HideIn(entry.view.burnables, cover, !remembered);
-                    // One hiding among copies of its disguise (the rat pumpkin's patch) lays them out round its spot.
-                    if (creature.ambush.companion) creature.LayOutCompanions(entry.view.transform, new System.Random((int)(Pick(plan.Coord, 90 + k) & 0x7fffffff)), taken);
                     entry.creatures.Add((k, creature));
                     world.creatures.Add(creature);
                     group.Add(creature);
                 }
+                // Ambushers that hide among props like their disguise (rat pumpkins) lie in a patch of them.
+                if (prefab && prefab.ambush.patch.Length > 0 && group.Count > 0)
+                    group[0].LayOutPatch(centre, entry.view.transform, new System.Random((int)(Pick(plan.Coord, 90 + g) & 0x7fffffff)), taken);
                 // Squad creatures (giant dung beetles) walk a route round their spot together.
                 if (prefab && prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, (int)(Pick(plan.Coord, 80 + g) & 0x7fffffff));
+            }
+        }
+
+        /// <summary>
+        /// Empty prop patches of the place (pumpkin patches on farms and in villages, WorldContent.patches): laid the same
+        /// way every time the chunk loads, round its creature spots but apart from the creatures, so a patch alone gives
+        /// nothing away.
+        /// </summary>
+        void LayPatches(Loaded entry)
+        {
+            var plan = entry.plan;
+            var sockets = entry.view.creatureSockets;
+            if (!content || string.IsNullOrEmpty(plan.Theme) || sockets.Length == 0) return;
+            foreach (var kind in content.patches)
+            {
+                if (kind.themes == null || System.Array.IndexOf(kind.themes, plan.Theme) < 0 || kind.props == null || kind.props.Length == 0) continue;
+                var random = new System.Random((int)(Pick(plan.Coord, 110) & 0x7fffffff));
+                var taken = new List<Vector3>();
+                foreach (var (_, creature) in entry.creatures) if (creature) taken.Add(creature.Position);
+                int low = Mathf.Min(kind.patches.x, kind.patches.y), high = Mathf.Max(kind.patches.x, kind.patches.y);
+                int patches = low + random.Next(high - low + 1);
+                for (int i = 0; i < patches; i++)
+                {
+                    var socket = sockets[random.Next(sockets.Length)];
+                    double a = random.NextDouble() * System.Math.PI * 2, r = 4 + random.NextDouble() * 5;
+                    var probe = socket.position + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * (float)r;
+                    if (!NavMesh.SamplePosition(probe, out var hit, 3, NavMesh.AllAreas)) continue;
+                    int lowP = Mathf.Min(kind.perPatch.x, kind.perPatch.y), highP = Mathf.Max(kind.perPatch.x, kind.perPatch.y);
+                    PropPatch.Lay(kind.props, hit.position, kind.radius, kind.spacing, lowP + random.Next(highP - lowP + 1), entry.view.transform, random, taken);
+                }
             }
         }
 

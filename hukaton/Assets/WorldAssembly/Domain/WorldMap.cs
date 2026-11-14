@@ -23,6 +23,8 @@ namespace Hakaton.WorldAssembly
         /// <summary>World edge middles by side.</summary>
         public Mid[] Mids = new Mid[4];
         public bool MazeHeart;
+        /// <summary>Who lives here and what lies about (CreatureThemes): farm, camp, swamp-bog, …; null where nothing does.</summary>
+        public string Theme;
         /// <summary>Creature groups living here (see <see cref="CreatureThemes"/>); empty for none.</summary>
         public readonly List<Spawn> Spawns = new List<Spawn>();
         /// <summary>Loot to place: item ids ("find", "find-hard", "crystal").</summary>
@@ -315,6 +317,7 @@ namespace Hakaton.WorldAssembly
         {
             var c = plan.Coord;
             plan.Spawns.Clear();
+            plan.Theme = null;
             plan.Loot.Clear();
             plan.PocketReward = null;
             plan.Event = null;
@@ -351,6 +354,7 @@ namespace Hakaton.WorldAssembly
                     break;
                 }
             }
+            plan.Theme = theme;
             if (theme != null && creatureRoll < chance)
             {
                 var picked = CreatureThemes.Pick(theme, ring, pick);

@@ -154,9 +154,10 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             yield return Wait(.5f);
             Assert.That(rat.Disguised, Is.True, "lying in wait it is a pumpkin");
             Assert.That(rat.view.gameObject.activeSelf, Is.False);
-            var mesh = rat.ambush.disguises[0].GetComponentInChildren<MeshFilter>(true).sharedMesh;
-            int pumpkins = Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Count(m => m.sharedMesh == mesh && m.gameObject.activeInHierarchy);
-            Assert.That(pumpkins, Is.GreaterThanOrEqualTo(3), "its own pumpkin among at least two real ones");
+            var meshes = rat.ambush.disguises.Select(d => d.GetComponentInChildren<MeshFilter>(true).sharedMesh).ToList();
+            Assert.That(meshes.Distinct().Count(), Is.EqualTo(3), "three kinds of pumpkin");
+            int pumpkins = Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Count(m => meshes.Contains(m.sharedMesh) && m.gameObject.activeInHierarchy);
+            Assert.That(pumpkins, Is.GreaterThanOrEqualTo(4), "its own pumpkin among at least three real ones");
         }
 
         [UnityTest]

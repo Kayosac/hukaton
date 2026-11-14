@@ -26,8 +26,25 @@ namespace Hakaton.WorldAssembly.Unity
             public WorldCreature[] prefabs;
         }
 
+        [Serializable]
+        public struct PatchEntry
+        {
+            [Tooltip("Places (creature themes: farm, village, …) that have these patches.")]
+            public string[] themes;
+            [Tooltip("Props the patches are made of (the pumpkins), picked at random.")]
+            public GameObject[] props;
+            [Tooltip("Patches in one chunk: from and to.")]
+            public Vector2Int patches;
+            [Tooltip("Props in one patch: from and to.")]
+            public Vector2Int perPatch;
+            [Tooltip("A patch lies this far round its centre at most, and its props this far apart at least, metres.")]
+            public float radius, spacing;
+        }
+
         public List<LootEntry> loot = new List<LootEntry>();
         public List<CreatureEntry> creatures = new List<CreatureEntry>();
+        [Tooltip("Empty prop patches of a place (pumpkin patches on farms and in villages): the rat pumpkins hide in ones just like them.")]
+        public List<PatchEntry> patches = new List<PatchEntry>();
         [Tooltip("Looping sparkle over a hard-won find (landmark rewards, card places).")]
         public GameObject hardGlow;
         [Tooltip("Looping sparkle over a crystal.")]
