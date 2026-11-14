@@ -31,7 +31,6 @@ namespace Hakaton.WorldAssembly.EditorTools
             content.dragonflies = Dragonflies();
             content.midges = AssetDatabase.LoadAssetAtPath<GameObject>(Retro + "Insects/Flies.prefab");
             content.wisp = Wisp();
-            content.sunkenBubbles = AssetDatabase.LoadAssetAtPath<GameObject>(Retro + "Bubbles/Stream/WaterBubbleStream.prefab");
             content.swampLook = Look();
         }
 

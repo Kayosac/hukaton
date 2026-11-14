@@ -14,7 +14,6 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("The water's surface over it, world y.")]
         public float level;
         public Transform player;
-        public GameObject bubbles;
 
         Rigidbody body;
         public bool Afloat { get; private set; }
@@ -27,11 +26,7 @@ namespace Hakaton.WorldAssembly.Unity
             var centre = body.worldCenterOfMass;
             float depth = level - centre.y;
             // Pulled out of the silt: it floats from now on.
-            if (!Afloat && body.linearVelocity.sqrMagnitude > .3f)
-            {
-                Afloat = true;
-                if (bubbles) Destroy(bubbles);
-            }
+            if (!Afloat && body.linearVelocity.sqrMagnitude > .3f) Afloat = true;
             if (depth > -.1f)
             {
                 body.linearDamping = 2.5f;
