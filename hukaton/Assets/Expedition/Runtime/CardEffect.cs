@@ -87,15 +87,17 @@ namespace Hakaton.Expeditions
 
         public abstract void Apply(in ImpactContext context);
 
-        protected void Feedback(in ImpactContext c, bool meaningful, float scale = 1)
+        /// <summary>Effect, sound, shake and hit-stop of a landing; returns the spawned effect (null when none is assigned).</summary>
+        protected VfxBurst Feedback(in ImpactContext c, bool meaningful, float scale = 1)
         {
             var world = c.World;
-            world.Spawn(impactVfx, c.Point + c.Normal * .05f, Quaternion.LookRotation(c.Normal), c.Accent, vfxScale * scale);
+            var burst = world.Spawn(impactVfx, c.Point + c.Normal * .05f, Quaternion.LookRotation(c.Normal), c.Accent, vfxScale * scale);
             world.Play(meaningful || !missSound ? impactSound : missSound, c.Point);
             float distance = Vector3.Distance(world.viewCamera.transform.position, c.Point);
             float proximity = Mathf.Clamp01(1.4f - distance / 16f);
             if (world.feel) world.feel.AddTrauma((meaningful ? hitShake : shake) * proximity);
             if (meaningful && hitStop > 0 && world.time) world.time.HitStop(hitStop);
+            return burst;
         }
     }
 }

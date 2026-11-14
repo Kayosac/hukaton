@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Hakaton.Decks;
 using Hakaton.Decks.Unity;
 using Hakaton.Feel;
 using UnityEngine;
@@ -17,6 +18,8 @@ namespace Hakaton.Expeditions.Cards
     /// В первый миг карты раскрываются из руки веером (<see cref="handSpreadDegrees"/>), камеру слегка ведёт вбок, к
     /// обычному взмаху броска добавляются наложенные взмахи выше тоном.
     /// Эхо, повторяя Веер, бьёт в своей точке сразу всеми картами веера (её уровня) — как Веер в упор: 3 / 5 / 14 HP.
+    /// Несколько карт одного веера, попавших в одно существо почти разом (в упор), дают одну вспышку чуть крупнее
+    /// (<see cref="mergeSeconds"/>), один звук и одну тряску, а не 7 вспышек на весь экран.
     /// </summary>
     public sealed class FanEffect : CardEffect, ICardStatLine, ICardVolley
     {
@@ -33,6 +36,12 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float nudge = .8f;
         [Tooltip("Искры удара, повторённого Эхом (все карты разом), крупнее во столько раз.")]
         [Min(0)] public float echoVfxScale = 1.6f;
+        [Tooltip("Карты одного веера, попавшие в одно существо (или в одну стену) не дальше этого друг от друга по времени, дают одну общую вспышку, с.")]
+        [Min(0)] public float mergeSeconds = .1f;
+        [Tooltip("Общая вспышка крупнее на эту долю за каждую карту сверх первой…")]
+        [Min(0)] public float mergeGrowth = .1f;
+        [Tooltip("…но не больше, чем во столько раз.")]
+        [Min(1)] public float mergeMaxScale = 1.5f;
 
         [Header("Мах из руки")]
         [Tooltip("Наклон крайней карты в руке, когда веер раскрывается, градусов.")]
@@ -60,8 +69,66 @@ namespace Hakaton.Expeditions.Cards
             int hits = HitsPerImpact(echo, c.Level);
             Vector3 push = StrikeEffect.Flat(c.Direction) * nudge;
             bool meaningful = FanRules.Wound(c.Creature, c.TargetAs<ICardCreature>(), c.At(damage), hits, push, c.Point, c.ThrowOrigin);
-            Feedback(c, meaningful, (meaningful ? 1 : .6f) * (echo ? echoVfxScale : 1));
-            if (echo) Riffle(c.World, hits, c.Point);
+            if (echo)
+            {
+                Feedback(c, meaningful, (meaningful ? 1 : .6f) * echoVfxScale);
+                Riffle(c.World, hits, c.Point);
+            }
+            else Flash(c, meaningful);
+        }
+
+        // ---------- одна вспышка на пачку ----------
+
+        sealed class MergedFlash
+        {
+            public float time;
+            public int cards;
+            public VfxBurst burst;
+        }
+
+        static readonly Dictionary<(CardCopy, Object), MergedFlash> Flashes = new Dictionary<(CardCopy, Object), MergedFlash>();
+        static readonly List<(CardCopy, Object)> Stale = new List<(CardCopy, Object)>();
+
+        /// <summary>
+        /// Вспышка, звук и тряска попадания одной карты. Следующая карта того же веера в то же существо (или ту же
+        /// стену) раньше <see cref="mergeSeconds"/> не добавляет своей: прежняя вспышка заменяется одной чуть
+        /// крупнее (<see cref="FanRules.MergedScale"/>), без второго звука и тряски.
+        /// </summary>
+        void Flash(in ImpactContext c, bool meaningful)
+        {
+            float scale = meaningful ? 1 : .6f;
+            Object target = c.Creature ? c.Creature : c.TargetAs<ICardCreature>() as Object;
+            if (!target) target = c.Target;
+            if (c.Copy == null || !target || mergeSeconds <= 0)
+            {
+                Feedback(c, meaningful, scale);
+                return;
+            }
+            float now = Time.time;
+            Forget(now);
+            var key = (c.Copy, target);
+            if (Flashes.TryGetValue(key, out var flash) && FanRules.Merges(flash.time, now, mergeSeconds))
+            {
+                flash.cards++;
+                flash.time = now;
+                if (flash.burst) Destroy(flash.burst.gameObject);
+                flash.burst = c.World.Spawn(impactVfx, c.Point + c.Normal * .05f, Quaternion.LookRotation(c.Normal), c.Accent,
+                    vfxScale * scale * FanRules.MergedScale(flash.cards, mergeGrowth, mergeMaxScale));
+                return;
+            }
+            Flashes[key] = new MergedFlash { time = now, cards = 1, burst = Feedback(c, meaningful, scale) };
+        }
+
+        /// <summary>Сколько карт уже слилось в последнюю вспышку на этом существе от этой копии (0 — ни одной; тесты).</summary>
+        public static int MergedCards(CardCopy copy, Object target)
+            => copy != null && target && Flashes.TryGetValue((copy, target), out var flash) ? flash.cards : 0;
+
+        static void Forget(float now)
+        {
+            Stale.Clear();
+            foreach (var pair in Flashes)
+                if (now - pair.Value.time > 1 || !pair.Key.Item2) Stale.Add(pair.Key);
+            foreach (var key in Stale) Flashes.Remove(key);
         }
 
         /// <summary>Сколько карт бьёт в точку попадания: одна — или, при повторе Эхом, весь веер уровня <paramref name="level"/>.</summary>

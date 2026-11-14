@@ -30,6 +30,16 @@ namespace Hakaton.Expeditions.Cards
         public static int Centre(int count) => Mathf.Max(0, count - 1) / 2;
 
         /// <summary>
+        /// Попадание в <paramref name="now"/> сливается с вспышкой предыдущего (в <paramref name="lastHit"/>) той же копии
+        /// по тому же существу: не позже <paramref name="window"/> секунд после него (в упор вся пачка — почти разом).
+        /// </summary>
+        public static bool Merges(float lastHit, float now, float window) => now >= lastHit - 1e-4f && now - lastHit <= window + 1e-4f;
+
+        /// <summary>Размер общей вспышки <paramref name="cards"/> карт: на <paramref name="growth"/> крупнее за каждую сверх первой, не больше <paramref name="max"/>.</summary>
+        public static float MergedScale(int cards, float growth, float max)
+            => Mathf.Min(Mathf.Max(1, max), 1 + Mathf.Max(0, growth) * Mathf.Max(0, cards - 1));
+
+        /// <summary>
         /// Удар повторило Эхо: оно передаёт эффекту свою копию (id «echo») с определением повторяемой карты.
         /// </summary>
         public static bool IsEcho(string copyId, string definitionId)

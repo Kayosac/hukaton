@@ -278,6 +278,41 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void APointBlankPackShowsOneSomewhatBiggerFlash()
+        {
+            var effect = Effect();
+            Assert.That(effect.mergeSeconds, Is.EqualTo(.1f).Within(1e-4f), "карты одного веера в одно существо за 0,1 с — одна вспышка");
+            Assert.That(FanRules.Merges(10, 10.05f, .1f), Is.True);
+            Assert.That(FanRules.Merges(10, 10.1f, .1f), Is.True);
+            Assert.That(FanRules.Merges(10, 10.2f, .1f), Is.False, "позже — уже другая вспышка");
+            Assert.That(FanRules.MergedScale(1, effect.mergeGrowth, effect.mergeMaxScale), Is.EqualTo(1));
+            float seven = FanRules.MergedScale(7, effect.mergeGrowth, effect.mergeMaxScale);
+            Assert.That(seven, Is.GreaterThan(1.2f).And.LessThanOrEqualTo(1.6f), "7 карт — одна вспышка чуть крупнее, а не 7");
+            Assert.That(FanRules.MergedScale(3, effect.mergeGrowth, effect.mergeMaxScale), Is.LessThan(seven));
+        }
+
+        [Test]
+        public void SidePathsOfTheFanAreAuthoredInThePlayerPrefabs()
+        {
+            foreach (var path in new[] { "Assets/Game/Prefabs/Player.prefab", "Assets/EnemyDebug/Prefabs/Infinite Strike.prefab" })
+            {
+                var thrower = AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponentInChildren<CardThrower>(true);
+                Assert.That(thrower, Is.Not.Null, path);
+                Assert.That(thrower.trajectory, Is.Not.Null, path);
+                Assert.That(thrower.volleyLines.Length, Is.GreaterThanOrEqualTo(Effect().cards.At(3) - 1), path + ": по линии на каждую боковую карту веера III");
+                Assert.That(thrower.volleyLines.Distinct().Count(), Is.EqualTo(thrower.volleyLines.Length), path);
+                foreach (var line in thrower.volleyLines)
+                {
+                    Assert.That(line, Is.Not.Null, path);
+                    Assert.That(line, Is.Not.SameAs(thrower.trajectory));
+                    Assert.That(line.sharedMaterial, Is.SameAs(thrower.trajectory.sharedMaterial), path + ": тот же материал, что у линии прицела");
+                    Assert.That(line.enabled, Is.False, path + ": выключена, пока не прицеливаются веером");
+                    Assert.That(line.transform.parent, Is.SameAs(thrower.trajectory.transform.parent), path);
+                }
+            }
+        }
+
+        [Test]
         public void EchoStrikesWithTheWholeFanAtItsPoint()
         {
             Assert.That(EchoRules.CanRepeat(Card(), false, new[] { "teleport", "echo", "return" }), Is.True);

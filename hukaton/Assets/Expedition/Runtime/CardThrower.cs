@@ -43,7 +43,11 @@ namespace Hakaton.Expeditions
         [Min(1)] public float previewDashPixels = 12;
         [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
         [Min(0)] public float previewStartOffset = .25f;
-        [Tooltip("A volley («Веер»): width of the side cards' paths as a share of the middle one (copies of the preview line).")]
+        [Tooltip("Залп («Веер»): заранее настроенные линии путей боковых карт (дети рядом с trajectory, тот же материал), до 6 — " +
+                 "веер III из 7 карт. Рантайм их только включает, выключает и задаёт точки; линий меньше, чем боковых карт, — " +
+                 "лишние пути не рисуются.")]
+        public LineRenderer[] volleyLines = new LineRenderer[0];
+        [Tooltip("A volley («Веер»): width of the side cards' paths as a share of the middle one.")]
         [Range(.1f, 1)] public float volleySideWidth = .5f;
         [Tooltip("A volley («Веер»): opacity of the side cards' paths.")]
         [Range(.1f, 1)] public float volleySideAlpha = .75f;
@@ -78,8 +82,6 @@ namespace Hakaton.Expeditions
         readonly float[] dashLengths = new float[MaxDashPoints];
         readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
         readonly AnimationCurve widthCurve = new AnimationCurve();
-        // A volley's side paths: copies of the authored preview line, made the first time a volley is aimed.
-        readonly List<LineRenderer> volleyLines = new List<LineRenderer>();
         readonly Vector3[] volleyVelocities = new Vector3[16];
 
         public CardCopy Selected
@@ -322,6 +324,7 @@ namespace Hakaton.Expeditions
                 {
                     bool middle = i == centre;
                     var line = middle ? trajectory : VolleyLine(side++);
+                    if (!line) continue;
                     line.enabled = true;
                     DrawPreview(line, card, BallisticPreview(position, volleyVelocities[i]), middle ? 1 : volleySideWidth, middle ? 1 : volleySideAlpha);
                 }
@@ -337,23 +340,14 @@ namespace Hakaton.Expeditions
             DrawPreview(trajectory, card, used, 1, 1);
         }
 
-        /// <summary>The <paramref name="index"/>-th side path of a volley: a copy of the authored preview line (same material and settings).</summary>
-        LineRenderer VolleyLine(int index)
-        {
-            while (volleyLines.Count <= index)
-            {
-                var copy = Instantiate(trajectory, trajectory.transform.parent);
-                copy.name = trajectory.name + " (веер " + (volleyLines.Count + 1) + ")";
-                copy.enabled = false;
-                volleyLines.Add(copy);
-            }
-            return volleyLines[index];
-        }
+        /// <summary>Линия пути <paramref name="index"/>-й боковой карты залпа из настроенных в префабе; null — линий меньше.</summary>
+        LineRenderer VolleyLine(int index) => volleyLines != null && index < volleyLines.Length ? volleyLines[index] : null;
 
         /// <summary>Hides the volley's side paths from <paramref name="from"/> on.</summary>
         void HideVolleyLines(int from)
         {
-            for (int i = from; i < volleyLines.Count; i++)
+            if (volleyLines == null) return;
+            for (int i = from; i < volleyLines.Length; i++)
                 if (volleyLines[i]) volleyLines[i].enabled = false;
         }
 
@@ -536,11 +530,5 @@ namespace Hakaton.Expeditions
         }
 
         void OnDisable() => Cancel();
-
-        void OnDestroy()
-        {
-            foreach (var line in volleyLines) if (line) Destroy(line.gameObject);
-            volleyLines.Clear();
-        }
     }
 }
