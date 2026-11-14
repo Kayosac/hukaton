@@ -39,9 +39,9 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Карты одного веера, попавшие в одно существо (или в одну стену) не дальше этого друг от друга по времени, дают одну общую вспышку, с.")]
         [Min(0)] public float mergeSeconds = .1f;
         [Tooltip("Общая вспышка крупнее на эту долю за каждую карту сверх первой…")]
-        [Min(0)] public float mergeGrowth = .1f;
+        [Min(0)] public float mergeGrowth = .05f;
         [Tooltip("…но не больше, чем во столько раз.")]
-        [Min(1)] public float mergeMaxScale = 1.5f;
+        [Min(1)] public float mergeMaxScale = 1.3f;
 
         [Header("Мах из руки")]
         [Tooltip("Наклон крайней карты в руке, когда веер раскрывается, градусов.")]
