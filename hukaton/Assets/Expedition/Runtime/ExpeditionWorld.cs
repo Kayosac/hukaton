@@ -148,11 +148,22 @@ namespace Hakaton.Expeditions
             Active = this;
             workshop.Departed += BeginOuting;
             // Walking into loose things shoves them; creatures are not shoved (they stand their ground and answer for themselves).
-            if (motor) motor.PushFilter = PropPhysics.IsLoose;
+            if (motor)
+            {
+                motor.PushFilter = PropPhysics.IsLoose;
+                motor.Bumped += WakeBumped;
+            }
+        }
+
+        // Walking into a dormant prop light enough to be shoved makes it a real body; the same step then shoves it.
+        void WakeBumped(Rigidbody bumped, Vector3 point, Vector3 velocity)
+        {
+            if (Running && bumped.isKinematic && bumped.mass <= motor.pushMaxMass && velocity.sqrMagnitude > .25f) PropPhysics.Ready(bumped);
         }
         void OnDestroy()
         {
             if (Active == this) Active = null;
+            if (motor) motor.Bumped -= WakeBumped;
             if (workshop) workshop.Departed -= BeginOuting;
         }
 
@@ -205,6 +216,11 @@ namespace Hakaton.Expeditions
                 return;
             }
             FeedPlants();
+            if (Time.time >= nextPropTick)
+            {
+                nextPropTick = Time.time + .25f;
+                PropPhysics.Tick(motor.transform.position, .25f);
+            }
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (!IgnoreKillHeight && motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
@@ -213,6 +229,7 @@ namespace Hakaton.Expeditions
             FocusedInteractable?.SetFocused(true);
         }
 
+        float nextPropTick;
         bool plantsFed;
         const int PlantBenders = 6;
         const float PlantBendRange = 24;

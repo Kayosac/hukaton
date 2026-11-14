@@ -228,7 +228,7 @@ namespace Hakaton.Expeditions
         {
             Vector3 flight = velocity.sqrMagnitude > 1e-4f ? velocity.normalized : -normal;
             if (victim != null) Hit(victim, point, flight);
-            else if (collider && collider.attachedRigidbody && !collider.attachedRigidbody.isKinematic && Combat.Of(collider) == null)
+            else if (collider && Combat.Of(collider) == null && PropPhysics.Ready(collider.attachedRigidbody))
                 CardPhysics.Push(collider.attachedRigidbody, flight * profile.knockback);
             if (profile.splashRadius > 0)
             {

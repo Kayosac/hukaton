@@ -87,6 +87,31 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [UnityTest]
+        public IEnumerator ADormantPropWakesWhenTouchedAndRestsAgain()
+        {
+            var crate = Crate(Spot(6, -2));
+            yield return Settle(crate.body);
+            // As the chunk builder leaves it: still scenery.
+            crate.body.isKinematic = true;
+            crate.dormant = true;
+            yield return new WaitForFixedUpdate();
+            var start = crate.body.position;
+            int awake = PropPhysics.AwakeCount;
+            Assert.That(PropPhysics.Burst(start + Vector3.left * .6f, .9f, 4), Is.GreaterThanOrEqualTo(1), "the burst wakes it and throws it");
+            Assert.That(crate.body.isKinematic, Is.False);
+            Assert.That(crate.Stirred, Is.True);
+            Assert.That(PropPhysics.AwakeCount, Is.EqualTo(awake + 1));
+            yield return new WaitForSeconds(.4f);
+            Assert.That(Vector3.Distance(start, crate.body.position), Is.GreaterThan(.3f), "it moved");
+            // Lying still for a while, it is still scenery again where it lies.
+            float until = Time.time + 8;
+            while (Time.time < until && !crate.body.isKinematic) yield return null;
+            Assert.That(crate.body.isKinematic, Is.True, "at rest it is still again");
+            Assert.That(PropPhysics.AwakeCount, Is.LessThanOrEqualTo(awake));
+            Assert.That(PropPhysics.Ready(crate.body), Is.True, "and wakes again when pushed");
+        }
+
+        [UnityTest]
         public IEnumerator AHardLandingScattersWhatLiesRoundTheFeet()
         {
             var crate = Crate(Spot(1.1f, 0));

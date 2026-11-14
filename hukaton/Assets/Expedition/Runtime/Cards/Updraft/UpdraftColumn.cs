@@ -138,7 +138,7 @@ namespace Hakaton.Expeditions.Cards
                 if (body.mass > MaxMass + .001f) continue;
                 Vector3 centre = body.worldCenterOfMass;
                 if (!Inside(centre)) continue;
-                if (body.isKinematic && !FreeLoot(body)) continue;
+                if (body.isKinematic && !FreeLoot(body) && !PropPhysics.Ready(body)) continue;
                 Vector3 velocity = body.linearVelocity;
                 float target = TargetSpeed(RiseSpeed, Top - centre.y, topEase);
                 if (velocity.y > RiseSpeed + .5f) continue;

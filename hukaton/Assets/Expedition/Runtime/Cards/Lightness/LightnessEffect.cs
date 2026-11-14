@@ -66,7 +66,7 @@ namespace Hakaton.Expeditions.Cards
             foreach (var hit in Physics.OverlapSphere(c.Point, radius, ~0, QueryTriggerInteraction.Ignore))
             {
                 var body = hit.attachedRigidbody;
-                if (!body || body.isKinematic || !seen.Add(body)) continue;
+                if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
                 var creature = body.GetComponent<WorldCreature>();
                 if (creature) creature.ApplyLightness(impulseMultiplier, fallSpeedLimit, seconds);
                 else

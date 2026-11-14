@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hakaton.Expeditions;
 using Hakaton.Expeditions.Cards;
 using Hakaton.OldApiary;
 using Hakaton.WorldAssembly.Unity;
@@ -23,6 +24,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         {
             typeof(Transform), typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider), typeof(SphereCollider),
             typeof(CapsuleCollider), typeof(MeshCollider), typeof(Burnable), typeof(AwakenableTree),
+            // A dormant prop is still scenery until touched (its body is kinematic): merged, cut out when it wakes.
+            typeof(Rigidbody), typeof(PhysicsProp),
         };
 
         static readonly string[] Apart = { "Ground", "Water", "Bog", "Merged look" };
@@ -101,6 +104,9 @@ namespace Hakaton.WorldAssembly.EditorTools
                 Component owner = sources[i].GetComponentInParent<Burnable>(true);
                 var tree = sources[i].GetComponentInParent<AwakenableTree>(true);
                 if (tree && (!owner || tree.transform.IsChildOf(owner.transform))) owner = tree;
+                // A dormant prop comes apart as a whole when it wakes.
+                var prop = sources[i].GetComponentInParent<PhysicsProp>(true);
+                if (prop) owner = prop;
                 if (!owner) continue;
                 if (!pieces.TryGetValue(owner.gameObject, out var list)) pieces[owner.gameObject] = list = new List<int>();
                 list.Add(i);
@@ -146,7 +152,11 @@ namespace Hakaton.WorldAssembly.EditorTools
             {
                 if (t.parent == root && Apart.Contains(t.name)) return false;
                 foreach (var c in t.GetComponents<Component>())
+                {
                     if (c && !Still.Contains(c.GetType())) return false;
+                    if (c is Rigidbody body && !body.isKinematic) return false;
+                    if (c is PhysicsProp prop && !prop.dormant) return false;
+                }
             }
             mesh = filter.sharedMesh;
             return true;

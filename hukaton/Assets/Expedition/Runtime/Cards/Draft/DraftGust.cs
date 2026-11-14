@@ -204,7 +204,7 @@ namespace Hakaton.Expeditions.Cards
             for (int i = 0; i < count; i++)
             {
                 var body = Hits[i].attachedRigidbody;
-                if (!body || body.isKinematic || !pushed.Add(body)) continue;
+                if (!body || !pushed.Add(body) || !PropPhysics.Ready(body)) continue;
                 if (Dry(body)) Dried++;
                 if (numbers.pushImpulse <= 0) continue;
                 CardPhysics.Push(body, push);

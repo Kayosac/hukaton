@@ -64,7 +64,7 @@ namespace Hakaton.Expeditions
         /// </summary>
         public static void Push(Rigidbody body, Vector3 impulse)
         {
-            if (!body || body.isKinematic) return;
+            if (!PropPhysics.Ready(body)) return;
             body.AddForce(impulse * BodyModifierStatus.ImpulseScaleOf(body), ForceMode.Impulse);
         }
     }

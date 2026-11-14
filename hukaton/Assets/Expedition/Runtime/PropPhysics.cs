@@ -21,6 +21,64 @@ namespace Hakaton.Expeditions
         static readonly Collider[] Hits = new Collider[96];
         static readonly HashSet<Rigidbody> Seen = new HashSet<Rigidbody>();
 
+        /// <summary>Dormant props awake at the same time (real bodies): the rest stay still scenery until one of these rests.</summary>
+        public const int MaxAwake = 48;
+        const float RestAfter = 1.5f, FarAway = 60;
+
+        // Dormant props that are real bodies right now.
+        static readonly List<PhysicsProp> Stirring = new List<PhysicsProp>();
+        public static int AwakeCount => Stirring.Count;
+
+        /// <summary>
+        /// The body can take a push: a real body already, or a dormant prop woken for it. Use instead of a bare
+        /// kinematic test wherever loose bodies are moved.
+        /// </summary>
+        public static bool Ready(Rigidbody body) => body && (!body.isKinematic || body.TryGetComponent(out PhysicsProp prop) && prop.Wake());
+
+        /// <summary>Room for one more awake prop: when full, one that lies still (or the furthest one) goes to rest first.</summary>
+        public static bool Admit(PhysicsProp prop)
+        {
+            if (Stirring.Count >= MaxAwake)
+            {
+                int out_ = -1;
+                float furthest = 0;
+                var world = ExpeditionWorld.Active;
+                Vector3 eye = world && world.motor ? world.motor.transform.position : prop.transform.position;
+                for (int i = 0; i < Stirring.Count; i++)
+                {
+                    var other = Stirring[i];
+                    if (!other || !other.body || other.body.isKinematic || other.body.IsSleeping()) { out_ = i; break; }
+                    float distance = (other.transform.position - eye).sqrMagnitude;
+                    if (distance > furthest) { furthest = distance; out_ = i; }
+                }
+                // Never the one nearer the player than the newcomer: what he is looking at keeps moving.
+                if (out_ < 0 || furthest > 0 && furthest <= (prop.transform.position - eye).sqrMagnitude && Stirring[out_] && !Stirring[out_].body.IsSleeping()) return false;
+                if (Stirring[out_]) Stirring[out_].Rest();
+                Stirring.RemoveAt(out_);
+            }
+            Stirring.Add(prop);
+            return true;
+        }
+
+        /// <summary>A few times a second: awake props that have lain still, or are far from the player and slow, go to rest.</summary>
+        public static void Tick(Vector3 eye, float seconds)
+        {
+            for (int i = Stirring.Count - 1; i >= 0; i--)
+            {
+                var prop = Stirring[i];
+                if (!prop || !prop.body || prop.body.isKinematic || !prop.isActiveAndEnabled) { Stirring.RemoveAt(i); continue; }
+                bool still = prop.body.IsSleeping();
+                bool far = (prop.transform.position - eye).sqrMagnitude > FarAway * FarAway && prop.body.linearVelocity.sqrMagnitude < 1;
+                prop.StillFor = still || far ? prop.StillFor + seconds : 0;
+                if (prop.StillFor < RestAfter) continue;
+                prop.Rest();
+                Stirring.RemoveAt(i);
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => Stirring.Clear();
+
         /// <summary>A body cards, landings and blows may throw about: not a creature (those answer for themselves).</summary>
         public static bool IsLoose(Rigidbody body) => body && !body.GetComponent<WorldCreature>();
 
@@ -42,9 +100,7 @@ namespace Hakaton.Expeditions
                 var body = Hits[i].attachedRigidbody;
                 Hits[i] = null;
                 if (!body || body == except || !Seen.Add(body) || !IsLoose(body)) continue;
-                var prop = body.GetComponent<PhysicsProp>();
-                if (prop) prop.Wake();
-                if (body.isKinematic) continue;
+                if (!Ready(body)) continue;
                 Vector3 to = body.worldCenterOfMass - centre;
                 float distance = to.magnitude;
                 Vector3 direction = distance > .05f ? to / distance : Random.onUnitSphere;
@@ -64,9 +120,7 @@ namespace Hakaton.Expeditions
         public static bool Nudge(Rigidbody body, Vector3 point, Vector3 direction, float speed)
         {
             if (speed <= 0 || !IsLoose(body)) return false;
-            var prop = body.GetComponent<PhysicsProp>();
-            if (prop) prop.Wake();
-            if (body.isKinematic || direction.sqrMagnitude < .0001f) return false;
+            if (direction.sqrMagnitude < .0001f || !Ready(body)) return false;
             float change = speed * Mathf.Min(1, ReferenceMass / body.mass);
             body.AddForceAtPosition(direction.normalized * (change * body.mass * BodyModifierStatus.ImpulseScaleOf(body)), point, ForceMode.Impulse);
             return true;

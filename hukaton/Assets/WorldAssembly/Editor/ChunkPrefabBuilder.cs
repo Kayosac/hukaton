@@ -671,7 +671,20 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["FA_PR02_LanternGround"] = .5f, ["FA_PR04_CandleThick"] = .15f, ["FA_PR05_CandlesDish"] = .3f, ["FA_PR06_BottleSquat"] = .2f,
             ["FA_PR07_BottleTall"] = .2f, ["FA_PR09_PotLow"] = .3f, ["FA_PR10_Pitcher"] = .35f, ["FA_PR11_SackSmall"] = .6f, ["FA_PR12_SackLarge"] = 1.2f,
             ["FA_PR13_CrateClosed"] = 1.6f, ["FA_PR14_CrateOpen"] = 1.3f, ["FA_SP04_Beehive"] = 1.8f, ["FA_MK13_CageSmall"] = .5f, ["FA_MK14_CageCrooked"] = .8f,
+            // Dormant scenery (2026-11-15): stands still until something touches it, then rolls, tips and slides.
+            ["FA_RK01_BoulderSmall"] = 6, ["FA_RK02_BoulderMedium"] = 14, ["FA_RK04_BoulderFlat"] = 9, ["FA_ST12_Bench"] = 6,
+            ["FA_SP05_GravestoneSmall"] = 8, ["FA_SP06_GravestoneMedium"] = 12, ["FA_SP07_GravestoneLarge"] = 22, ["FA_MK05_StoneMarkTall"] = 14,
+            ["SM_SW15_StakeRag"] = 1.5f, ["SM_SW15_StakeRope"] = 1.5f, ["SM_SW15_StakeBare"] = 1.2f,
+            ["SM_SW24_WoodenCrossTall"] = 3, ["SM_SW24_WoodenCrossHeavy"] = 4, ["SM_SW24_WoodenCrossThinBroken"] = 2,
         };
+
+        /// <summary>What a loose thing knocks like (PropImpacts); wood when not listed.</summary>
+        static PropSurface SurfaceOf(string id) =>
+            id.Contains("_RK") || id.Contains("_SP05") || id.Contains("_SP06") || id.Contains("_SP07") || id.Contains("_MK05") ? PropSurface.Stone
+            : id.Contains("PotLow") || id.Contains("Pitcher") || id.Contains("Bottle") ? PropSurface.Clay
+            : id.Contains("Lantern") || id.Contains("Candle") || id.Contains("Cage") ? PropSurface.Metal
+            : id.Contains("Sack") ? PropSurface.Soft
+            : PropSurface.Wood;
 
         /// <summary>
         /// Makes the chunk's things as alive as the Old Apiary's (its authoring rules): grass, bushes, young trees, wood,
@@ -761,15 +774,19 @@ namespace Hakaton.WorldAssembly.EditorTools
                 if (!loose) foreach (var c in colliders) if (c is MeshCollider mesh && mesh.convex) mesh.convex = false;
                 if (loose)
                 {
-                    // Set a hair above the ground, so it settles instead of springing out of it.
-                    go.transform.position += Vector3.up * .05f;
+                    // Dormant: still scenery (a kinematic body, merged with the chunk's look, hit as drawn) until
+                    // something touches it (PhysicsProp.Wake). Nothing simulates or draws apart while nobody comes near.
+                    foreach (var c in colliders) if (c is MeshCollider mesh) mesh.convex = false;
                     var body = go.AddComponent<Rigidbody>();
                     body.mass = mass * Mathf.Abs(scale.x * scale.y * scale.z);
                     body.angularDamping = .05f;
-                    body.interpolation = RigidbodyInterpolation.Interpolate;
-                    body.collisionDetectionMode = body.mass < 1 ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
+                    body.isKinematic = true;
+                    body.interpolation = RigidbodyInterpolation.None;
+                    body.collisionDetectionMode = CollisionDetectionMode.Discrete;
                     var prop = go.AddComponent<PhysicsProp>();
                     prop.body = body;
+                    prop.dormant = true;
+                    prop.surface = SurfaceOf(id);
                     props.Add(prop);
                 }
             }
@@ -2641,7 +2658,10 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var c in triggers) c.enabled = false;
             var sources = new List<NavMeshBuildSource>();
             var bounds = new Bounds(new Vector3(0, 2, 0), new Vector3(16, 24, 16));
-            NavMeshBuilder.CollectSources(bounds, ~(1 << 4), NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
+            // Light loose things are no obstacle to a creature: it shoves them aside (a moved one would leave a stale hole).
+            var markups = root.GetComponentsInChildren<PhysicsProp>(true).Where(p => p.body && p.body.mass <= 1.5f)
+                .Select(p => new NavMeshBuildMarkup { root = p.transform, ignoreFromBuild = true }).ToList();
+            NavMeshBuilder.CollectSources(bounds, ~(1 << 4), NavMeshCollectGeometry.PhysicsColliders, 0, markups, sources);
             foreach (var c in triggers) c.enabled = true;
             // Tree crowns are solid as drawn, but nobody walks over them: no navigation up there (where a crown hangs
             // low, the ground under it is still too low to stand on).

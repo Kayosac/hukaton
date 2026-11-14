@@ -526,11 +526,7 @@ namespace Hakaton.WorldAssembly.Unity
                 if (!p) continue;
                 // A prop that fell out of the world comes back where it was made.
                 if (mem != null && mem.props.TryGetValue(i, out var pose) && pose.position.y > position.y - 20)
-                {
-                    p.body.position = pose.position;
-                    p.body.rotation = pose.rotation;
-                    p.transform.SetPositionAndRotation(pose.position, pose.rotation);
-                }
+                    p.Restore(pose.position, pose.rotation);
                 world.props.Add(p);
             }
             for (int i = 0; i < view.trees.Length; i++)
@@ -994,7 +990,11 @@ namespace Hakaton.WorldAssembly.Unity
                 for (int i = 0; i < entry.view.obstacles.Length; i++)
                     if (entry.view.obstacles[i] && entry.view.obstacles[i].Resolved) mem.resolved.Add(i);
                 for (int i = 0; i < entry.view.props.Length; i++)
-                    if (entry.view.props[i]) mem.props[i] = (entry.view.props[i].transform.position, entry.view.props[i].transform.rotation);
+                {
+                    // A dormant prop nobody touched is where it was made: nothing to remember.
+                    var p = entry.view.props[i];
+                    if (p && (!p.dormant || p.Stirred)) mem.props[i] = (p.transform.position, p.transform.rotation);
+                }
                 for (int i = 0; i < entry.view.burnables.Length; i++)
                     if (fire && fire.Touched(entry.view.burnables[i])) mem.burnt.Add(i);
                 // A tree that came alive walks on as an ally; its chunk keeps the empty place.

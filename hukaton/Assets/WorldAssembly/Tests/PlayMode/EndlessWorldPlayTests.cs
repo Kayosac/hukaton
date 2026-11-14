@@ -537,7 +537,8 @@ namespace Hakaton.WorldAssembly.Tests
             if (treeIndex < 0) treeIndex = System.Array.FindIndex(treeView.trees, t => t && t.Standing);
             var treeCoord = streamer.CoordAt(treeView.transform.position);
             world.HideForOuting(treeView.trees[treeIndex].gameObject);
-            var prop = views.SelectMany(v => v.props).First(p => p && p.body && !p.body.isKinematic);
+            var prop = views.SelectMany(v => v.props).First(p => p && p.body && (!p.body.isKinematic || p.dormant));
+            Assert.That(PropPhysics.Ready(prop.body), Is.True, "a dormant prop wakes when something pushes it");
             var before = prop.body.position;
             prop.body.AddForce(Vector3.up * 4 + Vector3.right * 3, ForceMode.VelocityChange);
             for (int f = 0; f < 20; f++) yield return null;
