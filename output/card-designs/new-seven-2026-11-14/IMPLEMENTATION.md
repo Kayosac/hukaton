@@ -109,6 +109,21 @@
   копировать во временную папку выше. Бочка: `powder_barrel-model/build.py` (+ card.jpg).
 - EnemyDebug лечит игрока сразу после урона; полученный урон виден в HUD («Получено урона»).
 
+- Свой полёт карты (найдено на Бумеранге): интерфейс `ICustomFlight` у эффекта (Expedition/Runtime/CardCustomFlight.cs).
+  `CardProjectile.Launch` спрашивает `BeginFlight` и дальше каждый FixedUpdate отдаёт шаг объекту `ICardFlightPath`
+  (двигает карту `MoveTo`, кончает полёт `Bounce` — удар/отскок/падение, `Catch` — поймали, `Drop` — время вышло;
+  `Resolve` для карты со своим полётом тоже ведёт в `Bounce`, без втыкания). Превью у прицела (`CardThrower.UpdatePreview`)
+  берёт путь из `ICustomFlight.PreviewPath` — те же правила, что у полёта. `MayComeBack` → `Expedition.Release(id, true)`:
+  карта висит в `Held` даже без использований (в её место ничего не добирается); `Expedition.Catch(id)` — назад в руку с
+  возвратом использования, `Settle` без поимки — в сброс. Для Веера (несколько снарядов за бросок) хук лучше ставить в
+  `ExpeditionWorld.Launch` (там рождаются снаряды), полёт каждого остаётся своим.
+- EnemyDebug теперь умеет бросать любую карту: клавиша T (поле `nextCardKey` у EnemyDebugStrikeCard) меняет карту в руке на
+  следующую из каталога сессии `EnemyDebug/Data/Isolated Session.asset` (`Expedition.Withdraw` + `GrantToHand`). Чтобы
+  проверить новую карту — добавить её определение в этот список. В прологе карта бесконечна (UsesLeft = MaxValue), поэтому
+  Бумеранг там возвращается в руку и после удара о стену; разница «поймали / в сброс» проверена EditMode-тестами колоды.
+- Команды через мост: после stop изменённый в этот момент .cs может не перекомпилироваться (compile.log со старым
+  временем) — проверять время FINISHED и при необходимости поменять файл ещё раз и refresh.
+
 ## Статус
 
 | Карта | Статус |
@@ -118,5 +133,5 @@
 | Сглаз | готово (efbc46f62): EvilEyeEffect + метка EvilEyeMark, тесты EvilEyeTests 9/9, вживую в EnemyDebug (две метки через Эхо на замороженном звере, взрыв, промах) — checks/evil_eye-*.png; таблица KayoSpace — за пользователем |
 | Вороньё | готово (870336b98): CrowsEffect + стая CrowFlock, отвлечение IDistractable (WorldCreature, ChestMimic), тесты CrowsTests 14/14, вживую в EnemyDebug (болотный мутант L2: 4 с без урона игроку, 16→8 HP, потом снова нападает; пёс L3 — смерть, вороны разлетаются; промах) — checks/crows-*.png; таблица KayoSpace — за пользователем |
 | Пороховая бочка | готово (57ff0cd31): PowderBarrelEffect + бочка PowderBarrel (зона IIgnitable/IWashable/ISoakable, Rigidbody), своя кривая модель SM_PowderBarrel (болотный кит), тесты PowderBarrelTests 12/12, вживую в EnemyDebug (удар и Камнепад не взрывают; Огонь — фитиль 0,4 с и взрыв: звери −5 HP, горят, отброшены; цепь из двух бочек; мокрая не горит; игрок рядом −5 и отброшен) — checks/powder_barrel-*.png; таблица KayoSpace — за пользователем |
-| Бумеранг | — |
+| Бумеранг | готово (301b7c7a4): BoomerangEffect + свой полёт BoomerangFlight/BoomerangRules через новый ICustomFlight, поимка → та же копия в руке (Expedition.Catch), тесты BoomerangTests 15/15, вживую в EnemyDebug (три пса в ряд по −2 HP, возврат и поимка через ~1,5 с, удар о куб — отскок и падение, превью дуги) — checks/boomerang-*.png; EnemyDebug: T — сменить карту; таблица KayoSpace — за пользователем |
 | Веер | — |
