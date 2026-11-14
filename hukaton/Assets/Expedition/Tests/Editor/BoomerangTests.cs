@@ -41,7 +41,7 @@ namespace Hakaton.Expeditions.Tests
         }
 
         static BoomerangPath Throw(BoomerangEffect effect, int level, Vector3 velocity)
-            => BoomerangRules.Begin(Vector3.zero, velocity, effect.range.At(level), effect.minimumSpeed, effect.maximumSpeed,
+            => BoomerangRules.Begin(Vector3.zero, velocity, effect.range, effect.minimumSpeed, effect.maximumSpeed,
                 effect.curlDegrees, effect.turnDegreesPerSecond, effect.maximumPitch, effect.spareSeconds);
 
         /// <summary>Летит шагами физики, пока не поймали или не вышло время; игрок стоит в <paramref name="player"/>.</summary>
@@ -68,12 +68,13 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(card.action, Is.EqualTo(CardAction.Boomerang));
             Assert.That((int)CardAction.Boomerang, Is.EqualTo(41));
             Assert.That((card.rank, card.purchasePrice), Is.EqualTo((2, 170)));
-            Assert.That((card.uses.i, card.uses.ii, card.uses.iii), Is.EqualTo((1, 1, 1)));
+            Assert.That((card.uses.i, card.uses.ii, card.uses.iii), Is.EqualTo((2, 3, 4)), "Бросков за вылазку: 1 / 2 / 3 возврата в руку.");
             Assert.That(card.artwork, Is.Not.Null);
             Assert.That(card.description, Is.EqualTo("Ранит на пути туда и обратно. Поймай — вернётся в руку."));
             var effect = Effect();
             Assert.That((effect.damage.i, effect.damage.ii, effect.damage.iii), Is.EqualTo((2, 3, 5)));
-            Assert.That((effect.range.i, effect.range.ii, effect.range.iii), Is.EqualTo((10f, 12f, 15f)));
+            Assert.That(effect.range, Is.EqualTo(12f), "Дальность одна на все уровни.");
+            Assert.That((effect.maxTargets.i, effect.maxTargets.ii, effect.maxTargets.iii), Is.EqualTo((2, 3, 5)));
             Assert.That(effect.TryGetStat(out var label, out var values, out _), Is.True);
             Assert.That((label, values.i, values.iii), Is.EqualTo(("Урон", 2f, 5f)));
             Assert.That(effect is ICustomFlight flight && flight.MayComeBack, Is.True, "Бумеранг летит по своей траектории и может вернуться.");
@@ -88,9 +89,9 @@ namespace Hakaton.Expeditions.Tests
             var effect = Effect();
             var path = Throw(effect, level, new Vector3(0, 0, 14));
             bool caught = Fly(effect, ref path, new Vector3(0, -1.1f, 0), out float farthest, out float leftmost);
-            float range = effect.range.At(level);
+            float range = effect.range;
             Assert.That(caught, Is.True, "Вернулся и пойман.");
-            Assert.That(farthest, Is.EqualTo(range).Within(.75f), "Разворот на дальности уровня.");
+            Assert.That(farthest, Is.EqualTo(range).Within(.75f), "Разворот на постоянной дальности.");
             Assert.That(leftmost, Is.LessThan(-1), "Дуга уходит влево, как у бумеранга.");
             Assert.That(path.Elapsed, Is.LessThan(path.Lifetime));
             Assert.That(path.Returning, Is.True);
@@ -116,7 +117,7 @@ namespace Hakaton.Expeditions.Tests
                 ended = BoomerangRules.PreviewReturnEnds(path, from, chest, effect.previewReturnStop, out end);
             }
             Assert.That(ended, Is.True, "Превью кончается на обратном пути, а не у груди.");
-            Assert.That(farthest, Is.EqualTo(effect.range.At(level)).Within(.75f), "Путь туда и разворот — целиком.");
+            Assert.That(farthest, Is.EqualTo(effect.range).Within(.75f), "Путь туда и разворот — целиком.");
             end.y = 0;
             Assert.That(end.magnitude, Is.EqualTo(effect.previewReturnStop).Within(.01f), "Конец — ровно на границе.");
             // На пути туда граница не срабатывает, хотя карта начинает у самого игрока.
@@ -201,14 +202,14 @@ namespace Hakaton.Expeditions.Tests
         {
             var trip = TripWith(Card().ToSpec(), out var card);
             var other = trip.GrantToHand(new CardSpec("strike", "Удар", 50));
-            Assert.That(card.UsesLeft, Is.EqualTo(1));
+            Assert.That(card.UsesLeft, Is.EqualTo(2), "I: два броска — один возврат.");
             Assert.That(trip.Release(card.Id, true), Is.SameAs(card));
             Assert.That(trip.Deck.Hand.Contains(card), Is.False, "В полёте карты нет в руке…");
             Assert.That(trip.Deck.Held.Single(), Is.SameAs(card), "…но место за ней.");
             Assert.That(trip.Catch(card.Id), Is.True);
             Assert.That(trip.Deck.Hand.First(), Is.SameAs(card), "Та же копия, на своём месте.");
             Assert.That(trip.Deck.Hand.Last(), Is.SameAs(other));
-            Assert.That(card.UsesLeft, Is.EqualTo(1), "Использование возвращено: можно бросить снова.");
+            Assert.That(card.UsesLeft, Is.EqualTo(1), "Бросок потратил использование, остался ещё один бросок.");
             Assert.That(trip.Deck.Held, Is.Empty);
             Assert.That(trip.Deck.Discard, Is.Empty);
             Assert.That(trip.Settle(card.Id), Is.False, "Конец попытки после поимки ничего не меняет.");
@@ -225,6 +226,43 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(trip.Deck.Held, Is.Empty);
             Assert.That(trip.Catch(card.Id), Is.False, "Поймать после падения нельзя.");
             Assert.That(trip.Deck.HasReturn, Is.True, "Рука пуста — появилась карта возвращения.");
+        }
+
+        [Test]
+        public void CaughtOnItsLastUseItGoesToTheSpentPile()
+        {
+            var trip = TripWith(Card().ToSpec(), out var card);
+            trip.Release(card.Id, true);
+            Assert.That(trip.Catch(card.Id), Is.True, "Первый возврат.");
+            trip.Release(card.Id, true);
+            Assert.That(card.UsesLeft, Is.EqualTo(0));
+            Assert.That(trip.Catch(card.Id), Is.False, "Возвраты кончились: поймана, но в руку не идёт…");
+            Assert.That(trip.Deck.Discard.Single(), Is.SameAs(card), "…а в сброс.");
+            Assert.That(trip.Deck.Held, Is.Empty);
+            Assert.That(trip.Deck.Hand.Contains(card), Is.False);
+        }
+
+        [Test]
+        public void NotCaughtWithUsesLeftItStillGoesToTheSpentPile()
+        {
+            var trip = TripWith(Card().ToSpec(), out var card);
+            trip.Release(card.Id, true);
+            Assert.That(card.UsesLeft, Is.EqualTo(1), "Использование ещё есть…");
+            Assert.That(trip.Settle(card.Id), Is.False);
+            Assert.That(trip.Deck.Discard.Single(), Is.SameAs(card), "…но не поймал — в сброс.");
+        }
+
+        [Test]
+        public void HurtsAtMostItsNumberOfCreaturesPerFlight()
+        {
+            var hits = new BoomerangHits();
+            object a = new object(), b = new object(), c = new object();
+            Assert.That(hits.TryHit(a, false, 2), Is.True);
+            Assert.That(hits.TryHit(b, false, 2), Is.True);
+            Assert.That(hits.TryHit(c, false, 2), Is.False, "Третьего уже не ранит.");
+            Assert.That(hits.TryHit(a, true, 2), Is.True, "Уже раненого — можно и на обратном пути.");
+            Assert.That(hits.TryHit(c, true, 2), Is.False);
+            Assert.That(hits.Distinct, Is.EqualTo(2));
         }
 
         [Test]

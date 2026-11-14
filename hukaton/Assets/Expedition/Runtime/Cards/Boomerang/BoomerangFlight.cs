@@ -18,6 +18,7 @@ namespace Hakaton.Expeditions.Cards
         readonly BoomerangEffect effect;
         readonly BoomerangHits hits = new BoomerangHits();
         BoomerangPath path;
+        readonly int maxTargets;
 
         public Outcome Result { get; private set; }
         public BoomerangPath Path => path;
@@ -28,6 +29,7 @@ namespace Hakaton.Expeditions.Cards
         {
             this.effect = effect;
             path = effect.Begin(launch);
+            maxTargets = effect.maxTargets.At(launch.Level);
         }
 
         public float SpinMultiplier => effect.spinMultiplier;
@@ -92,7 +94,7 @@ namespace Hakaton.Expeditions.Cards
         void TryHurt(CardProjectile card, ExpeditionWorld world, Collider collider, Vector3 point, Vector3 normal)
         {
             var fighter = Combat.Of(collider);
-            if (!BoomerangEffect.IsPrey(world, fighter) || !hits.TryHit(fighter, path.Returning)) return;
+            if (!BoomerangEffect.IsPrey(world, fighter) || !hits.TryHit(fighter, path.Returning, maxTargets)) return;
             HitCount++;
             world.ApplyImpact(card.Card, card.Definition, collider, point, normal, path.Velocity, card.LaunchPosition);
         }
