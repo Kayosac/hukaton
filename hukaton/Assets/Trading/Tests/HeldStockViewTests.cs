@@ -20,12 +20,26 @@ namespace Hakaton.Trading.Tests
         [Test]
         public void ComesNearWithinShowAndLeavesOnlyPastHide()
         {
-            const float show = 2, hide = 2.5f;
-            Assert.That(HeldStockView.NextNear(false, 2.2f, show, hide), Is.False, "Between the two edges it does not come up…");
-            Assert.That(HeldStockView.NextNear(false, 1.9f, show, hide), Is.True);
-            Assert.That(HeldStockView.NextNear(true, 2.4f, show, hide), Is.True, "…and once up it stays up there.");
-            Assert.That(HeldStockView.NextNear(true, 2.6f, show, hide), Is.False);
-            Assert.That(HeldStockView.NextNear(true, 2.1f, show, 1), Is.False, "Hide closer than show acts as show.");
+            const float show = 1.4f, hide = 1.7f;
+            Assert.That(HeldStockView.NextNear(false, 1.55f, show, hide), Is.False, "Between the two edges it does not come up…");
+            Assert.That(HeldStockView.NextNear(false, 1.3f, show, hide), Is.True);
+            Assert.That(HeldStockView.NextNear(true, 1.65f, show, hide), Is.True, "…and once up it stays up there.");
+            Assert.That(HeldStockView.NextNear(true, 1.8f, show, hide), Is.False);
+            Assert.That(HeldStockView.NextNear(true, 1.5f, show, 1), Is.False, "Hide closer than show acts as show.");
+        }
+
+        [Test]
+        public void HandIsDownAtTheCounter()
+        {
+            // In the shop scene the counter pose is 1.76 m from the display, the eye standing there 1.9 m.
+            var view = new GameObject("Hand").AddComponent<HeldStockView>();
+            try
+            {
+                Assert.That(view.hideBeyond, Is.GreaterThan(view.showWithin));
+                foreach (bool wasNear in new[] { false, true })
+                    Assert.That(HeldStockView.NextNear(wasNear, 1.76f, view.showWithin, view.hideBeyond), Is.False);
+            }
+            finally { Object.DestroyImmediate(view.gameObject); }
         }
 
         [Test]

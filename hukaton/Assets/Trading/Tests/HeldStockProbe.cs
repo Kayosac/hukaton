@@ -8,8 +8,10 @@ namespace Hakaton.Trading.Tests
     /// <summary>
     /// Development probe for the editor bridge (<c>invoke Hakaton.Trading.Tests.HeldStockProbe.Run &lt;args&gt;</c>), in
     /// play mode: <c>info</c> — where the eye, the counter and the display slots are and the hand's state;
-    /// <c>hold &lt;item id&gt;</c> — puts the item in stock and hand, and stops the shop so the hand is wanted without
-    /// a captured cursor; <c>at &lt;x&gt; &lt;z&gt; &lt;yaw&gt;</c> — moves the shopkeeper; <c>suppress 0|1</c>.
+    /// <c>menu</c> — leaves the main menu as «Продолжить» does; <c>hold &lt;item id&gt;</c> — shows a catalogue item in the hand
+    /// (the shop's stock is not touched: the save stays as it was) and stops the shop, so the hand is wanted without a
+    /// captured cursor; <c>at &lt;x&gt; &lt;z&gt; [yaw]</c> — moves the shopkeeper; <c>suppress 0|1</c>; <c>slow &lt;seconds&gt;</c> — the slide's
+    /// length for this play session (to catch it mid-way in a screenshot).
     /// Not used by the game or the tests.
     /// </summary>
     public static class HeldStockProbe
@@ -26,15 +28,23 @@ namespace Hakaton.Trading.Tests
             var culture = CultureInfo.InvariantCulture;
             switch (verb)
             {
+                case "menu":
+                    foreach (var behaviour in Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+                        if (behaviour.GetType().Name == "MainMenu")
+                            behaviour.GetType().GetMethod("StartPlaying", System.Reflection.BindingFlags.Instance
+                                | System.Reflection.BindingFlags.NonPublic)?.Invoke(behaviour, null);
+                    break;
                 case "hold":
                 {
-                    if (!trade.enabled) trade.enabled = true;
-                    var definition = trade.Session.FindDefinition(parts.Length > 1 ? parts[1] : "");
-                    if (definition == null) return "unknown item";
-                    trade.Session.SeedInventory(definition, 1);
-                    trade.SelectStock(definition.Id);
-                    trade.RefreshPresentation();
+                    // By reflection: this assembly does not reference the loot catalogue's.
+                    var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public;
+                    object catalog = typeof(TradingPrototype).GetField("lootCatalog", flags)?.GetValue(trade), found = null;
+                    if (catalog == null || parts.Length < 2) return "no catalogue or no item id";
+                    foreach (var item in (System.Collections.IEnumerable)catalog.GetType().GetField("items", flags).GetValue(catalog))
+                        if (item != null && (string)item.GetType().GetField("id", flags).GetValue(item) == parts[1]) found = item;
+                    if (found == null) return "unknown item";
                     trade.enabled = false;
+                    typeof(HeldStockView).GetMethod("Show").Invoke(held, new[] { catalog, found });
                     held.Wanted = true;
                     break;
                 }
@@ -45,6 +55,9 @@ namespace Hakaton.Trading.Tests
                     world.Movement.Teleport(new Vector3(x, world.PlayerRoot.position.y, z), Quaternion.Euler(0, yaw, 0));
                     break;
                 }
+                case "slow":
+                    held.slideSeconds = float.Parse(parts[1], culture);
+                    break;
                 case "suppress":
                     held.Suppressed = parts.Length > 1 && parts[1] == "1";
                     break;
@@ -64,7 +77,8 @@ namespace Hakaton.Trading.Tests
                 fromEye = Mathf.Min(fromEye, HeldStockView.HorizontalDistance(eye, b));
             }
             text.Append($"; counter->display {fromCounter:F2} m, eye->display {fromEye:F2} m; wanted {held.Wanted} near {held.NearDisplay} " +
-                        $"suppressed {held.Suppressed} raised {held.Raised:F2} shown {world.HeldItem.activeSelf}");
+                        $"suppressed {held.Suppressed} raised {held.Raised:F2} shown {world.HeldItem.activeSelf}; stock");
+            foreach (var item in trade.Session.Inventory) text.Append(' ').Append(item.Definition.Id);
             return text.ToString();
         }
     }

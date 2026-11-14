@@ -28,11 +28,12 @@ namespace Hakaton.Trading.Unity
         [Min(.01f)] public float modelNearest = .14f;
         [Header("Near the display")]
         [Tooltip("The hand comes up when the eye is this close to the display, measured across the floor (height ignored) " +
-                 "to the nearest slot: its collider's bounds, or its anchor while the collider is off. Display slots are " +
-                 "aimed at from up to 2 m, so the hand is up wherever a slot can be stocked.")]
-        [Min(0)] public float showDistance = 2f;
-        [Tooltip("The hand goes down again beyond this distance. Further than Show Distance so it does not flicker on the edge.")]
-        [Min(0)] public float hideDistance = 2.5f;
+                 "to the nearest slot: its collider's bounds, or its anchor while the collider is off. The eye at the counter " +
+                 "is about 1.8-1.9 m from the display: the hand stays down there and comes up a step closer.")]
+        [Min(0)] public float showWithin = 1.4f;
+        [Tooltip("The hand goes down again beyond this distance. Further than Show Within so it does not flicker on the " +
+                 "edge, and short of the counter so the hand is never up there.")]
+        [Min(0)] public float hideBeyond = 1.7f;
         [Tooltip("Seconds the hand takes to come up from below the screen, or to go back down (unscaled time).")]
         [Min(.01f)] public float slideSeconds = .28f;
 
@@ -64,7 +65,7 @@ namespace Hakaton.Trading.Unity
         /// the display is being inspected up close).</summary>
         public bool Suppressed { get; set; }
 
-        /// <summary>The shopkeeper is close to the display (with hysteresis: see showDistance and hideDistance).</summary>
+        /// <summary>The shopkeeper is close to the display (with hysteresis: see showWithin and hideBeyond).</summary>
         public bool NearDisplay { get; private set; }
 
         /// <summary>How far the hand is up: 0 out of view, 1 fully up.</summary>
@@ -129,7 +130,7 @@ namespace Hakaton.Trading.Unity
                 raise = 0;
                 Wanted = false;
             }
-            NearDisplay = NextNear(NearDisplay, DisplayDistance(), showDistance, hideDistance);
+            NearDisplay = NextNear(NearDisplay, DisplayDistance(), showWithin, hideBeyond);
             raise = Slide(raise, Wanted && NearDisplay && !Suppressed, Time.unscaledDeltaTime, slideSeconds);
             bool show = raise > 0 && visual;
             if (show != root.activeSelf) root.SetActive(show);
