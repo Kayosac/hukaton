@@ -119,6 +119,10 @@ namespace Hakaton.WorldAssembly.Tests
             var start = world.motor.transform.position;
             var frames = new List<float>();
             long batches = 0, tris = 0, samples = 0;
+            // Physics: time of the simulation per frame and how many bodies are awake (sampled).
+            var physics = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Physics, "Physics.Simulate");
+            var physicsTimes = new List<float>();
+            long awake = 0, bodies = 0, bodySamples = 0;
             const float speed = 6.5f;
             float travelled = 0;
             while (travelled < 400)
@@ -132,11 +136,26 @@ namespace Hakaton.WorldAssembly.Tests
                 batches += UnityEditor.UnityStats.batches;
                 tris += UnityEditor.UnityStats.triangles;
                 samples++;
+                if (physics.Valid) physicsTimes.Add(physics.LastValue / 1e6f);
+                if (samples % 30 == 0)
+                {
+                    foreach (var body in Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
+                    {
+                        if (body.isKinematic) continue;
+                        bodies++;
+                        if (!body.IsSleeping()) awake++;
+                    }
+                    bodySamples++;
+                }
             }
+            physics.Dispose();
+            physicsTimes.Sort();
             frames.Sort();
             string report = $"loads {streamer.LoadTimes}\nunloads {streamer.UnloadTimes}\n" +
                 $"frames {frames.Count}: median {frames[frames.Count / 2]:0.0} ms, 95% {frames[(int)(frames.Count * .95f)]:0.0} ms, worst {frames[frames.Count - 1]:0.0} ms\n" +
-                $"batches avg {batches / Mathf.Max(1, samples)}, triangles avg {tris / Mathf.Max(1, samples)}\nloaded now {streamer.LoadedCount}";
+                $"batches avg {batches / Mathf.Max(1, samples)}, triangles avg {tris / Mathf.Max(1, samples)}\nloaded now {streamer.LoadedCount}\n" +
+                (physicsTimes.Count > 0 ? $"physics per frame: median {physicsTimes[physicsTimes.Count / 2]:0.00} ms, 95% {physicsTimes[(int)(physicsTimes.Count * .95f)]:0.00} ms, worst {physicsTimes[physicsTimes.Count - 1]:0.00} ms\n" : "physics per frame: no data\n") +
+                $"dynamic bodies avg {bodies / Mathf.Max(1, bodySamples)}, awake avg {awake / Mathf.Max(1, bodySamples)}";
             Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans"));
             File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "streaming.txt"), report);
             Assert.That(streamer.LoadTimes.Count, Is.GreaterThan(10));

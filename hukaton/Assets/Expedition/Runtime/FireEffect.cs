@@ -12,6 +12,8 @@ namespace Hakaton.Expeditions
         [Tooltip("Tar and the branch bridge catch fire when hit directly or when the hit point is this close to them.")]
         [Min(0)] public float igniteReach = .4f;
 
+        public override float BodyNudge => 1.5f;
+
         public override void Apply(in ImpactContext c)
         {
             bool meaningful = false;

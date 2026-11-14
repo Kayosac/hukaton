@@ -66,6 +66,8 @@ namespace Hakaton.Expeditions.Cards
         public SfxCue catchSound;
 
         /// <summary>Касание существа на пути, удар о препятствие — и повтор Эхом (мгновенный удар в точке).</summary>
+        public override float BodyNudge => 3;
+
         public override void Apply(in ImpactContext c)
         {
             var world = c.World;

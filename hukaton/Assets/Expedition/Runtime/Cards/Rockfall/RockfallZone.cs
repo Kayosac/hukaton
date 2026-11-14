@@ -96,6 +96,8 @@ namespace Hakaton.Expeditions.Cards
             var world = World;
             bool any = false;
             Vector3 above = centre + Vector3.up * Mathf.Max(1, height);
+            // Loose things under the stones fly apart with them.
+            PropPhysics.Burst(centre, radius, 5, .6f);
             Fighters.Clear();
             world.Combatants(Fighters);
             foreach (var fighter in Fighters)

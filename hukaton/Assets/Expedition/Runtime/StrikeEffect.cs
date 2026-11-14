@@ -11,6 +11,8 @@ namespace Hakaton.Expeditions
         [Tooltip("Small shove along the throw so hits read physically.")]
         [Min(0)] public float nudge = 1.2f;
 
+        public override float BodyNudge => 3;
+
         public override void Apply(in ImpactContext c)
         {
             bool meaningful = c.Creature && c.Creature.Alive;

@@ -40,6 +40,8 @@ namespace Hakaton.Expeditions.Cards
         static readonly List<ICombatant> Fighters = new List<ICombatant>();
         static readonly List<ICardZone> Zones = new List<ICardZone>();
 
+        public override float BodyNudge => 5;
+
         public override void Apply(in ImpactContext c)
         {
             var world = c.World;

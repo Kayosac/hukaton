@@ -140,8 +140,21 @@ namespace Hakaton.Expeditions
             CreatureAttackedByPlayer?.Invoke(victim);
         }
 
-        void Awake() { workshop.Departed += BeginOuting; }
-        void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
+        /// <summary>The world of the loaded game scene: for loose things that knock, break and bend grass without a reference to it.</summary>
+        public static ExpeditionWorld Active { get; private set; }
+
+        void Awake()
+        {
+            Active = this;
+            workshop.Departed += BeginOuting;
+            // Walking into loose things shoves them; creatures are not shoved (they stand their ground and answer for themselves).
+            if (motor) motor.PushFilter = PropPhysics.IsLoose;
+        }
+        void OnDestroy()
+        {
+            if (Active == this) Active = null;
+            if (workshop) workshop.Departed -= BeginOuting;
+        }
 
         public void BeginOuting()
         {
@@ -432,7 +445,12 @@ namespace Hakaton.Expeditions
             if (struck && struck.TryDeflectCard(point)) return;
             Impacts++;
             var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
-            if (definition.effectAsset is CardEffect effect) effect.Apply(context);
+            if (definition.effectAsset is CardEffect effect)
+            {
+                effect.Apply(context);
+                // A card that strikes also knocks the loose thing it hit (a crate, a pot, a chest) along its flight.
+                if (effect.BodyNudge > 0 && target) PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge);
+            }
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
             Impacted?.Invoke(copy, target, point);
         }

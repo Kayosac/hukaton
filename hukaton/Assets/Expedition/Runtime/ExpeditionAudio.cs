@@ -26,5 +26,23 @@ namespace Hakaton.Expeditions
         [Header("World")]
         public SfxCue ambience;
         public SfxCue locationTitle;
+        [Header("Loose things hitting something (PropImpacts)")]
+        public SfxCue impactWood;
+        public SfxCue impactClay, impactStone, impactMetal, impactSoft, impactCoin;
+
+        /// <summary>The knock of a loose thing of this make; wood when its own is not set.</summary>
+        public SfxCue Impact(PropSurface surface)
+        {
+            SfxCue cue = surface switch
+            {
+                PropSurface.Clay => impactClay,
+                PropSurface.Stone => impactStone,
+                PropSurface.Metal => impactMetal,
+                PropSurface.Soft => impactSoft,
+                PropSurface.Coin => impactCoin,
+                _ => impactWood,
+            };
+            return cue ? cue : impactWood;
+        }
     }
 }

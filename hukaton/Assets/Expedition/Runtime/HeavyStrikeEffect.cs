@@ -11,6 +11,8 @@ namespace Hakaton.Expeditions
         [Range(0, 1)] public float lift = .3f;
         [Range(0, 2)] public float stagger = .7f;
 
+        public override float BodyNudge => 7;
+
         public override void Apply(in ImpactContext c)
         {
             bool meaningful = c.Creature && c.Creature.Alive;
@@ -24,6 +26,8 @@ namespace Hakaton.Expeditions
             else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive)
                 meaningful = other.TakeDamage(new DamageInfo(c.Power, (StrikeEffect.Flat(c.Direction) + Vector3.up * lift).normalized * c.Impulse,
                     c.Point, c.ThrowOrigin));
+            // A heavy blow shakes what lies around the hit.
+            PropPhysics.Burst(c.Point, 1.6f, 3.5f, .45f, c.Body);
             Feedback(c, meaningful);
         }
     }

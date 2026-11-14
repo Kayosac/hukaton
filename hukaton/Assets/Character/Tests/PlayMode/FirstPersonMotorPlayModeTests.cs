@@ -97,6 +97,56 @@ namespace Hakaton.Character.Tests.PlayMode
             Cursor.visible = originalCursorVisible;
         }
 
+        Rigidbody LooseBox(Vector3 at, float mass)
+        {
+            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = "Loose test box";
+            box.transform.SetParent(fixtureRoot.transform);
+            box.transform.position = at;
+            box.transform.localScale = Vector3.one * .5f;
+            var body = box.AddComponent<Rigidbody>();
+            body.mass = mass;
+            return body;
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingIntoALooseBodyShovesItAsideAndAHeavyOneHoldsTheRun()
+        {
+            // Straight ahead of the player (he looks along +Z): a light box 1 m away.
+            var light = LooseBox(motor.transform.position + new Vector3(0, .3f, 1), 1);
+            yield return Advance(.5f);
+            var start = light.position;
+            var playerStart = motor.transform.position;
+            Keys(Key.W);
+            yield return Advance(1.2f);
+            Assert.That(light.position.z - start.z, Is.GreaterThan(1.5f), "the light box is shoved along");
+            Assert.That(motor.transform.position.z - playerStart.z, Is.GreaterThan(motor.walkSpeed * .7f), "and does not stop the walk");
+            Keys();
+            yield return Advance(.4f);
+            Object.Destroy(light.gameObject);
+
+            // Too heavy to shove: it stands like a wall.
+            var heavy = LooseBox(motor.transform.position + new Vector3(0, .3f, 1), motor.pushMaxMass * 2);
+            yield return Advance(.5f);
+            start = heavy.position;
+            Keys(Key.W);
+            yield return Advance(.8f);
+            Assert.That(HorizontalDistance(start, heavy.position), Is.LessThan(.15f), "a body over the limit is not moved by walking");
+            Keys();
+            Object.Destroy(heavy.gameObject);
+
+            // A filter (the game's: creatures) keeps a body from being shoved.
+            motor.PushFilter = _ => false;
+            var kept = LooseBox(motor.transform.position + new Vector3(1.2f, .3f, 0), 1);
+            motor.transform.rotation = Quaternion.Euler(0, 90, 0);
+            yield return Advance(.5f);
+            start = kept.position;
+            Keys(Key.W);
+            yield return Advance(.8f);
+            Assert.That(HorizontalDistance(start, kept.position), Is.LessThan(.3f), "a filtered body is left alone");
+            motor.PushFilter = null;
+        }
+
         [UnityTest]
         public IEnumerator WalkingSprintingAndBrakingUseRealDisplacementAndStamina()
         {

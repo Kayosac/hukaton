@@ -41,6 +41,13 @@ namespace Hakaton.Expeditions
 
         void Reset() => body = GetComponent<Rigidbody>();
 
+        float quietUntil;
+        // The clink of a coin bouncing (few voices at a time: PropImpacts).
+        void OnCollisionEnter(Collision collision)
+        {
+            if (body && !body.isKinematic) PropImpacts.Collided(body, PropSurface.Coin, collision, ref quietUntil);
+        }
+
         /// <summary>
         /// Fell out of the player's pocket (Leaky pocket): lies where it lands until the player walks back over it; it
         /// never flies to the bag by itself.

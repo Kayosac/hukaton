@@ -194,6 +194,9 @@ namespace Hakaton.Expeditions
             var surface = motor.GroundCollider ? motor.GroundCollider.GetComponentInParent<ILandingSurface>() : null;
             if (surface != null && surface.AbsorbLanding(motor, speed)) return;
             float reference = motor.ToReferenceSpeed(speed);
+            // Landing shakes the loose things round the feet: a hop barely stirs them, a long drop throws them.
+            if (reference > 3) PropPhysics.Burst(motor.transform.position, Mathf.Lerp(1.1f, 2.6f, Mathf.InverseLerp(3, 14, reference)),
+                Mathf.Lerp(.8f, 5, Mathf.InverseLerp(3, 14, reference)), .6f);
             int damage = ExpeditionEffectRules.ImpactDamage(reference, settings.fallDamageSpeed, settings.fallDamageStep);
             if (reference > 7)
             {

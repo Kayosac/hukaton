@@ -734,6 +734,8 @@ namespace Hakaton.Expeditions
             // A big beast standing right on its target reaches it with its body, not only its snout (StrikeConnects).
             if (!StrikeConnects(snout, body.position, CapsuleRadius, size, strikeDirection, victim.Position, aim, contactRange)) return;
             hitThisStrike = true;
+            // The blow also knocks the loose things round the snout (a crate between it and its prey flies off).
+            PropPhysics.Burst(snout, .7f + .5f * size, lunging || ramming ? 4.5f : 3, .4f, body);
             // A card shield around the target (the Bubble) takes the blow: no damage, no push.
             if (StrikeShielded(victim, aim)) return;
             // A grab holds instead of pushing away (WorldCreature.Grab.cs).

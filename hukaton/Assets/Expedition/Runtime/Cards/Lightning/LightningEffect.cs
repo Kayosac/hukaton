@@ -48,6 +48,8 @@ namespace Hakaton.Expeditions.Cards
         static readonly List<ICombatant> Fighters = new List<ICombatant>();
         static readonly RaycastHit[] SightHits = new RaycastHit[16];
 
+        public override float BodyNudge => 2;
+
         public override void Apply(in ImpactContext c)
         {
             var world = c.World;
@@ -55,6 +57,8 @@ namespace Hakaton.Expeditions.Cards
             var first = c.HitCombatant;
             bool hitFighter = Combat.IsAlive(first);
             world.Spawn(strikeVfx, hitFighter ? first.Position : c.Point, Quaternion.identity, tint, strikeScale);
+            // The bolt's crack throws small loose things about.
+            PropPhysics.Burst(c.Point, 2, 3, .5f);
             if (hitFighter)
             {
                 Fighters.Clear();

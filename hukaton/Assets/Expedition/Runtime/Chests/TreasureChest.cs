@@ -102,6 +102,12 @@ namespace Hakaton.Expeditions
             ApplyBody();
         }
 
+        float quietUntil;
+        void OnCollisionEnter(Collision collision)
+        {
+            if (Body && !Body.isKinematic) PropImpacts.Collided(Body, PropSurface.Wood, collision, ref quietUntil);
+        }
+
         void ApplyBody()
         {
             if (!Body) return;
