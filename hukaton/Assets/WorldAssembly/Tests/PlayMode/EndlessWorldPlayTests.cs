@@ -161,6 +161,50 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(streamer.LoadTimes.Count, Is.GreaterThan(10));
         }
 
+        /// <summary>
+        /// Every dormant prop round the start, woken and nudged a few at a time: none sinks under the ground, none shoots
+        /// off (a body woken inside something it is set into), and all of them are still again a while later.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator WokenPropsStayInTheWorldAndGoBackToSleep()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            yield return new WaitForSeconds(1);
+            var props = Object.FindObjectsByType<PhysicsProp>(FindObjectsSortMode.None)
+                .Where(p => p.dormant && p.body && p.isActiveAndEnabled && p.body.isKinematic).ToList();
+            Assert.That(props.Count, Is.GreaterThan(20), "dormant props round the start");
+            var problems = new List<string>();
+            int woken = 0;
+            for (int start = 0; start < props.Count; start += 30)
+            {
+                var batch = props.Skip(start).Take(30).Where(p => p && p.isActiveAndEnabled).ToList();
+                var before = batch.ToDictionary(p => p, p => p.body.position);
+                foreach (var p in batch)
+                    if (PropPhysics.Ready(p.body)) { woken++; p.body.AddForce(Vector3.up * 1.2f + Random.insideUnitSphere * .6f, ForceMode.VelocityChange); }
+                Assert.That(PropPhysics.AwakeCount, Is.LessThanOrEqualTo(PropPhysics.MaxAwake));
+                yield return new WaitForSeconds(2.5f);
+                foreach (var p in batch)
+                {
+                    if (!p || !p.isActiveAndEnabled) continue;
+                    var at = p.body.worldCenterOfMass;
+                    float moved = Vector3.Distance(before[p], p.body.position);
+                    var delta = p.body.position - before[p];
+                    float across = new Vector2(delta.x, delta.z).magnitude;
+                    // Rolling off an edge and falling is fair; flying off sideways is a body woken inside something.
+                    if (across > 6) problems.Add($"{p.name} in {streamer.CoordAt(before[p])} shot {across:0.0} m across, {delta.y:0.0} m up, from {before[p]}");
+                    // Under the ground: the terrain right above it.
+                    if (Physics.Raycast(at, Vector3.up, out var hit, 4, ~(1 << 4), QueryTriggerInteraction.Ignore) && hit.collider is TerrainCollider == false
+                        && hit.collider.transform.parent && hit.collider.name == "Ground")
+                        problems.Add($"{p.name} in {streamer.CoordAt(before[p])} sank under the ground");
+                }
+            }
+            Debug.Log($"[World] woke {woken} of {props.Count} dormant props: {problems.Count} problems\n" + string.Join("\n", problems));
+            Assert.That(woken, Is.GreaterThan(props.Count / 2));
+            Assert.That(problems, Is.Empty, string.Join("\n", problems));
+            yield return new WaitForSeconds(4);
+            Assert.That(PropPhysics.AwakeCount, Is.LessThan(10), "at rest they are still scenery again");
+        }
+
         [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {

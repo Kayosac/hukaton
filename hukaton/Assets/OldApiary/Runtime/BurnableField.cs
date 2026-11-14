@@ -301,6 +301,8 @@ namespace Hakaton.OldApiary
             var b = f.burnable;
             if (f.fx) f.fx.Release(.6f);
             if (b.style != BurnStyle.Ash) return;
+            // What lay on it (a pot on a crate burnt to ash) falls instead of hanging in the air.
+            PhysicsProp.WakeResting(b.transform);
             foreach (var r in b.Renderers) if (r) r.enabled = false;
             if (touched.TryGetValue(b, out var o)) foreach (var c in o.colliders) if (c) c.enabled = false;
             if (b.Body) b.Body.isKinematic = true;

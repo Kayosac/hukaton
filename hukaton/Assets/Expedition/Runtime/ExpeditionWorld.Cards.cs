@@ -70,6 +70,8 @@ namespace Hakaton.Expeditions
         public void HideForOuting(GameObject sceneObject)
         {
             if (!sceneObject || !sceneObject.activeSelf) return;
+            // What lay on it (a pot on an awakened tree's root) falls instead of hanging where it was.
+            PhysicsProp.WakeResting(sceneObject.transform);
             MergedLooks.Unmerge(sceneObject);
             sceneObject.SetActive(false);
             RestoreAtOutingEnd(() => { if (sceneObject) sceneObject.SetActive(true); });

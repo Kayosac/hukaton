@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hakaton.Expeditions
@@ -83,13 +84,16 @@ namespace Hakaton.Expeditions
             if (!any) return;
             var centre = new Vector3(b.center.x, b.max.y, b.center.z);
             int n = Physics.OverlapBoxNonAlloc(centre, new Vector3(b.extents.x + .05f, .12f, b.extents.z + .05f), Above, Quaternion.identity, ~(1 << 4), QueryTriggerInteraction.Ignore);
+            // Collected first: waking one wakes what lies on it in turn, and that reuses the buffer.
+            var resting = new List<PhysicsProp>();
             for (int i = 0; i < n; i++)
             {
-                var body = Above[i].attachedRigidbody;
+                var body = Above[i] ? Above[i].attachedRigidbody : null;
                 Above[i] = null;
                 if (!body || !body.isKinematic || body.transform.IsChildOf(under) || under.IsChildOf(body.transform)) continue;
-                if (body.TryGetComponent(out PhysicsProp prop) && prop.dormant && prop.transform.position.y > b.min.y) prop.Wake();
+                if (body.TryGetComponent(out PhysicsProp prop) && prop.dormant && prop.transform.position.y > b.min.y && !resting.Contains(prop)) resting.Add(prop);
             }
+            foreach (var prop in resting) if (prop) prop.Wake();
         }
 
         /// <summary>Out of the merged mesh, with shapes a moving body may have (a hull instead of the exact mesh).</summary>
