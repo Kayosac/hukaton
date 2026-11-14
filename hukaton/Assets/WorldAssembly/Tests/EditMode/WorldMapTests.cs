@@ -217,7 +217,7 @@ namespace Hakaton.WorldAssembly.Tests
         [Test]
         public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts()
         {
-            int chunks = 0, brawlsNear = 0;
+            int chunks = 0, forest = 0, brawlsNear = 0;
             var kinds = new Dictionary<string, int>();
             for (int seed = 1; seed <= 20; seed++)
             {
@@ -227,6 +227,7 @@ namespace Hakaton.WorldAssembly.Tests
                 {
                     var p = map.Chunk(c);
                     chunks++;
+                    if (p.Biome == Biome.Forest) forest++;
                     Assert.AreEqual(p.Event, again.Chunk(c).Event, $"seed {seed}: the event of {p} depends on the seed and the chunk only");
                     if (p.Event == null) continue;
                     kinds[p.Event] = kinds.TryGetValue(p.Event, out var n) ? n + 1 : 1;
@@ -251,7 +252,8 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(oddities, Is.InRange(chunks / 500, chunks / 100), "payphones and televisions: about one chunk in two hundred");
             Assert.Greater(Count(WorldEvents.Payphone), 0);
             Assert.Greater(Count(WorldEvents.Television), 0);
-            Assert.That(Count(WorldEvents.Brawl), Is.InRange(chunks / 60, chunks / 15), "brawls");
+            // Brawls take roomy forest scenes only, so they are counted against the forest (the swamp grows further out).
+            Assert.That(Count(WorldEvents.Brawl), Is.InRange(forest / 60, forest / 15), "brawls");
         }
 
         [Test]

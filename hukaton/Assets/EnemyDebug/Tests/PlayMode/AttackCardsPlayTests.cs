@@ -214,6 +214,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             PlayerAt(Spot + new Vector3(0, 0, -12));
             var scarecrow = Scarecrow(Spot + new Vector3(1.5f, 0, 0));
             var dog = Beast("Goblin dog", Spot + new Vector3(-1.5f, 0, 0));
+            // A goblin dog has 4 HP: the blast's 5 would kill it before it is seen hurt and burning.
+            dog.maximumHealth = 12;
+            dog.Resume(12, Spot + new Vector3(-1.5f, 0, 0));
             dog.Distract(30);
             var barrel = Barrel(Spot);
             yield return Wait(.5f);
@@ -232,6 +235,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             PlayerAt(Spot + new Vector3(0, 0, -12));
             var barrel = Barrel(Spot);
             var dog = Beast("Goblin dog", Spot + new Vector3(4, 0, 0));
+            // Sturdier than a real goblin dog (4 HP), so the burn does not kill it before it reaches the barrel.
+            dog.maximumHealth = 12;
+            dog.Resume(12, Spot + new Vector3(4, 0, 0));
             dog.Distract(30);
             dog.Damage(0, Vector3.zero, dog.Centre, 8);
             yield return Wait(.5f);

@@ -61,7 +61,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         public IEnumerator GoblinDogsComeAsAPackAndSpreadRoundThePlayer()
         {
             var leader = Spawn("Goblin dog");
-            Assert.That(leader.maximumHealth, Is.EqualTo(6));
+            Assert.That(leader.maximumHealth, Is.EqualTo(4));
             Assert.That(leader.Squad, Is.Not.Null, "goblin dogs come in packs");
             var pack = leader.Squad.Members.ToList();
             yield return Stand(leader, 9);
@@ -445,7 +445,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         public IEnumerator DwarfThrowsMugsThatLeavePuddles()
         {
             var dwarf = Spawn("Drunken dwarf robot");
-            Assert.That(dwarf.maximumHealth, Is.EqualTo(24));
+            Assert.That(dwarf.maximumHealth, Is.EqualTo(20));
             Assert.That(dwarf.staggerAngle, Is.GreaterThan(0), "it staggers");
             yield return Stand(dwarf, 9);
             float until = Time.time + 8;
