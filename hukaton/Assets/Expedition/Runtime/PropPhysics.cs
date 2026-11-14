@@ -32,6 +32,8 @@ namespace Hakaton.Expeditions
         public static int Burst(Vector3 centre, float radius, float speed, float lift = .35f, Rigidbody except = null)
         {
             if (radius <= 0 || speed <= 0) return 0;
+            // The same blow goes through the leaves around.
+            PlantReactions.Shake(centre, radius + 1, Mathf.Clamp01(speed / 5));
             int count = Physics.OverlapSphereNonAlloc(centre, radius, Hits, ~0, QueryTriggerInteraction.Ignore);
             Seen.Clear();
             int moved = 0;
