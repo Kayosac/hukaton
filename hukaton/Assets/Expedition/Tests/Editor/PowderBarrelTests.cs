@@ -136,6 +136,61 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(area.LeavesOutlinedZone, Is.False, "Стоящая бочка не рисует контур; только горящий фитиль.");
         }
 
+        static Bounds MeshBounds(MeshFilter filter) => GeometryUtility.CalculateBounds(filter.sharedMesh.vertices, filter.transform.localToWorldMatrix);
+
+        [Test]
+        public void BarrelIsWaistHighAndItsColliderMatchesTheModel()
+        {
+            var barrel = Barrel(new Vector3(0, 100, 0));
+            var feet = barrel.transform.position;
+            Bounds look = default;
+            bool any = false;
+            foreach (var filter in barrel.model.GetComponentsInChildren<MeshFilter>())
+            {
+                var b = MeshBounds(filter);
+                if (any) look.Encapsulate(b); else look = b;
+                any = true;
+            }
+            Assert.That(any, Is.True);
+            var mesh = (MeshCollider)barrel.solid;
+            var solid = GeometryUtility.CalculateBounds(mesh.sharedMesh.vertices, mesh.transform.localToWorldMatrix);
+            // Игрок видит мир с 1,6 м: бочка по пояс, с фитилём чуть выше.
+            Assert.That(look.max.y - feet.y, Is.InRange(1f, 1.2f), "С фитилём — около метра с небольшим.");
+            Assert.That(solid.max.y - feet.y, Is.InRange(.9f, 1.1f), "Тело бочки — около метра, по пояс игроку.");
+            Assert.That(solid.min.y - feet.y, Is.InRange(-.02f, .03f), "Стоит на дне: не висит и не тонет.");
+            Assert.That(solid.size.x, Is.EqualTo(look.size.x).Within(.1f), "Коллайдер по ширине модели (обручи чуть шире).");
+            Assert.That(solid.size.z, Is.EqualTo(look.size.z).Within(.1f));
+            Assert.That(look.max.y - solid.max.y, Is.LessThan(.15f), "Выше коллайдера — только фитиль.");
+            Assert.That(barrel.radius, Is.EqualTo(Mathf.Max(solid.extents.x, solid.extents.z)).Within(.03f), "Зона бочки — по коллайдеру.");
+            Assert.That(barrel.height, Is.EqualTo(solid.size.y).Within(.03f));
+            var effect = Effect();
+            Assert.That(effect.footprintRadius, Is.GreaterThanOrEqualTo(barrel.radius), "Проверка места — не меньше бочки.");
+            Assert.That(effect.footprintHeight, Is.GreaterThanOrEqualTo(barrel.height));
+            Assert.That(barrel.fuseTip.position.y - feet.y, Is.EqualTo(look.max.y - feet.y).Within(.06f), "Искры — на конце фитиля.");
+            // Порох осел на дно: склон и лёгкий толчок бочку не валят (сильный взрыв — валит).
+            var body = new SerializedObject(effect.barrelPrefab.body);
+            Assert.That(body.FindProperty("m_ImplicitCom").boolValue, Is.False);
+            Assert.That(body.FindProperty("m_CenterOfMass").vector3Value.y, Is.LessThan(barrel.height * .3f));
+        }
+
+        [Test]
+        public void SkullFacesTheThrowerAndTheBarrelLeansWithTheSlope()
+        {
+            Assert.That(Effect().yawJitter, Is.LessThanOrEqualTo(45), "Череп виден бросившему.");
+            var flat = PowderBarrelPlacement.Pose(Vector3.up, new Vector3(3, 1, 4), 0, .7f, .39f, out float lift);
+            Assert.That(Vector3.Angle(flat * Vector3.forward, new Vector3(3, 0, 4)), Is.LessThan(.5f), "Череп (+Z модели) — к бросившему.");
+            Assert.That(Vector3.Angle(flat * Vector3.up, Vector3.up), Is.LessThan(.01f), "На ровном — отвесно.");
+            Assert.That(lift, Is.EqualTo(.02f).Within(1e-4f));
+
+            var slope = Quaternion.AngleAxis(20, Vector3.right) * Vector3.up;
+            var leaning = PowderBarrelPlacement.Pose(slope, Vector3.back, 30, .7f, .39f, out lift);
+            Assert.That(Vector3.Angle(leaning * Vector3.up, Vector3.up), Is.EqualTo(14).Within(.1f), "Дном почти по склону.");
+            Assert.That(lift, Is.GreaterThan(.02f + .39f * Mathf.Sin(6 * Mathf.Deg2Rad) - .001f), "Край дна не уходит в склон.");
+            var facing = leaning * Vector3.forward;
+            facing.y = 0;
+            Assert.That(Vector3.Angle(facing, Quaternion.Euler(0, 30, 0) * Vector3.back), Is.LessThan(3), "Отклонение черепа — заданное.");
+        }
+
         [Test]
         public void BarrelIsASolidPhysicalThingNotAFighter()
         {

@@ -11,7 +11,9 @@ namespace Hakaton.Expeditions.Cards
     /// вылазки и взрывается только от огня (общая система поджига карт): урон 5 / 8 / 12 зверям, мимикам и союзникам в
     /// радиусе 3 / 4 / 5 м, поджигает их и отбрасывает от центра (отброс 10 / 13 / 16). Игроку — своё число:
     /// 2 / 3 / 4 половинки сердца и отброс, без горения; в Пузыре игрок неуязвим к взрыву.
-    /// Кольцо при прицеливании показывает радиус будущего взрыва.
+    /// Кольцо при прицеливании показывает радиус будущего взрыва. Бочка (~1 м, по пояс игроку) встаёт черепом к
+    /// бросившему и дном почти по склону (<see cref="PowderBarrelPlacement.Pose"/>), порох в ней осел на дно (низкий центр
+    /// масс в префабе): склон и лёгкий толчок её не валят.
     /// </summary>
     public sealed class PowderBarrelEffect : CardEffect, ICardStatLine, ICardArea
     {
@@ -32,13 +34,16 @@ namespace Hakaton.Expeditions.Cards
         [Tooltip("Поверхности круче этого (стены) — не земля, градусы.")]
         [Range(0, 90)] public float groundSlope = 40;
         [Tooltip("Размер бочки для проверки свободного места: радиус и высота, м.")]
-        [Min(.05f)] public float footprintRadius = .34f;
-        [Min(.1f)] public float footprintHeight = .98f;
+        [Min(.05f)] public float footprintRadius = .39f;
+        [Min(.1f)] public float footprintHeight = 1.13f;
         [Tooltip("Занято — свободное место ищется по кольцам вокруг с таким шагом, до maxShift м.")]
         [Min(.1f)] public float searchStep = .45f;
         [Min(0)] public float maxShift = 1.8f;
-        [Tooltip("Случайный поворот бочки вокруг вертикали, градусы.")]
-        [Range(0, 180)] public float yawJitter = 180;
+        [Tooltip("Череп бочки (её +Z) смотрит на бросившего — со случайным отклонением не больше этого, градусы.")]
+        [Range(0, 180)] public float yawJitter = 35;
+        [Tooltip("Насколько бочка встаёт дном по склону: 0 — отвесно, 1 — дном по земле. Отвесная бочка на склоне " +
+                 "касалась земли краем, и толчок валил её.")]
+        [Range(0, 1)] public float groundTilt = .7f;
         [Tooltip("Пыль, где бочка встала (Retro Arsenal).")]
         public VfxBurst appearVfx;
         public Color appearTint = new Color(.55f, .45f, .35f);
@@ -60,15 +65,16 @@ namespace Hakaton.Expeditions.Cards
                 Vector3 a = ground + Vector3.up * (r + .06f), b = ground + Vector3.up * Mathf.Max(r + .06f, h - r);
                 return !Physics.CheckCapsule(a, b, r, mask, QueryTriggerInteraction.Ignore);
             }
-            bool Ground(Vector3 from, out Vector3 ground)
-                => CardGround.TryFind(null, from + Vector3.up * 1.2f, Vector3.up, groundSlope, dropDistance + 1.2f, out ground, out _);
+            bool Ground(Vector3 from, out Vector3 ground, out Vector3 groundNormal)
+                => CardGround.TryFind(null, from + Vector3.up * 1.2f, Vector3.up, groundSlope, dropDistance + 1.2f, out ground, out groundNormal);
 
-            bool found = CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var spot, out _);
+            bool found = CardGround.TryFind(c.Target, c.Point, c.Normal, groundSlope, dropDistance, out var spot, out var normal);
             if (found && !Free(spot))
             {
                 Vector3 toward = c.ThrowOrigin - spot;
                 found = PowderBarrelPlacement.TryFind(spot, toward, searchStep, maxShift,
-                    p => Ground(p, out var g) && Mathf.Abs(g.y - spot.y) < 1.2f && Free(g) ? g : (Vector3?)null, out spot);
+                    p => Ground(p, out var g, out _) && Mathf.Abs(g.y - spot.y) < 1.2f && Free(g) ? g : (Vector3?)null, out spot);
+                if (found && !Ground(spot, out _, out normal)) normal = Vector3.up;
             }
             if (!found)
             {
@@ -76,8 +82,10 @@ namespace Hakaton.Expeditions.Cards
                 if (!string.IsNullOrEmpty(noRoomNotice)) c.World.Announce(noRoomNotice, 1.4f);
                 return;
             }
-            var rotation = Quaternion.Euler(0, Random.Range(-yawJitter, yawJitter), 0);
-            var barrel = c.World.SpawnForOuting(barrelPrefab, spot + Vector3.up * .02f, rotation);
+            // Черепом к бросившему, дном почти по склону, чуть выше земли — чтобы край дна не ушёл в неё.
+            var rotation = PowderBarrelPlacement.Pose(normal, c.ThrowOrigin - spot, Random.Range(-yawJitter, yawJitter), groundTilt,
+                footprintRadius, out float lift);
+            var barrel = c.World.SpawnForOuting(barrelPrefab, spot + Vector3.up * lift, rotation);
             if (barrel)
             {
                 barrel.Setup(new PowderBarrelBlast { damage = c.At(damage), playerDamage = c.At(playerDamage), radius = c.At(radius), knockback = c.At(knockback) });
@@ -105,9 +113,26 @@ namespace Hakaton.Expeditions.Cards
         bool ICardArea.LeavesOutlinedZone => false;
     }
 
-    /// <summary>Где встать бочке, если точка попадания занята (правила без сцены, EditMode-тесты).</summary>
+    /// <summary>Где и как встать бочке (правила без сцены, EditMode-тесты).</summary>
     public static class PowderBarrelPlacement
     {
+        /// <summary>
+        /// Поза бочки на земле: череп (локальная +Z модели) смотрит на бросившего (<paramref name="toThrower"/>, по
+        /// горизонтали) с отклонением <paramref name="yawOffset"/> градусов; ось бочки наклонена к нормали земли на долю
+        /// <paramref name="tilt"/>. <paramref name="lift"/> — на сколько поднять над точкой, чтобы нижний край дна (радиус
+        /// <paramref name="radius"/>) не ушёл в склон.
+        /// </summary>
+        public static Quaternion Pose(Vector3 groundNormal, Vector3 toThrower, float yawOffset, float tilt, float radius, out float lift)
+        {
+            var flat = new Vector3(toThrower.x, 0, toThrower.z);
+            var yaw = (flat.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(flat.normalized, Vector3.up) : Quaternion.identity)
+                      * Quaternion.Euler(0, yawOffset, 0);
+            var normal = groundNormal.sqrMagnitude > 1e-6f && groundNormal.y > 0 ? groundNormal.normalized : Vector3.up;
+            var up = Vector3.Slerp(Vector3.up, normal, Mathf.Clamp01(tilt));
+            lift = .02f + Mathf.Max(0, radius) * Mathf.Sin(Vector3.Angle(up, normal) * Mathf.Deg2Rad);
+            return Quaternion.FromToRotation(Vector3.up, up) * yaw;
+        }
+
         /// <summary>
         /// Кандидаты по кольцам вокруг <paramref name="centre"/>: радиусы step, 2·step… до <paramref name="maxShift"/>,
         /// на каждом — 8 направлений, первым — к бросавшему (<paramref name="toward"/>), дальше поочерёдно по обе стороны.
