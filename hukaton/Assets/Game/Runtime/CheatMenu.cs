@@ -224,6 +224,13 @@ namespace Hakaton.Game
             return added;
         }
 
+        /// <summary>
+        /// Alphabetical key for cheat lists: culture-independent (WebGL has no ICU), case-insensitive,
+        /// with «ё» sorted as «е» so Russian names follow the usual alphabet order.
+        /// </summary>
+        static string SortKey(string name) =>
+            string.IsNullOrEmpty(name) ? string.Empty : name.ToLowerInvariant().Replace('ё', 'е');
+
         public CardCopy GrantCard(CardDefinition definition, int level)
         {
             var world = game.expedition;
@@ -333,7 +340,7 @@ namespace Hakaton.Game
                 if (GUILayout.Button("+", button, GUILayout.Width(40))) grantLevel = Mathf.Min(maxLevel, grantLevel + 1);
                 GUILayout.EndHorizontal();
                 grantLevel = Mathf.Clamp(grantLevel, 1, maxLevel);
-                foreach (var definition in world.workshop.config.cards.Where(c => c))
+                foreach (var definition in world.workshop.config.cards.Where(c => c).OrderBy(c => SortKey(c.displayName), System.StringComparer.Ordinal))
                     if (GUILayout.Button(definition.displayName, button)) GrantCard(definition, grantLevel);
             }
             GUILayout.Space(8);
@@ -344,7 +351,7 @@ namespace Hakaton.Game
             else
             {
                 GUILayout.Label("Бессмертие и Пузырь их не пропускают.", body);
-                foreach (var debuff in statuses.definitions.Where(d => d))
+                foreach (var debuff in statuses.definitions.Where(d => d).OrderBy(d => SortKey(d.displayName), System.StringComparer.Ordinal))
                 {
                     string label = statuses.Has(debuff.kind) ? debuff.displayName + " (идёт)" : debuff.displayName;
                     if (GUILayout.Button(label, button))
