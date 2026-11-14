@@ -434,7 +434,7 @@ namespace Hakaton.WorldAssembly.Tests
         // ---------- rotten swamp ----------
 
         [Test]
-        public void SwampLiesInPatchesFromRingOneOutward()
+        public void SwampLiesInPatchesFromRingTwoOutward()
         {
             int[] swamp = new int[3], total = new int[3];
             int bigPatches = 0;
@@ -475,10 +475,9 @@ namespace Hakaton.WorldAssembly.Tests
                 }
             }
             Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
-            double ring1 = swamp[1] / (double)total[1], ring2 = swamp[2] / (double)total[2];
-            Assert.That(ring1, Is.InRange(.04, .3), "some swamp in ring 1");
-            Assert.That(ring2, Is.InRange(.15, .45), "more swamp in ring 2");
-            Assert.Greater(ring2, ring1, "the swamp grows further out");
+            Assert.AreEqual(0, swamp[1], "no swamp in ring 1: it begins with ring 2");
+            double ring2 = swamp[2] / (double)total[2];
+            Assert.That(ring2, Is.InRange(.15, .45), "swamp patches in ring 2");
             Assert.Greater(bigPatches, 0, "some patches are bigger than a district");
         }
 

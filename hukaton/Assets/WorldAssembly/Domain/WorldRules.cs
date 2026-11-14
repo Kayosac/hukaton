@@ -23,10 +23,10 @@ namespace Hakaton.WorldAssembly
         public bool Swamp = true;
         /// <summary>Swamp noise feature size, in chunks: bigger cells, bigger patches.</summary>
         public int SwampNoiseCell = 7;
-        /// <summary>No swamp nearer than this to the start (metres, chunk centre); its share grows out to SwampFull.</summary>
-        public float SwampFrom = 72f, SwampFull = 176f;
-        /// <summary>Swamp noise above this makes swamp: near (at SwampFrom) and far (SwampFull and beyond). About a seventh
-        /// of ring 1 and over a quarter of ring 2.</summary>
+        /// <summary>No swamp nearer than this to the start (metres, chunk centre): the swamp begins with ring 2
+        /// (<see cref="MiddleRadius"/>), rings 0 and 1 are all forest; its share grows out to SwampFull.</summary>
+        public float SwampFrom = 112f, SwampFull = 216f;
+        /// <summary>Swamp noise above this makes swamp: near (at SwampFrom) and far (SwampFull and beyond).</summary>
         public double SwampThresholdNear = .68, SwampThresholdFar = .6;
         /// <summary>Rise noise above this lifts the swamp one level (6 m) deep inside a patch: its raised terraces.</summary>
         public double SwampRise = .56;
