@@ -45,6 +45,8 @@ namespace Hakaton.Game
         public GodMountainsVisit godVisit;
         [Tooltip("The goblin's word in the shop after the first drowning (once per save). Empty: just the notice.")]
         public GoblinLecture lecture;
+        [Tooltip("The record of the brazier's and the PC's first-open guides (saved with the game).")]
+        public Hakaton.Guide.GuideBook guides;
         [TextArea] public string[] drownLecture =
         {
             "Когда-нибудь ты научишься плавать, но не сегодня.",
@@ -179,6 +181,7 @@ namespace Hakaton.Game
             tutorial.Changed += MarkDirty;
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
             if (lecture) lecture.Finished += OnLectureFinished;
+            if (guides) guides.Progress.Changed += MarkDirty;
             restoring = true;
             string warning = null;
             bool loaded = false;
@@ -227,6 +230,7 @@ namespace Hakaton.Game
             if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
             if (specialItems) specialItems.Inventory.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
+            if (guides) guides.Progress.Changed -= MarkDirty;
         }
         void OnApplicationQuit() { SaveNow(); }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
@@ -497,6 +501,12 @@ namespace Hakaton.Game
             drownLectureGiven = false;
             MarkDirty();
         }
+
+        /// <summary>The brazier's and the PC's first-open guides come again at their next opening.</summary>
+        public void ForgetGuides()
+        {
+            if (guides) guides.Progress.Forget();
+        }
         /// <summary>The prologue runs in the expedition phase: nothing is saved there, quitting starts the cave again.</summary>
         void EnterCave()
         {
@@ -600,7 +610,8 @@ namespace Hakaton.Game
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet,
-            specialItems = specialItems ? specialItems.Inventory.Save() : null
+            specialItems = specialItems ? specialItems.Inventory.Save() : null,
+            guides = guides ? guides.Progress.Save() : null
         };
         public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
             && save.cards != null && save.shop != null && save.cards.coins == save.coins
@@ -627,6 +638,7 @@ namespace Hakaton.Game
                 else outingMap.Forget(outingMap.SiteFor(OutingPlace.Endless));
             }
             if (specialItems) specialItems.Restore(save.specialItems);
+            if (guides) guides.Progress.Restore(save.guides);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

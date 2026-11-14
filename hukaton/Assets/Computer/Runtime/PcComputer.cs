@@ -63,6 +63,10 @@ namespace Hakaton.Computer
         /// <summary>The desktop is up and takes input.</summary>
         public bool Running => phase == Phase.Running;
         public event Action Closed;
+        /// <summary>The desktop has come up and takes input (after every start-up or wake).</summary>
+        public event Action Ready;
+        /// <summary>A guide is on: Esc and the right button are its own (skip), they do not switch the PC off.</summary>
+        public bool Guided { get; set; }
         /// <summary>
         /// The shop, for the «Время смены» improvement. The session is built when the game starts, so the game hands it
         /// over (not serialized); without it the improvements window shows only the deck workshop's tracks.
@@ -187,7 +191,7 @@ namespace Hakaton.Computer
                     break;
                 case Phase.Running:
                     desktop.SetCoins(workshop.Model.Coins);
-                    if (BackPressed())
+                    if (!Guided && BackPressed())
                     {
                         if (desktop.MenuOpen) desktop.CloseMenu();
                         else Close();
@@ -239,6 +243,7 @@ namespace Hakaton.Computer
             // Windows left open stay open across a short wake; refresh what they show.
             if (cards.window.IsOpen) cards.Refresh();
             if (upgrades.window.IsOpen) upgrades.Refresh();
+            Ready?.Invoke();
         }
 
         void SetInput(bool on)
