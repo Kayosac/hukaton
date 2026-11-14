@@ -99,7 +99,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(area.LeavesOutlinedZone, Is.False, "The landing flashes the radius.");
             Assert.That(effect.TryGetStat(out var label, out var values, out var unit), Is.True);
             Assert.That((label, values.iii, unit), Is.EqualTo(("Радиус", 15f, " м")));
-            Assert.That((card.purchasePrice, card.rank), Is.EqualTo((200, 3)), "Price and rank are the coordinator's.");
+            Assert.That((card.purchasePrice, card.rank), Is.EqualTo((300, 4)), "Price and rank are the user's (KayoSpace card table).");
         }
     }
 }

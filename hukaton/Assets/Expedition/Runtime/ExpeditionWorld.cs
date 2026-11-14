@@ -332,11 +332,61 @@ namespace Hakaton.Expeditions
             return definition ? definition.accent : Color.white;
         }
 
+        /// <summary>
+        /// Throws a card from the hand. A card whose one throw releases several (<see cref="ICardVolley"/>: Веер) flies as
+        /// a volley: every card an ordinary projectile of the same copy; the one along the throw is returned
+        /// (<see cref="CardProjectile.Volley"/> lists them all).
+        /// </summary>
         public CardProjectile Launch(CardCopy card, Vector3 position, Vector3 velocity, CardView source, Pose? handPose)
+        {
+            var definition = card != null && !card.IsReturn && workshop && workshop.config ? workshop.config.Find(card.Spec.Id) : null;
+            if (definition && definition.effectAsset is ICardVolley volley)
+                return LaunchVolley(volley, card, definition, position, velocity, source, handPose);
+            return LaunchOne(card, position, velocity, source, handPose);
+        }
+
+        CardProjectile LaunchOne(CardCopy card, Vector3 position, Vector3 velocity, CardView source, Pose? handPose)
         {
             var projectile = Instantiate(projectilePrefab, position, Quaternion.LookRotation(velocity.normalized), spawnedObjects);
             projectile.Launch(this, card, source, velocity, handPose);
             return projectile;
+        }
+
+        readonly Vector3[] volleyVelocities = new Vector3[16];
+        readonly float[] volleyRolls = new float[16];
+
+        /// <summary>
+        /// One throw, several cards (Веер): each flies its own way from the same point, showing the same copy; for the
+        /// first moment they spread out of the hand like a hand of cards fanned open. The middle and the two outer ones
+        /// flutter, the rest fly silent (the effect layers the throw itself).
+        /// </summary>
+        CardProjectile LaunchVolley(ICardVolley volley, CardCopy card, CardDefinition definition, Vector3 position, Vector3 velocity,
+            CardView source, Pose? handPose)
+        {
+            System.Array.Clear(volleyRolls, 0, volleyRolls.Length);
+            int count = Mathf.Clamp(volley.Volley(new CardFlightLaunch(this, card, definition, position, velocity), volleyVelocities, volleyRolls,
+                out int centre), 1, volleyVelocities.Length);
+            centre = Mathf.Clamp(centre, 0, count - 1);
+            var shared = new CardVolley(count);
+            var eye = viewCamera ? viewCamera.transform : null;
+            float width = hand ? hand.cardWidth : .07f;
+            CardProjectile main = null;
+            for (int i = 0; i < count; i++)
+            {
+                Pose? pose = handPose;
+                if (handPose.HasValue && eye)
+                {
+                    float roll = volleyRolls[i];
+                    // Spread about a point below the hand: a card leaning right moves right.
+                    pose = new Pose(handPose.Value.position - eye.right * (Mathf.Sin(roll * Mathf.Deg2Rad) * width * 1.4f),
+                        Quaternion.AngleAxis(roll, eye.forward) * handPose.Value.rotation);
+                }
+                var projectile = LaunchOne(card, position, volleyVelocities[i], source, pose);
+                projectile.JoinVolley(shared, i == centre ? 1 : i == 0 || i == count - 1 ? .5f : 0);
+                if (i == centre) main = projectile;
+            }
+            volley.Launched(this, shared.Cards);
+            return main;
         }
 
         public CardDebris SpawnDebris(CardView source, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 spin, float seconds)

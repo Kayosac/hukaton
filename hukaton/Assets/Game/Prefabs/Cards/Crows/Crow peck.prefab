@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2447710373209005472
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 52220943076892216, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5478345166802426698, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327608, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: playOnAwake
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327611, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706945536487327614, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      propertyPath: m_Name
+      value: Crow peck
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7706945536487327614, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 342201857704804595}
+  m_SourcePrefab: {fileID: 100100000, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+--- !u!198 &5407857491112712920 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 7706945536487327608, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+  m_PrefabInstance: {fileID: 2447710373209005472}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5407857491112712926 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7706945536487327614, guid: 7f4813004f880e946a3bb3db2c4e8642, type: 3}
+  m_PrefabInstance: {fileID: 2447710373209005472}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &342201857704804595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5407857491112712926}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955e669a313304cb2b509732256dce50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Feel::Hakaton.Feel.VfxBurst
+  systems:
+  - {fileID: 5407857491112712920}
+  tinted: []
+  flash: {fileID: 0}
+  flashIntensity: 3
+  flashSeconds: 0.25
+  lifetime: 1.5

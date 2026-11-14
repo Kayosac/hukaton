@@ -23,6 +23,16 @@ namespace Hakaton.Expeditions
         bool Wash(ICardZone rain);
     }
 
+    /// <summary>
+    /// Мокнет от воды, брошенной картой (Струя): пороховая бочка. Мокрое не горит, пока мокрое
+    /// (<see cref="WetStatus"/>, 30 с); горящий фитиль вода гасит. Струя находит такие зоны у точки всплеска.
+    /// </summary>
+    public interface ISoakable
+    {
+        /// <summary>Мочит на <paramref name="seconds"/> с. True, если что-то изменилось (намокло, погасло).</summary>
+        bool Soak(ExpeditionWorld world, float seconds);
+    }
+
     /// <summary>A zone that hides what is behind or inside it (fog). Asked by <see cref="ExpeditionWorld.IsVisionBlocked"/>.</summary>
     public interface IVisionBlocker
     {

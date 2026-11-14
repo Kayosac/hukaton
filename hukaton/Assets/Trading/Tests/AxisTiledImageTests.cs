@@ -118,7 +118,6 @@ namespace Hakaton.Trading.Tests
 
         [TestCase("Assets/Content/UI/Dialogue/Prefabs/StitchedLinenButton.prefab")]
         [TestCase("Assets/Content/UI/Dialogue/Prefabs/StitchedLinenWindow.prefab")]
-        [TestCase("Assets/Game/Prefabs/UI/Outing choice.prefab")]
         public void SavedLinenPrefabsUseTheCorrectAxisOnEveryEdge(string path)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);

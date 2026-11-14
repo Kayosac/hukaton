@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Hakaton.Character;
 using Hakaton.Decks;
 using UnityEngine;
@@ -42,6 +43,14 @@ namespace Hakaton.Expeditions
         [Min(1)] public float previewDashPixels = 12;
         [Tooltip("The preview starts this far along the flight, metres, so it does not sprout from the card in the hand.")]
         [Min(0)] public float previewStartOffset = .25f;
+        [Tooltip("Залп («Веер»): заранее настроенные линии путей боковых карт (дети рядом с trajectory, тот же материал), до 6 — " +
+                 "веер III из 7 карт. Рантайм их только включает, выключает и задаёт точки; линий меньше, чем боковых карт, — " +
+                 "лишние пути не рисуются.")]
+        public LineRenderer[] volleyLines = new LineRenderer[0];
+        [Tooltip("A volley («Веер»): width of the side cards' paths as a share of the middle one.")]
+        [Range(.1f, 1)] public float volleySideWidth = .5f;
+        [Tooltip("A volley («Веер»): opacity of the side cards' paths.")]
+        [Range(.1f, 1)] public float volleySideAlpha = .75f;
 
         public ThrowPreparation Preparation { get; } = new ThrowPreparation();
         /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
@@ -62,17 +71,18 @@ namespace Hakaton.Expeditions
         int selectedId = int.MinValue, selectedIndex;
         float returnReadyAt, nextDiscard;
         bool returnWasInHand, fullChargeCued;
-        readonly Vector3[] previewPoints = new Vector3[64];
+        readonly Vector3[] previewPoints = new Vector3[128];
         readonly Gradient previewGradient = new Gradient();
         readonly GradientColorKey[] previewColours = new GradientColorKey[2];
         readonly GradientAlphaKey[] previewAlphas = new GradientAlphaKey[6];
         // The preview as drawn: one vertex per piece, a fixed screen length apart.
-        const int MaxDashPoints = 256, WidthKeys = 24;
+        const int MaxDashPoints = 512, WidthKeys = 24;
         readonly Vector3[] dashPoints = new Vector3[MaxDashPoints];
         // Length of the drawn line from its start to each dash point, metres (the LineRenderer keys width and colour by it).
         readonly float[] dashLengths = new float[MaxDashPoints];
         readonly Keyframe[] widthKeys = new Keyframe[WidthKeys];
         readonly AnimationCurve widthCurve = new AnimationCurve();
+        readonly Vector3[] volleyVelocities = new Vector3[16];
 
         public CardCopy Selected
         {
@@ -180,13 +190,19 @@ namespace Hakaton.Expeditions
                 if (crooked) world.Play(crooked.tickCue);
             }
             Cancel();
-            if (world.workshop.Model.Current.Release(card.Id) == null) return null;
+            // A card whose throw may bring it back (Бумеранг) is held while it flies.
+            bool mayComeBack = CustomFlight(card) is ICustomFlight custom && custom.MayComeBack;
+            if (world.workshop.Model.Current.Release(card.Id, mayComeBack) == null) return null;
             world.hand.Take(card.Id, out var handPose, out var handView);
             var projectile = world.Launch(card, origin, velocity, handView, handView ? handPose : (Pose?)null);
 
-            // The socket can sit inside a wall when hugging geometry: resolve at the wall immediately.
+            // The socket can sit inside a wall when hugging geometry: resolve at the wall immediately (every card of a volley).
             var eye = world.viewCamera.transform.position;
-            if (CardFlight.Sweep(eye, origin, world.settings.cardRadius, out var hit)) projectile.Resolve(hit.collider, hit.point, hit.normal);
+            if (CardFlight.Sweep(eye, origin, world.settings.cardRadius, out var hit))
+            {
+                if (projectile.Volley == null) projectile.Resolve(hit.collider, hit.point, hit.normal);
+                else foreach (var thrown in projectile.Volley.Cards) thrown.Resolve(hit.collider, hit.point, hit.normal);
+            }
 
             if (world.feel)
             {
@@ -218,6 +234,7 @@ namespace Hakaton.Expeditions
         {
             Preparation.Cancel();
             if (trajectory) trajectory.enabled = false;
+            HideVolleyLines(0);
         }
 
         public void ResetSelection()
@@ -294,8 +311,57 @@ namespace Hakaton.Expeditions
             var card = Selected;
             bool show = Preparation.Active && card != null && world.settings.previewSeconds > 0;
             trajectory.enabled = show;
-            if (!show) return;
+            if (!show) { HideVolleyLines(0); return; }
             ComputeLaunch(Preparation.Charge, out var position, out var velocity);
+            // A volley (Веер) shows the path of every card: the middle one as usual, the side ones thinner.
+            var definition = card.IsReturn ? null : world.workshop.config.Find(card.Spec.Id);
+            if (definition && definition.effectAsset is ICardVolley volley)
+            {
+                int count = Mathf.Clamp(volley.Volley(new CardFlightLaunch(world, card, definition, position, velocity), volleyVelocities, null,
+                    out int centre), 1, volleyVelocities.Length);
+                int side = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    bool middle = i == centre;
+                    var line = middle ? trajectory : VolleyLine(side++);
+                    if (!line) continue;
+                    line.enabled = true;
+                    DrawPreview(line, card, BallisticPreview(position, volleyVelocities[i]), middle ? 1 : volleySideWidth, middle ? 1 : volleySideAlpha);
+                }
+                HideVolleyLines(side);
+                return;
+            }
+            HideVolleyLines(0);
+            int used;
+            // A card with its own flight (Бумеранг) shows that whole path, there and back.
+            if (CustomFlight(card) is ICustomFlight custom)
+                used = Mathf.Clamp(custom.PreviewPath(new CardFlightLaunch(world, card, world.workshop.config.Find(card.Spec.Id), position, velocity), previewPoints), 1, previewPoints.Length);
+            else used = BallisticPreview(position, velocity);
+            DrawPreview(trajectory, card, used, 1, 1);
+        }
+
+        /// <summary>Линия пути <paramref name="index"/>-й боковой карты залпа из настроенных в префабе; null — линий меньше.</summary>
+        LineRenderer VolleyLine(int index) => volleyLines != null && index < volleyLines.Length ? volleyLines[index] : null;
+
+        /// <summary>Hides the volley's side paths from <paramref name="from"/> on.</summary>
+        void HideVolleyLines(int from)
+        {
+            if (volleyLines == null) return;
+            for (int i = from; i < volleyLines.Length; i++)
+                if (volleyLines[i]) volleyLines[i].enabled = false;
+        }
+
+        /// <summary>The effect of the card's definition when it flies its own way, else null.</summary>
+        ICustomFlight CustomFlight(CardCopy card)
+        {
+            if (card == null || card.IsReturn) return null;
+            var definition = world.workshop.config.Find(card.Spec.Id);
+            return definition ? definition.effectAsset as ICustomFlight : null;
+        }
+
+        /// <summary>The first moments of the ordinary ballistic flight, up to the first contact.</summary>
+        int BallisticPreview(Vector3 position, Vector3 velocity)
+        {
             float seconds = Mathf.Lerp(.12f, world.settings.previewSeconds, Preparation.Charge);
             int count = Mathf.Clamp(Mathf.CeilToInt(seconds / (1f / 50f)), 2, previewPoints.Length);
             float step = seconds / (count - 1);
@@ -314,13 +380,20 @@ namespace Hakaton.Expeditions
                 velocity = nextVelocity;
                 previewPoints[used++] = position;
             }
+            return used;
+        }
+
+        /// <param name="widthScale">Share of the full width (a volley's side paths are thinner).</param>
+        /// <param name="alphaScale">Share of the full opacity.</param>
+        void DrawPreview(LineRenderer line, CardCopy card, int used, float widthScale, float alphaScale)
+        {
             var view = world.viewCamera;
             used = TrimStart(used, previewStartOffset);
             int dashes = view ? LayOutDashes(view, used) : 0;
-            if (dashes < 2) { trajectory.enabled = false; return; }
-            trajectory.positionCount = dashes;
-            for (int i = 0; i < dashes; i++) trajectory.SetPosition(i, dashPoints[i]);
-            UpdatePreviewWidth(view, dashes);
+            if (dashes < 2) { line.enabled = false; return; }
+            line.positionCount = dashes;
+            for (int i = 0; i < dashes; i++) line.SetPosition(i, dashPoints[i]);
+            UpdatePreviewWidth(line, view, dashes, widthScale);
             // The halo glows in the card's accent (the core is white in the shader); both ends melt into transparency.
             Color core = world.Accent(card);
             previewColours[0] = new GradientColorKey(core, 0);
@@ -329,9 +402,9 @@ namespace Hakaton.Expeditions
             float[] shares = { 0, fade * .4f, fade, 1 - fade, 1 - fade * .4f, 1 };
             float[] alphas = { 0, .55f, 1, 1, .55f, 0 };
             for (int i = 0; i < previewAlphas.Length; i++)
-                previewAlphas[i] = new GradientAlphaKey(alphas[i], LengthShareAt(shares[i], dashes));
+                previewAlphas[i] = new GradientAlphaKey(alphas[i] * alphaScale, LengthShareAt(shares[i], dashes));
             previewGradient.SetKeys(previewColours, previewAlphas);
-            trajectory.colorGradient = previewGradient;
+            line.colorGradient = previewGradient;
         }
 
         /// <summary>Drops the first <paramref name="offset"/> metres of the sampled path (at most half of it) in place.</summary>
@@ -420,11 +493,11 @@ namespace Hakaton.Expeditions
         /// towards both ends (<see cref="Taper"/>), whatever the depth: proportional to the depth in front of the camera.
         /// Keys sit at even shares of the SCREEN length, timed by the share of the world length the renderer uses.
         /// </summary>
-        void UpdatePreviewWidth(Camera view, int count)
+        void UpdatePreviewWidth(LineRenderer line, Camera view, int count, float widthScale)
         {
             var eye = view.transform;
             Vector3 origin = eye.position, forward = eye.forward;
-            float perMetreOfDepth = previewWidthPixels / 1080f * 2 * Mathf.Tan(view.fieldOfView * .5f * Mathf.Deg2Rad);
+            float perMetreOfDepth = previewWidthPixels * widthScale / 1080f * 2 * Mathf.Tan(view.fieldOfView * .5f * Mathf.Deg2Rad);
             dashLengths[0] = 0;
             for (int i = 1; i < count; i++) dashLengths[i] = dashLengths[i - 1] + Vector3.Distance(dashPoints[i - 1], dashPoints[i]);
             float total = dashLengths[count - 1];
@@ -452,8 +525,8 @@ namespace Hakaton.Expeditions
                 widthKeys[k].outTangent = slopeOut;
             }
             widthCurve.keys = widthKeys;
-            trajectory.widthMultiplier = 1;
-            trajectory.widthCurve = widthCurve;
+            line.widthMultiplier = 1;
+            line.widthCurve = widthCurve;
         }
 
         void OnDisable() => Cancel();

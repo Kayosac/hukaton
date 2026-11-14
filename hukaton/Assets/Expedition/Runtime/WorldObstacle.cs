@@ -33,6 +33,8 @@ namespace Hakaton.Expeditions
         public SfxCue loopSound;
         [Min(.1f)] public float transformSeconds = 1.1f;
         public Color tint = Color.white;
+        [Tooltip("Thorns: зоны карт (пороховая бочка, смола, ветвь-мост, газ, Чучело) так близко к загоревшимся зарослям загораются от них, м.")]
+        [Min(0)] public float zoneReach = .4f;
 
         /// <summary>Thorns: burnt open. Lake: some of it is under ice that holds right now (an <see cref="IcePatch"/>).</summary>
         public bool Resolved => kind == ObstacleKind.Lake ? Iced : burnt;
@@ -268,9 +270,23 @@ namespace Hakaton.Expeditions
             // Water is changed by card-made ice (IcePatch), not by the lake itself.
             if (kind == ObstacleKind.Lake) return false;
             if (burnt || action != CardAction.Fire) return false;
+            IgniteCardZones();
             burnt = true;
             StartCoroutine(Burn(point));
             return true;
+        }
+
+        /// <summary>
+        /// Загоревшиеся заросли поджигают зоны карт рядом с собой (любой огонь игры поджигает бочку): каждую
+        /// <see cref="IIgnitable"/>-зону не дальше <see cref="zoneReach"/> от самих зарослей (точное расстояние до их
+        /// коллайдера, а не до ящика вокруг). Возвращает, сколько загорелось.
+        /// </summary>
+        public int IgniteCardZones()
+        {
+            if (!world || kind != ObstacleKind.Thorns || !barrier || !barrier.enabled) return 0;
+            float reach = zoneReach;
+            return world.Zones.IgniteBox(barrier.bounds, reach, IgnitionSource.Fire,
+                zone => DistanceTo(zone.Bounds.center) > reach + Mathf.Max(zone.Bounds.extents.x, zone.Bounds.extents.z));
         }
 
         IEnumerator Burn(Vector3 point)
@@ -327,6 +343,7 @@ namespace Hakaton.Expeditions
         [Min(.05f)] public float soakTick = .25f;
         float nextSoak;
         static readonly List<ICombatant> Waders = new List<ICombatant>();
+        static readonly List<ICardZone> Soakables = new List<ICardZone>();
 
         void Update()
         {
@@ -338,7 +355,8 @@ namespace Hakaton.Expeditions
         /// <summary>
         /// Lake: water wets whoever stands in it, like rain (Kayospace «Биом: Гнилая топь»): the player, creatures and
         /// allies with their feet under the surface get <see cref="WetStatus"/> — so Ice encases them and lightning
-        /// strikes them twice as hard. Standing on ice that holds is not in the water.
+        /// strikes them twice as hard. Standing on ice that holds is not in the water. Card things that soak
+        /// (<see cref="ISoakable"/>, the powder barrel) get wet too (<see cref="SoakThings"/>).
         /// </summary>
         public void SoakWaders()
         {
@@ -357,7 +375,36 @@ namespace Hakaton.Expeditions
                 WetStatus.Soak(body.Root, world);
                 if (player && !wasWet && world.vfx && world.vfx.wetBadge) PlayerStatusBadge.Show(world, world.vfx.wetBadge);
             }
+            SoakThings(box);
         }
+
+        /// <summary>
+        /// Вещи карт, что мокнут от воды (<see cref="ISoakable"/>: пороховая бочка), тоже мокнут в озере и топи, а
+        /// горящий фитиль гаснет. Мерило — низ вещи (<see cref="ThingInWater"/>): бочка, упавшая сквозь поверхность
+        /// воды (она триггер) и стоящая на дне, — в воде, как и стоящая по колено. Возвращает, сколько вещей намочено.
+        /// </summary>
+        public int SoakThings(Bounds water)
+        {
+            int count = 0;
+            Soakables.Clear();
+            world.Zones.Overlapping(water, Soakables);
+            foreach (var zone in Soakables)
+            {
+                if (!(zone is ISoakable soakable) || zone is Object unityObject && !unityObject) continue;
+                var bounds = zone.Bounds;
+                var bottom = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+                if (!ThingInWater(bottom)) continue;
+                soakable.Soak(world, WetStatus.DefaultLingerSeconds);
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Низ вещи в этой воде: ниже поверхности (на дне или по колено) или лежит прямо на ней (на воде) — и не на
+        /// держащем льду.
+        /// </summary>
+        public bool ThingInWater(Vector3 bottom) => SurfaceAt(bottom, out float level) && bottom.y < level + .05f && !(world && IcePatch.IsSolidAt(world, bottom));
 
         /// <summary>Lake: feet under this water's surface and not on ice that holds.</summary>
         public bool InWater(Vector3 feet) => SurfaceAt(feet, out float level) && feet.y < level - .02f && !(world && IcePatch.IsSolidAt(world, feet));

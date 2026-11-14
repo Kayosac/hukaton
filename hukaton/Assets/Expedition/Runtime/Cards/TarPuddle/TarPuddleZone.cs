@@ -10,7 +10,8 @@ namespace Hakaton.Expeditions.Cards
     /// until the end of the outing. Unlit tar slows every fighter standing on it (player, creatures, allies through
     /// <see cref="IMoveSpeedScalable"/>). Fire or Lightning (<see cref="IIgnitable"/>) lights the whole puddle: it burns
     /// for the card's time, hurting everyone in the fire by the time spent there (<see cref="TarFireExposure"/>),
-    /// without slowing, then burns out and disappears. Rain (<see cref="IWashable"/>) removes it whole, lit or not.
+    /// without slowing, and sets alight what touches its fire (<see cref="SpreadFire"/>: another puddle, the branch
+    /// bridge, a powder barrel), then burns out and disappears. Rain (<see cref="IWashable"/>) removes it whole, lit or not.
     /// The rules live in <see cref="TarPuddleState"/>; numbers come from the card asset through <see cref="Setup"/>.
     /// </summary>
     [DisallowMultipleComponent]
@@ -23,6 +24,11 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float igniteMargin = .4f;
         [Tooltip("The slow is renewed every frame for this long, so it ends this soon after stepping off, s.")]
         [Min(.02f)] public float slowRefreshSeconds = .15f;
+
+        [Tooltip("Burning tar sets alight what touches its fire (another puddle, the branch bridge, a powder barrel, gas) within this reach, m.")]
+        [Min(0)] public float spreadReach = .3f;
+        [Tooltip("How often burning tar looks for things to set alight, s (0: never).")]
+        [Min(0)] public float spreadInterval = .25f;
 
         [Header("Tarred creatures")]
         [Tooltip("A creature without its own fire vulnerability that is set alight while in this tar (on it unlit, or in its fire) burns like a fire-vulnerable one until that burn ends, by these rules (the shared Fire vulnerability asset): multipliers, flames placed as the creature sets them, setting things alight by touch. Empty: tar does not make anyone vulnerable.")]
@@ -60,7 +66,7 @@ namespace Hakaton.Expeditions.Cards
 
         TarPuddleState state = new TarPuddleState(30);
         float speedMultiplier = .5f, damagePerSecond = 1;
-        float born, endedAt = -1, phase, layerHeight, layerDepth;
+        float born, endedAt = -1, phase, layerHeight, layerDepth, nextSpread;
         bool registeredGone;
         MaterialPropertyBlock block;
 
@@ -138,6 +144,7 @@ namespace Hakaton.Expeditions.Cards
             else if (state.Burns)
             {
                 BurnEveryoneInIt(Time.deltaTime);
+                SpreadFire();
                 if (state.Advance(Time.deltaTime)) End(burnOutPuff, burnOutSound);
             }
             Animate();
@@ -195,6 +202,18 @@ namespace Hakaton.Expeditions.Cards
                 int due = exposure.Expose(fighter, Time.frameCount, dt * damagePerSecond);
                 if (due > 0) fighter.TakeDamage(new DamageInfo(due, Vector3.zero, fighter.Centre, transform.position, DamageKind.Fire));
             }
+        }
+
+        /// <summary>
+        /// The fire of burning tar lights what touches it, through the shared ignition of card zones
+        /// (<see cref="CardZoneRegistry.Ignite"/>): the fire is the puddle's disc up to <see cref="fireHeight"/>.
+        /// </summary>
+        void SpreadFire()
+        {
+            if (spreadInterval <= 0 || Time.time < nextSpread) return;
+            nextSpread = Time.time + spreadInterval;
+            Vector3 o = transform.position;
+            World.Zones.Ignite(o, o + Vector3.up * fireHeight, radius, spreadReach, IgnitionSource.Fire, this);
         }
 
         /// <summary>Under a rain that is still falling (any new fire there goes out at once).</summary>

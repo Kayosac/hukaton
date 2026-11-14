@@ -27,6 +27,9 @@ namespace Hakaton.Expeditions
         Vector3 launchPosition;
         bool resolved;
         Pose? handPose;
+        ICardFlightPath path;
+        CardVolley volley;
+        float loopVolume = 1;
 
         static readonly System.Collections.Generic.List<CardProjectile> active = new System.Collections.Generic.List<CardProjectile>();
         /// <summary>Cards in flight (creatures' projectiles check them: a card knocks a projectile out of the air).</summary>
@@ -38,6 +41,24 @@ namespace Hakaton.Expeditions
         public bool Resolved => resolved;
         public CardCopy Card => card;
         public Vector3 Velocity => velocity;
+        public ExpeditionWorld World => world;
+        public CardDefinition Definition => definition;
+        public Vector3 LaunchPosition => launchPosition;
+        /// <summary>The card's own flight (<see cref="ICustomFlight"/>: Бумеранг), or null for the ordinary ballistic one.</summary>
+        public ICardFlightPath Path => path;
+        /// <summary>The cards thrown together with this one (<see cref="ICardVolley"/>: Веер), or null for a single card.</summary>
+        public CardVolley Volley => volley;
+
+        /// <summary>
+        /// Joins the volley of one throw (Веер): the copy's attempt settles once, after the last card of it.
+        /// <paramref name="flightLoopVolume"/> scales its flutter (0: it flies silent, the volley's other cards flutter).
+        /// </summary>
+        internal void JoinVolley(CardVolley shared, float flightLoopVolume)
+        {
+            volley = shared;
+            loopVolume = Mathf.Max(0, flightLoopVolume);
+            shared?.Add(this);
+        }
 
         public void Launch(ExpeditionWorld owner, CardCopy copy, CardView source, Vector3 initialVelocity, Pose? fromHand)
         {
@@ -59,6 +80,9 @@ namespace Hakaton.Expeditions
                 trail.startColor = new Color(accent.r, accent.g, accent.b, .8f);
                 trail.endColor = new Color(accent.r, accent.g, accent.b, 0);
             }
+            path = definition && definition.effectAsset is ICustomFlight custom
+                ? custom.BeginFlight(new CardFlightLaunch(owner, copy, definition, launchPosition, initialVelocity))
+                : null;
             UpdateVisual(0);
         }
 
@@ -66,6 +90,7 @@ namespace Hakaton.Expeditions
         {
             if (resolved || !world) return;
             if (!world.Running) { Destroy(gameObject); return; }
+            if (path != null) { path.Step(this, Time.fixedDeltaTime); return; }
             Vector3 position = transform.position, next = position, nextVelocity = velocity;
             CardFlight.Advance(ref next, ref nextVelocity, world.settings, Time.fixedDeltaTime);
             if (CardFlight.Sweep(position, next, world.settings.cardRadius, out var hit))
@@ -82,15 +107,16 @@ namespace Hakaton.Expeditions
         {
             if (!world) return;
             age += Time.deltaTime;
-            if (!resolved && age > world.settings.projectileLife) Fizzle();
-            if (!resolved) world.sfx?.Loop(this, world.cues ? world.cues.cardFlutter : null, transform.position, Mathf.Clamp01(velocity.magnitude / 18f));
+            if (!resolved && age > world.settings.projectileLife) { if (path != null) Drop(); else Fizzle(); }
+            var loop = path?.FlightLoop ?? (world.cues ? world.cues.cardFlutter : null);
+            if (!resolved && loopVolume > 0) world.sfx?.Loop(this, loop, transform.position, Mathf.Clamp01(velocity.magnitude / 18f) * loopVolume);
         }
 
         void LateUpdate() { if (!resolved) UpdateVisual(Time.deltaTime); }
 
         void UpdateVisual(float dt)
         {
-            spinAngle += spinSpeed * dt * twirl;
+            spinAngle += spinSpeed * (path != null ? path.SpinMultiplier : 1) * dt * twirl;
             Vector3 direction = velocity.sqrMagnitude > .001f ? velocity.normalized : transform.forward;
             Vector3 side = Vector3.Cross(Vector3.up, direction);
             if (side.sqrMagnitude < .001f) side = Vector3.right;
@@ -113,9 +139,18 @@ namespace Hakaton.Expeditions
             view.transform.localScale = new Vector3(size, size * 1.5f, 1);
         }
 
+        /// <summary>Moves the card along its own flight (<see cref="ICardFlightPath"/>).</summary>
+        public void MoveTo(Vector3 position, Vector3 newVelocity)
+        {
+            transform.position = position;
+            velocity = newVelocity;
+        }
+
         public void Resolve(Collider target, Vector3 point, Vector3 normal)
         {
             if (resolved || !world) return;
+            // A card with its own flight never sticks: it strikes the obstacle and drops (Бумеранг into a wall).
+            if (path != null) { Bounce(target, point, normal); return; }
             resolved = true;
             world.sfx?.StopLoop(this);
             if (world.Running) world.ApplyImpact(card, definition, target, point, normal, velocity, launchPosition);
@@ -127,6 +162,53 @@ namespace Hakaton.Expeditions
             Quaternion embedded = Quaternion.AngleAxis(Random.Range(-40f, 40f), direction) * Quaternion.LookRotation(cardNormal, direction);
             float halfLength = worldCardWidth * .75f;
             world.SpawnStuckCard(view, point - direction * (halfLength - .05f), embedded, target ? target.transform : null, world.Accent(card));
+            Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// The card struck something solid on its own flight: the impact is applied, the card bounces off and drops,
+        /// and its attempt is over (held cards settle in <see cref="OnDestroy"/>).
+        /// </summary>
+        public void Bounce(Collider target, Vector3 point, Vector3 normal)
+        {
+            if (resolved || !world) return;
+            resolved = true;
+            world.sfx?.StopLoop(this);
+            transform.position = point;
+            if (world.Running) world.ApplyImpact(card, definition, target, point, normal, velocity, launchPosition);
+            Vector3 away = Vector3.Reflect(velocity, normal.sqrMagnitude > .001f ? normal.normalized : -velocity.normalized);
+            FallAway(point + normal * .05f, away * .3f + Vector3.up * 1.5f);
+        }
+
+        /// <summary>The card's own flight ran out of time: it loses its lift and drops where it is.</summary>
+        public void Drop()
+        {
+            if (resolved || !world) return;
+            resolved = true;
+            world.sfx?.StopLoop(this);
+            FallAway(transform.position, velocity * .25f + Vector3.up * .5f);
+        }
+
+        /// <summary>
+        /// The card came back and was caught (Бумеранг): the same copy returns to the hand with the use its throw took
+        /// (<see cref="Expedition.Catch"/>); nothing is left in the world.
+        /// </summary>
+        public bool Catch(SfxCue sound)
+        {
+            if (resolved || !world) return false;
+            resolved = true;
+            world.sfx?.StopLoop(this);
+            bool back = card != null && world.workshop && world.workshop.Model?.Current != null && world.workshop.Model.Current.Catch(card.Id);
+            world.Play(sound, transform.position);
+            if (world.feel) world.feel.Kick(new Vector3(4, 0, -3));
+            Destroy(gameObject);
+            return back;
+        }
+
+        void FallAway(Vector3 position, Vector3 fallVelocity)
+        {
+            world.SpawnDebris(view, position, view.transform.rotation, fallVelocity,
+                new Vector3(Random.Range(-500, 500), Random.Range(-200, 200), Random.Range(-700, 700)), .9f);
             Destroy(gameObject);
         }
 
@@ -143,8 +225,11 @@ namespace Hakaton.Expeditions
             active.Remove(this);
             if (!world) return;
             if (world.sfx) world.sfx.StopLoop(this);
-            // The attempt is over (hit, miss or gone): a card with uses left (Teleport II / III) returns to the hand.
-            if (card != null && world.workshop && world.workshop.Model != null) world.workshop.Model.Current?.Settle(card.Id);
+            // The attempt is over (hit, miss or gone): a card with uses left (Teleport II / III) returns to the hand;
+            // one that could only come back by being caught (Бумеранг) and was not goes to the spent pile.
+            // A volley (Веер) settles its one copy once, after its last card.
+            if (card != null && world.workshop && world.workshop.Model != null && (volley == null || volley.Finish(this)))
+                world.workshop.Model.Current?.Settle(card.Id);
         }
     }
 }

@@ -35,6 +35,19 @@ namespace Hakaton.Expeditions
             return false;
         }
 
+        /// <summary>
+        /// Игрок стоит под защитой карты (внутри Пузыря, <see cref="IPlayerStatusShield"/>): его не берут и свои карты —
+        /// взрыв Пороховой бочки и Камнепад (ни урона, ни отброса). <paramref name="feet"/> — ноги игрока.
+        /// </summary>
+        public static bool ShieldsPlayer(ExpeditionWorld world, Vector3 feet)
+        {
+            if (!world) return false;
+            var zones = world.Zones.All;
+            for (int i = 0; i < zones.Count; i++)
+                if (zones[i] is IPlayerStatusShield shield && shield.ShieldsPlayer(feet)) return true;
+            return false;
+        }
+
         /// <summary>A move target kept out of every card barrier.</summary>
         public static Vector3 KeepOut(ExpeditionWorld world, Vector3 point, float bodyRadius)
         {

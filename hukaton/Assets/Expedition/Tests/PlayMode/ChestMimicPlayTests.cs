@@ -103,6 +103,27 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator UnderTheCrowsItNeverBites()
+        {
+            var mimic = Lab(3);
+            StandInFront(mimic, 1.8f);
+            yield return null;
+            // Карта «Вороньё» сажает на мимика стаю (как CrowsEffect: 1 HP в секунду, 4 с).
+            var effect = AssetDatabase.LoadAssetAtPath<Hakaton.Expeditions.Cards.CrowsEffect>("Assets/Game/Data/Effects/Crows.asset");
+            Assert.That(effect && effect.flockPrefab, Is.True);
+            var flock = world.SpawnForOuting(effect.flockPrefab, mimic.Centre, Quaternion.identity);
+            flock.Attach(mimic, 1, 4, Time.time);
+            Assert.That(mimic.Distracted, Is.True, "вороны отвлекли мимика");
+            Assert.That(mimic.chest.Open(), Is.True, "E по сундуку");
+            yield return Seconds(mimic.warnSeconds + .6f);
+            Assert.That(mimic.Bites, Is.Zero, "под воронами не кусает — удирает");
+            StandInFront(mimic, 1);
+            yield return Seconds(1.5f);
+            Assert.That(mimic.Bites, Is.Zero, "и вплотную тоже");
+            Object.Destroy(flock.gameObject);
+        }
+
+        [UnityTest]
         public IEnumerator KilledItPaysMoreThanAPlainChestOfItsTier()
         {
             foreach (int rank in new[] { 1, 4 })

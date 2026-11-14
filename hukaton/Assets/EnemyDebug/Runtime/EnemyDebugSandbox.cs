@@ -226,7 +226,7 @@ namespace Hakaton.EnemyDebug
             if (title) title.text = "ВРАГИ / ОТЛАДКА";
             int active = 0;
             foreach (var creature in live) if (creature && creature.gameObject.activeSelf) active++;
-            if (summary) summary.text = $"Виды: {previews.Count}   Копии: {active}   Получено урона: {ReceivedDamage}\nR — убрать копии и сбросить позы\nУдар: без лимита / ЛКМ — зарядить и бросить";
+            if (summary) summary.text = $"Виды: {previews.Count}   Копии: {active}   Получено урона: {ReceivedDamage}\nR — убрать копии и сбросить позы\nКарта без лимита: ЛКМ — зарядить и бросить, T — другая карта";
             if (!focusText) return;
             focusText.gameObject.SetActive(Focused);
             if (Focused)
