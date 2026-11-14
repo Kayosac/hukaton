@@ -210,12 +210,7 @@ namespace Hakaton.Expeditions
         {
             FocusedLoot = null;
             FocusedInteractable = null;
-            if (!Running)
-            {
-                if (plantsFed) { plantsFed = false; PlantReactions.Clear(); }
-                return;
-            }
-            FeedPlants();
+            if (!Running) return;
             if (Time.time >= nextPropTick)
             {
                 nextPropTick = Time.time + .25f;
@@ -230,54 +225,6 @@ namespace Hakaton.Expeditions
         }
 
         float nextPropTick;
-        bool plantsFed;
-        const int PlantBenders = 6;
-        const float PlantBendRange = 24;
-        readonly WorldCreature[] nearCreatures = new WorldCreature[PlantBenders - 1];
-        readonly float[] nearDistances = new float[PlantBenders - 1];
-
-        /// <summary>
-        /// Grass, ferns and bushes lean away from the player and the creatures nearest to him, and shiver where something
-        /// hit (PlantReactions feeds the wind shader). Only bodies near the player count: further off nobody sees it.
-        /// </summary>
-        void FeedPlants()
-        {
-            plantsFed = true;
-            PlantReactions.BeginFrame();
-            Vector3 feet = motor.transform.position;
-            PlantReactions.AddBender(feet, 1.15f, 1);
-            int found = 0;
-            var list = ActiveCreatures;
-            for (int i = 0; i < list.Count; i++)
-            {
-                var creature = list[i];
-                if (!creature || !creature.Alive || !creature.gameObject.activeInHierarchy) continue;
-                float distance = (creature.Position - feet).sqrMagnitude;
-                if (distance > PlantBendRange * PlantBendRange) continue;
-                // Keep the nearest few, ordered.
-                int slot = found < nearCreatures.Length ? found++ : -1;
-                if (slot < 0)
-                {
-                    if (distance >= nearDistances[nearCreatures.Length - 1]) continue;
-                    slot = nearCreatures.Length - 1;
-                }
-                while (slot > 0 && nearDistances[slot - 1] > distance)
-                {
-                    nearCreatures[slot] = nearCreatures[slot - 1];
-                    nearDistances[slot] = nearDistances[slot - 1];
-                    slot--;
-                }
-                nearCreatures[slot] = creature;
-                nearDistances[slot] = distance;
-            }
-            for (int i = 0; i < found; i++)
-            {
-                PlantReactions.AddBender(nearCreatures[i].Position, .55f + .45f * nearCreatures[i].Size, 1);
-                nearCreatures[i] = null;
-            }
-            PlantReactions.Commit(Time.time, Time.deltaTime);
-        }
-
         WorldLoot FindFocusedLoot()
         {
             var eye = viewCamera.transform;
@@ -514,8 +461,6 @@ namespace Hakaton.Expeditions
             var struck = target ? target.GetComponentInParent<WorldCreature>() : null;
             if (struck && struck.TryDeflectCard(point)) return;
             Impacts++;
-            // Whatever the card does, the leaves where it lands shiver.
-            PlantReactions.Shake(point, 2.2f, .8f);
             var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
             if (definition.effectAsset is CardEffect effect)
             {

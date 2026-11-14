@@ -161,36 +161,6 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(streamer.LoadTimes.Count, Is.GreaterThan(10));
         }
 
-        /// <summary>
-        /// A record to look at, not a pass/fail on looks: the same patch of plants with nobody on it, with the player
-        /// standing in it, and just after a blow (Logs/world-plans/plants-*.png). Asserts only that the feed runs.
-        /// </summary>
-        [UnityTest]
-        public IEnumerator PlantsLeanAwayFromThePlayerAndShiverWhereHit()
-        {
-            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
-            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
-            Directory.CreateDirectory(dir);
-            // The thickest patch of ferns, grass and bushes among the loaded chunks.
-            var plants = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None)
-                .Where(x => x.name.Contains("FernTall") || x.name.Contains("GrassTall") || x.name.Contains("BroadLeavesTall") || x.name.Contains("BushRound"))
-                .Select(x => x.position).ToList();
-            Assert.That(plants.Count, Is.GreaterThan(10), "plants around the start");
-            Vector3 spot = plants.OrderByDescending(at => plants.Count(other => (other - at).sqrMagnitude < 2.2f * 2.2f)).First();
-            world.motor.Teleport(spot + Vector3.up * 1.5f, Quaternion.identity);
-            yield return WaitFor(() => world.motor.IsGrounded, 8);
-            for (int f = 0; f < 30; f++) yield return null;
-            spot = world.motor.transform.position;
-            Vector3 eye = spot + new Vector3(2.4f, 1.9f, -2.4f), look = spot + Vector3.up * .35f;
-            yield return Shot(dir, "plants-1-player-in", eye, look, spot + Vector3.up * 1.6f);
-            Assert.That(Hakaton.Feel.PlantReactions.BenderCount, Is.GreaterThanOrEqualTo(1), "the player bends the plants round him");
-            Hakaton.Feel.PlantReactions.Shake(spot, 3, 1, 2);
-            for (int f = 0; f < 4; f++) yield return null;
-            Assert.That(Hakaton.Feel.PlantReactions.ShakeAmplitude(0), Is.GreaterThan(0), "a blow shivers the leaves");
-            yield return Shot(dir, "plants-2-shiver", eye, look, spot + Vector3.up * 1.6f);
-            yield return Shot(dir, "plants-3-nobody", eye, look, spot + new Vector3(-14, 4.6f, 0));
-        }
-
         [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {
