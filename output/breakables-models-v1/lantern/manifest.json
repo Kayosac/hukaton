@@ -1,0 +1,118 @@
+{
+ "set": "DB04 Lantern",
+ "source_props": [
+  "SM_PR02_LanternGround"
+ ],
+ "fbx": "SM_DB04_LanternParts.fbx",
+ "pieces": [
+  {
+   "name": "DB04_Lantern_Cage",
+   "tris": 176,
+   "size_m": [
+    0.29,
+    0.29,
+    0.416
+   ],
+   "pivot": [
+    0.0,
+    0.0,
+    0.208
+   ],
+   "materials": [
+    "M_Forest_Props",
+    "M_Forest_PropsCutout"
+   ],
+   "open_edges": 0,
+   "note": "Lantern body without the lid: source base plate (front-right corner bent up), window frame (M_Forest_PropsCutout frame region on a closed hex prism), dark top collar, handle loop + rope grip (source UVs) bent back/sideways; whole cage leans and twists. Panes 4/5 (front, front-left) knocked out (dark interior + small jagged remnant), the other 4 panes non-glowing amber (M_Forest_Props). Collider = one hull of base+frame+collar, handle left out."
+  },
+  {
+   "name": "DB04_Lantern_Cage_COL",
+   "tris": 24,
+   "size_m": [
+    0.29,
+    0.29,
+    0.286
+   ],
+   "pivot": [
+    0.0,
+    0.0,
+    0.208
+   ],
+   "materials": [],
+   "convex": true,
+   "note": "convex hull of base plate + frame + collar (handle left out)"
+  },
+  {
+   "name": "DB04_Lantern_Lid",
+   "tris": 60,
+   "size_m": [
+    0.255,
+    0.236,
+    0.066
+   ],
+   "pivot": [
+    0.624,
+    0.0,
+    0.033
+   ],
+   "materials": [
+    "M_Forest_Props"
+   ],
+   "open_edges": 0,
+   "note": "Pyramid lid cap copied from the source (darkpatch UVs), bottom closed, two pushed-in dents on the slopes, front-left rim squashed down, top pushed off-centre and twisted."
+  },
+  {
+   "name": "DB04_Lantern_Lid_COL",
+   "tris": 52,
+   "size_m": [
+    0.255,
+    0.236,
+    0.066
+   ],
+   "pivot": [
+    0.624,
+    0.0,
+    0.033
+   ],
+   "materials": [],
+   "convex": true,
+   "note": "convex hull of the piece"
+  },
+  {
+   "name": "DB04_Lantern_Glass",
+   "tris": 28,
+   "size_m": [
+    0.074,
+    0.054,
+    0.005
+   ],
+   "pivot": [
+    1.059,
+    0.0,
+    0.003
+   ],
+   "materials": [
+    "M_Forest_Props"
+   ],
+   "open_edges": 0,
+   "note": "Jagged pane shard ~7 x 5 cm, 4 mm thick, one straight frame edge, slight curve; amber region on M_Forest_Props (opaque, no glow)."
+  },
+  {
+   "name": "DB04_Lantern_Glass_COL",
+   "tris": 20,
+   "size_m": [
+    0.074,
+    0.054,
+    0.005
+   ],
+   "pivot": [
+    1.059,
+    0.0,
+    0.003
+   ],
+   "materials": [],
+   "convex": true,
+   "note": "convex hull of the piece"
+  }
+ ]
+}

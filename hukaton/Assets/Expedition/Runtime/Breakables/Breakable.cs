@@ -101,6 +101,7 @@ namespace Hakaton.Expeditions
         public const int MaxPieces = 28;
         const float SeenWithin = 32;
         static readonly List<IceShard> Live = new List<IceShard>();
+        static readonly List<int> Order = new List<int>();
         static Collider[] player;
         static int frame = -1, breaksThisFrame;
 
@@ -125,11 +126,15 @@ namespace Hakaton.Expeditions
                 Live[0].Expire();
                 Live.RemoveAt(0);
             }
-            float size = Mathf.Clamp(bounds.size.magnitude, .3f, 1.5f);
+            float size = kind.piecesAtOwnSize ? 1 : Mathf.Clamp(bounds.size.magnitude, .3f, 1.5f);
             Vector3 push = direction.sqrMagnitude > .001f ? direction.normalized * 1.2f : Vector3.zero;
+            // Modelled pieces: the whole set first (a pot gives its rim, its bottom and its walls), in a random order.
+            Order.Clear();
+            for (int i = 0; i < kind.shards.Length; i++) Order.Add(i);
+            for (int i = Order.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (Order[i], Order[j]) = (Order[j], Order[i]); }
             for (int i = 0; i < count; i++)
             {
-                var prefab = kind.shards[Random.Range(0, kind.shards.Length)];
+                var prefab = kind.piecesAtOwnSize && i < Order.Count ? kind.shards[Order[i]] : kind.shards[Random.Range(0, kind.shards.Length)];
                 if (!prefab) continue;
                 Vector3 at = bounds.center + Vector3.Scale(Random.insideUnitSphere * .5f, bounds.extents);
                 var shard = Object.Instantiate(prefab, at, Random.rotation, world.spawnedObjects);

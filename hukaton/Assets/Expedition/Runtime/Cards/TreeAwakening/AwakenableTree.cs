@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// Marks an ordinary tree of the world that «Оживление дерева» can bring to life (on the prefab root: Pine.prefab).
+    /// Marks an ordinary tree of the world that «Оживление дерева» can bring to life.
     /// The card hides this scene object for the rest of the outing (<see cref="ExpeditionWorld.HideForOuting"/>) and
     /// puts an ally in its place; the world shows the tree again when the outing ends.
     /// </summary>

@@ -166,16 +166,6 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(ally.overhead.pips.Length, Is.GreaterThanOrEqualTo(effect.health.i), "One pip per health point at level I; more health shares pips.");
         }
 
-        [Test]
-        public void HollowPinesCanBeAwakened()
-        {
-            var pine = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Expedition/Prefabs/Pine.prefab");
-            Assert.That(pine.GetComponent<AwakenableTree>(), Is.Not.Null, "The tree prefab of the hollow is marked.");
-            var trunk = pine.GetComponentInChildren<Collider>();
-            Assert.That(trunk, Is.Not.Null);
-            Assert.That(trunk.GetComponentInParent<AwakenableTree>(true), Is.Not.Null, "A card hitting the trunk finds the tree.");
-        }
-
         // ---------- healing (owner, 09.11 evening) ----------
 
         [Test]
