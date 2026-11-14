@@ -63,6 +63,8 @@ namespace Hakaton.Expeditions.Cards
         /// <summary>
         /// Попадание одной карты веера — или повтор Эхом: тогда сразу все карты веера уровня копии Эха в эту точку.
         /// </summary>
+        public override float BodyNudge => 2;
+
         public override void Apply(in ImpactContext c)
         {
             bool echo = FanRules.IsEcho(c.Copy?.Spec?.Id, c.Definition ? c.Definition.id : null);

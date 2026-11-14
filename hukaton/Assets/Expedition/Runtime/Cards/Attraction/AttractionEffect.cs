@@ -51,7 +51,7 @@ namespace Hakaton.Expeditions.Cards
                     body.isKinematic = false;
                     world.RestoreAtOutingEnd(() => { if (body) body.isKinematic = true; });
                 }
-                if (body.isKinematic || !Toward(body.worldCenterOfMass, centre, out var pull)) continue;
+                if (!PropPhysics.Ready(body) || !Toward(body.worldCenterOfMass, centre, out var pull)) continue;
                 var creature = body.GetComponent<WorldCreature>();
                 if (creature && creatureStagger > 0) creature.Stagger(creatureStagger, centre);
                 CardPhysics.Push(body, pull * impulse);

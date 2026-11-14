@@ -18,6 +18,8 @@ namespace Hakaton.Expeditions
         /// <summary>Freeze duration: the card's power in seconds, multiplied for a wet target (checked at the moment of the hit).</summary>
         public static float FreezeSeconds(float power, bool wet, float wetMultiplier) => wet ? power * wetMultiplier : power;
 
+        public override float BodyNudge => 1.5f;
+
         public override void Apply(in ImpactContext c)
         {
             bool meaningful = false;

@@ -101,9 +101,7 @@ Counter (0,025;0;0,675), DisplayCase (1,475;0;1,695), ComputerStation (−0,995;
 | Мебель и станции | `SA_EntranceDoor` | 384 | 1.38×2.44×1.23 | M_EntranceDoor, M_EntranceDoor_Cutout |
 | Только для превью | `SA_PreviewBackdrop` | 4 | 2.80×3.25×2.00 | M_PreviewBackdrop |
 | Товар | `SA_Stock_boar_tusk` | 33 | 0.26×0.11×0.07 | M_Stock |
-| Товар | `SA_Stock_common_find` | 54 | 0.19×0.16×0.20 | M_Stock |
 | Товар | `SA_Stock_hare_foot` | 30 | 0.07×0.09×0.30 | M_Stock |
-| Товар | `SA_Stock_special_find` | 46 | 0.17×0.16×0.16 | M_Stock |
 | Товар | `SA_Stock_wolf_pelt` | 28 | 0.27×0.14×0.15 | M_Stock |
 
 ## Текстуры

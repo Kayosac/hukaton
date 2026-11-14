@@ -87,6 +87,12 @@ namespace Hakaton.Expeditions
 
         public abstract void Apply(in ImpactContext context);
 
+        /// <summary>
+        /// Speed (m/s, for a body of <see cref="PropPhysics.ReferenceMass"/>) this card knocks a loose thing it hits
+        /// directly along its flight. 0: the card does not strike (utility cards), or moves bodies its own way.
+        /// </summary>
+        public virtual float BodyNudge => 0;
+
         /// <summary>Effect, sound, shake and hit-stop of a landing; returns the spawned effect (null when none is assigned).</summary>
         protected VfxBurst Feedback(in ImpactContext c, bool meaningful, float scale = 1)
         {

@@ -39,8 +39,7 @@
 | Звуки лощины / лавки | `Data/Expedition Audio.asset`, `Data/Shop Audio.asset`; сами звуки — `Assets/Audio/Cues/*.asset` (`SfxCue`) |
 | Общие эффекты (пыль, смерть, подбор, возврат, звёзды оглушения) | `Data/Expedition Effects.asset` |
 | Визуальные эффекты | `Prefabs/Effects/Retro/` — варианты эффектов Retro Arsenal (`Assets/Plugins/Retro Arsenal`), звук пакета в них выключен |
-| Карта лощины, препятствия, находки | `Prefabs/Quiet Hollow.prefab`; навигация — `Data/Quiet Hollow NavMesh.asset` (перепечь после изменения геометрии) |
-| Звери | `Prefabs/Purple mushroom`, `Prefabs/Goblin dog`, `Prefabs/Budding troll`, `Prefabs/Hostile bush` (здоровье, зрение, скорость, атаки, звуки, рисунки); трофеи — `Prefabs/Trophy *` (грибная шляпка, клык и шкура гоблин-пса; тролль роняет «Редкую находку», куст — «Лесную») |
+| Звери | `Prefabs/Purple mushroom`, `Prefabs/Goblin dog`, `Prefabs/Budding troll`, `Prefabs/Hostile bush` (здоровье, зрение, скорость, атаки, звуки, рисунки); трофеи — `Prefabs/Trophy *` (грибная шляпка, клык и шкура гоблин-пса) |
 | Игрок | `Prefabs/Player.prefab` — вариант общего персонажа из `Assets/Character` (рука с картами, точка броска, `CameraFeel`) |
 | Интерфейс | `Prefabs/UI/Expedition HUD.prefab`, `Prefabs/UI/Stamina pips.prefab` (дуга выносливости под прицелом, экземпляр в обоих HUD), `Prefabs/UI/Screen fade.prefab`, `Prefabs/Progress HUD.prefab`; лавка — `Assets/ShopBlockout/Prefabs/ShopTradingHUD.prefab` |
 | Баланс торга, смена | `TradingPrototype` на объекте торговли в сцене |

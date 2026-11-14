@@ -65,6 +65,9 @@ namespace Hakaton.Game
                  "sold out) brings one more visitor with this chance — once per save: a stranger (Visitor roster → Stranger, " +
                  "the blacksmith's look) who buys nothing and only talks, his lines read on like any visitor's.")]
         [Range(0, 1)] public float strangerChance = .3f;
+        [Tooltip("The bad-luck guard: if the chance has not brought him before, the shift that ends by itself with this number " +
+                 "(counted from the first endless outing's return) brings him for sure.")]
+        [Min(1)] public int strangerGuaranteedAt = 6;
         [TextArea] public string[] strangerLines =
         {
             "Странно, эта лавка так давно пустовала.",
@@ -110,6 +113,10 @@ namespace Hakaton.Game
         [Min(.5f)] public float goalBannerSeconds = 2.8f;
         [Tooltip("Heading size of the «new goal» banner against the location title's (big letters).")]
         [Min(1)] public float goalBannerScale = 1.5f;
+        [Tooltip("Size of the «Новая цель лавки» line against the banner's heading (1 = as big).")]
+        [Range(.3f, 1.2f)] public float goalCaptionScale = .85f;
+        [Tooltip("Colour of the «Новая цель лавки» line; while the banner holds it pulses toward white.")]
+        public Color goalCaptionColour = new Color(1, .8f, .1f, 1);
         [Tooltip("Celebration burst in front of the player when the revenue goal is reached.")]
         public VfxBurst goalConfetti;
         [Min(.05f)] public float departFadeSeconds = .35f;
@@ -167,10 +174,14 @@ namespace Hakaton.Game
         // The stranger: an endless outing is back; he has come (saved); sent for this closing; the goblin's word after him.
         bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning;
         float strangerGoblinAt;
+        // Shifts that ended by themselves since the first endless outing came back, while he had not come yet (saved).
+        int strangerChances;
         /// <summary>The stranger has come (saved): he does not come again.</summary>
         public bool StrangerVisited => strangerVisited;
         /// <summary>An outing into the endless world has come back (saved): from now on the stranger may come.</summary>
         public bool EndlessVisited => endlessVisited;
+        /// <summary>Shifts that have ended by themselves since then, each a chance for the stranger (saved).</summary>
+        public int StrangerChances => strangerChances;
         // The return notice waits until the goblin has had his say.
         string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
@@ -312,12 +323,19 @@ namespace Hakaton.Game
         }
         /// <summary>
         /// The shop is about to close by itself: after the first endless outing, once per save, with <see cref="strangerChance"/>
-        /// (or the cheat), one more visitor — the stranger who only talks. Null: the shop closes as usual.
+        /// (for sure on the <see cref="strangerGuaranteedAt"/>-th such closing, or by the cheat), one more visitor — the stranger
+        /// who only talks. Null: the shop closes as usual.
         /// </summary>
         CustomerTerms StrangerAtClosing()
         {
             if (tutorial.Active || InCave || strangerLines == null || strangerLines.Length == 0) return null;
-            if (!strangerForced && (!endlessVisited || strangerVisited || UnityEngine.Random.value >= strangerChance)) return null;
+            if (!strangerForced)
+            {
+                if (!endlessVisited || strangerVisited) return null;
+                strangerChances++;
+                MarkDirty();
+                if (!StrangerComes(strangerChances, strangerGuaranteedAt, strangerChance, UnityEngine.Random.value)) return null;
+            }
             strangerForced = false;
             strangerSent = true;
             return new CustomerTerms { Name = "Незнакомец", Talk = strangerLines, TalkMoods = strangerMoods };
@@ -349,6 +367,13 @@ namespace Hakaton.Game
                 strangerLectureRunning = lecture.Play(strangerGoblinLines, tutorial.goblin, true);
         }
 
+        /// <summary>
+        /// Does the stranger come at the <paramref name="closing"/>-th shift that ends by itself (from 1)? With
+        /// <paramref name="chance"/> against <paramref name="roll"/> (0..1), and for sure from the <paramref name="guaranteedAt"/>-th.
+        /// </summary>
+        public static bool StrangerComes(int closing, int guaranteedAt, float chance, float roll)
+            => closing >= Mathf.Max(1, guaranteedAt) || roll < chance;
+
         /// <summary>Cheats: the next shift that ends by itself brings the stranger (and the goblin after him), whatever was before.</summary>
         public void ForceStrangerNext()
         {
@@ -372,8 +397,8 @@ namespace Hakaton.Game
                 || services.IsOpen || trade.Session.IsOpen || expedition.Returning || departing || !fade || fade.Busy) return;
             goalBannerPending = false;
             if (sfx) sfx.Play(titleCue);
-            fade.StartCoroutine(fade.ShowTitle(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
-                "Новая цель лавки", goalBannerSeconds, goalBannerScale));
+            fade.StartCoroutine(fade.ShowBanner(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
+                "Новая цель лавки", goalBannerSeconds, goalBannerScale, goalCaptionScale, goalCaptionColour));
         }
         static string Coins(int n)
         {
@@ -702,14 +727,26 @@ namespace Hakaton.Game
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet,
-            endlessVisited = endlessVisited, strangerVisited = strangerVisited,
+            endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null
         };
-        public bool ValidateSave(GameSave save) => save != null && save.version == 1 && save.coins >= 0
-            && save.cards != null && save.shop != null && save.cards.coins == save.coins
-            && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
-            && (save.player == null || save.player.staminaLevel >= 0);
+        /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
+        static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
+        static void DropRetiredItems(GameSave save)
+        {
+            if (save?.shop?.items == null) return;
+            save.shop.items.RemoveAll(entry => entry != null && Array.IndexOf(RetiredItems, entry.definitionId) >= 0);
+        }
+
+        public bool ValidateSave(GameSave save)
+        {
+            DropRetiredItems(save);
+            return save != null && save.version == 1 && save.coins >= 0
+                && save.cards != null && save.shop != null && save.cards.coins == save.coins
+                && workshop.Model.CanRestoreProgress(save.cards) && trade.Session.CanRestore(save.shop)
+                && (save.player == null || save.player.staminaLevel >= 0);
+        }
         public bool Restore(GameSave save)
         {
             if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.Session.ExpeditionId != 0
@@ -725,6 +762,7 @@ namespace Hakaton.Game
             godMet = save.godMet;
             endlessVisited = save.endlessVisited;
             strangerVisited = save.strangerVisited;
+            strangerChances = Math.Max(0, save.strangerChances);
             if (outingMap)
             {
                 outingMap.Restore(save.map);

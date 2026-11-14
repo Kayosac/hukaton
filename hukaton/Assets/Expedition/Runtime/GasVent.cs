@@ -118,7 +118,7 @@ namespace Hakaton.Expeditions
             foreach (var hit in Physics.OverlapSphere(at, flashRadius, ~0, QueryTriggerInteraction.Ignore))
             {
                 var body = hit.attachedRigidbody;
-                if (!body || body.isKinematic || !seen.Add(body)) continue;
+                if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
                 float d = Vector3.Distance(body.worldCenterOfMass, at);
                 CardPhysics.Push(body, Throw(at, body.worldCenterOfMass, d));
                 var creature = body.GetComponent<WorldCreature>();

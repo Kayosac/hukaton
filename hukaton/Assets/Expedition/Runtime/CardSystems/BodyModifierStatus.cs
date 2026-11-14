@@ -64,7 +64,9 @@ namespace Hakaton.Expeditions
         /// </summary>
         public static void Push(Rigidbody body, Vector3 impulse)
         {
-            if (!body || body.isKinematic) return;
+            if (!PropPhysics.Ready(body)) return;
+            if (body.TryGetComponent(out Breakable breakable)
+                && breakable.Hit(impulse.magnitude * BodyModifierStatus.ImpulseScaleOf(body) / body.mass, body.worldCenterOfMass, impulse)) return;
             body.AddForce(impulse * BodyModifierStatus.ImpulseScaleOf(body), ForceMode.Impulse);
         }
     }

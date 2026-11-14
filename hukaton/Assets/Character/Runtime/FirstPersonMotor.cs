@@ -57,6 +57,17 @@ namespace Hakaton.Character
                  "ground without being launched (no jump, bounce or upward push).")]
         [Min(0)] public float feedbackGraceTime = .1f;
 
+        [Header("Pushing loose things")]
+        [Tooltip("Walking into a loose body (crate, pot, log) shoves it. Bodies up to this mass move off at the player's own " +
+                 "speed; heavier ones proportionally slower. 0: nothing is shoved.")]
+        [Min(0)] public float pushMass = 2;
+        [Tooltip("Nothing heavier than this is moved by walking into it.")]
+        [Min(0)] public float pushMaxMass = 40;
+        /// <summary>Which bodies may be shoved (set by the game: creatures are not). Null: every non-kinematic body.</summary>
+        public Predicate<Rigidbody> PushFilter;
+        /// <summary>The body walked into something with a Rigidbody (also a kinematic one): body, contact point, the player's planar velocity.</summary>
+        public event Action<Rigidbody, Vector3, Vector3> Bumped;
+
         public Vector3 PlanarVelocity { get; private set; }
         public float Speed01 => Mathf.Clamp01(PlanarVelocity.magnitude / Mathf.Max(.1f, sprintSpeed));
         public bool IsGrounded { get; private set; }
@@ -446,6 +457,8 @@ namespace Hakaton.Character
         void OnControllerColliderHit(ControllerColliderHit hit)
         {
             if (hit.normal.y > .5f) frameGround = hit.collider;
+            // A loose thing light enough to be shoved aside is not a wall: the run goes on through it.
+            if (collectingWalls && hit.normal.y <= .5f && PushBody(hit)) return;
             // Walls: everything too steep to walk on (a ceiling has no horizontal part worth keeping), only from the main
             // move: the ground snap's contacts (a step's riser, an edge) never limit the running speed.
             if (!collectingWalls || wallContacts >= MaxWallContacts
@@ -453,6 +466,30 @@ namespace Hakaton.Character
             var planar = new Vector3(hit.normal.x, 0, hit.normal.z);
             float length = planar.magnitude;
             if (length > .2f) wallNormals[wallContacts++] = planar / length;
+        }
+
+        /// <summary>
+        /// Walking into a loose body gives it the speed the player drives into it with (bodies heavier than
+        /// <see cref="pushMass"/> proportionally less), at the point of contact, so it slides or tumbles away. True when
+        /// the body is light enough not to hold the player back at all.
+        /// </summary>
+        bool PushBody(ControllerColliderHit hit)
+        {
+            var body = hit.rigidbody;
+            if (!body || pushMass <= 0) return false;
+            Vector3 planar = PlanarVelocity + externalPlanar;
+            Bumped?.Invoke(body, hit.point, planar);
+            if (body.isKinematic || body.mass > pushMaxMass || PushFilter != null && !PushFilter(body)) return false;
+            var away = new Vector3(-hit.normal.x, 0, -hit.normal.z);
+            float length = away.magnitude;
+            if (length < .2f) return false;
+            away /= length;
+            float into = Vector3.Dot(planar, away);
+            if (into < .2f) return false;
+            float share = Mathf.Min(1, pushMass / body.mass);
+            float lacking = into * share - Vector3.Dot(body.linearVelocity, away);
+            if (lacking > 0) body.AddForceAtPosition(away * (lacking * body.mass), hit.point, ForceMode.Impulse);
+            return share >= 1;
         }
 
         /// <summary>

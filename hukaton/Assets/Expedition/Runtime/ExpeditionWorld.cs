@@ -140,8 +140,32 @@ namespace Hakaton.Expeditions
             CreatureAttackedByPlayer?.Invoke(victim);
         }
 
-        void Awake() { workshop.Departed += BeginOuting; }
-        void OnDestroy() { if (workshop) workshop.Departed -= BeginOuting; }
+        /// <summary>The world of the loaded game scene: for loose things that knock, break and bend grass without a reference to it.</summary>
+        public static ExpeditionWorld Active { get; private set; }
+
+        void Awake()
+        {
+            Active = this;
+            workshop.Departed += BeginOuting;
+            // Walking into loose things shoves them; creatures are not shoved (they stand their ground and answer for themselves).
+            if (motor)
+            {
+                motor.PushFilter = PropPhysics.IsLoose;
+                motor.Bumped += WakeBumped;
+            }
+        }
+
+        // Walking into a dormant prop light enough to be shoved makes it a real body; the same step then shoves it.
+        void WakeBumped(Rigidbody bumped, Vector3 point, Vector3 velocity)
+        {
+            if (Running && bumped.isKinematic && bumped.mass <= motor.pushMaxMass && velocity.sqrMagnitude > .25f) PropPhysics.Ready(bumped);
+        }
+        void OnDestroy()
+        {
+            if (Active == this) Active = null;
+            if (motor) motor.Bumped -= WakeBumped;
+            if (workshop) workshop.Departed -= BeginOuting;
+        }
 
         public void BeginOuting()
         {
@@ -187,6 +211,11 @@ namespace Hakaton.Expeditions
             FocusedLoot = null;
             FocusedInteractable = null;
             if (!Running) return;
+            if (Time.time >= nextPropTick)
+            {
+                nextPropTick = Time.time + .25f;
+                PropPhysics.Tick(motor.transform.position, .25f);
+            }
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
             if (!IgnoreKillHeight && motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
@@ -195,6 +224,7 @@ namespace Hakaton.Expeditions
             FocusedInteractable?.SetFocused(true);
         }
 
+        float nextPropTick;
         WorldLoot FindFocusedLoot()
         {
             var eye = viewCamera.transform;
@@ -432,7 +462,12 @@ namespace Hakaton.Expeditions
             if (struck && struck.TryDeflectCard(point)) return;
             Impacts++;
             var context = new ImpactContext(this, copy, definition, target, point, normal, velocity, throwOrigin);
-            if (definition.effectAsset is CardEffect effect) effect.Apply(context);
+            if (definition.effectAsset is CardEffect effect)
+            {
+                effect.Apply(context);
+                // A card that strikes also knocks the loose thing it hit (a crate, a pot, a chest) along its flight.
+                if (effect.BodyNudge > 0 && target) PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge);
+            }
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
             Impacted?.Invoke(copy, target, point);
         }

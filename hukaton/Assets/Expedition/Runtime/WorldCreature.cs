@@ -734,6 +734,8 @@ namespace Hakaton.Expeditions
             // A big beast standing right on its target reaches it with its body, not only its snout (StrikeConnects).
             if (!StrikeConnects(snout, body.position, CapsuleRadius, size, strikeDirection, victim.Position, aim, contactRange)) return;
             hitThisStrike = true;
+            // The blow also knocks the loose things round the snout (a crate between it and its prey flies off).
+            PropPhysics.Burst(snout, .7f + .5f * size, lunging || ramming ? 4.5f : 3, .4f, body);
             // A card shield around the target (the Bubble) takes the blow: no damage, no push.
             if (StrikeShielded(victim, aim)) return;
             // A grab holds instead of pushing away (WorldCreature.Grab.cs).
@@ -1160,7 +1162,8 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < collision.contactCount; i++)
                 normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, collision.GetContact(i).normal));
             int damage = ExpeditionEffectRules.ImpactDamage(normalSpeed, world.settings.collisionDamageSpeed, world.settings.collisionDamageStep);
-            bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && !collision.rigidbody;
+            // Rock, or a loose thing too heavy to be knocked aside (a boulder, a gravestone).
+            bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && (!collision.rigidbody || collision.rigidbody.mass > 5 && collision.rigidbody.TryGetComponent<PhysicsProp>(out _));
             if (damage > 0)
             {
                 world.Spawn(world.vfx ? world.vfx.dustPuff : null, collision.GetContact(0).point, Quaternion.identity, new Color(.8f, .72f, .6f), 1);

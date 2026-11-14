@@ -27,7 +27,7 @@ namespace Hakaton.Expeditions
             foreach (var hit in Physics.OverlapSphere(c.Point, radius, ~0, QueryTriggerInteraction.Ignore))
             {
                 var body = hit.attachedRigidbody;
-                if (!body || body.isKinematic || !seen.Add(body)) continue;
+                if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
                 // ForceMode.Impulse: Δv = I / mass. Creature masses act as the board's μ (mushroom 0.3, goblin dog 1.5).
                 // Through CardPhysics so Lightness on the body multiplies it.
                 CardPhysics.Push(body, ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse));

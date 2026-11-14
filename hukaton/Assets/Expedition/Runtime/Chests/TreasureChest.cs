@@ -91,6 +91,19 @@ namespace Hakaton.Expeditions
             ApplyBody();
         }
 
+        /// <summary>Sets the chest down here at once: its body too, with no glide from where it was.</summary>
+        public void Place(Vector3 position, Quaternion rotation)
+        {
+            transform.SetPositionAndRotation(position, rotation);
+            if (Body)
+            {
+                if (!Body.isKinematic) Body.linearVelocity = Body.angularVelocity = Vector3.zero;
+                Body.position = position;
+                Body.rotation = rotation;
+            }
+            Physics.SyncTransforms();
+        }
+
         /// <summary>
         /// Holds the body still (kinematic) while <paramref name="owner"/> moves the chest by hand (the Gilding show);
         /// let go and it is physical again.
@@ -102,17 +115,32 @@ namespace Hakaton.Expeditions
             ApplyBody();
         }
 
+        float quietUntil;
+        void OnCollisionEnter(Collision collision)
+        {
+            if (Body && !Body.isKinematic) PropImpacts.Collided(Body, PropSurface.Wood, collision, ref quietUntil);
+        }
+
         void ApplyBody()
         {
             if (!Body) return;
             bool held = rattling || holders.Count > 0 || Occupant != null && Occupant.HoldsBody;
             if (held == bodyHeld && Body.isKinematic == held) return;
             bodyHeld = held;
-            if (!held && Body.isKinematic) { Body.isKinematic = false; Body.WakeUp(); }
+            if (!held && Body.isKinematic)
+            {
+                Body.position = transform.position;
+                Body.rotation = transform.rotation;
+                Body.isKinematic = false;
+                Body.interpolation = RigidbodyInterpolation.Interpolate;
+                Body.WakeUp();
+            }
             else if (held && !Body.isKinematic)
             {
                 Body.linearVelocity = Body.angularVelocity = Vector3.zero;
                 Body.isKinematic = true;
+                // Moved by hand now: interpolation would pull the drawing back to the body's last pose.
+                Body.interpolation = RigidbodyInterpolation.None;
             }
         }
 
@@ -152,10 +180,9 @@ namespace Hakaton.Expeditions
             holders.Clear();
             // Back where it was laid out, even if cards threw it about last time.
             if (Body && !Body.isKinematic) Body.linearVelocity = Body.angularVelocity = Vector3.zero;
-            transform.localPosition = restPosition;
-            transform.localRotation = rest;
             transform.localScale = restScale;
-            Physics.SyncTransforms();
+            Place(transform.parent ? transform.parent.TransformPoint(restPosition) : restPosition,
+                transform.parent ? transform.parent.rotation * rest : rest);
             if (lid) lid.SetOpen(false, true);
             ShowMarker();
             Occupant?.OnChestReset();
