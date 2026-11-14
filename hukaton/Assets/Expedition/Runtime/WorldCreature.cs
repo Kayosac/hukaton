@@ -98,6 +98,8 @@ namespace Hakaton.Expeditions
         [Header("Sounds")]
         public SfxCue alertCue;
         public SfxCue threatCue, windupCue, strikeCue, hurtCue, deathCue, stepCue;
+        [Tooltip("Optional: a sound this body makes all the time while alive (a swarm's buzz). Heard within the cue's max distance, a little quieter while calm, muted while frozen.")]
+        public SfxCue bodyLoop;
 
         public int Health { get; private set; }
         public bool Alive => Health > 0 && !dying;
@@ -196,7 +198,7 @@ namespace Hakaton.Expeditions
         }
 #endif
 
-        void OnDisable() { fire?.PutOut(0); smokers.Remove(this); }
+        void OnDisable() { fire?.PutOut(0); smokers.Remove(this); if (world && world.sfx) world.sfx.StopLoop(this); }
 
         void Awake()
         {
@@ -1178,11 +1180,21 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>Keeps <see cref="bodyLoop"/> going near the player; stops it when dead, frozen or out of earshot.</summary>
+        void UpdateBodyLoop()
+        {
+            if (!bodyLoop || !world || !world.sfx) return;
+            bool sounding = !dying && Health > 0 && State != CreatureState.Frozen && PlayerDistance < bodyLoop.maxDistance;
+            if (sounding) world.sfx.Loop(this, bodyLoop, Centre, IsCalm ? .75f : 1);
+            else world.sfx.StopLoop(this);
+        }
+
         void LateUpdate()
         {
             if (appliedSize != CurrentSize) ApplySize();
             if (flying) UpdateShadow();
             Fire.Tick();
+            UpdateBodyLoop();
             if (!world || dying || !view) return;
             float dt = Time.deltaTime;
             Vector3 velocity = body.linearVelocity;

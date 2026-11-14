@@ -47,6 +47,7 @@ FIELD={
  ('WorldCreature','hurtCue'):('Получил урон','Попадание по врагу. Тот же звук, тише и выше, — стук по оболочке; ниже — когда тонет.'),
  ('WorldCreature','deathCue'):('Смерть','Гибель (и конец утопания в трясине).'),
  ('WorldCreature','stepCue'):('Шаги','При движении, тихо, только если игрок ближе 18 м.'),
+ ('WorldCreature','bodyLoop'):('Постоянный звук тела','Луп, пока враг жив и игрок рядом; спокойный — тише, во льду — молчит.'),
  ('EnemyProjectileProfile','fireCue'):('Выстрел','Враг выпускает снаряд «{p}».'),
  ('EnemyProjectileProfile','impactCue'):('Попадание снаряда','Снаряд «{p}» во что-то врезался.'),
  ('EnemyProjectileProfile','shotDownCue'):('Снаряд сбит','Игрок сбил снаряд «{p}» картой.'),
@@ -63,7 +64,7 @@ FIELD={
  ('ChestMimic','hurtCue'):('Получил урон','Попадание по мимику.'),
  ('ChestMimic','deathCue'):('Смерть','Гибель мимика.'),
 }
-ORDER=['alertCue','threatCue','windupCue','strikeCue','fireCue','flightLoop','impactCue','shotDownCue','startCue','tickCue','endCue','removedCue','hurtCue','deathCue','stepCue','breath','warnCue','biteCue','hopCue','rattleCue']
+ORDER=['bodyLoop','alertCue','threatCue','windupCue','strikeCue','fireCue','flightLoop','impactCue','shotDownCue','startCue','tickCue','endCue','removedCue','hurtCue','deathCue','stepCue','breath','warnCue','biteCue','hopCue','rattleCue']
 GROUP={'WorldCreature':'Тело','ChestMimic':'Тело','EnemyProjectileProfile':'Снаряд','PlayerStatusDefinition':'Дебафф на игроке'}
 
 audio={}
