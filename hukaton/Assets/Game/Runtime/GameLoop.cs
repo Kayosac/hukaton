@@ -89,8 +89,11 @@ namespace Hakaton.Game
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
         public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
-        /// <summary>Map points marked «after the revenue goal» (the endless world) appear only once it is reached.</summary>
+        /// <summary>Map points marked «after the revenue goal» (the god's «?») appear only once it is reached.</summary>
         public bool PlaceChoiceUnlocked => GoalReached;
+        /// <summary>The endless (procedural) world opens only once the god has been met (in a scene without the god's
+        /// trip, with the revenue goal).</summary>
+        public bool EndlessWorldUnlocked => godMet || !godVisit && PlaceChoiceUnlocked;
         public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", EditorSaveFile ?? saveFile);
 #if UNITY_EDITOR
         /// <summary>
@@ -278,7 +281,7 @@ namespace Hakaton.Game
             if (departing) return;
             if (!CanDepartNow(out var error)) { if (error != null) Notify(error); return; }
             // The door opens the map. Before the revenue goal it holds only the ready-made location (the old apiary);
-            // the endless world grows next to it once the goal is reached.
+            // the god's «?» grows next to it with the goal, and the endless world once the god has been met.
             if (outingMap)
             {
                 outingMap.Open(MapSiteUnlocked, MapPlaceName, place =>
@@ -295,14 +298,15 @@ namespace Hakaton.Game
                 });
                 if (outingMap.IsOpen) return;
             }
-            expedition.NextPlace = !PlaceChoiceUnlocked && expedition.readyWorld ? OutingPlace.Ready : OutingPlace.Endless;
+            expedition.NextPlace = !EndlessWorldUnlocked && expedition.readyWorld ? OutingPlace.Ready : OutingPlace.Endless;
             StartCoroutine(DepartWithTransition());
         }
 
         bool MapSiteUnlocked(OutingMap.Site site) => site.unlock == OutingMapUnlock.GodMeeting
             ? site.place == OutingPlace.God && godVisit && PlaceChoiceUnlocked && !godMet
             : expedition.HasPlace(site.place)
-              && (site.unlock == OutingMapUnlock.Always || site.unlock == OutingMapUnlock.RevenueGoal && PlaceChoiceUnlocked);
+              && (site.unlock == OutingMapUnlock.Always || site.unlock == OutingMapUnlock.RevenueGoal && PlaceChoiceUnlocked
+                  || site.unlock == OutingMapUnlock.AfterGod && EndlessWorldUnlocked);
 
         string MapPlaceName(OutingPlace place) => place == OutingPlace.God && godVisit ? godVisit.mapName : expedition.PlaceName(place);
 
@@ -346,10 +350,20 @@ namespace Hakaton.Game
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
         }
 
-        /// <summary>Cheats: the god's «?» comes back on the map (with the revenue goal) for another trip.</summary>
+        /// <summary>Cheats: the god's «?» comes back on the map (with the revenue goal) for another trip; the endless world
+        /// leaves it until he is met again.</summary>
         public void ForgetGodMeeting()
         {
             godMet = false;
+            if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.Endless));
+            MarkDirty();
+        }
+
+        /// <summary>Cheats: as if the god had been met (no trip, no talk): his «?» leaves the map, the endless world opens.</summary>
+        public void MarkGodMet()
+        {
+            godMet = true;
+            if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
             MarkDirty();
         }
 
@@ -568,6 +582,8 @@ namespace Hakaton.Game
             {
                 outingMap.Restore(save.map);
                 if (godMet) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+                // Saves from before the rule: the endless world goes until the god has been met.
+                else outingMap.Forget(outingMap.SiteFor(OutingPlace.Endless));
             }
             if (specialItems) specialItems.Restore(save.specialItems);
             goalCelebrated = save.goalCelebrated;

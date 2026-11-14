@@ -111,6 +111,34 @@ namespace Hakaton.Expeditions.Tests
         }
 
         [Test]
+        public void SunkenChestsAreRichButLegendaryOnlyFarOut()
+        {
+            string[] rings = { "Chests sunken ring 1 centre", "Chests sunken ring 2 middle", "Chests sunken ring 3 far" };
+            string[] land = { "Chests world ring 1 centre", "Chests world ring 2 middle", "Chests world ring 3 far" };
+            var tables = rings.Select(r => AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/" + r + ".asset")).ToArray();
+            Assert.That(tables.All(t => t && t.entries.All(e => e.prefab && e.prefab.tier)), "sunken tables");
+            Assert.That(tables.SelectMany(t => t.entries).Any(e => e.weight > 0 && e.prefab.GetComponent<ChestMimic>()), Is.False,
+                "no mimic lies under water");
+            float Legendary(ChestSpawnTable table)
+            {
+                float total = table.entries.Sum(e => e.weight);
+                return total > 0 ? table.entries.Where(e => e.prefab.tier.rank >= 5).Sum(e => e.weight) / total : 0;
+            }
+            Assert.That(Legendary(tables[0]), Is.Zero, "no legendary chest under water in the centre");
+            Assert.That(Legendary(tables[1]), Is.GreaterThan(0).And.LessThanOrEqualTo(.05f), "a very rare one in the middle");
+            for (int i = 0; i < tables.Length; i++)
+            {
+                var landTable = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/" + land[i] + ".asset");
+                Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(landTable)), rings[i] + " is richer than the land");
+                if (i > 0) Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(tables[i - 1])), rings[i]);
+            }
+            var content = AssetDatabase.LoadAssetAtPath<Object>("Assets/WorldAssembly/World content.asset");
+            var serialized = new SerializedObject(content).FindProperty("sunkenTables");
+            Assert.That(serialized.arraySize, Is.EqualTo(3));
+            for (int i = 0; i < 3; i++) Assert.That(serialized.GetArrayElementAtIndex(i).objectReferenceValue, Is.EqualTo(tables[i]));
+        }
+
+        [Test]
         public void OldApiaryHasChestSites()
         {
             var apiary = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/OldApiary/Prefabs/Old Apiary.prefab");

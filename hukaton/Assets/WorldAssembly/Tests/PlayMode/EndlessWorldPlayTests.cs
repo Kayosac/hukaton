@@ -1559,8 +1559,10 @@ namespace Hakaton.WorldAssembly.Tests
         public IEnumerator ASunkenChestFloatsUpWhenPulledAndPaysRichly()
         {
             var content = streamer.content;
-            float chance = content.sunkenChance;
-            content.sunkenChance = 1;
+            // Every deep water hides one for this test (the tables are assets: their chances are put back).
+            var tables = content.sunkenTables;
+            var chances = tables.Select(table => table ? table.chance : 0).ToArray();
+            foreach (var table in tables) if (table) table.chance = 1;
             try
             {
                 // The nearest chunk whose water hides a chest.
@@ -1574,7 +1576,7 @@ namespace Hakaton.WorldAssembly.Tests
                             if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
                             var plan = map.Chunk(x, y);
                             var prefab = streamer.catalog.Find(plan.Shape.Id, plan.Variant.Id, ChunkCatalog.Land(plan.Biome, plan.Zone));
-                            if (prefab && prefab.hasSunkenSpot && content.ChestTable(plan.Ring)) { spot = new ChunkCoord(x, y); found = true; }
+                            if (prefab && prefab.hasSunkenSpot && content.SunkenTable(plan.Ring)) { spot = new ChunkCoord(x, y); found = true; }
                         }
                 Assert.That(found, Is.True, "deep water within 18 chunks");
                 var origin = streamer.root ? streamer.root.position : streamer.transform.position;
@@ -1596,7 +1598,7 @@ namespace Hakaton.WorldAssembly.Tests
                 Assert.That(chest.GetComponent<Rigidbody>().worldCenterOfMass.y, Is.GreaterThan(sunken.level - .8f), "floats up to the surface");
                 Assert.That(chest.Open(), Is.True, "and opens");
             }
-            finally { content.sunkenChance = chance; }
+            finally { for (int i = 0; i < tables.Length; i++) if (tables[i]) tables[i].chance = chances[i]; }
         }
 
         /// <summary>

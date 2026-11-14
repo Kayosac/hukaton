@@ -21,6 +21,8 @@ namespace Hakaton.Expeditions
         [Min(1)] public int count = 1;
         [Tooltip("They appear this far from it, metres.")]
         [Min(0)] public float scatter = 1.6f;
+        [Tooltip("Optional: played at the parent each time one comes out (flesh tearing for a bud).")]
+        public SfxCue sound;
     }
 
     /// <summary>A flyer that vanishes in a puff and reappears beside or behind its target to dive at once (the clown).</summary>
@@ -194,6 +196,7 @@ namespace Hakaton.Expeditions
             world.creatures.Add(child);
             child.JoinFight(Target);
             world.Spawn(world.vfx ? world.vfx.dustPuff : null, at, Quaternion.identity, bodyColour, Mathf.Clamp(child.TopHeight, .5f, 1.2f));
+            world.Play(offspring.sound, body.position);
         }
 
         /// <summary>Goes for <paramref name="target"/> at once: a bud or a swarm called in, a bee roused by the beekeeper.</summary>

@@ -130,6 +130,7 @@ namespace Hakaton.Game.Tests
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.GoalReached, Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
+            Assert.That(game.EndlessWorldUnlocked, Is.False, "The endless world waits for the god.");
             Assert.That(game.CanCompleteActiveGoal, Is.False);
             Assert.That(game.goalsBlock.activeSelf, Is.False, "A completed goal leaves the list.");
             Assert.That(menu.CompleteActiveGoal(), Is.False);

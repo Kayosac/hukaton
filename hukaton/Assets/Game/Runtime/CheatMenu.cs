@@ -204,6 +204,15 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>As if the god had been met: the endless world opens on the map (the «?» goes).</summary>
+        public bool PassGodMeeting()
+        {
+            if (!game.Ready) { status = "Игра не готова."; return false; }
+            game.MarkGodMet();
+            status = "Бог встречен: бесконечный мир появится на карте у двери.";
+            return true;
+        }
+
         public int StockDisplayRandomly()
         {
             var trade = game.trade;
@@ -287,6 +296,8 @@ namespace Hakaton.Game
             if (GUILayout.Button("Гоблин про воду — ещё раз", button)) ResetDrownLecture();
             GUI.enabled = game.Ready && game.GodMet && !game.InGodMountains;
             if (GUILayout.Button("Бог — ещё раз («?» на карте)", button)) ResetGodMeeting();
+            GUI.enabled = game.Ready && !game.GodMet && !game.InGodMountains;
+            if (GUILayout.Button("Бог пройден (бесконечный мир)", button)) PassGodMeeting();
             GUI.enabled = true;
             GUILayout.Space(8);
 
