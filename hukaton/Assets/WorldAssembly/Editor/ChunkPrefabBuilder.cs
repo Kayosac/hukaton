@@ -46,6 +46,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             ChunkMerge.ForgetLods();
             // Collision copies are made anew with the chunks that use them.
             collisionCopies.Clear();
+            hulls.Clear();
             AssetDatabase.DeleteAsset(CollisionPath);
             Directory.CreateDirectory(Root);
             RiverMaterial();
@@ -667,7 +668,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
         {
             ["FA_DW01_LogWhole"] = 5, ["FA_DW02_LogSplit"] = 3, ["FA_DW04_LogRotten"] = 3, ["FA_DW09_SticksSmall"] = .4f, ["FA_DW10_SticksLarge"] = 1.5f,
-            ["FA_DW11_BranchForked"] = .5f, ["FA_DW12_BarkSlab"] = .3f,
+            ["FA_DW11_BranchForked"] = .5f, ["FA_DW12_BarkSlab"] = .3f, ["FA_DW03_LogHollow"] = 4,
+            ["SM_SW21_SunkenBoatNarrow"] = 12, ["SM_SW21_SunkenBoatWide"] = 16,
             ["FA_PR02_LanternGround"] = .5f, ["FA_PR04_CandleThick"] = .15f, ["FA_PR05_CandlesDish"] = .3f, ["FA_PR06_BottleSquat"] = .2f,
             ["FA_PR07_BottleTall"] = .2f, ["FA_PR09_PotLow"] = .3f, ["FA_PR10_Pitcher"] = .35f, ["FA_PR11_SackSmall"] = .6f, ["FA_PR12_SackLarge"] = 1.2f,
             ["FA_PR13_CrateClosed"] = 1.6f, ["FA_PR14_CrateOpen"] = 1.3f, ["FA_SP04_Beehive"] = 1.8f, ["FA_MK13_CageSmall"] = .5f, ["FA_MK14_CageCrooked"] = .8f,
@@ -689,6 +691,105 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["SM_SW19_WaterFenceBroken"] = "Fences/Fence SW19c", ["SM_SW25_GraveFenceTilted"] = "Fences/Fence SW25a",
             ["SM_SW25_GraveFenceBroken"] = "Fences/Fence SW25b",
         };
+
+        /// <summary>Hollow loose things, with the shape their convex pieces follow (<see cref="ChunkHulls"/>).</summary>
+        static readonly Dictionary<string, ChunkHulls.Shape> Hollow = new Dictionary<string, ChunkHulls.Shape>
+        {
+            ["SM_SW21_SunkenBoatNarrow"] = ChunkHulls.Shape.Boat, ["SM_SW21_SunkenBoatWide"] = ChunkHulls.Shape.Boat,
+            ["FA_DW03_LogHollow"] = ChunkHulls.Shape.Tube,
+        };
+
+        static readonly Dictionary<string, Mesh[]> hulls = new Dictionary<string, Mesh[]>();
+
+        /// <summary>Its drawn parts' colliders give way to convex pieces along its walls (one "Hull" child); returns them.</summary>
+        static Collider[] HollowShape(GameObject go, string id, ChunkHulls.Shape shape)
+        {
+            if (!hulls.TryGetValue(id, out var meshes) || meshes.Any(m => !m))
+            {
+                // Measured on the thing as made (scale 1, upright), shared by every chunk.
+                var model = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ArtPath(id, go)));
+                model.transform.SetPositionAndRotation(new Vector3(0, -5000, 0), Quaternion.identity);
+                model.transform.localScale = Vector3.one;
+                var pieces = ChunkHulls.Pieces(model.transform, shape);
+                Object.DestroyImmediate(model);
+                meshes = new Mesh[pieces.Count];
+                for (int i = 0; i < pieces.Count; i++)
+                {
+                    meshes[i] = ChunkHulls.Mesh(pieces[i], $"{id} hull {i}");
+                    if (!AssetDatabase.LoadAssetAtPath<Mesh>(CollisionPath)) AssetDatabase.CreateAsset(meshes[i], CollisionPath);
+                    else AssetDatabase.AddObjectToAsset(meshes[i], CollisionPath);
+                }
+                hulls[id] = meshes;
+            }
+            foreach (var c in go.GetComponentsInChildren<Collider>()) if (!c.isTrigger) Object.DestroyImmediate(c);
+            var hull = new GameObject("Hull") { layer = go.layer };
+            hull.transform.SetParent(go.transform, false);
+            foreach (var mesh in meshes)
+            {
+                var piece = hull.AddComponent<MeshCollider>();
+                piece.sharedMesh = mesh;
+                piece.convex = true;
+            }
+            Physics.SyncTransforms();
+            return hull.GetComponents<Collider>();
+        }
+
+        /// <summary>A hollow thing that stays put after all is hit as drawn again.</summary>
+        static void RestoreShape(GameObject go, string asset)
+        {
+            var hull = go.transform.Find("Hull");
+            if (hull) Object.DestroyImmediate(hull.gameObject);
+            Shape(go, asset);
+        }
+
+        /// <summary>The art prefab a placed thing was made from.</summary>
+        static string ArtPath(string id, GameObject go)
+        {
+            var source = PrefabUtility.GetCorrespondingObjectFromOriginalSource(go);
+            return source ? AssetDatabase.GetAssetPath(source) : AssetDatabase.FindAssets(id + " t:Prefab").Select(AssetDatabase.GUIDToAssetPath).First(p => p.EndsWith("/" + id + ".prefab"));
+        }
+
+        /// <summary>
+        /// A boat set in water floats there (<see cref="Floater"/>): the water holds up points along its bottom at the
+        /// depth it was set to. One on the bank is a plain loose thing.
+        /// </summary>
+        static void Afloat(GameObject go, PhysicsProp prop)
+        {
+            Physics.SyncTransforms();
+            var renderers = go.GetComponentsInChildren<Renderer>();
+            var b = renderers[0].bounds;
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+            if (!Physics.Raycast(new Vector3(b.center.x, b.max.y + 5, b.center.z), Vector3.down, out var water, b.size.y + 10, 1 << 4, QueryTriggerInteraction.Ignore)) return;
+            // Along its bottom in its own space: three pairs from stern to bow.
+            var local = new Bounds();
+            bool any = false;
+            foreach (var f in go.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!f.sharedMesh || ChunkLooks.SoftPart(f.name)) continue;
+                foreach (var v in f.sharedMesh.vertices)
+                {
+                    var p = go.transform.InverseTransformPoint(f.transform.TransformPoint(v));
+                    if (any) local.Encapsulate(p); else { local = new Bounds(p, Vector3.zero); any = true; }
+                }
+            }
+            int along = local.size.z >= local.size.x ? 2 : 0, across = along == 2 ? 0 : 2;
+            var points = new List<Vector3>();
+            foreach (float a in new[] { -.32f, 0, .32f })
+                foreach (float s in new[] { -.28f, .28f })
+                {
+                    var p = local.center;
+                    p[along] += a * local.size[along];
+                    p[across] += s * local.size[across];
+                    p.y = local.min.y + .08f;
+                    points.Add(p);
+                }
+            float draft = water.point.y - go.transform.TransformPoint(points[0]).y;
+            if (draft < .05f) return;
+            var floater = go.AddComponent<Floater>();
+            floater.prop = prop;
+            floater.points = points.ToArray();
+            floater.draft = draft;
+        }
 
         /// <summary>Loose things that break (Breakable), with their kind in Game/Data/Breakables.</summary>
         static readonly Dictionary<string, string> BreakKind = new Dictionary<string, string>
@@ -776,6 +877,11 @@ namespace Hakaton.WorldAssembly.EditorTools
                 string id = asset.Substring(asset.LastIndexOf('/') + 1);
                 var colliders = go.GetComponentsInChildren<Collider>();
                 var scale = go.transform.lossyScale;
+                // A hollow thing that may move (a boat, a hollow log) is hit on convex pieces along its walls, not on one
+                // hull that would shut it with a lid.
+                bool hollow = Hollow.TryGetValue(id, out var hollowShape) && LooseMass.ContainsKey(id) && colliders.Length > 0 && !InWall(go.transform)
+                    && !pinned.Contains(go) && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f;
+                if (hollow) colliders = HollowShape(go, id, hollowShape);
                 if (BurnRules.TryGetValue(id, out var burn))
                 {
                     var b = go.AddComponent<Burnable>();
@@ -793,12 +899,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                 // is eased out; one that cannot be stays put.
                 if (loose) loose = EaseOut(go, colliders);
                 // What stays put is hit as drawn, not by its hull.
-                if (!loose) foreach (var c in colliders) if (c is MeshCollider mesh && mesh.convex) mesh.convex = false;
+                if (!loose && hollow) RestoreShape(go, asset);
+                if (!loose) foreach (var c in go.GetComponentsInChildren<Collider>()) if (c is MeshCollider mesh && mesh.convex) mesh.convex = false;
                 if (loose)
                 {
                     // Dormant: still scenery (a kinematic body, merged with the chunk's look, hit as drawn) until
                     // something touches it (PhysicsProp.Wake). Nothing simulates or draws apart while nobody comes near.
-                    foreach (var c in colliders) if (c is MeshCollider mesh) mesh.convex = false;
+                    if (!hollow) foreach (var c in colliders) if (c is MeshCollider mesh) mesh.convex = false;
                     var body = go.AddComponent<Rigidbody>();
                     body.mass = mass * Mathf.Abs(scale.x * scale.y * scale.z);
                     body.angularDamping = .05f;
@@ -812,6 +919,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     props.Add(prop);
                     if (BreakKind.TryGetValue(id, out var kindName))
                         go.AddComponent<Breakable>().kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kindName}.asset");
+                    if (hollow && hollowShape == ChunkHulls.Shape.Boat) Afloat(go, prop);
                 }
                 // A fence stands where it is and comes apart under a hard blow; one that makes a wall stays whole.
                 else if (BreakApart.TryGetValue(id, out var apartName) && colliders.Length > 0 && !InWall(go.transform))

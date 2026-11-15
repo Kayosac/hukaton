@@ -306,6 +306,83 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator ASunkenBoatFloatsRocksAndDriftsWhenStruck()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            Vector3 Centre(ChunkPlan p) => streamer.root.position + new Vector3(p.Coord.X * size, p.BaseLevel * map.Rules.PlateauHeight, p.Coord.Y * size);
+            Floater boat = null;
+            for (int r = 0; r <= 30 && !boat; r++)
+                for (int x = -r; x <= r && !boat; x++)
+                    for (int y = -r; y <= r && !boat; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                        var p = map.Chunk(x, y);
+                        if (p.Variant.Id != "sunken-hut" && p.Variant.Id != "drowned-mill") continue;
+                        world.motor.Teleport(Centre(p) + Vector3.up * 3, Quaternion.identity);
+                        yield return WaitFor(() => streamer.IsLoaded(p.Coord), 10);
+                        for (int f = 0; f < 10; f++) yield return null;
+                        boat = Object.FindObjectsByType<Floater>(FindObjectsSortMode.None).FirstOrDefault(b => Vector3.Distance(b.transform.position, Centre(p)) < size);
+                    }
+            if (!boat) Assert.Inconclusive("no floating boat within 480 m");
+            var body = boat.prop.body;
+            world.motor.Teleport(boat.transform.position + Vector3.right * 7 + Vector3.up * 2, Quaternion.LookRotation(Vector3.left));
+            yield return new WaitForSeconds(2.5f);
+            Assert.That(float.IsNaN(boat.Surface), Is.False, "it finds the water under it");
+            Assert.That(body.isKinematic, Is.False, "near the player it floats");
+            // It rides the swell where it lies: not sinking, not jumping.
+            float low = float.MaxValue, high = float.MinValue;
+            var start = body.position;
+            for (float t = 0; t < 3; t += Time.fixedDeltaTime)
+            {
+                yield return new WaitForFixedUpdate();
+                low = Mathf.Min(low, body.position.y);
+                high = Mathf.Max(high, body.position.y);
+            }
+            Assert.That(high - low, Is.InRange(.005f, .25f), "it rises and sinks a little");
+            Assert.That(Mathf.Abs((low + high) / 2 - start.y), Is.LessThan(.2f), "at the water line it was set to");
+            Assert.That(Vector3.ProjectOnPlane(body.position - start, Vector3.up).magnitude, Is.LessThan(.3f), "it stays put by itself");
+            var eye = body.position + new Vector3(3.5f, 2.2f, -3.5f);
+            yield return Snap("boat-0", eye, body.worldCenterOfMass);
+            // A blow sends it drifting; the water slows it down.
+            var before = body.position;
+            Assert.That(PropPhysics.Nudge(body, body.worldCenterOfMass, Vector3.forward, 10), Is.True);
+            yield return new WaitForSeconds(1);
+            yield return Snap("boat-1", eye, body.worldCenterOfMass);
+            float moved = Vector3.ProjectOnPlane(body.position - before, Vector3.up).magnitude;
+            Assert.That(moved, Is.GreaterThan(.2f), "it drifts off");
+            yield return new WaitForSeconds(5);
+            Assert.That(Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up).magnitude, Is.LessThan(.35f), "and the water stops it");
+            Assert.That(Mathf.Abs(body.position.y - start.y), Is.LessThan(.35f), "still afloat");
+        }
+
+        /// <summary>A picture to look at (Logs/world-plans/<paramref name="name"/>.png) from the game's camera.</summary>
+        IEnumerator Snap(string name, Vector3 eye, Vector3 look)
+        {
+            yield return new WaitForEndOfFrame();
+            var cam = world.viewCamera;
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            Directory.CreateDirectory(dir);
+            var saved = (cam.transform.position, cam.transform.rotation);
+            cam.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
+            var rt = new RenderTexture(960, 540, 24);
+            var previous = cam.targetTexture;
+            cam.targetTexture = rt;
+            cam.Render();
+            cam.targetTexture = previous;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            File.WriteAllBytes(Path.Combine(dir, name + ".png"), tex.EncodeToPNG());
+            Object.Destroy(tex);
+            rt.Release();
+            cam.transform.SetPositionAndRotation(saved.Item1, saved.Item2);
+        }
+
+        [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {
             var powers = Object.FindAnyObjectByType<CheatPowers>();
