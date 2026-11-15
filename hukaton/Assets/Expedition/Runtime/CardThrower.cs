@@ -119,7 +119,9 @@ namespace Hakaton.Expeditions
                 for (int i = 0; i < CardKeys.Length; i++)
                     if (keys[CardKeys[i]].wasPressedThisFrame || keys[NumpadCardKeys[i]].wasPressedThisFrame) { Select(i); break; }
             }
-            float wheel = mouse.scroll.ReadValue().y;
+            // Shift (the sprint) turns the wheel sideways on macOS and some mice: read either axis, so cards scroll while running.
+            Vector2 scroll = mouse.scroll.ReadValue();
+            float wheel = Mathf.Abs(scroll.y) >= Mathf.Abs(scroll.x) ? scroll.y : scroll.x;
             if (Mathf.Abs(wheel) > .1f && !Preparation.Active) Step(wheel > 0 ? -1 : 1);
             if (mouse.rightButton.wasPressedThisFrame && Preparation.Active) { Cancel(); world.Play(world.cues ? world.cues.cancel : null); return; }
             if (mouse.leftButton.wasPressedThisFrame) Begin();
