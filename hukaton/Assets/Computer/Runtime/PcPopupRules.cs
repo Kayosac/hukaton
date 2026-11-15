@@ -58,6 +58,9 @@ namespace Hakaton.Computer
         [Min(0)] public float startDelayMin = 2, startDelayMax = 4;
 
         [Header("Round")]
+        [Tooltip("Closing this many ads wins the round at once.")]
+        [Min(1)] public int closeToWin = 10;
+        [Tooltip("Held out this long without being buried: won too (a fallback; new windows stop coming then).")]
         [Min(1)] public float roundSeconds = 15;
         [Tooltip("This many windows open at once: lost.")]
         [Min(1)] public int loseAt = 12;
@@ -66,6 +69,15 @@ namespace Hakaton.Computer
         [Min(.05f)] public float intervalStart = 1f, intervalEnd = .35f;
         [Tooltip("How the interval goes from start to end: 1 evenly, above 1 slow at first and fast later.")]
         [Min(.1f)] public float intervalPower = 1.4f;
+
+        [Header("Win sweep")]
+        [Tooltip("Once won, the windows left go one after another, the top one first: the pause before the first, " +
+                 "the gap between them (shrinking from start to end), each pop a little higher, then a pause and the win.")]
+        [Min(0)] public float sweepDelay = .2f;
+        [Min(.01f)] public float sweepStepStart = .09f, sweepStepEnd = .035f;
+        [Min(0)] public float sweepPitchStep = .06f;
+        [Min(1)] public float sweepPitchMax = 2f;
+        [Min(0)] public float sweepPause = .35f;
 
         [Header("Tricks")]
         public PcPopupTrickChance[] tricks =
@@ -150,6 +162,21 @@ namespace Hakaton.Computer
             save.record = closed;
             return true;
         }
+
+        /// <summary>The round is won: enough ads closed, or held out to the end.</summary>
+        public static bool RoundWon(int closed, float elapsed, PcPopupSettings settings)
+            => closed >= settings.closeToWin || elapsed >= settings.roundSeconds;
+
+        /// <summary>The gap after the <paramref name="index"/>-th window of <paramref name="count"/> in the win sweep.</summary>
+        public static float SweepStep(int index, int count, PcPopupSettings settings)
+        {
+            float t = count > 1 ? Mathf.Clamp01(index / (count - 1f)) : 1;
+            return Mathf.Lerp(settings.sweepStepStart, settings.sweepStepEnd, t);
+        }
+
+        /// <summary>The pitch of the <paramref name="index"/>-th pop of the win sweep: rising, capped.</summary>
+        public static float SweepPitch(int index, PcPopupSettings settings)
+            => Mathf.Min(settings.sweepPitchMax, 1 + settings.sweepPitchStep * Mathf.Max(0, index));
 
         /// <summary>Seconds until the next window at <paramref name="elapsed"/> seconds into the round.</summary>
         public static float Interval(float elapsed, PcPopupSettings settings)

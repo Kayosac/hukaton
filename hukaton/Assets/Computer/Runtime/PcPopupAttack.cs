@@ -102,6 +102,16 @@ namespace Hakaton.Computer
         public SfxCue spawnCue;
         public SfxCue closeCue, fakeCue, dodgeCue, confirmCue, winCue, crashCue;
 
+        [Header("Win effects")]
+        [Tooltip("Where PC particles live (the merge show's «Merge FX» under the PC camera).")]
+        public Transform fxRoot;
+        [Tooltip("A small burst on every window popped by the win sweep (Retro Arsenal, `Fx/PC *`).")]
+        public GameObject sweepBurst;
+        [Min(0)] public float sweepBurstScale = 1.1f;
+        [Tooltip("The win itself, in the middle of the screen.")]
+        public GameObject winBurst;
+        [Min(0)] public float winBurstScale = 1f;
+
         /// <summary>The game's say on whether an attack may come now (the shop tutorial, the cave). Null: always.</summary>
         public Func<bool> Allowed { get; set; }
         /// <summary>The cheat: the next opening brings an attack whatever the chance and the cooldowns.</summary>
@@ -120,6 +130,12 @@ namespace Hakaton.Computer
         bool sitting, armed, crashShown, lostHere, midSaid, fakeSaid;
         float startAt, elapsed, nextSpawn, crashUntil;
         int closed, lastAd = -1;
+        // The win sweep: the windows left, top first; which goes next and when; the reward to announce.
+        readonly List<PcPopup> sweep = new List<PcPopup>();
+        readonly List<PcVfx.Live> effects = new List<PcVfx.Live>();
+        bool sweeping;
+        int sweepAt, sweepReward;
+        float sweepNext;
         string afterReboot;
 
         void Awake()
@@ -224,6 +240,8 @@ namespace Hakaton.Computer
                 else Calm();
             }
             if (Attacking) Play(Time.unscaledDeltaTime);
+            if (sweeping) Sweep();
+            TickEffects();
         }
 
         // ---------- the round ----------
@@ -269,21 +287,88 @@ namespace Hakaton.Computer
                 if (havePointer && (window.Tricks & PcPopupTrick.Runaway) != 0 && window.Dodges < settings.dodgeTimes) Dodge(window, pointer);
             }
             if (PcPopupRules.Lost(windows.Count, settings)) Lose();
-            else if (elapsed >= settings.roundSeconds) Win();
+            else if (PcPopupRules.RoundWon(closed, elapsed, settings)) Win();
         }
 
+        /// <summary>
+        /// Won: the reward and the record are settled at once (walking out now changes nothing), then the windows left
+        /// pop one after another, quickly, each with a rising pop and a spark, and only then the win is announced.
+        /// </summary>
         void Win()
         {
             Attacking = false;
-            SetLayer(false);
-            foreach (var window in windows) if (window) window.Collapse();
-            windows.Clear();
             int reward = Mathf.Max(0, settings.reward);
             if (computer && computer.workshop && reward > 0) computer.workshop.Model.Wallet.Credit(reward);
             PcPopupRules.Won(state, closed);
             Changed?.Invoke();
+            sweep.Clear();
+            foreach (var window in windows) if (window) sweep.Add(window);
+            windows.Clear();
+            // Top first: the last sibling is in front.
+            sweep.Sort((a, b) => b.transform.GetSiblingIndex().CompareTo(a.transform.GetSiblingIndex()));
+            // Nothing is clicked any more; the blocker still keeps the desktop shut until the win is announced.
+            if (layer) layer.interactable = false;
+            foreach (var window in sweep)
+                foreach (var graphic in window.GetComponentsInChildren<UnityEngine.UI.Graphic>(true)) graphic.raycastTarget = false;
+            sweepReward = reward;
+            sweepAt = 0;
+            sweepNext = Time.unscaledTime + settings.sweepDelay;
+            sweeping = true;
+        }
+
+        void Sweep()
+        {
+            if (!computer || !computer.Running) { EndSweep(false); return; }
+            float now = Time.unscaledTime;
+            while (sweepAt < sweep.Count && now >= sweepNext)
+            {
+                var window = sweep[sweepAt];
+                if (window)
+                {
+                    window.Collapse();
+                    Burst(sweepBurst, window.Rect, sweepBurstScale);
+                    Cue(closeCue, PcPopupRules.SweepPitch(sweepAt, settings));
+                }
+                sweepNext += PcPopupRules.SweepStep(sweepAt, sweep.Count, settings);
+                sweepAt++;
+            }
+            if (sweepAt >= sweep.Count && now >= sweepNext + settings.sweepPause) EndSweep(true);
+        }
+
+        /// <summary>The sweep is over: announced (sound, confetti, Гвоздик), or cut short by leaving the PC.</summary>
+        void EndSweep(bool announce)
+        {
+            sweeping = false;
+            foreach (var window in sweep) if (window && !window.Collapsing) Destroy(window.gameObject);
+            sweep.Clear();
+            SetLayer(false);
+            if (!announce) return;
             Cue(winCue);
-            Say(winLines, reward, 0);
+            Burst(winBurst, windowsRoot, winBurstScale);
+            Say(winLines, sweepReward, 0);
+        }
+
+        void Burst(GameObject prefab, RectTransform at, float scale)
+        {
+            if (!prefab || !fxRoot || !at) return;
+            // Canvas pixels → world: the PC canvas is about 100 pixels per unit; the effect scales with it (as in the merge).
+            float unitsPerPixel = Mathf.Abs(at.lossyScale.x) > 1e-6f ? Mathf.Abs(at.lossyScale.x) : .01f;
+            float size = scale * unitsPerPixel * 100 / Mathf.Max(1e-4f, Mathf.Abs(fxRoot.lossyScale.x));
+            var effect = PcVfx.Spawn(prefab, fxRoot, at.TransformPoint(at.rect.center), Quaternion.identity, size,
+                Color.white, 0, 1, 0, Time.unscaledTime);
+            if (effect != null) effects.Add(effect);
+        }
+
+        void TickEffects()
+        {
+            float now = Time.unscaledTime;
+            for (int i = effects.Count - 1; i >= 0; i--)
+            {
+                var effect = effects[i];
+                if (effect.root && now < effect.dieAt) continue;
+                if (effect.root) Destroy(effect.root);
+                effects.RemoveAt(i);
+            }
         }
 
         void Lose()
@@ -296,6 +381,8 @@ namespace Hakaton.Computer
         /// <summary>The attack is taken off at once (walked out of, disabled, a save restored). The saved flag stays.</summary>
         public void Abort()
         {
+            // Already won: the reward is in, only the show stops.
+            if (sweeping) EndSweep(false);
             if (!Attacking) return;
             Clean();
         }
@@ -443,6 +530,8 @@ namespace Hakaton.Computer
             Drop(ad);
             closed++;
             Cue(closeCue);
+            // The winning close ends the round at once: no click in the same frame reaches the windows left.
+            if (Attacking && closed >= settings.closeToWin) Win();
         }
 
         void Drop(PcPopup window)
@@ -603,9 +692,9 @@ namespace Hakaton.Computer
             if (helper && !string.IsNullOrEmpty(line)) helper.Remark(line);
         }
 
-        void Cue(SfxCue cue)
+        void Cue(SfxCue cue, float pitch = 1)
         {
-            if (cue && computer && computer.sfx) computer.sfx.Play(cue);
+            if (cue && computer && computer.sfx) computer.sfx.Play(cue, null, 1, pitch);
         }
     }
 }
