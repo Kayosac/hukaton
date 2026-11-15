@@ -196,6 +196,19 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>
+        /// «Закрой окно»: the next PC opening brings a popup attack, whatever its chance and cooldowns; it still waits
+        /// while a guide is talking (and the other hard rules: tutorial, merges).
+        /// </summary>
+        public bool PopupAttackNext()
+        {
+            var popups = game.services && game.services.computer ? game.services.computer.popups : null;
+            if (!popups) { status = "На ПК нет мини-игры «Закрой окно»."; return false; }
+            popups.ForceNext = true;
+            status = "Атака окон — при следующем открытии ПК (если Гвоздик не рассказывает).";
+            return true;
+        }
+
         public bool AddThousandCoins()
         {
             bool granted = game.AddThousandCoins();
@@ -399,6 +412,7 @@ namespace Hakaton.Game
             GUI.enabled = game.Phase == GamePhase.Shop;
             if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
             if (GUILayout.Button("Незнакомец в конце смены", button)) StrangerAtShiftEnd();
+            if (GUILayout.Button("Атака окон при следующем открытии ПК", button)) PopupAttackNext();
             GUI.enabled = true;
             GUILayout.Label(StrangerProgress(), body);
             GUILayout.Space(8);

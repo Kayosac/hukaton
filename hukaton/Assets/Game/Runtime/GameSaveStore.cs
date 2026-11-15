@@ -37,6 +37,9 @@ namespace Hakaton.Game
         public Hakaton.SpecialItems.SpecialItemsSave specialItems;
         /// <summary>The first-open guides of the brazier and the PC: shown ones, where a half-shown one stopped. Null in old saves.</summary>
         public Hakaton.Guide.GuideSave guides;
+        /// <summary>«Закрой окно» on the PC: openings and play time since the last attack, the record, an attack walked
+        /// out of. Missing in old saves: nothing counted, so the first attack waits the whole cooldown.</summary>
+        public Hakaton.Computer.PcPopupSave popups;
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;
