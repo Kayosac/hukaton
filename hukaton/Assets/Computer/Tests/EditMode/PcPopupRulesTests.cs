@@ -138,5 +138,27 @@ namespace Hakaton.Computer.Tests
             Assert.That(PcPopupRules.Fill("Закрыто {closed|окно|окна|окон}!", "closed", n), Is.EqualTo("Закрыто " + expected + "!"));
             Assert.That(PcPopupRules.Fill("Рекорд: {closed}", "closed", n), Is.EqualTo("Рекорд: " + n));
         }
+    
+        [Test]
+        public void TenClosedAdsWinAtOnceAndHoldingOutStillWins()
+        {
+            var s = new PcPopupSettings();
+            Assert.That(s.closeToWin, Is.EqualTo(10));
+            Assert.That(PcPopupRules.RoundWon(9, 3, s), Is.False);
+            Assert.That(PcPopupRules.RoundWon(10, 3, s), Is.True, "Ten closed: won, however early.");
+            Assert.That(PcPopupRules.RoundWon(4, s.roundSeconds, s), Is.True, "Held out to the end: won too.");
+        }
+
+        [Test]
+        public void TheWinSweepSpeedsUpAndRisesInPitch()
+        {
+            var s = new PcPopupSettings();
+            Assert.That(PcPopupRules.SweepStep(0, 8, s), Is.EqualTo(s.sweepStepStart).Within(1e-5));
+            Assert.That(PcPopupRules.SweepStep(7, 8, s), Is.EqualTo(s.sweepStepEnd).Within(1e-5));
+            Assert.That(PcPopupRules.SweepStep(3, 8, s), Is.LessThan(PcPopupRules.SweepStep(2, 8, s)));
+            Assert.That(PcPopupRules.SweepPitch(0, s), Is.EqualTo(1).Within(1e-5));
+            Assert.That(PcPopupRules.SweepPitch(5, s), Is.GreaterThan(PcPopupRules.SweepPitch(4, s)));
+            Assert.That(PcPopupRules.SweepPitch(100, s), Is.EqualTo(s.sweepPitchMax).Within(1e-5));
+        }
     }
 }
