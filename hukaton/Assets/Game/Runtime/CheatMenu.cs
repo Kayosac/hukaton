@@ -145,7 +145,7 @@ namespace Hakaton.Game
             if (!game.Ready || game.InCave || game.expedition.Returning) { status = name + " выдаётся в лавке или на вылазке."; return false; }
             items.Inventory.MarkIntroduced(item.id);
             items.Inventory.MarkSeen(item.id);
-            if (!items.Grant(item)) { status = name + " уже есть: Q на вылазке."; return false; }
+            if (!items.Grant(item)) { status = name + (item.OnOutings ? " уже есть: Q на вылазке." : " уже есть: значок на ПК."); return false; }
             game.SaveNow(); // On an outing the change is kept dirty and saved on the way home.
             status = done;
             return true;
