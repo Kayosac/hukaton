@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using Hakaton.Decks.Unity;
 using NUnit.Framework;
 using UnityEditor;
@@ -84,6 +85,35 @@ namespace Hakaton.Expeditions.Tests
             yield return Settle(crate.body);
             var heal = AssetDatabase.LoadAssetAtPath<CardEffect>("Assets/Game/Data/Effects/Heal.asset");
             if (heal) Assert.That(heal.BodyNudge, Is.EqualTo(0), "a card that does not strike does not knock");
+        }
+
+        [UnityTest]
+        public IEnumerator CardsThrowThingsHighAndSpinningAndUpgradedOnesFarther()
+        {
+            var strike = (CardEffect)AssetDatabase.LoadAssetAtPath<CardDefinition>("Assets/Game/Data/strike.asset").effectAsset;
+            var speeds = new float[4];
+            foreach (int level in new[] { 1, 3 })
+            {
+                var crate = Crate(Spot(6, level - 2));
+                yield return Settle(crate.body);
+                // As a card's hit does it (ExpeditionWorld.ApplyImpact), at this level.
+                float boost = PropPhysics.LevelBoost(level);
+                Assert.That(PropPhysics.Nudge(crate.body, crate.body.worldCenterOfMass, world.motor.transform.forward, strike.BodyNudge * boost, strike.BodyFling, strike.BodyLift, strike.BodySpin * boost), Is.True);
+                yield return new WaitForFixedUpdate();
+                speeds[level] = crate.body.linearVelocity.magnitude;
+                Assert.That(crate.body.linearVelocity.y, Is.GreaterThan(1), "up into the air");
+                Assert.That(crate.body.angularVelocity.magnitude, Is.GreaterThan(3), "spinning");
+                Assert.That(crate.InFlight, Is.True, "a card's throw: it hurts what it flies into");
+            }
+            Assert.That(speeds[1], Is.GreaterThan(5), "a plain Strike throws a crate");
+            Assert.That(speeds[3], Is.GreaterThan(speeds[1] * 2), "an upgraded one far harder");
+            // A gravestone flies too (a card throws things, it does not weigh them).
+            var heavy = Crate(Spot(6, 2));
+            heavy.body.mass = 22;
+            yield return Settle(heavy.body);
+            PropPhysics.Nudge(heavy.body, heavy.body.worldCenterOfMass, world.motor.transform.forward, strike.BodyNudge, strike.BodyFling, strike.BodyLift, strike.BodySpin);
+            yield return new WaitForFixedUpdate();
+            Assert.That(heavy.body.linearVelocity.magnitude, Is.GreaterThan(3), "a heavy thing goes as well, less far");
         }
 
         [UnityTest]

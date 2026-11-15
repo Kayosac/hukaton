@@ -8,7 +8,11 @@ namespace Hakaton.Expeditions
 {
     public sealed class ImpulseEffect : CardEffect, ICardArea
     {
-        [Range(0, 2)] public float creatureStagger = .55f;
+        [Tooltip("Off its feet this long, s: it flies and lands before it walks again.")]
+        [Range(0, 3)] public float creatureStagger = 1.3f;
+        [Tooltip("A creature is hurled at the card's impulse times this, m/s, whatever it weighs (at most 20).")]
+        [Min(0)] public float creatureFling = 1.4f;
+        [Range(0, 2)] public float creatureLift = .7f;
 
         public override void Apply(in ImpactContext c)
         {
@@ -28,11 +32,17 @@ namespace Hakaton.Expeditions
             {
                 var body = hit.attachedRigidbody;
                 if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
-                // ForceMode.Impulse: Δv = I / mass. Creature masses act as the board's μ (mushroom 0.3, goblin dog 1.5).
-                // Through CardPhysics so Lightness on the body multiplies it.
-                CardPhysics.Push(body, ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse));
-                var creature = body.GetComponent<WorldCreature>();
-                if (creature) { creature.Stagger(creatureStagger, c.Point); meaningful = true; }
+                var push = ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse);
+                // Creatures are hurled whatever they weigh, high and off their feet; loose things fly spinning.
+                if (body.TryGetComponent(out WorldCreature creature))
+                {
+                    var away = Vector3.ProjectOnPlane(body.worldCenterOfMass - c.Point, Vector3.up);
+                    var direction = ((away.sqrMagnitude > .0001f ? away.normalized : Random.insideUnitSphere) + Vector3.up * creatureLift).normalized;
+                    if (!creature.Blow(direction * Mathf.Min(impulse * creatureFling, 20), creatureStagger, c.Point)) CardPhysics.Push(body, push);
+                    meaningful = true;
+                    continue;
+                }
+                if (!PropPhysics.Shove(body, push, 2.4f, 14, .5f)) CardPhysics.Push(body, push);
             }
             Feedback(c, meaningful);
         }

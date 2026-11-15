@@ -93,6 +93,15 @@ namespace Hakaton.Expeditions
         /// </summary>
         public virtual float BodyNudge => 0;
 
+        /// <summary>
+        /// How a loose thing hit by this card flies (arcade, not real): this many times farther than the blow alone
+        /// would send it, tilted up by <see cref="BodyLift"/>, spinning at <see cref="BodySpin"/> rad/s. A card's level
+        /// adds to all of it (<see cref="PropPhysics.LevelBoost"/>).
+        /// </summary>
+        public virtual float BodyFling => 2.6f;
+        public virtual float BodyLift => .45f;
+        public virtual float BodySpin => 8;
+
         /// <summary>Effect, sound, shake and hit-stop of a landing; returns the spawned effect (null when none is assigned).</summary>
         protected VfxBurst Feedback(in ImpactContext c, bool meaningful, float scale = 1)
         {

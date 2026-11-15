@@ -19,6 +19,10 @@ namespace Hakaton.Expeditions
         public static float FreezeSeconds(float power, bool wet, float wetMultiplier) => wet ? power * wetMultiplier : power;
 
         public override float BodyNudge => 1.5f;
+        // Ice sends things sliding off flat, hardly turning.
+        public override float BodyFling => 2.2f;
+        public override float BodyLift => .05f;
+        public override float BodySpin => 2;
 
         public override void Apply(in ImpactContext c)
         {

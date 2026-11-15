@@ -88,7 +88,7 @@ namespace Hakaton.Expeditions.Cards
             var direction = DraftRules.WindDirection(c.Velocity, c.ThrowOrigin, c.Point, camera);
             var strip = new DraftStrip(ground - direction * startBehind, direction, c.At(length) + startBehind, width, below, above);
             var gust = c.World.SpawnForOuting(gustPrefab, strip.Origin, strip.Rotation);
-            bool changed = gust && gust.Setup(this, strip, c.Accent);
+            bool changed = gust && gust.Setup(this, strip, c.Accent, c.Level);
             Feedback(c, changed);
         }
 

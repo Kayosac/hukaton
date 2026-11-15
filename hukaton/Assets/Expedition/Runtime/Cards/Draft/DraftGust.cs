@@ -52,7 +52,7 @@ namespace Hakaton.Expeditions.Cards
         DraftEffect numbers;
         DraftStrip strip;
         Color tint = Color.white;
-        float born, nextTick;
+        float born, nextTick, boost = 1;
         bool started, pushedPlayer;
 
         public DraftStrip Strip => strip;
@@ -68,9 +68,10 @@ namespace Hakaton.Expeditions.Cards
         public void OnSpawned(ExpeditionWorld owner) => world = owner;
 
         /// <summary>Starts the gust; returns true when its first breath already changed something.</summary>
-        public bool Setup(DraftEffect effect, DraftStrip windStrip, Color colour)
+        public bool Setup(DraftEffect effect, DraftStrip windStrip, Color colour, int level = 1)
         {
             numbers = effect;
+            boost = PropPhysics.LevelBoost(level);
             strip = windStrip;
             tint = colour;
             born = Time.time;
@@ -207,7 +208,8 @@ namespace Hakaton.Expeditions.Cards
                 if (!body || !pushed.Add(body) || !PropPhysics.Ready(body)) continue;
                 if (Dry(body)) Dried++;
                 if (numbers.pushImpulse <= 0) continue;
-                CardPhysics.Push(body, push);
+                // Loose things are carried off along the wind, tumbling.
+                if (!PropPhysics.Shove(body, push * boost, 3, 10, .35f)) CardPhysics.Push(body, push);
                 Pushed++;
             }
             var motor = world.motor;
@@ -226,7 +228,8 @@ namespace Hakaton.Expeditions.Cards
         void BlowCreatures()
         {
             if (numbers.creatureBlowSpeed <= 0 && numbers.mimicBlowDistance <= 0) return;
-            Vector3 velocity = DraftRules.CreatureBlow(strip.Direction, numbers.creatureBlowSpeed, numbers.creatureLift);
+            // A gale, not a breeze: off their feet and away, farther with the card's level.
+            Vector3 velocity = DraftRules.CreatureBlow(strip.Direction, Mathf.Min(numbers.creatureBlowSpeed * 1.5f * Mathf.Sqrt(boost), 22), Mathf.Max(numbers.creatureLift, .55f));
             foreach (var fighter in Fighters)
             {
                 if (ReferenceEquals(fighter, world.Player) || !Combat.IsAlive(fighter) || !fighter.Root) continue;

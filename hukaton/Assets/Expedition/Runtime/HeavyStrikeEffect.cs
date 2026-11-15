@@ -12,6 +12,9 @@ namespace Hakaton.Expeditions
         [Range(0, 2)] public float stagger = .7f;
 
         public override float BodyNudge => 7;
+        public override float BodyFling => 2.2f;
+        public override float BodyLift => .7f;
+        public override float BodySpin => 10;
 
         public override void Apply(in ImpactContext c)
         {
@@ -26,8 +29,9 @@ namespace Hakaton.Expeditions
             else if (c.TargetAs<ICardCreature>() is ICardCreature other && other.Alive)
                 meaningful = other.TakeDamage(new DamageInfo(c.Power, (StrikeEffect.Flat(c.Direction) + Vector3.up * lift).normalized * c.Impulse,
                     c.Point, c.ThrowOrigin));
-            // A heavy blow shakes what lies around the hit.
-            PropPhysics.Burst(c.Point, 1.6f, 3.5f, .45f, c.Body);
+            // A heavy blow sends a shock wave: everything round the hit jumps and scatters; upgraded, it breaks what is near.
+            float boost = PropPhysics.LevelBoost(c.Level);
+            PropPhysics.Burst(c.Point, 2.2f * Mathf.Sqrt(boost), 3.5f * boost, .9f, c.Body, 2.4f, 12);
             Feedback(c, meaningful);
         }
     }

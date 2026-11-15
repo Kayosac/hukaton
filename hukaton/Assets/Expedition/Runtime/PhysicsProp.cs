@@ -26,7 +26,20 @@ namespace Hakaton.Expeditions
 
         Vector3 start;
         Quaternion rotation;
-        float quietUntil;
+        float quietUntil, thrownUntil, lastHurtAt;
+        WorldCreature lastHurt;
+
+        /// <summary>A thing thrown by a card hurts a creature it hits at least this fast, m/s.</summary>
+        public const float HurtSpeed = 3.5f;
+
+        /// <summary>Damage of a thrown thing hitting a creature: a pot 1, a crate about 3, a boulder up to 6.</summary>
+        public static int ThrownDamage(float mass, float speed) => Mathf.Clamp(Mathf.RoundToInt(speed * Mathf.Sqrt(mass) / 3), 1, 6);
+
+        /// <summary>A card has thrown it: for a while it hurts a creature it flies into.</summary>
+        public void Thrown() => thrownUntil = Time.time + 2.5f;
+
+        /// <summary>Flying from a card's throw (it hurts what it hits).</summary>
+        public bool InFlight => Time.time < thrownUntil;
         Collider[] colliders;
 
         void Awake() { start = transform.position; rotation = transform.rotation; }
@@ -137,6 +150,19 @@ namespace Hakaton.Expeditions
                 if (dormant && other && !other.isKinematic && Time.time >= quietUntil
                     && other.mass * collision.relativeVelocity.magnitude > body.mass * .3f) Wake();
                 return;
+            }
+            // Thrown by a card into a creature: it hurts.
+            if (Time.time < thrownUntil && collision.rigidbody && collision.rigidbody.TryGetComponent(out WorldCreature creature) && creature.Alive)
+            {
+                float hitSpeed = collision.relativeVelocity.magnitude;
+                if (hitSpeed > HurtSpeed && (creature != lastHurt || Time.time > lastHurtAt + .5f))
+                {
+                    lastHurt = creature;
+                    lastHurtAt = Time.time;
+                    var at = collision.contactCount > 0 ? collision.GetContact(0).point : creature.Centre;
+                    var away = Vector3.ProjectOnPlane(creature.Position - body.position, Vector3.up).normalized + Vector3.up * .3f;
+                    creature.Damage(ThrownDamage(body.mass, hitSpeed), away * Mathf.Min(hitSpeed, 10) * .35f, at, 0);
+                }
             }
             if (Time.time >= quietUntil && TryGetComponent(out Breakable breakable))
             {

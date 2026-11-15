@@ -13,6 +13,9 @@ namespace Hakaton.Expeditions
         [Min(0)] public float igniteReach = .4f;
 
         public override float BodyNudge => 1.5f;
+        // Fire makes things hop.
+        public override float BodyLift => 1.4f;
+        public override float BodySpin => 5;
 
         public override void Apply(in ImpactContext c)
         {

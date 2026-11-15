@@ -120,7 +120,8 @@ namespace Hakaton.Expeditions
                 var body = hit.attachedRigidbody;
                 if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
                 float d = Vector3.Distance(body.worldCenterOfMass, at);
-                CardPhysics.Push(body, Throw(at, body.worldCenterOfMass, d));
+                var thrown = Throw(at, body.worldCenterOfMass, d);
+                if (!PropPhysics.Shove(body, thrown, 2.2f, 14, .4f)) CardPhysics.Push(body, thrown);
                 var creature = body.GetComponent<WorldCreature>();
                 if (creature) creature.Stagger(creatureStagger, at);
             }

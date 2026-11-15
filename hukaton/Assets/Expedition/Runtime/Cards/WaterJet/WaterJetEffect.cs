@@ -41,6 +41,9 @@ namespace Hakaton.Expeditions.Cards
         static readonly List<ICardZone> Zones = new List<ICardZone>();
 
         public override float BodyNudge => 5;
+        // The jet carries things along, low and far.
+        public override float BodyLift => .2f;
+        public override float BodySpin => 5;
 
         public override void Apply(in ImpactContext c)
         {

@@ -49,6 +49,40 @@ namespace Hakaton.Expeditions.Cards
         static readonly RaycastHit[] SightHits = new RaycastHit[16];
 
         public override float BodyNudge => 2;
+        // The bolt makes things jump and twitch.
+        public override float BodyLift => 1.6f;
+        public override float BodySpin => 16;
+
+        static readonly Collider[] Near = new Collider[48];
+        static readonly List<Rigidbody> Zapped = new List<Rigidbody>();
+
+        /// <summary>
+        /// The crack jumps on to up to <paramref name="count"/> loose things within 6 m of the hit, nearest first: each
+        /// sparks and leaps.
+        /// </summary>
+        void Crackle(ExpeditionWorld world, Vector3 at, int count, float speed)
+        {
+            int n = Physics.OverlapSphereNonAlloc(at, 6, Near, ~(1 << 4), QueryTriggerInteraction.Ignore);
+            Zapped.Clear();
+            for (int i = 0; i < n; i++)
+            {
+                var body = Near[i] ? Near[i].attachedRigidbody : null;
+                Near[i] = null;
+                if (!body || Zapped.Contains(body) || !PropPhysics.IsLoose(body) || !PropPhysics.Movable(body)) continue;
+                if ((body.worldCenterOfMass - at).sqrMagnitude < 4) continue;
+                Zapped.Add(body);
+            }
+            Zapped.Sort((a, b) => (a.worldCenterOfMass - at).sqrMagnitude.CompareTo((b.worldCenterOfMass - at).sqrMagnitude));
+            for (int i = 0; i < Zapped.Count && i < count; i++)
+            {
+                var body = Zapped[i];
+                if (!body) continue;
+                var spot = body.worldCenterOfMass;
+                world.Spawn(sparkVfx ? sparkVfx : strikeVfx, spot, Quaternion.identity, tint, strikeScale * .45f);
+                PropPhysics.Nudge(body, spot, Vector3.up + Random.insideUnitSphere * .5f, speed, 2.5f, 1.5f, 18);
+            }
+            Zapped.Clear();
+        }
 
         public override void Apply(in ImpactContext c)
         {
@@ -57,8 +91,10 @@ namespace Hakaton.Expeditions.Cards
             var first = c.HitCombatant;
             bool hitFighter = Combat.IsAlive(first);
             world.Spawn(strikeVfx, hitFighter ? first.Position : c.Point, Quaternion.identity, tint, strikeScale);
-            // The bolt's crack throws small loose things about.
-            PropPhysics.Burst(c.Point, 2, 3, .5f);
+            // The bolt's crack makes loose things jump; upgraded, it runs on from thing to thing round the hit.
+            float boost = PropPhysics.LevelBoost(c.Level);
+            PropPhysics.Burst(c.Point, 2 * Mathf.Sqrt(boost), 3 * boost, 1.5f, null, 2.5f, 16);
+            if (c.Level >= 2) Crackle(world, c.Point, c.Level >= 3 ? 5 : 2, 3 * boost);
             if (hitFighter)
             {
                 Fighters.Clear();

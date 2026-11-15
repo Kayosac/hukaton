@@ -88,14 +88,64 @@ namespace Hakaton.Expeditions
         static void ResetStatics() => Stirring.Clear();
 
         /// <summary>A body cards, landings and blows may throw about: not a creature (those answer for themselves).</summary>
-        public static bool IsLoose(Rigidbody body) => body && !body.GetComponent<WorldCreature>();
+        public static bool IsLoose(Rigidbody body) => body && !body.TryGetComponent<WorldCreature>(out _);
+
+        // ---------------- cards: arcade, not real ----------------
+
+        /// <summary>A card's level makes everything it does to loose things bigger: ×1, ×1.6, ×2.5.</summary>
+        public static float LevelBoost(int level) => level >= 3 ? 2.5f : level == 2 ? 1.6f : 1;
+
+        /// <summary>
+        /// How much of a card's blow gets through to a body this heavy: all of it up to <see cref="ReferenceMass"/>, then
+        /// less, but even a gravestone goes (a card throws things about, it does not weigh them).
+        /// </summary>
+        public static float Heft(float mass) => Mathf.Clamp(Mathf.Pow(ReferenceMass / Mathf.Max(.01f, mass), .35f), .45f, 1);
+
+        /// <summary>A thing thrown by a card goes no faster than this, m/s (it should fly, not vanish).</summary>
+        public const float MaxCardSpeed = 17;
+
+        /// <summary>
+        /// A card throws a loose body: <paramref name="change"/> (m/s) along <paramref name="direction"/>, tilted up by
+        /// <paramref name="lift"/>, set spinning (<paramref name="spin"/> rad/s about a random axis), marked as thrown
+        /// (it hurts a creature it flies into).
+        /// </summary>
+        static void Throw(Rigidbody body, Vector3 point, Vector3 direction, float change, float lift, float spin, bool atPoint)
+        {
+            var dir = direction.sqrMagnitude > .0001f ? direction.normalized : Vector3.up;
+            if (lift > 0) dir = (dir + Vector3.up * lift).normalized;
+            float speed = Mathf.Min(change, MaxCardSpeed) * BodyModifierStatus.ImpulseScaleOf(body);
+            if (atPoint) body.AddForceAtPosition(dir * speed * body.mass, point, ForceMode.Impulse);
+            else body.AddForce(dir * speed, ForceMode.VelocityChange);
+            if (spin > 0)
+            {
+                body.maxAngularVelocity = Mathf.Max(body.maxAngularVelocity, 30);
+                body.AddTorque(Random.onUnitSphere * spin, ForceMode.VelocityChange);
+            }
+            if (body.TryGetComponent(out PhysicsProp prop)) prop.Thrown();
+        }
+
+        /// <summary>
+        /// A card's push given as an impulse (Impulse, Attraction, a draft, a blast): on a loose thing it acts as on a
+        /// body of <see cref="ReferenceMass"/> (by <see cref="Heft"/>), <paramref name="fling"/> times as far, spinning.
+        /// Breaks what the push would break. False for a creature or a body that cannot move: push those your own way.
+        /// </summary>
+        public static bool Shove(Rigidbody body, Vector3 impulse, float fling, float spin, float lift = 0)
+        {
+            if (!IsLoose(body) || body.TryGetComponent<WorldLoot>(out _) || !Ready(body)) return false;
+            float change = impulse.magnitude / ReferenceMass * Heft(body.mass);
+            if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, body.worldCenterOfMass, impulse)) return true;
+            Throw(body, body.worldCenterOfMass, impulse, change * fling, lift, spin, false);
+            return true;
+        }
 
         /// <summary>
         /// Throws the loose things within <paramref name="radius"/> away from <paramref name="centre"/>:
         /// <paramref name="speed"/> m/s right at the centre, a third of it at the edge, tilted up by
         /// <paramref name="lift"/> (0 flat, 1 as much up as out). Returns how many moved.
         /// </summary>
-        public static int Burst(Vector3 centre, float radius, float speed, float lift = .35f, Rigidbody except = null)
+        /// <param name="fling">1: a plain blow (a landing, a beast). A card's throws things this many times farther, by
+        /// <see cref="Heft"/> rather than by weight, and <paramref name="spin"/> sets them turning (rad/s).</param>
+        public static int Burst(Vector3 centre, float radius, float speed, float lift = .35f, Rigidbody except = null, float fling = 1, float spin = 0)
         {
             if (radius <= 0 || speed <= 0) return 0;
             int count = Physics.OverlapSphereNonAlloc(centre, radius, Hits, ~0, QueryTriggerInteraction.Ignore);
@@ -124,7 +174,16 @@ namespace Hakaton.Expeditions
                 Vector3 direction = distance > .05f ? to / distance : Random.onUnitSphere;
                 direction.y = Mathf.Max(0, direction.y);
                 direction = (direction + Vector3.up * lift).normalized;
-                float change = speed * Mathf.Lerp(1, .33f, Mathf.Clamp01(distance / radius)) * Mathf.Min(1, ReferenceMass / body.mass);
+                float near = Mathf.Lerp(1, .33f, Mathf.Clamp01(distance / radius));
+                if (fling > 1)
+                {
+                    float blow = speed * near * Heft(body.mass);
+                    if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, body.worldCenterOfMass, direction)) { moved++; continue; }
+                    Throw(body, body.worldCenterOfMass, direction, blow * fling, 0, spin * near, false);
+                    moved++;
+                    continue;
+                }
+                float change = speed * near * Mathf.Min(1, ReferenceMass / body.mass);
                 if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, body.worldCenterOfMass, direction)) { moved++; continue; }
                 CardPhysics.Push(body, direction * (change * body.mass));
                 // A little spin: things tumble instead of sliding off like pucks.
@@ -151,11 +210,22 @@ namespace Hakaton.Expeditions
             return breakable && breakable.Hit(speed, point, direction);
         }
 
-        /// <summary>A hit on one loose body at a point (a card, a projectile): <paramref name="speed"/> m/s along the blow.</summary>
-        public static bool Nudge(Rigidbody body, Vector3 point, Vector3 direction, float speed)
+        /// <summary>
+        /// A hit on one loose body at a point (a card, a projectile): <paramref name="speed"/> m/s along the blow. A card's
+        /// hit (<paramref name="fling"/> above 1) throws it that many times farther, tilted up by <paramref name="lift"/>
+        /// and spinning (<paramref name="spin"/> rad/s).
+        /// </summary>
+        public static bool Nudge(Rigidbody body, Vector3 point, Vector3 direction, float speed, float fling = 1, float lift = 0, float spin = 0)
         {
             if (speed <= 0 || !IsLoose(body)) return false;
             if (direction.sqrMagnitude < .0001f || !Ready(body)) return false;
+            if (fling > 1)
+            {
+                float blow = speed * Heft(body.mass);
+                if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, point, direction)) return true;
+                Throw(body, point, direction, blow * fling, lift, spin, true);
+                return true;
+            }
             float change = speed * Mathf.Min(1, ReferenceMass / body.mass);
             if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, point, direction)) return true;
             body.AddForceAtPosition(direction.normalized * (change * body.mass * BodyModifierStatus.ImpulseScaleOf(body)), point, ForceMode.Impulse);

@@ -47,7 +47,7 @@ namespace Hakaton.OldApiary
         sealed class Fire
         {
             public Burnable burnable;
-            public float time;
+            public float time, nextHop;
             public bool spread;
             public VfxBurst fx;
         }
@@ -249,6 +249,7 @@ namespace Hakaton.OldApiary
                     b.transform.localScale = new Vector3(s.x, s.y * Mathf.Lerp(1, ashHeight, k * k * k), s.z);
                 }
                 if (!f.spread && k >= spreadAt) { f.spread = true; Spread(b); }
+                Hop(f, k);
                 centre += b.Look.center;
                 if (k >= 1) { Finish(f); fires.RemoveAt(i); }
             }
@@ -262,6 +263,17 @@ namespace Hakaton.OldApiary
                 if (fires.Count > 0) world.sfx.Loop(this, burnLoop, centre / Mathf.Max(1, fires.Count), Mathf.Min(1, fires.Count / 4f));
                 else world.sfx.StopLoop(this);
             }
+        }
+
+        /// <summary>A loose thing on fire hops about like popcorn (arcade, not real) until it is nearly burnt.</summary>
+        void Hop(Fire f, float k)
+        {
+            if (k > .85f || f.time < f.nextHop) return;
+            f.nextHop = f.time + Random.Range(.35f, .8f);
+            var body = f.burnable.Body;
+            if (!body || !f.burnable.TryGetComponent<PhysicsProp>(out _)) return;
+            var at = body.worldCenterOfMass + Random.insideUnitSphere * .1f;
+            PropPhysics.Nudge(body, at, Vector3.up + Random.insideUnitSphere * .6f, 2.2f, 2, 1.5f, 9);
         }
 
         void Spread(Burnable b)

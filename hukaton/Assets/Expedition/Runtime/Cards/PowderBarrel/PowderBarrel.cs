@@ -305,7 +305,9 @@ namespace Hakaton.Expeditions.Cards
                     // A blast takes apart the fixed things that break (fences) in its reach.
                     if (!rb && PropPhysics.HitFixed(hit, hit.bounds.ClosestPoint(centre), hit.bounds.center - centre, float.MaxValue)) { pushed++; continue; }
                     if (!rb || rb == body || !seen.Add(rb) || Combat.Of(hit) != null || !PropPhysics.Ready(rb)) continue;
-                    CardPhysics.Push(rb, PowderBarrelRules.Push(centre, rb.worldCenterOfMass, numbers.radius, numbers.knockback, pushAtEdge, lift));
+                    var blast = PowderBarrelRules.Push(centre, rb.worldCenterOfMass, numbers.radius, numbers.knockback, pushAtEdge, lift);
+                    // Loose things go high and spinning; the rest (finds, cubes) as before.
+                    if (!PropPhysics.Shove(rb, blast, 2.2f, 16, .5f)) CardPhysics.Push(rb, blast);
                     pushed++;
                 }
             }

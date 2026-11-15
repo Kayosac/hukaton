@@ -64,6 +64,7 @@ namespace Hakaton.Expeditions.Cards
         /// Попадание одной карты веера — или повтор Эхом: тогда сразу все карты веера уровня копии Эха в эту точку.
         /// </summary>
         public override float BodyNudge => 2;
+        public override float BodySpin => 10;
 
         public override void Apply(in ImpactContext c)
         {

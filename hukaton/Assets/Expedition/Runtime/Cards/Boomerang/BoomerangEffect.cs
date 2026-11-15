@@ -67,6 +67,9 @@ namespace Hakaton.Expeditions.Cards
 
         /// <summary>Касание существа на пути, удар о препятствие — и повтор Эхом (мгновенный удар в точке).</summary>
         public override float BodyNudge => 3;
+        public override float BodyFling => 2.8f;
+        public override float BodyLift => .6f;
+        public override float BodySpin => 12;
 
         public override void Apply(in ImpactContext c)
         {
