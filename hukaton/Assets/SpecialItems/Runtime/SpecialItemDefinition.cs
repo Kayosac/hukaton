@@ -12,7 +12,9 @@ namespace Hakaton.SpecialItems
         /// <summary>Never by itself (a hidden condition the game opens some other way).</summary>
         Hidden,
         /// <summary>Back from the god: once the goblin on the counter has had his word (the phone, the player).</summary>
-        AfterGod
+        AfterGod,
+        /// <summary>After the stranger at the end of a shift: once the goblin has had his word about him (the хаPAY account).</summary>
+        AfterStranger
     }
 
     /// <summary>How a special item sits with the cards while it is out.</summary>
@@ -21,7 +23,9 @@ namespace Hakaton.SpecialItems
         /// <summary>The cards stay usable while the item is in the hand (the phone).</summary>
         AlongsideCards,
         /// <summary>The cards are put away while the item is in the hand.</summary>
-        InsteadOfCards
+        InsteadOfCards,
+        /// <summary>Not taken on outings at all: no Q menu, no hand (the хаPAY account opens a program on the PC).</summary>
+        NotOnOutings
     }
 
     /// <summary>
@@ -37,8 +41,8 @@ namespace Hakaton.SpecialItems
         [Min(0)] public int price = 5000;
         public SpecialItemUnlock unlock = SpecialItemUnlock.AfterGod;
         public SpecialItemUse use = SpecialItemUse.AlongsideCards;
-        [Tooltip("Which side of the dealer's card row it lies on.")]
-        public bool leftOfCards = true;
+        /// <summary>Q takes it out on outings (everything but <see cref="SpecialItemUse.NotOnOutings"/>).</summary>
+        public bool OnOutings => use != SpecialItemUse.NotOnOutings;
         [Tooltip("How it lies on the dealer's table.")]
         public Sprite tableSprite;
         [Tooltip("Its picture in the Q menu.")]

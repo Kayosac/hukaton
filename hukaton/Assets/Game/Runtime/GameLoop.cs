@@ -10,6 +10,7 @@ using Hakaton.Economy.Unity;
 using Hakaton.Expeditions;
 using Hakaton.Feel;
 using Hakaton.GodMountains;
+using Hakaton.Hapay;
 using Hakaton.ShopBlockout;
 using Hakaton.SpecialItems;
 using Hakaton.Trading;
@@ -89,13 +90,19 @@ namespace Hakaton.Game
         {
             "Кто это был?",
             "Не слушай этого идиота.",
-            "За работу, партнёр!"
+            "За работу, партнёр!",
+            "И загляни ко мне. Нашёл тут кое-что от прежнего хозяина."
         };
         [Tooltip("Seconds from the shift's end (the view back from the counter) to the goblin's puff.")]
         [Min(0)] public float strangerGoblinDelay = .6f;
         public FirstPersonMotor player;
         [Tooltip("Special items (board «Спецпредметы»): sold by the goblin dealer once open, kept forever, used on outings with Q.")]
         public SpecialItemsHost specialItems;
+        [Tooltip("хаPAY (board «Спецпредметы»): the collectors' site on the PC, opened by the special item «Аккаунт на хаPAY». " +
+                 "Its clocks run while the game runs; a sale takes the goods from storage, then the display, into the shop's revenue.")]
+        public HapayHost hapay;
+        [Tooltip("Id of the special item that opens хаPAY.")]
+        public string hapayAccountId = "hapay_account";
         [Header("Authored phase roots")]
         public GameObject shopGeometry;
         public GameObject expeditionGeometry;
@@ -218,10 +225,21 @@ namespace Hakaton.Game
             {
                 specialItems.UnlockCheck = unlock => unlock == SpecialItemUnlock.Always || unlock == SpecialItemUnlock.FirstGoal && GoalReached
                     // The goblin's word after the god ends with «у меня есть для тебя кое-что интересное»: the items open then.
-                    || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning;
+                    || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning
+                    // The goblin's word after the stranger ends with «загляни ко мне…»: the хаPAY account opens then.
+                    || unlock == SpecialItemUnlock.AfterStranger && strangerVisited && !strangerGoblinDue && !strangerLectureRunning;
                 cardShop.SpecialItems = specialItems;
                 if (services.computer) services.computer.SpecialItems = specialItems;
                 specialItems.Inventory.Changed += MarkDirty;
+            }
+            if (hapay)
+            {
+                hapay.Stock = new HapayShopStock(trade.Session, trade.lootCatalog);
+                hapay.SellGoods = SellToCollector;
+                hapay.ItemName = id => { var item = trade.lootCatalog ? trade.lootCatalog.Find(id) : null; return item ? item.displayName : id; };
+                hapay.ItemIcon = id => { var item = trade.lootCatalog ? trade.lootCatalog.Find(id) : null; return item ? item.icon : null; };
+                hapay.Market.Changed += MarkDirty;
+                if (services.computer) services.computer.Hapay = hapay;
             }
             // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
             // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
@@ -285,15 +303,20 @@ namespace Hakaton.Game
             if (tutorial) tutorial.Changed -= MarkDirty;
             if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
             if (specialItems) specialItems.Inventory.Changed -= MarkDirty;
+            if (hapay) hapay.Market.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
             if (guides) guides.Progress.Changed -= MarkDirty;
             if (Popups) Popups.Changed -= MarkDirty;
         }
         /// <summary>The PC's popup mini-game (part of the backroom PC prefab).</summary>
         Hakaton.Computer.PcPopupAttack Popups => services && services.computer ? services.computer.popups : null;
-        void OnApplicationQuit() { SaveNow(); }
+        // Quitting (and leaving Play mode in the editor) saves here, while everything is still alive; then the scene is torn
+        // down in no particular order, so OnDisable must not save again: the special items and хаPAY would already be
+        // destroyed and the save would be overwritten without them (they were lost on every quit).
+        bool quitting;
+        void OnApplicationQuit() { SaveNow(); quitting = true; }
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
-        void OnDisable() { if (Ready) SaveNow(); }
+        void OnDisable() { if (Ready && !quitting) SaveNow(); }
         void MarkDirty() { if (!restoring) dirty = true; }
         void LateUpdate()
         {
@@ -308,6 +331,7 @@ namespace Hakaton.Game
             tutorialWasRunning = !GoalGiven;
             TryShowGoalBanner();
             TrackStranger();
+            TickHapay();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen && !LectureActive)
@@ -323,6 +347,25 @@ namespace Hakaton.Game
             }
             RefreshProgress();
         }
+        /// <summary>хаPAY is open once the account is bought; its clocks run while the game runs (not paused, not in a menu).</summary>
+        void TickHapay()
+        {
+            if (!hapay) return;
+            hapay.Open = specialItems && specialItems.Inventory.Owns(hapayAccountId);
+            if (!GamePause.Suspended) hapay.Tick(Time.unscaledDeltaTime);
+        }
+
+        /// <summary>A collector buys a set on хаPAY: from storage first, then the display, into the shop's revenue.</summary>
+        bool SellToCollector(IReadOnlyList<HapayWant> wants, int price)
+        {
+            var list = new List<KeyValuePair<string, int>>();
+            foreach (var want in wants) list.Add(new KeyValuePair<string, int>(want.item, want.count));
+            if (!trade.Session.SellSet(list, price)) return false;
+            trade.RefreshPresentation();
+            dirty = true;
+            return true;
+        }
+
         /// <summary>Notes a worked shift (a sale, then the shop closed) for the goblin dealer's save; it no longer gates his call.</summary>
         void TrackShift()
         {
@@ -740,6 +783,7 @@ namespace Hakaton.Game
             endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null,
+            hapay = hapay ? hapay.Market.Save() : null,
             popups = Popups ? Popups.Save() : null
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
@@ -783,6 +827,7 @@ namespace Hakaton.Game
             }
             if (specialItems) specialItems.Restore(save.specialItems);
             if (guides) guides.Progress.Restore(save.guides);
+            if (hapay) hapay.Market.Restore(save.hapay);
             if (Popups) Popups.Restore(save.popups);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;

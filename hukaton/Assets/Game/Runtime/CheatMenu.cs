@@ -126,6 +126,17 @@ namespace Hakaton.Game
         /// <summary>The cassette player for free, like <see cref="GrantPhone"/>.</summary>
         public bool GrantPlayer() => GrantItem("player", "Плеер", "Плеер получен: Q на вылазке, Tab — музыка, зажать Tab — следующий трек.");
 
+        public bool GrantHapay() => GrantItem(game.hapayAccountId, "Аккаунт на хаPAY", "Аккаунт на хаPAY получен: значок на рабочем столе ПК.");
+
+        /// <summary>хаPAY: every lot on the site leaves for a new one (clocks full).</summary>
+        public bool RenewHapayLots()
+        {
+            if (!game.hapay || !game.hapay.Open) { status = "хаPAY ещё не открыт: сначала аккаунт."; return false; }
+            game.hapay.Market.Renew();
+            status = "На хаPAY новые лоты.";
+            return true;
+        }
+
         bool GrantItem(string id, string name, string done)
         {
             var items = game.specialItems;
@@ -375,6 +386,9 @@ namespace Hakaton.Game
             GUI.enabled = game.Ready && !game.InCave && !game.expedition.Returning;
             if (GUILayout.Button("Получить телефон", button)) GrantPhone();
             if (GUILayout.Button("Получить плеер", button)) GrantPlayer();
+            if (GUILayout.Button("Аккаунт на хаPAY", button)) GrantHapay();
+            GUI.enabled = game.Ready && game.hapay && game.hapay.Open;
+            if (GUILayout.Button("хаPAY — новые лоты", button)) RenewHapayLots();
             GUI.enabled = game.Ready;
             if (GUILayout.Button("+1000 монет", button)) AddThousandCoins();
             GUI.enabled = true;

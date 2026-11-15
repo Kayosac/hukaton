@@ -36,6 +36,8 @@ namespace Hakaton.Computer
         public PcDesktop desktop;
         public PcCardsWindow cards;
         public PcUpgradesWindow upgrades;
+        [Tooltip("хаPAY (board «Спецпредметы»): on the desktop only once the account is bought.")]
+        public PcHapayWindow hapay;
         [Tooltip("«Склад»: what the shop holds (optional).")]
         public PcStorageWindow storage;
 
@@ -91,6 +93,10 @@ namespace Hakaton.Computer
         /// serialized); the battery track shows once the phone is bought.
         /// </summary>
         public Hakaton.SpecialItems.SpecialItemsHost SpecialItems { get; set; }
+        /// <summary>хаPAY's state (the game loop hands it over); its program is on the desktop once the account is bought.</summary>
+        public Hakaton.Hapay.HapayHost Hapay { get; set; }
+        /// <summary>Another music (the хаPAY site's) plays instead: the PC's own fades out meanwhile.</summary>
+        public bool MusicOverridden { get; set; }
 
         void Awake()
         {
@@ -200,6 +206,7 @@ namespace Hakaton.Computer
                     break;
                 case Phase.Running:
                     desktop.SetCoins(workshop.Model.Coins);
+                    ShowHapay();
                     if (!Guided && BackPressed())
                     {
                         if (desktop.MenuOpen) desktop.CloseMenu();
@@ -299,7 +306,15 @@ namespace Hakaton.Computer
             // Windows left open stay open across a short wake; refresh what they show.
             if (cards.window.IsOpen) cards.Refresh();
             if (upgrades.window.IsOpen) upgrades.Refresh();
+            ShowHapay();
+            if (hapay && hapay.window.IsOpen) hapay.Refresh();
             Ready?.Invoke();
+        }
+
+        /// <summary>хаPAY's icon, menu entry and window exist only once the account is bought.</summary>
+        void ShowHapay()
+        {
+            if (hapay) desktop.SetAvailable(hapay.window, hapay.Available);
         }
 
         void SetInput(bool on)
@@ -372,11 +387,12 @@ namespace Hakaton.Computer
         void FadeMusic()
         {
             if (!music || !music.isPlaying) return;
-            float target = musicOn ? musicVolume : 0;
+            float target = musicOn && !MusicOverridden ? musicVolume : 0;
             float seconds = musicOn ? musicFadeInSeconds : musicFadeOutSeconds;
             float step = seconds > 0 ? musicVolume / seconds * Time.unscaledDeltaTime : 1;
             music.volume = Mathf.MoveTowards(music.volume, target, step);
             if (!musicOn && music.volume <= 0) PauseMusic();
+            // Under the site's music it keeps running silently, so it carries on from there when the site closes.
         }
 
         void FadeOutBootVoice()

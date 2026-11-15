@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Hakaton.Character;
 using Hakaton.Decks;
@@ -64,10 +65,12 @@ namespace Hakaton.Backroom
         public Vector2 countOffset = new Vector2(20, 3);
 
         [Header("Special items")]
-        [Tooltip("The special items' own places, left and right of the card row (board «Спецпредметы»): an open, unbought " +
-                 "item lies there on every visit. He introduces each the first time it lies there.")]
-        public SpecialItemOfferView leftItem;
-        public SpecialItemOfferView rightItem;
+        [Tooltip("The special items' own places: two columns at the screen's edges, each listed top to bottom (board " +
+                 "«Спецпредметы»). The open, unbought items fill them in catalogue order — the left column top to bottom, then the " +
+                 "right one — wherever a place is free; a bought one leaves and the rest close up. He introduces each the first " +
+                 "time it lies there.")]
+        public SpecialItemOfferView[] leftColumn = new SpecialItemOfferView[0];
+        public SpecialItemOfferView[] rightColumn = new SpecialItemOfferView[0];
 
         [Header("Lines")]
         [TextArea] public string[] introduction =
@@ -323,15 +326,19 @@ namespace Hakaton.Backroom
 
         // ---------- special items ----------
 
+        /// <summary>Every place in fill order: the left column top to bottom, then the right one.</summary>
         SpecialItemOfferView[] ItemSlots
         {
             get
             {
-                if (leftItem && rightItem) return new[] { leftItem, rightItem };
-                if (leftItem) return new[] { leftItem };
-                return rightItem ? new[] { rightItem } : new SpecialItemOfferView[0];
+                if (itemSlots != null) return itemSlots;
+                var list = new List<SpecialItemOfferView>();
+                foreach (var slot in leftColumn) if (slot) list.Add(slot);
+                foreach (var slot in rightColumn) if (slot) list.Add(slot);
+                return itemSlots = list.ToArray();
             }
         }
+        SpecialItemOfferView[] itemSlots;
 
         bool AnyItemOnSale
         {
@@ -342,19 +349,19 @@ namespace Hakaton.Backroom
             }
         }
 
-        /// <summary>Lays the open, unbought special items in their places (one per side, in catalogue order).</summary>
+        /// <summary>Lays the open, unbought special items in their places, in catalogue order, each into the next free one.</summary>
         void DealItems()
         {
-            foreach (var slot in ItemSlots) slot.Hide();
+            var slots = ItemSlots;
+            foreach (var slot in slots) slot.Hide();
             if (!SpecialItems || !SpecialItems.catalog) return;
-            bool leftUsed = false, rightUsed = false;
+            int next = 0;
             foreach (var item in SpecialItems.catalog.items)
             {
                 if (!SpecialItems.OnSale(item)) continue;
-                var slot = item.leftOfCards ? (leftUsed ? null : leftItem) : (rightUsed ? null : rightItem);
-                if (!slot) continue;
-                if (slot == leftItem) leftUsed = true; else rightUsed = true;
-                slot.Deal(item, !SpecialItems.Inventory.WasSeen(item.id), .3f);
+                if (next >= slots.Length) { Debug.LogWarning($"No free place on the dealer's table for the special item '{item.id}'.", this); break; }
+                slots[next].Deal(item, !SpecialItems.Inventory.WasSeen(item.id), .3f + next * .05f);
+                next++;
             }
         }
 

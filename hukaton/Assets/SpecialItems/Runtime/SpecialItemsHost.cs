@@ -43,6 +43,14 @@ namespace Hakaton.SpecialItems
             return list;
         }
 
+        /// <summary>The bought items Q can take out on outings (catalogue order; the хаPAY account is not one of them).</summary>
+        public List<SpecialItemDefinition> OutingItems()
+        {
+            var list = OwnedItems();
+            list.RemoveAll(item => !item.OnOutings);
+            return list;
+        }
+
         /// <summary>The item is the player's (the caller has taken the money).</summary>
         public bool Grant(SpecialItemDefinition item)
         {

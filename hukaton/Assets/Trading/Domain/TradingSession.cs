@@ -620,6 +620,54 @@ namespace Hakaton.Trading
             return CompleteExpedition(expeditionId);
         }
 
+        /// <summary>Pieces of an item in storage (not on the display).</summary>
+        public int StoredCount(string id)
+        {
+            int n = 0;
+            foreach (var item in inventory) if (item.Definition.Id == id) n++;
+            return n;
+        }
+
+        /// <summary>Pieces of an item on the display.</summary>
+        public int DisplayedCount(string id)
+        {
+            int n = 0;
+            foreach (var item in slots) if (item != null && item.Definition.Id == id) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// A collector on хаPAY buys a whole set for <paramref name="price"/>: the pieces leave storage first, then the
+        /// display; the price goes into the wallet and the shop's revenue, each piece counts as a sale. Only while the shop
+        /// is shut and no outing is under way. False (nothing changes) when something is missing.
+        /// </summary>
+        public bool SellSet(IReadOnlyList<KeyValuePair<string, int>> wants, int price)
+        {
+            if (IsOpen || ExpeditionId != 0 || wants == null || wants.Count == 0 || price <= 0) return false;
+            int pieces = 0;
+            foreach (var want in wants)
+            {
+                if (want.Value <= 0 || FindDefinition(want.Key) == null) return false;
+                if (StoredCount(want.Key) + DisplayedCount(want.Key) < want.Value) return false;
+                pieces += want.Value;
+            }
+            long nextRevenue = checked(GrossRevenue + price);
+            int nextSales = checked(SalesCount + pieces);
+            foreach (var want in wants)
+            {
+                int left = want.Value;
+                for (int i = inventory.Count - 1; i >= 0 && left > 0; i--)
+                    if (inventory[i].Definition.Id == want.Key) { inventory.RemoveAt(i); left--; }
+                for (int i = 0; i < slots.Length && left > 0; i++)
+                    if (slots[i] != null && slots[i].Definition.Id == want.Key) { slots[i] = null; left--; }
+            }
+            wallet.Credit(price);
+            GrossRevenue = nextRevenue; SalesCount = nextSales;
+            LastMessage = $"хаPAY: набор продан за {price} {CoinsAccusative(price)}.";
+            Touch();
+            return true;
+        }
+
         public ItemDefinition FindDefinition(string id) => catalog.Find(definition => definition.Id == id);
 
         /// <summary>Debug/cheat helper: completes a revenue target without inventing a sale or crediting the wallet.</summary>
