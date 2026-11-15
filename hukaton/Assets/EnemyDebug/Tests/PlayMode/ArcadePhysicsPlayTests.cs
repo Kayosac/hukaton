@@ -128,6 +128,51 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(v.x, Is.GreaterThan(3), "and away from the blast");
         }
 
+        Breakable Thing(string prefab, string kind, Vector3 at)
+        {
+            var go = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefab), at, Quaternion.identity);
+            made.Add(go);
+            var breakable = go.GetComponent<Breakable>() ?? go.AddComponent<Breakable>();
+            breakable.kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kind}.asset");
+            Assert.That(breakable.kind, Is.Not.Null, kind);
+            return breakable;
+        }
+
+        bool Hit(string card, int level, Breakable thing)
+        {
+            var collider = thing.GetComponentsInChildren<Collider>().First(c => !c.isTrigger);
+            var flight = Vector3.forward * 15;
+            world.ApplyImpact(Copy(card, level), Config.Find(card), collider, collider.bounds.center, -flight.normalized, flight);
+            return thing.Broken;
+        }
+
+        [UnityTest]
+        public IEnumerator EachThingBreaksFromTheCardsItShould()
+        {
+            // A bottle and a pot go from any card, Fire included; so does a crate, however light the blow.
+            var bottle = Thing("Assets/Expedition/Prefabs/Movable crate.prefab", "Bottle", Spot + new Vector3(-4, .5f, 0));
+            var crate = Thing("Assets/Expedition/Prefabs/Movable crate.prefab", "Crate", Spot + new Vector3(-6, .5f, 0));
+            yield return Wait(1);
+            Assert.That(Hit("fire", 1, bottle), Is.True, "Fire I breaks a bottle");
+            Assert.That(Hit("fan", 1, crate), Is.True, "Fan I breaks a crate");
+            // A pumpkin: Strike, Lightning, Impulse and the barrel from I, Boomerang from II; the Fan only throws it.
+            const string pumpkin = "Assets/Game/Prefabs/Props/Pumpkin A.prefab";
+            var a = Thing(pumpkin, "Pumpkin", Spot + new Vector3(0, .1f, 0));
+            var b = Thing(pumpkin, "Pumpkin", Spot + new Vector3(2, .1f, 0));
+            var d = Thing(pumpkin, "Pumpkin", Spot + new Vector3(4, .1f, 0));
+            yield return Wait(.5f);
+            Assert.That(Hit("strike", 1, a), Is.True, "Strike I breaks a pumpkin");
+            Assert.That(Hit("fan", 1, b), Is.False, "Fan I does not");
+            Assert.That(Hit("boomerang", 1, d), Is.False, "Boomerang I does not");
+            yield return Wait(1.5f);
+            Assert.That(Hit("boomerang", 2, d), Is.True, "Boomerang II does");
+            // A fence goes from Impulse I.
+            var fence = Thing("Assets/ForestArt/Prefabs/Structures/FA_ST01_FenceSection.prefab", "Fences/Fence ST01", Spot + new Vector3(0, 0, 6));
+            yield return null;
+            world.ApplyImpact(Copy("impulse", 1), Config.Find("impulse"), null, fence.transform.position + new Vector3(0, .5f, -1), Vector3.up, Vector3.down * 10);
+            Assert.That(fence.Broken, Is.True, "Impulse I breaks a fence");
+        }
+
         /// <summary>A record to look at (Logs/world-plans/arcade-*.png): a pile of crates under each card, level I and III.</summary>
         [UnityTest]
         public IEnumerator PhotographCardsOnAPileOfCrates()

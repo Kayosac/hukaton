@@ -307,7 +307,7 @@ namespace Hakaton.Expeditions.Cards
                     if (!rb || rb == body || !seen.Add(rb) || Combat.Of(hit) != null || !PropPhysics.Ready(rb)) continue;
                     var blast = PowderBarrelRules.Push(centre, rb.worldCenterOfMass, numbers.radius, numbers.knockback, pushAtEdge, lift);
                     // Loose things go high and spinning; the rest (finds, cubes) as before.
-                    if (!PropPhysics.Shove(rb, blast, 2.2f, 16, .5f)) CardPhysics.Push(rb, blast);
+                    if (!PropPhysics.Shove(rb, blast, 2.2f, 16, .5f, new CardBlow("powder_barrel", 1))) CardPhysics.Push(rb, blast);
                     pushed++;
                 }
             }

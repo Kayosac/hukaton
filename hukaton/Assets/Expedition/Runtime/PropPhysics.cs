@@ -129,11 +129,11 @@ namespace Hakaton.Expeditions
         /// body of <see cref="ReferenceMass"/> (by <see cref="Heft"/>), <paramref name="fling"/> times as far, spinning.
         /// Breaks what the push would break. False for a creature or a body that cannot move: push those your own way.
         /// </summary>
-        public static bool Shove(Rigidbody body, Vector3 impulse, float fling, float spin, float lift = 0)
+        public static bool Shove(Rigidbody body, Vector3 impulse, float fling, float spin, float lift = 0, CardBlow card = default)
         {
             if (!IsLoose(body) || body.TryGetComponent<WorldLoot>(out _) || !Ready(body)) return false;
             float change = impulse.magnitude / ReferenceMass * Heft(body.mass);
-            if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, body.worldCenterOfMass, impulse)) return true;
+            if (body.TryGetComponent(out Breakable breakable) && breakable.Hit(change, body.worldCenterOfMass, impulse, card)) return true;
             Throw(body, body.worldCenterOfMass, impulse, change * fling, lift, spin, false);
             return true;
         }
@@ -145,7 +145,8 @@ namespace Hakaton.Expeditions
         /// </summary>
         /// <param name="fling">1: a plain blow (a landing, a beast). A card's throws things this many times farther, by
         /// <see cref="Heft"/> rather than by weight, and <paramref name="spin"/> sets them turning (rad/s).</param>
-        public static int Burst(Vector3 centre, float radius, float speed, float lift = .35f, Rigidbody except = null, float fling = 1, float spin = 0)
+        public static int Burst(Vector3 centre, float radius, float speed, float lift = .35f, Rigidbody except = null, float fling = 1, float spin = 0,
+            CardBlow card = default)
         {
             if (radius <= 0 || speed <= 0) return 0;
             int count = Physics.OverlapSphereNonAlloc(centre, radius, Hits, ~0, QueryTriggerInteraction.Ignore);
@@ -164,7 +165,7 @@ namespace Hakaton.Expeditions
                     if (!fixedOne || !SeenFixed.Add(fixedOne)) continue;
                     Vector3 at = hit.bounds.ClosestPoint(centre);
                     float away = Vector3.Distance(at, centre);
-                    if (fixedOne.Hit(speed * Mathf.Lerp(1, .33f, Mathf.Clamp01(away / radius)), at, away > .05f ? (at - centre) / away : Vector3.up)) moved++;
+                    if (fixedOne.Hit(speed * Mathf.Lerp(1, .33f, Mathf.Clamp01(away / radius)), at, away > .05f ? (at - centre) / away : Vector3.up, card)) moved++;
                     continue;
                 }
                 if (body == except || !Seen.Add(body) || !IsLoose(body)) continue;
@@ -178,7 +179,7 @@ namespace Hakaton.Expeditions
                 if (fling > 1)
                 {
                     float blow = speed * near * Heft(body.mass);
-                    if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, body.worldCenterOfMass, direction)) { moved++; continue; }
+                    if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, body.worldCenterOfMass, direction, card)) { moved++; continue; }
                     Throw(body, body.worldCenterOfMass, direction, blow * fling, 0, spin * near, false);
                     moved++;
                     continue;
@@ -204,10 +205,10 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>A blow on a fixed thing that breaks (a heavy card on a fence). True when it broke.</summary>
-        public static bool HitFixed(Collider collider, Vector3 point, Vector3 direction, float speed)
+        public static bool HitFixed(Collider collider, Vector3 point, Vector3 direction, float speed, CardBlow card = default)
         {
             var breakable = Fixed(collider);
-            return breakable && breakable.Hit(speed, point, direction);
+            return breakable && breakable.Hit(speed, point, direction, card);
         }
 
         /// <summary>
@@ -215,14 +216,15 @@ namespace Hakaton.Expeditions
         /// hit (<paramref name="fling"/> above 1) throws it that many times farther, tilted up by <paramref name="lift"/>
         /// and spinning (<paramref name="spin"/> rad/s).
         /// </summary>
-        public static bool Nudge(Rigidbody body, Vector3 point, Vector3 direction, float speed, float fling = 1, float lift = 0, float spin = 0)
+        public static bool Nudge(Rigidbody body, Vector3 point, Vector3 direction, float speed, float fling = 1, float lift = 0, float spin = 0,
+            CardBlow card = default)
         {
             if (speed <= 0 || !IsLoose(body)) return false;
             if (direction.sqrMagnitude < .0001f || !Ready(body)) return false;
             if (fling > 1)
             {
                 float blow = speed * Heft(body.mass);
-                if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, point, direction)) return true;
+                if (body.TryGetComponent(out Breakable struck) && struck.Hit(blow, point, direction, card)) return true;
                 Throw(body, point, direction, blow * fling, lift, spin, true);
                 return true;
             }

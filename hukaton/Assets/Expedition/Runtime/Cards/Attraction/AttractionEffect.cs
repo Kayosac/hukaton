@@ -56,7 +56,7 @@ namespace Hakaton.Expeditions.Cards
                 if (creature && creatureStagger > 0) creature.Stagger(creatureStagger, centre);
                 // Loose things are drawn in in a whirl, round and up, and pile at the centre.
                 var swirl = Vector3.Cross(Vector3.up, pull).normalized * .7f;
-                if (creature || !PropPhysics.Shove(body, (pull + swirl) * impulse, 2, 14, .35f)) CardPhysics.Push(body, pull * impulse);
+                if (creature || !PropPhysics.Shove(body, (pull + swirl) * impulse, 2, 14, .35f, c.Blow)) CardPhysics.Push(body, pull * impulse);
                 meaningful = true;
             }
             Feedback(c, meaningful);

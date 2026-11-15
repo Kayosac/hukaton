@@ -53,6 +53,7 @@ namespace Hakaton.Expeditions.Cards
         DraftStrip strip;
         Color tint = Color.white;
         float born, nextTick, boost = 1;
+        CardBlow blow;
         bool started, pushedPlayer;
 
         public DraftStrip Strip => strip;
@@ -72,6 +73,7 @@ namespace Hakaton.Expeditions.Cards
         {
             numbers = effect;
             boost = PropPhysics.LevelBoost(level);
+            blow = new CardBlow("draft", level);
             strip = windStrip;
             tint = colour;
             born = Time.time;
@@ -209,7 +211,7 @@ namespace Hakaton.Expeditions.Cards
                 if (Dry(body)) Dried++;
                 if (numbers.pushImpulse <= 0) continue;
                 // Loose things are carried off along the wind, tumbling.
-                if (!PropPhysics.Shove(body, push * boost, 3, 10, .35f)) CardPhysics.Push(body, push);
+                if (!PropPhysics.Shove(body, push * boost, 3, 10, .35f, blow)) CardPhysics.Push(body, push);
                 Pushed++;
             }
             var motor = world.motor;

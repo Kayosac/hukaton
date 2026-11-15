@@ -31,7 +31,7 @@ namespace Hakaton.Expeditions
                     c.Point, c.ThrowOrigin));
             // A heavy blow sends a shock wave: everything round the hit jumps and scatters; upgraded, it breaks what is near.
             float boost = PropPhysics.LevelBoost(c.Level);
-            PropPhysics.Burst(c.Point, 2.2f * Mathf.Sqrt(boost), 3.5f * boost, .9f, c.Body, 2.4f, 12);
+            PropPhysics.Burst(c.Point, 2.2f * Mathf.Sqrt(boost), 3.5f * boost, .9f, c.Body, 2.4f, 12, c.Blow);
             Feedback(c, meaningful);
         }
     }

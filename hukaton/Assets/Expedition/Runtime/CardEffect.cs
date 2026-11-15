@@ -33,6 +33,8 @@ namespace Hakaton.Expeditions
 
         /// <summary>The copy's level: 1, 2 or 3 (I / II / III).</summary>
         public int Level => Copy != null ? Copy.Level : 1;
+        /// <summary>This card's blow, for what breaks from which card (<see cref="BreakableKind.BreaksFrom"/>).</summary>
+        public CardBlow Blow => new CardBlow(Definition ? Definition.id : null, Level);
         /// <summary>A card parameter at this copy's level: <c>c.At(duration)</c>.</summary>
         public float At(LevelFloat value) => value.At(Level);
         /// <inheritdoc cref="At(LevelFloat)"/>

@@ -31,6 +31,13 @@ namespace Hakaton.Expeditions
             foreach (var hit in Physics.OverlapSphere(c.Point, radius, ~0, QueryTriggerInteraction.Ignore))
             {
                 var body = hit.attachedRigidbody;
+                // A fixed thing that breaks (a fence) takes the blast too.
+                if (!body)
+                {
+                    var at = hit.bounds.ClosestPoint(c.Point);
+                    if (PropPhysics.HitFixed(hit, at, at - c.Point, impulse / PropPhysics.ReferenceMass, c.Blow)) meaningful = true;
+                    continue;
+                }
                 if (!body || !seen.Add(body) || !PropPhysics.Ready(body)) continue;
                 var push = ExpeditionEffectRules.RadialImpulse(c.Point, body.worldCenterOfMass, impulse);
                 // Creatures are hurled whatever they weigh, high and off their feet; loose things fly spinning.
@@ -42,7 +49,7 @@ namespace Hakaton.Expeditions
                     meaningful = true;
                     continue;
                 }
-                if (!PropPhysics.Shove(body, push, 2.4f, 14, .5f)) CardPhysics.Push(body, push);
+                if (!PropPhysics.Shove(body, push, 2.4f, 14, .5f, c.Blow)) CardPhysics.Push(body, push);
             }
             Feedback(c, meaningful);
         }

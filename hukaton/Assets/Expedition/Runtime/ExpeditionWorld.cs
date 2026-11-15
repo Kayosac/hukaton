@@ -469,8 +469,8 @@ namespace Hakaton.Expeditions
                 // A fixed thing that breaks (a fence) takes the same blow.
                 float boost = PropPhysics.LevelBoost(context.Level);
                 if (effect.BodyNudge > 0 && target
-                    && !PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge * boost, effect.BodyFling, effect.BodyLift, effect.BodySpin * boost))
-                    PropPhysics.HitFixed(target, point, velocity, effect.BodyNudge * boost);
+                    && !PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge * boost, effect.BodyFling, effect.BodyLift, effect.BodySpin * boost, context.Blow))
+                    PropPhysics.HitFixed(target, point, velocity, effect.BodyNudge * boost, context.Blow);
             }
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
             Impacted?.Invoke(copy, target, point);

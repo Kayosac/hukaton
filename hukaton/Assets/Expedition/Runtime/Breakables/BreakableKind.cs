@@ -18,6 +18,31 @@ namespace Hakaton.Expeditions
         [Tooltip("Crashing into something (falling, thrown against a wall) this fast breaks it.")]
         [Min(.1f)] public float crashSpeed = 4.5f;
 
+        [Header("Cards")]
+        [Tooltip("Any card's blow breaks it, however light (a bottle, a pot, a crate): the card is what counts, not its strength.")]
+        public bool anyCard;
+        [Tooltip("These cards break it from this level on, however light the blow (a pumpkin: Strike from I, Boomerang from II).")]
+        public CardBreak[] cards = new CardBreak[0];
+
+        [System.Serializable]
+        public struct CardBreak
+        {
+            [Tooltip("Card id: strike, lightning, impulse, powder_barrel, boomerang…")]
+            public string card;
+            [Range(1, 3)] public int fromLevel;
+        }
+
+        /// <summary>Does this card's blow break it whatever its strength?</summary>
+        public bool BreaksFrom(in CardBlow blow)
+        {
+            if (!blow.FromCard) return false;
+            if (anyCard) return true;
+            if (cards != null)
+                foreach (var c in cards)
+                    if (c.card == blow.card && blow.level >= c.fromLevel) return true;
+            return false;
+        }
+
         [Header("Pieces")]
         public IceShard[] shards = new IceShard[0];
         public Vector2Int shardCount = new Vector2Int(4, 6);

@@ -16,10 +16,13 @@ namespace Hakaton.Expeditions
 
         public bool Broken { get; private set; }
 
-        /// <summary>Breaks it when <paramref name="speed"/> (a blow's change of speed, m/s) is enough. True when it broke.</summary>
-        public bool Hit(float speed, Vector3 point, Vector3 direction)
+        /// <summary>
+        /// Breaks it when <paramref name="speed"/> (a blow's change of speed, m/s) is enough, or whatever the speed when
+        /// the blow is a card's that breaks it (<see cref="BreakableKind.BreaksFrom"/>). True when it broke.
+        /// </summary>
+        public bool Hit(float speed, Vector3 point, Vector3 direction, CardBlow card = default)
         {
-            if (Broken || !kind || speed < kind.hitSpeed) return false;
+            if (Broken || !kind || speed < kind.hitSpeed && !kind.BreaksFrom(card)) return false;
             Break(point, direction, true);
             return true;
         }
@@ -95,6 +98,21 @@ namespace Hakaton.Expeditions
             for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
             return b;
         }
+    }
+
+    /// <summary>A blow that came from a card: which one and at what level (none for a landing, a beast, a crash).</summary>
+    public readonly struct CardBlow
+    {
+        public readonly string card;
+        public readonly int level;
+
+        public CardBlow(string card, int level)
+        {
+            this.card = card;
+            this.level = level;
+        }
+
+        public bool FromCard => !string.IsNullOrEmpty(card);
     }
 
     /// <summary>Pieces of broken things: few at a time, none where nobody sees them.</summary>

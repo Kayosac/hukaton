@@ -60,7 +60,7 @@ namespace Hakaton.Expeditions.Cards
         /// The crack jumps on to up to <paramref name="count"/> loose things within 6 m of the hit, nearest first: each
         /// sparks and leaps.
         /// </summary>
-        void Crackle(ExpeditionWorld world, Vector3 at, int count, float speed)
+        void Crackle(ExpeditionWorld world, Vector3 at, int count, float speed, CardBlow blow)
         {
             int n = Physics.OverlapSphereNonAlloc(at, 6, Near, ~(1 << 4), QueryTriggerInteraction.Ignore);
             Zapped.Clear();
@@ -79,7 +79,7 @@ namespace Hakaton.Expeditions.Cards
                 if (!body) continue;
                 var spot = body.worldCenterOfMass;
                 world.Spawn(sparkVfx ? sparkVfx : strikeVfx, spot, Quaternion.identity, tint, strikeScale * .45f);
-                PropPhysics.Nudge(body, spot, Vector3.up + Random.insideUnitSphere * .5f, speed, 2.5f, 1.5f, 18);
+                PropPhysics.Nudge(body, spot, Vector3.up + Random.insideUnitSphere * .5f, speed, 2.5f, 1.5f, 18, blow);
             }
             Zapped.Clear();
         }
@@ -93,8 +93,8 @@ namespace Hakaton.Expeditions.Cards
             world.Spawn(strikeVfx, hitFighter ? first.Position : c.Point, Quaternion.identity, tint, strikeScale);
             // The bolt's crack makes loose things jump; upgraded, it runs on from thing to thing round the hit.
             float boost = PropPhysics.LevelBoost(c.Level);
-            PropPhysics.Burst(c.Point, 2 * Mathf.Sqrt(boost), 3 * boost, 1.5f, null, 2.5f, 16);
-            if (c.Level >= 2) Crackle(world, c.Point, c.Level >= 3 ? 5 : 2, 3 * boost);
+            PropPhysics.Burst(c.Point, 2 * Mathf.Sqrt(boost), 3 * boost, 1.5f, null, 2.5f, 16, c.Blow);
+            if (c.Level >= 2) Crackle(world, c.Point, c.Level >= 3 ? 5 : 2, 3 * boost, c.Blow);
             if (hitFighter)
             {
                 Fighters.Clear();
