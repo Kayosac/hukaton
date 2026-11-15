@@ -214,6 +214,12 @@ namespace Hakaton.Game
             if (services.computer) services.computer.Shop = trade.Session;
             // «Выносливость» on the PC: the player's own upgrade, handed over the same way.
             if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
+            // «Закрой окно» on the PC: never during the shop tutorial or in the cave; its counters are saved.
+            if (Popups)
+            {
+                Popups.Allowed = () => !tutorial.Active && !InCave;
+                Popups.Changed += MarkDirty;
+            }
             // Special items: the phone and the player open after the god (once the goblin has had his word); the dealer sells them, the PC grows the battery.
             if (specialItems)
             {
@@ -300,7 +306,10 @@ namespace Hakaton.Game
             if (hapay) hapay.Market.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
             if (guides) guides.Progress.Changed -= MarkDirty;
+            if (Popups) Popups.Changed -= MarkDirty;
         }
+        /// <summary>The PC's popup mini-game (part of the backroom PC prefab).</summary>
+        Hakaton.Computer.PcPopupAttack Popups => services && services.computer ? services.computer.popups : null;
         // Quitting (and leaving Play mode in the editor) saves here, while everything is still alive; then the scene is torn
         // down in no particular order, so OnDisable must not save again: the special items and хаPAY would already be
         // destroyed and the save would be overwritten without them (they were lost on every quit).
@@ -312,6 +321,7 @@ namespace Hakaton.Game
         void LateUpdate()
         {
             if (!Ready) return;
+            if (Popups) Popups.CountPlayTime(Time.unscaledDeltaTime);
             // Once the endless world is open, the first shift opened with a full display starts with the bulk buyer.
             trade.Session.BulkBuyerPromised = EndlessWorldUnlocked;
             TrackShift();
@@ -773,7 +783,8 @@ namespace Hakaton.Game
             endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null,
-            hapay = hapay ? hapay.Market.Save() : null
+            hapay = hapay ? hapay.Market.Save() : null,
+            popups = Popups ? Popups.Save() : null
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
         static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
@@ -817,6 +828,7 @@ namespace Hakaton.Game
             if (specialItems) specialItems.Restore(save.specialItems);
             if (guides) guides.Progress.Restore(save.guides);
             if (hapay) hapay.Market.Restore(save.hapay);
+            if (Popups) Popups.Restore(save.popups);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

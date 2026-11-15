@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Hakaton.Decks.Unity;
 using Hakaton.Guide;
@@ -11,8 +12,8 @@ namespace Hakaton.Computer
     /// The PC's first-open guide, told by «Гоблинсофт»'s helper, one window at a time instead of one long lecture:
     /// the desktop at the first start-up (it ends with the player opening «Карты»), «Карты» at their first opening
     /// (counts, shades, a click in and out of the deck, a merge shown on two pretend cards, the hover card, sorting,
-    /// the status line), «Прокачка» at its first opening. Nothing can merge while the helper talks. Esc skips all of
-    /// it; the help window's «Показать экскурсию снова» brings it all back (the brazier's too).
+    /// the status line), «Прокачка» and «Склад» at their first opening. Nothing can merge while the helper talks. Esc
+    /// skips all of it; the help window's «Показать экскурсию снова» brings it all back (the brazier's too).
     /// </summary>
     public sealed class PcGuide : GuideRunner
     {
@@ -48,6 +49,47 @@ namespace Hakaton.Computer
                     text = "Вот и всё. Удачной охоты за коллекциями. И не открывай дверь." }
             }
         };
+        [Tooltip("At the first opening of «Склад». A new id: players who saw the rest of the PC guide get it too.")]
+        public GuideTour storageTour = new GuideTour
+        {
+            id = Prefix + "storage",
+            steps = new[]
+            {
+                Line(StorageWindowKey, "Это «Склад». Всё, что вы принесли с вылазок и ещё не продали, числится здесь. Я пересчитал. Дважды."),
+                Line("storage-totals", "Сверху итог: сколько штук на складе, сколько уже стоит на витрине и сколько всего видов."),
+                Line("storage-header", "Одна строка — один вид товара. Крупно — сколько на складе, рядом — на витрине. Цена рекомендуемая: от неё и торгуйтесь."),
+                Line("storage-list", "Выкладывать на витрину — в лавке, руками. Компьютер только считает: двигать товар он боится."),
+                Line("storage-empty", "Пока пусто. Сходите на вылазку: всё, что найдёте, само ляжет сюда, когда вернётесь в лавку."),
+                Line("storage-sort", "Эта кнопка меняет порядок по кругу: по количеству, имени, категории, редкости, цене."),
+                Line("storage-close", "Закрывается крестиком, как всё у нас. Пусть товар не залёживается!")
+            }
+        };
+
+        /// <summary>The «Склад» tour's first step: the window's name in its title bar (the whole window would stand
+        /// under the helper's balloon).</summary>
+        public const string StorageWindowKey = "storage-window";
+        /// <summary>The desktop tour's step about the «Склад» icon (inserted after «icons»).</summary>
+        public const string StorageIconKey = "storage-icon";
+        /// <summary>The keys of the «Склад» steps (and the desktop's icon step) and the part of the window each is about
+        /// (<see cref="PcStorageWindow.Spot"/>). Three are lit tighter, to stay clear of the helper's balloon in the
+        /// corner: «header» with the first row under it, «list» as its first rows, «empty» as the note's own lines.</summary>
+        public static readonly IReadOnlyDictionary<string, string> StorageSpots = new Dictionary<string, string>
+        {
+            { StorageIconKey, "icon" },
+            { "storage-totals", "totals" },
+            { "storage-header", "header" },
+            { "storage-list", "list" },
+            { "storage-empty", "empty" },
+            { "storage-pending", "pending" },
+            { "storage-sort", "sort" },
+            { "storage-status", "status" },
+            { "storage-close", "close" }
+        };
+
+        /// <summary>A key the guide lights for the «Склад» window (the whole window or one of its parts).</summary>
+        public static bool KnowsStorageKey(string key) => key == StorageWindowKey || (key != null && StorageSpots.ContainsKey(key));
+
+        static GuideStep Line(string key, string text) => new GuideStep { key = key, text = text, kind = GuideStepKind.Read, padding = 2 };
 
         [Header("Merge show")]
         [Tooltip("Gap between the two pretend cards, in PC pixels.")]
@@ -66,6 +108,8 @@ namespace Hakaton.Computer
         bool HapayHere => Hapay && Hapay.Available;
         int soldAtStep;
         bool sellStepRan;
+        PcStorageWindow Storage => computer.storage;
+        bool StorageHasRows => Storage && Storage.Lines.Count > 0;
         int DeckCount => computer.workshop ? computer.workshop.Model.Selected().Count : 0;
 
         protected override IGuideVoice Voice => helper;
@@ -78,6 +122,7 @@ namespace Hakaton.Computer
             Cards.window.Opened += OnCardsOpened;
             Upgrades.window.Opened += OnUpgradesOpened;
             if (Hapay) Hapay.window.Opened += OnHapayOpened;
+            if (Storage) Storage.window.Opened += OnStorageOpened;
             if (help) help.ReplayRequested += Replay;
             Finished += OnFinished;
         }
@@ -90,6 +135,7 @@ namespace Hakaton.Computer
             if (Cards) Cards.window.Opened -= OnCardsOpened;
             if (Upgrades) Upgrades.window.Opened -= OnUpgradesOpened;
             if (Hapay) Hapay.window.Opened -= OnHapayOpened;
+            if (Storage) Storage.window.Opened -= OnStorageOpened;
             if (help) help.ReplayRequested -= Replay;
         }
 
@@ -99,6 +145,7 @@ namespace Hakaton.Computer
             if (Try(desktopTour)) return;
             if (Cards.window.IsOpen && Try(cardsTour)) return;
             if (Upgrades.window.IsOpen && Try(upgradesTour)) return;
+            if (Storage && Storage.window.IsOpen && Try(storageTour)) return;
             if (HapayHere) Try(hapayTour);
         }
 
@@ -107,6 +154,22 @@ namespace Hakaton.Computer
 
         void OnCardsOpened() => Try(cardsTour);
         void OnUpgradesOpened() => Try(upgradesTour);
+
+        void OnStorageOpened()
+        {
+            // Counted first, whatever order the window and the guide heard «opened» in: the steps ask about the rows.
+            Storage.Refresh();
+            Try(storageTour);
+        }
+
+        /// <summary>A window's part waits for its window (the desktop's needs none).</summary>
+        bool WindowOpenFor(GuideTour tour)
+        {
+            if (tour == cardsTour) return Cards.window.IsOpen;
+            if (tour == upgradesTour) return Upgrades.window.IsOpen;
+            if (tour == storageTour) return Storage && Storage.window.IsOpen;
+            return true;
+        }
 
         void OnClosed()
         {
@@ -126,8 +189,7 @@ namespace Hakaton.Computer
         {
             var next = pending;
             pending = null;
-            if (next != null && computer.Running && (next == cardsTour ? Cards.window.IsOpen : next != upgradesTour || Upgrades.window.IsOpen))
-                Begin(next);
+            if (next != null && computer.Running && WindowOpenFor(next)) Begin(next);
             // The desktop's tour (or another) has ended: хаPAY's comes next if it is still to be shown.
             else if (next == null && computer.Running && HapayHere && id != hapayTour.id) Try(hapayTour);
         }
@@ -169,6 +231,7 @@ namespace Hakaton.Computer
             Progress.Finish(desktopTour.id);
             Progress.Finish(cardsTour.id);
             Progress.Finish(upgradesTour.id);
+            Progress.Finish(storageTour.id);
             pending = null;
         }
 
@@ -189,6 +252,11 @@ namespace Hakaton.Computer
             if (step.key == "toggle-back") return DeckCount != deckAtStart;
             if (step.key == "hapay-sell") return Hapay && Hapay.FirstSellable();
             if (step.key == "hapay-sell-demo") return !sellStepRan && Hapay && !Hapay.FirstSellable() && Hapay.lots.Length > 0 && Hapay.lots[0].Lot != null;
+            if (step.key == StorageIconKey) return Storage && Storage.Spot("icon");
+            // A full storeroom is shown by its rows, an empty one by its note (and with no shop at all, by neither).
+            if (step.key == "storage-header" || step.key == "storage-list") return StorageHasRows;
+            if (step.key == "storage-empty") return Storage && computer.Shop != null && !StorageHasRows;
+            if (step.key == "storage-pending") return Storage && Storage.Spot("pending");
             return true;
         }
 
@@ -196,6 +264,8 @@ namespace Hakaton.Computer
 
         protected override RectTransform Resolve(string id, string key)
         {
+            if (key == "storage-header" || key == "storage-list" || key == "storage-empty") return null; // areas below
+            if (key != null && StorageSpots.TryGetValue(key, out var part)) return Storage ? Storage.Spot(part) : null;
             var cardsProgram = ProgramOf(Cards.window);
             var firstRow = Upgrades.Rows.Count > 0 ? Upgrades.Rows[0] : null;
             switch (key)
@@ -234,8 +304,41 @@ namespace Hakaton.Computer
                 case "merge": return pretendSource ? Grow(pretendArea, 2) : (Rect?)null;
                 case "hapay-items":
                     return HapayLot ? Union(HapayLot.cells.Where(c => c && c.gameObject.activeInHierarchy).Select(c => (RectTransform)c.transform).ToArray()) : null;
+                case StorageWindowKey: return StorageTitle();
+                case "storage-header": return Storage ? Union(FirstRows(1).Prepend(Storage.Spot("header")).ToArray()) : null;
+                case "storage-list": return Union(FirstRows(ListRowsLit));
+                case "storage-empty": return Storage ? TextArea(Storage.empty) : null;
                 default: return null;
             }
+        }
+
+        /// <summary>How many of the first «Склад» rows stand for the whole list (the rest goes under the balloon).</summary>
+        const int ListRowsLit = 3;
+
+        RectTransform[] FirstRows(int count) => Storage
+            ? Storage.Rows.Where(r => r && r.gameObject.activeInHierarchy).Take(count).Select(r => (RectTransform)r.transform).ToArray()
+            : new RectTransform[0];
+
+        /// <summary>The lines a text really takes (its rect may stretch over the whole list).</summary>
+        Rect? TextArea(TMPro.TMP_Text text)
+        {
+            if (!text || !text.gameObject.activeInHierarchy || !spotlight) return null;
+            text.ForceMeshUpdate();
+            var bounds = text.textBounds;
+            var space = spotlight.rectTransform;
+            Vector2 a = space.InverseTransformPoint(text.transform.TransformPoint(bounds.min));
+            Vector2 b = space.InverseTransformPoint(text.transform.TransformPoint(bounds.max));
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+        }
+
+        /// <summary>The «Склад» window's icon and name in its title bar.</summary>
+        Rect? StorageTitle()
+        {
+            if (!Storage || !Storage.window.titleText) return null;
+            var window = Storage.window;
+            var icon = window.GetComponentsInChildren<Image>(true)
+                .FirstOrDefault(i => i.sprite && i.sprite == window.icon && i.transform.parent == window.transform);
+            return Union(window.titleText.rectTransform, icon ? icon.rectTransform : null);
         }
 
         protected override bool Done(string id, string key)

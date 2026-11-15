@@ -241,6 +241,23 @@ namespace Hakaton.Game.Tests
             Assert.That(older.drownLectureGiven, Is.False);
         }
 
+        /// <summary>«Закрой окно» keeps its counters, record and walked-out attack; older saves count nothing yet.</summary>
+        [Test]
+        public void PopupAttackStateRoundTripsAndOlderSavesStartFromNothing()
+        {
+            var domains = new Domains();
+            var captured = domains.Capture();
+            captured.popups = new Hakaton.Computer.PcPopupSave { opensSinceAttack = 3, secondsSinceAttack = 412.5f, record = 9, attackPending = true };
+            Save(captured);
+            Assert.That(GameSaveStore.Load(path, domains.Validate, out var loaded, out var warning), Is.True, warning);
+            Assert.That((loaded.popups.opensSinceAttack, loaded.popups.secondsSinceAttack, loaded.popups.record, loaded.popups.attackPending),
+                Is.EqualTo((3, 412.5f, 9, true)));
+
+            var older = JsonUtility.FromJson<GameSave>("{\"version\":1,\"coins\":0}");
+            var popups = older.popups ?? new Hakaton.Computer.PcPopupSave();
+            Assert.That((popups.opensSinceAttack, popups.secondsSinceAttack, popups.record, popups.attackPending), Is.EqualTo((0, 0f, 0, false)));
+        }
+
         /// <summary>The stranger's bad-luck guard counts closings across saves; older saves start it from zero.</summary>
         [Test]
         public void StrangerChancesRoundTripAndOlderSavesStartFromZero()
