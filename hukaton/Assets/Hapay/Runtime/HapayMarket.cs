@@ -87,6 +87,8 @@ namespace Hakaton.Hapay
         }
 
         public HapayPool Pool => pool;
+        /// <summary>The player's goods, if known: new lots lean to sets the player can already fill (<see cref="HapayPool.ownedBias"/>).</summary>
+        public IHapayStock Stock { get; set; }
         public IReadOnlyList<HapayLot> Lots => lots;
         /// <summary>The first lot (made from the player's goods) is still to come.</summary>
         public bool FirstLotDone { get; private set; }
@@ -245,13 +247,32 @@ namespace Hakaton.Hapay
             var free = new List<HapayCollection>();
             foreach (var c in pool.collections)
                 if (c != null && !string.IsNullOrEmpty(c.id) && c.wants.Count > 0 && !OnSite(c) && !recent.Contains(c.id)) free.Add(c);
-            if (free.Count > 0) return free[random.Next(free.Count)];
+            if (free.Count > 0) return Weighted(free);
             foreach (var id in recent)
             {
                 var c = pool.Find(id);
                 if (c != null && !OnSite(c)) return c;
             }
             return null;
+        }
+
+        HapayCollection Weighted(List<HapayCollection> free)
+        {
+            if (Stock == null || pool.ownedBias <= 0) return free[random.Next(free.Count)];
+            var weights = new double[free.Count];
+            double total = 0;
+            for (int i = 0; i < free.Count; i++) total += weights[i] = 1 + pool.ownedBias * Coverage(free[i]);
+            double roll = random.NextDouble() * total;
+            for (int i = 0; i < free.Count; i++) if ((roll -= weights[i]) < 0) return free[i];
+            return free[free.Count - 1];
+        }
+
+        /// <summary>Share of the set's pieces the player has now (0..1).</summary>
+        double Coverage(HapayCollection collection)
+        {
+            int pieces = 0, have = 0;
+            foreach (var want in Merge(collection.wants)) { pieces += want.count; have += Math.Min(want.count, Have(want, Stock)); }
+            return pieces > 0 ? (double)have / pieces : 0;
         }
 
         bool OnSite(HapayCollection collection)

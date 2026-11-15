@@ -59,6 +59,8 @@ namespace Hakaton.Hapay
         [Min(1)] public int lotsOnSite = 4;
         [Tooltip("A lot that has just left does not come back for this many lot changes.")]
         [Min(0)] public int noRepeat = 5;
+        [Tooltip("A new lot leans to sets the player already has: a fully stocked set comes this many times more often than one with nothing (0: plain random).")]
+        [Min(0)] public float ownedBias = 6;
 
         [Header("Time (minutes of play)")]
         [Min(.1f)] public float shortestMinutes = 8;

@@ -32,6 +32,7 @@ namespace Hakaton.Hapay
         public void Tick(float seconds)
         {
             if (!Open || Frozen || !pool) return;
+            Market.Stock = Stock;
             Market.Fill();
             Market.Tick(seconds);
         }
@@ -45,6 +46,7 @@ namespace Hakaton.Hapay
             if (!Open || lot == null || Stock == null || SellGoods == null || !Complete(lot)) return false;
             int price = PriceOf(lot);
             if (price <= 0 || !SellGoods(HapayMarket.Merge(lot.Wants), price)) return false;
+            Market.Stock = Stock;
             Market.MarkSold(lot, price);
             Sold?.Invoke(lot, price);
             return true;
