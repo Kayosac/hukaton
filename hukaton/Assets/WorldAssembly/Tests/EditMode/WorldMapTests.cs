@@ -402,7 +402,8 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.AreEqual(compact.InnerRadius * rules.RingScale * rules.RingZeroScale, rules.InnerRadius, 1e-3);
             Assert.AreEqual(compact.MiddleRadius * rules.RingScale - rules.ShiftIn, rules.MiddleRadius, 1e-3);
             Assert.AreEqual((compact.MiddleRadius - compact.InnerRadius) * rules.RingScale, rules.MiddleRadius - rules.InnerRadius, 1e-3, "ring 1 keeps its width");
-            Assert.AreEqual(rules.MiddleRadius, rules.SwampFrom, 1e-3, "the swamp still begins with ring 2");
+            Assert.AreEqual(500, rules.SwampFrom, 1, "the swamp begins about 500 m from the centre");
+            Assert.Greater(rules.SwampFrom, rules.InnerRadius + rules.ChunkSize, "no swamp in ring 0");
             Assert.Greater(rules.FlatRadius, rules.InnerRadius + rules.ChunkSize * .7, "every ring 0 chunk is still flat");
             // The middle of ring 2's middle band (176–240 m in the compact world); plain running with the base stamina
             // averages about 5 m/s (sprint 6.5 m/s for 5 s, walk 4 m/s while it refills): about four minutes.
@@ -478,6 +479,7 @@ namespace Hakaton.WorldAssembly.Tests
                     if (plan.Biome != Biome.Swamp) continue;
                     swamp[plan.Ring]++;
                     if (band >= 0) bandSwamp[band]++;
+                    Assert.GreaterOrEqual(metres, map.Rules.SwampFrom - map.Rules.ChunkSize * 1.5, $"seed {seed}: swamp too near the start {c}");
                     cells.Add(c);
                     Assert.IsFalse(WorldRules.IsStartArea(c), $"seed {seed}: swamp at the start {c}");
                     // No lone swamp chunk.
@@ -505,7 +507,7 @@ namespace Hakaton.WorldAssembly.Tests
                 }
             }
             Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
-            Assert.AreEqual(0, swamp[1], "no swamp in ring 1: it begins with ring 2");
+            Assert.Greater(swamp[1], 0, "the swamp begins in the outer part of ring 1");
             // Its share grows linearly with distance: about 20% of 112–176 m, 40% of 176–240 m, 60% further out.
             double near = bandSwamp[0] / (double)bandTotal[0], middle = bandSwamp[1] / (double)bandTotal[1], far = bandSwamp[2] / (double)bandTotal[2];
             Assert.That(near, Is.InRange(.12, .28), "about a fifth of 112–176 m is swamp");
