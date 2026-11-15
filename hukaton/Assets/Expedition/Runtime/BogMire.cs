@@ -54,6 +54,9 @@ namespace Hakaton.Expeditions
 
         WorldObstacle Water => water ? water : water = GetComponent<WorldObstacle>();
 
+        // Its water knows it is a bog without searching for it every physics step.
+        void Awake() { if (Water) Water.Bog = this; }
+
         /// <summary>Feet in the mire (under its surface, not on ice that holds).</summary>
         public bool Holds(Vector3 feet) => Water && Water.InWater(feet);
 

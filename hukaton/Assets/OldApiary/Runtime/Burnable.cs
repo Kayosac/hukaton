@@ -23,11 +23,21 @@ namespace Hakaton.OldApiary
 
         Renderer[] renderers;
         Rigidbody body;
+        bool bodyLooked;
         Bounds cached;
         bool hasCached;
 
         internal Renderer[] Renderers => renderers ??= GetComponentsInChildren<Renderer>(true);
-        internal Rigidbody Body => body ? body : body = GetComponent<Rigidbody>();
+        // Looked up once: most burnables (grass, bushes, trees) have no body, and asking again every time the zones are
+        // searched (rain, fire, water, several times a frame over thousands of them) was most of a frame.
+        internal Rigidbody Body
+        {
+            get
+            {
+                if (!bodyLooked) { body = GetComponent<Rigidbody>(); bodyLooked = true; }
+                return body;
+            }
+        }
 
         /// <summary>World box around the look (live while a loose prop is moving, cached otherwise).</summary>
         internal Bounds Look

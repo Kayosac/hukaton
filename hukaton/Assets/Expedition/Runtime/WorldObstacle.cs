@@ -345,10 +345,15 @@ namespace Hakaton.Expeditions
         static readonly List<ICombatant> Waders = new List<ICombatant>();
         static readonly List<ICardZone> Soakables = new List<ICardZone>();
 
+        /// <summary>Water farther than this from the player soaks nobody: what happens there is not seen.</summary>
+        const float SoakWithin = 60;
+
         void Update()
         {
             if (kind != ObstacleKind.Lake || !world || !world.Running || Time.time < nextSoak) return;
             nextSoak = Time.time + soakTick;
+            // The swamp has dozens of waters: only those round the player look for who stands in them.
+            if (world.motor && HasSurface && SurfaceBounds.SqrDistance(world.motor.transform.position) > SoakWithin * SoakWithin) return;
             SoakWaders();
         }
 
@@ -409,12 +414,19 @@ namespace Hakaton.Expeditions
         /// <summary>Lake: feet under this water's surface and not on ice that holds.</summary>
         public bool InWater(Vector3 feet) => SurfaceAt(feet, out float level) && feet.y < level - .02f && !(world && IcePatch.IsSolidAt(world, feet));
 
+        BogMire bog;
+        bool bogLooked;
+
+        /// <summary>The mire of this water when it is a bog (it tells its water when it comes).</summary>
+        internal BogMire Bog { get { if (!bogLooked) { bog = GetComponent<BogMire>(); bogLooked = true; } return bog; } set { bog = value; bogLooked = true; } }
+
         void OnTriggerStay(Collider other)
         {
             if (kind != ObstacleKind.Lake || !world || !world.Running) return;
             // A bog does not drown at once: it holds and swallows slowly (BogMire).
-            if (GetComponent<BogMire>()) return;
-            if (other.GetComponentInParent<PlayerVitals>() != world.vitals) return;
+            if (Bog) return;
+            // Only the player drowns here; everything else wading through is let be without a search up its hierarchy.
+            if (!world.vitals || !other.transform.IsChildOf(world.vitals.transform)) return;
             // Wading is free. The moment the feet touch water over a deep bed the player is lost — drown at once,
             // no waiting until the body has sunk. Standing on ice that holds is not in the water.
             Vector3 feet = world.motor.transform.position;

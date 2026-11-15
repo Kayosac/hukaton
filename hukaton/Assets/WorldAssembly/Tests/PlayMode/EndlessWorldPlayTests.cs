@@ -162,6 +162,212 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         /// <summary>
+        /// Frame time standing in the swamp and on a forest meadow, and what it goes on: each kind of thing switched off
+        /// in turn (creatures, the swamp's life, effects, loose bodies, the camera). A record: Logs/world-plans/swamp-frames.txt.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator MeasureTheSwamp()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            Vector3 Centre(ChunkPlan p) => streamer.root.position + new Vector3(p.Coord.X * size, p.BaseLevel * map.Rules.PlateauHeight, p.Coord.Y * size);
+            ChunkPlan Nearest(System.Func<ChunkPlan, bool> wanted)
+            {
+                for (int r = 0; r <= 40; r++)
+                    for (int x = -r; x <= r; x++)
+                        for (int y = -r; y <= r; y++)
+                            if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) == r && wanted(map.Chunk(x, y)) && wanted(map.Chunk(x + 1, y)) && wanted(map.Chunk(x - 1, y)) && wanted(map.Chunk(x, y + 1)) && wanted(map.Chunk(x, y - 1)))
+                                return map.Chunk(x, y);
+                return null;
+            }
+            var names = new[] { "PlayerLoop", "Physics.Simulate", "FixedUpdate.PhysicsFixedUpdate", "Update.ScriptRunBehaviourUpdate", "FixedUpdate.ScriptRunBehaviourFixedUpdate",
+                "PreLateUpdate.ScriptRunBehaviourLateUpdate", "PostLateUpdate.FinishFrameRendering", "PreLateUpdate.ParticleSystemBeginUpdateAll", "Batches Count", "SetPass Calls Count", "Triangles Count", "Shadow Casters Count" };
+            var handles = new List<global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle>();
+            global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetAvailable(handles);
+            var recorders = new Dictionary<string, global::Unity.Profiling.ProfilerRecorder>();
+            foreach (var h in handles)
+            {
+                var d = global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetDescription(h);
+                if (System.Array.IndexOf(names, d.Name) >= 0 && !recorders.ContainsKey(d.Name)) recorders[d.Name] = global::Unity.Profiling.ProfilerRecorder.StartNew(d.Category, d.Name);
+            }
+            var report = new System.Text.StringBuilder();
+            IEnumerator Phase(string label, int count)
+            {
+                for (int f = 0; f < 20; f++) yield return null;
+                var frames = new List<float>();
+                var sums = names.ToDictionary(n => n, n => 0.0);
+                for (int f = 0; f < count; f++)
+                {
+                    yield return null;
+                    frames.Add(Time.unscaledDeltaTime * 1000);
+                    foreach (var kv in recorders) if (kv.Value.Valid) sums[kv.Key] += kv.Value.LastValue;
+                }
+                frames.Sort();
+                report.Append($"{label,-28} frame median {frames[count / 2],5:0.0} ms, 95% {frames[(int)(count * .95f)],5:0.0} ms |");
+                foreach (var n in names)
+                {
+                    if (!recorders.TryGetValue(n, out var r) || !r.Valid) continue;
+                    double v = sums[n] / count;
+                    bool time = r.UnitType == global::Unity.Profiling.ProfilerMarkerDataUnit.TimeNanoseconds;
+                    report.Append(time ? $" {Short(n)} {v / 1e6:0.00}" : $" {Short(n)} {v:0}");
+                }
+                report.Append("\n");
+            }
+            string Short(string n) => n.Replace("Update.ScriptRunBehaviourUpdate", "Update").Replace("FixedUpdate.ScriptRunBehaviourFixedUpdate", "FixedUpd")
+                .Replace("PreLateUpdate.ScriptRunBehaviourLateUpdate", "LateUpd").Replace("PostLateUpdate.FinishFrameRendering", "Render").Replace("FixedUpdate.PhysicsFixedUpdate", "PhysFixed")
+                .Replace("PreLateUpdate.ParticleSystemBeginUpdateAll", "Particles").Replace(" Count", "");
+            string Census()
+            {
+                int creatures = world.creatures.Count(c => c && c.isActiveAndEnabled);
+                var kinds = world.creatures.Where(c => c && c.isActiveAndEnabled).GroupBy(c => c.name.Replace("(Clone)", "").Trim()).OrderByDescending(g => g.Count()).Take(8).Select(g => $"{g.Key} {g.Count()}");
+                int particles = Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Count(p => p.isPlaying);
+                int lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l => l.isActiveAndEnabled);
+                int dynamic = Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Count(b => !b.isKinematic);
+                int awake = Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Count(b => !b.isKinematic && !b.IsSleeping());
+                int behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).Count(b => b.isActiveAndEnabled);
+                var top = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).Where(b => b.isActiveAndEnabled).GroupBy(b => b.GetType().Name).OrderByDescending(g => g.Count()).Take(10).Select(g => $"{g.Key} {g.Count()}");
+                return $"  creatures {creatures} ({string.Join(", ", kinds)}), playing particle systems {particles}, lights {lights}, dynamic bodies {dynamic} (awake {awake}), loaded chunks {streamer.LoadedCount}\n  behaviours {behaviours}: {string.Join(", ", top)}\n";
+            }
+            foreach (var (place, wanted) in new (string, System.Func<ChunkPlan, bool>)[] { ("swamp", p => p.Biome == Biome.Swamp), ("forest", p => p.Biome == Biome.Forest && p.Shape.Id == "plain") })
+            {
+                var plan = Nearest(wanted);
+                if (plan == null) { report.Append($"{place}: none near\n"); continue; }
+                var at = Centre(plan);
+                world.motor.Teleport(at + Vector3.up * 2, Quaternion.Euler(0, 45, 0));
+                yield return WaitFor(() => streamer.IsLoaded(plan.Coord), 20);
+                yield return new WaitForSeconds(4);
+                // Kept standing where it is: no falling, no drowning.
+                world.motor.Teleport(at + Vector3.up * 2, Quaternion.Euler(0, 45, 0));
+                report.Append($"== {place} {plan.Coord} {plan.Shape.Id}/{plan.Variant.Id} zone {plan.Zone}\n").Append(Census());
+                yield return Phase("all", 240);
+                var creatures = world.creatures.Where(c => c && c.gameObject.activeSelf).ToList();
+                foreach (var c in creatures) c.gameObject.SetActive(false);
+                yield return Phase("- creatures", 240);
+                var life = Object.FindObjectsByType<SwampLife>(FindObjectsSortMode.None).Where(l => l.enabled).ToList();
+                foreach (var l in life) l.enabled = false;
+                yield return Phase("- swamp life", 240);
+                var effects = Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Where(p => p.gameObject.activeInHierarchy).ToList();
+                foreach (var e in effects) e.gameObject.SetActive(false);
+                yield return Phase("- particle effects", 240);
+                var bodies = Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None).Where(b => !b.isKinematic).ToList();
+                foreach (var b in bodies) b.isKinematic = true;
+                var floaters = Object.FindObjectsByType<Floater>(FindObjectsSortMode.None).ToList();
+                foreach (var f in floaters) f.enabled = false;
+                yield return Phase("- loose bodies", 240);
+                var cams = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Where(c => c.enabled).ToList();
+                foreach (var c in cams) c.enabled = false;
+                yield return Phase("- cameras (no drawing)", 240);
+                foreach (var c in cams) if (c) c.enabled = true;
+                foreach (var f in floaters) if (f) f.enabled = true;
+                foreach (var b in bodies) if (b) b.isKinematic = false;
+                foreach (var e in effects) if (e) e.gameObject.SetActive(true);
+                foreach (var l in life) if (l) l.enabled = true;
+                foreach (var c in creatures) if (c) c.gameObject.SetActive(true);
+            }
+            foreach (var r in recorders.Values) r.Dispose();
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans"));
+            File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "swamp-frames.txt"), report.ToString());
+            Debug.Log("[World] " + report);
+        }
+
+        /// <summary>
+        /// Walking through the swamp on foot (the ground under the feet, 5 m/s): the slow frames and what was big in them.
+        /// A record: Logs/world-plans/swamp-walk.txt.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator MeasureWalkingThroughTheSwamp()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            ChunkPlan plan = null;
+            for (int r = 0; r <= 40 && plan == null; r++)
+                for (int x = -r; x <= r && plan == null; x++)
+                    for (int y = -r; y <= r && plan == null; y++)
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) == r && Enumerable.Range(-3, 7).All(d => map.Chunk(x + d, y).Biome == Biome.Swamp))
+                            plan = map.Chunk(x, y);
+            Assert.That(plan, Is.Not.Null, "seven swamp chunks in a row");
+            Vector3 Centre(int dx) => streamer.root.position + new Vector3((plan.Coord.X + dx) * size, plan.BaseLevel * map.Rules.PlateauHeight, plan.Coord.Y * size);
+            var from = Centre(-3);
+            world.motor.Teleport(from + Vector3.up * 2, Quaternion.Euler(0, 90, 0));
+            yield return WaitFor(() => streamer.IsLoaded(plan.Coord), 20);
+            yield return new WaitForSeconds(4);
+            var handles = new List<global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle>();
+            global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetAvailable(handles);
+            var wanted = new[] { "PlayerLoop", "Update.ScriptRunBehaviourUpdate", "PreLateUpdate.ScriptRunBehaviourLateUpdate", "FixedUpdate.PhysicsFixedUpdate", "PostLateUpdate.FinishFrameRendering", "GC.Collect", "GC Allocated In Frame", "Gfx.WaitForGfxCommandsFromMainThread" };
+            var recorders = new Dictionary<string, global::Unity.Profiling.ProfilerRecorder>();
+            foreach (var h in handles)
+            {
+                var d = global::Unity.Profiling.LowLevel.Unsafe.ProfilerRecorderHandle.GetDescription(h);
+                if (System.Array.IndexOf(wanted, d.Name) >= 0 && !recorders.ContainsKey(d.Name)) recorders[d.Name] = global::Unity.Profiling.ProfilerRecorder.StartNew(d.Category, d.Name);
+            }
+            var frames = new List<(float ms, string what)>();
+            float walked = 0;
+            int loadsBefore = streamer.LoadTimes.Count;
+            UnityEditorInternal.ProfilerDriver.ClearAllFrames();
+            UnityEditorInternal.ProfilerDriver.profileEditor = false;
+            UnityEditorInternal.ProfilerDriver.enabled = true;
+            UnityEngine.Profiling.Profiler.enabled = true;
+            while (walked < size * 6)
+            {
+                walked += 5 * Mathf.Min(Time.unscaledDeltaTime, .05f);
+                var spot = from + new Vector3(walked, 0, 0);
+                float ground = spot.y;
+                if (Physics.Raycast(spot + Vector3.up * 30, Vector3.down, out var hit, 60, ~((1 << 2) | (1 << 4)), QueryTriggerInteraction.Ignore)) ground = hit.point.y;
+                int loads = streamer.LoadTimes.Count;
+                world.motor.Teleport(new Vector3(spot.x, ground + .05f, spot.z), Quaternion.Euler(0, 90, 0));
+                yield return null;
+                float ms = Time.unscaledDeltaTime * 1000;
+                string what = string.Join(", ", recorders.Where(kv => kv.Value.Valid).Select(kv => $"{kv.Key.Replace("Update.ScriptRunBehaviourUpdate", "Update").Replace("PreLateUpdate.ScriptRunBehaviourLateUpdate", "LateUpdate").Replace("FixedUpdate.PhysicsFixedUpdate", "Physics").Replace("PostLateUpdate.FinishFrameRendering", "Render").Replace("Gfx.WaitForGfxCommandsFromMainThread", "GfxWait")} {(kv.Value.UnitType == global::Unity.Profiling.ProfilerMarkerDataUnit.TimeNanoseconds ? (kv.Value.LastValue / 1e6).ToString("0.0") : (kv.Value.LastValue / 1024).ToString() + "KB")}"));
+                if (streamer.LoadTimes.Count != loads) what += $", chunk loaded";
+                frames.Add((ms, what));
+            }
+            foreach (var r in recorders.Values) r.Dispose();
+            UnityEditorInternal.ProfilerDriver.enabled = false;
+            // The profiler's own frames: the slowest of the last ones, what took the time and made the garbage in them.
+            var profiled = new System.Text.StringBuilder();
+            {
+                int first = UnityEditorInternal.ProfilerDriver.firstFrameIndex, last = UnityEditorInternal.ProfilerDriver.lastFrameIndex;
+                var totals = new List<(int frame, float ms)>();
+                for (int f = first; f <= last; f++)
+                    using (var view = UnityEditorInternal.ProfilerDriver.GetHierarchyFrameDataView(f, 0, UnityEditor.Profiling.HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName, UnityEditor.Profiling.HierarchyFrameDataView.columnTotalTime, false))
+                        if (view != null && view.valid) totals.Add((f, view.frameTimeMs));
+                var sums = new Dictionary<string, (double ms, double kb, int frames)>();
+                foreach (var (frame, ms) in totals.OrderByDescending(t => t.ms).Take(12))
+                    using (var view = UnityEditorInternal.ProfilerDriver.GetHierarchyFrameDataView(frame, 0, UnityEditor.Profiling.HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName, UnityEditor.Profiling.HierarchyFrameDataView.columnTotalTime, false))
+                    {
+                        profiled.Append($"frame {frame} {ms:0.0} ms:\n");
+                        var stack = new List<(int id, int depth, string path)> { (view.GetRootItemID(), 0, "") };
+                        var children = new List<int>();
+                        while (stack.Count > 0)
+                        {
+                            var (id, depth, path) = stack[stack.Count - 1];
+                            stack.RemoveAt(stack.Count - 1);
+                            children.Clear();
+                            view.GetItemChildren(id, children);
+                            foreach (int c in children)
+                            {
+                                string name = view.GetItemName(c);
+                                float t = view.GetItemColumnDataAsFloat(c, UnityEditor.Profiling.HierarchyFrameDataView.columnTotalTime);
+                                float gc = view.GetItemColumnDataAsFloat(c, UnityEditor.Profiling.HierarchyFrameDataView.columnGcMemory) / 1024f;
+                                if (t < 3 && gc < 512) continue;
+                                string here = path.Length == 0 ? name : path + " > " + name;
+                                if (depth >= 2) profiled.Append($"  {new string(' ', (depth - 2) * 2)}{name}: {t:0.0} ms, {gc:0} KB\n");
+                                if (depth < 9) stack.Add((c, depth + 1, here));
+                            }
+                        }
+                    }
+            }
+            var sorted = frames.Select(f => f.ms).OrderBy(x => x).ToList();
+            var report = new System.Text.StringBuilder($"walked {walked:0} m through {plan.Coord} and on, {frames.Count} frames, {streamer.LoadTimes.Count - loadsBefore} chunk loads\n");
+            report.Append($"frame median {sorted[sorted.Count / 2]:0.0} ms, 95% {sorted[(int)(sorted.Count * .95f)]:0.0}, 99% {sorted[(int)(sorted.Count * .99f)]:0.0}, worst {sorted[sorted.Count - 1]:0.0}; over 33 ms: {sorted.Count(x => x > 33)}, over 50 ms: {sorted.Count(x => x > 50)}\n");
+            foreach (var f in frames.Select((f, i) => (f, i)).OrderByDescending(x => x.f.ms).Take(25)) report.Append($"  #{f.i} {f.f.ms:0.0} ms: {f.f.what}\n");
+            report.Append("\nprofiled:\n").Append(profiled);
+            File.WriteAllText(Path.Combine(Directory.GetCurrentDirectory(), "Logs", "world-plans", "swamp-walk.txt"), report.ToString());
+        }
+
+        /// <summary>
         /// Every dormant prop round the start, woken and nudged a few at a time: none sinks under the ground, none shoots
         /// off (a body woken inside something it is set into), and all of them are still again a while later.
         /// </summary>
