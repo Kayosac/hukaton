@@ -23,10 +23,16 @@ namespace Hakaton.SpecialItems
                 case PhoneOutcome.Boost: return PhoneSymbol.Lightning;
                 case PhoneOutcome.Call: return PhoneSymbol.Goblin;
                 case PhoneOutcome.Curse: return PhoneSymbol.Skull;
+                case PhoneOutcome.Debuff: return PhoneSymbol.Skull;
+                case PhoneOutcome.Treasure: return PhoneSymbol.Coin;
                 case PhoneOutcome.Jackpot: return PhoneSymbol.Penus;
                 default: return null;
             }
         }
+
+        /// <summary>The outcome reels showing <paramref name="outcome"/> read as: debuffs look like the curse (skulls), treasure like coins.</summary>
+        public static PhoneOutcome Looks(PhoneOutcome outcome) => outcome == PhoneOutcome.Debuff ? PhoneOutcome.Curse
+            : outcome == PhoneOutcome.Treasure ? PhoneOutcome.Coins : outcome;
 
         /// <summary>One outcome by the (normalised) chances of the table. An empty table brings nothing.</summary>
         public static PhoneOutcome Roll(IReadOnlyList<PhoneOutcomeChance> table, Random random)

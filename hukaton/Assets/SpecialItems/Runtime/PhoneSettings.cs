@@ -23,7 +23,11 @@ namespace Hakaton.SpecialItems
         /// <summary>Three skulls: the hearts drop to one at once.</summary>
         Curse,
         /// <summary>Three PENUS: the jackpot.</summary>
-        Jackpot
+        Jackpot,
+        /// <summary>Three skulls too: a random debuff, any of them, with its own time.</summary>
+        Debuff,
+        /// <summary>Three coins too: a rare or legendary find straight into the bag.</summary>
+        Treasure
     }
 
     /// <summary>The reel symbols in the order of the drawn reel strip (top to bottom).</summary>
@@ -68,21 +72,25 @@ namespace Hakaton.SpecialItems
         [Header("Chances")]
         public PhoneOutcomeChance[] chances =
         {
-            new PhoneOutcomeChance(PhoneOutcome.Nothing, 45),
+            new PhoneOutcomeChance(PhoneOutcome.Nothing, 38),
             new PhoneOutcomeChance(PhoneOutcome.Pair, 25),
-            new PhoneOutcomeChance(PhoneOutcome.Coins, 8),
+            new PhoneOutcomeChance(PhoneOutcome.Coins, 9),
             new PhoneOutcomeChance(PhoneOutcome.Card, 7),
             new PhoneOutcomeChance(PhoneOutcome.Heal, 4),
             new PhoneOutcomeChance(PhoneOutcome.Boost, 4),
-            new PhoneOutcomeChance(PhoneOutcome.Call, 3),
-            new PhoneOutcomeChance(PhoneOutcome.Curse, 3.5f),
-            new PhoneOutcomeChance(PhoneOutcome.Jackpot, .5f)
+            new PhoneOutcomeChance(PhoneOutcome.Call, 2),
+            new PhoneOutcomeChance(PhoneOutcome.Curse, 1.5f),
+            new PhoneOutcomeChance(PhoneOutcome.Jackpot, 1),
+            new PhoneOutcomeChance(PhoneOutcome.Debuff, 5),
+            new PhoneOutcomeChance(PhoneOutcome.Treasure, 3.5f)
         };
 
         [Header("Prizes")]
-        [Min(0)] public int pairCoins = 10;
-        [Min(0)] public int coinsPrize = 60;
-        [Min(0)] public int jackpotCoins = 500;
+        [Min(0)] public int pairCoins = 20;
+        [Min(0)] public int coinsPrize = 120;
+        [Min(0)] public int jackpotCoins = 1200;
+        [Tooltip("Three cards: throws the granted card has.")]
+        [Min(1)] public int cardUses = 2;
         [Tooltip("Boost: seconds of endless stamina or of the fast run (one of the two, at random).")]
         [Min(1)] public float boostSeconds = 30;
         [Min(1)] public float fastRunMultiplier = 1.4f;

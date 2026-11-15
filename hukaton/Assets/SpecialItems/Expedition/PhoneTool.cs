@@ -386,6 +386,12 @@ namespace Hakaton.SpecialItems
                 case PhoneOutcome.Call:
                     if (shown) StartCall();
                     break;
+                case PhoneOutcome.Debuff:
+                    Debuff();
+                    break;
+                case PhoneOutcome.Treasure:
+                    Treasure(settings, shown);
+                    break;
             }
             if (!shown) state = State.Ready;
         }
@@ -434,9 +440,10 @@ namespace Hakaton.SpecialItems
             if (pool.Count == 0 || trip == null) return;
             var pick = pool[random.Next(pool.Count)];
             // One use, over the hand's limit; R discards it like any card, and it is gone with the outing.
-            if (trip.GrantToHand(pick.ToSpec(), 1, 1) == null) return;
+            int uses = Mathf.Max(1, Settings.cardUses);
+            if (trip.GrantToHand(pick.ToSpec(), 1, uses) == null) return;
             World.Play(cardSound);
-            World.Announce("Три карты: «" + pick.displayName + "» в руку — один бросок", 3);
+            World.Announce("Три карты: «" + pick.displayName + "» в руку — " + (uses == 1 ? "один бросок" : uses + (uses < 5 ? " броска" : " бросков")), 3);
         }
 
         void Boost(PhoneSettings settings)
@@ -479,6 +486,39 @@ namespace Hakaton.SpecialItems
             World.Announce("Три черепа: последнее сердце забрали", 3);
             if (World.feel) { World.feel.AddTrauma(.8f); World.feel.Kick(new Vector3(-150, 0, 120)); }
             World.ReturnToShop(true);
+        }
+
+        /// <summary>Three skulls, the milder kind: one random debuff of all there are, with its own time and strength.</summary>
+        void Debuff()
+        {
+            World.Play(curseSound);
+            var statuses = World.statuses;
+            if (!statuses) return;
+            var kinds = (Hakaton.Expeditions.PlayerStatusKind[])System.Enum.GetValues(typeof(Hakaton.Expeditions.PlayerStatusKind));
+            var pool = new List<Hakaton.Expeditions.PlayerStatusDefinition>();
+            foreach (var kind in kinds) { var definition = statuses.Definition(kind); if (definition) pool.Add(definition); }
+            if (pool.Count == 0) return;
+            var pick = pool[random.Next(pool.Count)];
+            if (statuses.Apply(pick)) World.Announce("Три черепа: «" + pick.displayName + "»", 3);
+            else World.Announce("Три черепа: пронесло", 2.5f);
+            if (World.feel) World.feel.AddTrauma(.35f);
+        }
+
+        /// <summary>Three coins, the rich kind: a rare or legendary find straight into the bag (coins if there is none).</summary>
+        void Treasure(PhoneSettings settings, bool shown)
+        {
+            var catalog = World.lootCatalog;
+            var pool = new List<Hakaton.Loot.LootItem>();
+            if (catalog)
+                foreach (var item in catalog.items)
+                    if (item && item.rarity >= Hakaton.Loot.LootRarity.Rare) pool.Add(item);
+            if (pool.Count == 0) { Money(settings.coinsPrize * 2, false, shown); return; }
+            var pick = pool[random.Next(pool.Count)];
+            World.Collect(pick);
+            World.Play(jackpotSound);
+            var eye = World.viewCamera.transform;
+            World.Spawn(winCoins, eye.position + eye.forward * 1.6f - eye.right * .55f - eye.up * .35f, Quaternion.identity, coinColour, .6f);
+            World.Announce("Три монеты: сокровище «" + pick.displayName + "» в сумку", 3.5f);
         }
 
         /// <summary>The incoming call rings until the goblin answers.</summary>

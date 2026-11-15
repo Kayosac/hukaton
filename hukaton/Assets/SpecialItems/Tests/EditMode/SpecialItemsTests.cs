@@ -15,7 +15,7 @@ namespace Hakaton.SpecialItems.Tests
             var random = new System.Random(5);
             foreach (PhoneOutcome outcome in System.Enum.GetValues(typeof(PhoneOutcome)))
                 for (int i = 0; i < 200; i++)
-                    Assert.That(SlotMachine.Read(SlotMachine.Show(outcome, random)), Is.EqualTo(outcome), outcome.ToString());
+                    Assert.That(SlotMachine.Read(SlotMachine.Show(outcome, random)), Is.EqualTo(SlotMachine.Looks(outcome)), outcome.ToString());
         }
 
         [Test]
@@ -46,7 +46,7 @@ namespace Hakaton.SpecialItems.Tests
         {
             var settings = ScriptableObject.CreateInstance<PhoneSettings>();
             Assert.That(settings.chances.Sum(c => c.percent), Is.EqualTo(100).Within(.001f));
-            Assert.That(SlotMachine.ExpectedCoins(settings), Is.EqualTo(9.8).Within(.01), "Board: ~9.8 coins back per 10-coin spin.");
+            Assert.That(SlotMachine.ExpectedCoins(settings), Is.EqualTo(27.8).Within(.01), "Raised payouts: ~27.8 coins back per 10-coin spin (debuffs are the risk).");
             Assert.That((settings.SpinsAt(0), settings.SpinsAt(1), settings.SpinsAt(2), settings.SpinsAt(3), settings.SpinsAt(9)), Is.EqualTo((10, 15, 20, 30, 30)));
             Assert.That((settings.BatteryPriceAt(0), settings.BatteryPriceAt(2), settings.BatteryPriceAt(3)), Is.EqualTo((1000, 4000, 0)));
             Object.DestroyImmediate(settings);
