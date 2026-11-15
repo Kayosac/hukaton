@@ -327,6 +327,7 @@ namespace Hakaton.Computer
             window.ShowAd(index >= 0 ? ads[index] : null, tricks, random.NextDouble() < .5);
             Hook(window);
             Prepare(window);
+            ConfirmationsOnTop();
             window.MoveTo(RandomSpot(window));
             if ((tricks & PcPopupTrick.Creep) != 0)
             {
@@ -367,8 +368,16 @@ namespace Hakaton.Computer
         {
             if (!Attacking || !window) return;
             window.Rect.SetAsLastSibling();
-            // A confirmation stays over its ad.
+            // A confirmation stays over its ad, and every «Вы уверены?» over all the ads.
             if (window.Confirmation) window.Confirmation.Rect.SetAsLastSibling();
+            ConfirmationsOnTop();
+        }
+
+        /// <summary>«Вы уверены?» windows are always in front: fresh ads and a clicked ad go under them.</summary>
+        void ConfirmationsOnTop()
+        {
+            foreach (var window in windows)
+                if (window && window.IsConfirmation) window.Rect.SetAsLastSibling();
         }
 
         void OnClose(PcPopup window)
