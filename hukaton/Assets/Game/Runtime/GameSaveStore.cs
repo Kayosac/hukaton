@@ -30,6 +30,9 @@ namespace Hakaton.Game
         public bool endlessVisited;
         /// <summary>The stranger at the end of a shift has come (once per save). False in older saves.</summary>
         public bool strangerVisited;
+        /// <summary>Shifts that ended by themselves after the first endless outing while the stranger had not come (his
+        /// bad-luck guard counts them). 0 in older saves.</summary>
+        public int strangerChances;
         /// <summary>Special items: bought ones, the dealer's introductions, the phone's battery steps. Null in old saves.</summary>
         public Hakaton.SpecialItems.SpecialItemsSave specialItems;
         /// <summary>The first-open guides of the brazier and the PC: shown ones, where a half-shown one stopped. Null in old saves.</summary>

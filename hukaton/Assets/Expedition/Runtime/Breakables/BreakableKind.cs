@@ -21,6 +21,9 @@ namespace Hakaton.Expeditions
         [Header("Pieces")]
         public IceShard[] shards = new IceShard[0];
         public Vector2Int shardCount = new Vector2Int(4, 6);
+        [Tooltip("Pieces are modelled at the thing's real size (rim, bottom, planks): spawned at their own size, each " +
+                 "piece of the set once before any repeats. Off: generic chips scaled by the broken thing's size.")]
+        public bool piecesAtOwnSize;
         [Tooltip("Scale of a piece against its prefab, from and to.")]
         public Vector2 shardScale = new Vector2(.7f, 1.2f);
         [Tooltip("Speed the pieces fly out with, m/s.")]
