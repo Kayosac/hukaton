@@ -42,6 +42,9 @@ namespace Hakaton.Game
         /// <summary>«Закрой окно» on the PC: openings and play time since the last attack, the record, an attack walked
         /// out of. Missing in old saves: nothing counted, so the first attack waits the whole cooldown.</summary>
         public Hakaton.Computer.PcPopupSave popups;
+        /// <summary>The frightened Гвоздик on the PC: which of his two scenes were shown, and at which outing the last.
+        /// Missing in old saves: none shown yet.</summary>
+        public Hakaton.Computer.PcNailFearSave nailFear;
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;

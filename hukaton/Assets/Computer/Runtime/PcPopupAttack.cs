@@ -23,6 +23,8 @@ namespace Hakaton.Computer
         public PcComputer computer;
         public PcDesktop desktop;
         public PcGuide guide;
+        [Tooltip("The frightened Гвоздик: no attack while he is out.")]
+        public PcNailFear fear;
         public PcHelper helper;
         public PcCardsWindow cards;
 
@@ -120,6 +122,8 @@ namespace Hakaton.Computer
         public event Action Changed;
 
         public bool Attacking { get; private set; }
+        /// <summary>An attack is rolled for this sitting and waits for its start.</summary>
+        public bool Armed => armed;
         /// <summary>The next start-up begins with the blue screen (an attack was walked out of).</summary>
         public bool CrashPending => state.attackPending && !Attacking;
         public PcPopupSave State => state;
@@ -192,6 +196,7 @@ namespace Hakaton.Computer
             if (!computer || !computer.Running || computer.Guided) return false;
             if (guide && (guide.Running || !guide.Seen(guide.desktopTour.id))) return false;
             if (cards && cards.Busy) return false;
+            if (fear && fear.Running) return false;
             return Allowed == null || Allowed();
         }
 

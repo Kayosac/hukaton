@@ -220,6 +220,20 @@ namespace Hakaton.Game
             return true;
         }
 
+        /// <summary>
+        /// The frightened Гвоздик: the next PC start-up shows the scene due next (the first, then the хаPAY one), whatever
+        /// the chance, the stranger, хаPAY and the outings between; it still waits while a guide talks or windows attack.
+        /// </summary>
+        public bool NailFearNext()
+        {
+            var fear = game.services && game.services.computer ? game.services.computer.nailFear : null;
+            if (!fear) { status = "На ПК нет испуганного Гвоздика."; return false; }
+            if (fear.State.shown >= 2) { status = "Испуганный Гвоздик уже показал обе сцены."; return false; }
+            fear.ForceNext = true;
+            status = "Испуганный Гвоздик (сцена " + (fear.State.shown + 1) + ") — при следующем включении ПК.";
+            return true;
+        }
+
         public bool AddThousandCoins()
         {
             bool granted = game.AddThousandCoins();
@@ -427,6 +441,7 @@ namespace Hakaton.Game
             if (GUILayout.Button("Следующий — скупщик", button)) NextVisitorIsBulkBuyer();
             if (GUILayout.Button("Незнакомец в конце смены", button)) StrangerAtShiftEnd();
             if (GUILayout.Button("Атака окон при следующем открытии ПК", button)) PopupAttackNext();
+            if (GUILayout.Button("Испуганный Гвоздик при следующем включении ПК", button)) NailFearNext();
             GUI.enabled = true;
             GUILayout.Label(StrangerProgress(), body);
             GUILayout.Space(8);

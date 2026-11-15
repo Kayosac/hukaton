@@ -45,6 +45,8 @@ namespace Hakaton.Computer
         [Tooltip("«Закрой окно»: the popup attack. A lost one shows its blue screen (now, or at the next start-up if the " +
                  "player walked out of it) and the PC restarts fully.")]
         public PcPopupAttack popups;
+        [Tooltip("The frightened Гвоздик (after the stranger, after хаPAY): a rare start-up scene.")]
+        public PcNailFear nailFear;
 
         [Header("Sound")]
         public SfxPlayer sfx;
@@ -97,6 +99,8 @@ namespace Hakaton.Computer
         public Hakaton.Hapay.HapayHost Hapay { get; set; }
         /// <summary>Another music (the хаPAY site's) plays instead: the PC's own fades out meanwhile.</summary>
         public bool MusicOverridden { get; set; }
+        /// <summary>Hush (the frightened Гвоздик): every music on the PC fades out meanwhile, the site's too.</summary>
+        public bool Hushed { get; set; }
 
         void Awake()
         {
@@ -387,7 +391,7 @@ namespace Hakaton.Computer
         void FadeMusic()
         {
             if (!music || !music.isPlaying) return;
-            float target = musicOn && !MusicOverridden ? musicVolume : 0;
+            float target = musicOn && !MusicOverridden && !Hushed ? musicVolume : 0;
             float seconds = musicOn ? musicFadeInSeconds : musicFadeOutSeconds;
             float step = seconds > 0 ? musicVolume / seconds * Time.unscaledDeltaTime : 1;
             music.volume = Mathf.MoveTowards(music.volume, target, step);

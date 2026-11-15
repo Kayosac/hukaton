@@ -40,6 +40,15 @@ namespace Hakaton.Computer
         public AudioClip popSound;
         [Range(0, 1)] public float volume = .5f;
 
+        [Header("Frightened")]
+        [Tooltip("Frames while frightened (PcNailFear): idle (the eyes dart now and then) and talking.")]
+        public Sprite[] scaredIdle = new Sprite[0], scaredTalk = new Sprite[0];
+        [Tooltip("He shivers: a whole-pixel jolt of the figure this often, up to this many pixels.")]
+        [Min(0)] public float shiverPixels = 1;
+        [Min(.01f)] public float shiverSeconds = .05f;
+        [Tooltip("His bleeps are this much quieter while frightened.")]
+        [Range(0, 1)] public float scaredVolume = .45f;
+
         float shown, wanted;
         SpringFloat pop;
         string lastLine;
@@ -47,6 +56,24 @@ namespace Hakaton.Computer
         float frameClock;
         int frame;
         float remarkUntil = -1, remarkHold;
+        bool scared;
+        float shiverClock;
+        Vector2 figureHome;
+        bool figureHomeKnown;
+
+        /// <summary>
+        /// Frightened: shaking, wide-eyed, quiet, no cheerful pop. Set before he speaks; once he has gone (hidden and
+        /// faded) he is himself again.
+        /// </summary>
+        public bool Scared
+        {
+            get => scared;
+            set
+            {
+                scared = value;
+                if (!value) StillFigure();
+            }
+        }
 
         /// <summary>A passing remark is up (it goes by itself).</summary>
         public bool Remarking => remarkUntil >= 0;
@@ -56,6 +83,19 @@ namespace Hakaton.Computer
             pop.Snap(0);
             Apply(0);
             Place(false);
+            if (figure)
+            {
+                figureHome = figure.rectTransform.anchoredPosition;
+                figureHomeKnown = true;
+            }
+        }
+
+        /// <summary>The hint under the balloon, for a speaker other than the guides (after <see cref="Say"/>).</summary>
+        public void SetHint(string text)
+        {
+            if (!hint) return;
+            hint.gameObject.SetActive(!string.IsNullOrEmpty(text));
+            hint.text = text ?? string.Empty;
         }
 
         public void Say(string line, bool waitsForPlayer)
@@ -84,16 +124,16 @@ namespace Hakaton.Computer
         {
             if (wanted <= 0)
             {
-                pop.Snap(.4f);
-                pop.Kick(9);
-                if (computer && popSound) computer.Play(popSound, volume);
+                pop.Snap(scared ? .8f : .4f);
+                pop.Kick(scared ? 3 : 9);
+                if (computer && popSound && !scared) computer.Play(popSound, volume);
             }
             wanted = 1;
             if (balloon) balloon.SetText(line);
             if (line != lastLine && computer && bleeps != null && bleeps.Length > 0)
             {
                 var clip = bleeps[Random.Range(0, bleeps.Length)];
-                if (clip) computer.Play(clip, volume);
+                if (clip) computer.Play(clip, scared ? volume * scaredVolume : volume);
             }
             lastLine = line;
         }
@@ -152,6 +192,9 @@ namespace Hakaton.Computer
             pop.Step(wanted, 14, .45f, dt);
             Apply(shown);
             if (!figure) return;
+            // Gone and faded: the fright is over.
+            if (scared && wanted <= 0 && shown <= 0) Scared = false;
+            Shiver(dt);
             frameClock += dt;
             if (frameClock >= frameSeconds)
             {
@@ -160,7 +203,14 @@ namespace Hakaton.Computer
             }
             bool talking = balloon && balloon.IsTyping;
             Sprite sprite = null;
-            if (talking && talk != null && talk.Length > 0) sprite = talk[frame % talk.Length];
+            if (scared && talking && scaredTalk != null && scaredTalk.Length > 0) sprite = scaredTalk[frame % scaredTalk.Length];
+            else if (scared && scaredIdle != null && scaredIdle.Length > 0)
+            {
+                // Mostly staring; the eyes dart aside now and then.
+                int cycle = frame % 14;
+                sprite = scaredIdle[cycle < 10 || scaredIdle.Length == 1 ? 0 : 1 + cycle % (scaredIdle.Length - 1)];
+            }
+            else if (talking && talk != null && talk.Length > 0) sprite = talk[frame % talk.Length];
             else if (pointing && point) sprite = point;
             else if (idle != null && idle.Length > 0)
             {
@@ -169,6 +219,21 @@ namespace Hakaton.Computer
                 sprite = idle[cycle < 22 || idle.Length == 1 ? 0 : 1 + cycle % (idle.Length - 1)];
             }
             if (sprite && figure.sprite != sprite) figure.sprite = sprite;
+        }
+
+        void Shiver(float dt)
+        {
+            if (!scared || !figureHomeKnown || shiverPixels <= 0) return;
+            shiverClock += dt;
+            if (shiverClock < shiverSeconds) return;
+            shiverClock = 0;
+            int reach = Mathf.Max(1, Mathf.RoundToInt(shiverPixels));
+            figure.rectTransform.anchoredPosition = figureHome + new Vector2(Random.Range(-reach, reach + 1), Random.Range(-reach, reach + 1) * .5f);
+        }
+
+        void StillFigure()
+        {
+            if (figure && figureHomeKnown) figure.rectTransform.anchoredPosition = figureHome;
         }
 
         void Apply(float alpha)

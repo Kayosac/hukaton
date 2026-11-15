@@ -220,6 +220,14 @@ namespace Hakaton.Game
                 Popups.Allowed = () => !tutorial.Active && !InCave;
                 Popups.Changed += MarkDirty;
             }
+            // The frightened Гвоздик: after the stranger, then after хаPAY; never in the tutorial or the cave; saved.
+            if (NailFear)
+            {
+                NailFear.Allowed = () => !tutorial.Active && !InCave;
+                NailFear.StrangerMet = () => strangerVisited;
+                NailFear.HapayOwned = () => specialItems && specialItems.Inventory.Owns(hapayAccountId);
+                NailFear.Changed += MarkDirty;
+            }
             // Special items: the phone and the player open after the god (once the goblin has had his word); the dealer sells them, the PC grows the battery.
             if (specialItems)
             {
@@ -307,9 +315,11 @@ namespace Hakaton.Game
             if (lecture) lecture.Finished -= OnLectureFinished;
             if (guides) guides.Progress.Changed -= MarkDirty;
             if (Popups) Popups.Changed -= MarkDirty;
+            if (NailFear) NailFear.Changed -= MarkDirty;
         }
         /// <summary>The PC's popup mini-game (part of the backroom PC prefab).</summary>
         Hakaton.Computer.PcPopupAttack Popups => services && services.computer ? services.computer.popups : null;
+        Hakaton.Computer.PcNailFear NailFear => services && services.computer ? services.computer.nailFear : null;
         // Quitting (and leaving Play mode in the editor) saves here, while everything is still alive; then the scene is torn
         // down in no particular order, so OnDisable must not save again: the special items and хаPAY would already be
         // destroyed and the save would be overwritten without them (they were lost on every quit).
@@ -784,7 +794,8 @@ namespace Hakaton.Game
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null,
             hapay = hapay ? hapay.Market.Save() : null,
-            popups = Popups ? Popups.Save() : null
+            popups = Popups ? Popups.Save() : null,
+            nailFear = NailFear ? NailFear.Save() : null
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
         static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
@@ -829,6 +840,7 @@ namespace Hakaton.Game
             if (guides) guides.Progress.Restore(save.guides);
             if (hapay) hapay.Market.Restore(save.hapay);
             if (Popups) Popups.Restore(save.popups);
+            if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

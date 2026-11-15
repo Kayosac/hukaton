@@ -203,7 +203,7 @@ namespace Hakaton.Computer
         // ---------- music ----------
 
         /// <summary>The site plays while its window is open and the PC is running; the PC's music steps aside meanwhile.</summary>
-        public bool MusicWanted => window && window.IsOpen && computer && computer.Running && Available;
+        public bool MusicWanted => window && window.IsOpen && computer && computer.Running && !computer.Hushed && Available;
 
         void FadeMusic()
         {
