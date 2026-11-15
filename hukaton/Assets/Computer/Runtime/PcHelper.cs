@@ -31,6 +31,8 @@ namespace Hakaton.Computer
         [TextArea] public string hintDoing = "Esc — пропустить";
         [Tooltip("Anchored positions of the root in the right and the left corner (anchored to the bottom corners).")]
         public Vector2 rightPlace = new Vector2(-6, 32), leftPlace = new Vector2(6, 32);
+        [Tooltip("A passing remark (Remark, not a guide step) stays this long after its typing ends, then goes.")]
+        [Min(.5f)] public float remarkSeconds = 3.5f;
 
         [Header("Sound")]
         public PcComputer computer;
@@ -44,6 +46,10 @@ namespace Hakaton.Computer
         bool left, pointing;
         float frameClock;
         int frame;
+        float remarkUntil = -1, remarkHold;
+
+        /// <summary>A passing remark is up (it goes by itself).</summary>
+        public bool Remarking => remarkUntil >= 0;
 
         void Awake()
         {
@@ -54,6 +60,28 @@ namespace Hakaton.Computer
 
         public void Say(string line, bool waitsForPlayer)
         {
+            remarkUntil = -1;
+            if (hint) hint.gameObject.SetActive(true);
+            Speak(line);
+            if (hint) hint.text = waitsForPlayer ? hintWaiting : hintDoing;
+        }
+
+        /// <summary>
+        /// A passing remark outside the guides («Закрой окно»): no «E — дальше» hint, nothing waits for the player;
+        /// it goes by itself <paramref name="seconds"/> after its typing ends (default <see cref="remarkSeconds"/>).
+        /// </summary>
+        public void Remark(string line, float seconds = -1)
+        {
+            if (string.IsNullOrEmpty(line)) return;
+            pointing = false;
+            Speak(line);
+            if (hint) hint.gameObject.SetActive(false);
+            remarkHold = seconds > 0 ? seconds : remarkSeconds;
+            remarkUntil = Time.unscaledTime + remarkHold;
+        }
+
+        void Speak(string line)
+        {
             if (wanted <= 0)
             {
                 pop.Snap(.4f);
@@ -62,7 +90,6 @@ namespace Hakaton.Computer
             }
             wanted = 1;
             if (balloon) balloon.SetText(line);
-            if (hint) hint.text = waitsForPlayer ? hintWaiting : hintDoing;
             if (line != lastLine && computer && bleeps != null && bleeps.Length > 0)
             {
                 var clip = bleeps[Random.Range(0, bleeps.Length)];
@@ -73,6 +100,7 @@ namespace Hakaton.Computer
 
         public void Hide()
         {
+            remarkUntil = -1;
             wanted = 0;
             if (balloon) balloon.ForgetLine();
             lastLine = null;
@@ -115,6 +143,11 @@ namespace Hakaton.Computer
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
+            if (remarkUntil >= 0)
+            {
+                if (balloon && balloon.IsTyping) remarkUntil = Time.unscaledTime + remarkHold;
+                else if (Time.unscaledTime >= remarkUntil) Hide();
+            }
             shown = Mathf.MoveTowards(shown, wanted, dt * 6);
             pop.Step(wanted, 14, .45f, dt);
             Apply(shown);

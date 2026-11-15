@@ -17,7 +17,7 @@ namespace Hakaton.Computer
     public sealed class PcComputer : MonoBehaviour
     {
         public enum UiSound { Click, Open, Close, Error }
-        enum Phase { Off, Closing, Booting, Running, ShuttingDown, Opening }
+        enum Phase { Off, Closing, Booting, Running, ShuttingDown, Opening, Crashed }
 
         [Header("Game")]
         [Tooltip("The shared collection; its control gate is claimed while the PC is open.")]
@@ -36,6 +36,13 @@ namespace Hakaton.Computer
         public PcDesktop desktop;
         public PcCardsWindow cards;
         public PcUpgradesWindow upgrades;
+        [Tooltip("«Склад»: what the shop holds (optional).")]
+        public PcStorageWindow storage;
+
+        [Header("Mini-game")]
+        [Tooltip("«Закрой окно»: the popup attack. A lost one shows its blue screen (now, or at the next start-up if the " +
+                 "player walked out of it) and the PC restarts fully.")]
+        public PcPopupAttack popups;
 
         [Header("Sound")]
         public SfxPlayer sfx;
@@ -57,11 +64,13 @@ namespace Hakaton.Computer
         float blinkTime, blinkFrom;
         PlayerControlGate Gate => workshop ? workshop.control : null;
         float fadeVoice = -1, fadeFrom;
-        bool fullBoot, musicOn, musicPaused;
+        bool fullBoot, musicOn, musicPaused, forceFullBoot;
 
         public bool IsOpen => phase != Phase.Off;
         /// <summary>The desktop is up and takes input.</summary>
         public bool Running => phase == Phase.Running;
+        /// <summary>The blue screen is up (<see cref="Crash"/>); <see cref="Reboot"/> ends it.</summary>
+        public bool Crashed => phase == Phase.Crashed;
         public event Action Closed;
         /// <summary>The desktop has come up and takes input (after every start-up or wake).</summary>
         public event Action Ready;
@@ -224,15 +233,62 @@ namespace Hakaton.Computer
         {
             SetDisplay(1);
             screen.SetPictureVisible(true);
-            bool full = !everBooted || bootJourneys != workshop.Model.Journeys;
-            fullBoot = full;
+            bool full = forceFullBoot || !everBooted || bootJourneys != workshop.Model.Journeys;
             everBooted = true;
             bootJourneys = workshop.Model.Journeys;
-            if (full) desktop.CloseAll();
+            // A popup attack was walked out of: its blue screen first, then the full start-up.
+            if (popups && popups.CrashPending)
+            {
+                desktop.CloseAll();
+                desktop.SetCoins(workshop.Model.Coins);
+                EnterCrash();
+                return;
+            }
+            StartBoot(full);
+        }
+
+        void StartBoot(bool full)
+        {
+            fullBoot = full;
+            if (full)
+            {
+                desktop.CloseAll();
+                forceFullBoot = false;
+            }
             desktop.SetCoins(workshop.Model.Coins);
             bootVoice = sfx ? sfx.Play(full ? bootCue : wakeCue) : null;
             boot.PowerOn(full);
             phase = Phase.Booting;
+        }
+
+        /// <summary>
+        /// The blue screen of a lost popup attack: input and music off (the pointer stays drawn), the attack's crash
+        /// screen is shown; it calls <see cref="Reboot"/> when its time is up. Only while the desktop is up.
+        /// </summary>
+        public void Crash()
+        {
+            if (phase == Phase.Running) EnterCrash();
+        }
+
+        void EnterCrash()
+        {
+            SetInput(false);
+            if (cursor) cursor.enabled = true;
+            StopBootVoice();
+            MusicOff(true);
+            // Even if the player is pulled away mid-crash, the next start-up is a full one.
+            forceFullBoot = true;
+            boot.Crash();
+            phase = Phase.Crashed;
+            if (popups) popups.ShowCrash();
+        }
+
+        /// <summary>From the blue screen: a full start-up, as after an outing.</summary>
+        public void Reboot()
+        {
+            if (phase != Phase.Crashed) return;
+            if (cursor) cursor.enabled = false;
+            StartBoot(true);
         }
 
         void BecomeReady()

@@ -45,6 +45,8 @@ namespace Hakaton.Computer
         /// <summary>No merging (a guide is talking): a drag is put straight back.</summary>
         public bool MergeLocked { get; set; }
         public PcSortMode Sort => sort;
+        /// <summary>A card is being dragged, or a merge is being committed or shown («Закрой окно» waits).</summary>
+        public bool Busy => dragged || merging || ShowPlaying;
 
         void Awake()
         {
