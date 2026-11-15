@@ -91,6 +91,28 @@ namespace Hakaton.Computer
             RefreshTaskbar();
         }
 
+        /// <summary>
+        /// A program that is not the player's yet (хаPAY before the account) has no icon, no menu entry, no window; they
+        /// appear when it becomes available (its icon has its own place on the desktop).
+        /// </summary>
+        public void SetAvailable(PcWindow window, bool available)
+        {
+            var program = Array.Find(programs, p => p.window == window);
+            if (program == null) return;
+            if (!available && window.IsOpen) Close(window);
+            bool changed = false;
+            if (program.icon && program.icon.gameObject.activeSelf != available) { program.icon.gameObject.SetActive(available); changed = true; }
+            if (program.menuEntry && program.menuEntry.gameObject.activeSelf != available) { program.menuEntry.gameObject.SetActive(available); changed = true; }
+            if (changed) RefreshTaskbar();
+        }
+
+        /// <summary>Is the program on the desktop (its icon shown)?</summary>
+        public bool IsAvailable(PcWindow window)
+        {
+            var program = Array.Find(programs, p => p.window == window);
+            return program != null && (!program.icon || program.icon.gameObject.activeSelf);
+        }
+
         /// <summary>Closes every window (a full start-up begins on an empty desktop).</summary>
         public void CloseAll()
         {

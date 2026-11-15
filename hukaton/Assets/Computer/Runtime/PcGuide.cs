@@ -26,6 +26,28 @@ namespace Hakaton.Computer
         public GuideTour desktopTour = new GuideTour { id = Prefix + "desktop" };
         public GuideTour cardsTour = new GuideTour { id = Prefix + "cards" };
         public GuideTour upgradesTour = new GuideTour { id = Prefix + "upgrades" };
+        [Tooltip("хаPAY, at the first start-up after the account is bought (its own tour: the other PC tours being skipped does not skip it).")]
+        public GuideTour hapayTour = new GuideTour
+        {
+            id = Prefix + "hapay",
+            steps = new[]
+            {
+                new GuideStep { key = "hapay-icon", kind = GuideStepKind.Do,
+                    text = "Ого! У тебя теперь аккаунт на хаPAY. Это аукцион коллекционеров. Открой его." },
+                new GuideStep { key = "hapay-lots", kind = GuideStepKind.Read,
+                    text = "Это лоты. Каждый коллекционер хочет набор целиком и платит за него больше, чем вышло бы на прилавке." },
+                new GuideStep { key = "hapay-items", kind = GuideStepKind.Read,
+                    text = "Под каждым предметом — сколько есть и сколько нужно. Оранжевая метка: этот заберут с витрины." },
+                new GuideStep { key = "hapay-timer", kind = GuideStepKind.Read,
+                    text = "Время лота идёт, пока ты играешь: и в лавке, и на вылазке. Не успел — коллекционер уйдёт, придёт другой." },
+                new GuideStep { key = "hapay-sell", kind = GuideStepKind.Do,
+                    text = "А этот набор у тебя уже есть. Жми «Продать»!" },
+                new GuideStep { key = "hapay-sell-demo", kind = GuideStepKind.Watch,
+                    text = "Собрал набор — жмёшь «Продать», и деньги сразу в кассе. Товар коллекционер заберёт сам." },
+                new GuideStep { key = "hapay-end", kind = GuideStepKind.Read,
+                    text = "Вот и всё. Удачной охоты за коллекциями. И не открывай дверь." }
+            }
+        };
 
         [Header("Merge show")]
         [Tooltip("Gap between the two pretend cards, in PC pixels.")]
@@ -40,6 +62,10 @@ namespace Hakaton.Computer
         PcDesktop Desktop => computer.desktop;
         PcCardsWindow Cards => computer.cards;
         PcUpgradesWindow Upgrades => computer.upgrades;
+        PcHapayWindow Hapay => computer.hapay;
+        bool HapayHere => Hapay && Hapay.Available;
+        int soldAtStep;
+        bool sellStepRan;
         int DeckCount => computer.workshop ? computer.workshop.Model.Selected().Count : 0;
 
         protected override IGuideVoice Voice => helper;
@@ -51,6 +77,7 @@ namespace Hakaton.Computer
             computer.Closed += OnClosed;
             Cards.window.Opened += OnCardsOpened;
             Upgrades.window.Opened += OnUpgradesOpened;
+            if (Hapay) Hapay.window.Opened += OnHapayOpened;
             if (help) help.ReplayRequested += Replay;
             Finished += OnFinished;
         }
@@ -62,6 +89,7 @@ namespace Hakaton.Computer
             computer.Closed -= OnClosed;
             if (Cards) Cards.window.Opened -= OnCardsOpened;
             if (Upgrades) Upgrades.window.Opened -= OnUpgradesOpened;
+            if (Hapay) Hapay.window.Opened -= OnHapayOpened;
             if (help) help.ReplayRequested -= Replay;
         }
 
@@ -70,8 +98,12 @@ namespace Hakaton.Computer
             // Windows left open from a short wake: carry on with the one that has a tour left.
             if (Try(desktopTour)) return;
             if (Cards.window.IsOpen && Try(cardsTour)) return;
-            if (Upgrades.window.IsOpen) Try(upgradesTour);
+            if (Upgrades.window.IsOpen && Try(upgradesTour)) return;
+            if (HapayHere) Try(hapayTour);
         }
+
+        // Opened by the player before the tour got to it (the tour still starts: its first step is then already done).
+        void OnHapayOpened() { if (HapayHere) Try(hapayTour); }
 
         void OnCardsOpened() => Try(cardsTour);
         void OnUpgradesOpened() => Try(upgradesTour);
@@ -96,6 +128,8 @@ namespace Hakaton.Computer
             pending = null;
             if (next != null && computer.Running && (next == cardsTour ? Cards.window.IsOpen : next != upgradesTour || Upgrades.window.IsOpen))
                 Begin(next);
+            // The desktop's tour (or another) has ended: хаPAY's comes next if it is still to be shown.
+            else if (next == null && computer.Running && HapayHere && id != hapayTour.id) Try(hapayTour);
         }
 
         /// <summary>«Показать экскурсию снова»: every guide is forgotten, the desktop's starts over now.</summary>
@@ -110,6 +144,9 @@ namespace Hakaton.Computer
 
         protected override void OnBegin(string id)
         {
+            // хаPAY's clocks stand while the helper explains the site.
+            if (id == hapayTour.id && computer.Hapay) computer.Hapay.Frozen = true;
+            sellStepRan = false;
             computer.Guided = true;
             Cards.MergeLocked = true;
             deckAtStart = DeckCount;
@@ -119,12 +156,15 @@ namespace Hakaton.Computer
         {
             ClearPretend();
             if (!computer) return;
+            if (computer.Hapay) computer.Hapay.Frozen = false;
             computer.Guided = false;
             Cards.MergeLocked = false;
         }
 
         protected override void OnSkip(string id)
         {
+            // хаPAY's tour is skipped on its own; skipping the others does not skip it.
+            if (id == hapayTour.id) { Progress.Finish(hapayTour.id); pending = null; return; }
             // Esc: the whole PC guide counts as seen, not only this window's part.
             Progress.Finish(desktopTour.id);
             Progress.Finish(cardsTour.id);
@@ -139,12 +179,16 @@ namespace Hakaton.Computer
             if (step.key != "hover" && Cards.tooltip) Cards.tooltip.Hide();
             if (step.key == "toggle") deckAtStart = DeckCount;
             if (step.key == "merge") MakePretend();
+            if (step.key == "hapay-sell" && computer.Hapay) { soldAtStep = computer.Hapay.Market.Sold; sellStepRan = true; }
+            if (step.key.StartsWith("hapay-") && step.key != "hapay-icon" && Hapay && !Hapay.window.IsOpen) Desktop.Open(Hapay.window);
         }
 
         protected override bool Applies(string id, GuideStep step)
         {
             if (step.key == "bar" || step.key == "price" || step.key == "buy") return Upgrades.Rows.Count > 0;
             if (step.key == "toggle-back") return DeckCount != deckAtStart;
+            if (step.key == "hapay-sell") return Hapay && Hapay.FirstSellable();
+            if (step.key == "hapay-sell-demo") return !sellStepRan && Hapay && !Hapay.FirstSellable() && Hapay.lots.Length > 0 && Hapay.lots[0].Lot != null;
             return true;
         }
 
@@ -172,6 +216,12 @@ namespace Hakaton.Computer
                 case "price": return firstRow && firstRow.priceGroup ? (RectTransform)firstRow.priceGroup.transform : null;
                 // The «+» itself, not the whole row (the row is the button).
                 case "buy": return firstRow ? firstRow.GetComponentsInChildren<RectTransform>(true).FirstOrDefault(t => t.name == "Buy") : null;
+                case "hapay-icon": { var p = Hapay ? ProgramOf(Hapay.window) : null; return p?.icon ? (RectTransform)p.icon.transform : null; }
+                case "hapay-lots": return Hapay && Hapay.lots.Length > 0 && Hapay.lots[0] ? Hapay.lots[0].transform.parent as RectTransform : null;
+                case "hapay-timer": return HapayLot && HapayLot.timer ? HapayLot.timer.rectTransform : null;
+                case "hapay-sell": { var view = Hapay ? Hapay.FirstSellable() : null; return view && view.sell ? (RectTransform)view.sell.transform : null; }
+                case "hapay-sell-demo": return HapayLot && HapayLot.sell ? (RectTransform)HapayLot.sell.transform : null;
+                case "hapay-end": return Hapay ? (RectTransform)Hapay.window.transform : null;
                 default: return null;
             }
         }
@@ -180,8 +230,10 @@ namespace Hakaton.Computer
         {
             switch (key)
             {
-                case "icons": return Union(Desktop.programs.Where(p => p.icon).Select(p => (RectTransform)p.icon.transform).ToArray());
+                case "icons": return Union(Desktop.programs.Where(p => p.icon && p.icon.gameObject.activeInHierarchy).Select(p => (RectTransform)p.icon.transform).ToArray());
                 case "merge": return pretendSource ? Grow(pretendArea, 2) : (Rect?)null;
+                case "hapay-items":
+                    return HapayLot ? Union(HapayLot.cells.Where(c => c && c.gameObject.activeInHierarchy).Select(c => (RectTransform)c.transform).ToArray()) : null;
                 default: return null;
             }
         }
@@ -194,6 +246,8 @@ namespace Hakaton.Computer
                 case "toggle": return DeckCount != deckBefore;
                 case "toggle-back": return DeckCount == deckAtStart;
                 case "hover": return Cards.tooltip && Cards.tooltip.group && Cards.tooltip.group.alpha > .5f;
+                case "hapay-icon": return Hapay && Hapay.window.IsOpen;
+                case "hapay-sell": return computer.Hapay && computer.Hapay.Market.Sold > soldAtStep;
                 default: return true;
             }
         }
@@ -244,8 +298,31 @@ namespace Hakaton.Computer
             if (pointer) { pointer.Press(false); pointer.Show(false); }
         }
 
+        /// <summary>The top lot on the site (the tour talks about it).</summary>
+        PcHapayLotView HapayLot => Hapay && Hapay.lots.Length > 0 && Hapay.lots[0] && Hapay.lots[0].Lot != null ? Hapay.lots[0] : null;
+
+        /// <summary>Nothing is complete yet: the ghost pointer goes to «Продать» and clicks (nothing is sold).</summary>
+        IEnumerator SellDemo()
+        {
+            var view = HapayLot;
+            if (!view || !view.sell || !spotlight) yield break;
+            var at = spotlight.LocalRectOf((RectTransform)view.sell.transform).center;
+            pointer.Place(at + new Vector2(-90, -60));
+            pointer.Press(false);
+            pointer.Show(true);
+            yield return pointer.MoveTo(at + new Vector2(4, -2), travelSeconds);
+            pointer.Press(true);
+            computer.Ui(PcComputer.UiSound.Click);
+            yield return GhostPointer.Wait(.2f);
+            pointer.Press(false);
+            yield return GhostPointer.Wait(1);
+            pointer.Show(false);
+            yield return GhostPointer.Wait(.6f);
+        }
+
         protected override IEnumerator Demo(string id, string key)
         {
+            if (key == "hapay-sell-demo" && pointer) { yield return SellDemo(); yield break; }
             if (key != "merge" || !pointer) yield break;
             if (!pretendSource) MakePretend();
             if (!pretendSource) yield break;
@@ -298,6 +375,7 @@ namespace Hakaton.Computer
         protected override void EndDemo(string id, string key)
         {
             if (key == "merge") ClearPretend();
+            if (key == "hapay-sell-demo" && pointer) { pointer.Press(false); pointer.Show(false); }
         }
     }
 }
