@@ -214,6 +214,8 @@ namespace Hakaton.Game
             if (services.computer) services.computer.Shop = trade.Session;
             // «Выносливость» on the PC: the player's own upgrade, handed over the same way.
             if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
+            // «Сердца» on the PC: the outing hearts of the player's vitals.
+            if (services.computer && expedition.vitals) services.computer.Hearts = expedition.vitals.Upgrade;
             // «Закрой окно» on the PC: never during the shop tutorial or in the cave; its counters are saved.
             if (Popups)
             {
@@ -262,6 +264,7 @@ namespace Hakaton.Game
             cardShop.Visits.Changed += MarkDirty;
             tutorial.Changed += MarkDirty;
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
+            if (expedition.vitals) expedition.vitals.Upgrade.Changed += MarkDirty;
             if (lecture) lecture.Finished += OnLectureFinished;
             if (guides) guides.Progress.Changed += MarkDirty;
             restoring = true;
@@ -310,6 +313,7 @@ namespace Hakaton.Game
             if (services && cardShop) cardShop.Visits.Changed -= MarkDirty;
             if (tutorial) tutorial.Changed -= MarkDirty;
             if (player && player.stamina) player.stamina.Upgrade.Changed -= MarkDirty;
+            if (expedition && expedition.vitals) expedition.vitals.Upgrade.Changed -= MarkDirty;
             if (specialItems) specialItems.Inventory.Changed -= MarkDirty;
             if (hapay) hapay.Market.Changed -= MarkDirty;
             if (lecture) lecture.Finished -= OnLectureFinished;
@@ -788,7 +792,8 @@ namespace Hakaton.Game
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
-            player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0 },
+            player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
+                heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet,
             endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
@@ -825,6 +830,7 @@ namespace Hakaton.Game
             if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
+            if (expedition.vitals) expedition.vitals.Upgrade.Restore(save.HeartsLevel);
             godMet = save.godMet;
             endlessVisited = save.endlessVisited;
             strangerVisited = save.strangerVisited;

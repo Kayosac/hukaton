@@ -18,7 +18,7 @@ namespace Hakaton.Expeditions.Tests
         public void HeartsSpinAsDrawnFramesAndFillFromTheLeft()
         {
             var hud = Hud;
-            Assert.That(hud.heartFills.Length, Is.EqualTo(4));
+            Assert.That(hud.heartFills.Length, Is.EqualTo(8), "4 base hearts + 4 the PC sells («Сердца»).");
             foreach (var fill in hud.heartFills)
             {
                 Assert.That(fill.type, Is.EqualTo(Image.Type.Filled));

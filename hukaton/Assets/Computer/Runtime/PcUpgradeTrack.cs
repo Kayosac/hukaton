@@ -52,11 +52,12 @@ namespace Hakaton.Computer
         /// then the bulk buyer's chance — only once the player has met him (a surprise until then).
         /// </summary>
         public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null, StaminaUpgrade stamina = null,
-            SpecialItemsHost items = null)
+            SpecialItemsHost items = null, HeartsUpgrade hearts = null)
         {
             var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
             if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
             if (stamina != null && stamina.Steps > 0) tracks.Add(new StaminaTrack(model, stamina));
+            if (hearts != null && hearts.Steps > 0) tracks.Add(new HeartsTrack(model, hearts));
             if (items && items.phone && items.phone.BatterySteps > 0 && items.Inventory.Owns(PhoneBatteryTrack.PhoneId))
                 tracks.Add(new PhoneBatteryTrack(model, items));
             if (shop != null && shop.BulkBuyerMet && shop.BulkBuyerSteps > 0) tracks.Add(new BulkBuyerTrack(shop));
@@ -130,6 +131,36 @@ namespace Hakaton.Computer
                 return null;
             }
             public override string Bought => $"Бег без передышки: {Seconds(stamina.Seconds)}.";
+        }
+
+        /// <summary>«Сердца»: one more whole heart on every outing, paid from the shared wallet.</summary>
+        sealed class HeartsTrack : PcUpgradeTrack
+        {
+            readonly DeckWorkshop model;
+            readonly HeartsUpgrade hearts;
+            public HeartsTrack(DeckWorkshop model, HeartsUpgrade hearts) { this.model = model; this.hearts = hearts; }
+            public override string Title => "Сердца";
+            public override int Step => hearts.Level;
+            public override int Steps => hearts.Steps;
+            public override string Values => Maxed ? Hearts(hearts.Hearts) : hearts.Hearts + Arrow + Hearts(hearts.NextHearts);
+            public override int Price => hearts.Price;
+            public override string Buy()
+            {
+                if (model.IsAway) return "Сначала вернитесь в лавку.";
+                if (hearts.Maxed) return "Сердец уже максимум.";
+                if (!model.Wallet.TrySpend(hearts.Price)) return "Не хватает монет.";
+                hearts.Raise();
+                return null;
+            }
+            public override string Bought => $"На вылазке теперь {Hearts(hearts.Hearts)}.";
+        }
+
+        /// <summary>"5 сердец", "1 сердце", "3 сердца".</summary>
+        public static string Hearts(int n)
+        {
+            int last = n % 10, lastTwo = n % 100;
+            string word = last == 1 && lastTwo != 11 ? "сердце" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "сердца" : "сердец";
+            return n + " " + word;
         }
 
         /// <summary>«Батарея телефона»: spins per outing of the phone's one-armed bandit, paid from the shared wallet.</summary>

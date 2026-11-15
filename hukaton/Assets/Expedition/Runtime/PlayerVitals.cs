@@ -16,7 +16,12 @@ namespace Hakaton.Expeditions
 
         public int HalfHearts { get; private set; }
         /// <summary>The most half hearts the player can have now: the settings' maximum less what Rot took this outing.</summary>
-        public int MaximumHalfHearts => Mathf.Max(2, settings.maximumHalfHearts - RotHalfHearts);
+        public int MaximumHalfHearts => Mathf.Max(2, CapacityHalfHearts - RotHalfHearts);
+        /// <summary>The outing maximum before Rot: the settings' hearts plus every «Сердца» step bought on the PC.</summary>
+        public int CapacityHalfHearts => Upgrade.HalfHearts;
+        /// <summary>The PC's «Сердца» for this player; a change in the shop refills the hearts to the new maximum.</summary>
+        public HeartsUpgrade Upgrade { get { Build(); return upgrade; } }
+        HeartsUpgrade upgrade;
         /// <summary>Half hearts Rot (<see cref="PlayerStatusKind.Rot"/>) took off the maximum on this outing.</summary>
         public int RotHalfHearts { get; private set; }
         public int PreviousHalfHearts { get; private set; }
@@ -31,12 +36,23 @@ namespace Hakaton.Expeditions
         float invulnerableUntil;
 
         void Awake() { Restore(); motor.Landed += OnLanded; }
+
+        void Build()
+        {
+            if (upgrade != null) return;
+            var prices = settings.heartUpgradePrices ?? new int[0];
+            var safePrices = new int[prices.Length];
+            for (int i = 0; i < prices.Length; i++) safePrices[i] = Mathf.Max(0, prices[i]);
+            upgrade = new HeartsUpgrade(Mathf.Max(2, settings.maximumHalfHearts), safePrices);
+            // Bought in the shop: the next outing starts full anyway; refill now so the HUD never shows an empty slot.
+            upgrade.Changed += () => { if (!world || !world.Running) HalfHearts = PreviousHalfHearts = MaximumHalfHearts; };
+        }
         void OnDestroy() { if (motor) motor.Landed -= OnLanded; }
 
         public void Restore()
         {
             RotHalfHearts = 0;
-            HalfHearts = PreviousHalfHearts = settings.maximumHalfHearts;
+            HalfHearts = PreviousHalfHearts = CapacityHalfHearts;
             invulnerableUntil = 0;
             LastChangeTime = float.NegativeInfinity;
             LastChangeWasDamage = false;
@@ -134,7 +150,7 @@ namespace Hakaton.Expeditions
         /// </summary>
         public bool Rot(int halfHearts)
         {
-            int rotted = PlayerStatusRules.RotAfter(RotHalfHearts, halfHearts, settings.maximumHalfHearts);
+            int rotted = PlayerStatusRules.RotAfter(RotHalfHearts, halfHearts, CapacityHalfHearts);
             if (rotted == RotHalfHearts) return false;
             RotHalfHearts = rotted;
             if (HalfHearts > MaximumHalfHearts)

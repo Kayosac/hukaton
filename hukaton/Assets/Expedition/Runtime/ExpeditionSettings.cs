@@ -24,6 +24,8 @@ namespace Hakaton.Expeditions
         [Min(0)] public float discardCooldown = .65f;
         [Header("Player")]
         [Min(2)] public int maximumHalfHearts = 8;
+        [Tooltip("«Сердца» on the PC: price of each step, in order; each step adds one whole heart (4 » 5 » 6 » 7 » 8 at the default tuning).")]
+        public int[] heartUpgradePrices = { 300, 700, 1300, 2200 };
         [Min(0)] public float hurtInvulnerability = .75f;
         [Tooltip("Fall-damage thresholds in reference speed (m/s at g 9.81): 11 / 14 / 17 → ½ / 1 / 2 hearts.")]
         [Min(0)] public float fallDamageSpeed = 11;

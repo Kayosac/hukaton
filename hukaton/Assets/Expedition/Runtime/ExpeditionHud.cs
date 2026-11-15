@@ -207,6 +207,11 @@ namespace Hakaton.Expeditions
             {
                 var fill = heartFills[i];
                 if (!fill) continue;
+                // Slots past the bought «Сердца» stay hidden; the prefab holds one per heart the PC can ever sell.
+                var slot = fill.transform.parent.gameObject;
+                bool owned = i * 2 < vitals.CapacityHalfHearts;
+                if (slot.activeSelf != owned) slot.SetActive(owned);
+                if (!owned) continue;
                 fill.fillAmount = Mathf.Clamp01((vitals.HalfHearts - i * 2) / 2f);
                 bool rotten = i * 2 >= vitals.MaximumHalfHearts;
                 if (heartFrames != null && i < heartFrames.Length)

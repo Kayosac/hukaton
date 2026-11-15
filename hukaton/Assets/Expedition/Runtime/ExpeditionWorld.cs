@@ -217,7 +217,7 @@ namespace Hakaton.Expeditions
                 PropPhysics.Tick(motor.transform.position, .25f);
             }
             if (sfx && cues && !InPrologue) sfx.Loop(this, cues.ambience, viewCamera.transform.position);
-            if (!IgnoreKillHeight && motor.transform.position.y < settings.killHeight) { vitals.Hurt(settings.maximumHalfHearts, Vector3.zero, null); return; }
+            if (!IgnoreKillHeight && motor.transform.position.y < settings.killHeight) { vitals.Hurt(vitals.CapacityHalfHearts, Vector3.zero, null); return; }
             if (control.GameplayActive) FocusedLoot = FindFocusedLoot();
             if (FocusedLoot) FocusedLoot.SetFocused(true);
             else if (control.GameplayActive) FocusedInteractable = FindInteractable(viewCamera.transform);

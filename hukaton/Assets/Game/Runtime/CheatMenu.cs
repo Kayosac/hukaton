@@ -108,12 +108,16 @@ namespace Hakaton.Game
             // «Выносливость» too: every pip of sprint.
             var stamina = game.player.stamina ? game.player.stamina.Upgrade : null;
             stamina?.Maximize();
+            // «Сердца» too: every heart the PC sells.
+            var hearts = game.expedition && game.expedition.vitals ? game.expedition.vitals.Upgrade : null;
+            hearts?.Maximize();
             game.SaveNow();
             status = "Добавлено карт: " + added + ". Рука: " + model.HandSize
                 + ", колода: " + model.DeckLimit + ", коллекция: " + model.CollectionLimit
                 + ", смена: " + Mathf.RoundToInt(shop.ShiftLength) + " с"
                 + ", скупщик: " + Mathf.RoundToInt(shop.BulkBuyerChance * 100) + "%"
-                + (stamina != null ? ", бег: " + Mathf.RoundToInt(stamina.Seconds) + " с." : ".");
+                + (stamina != null ? ", бег: " + Mathf.RoundToInt(stamina.Seconds) + " с" : "")
+                + (hearts != null ? ", сердец: " + hearts.Hearts + "." : ".");
             return true;
         }
 

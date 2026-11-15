@@ -48,6 +48,8 @@ namespace Hakaton.Game
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;
+        /// <summary>«Сердца» steps bought on the PC (0 when the save predates them).</summary>
+        public int HeartsLevel => player != null ? player.heartsLevel : 0;
     }
 
     [Serializable]
@@ -55,6 +57,8 @@ namespace Hakaton.Game
     {
         /// <summary>«Выносливость» steps bought on the PC: each adds a second of sprint (one pip).</summary>
         public int staminaLevel;
+        /// <summary>«Сердца» steps bought on the PC: each adds one whole heart to every outing.</summary>
+        public int heartsLevel;
     }
 
     /// <summary>One safe-shop snapshot for the entire economy; physical outings are not resumed halfway.</summary>
