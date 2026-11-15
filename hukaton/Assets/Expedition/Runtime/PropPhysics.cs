@@ -20,6 +20,7 @@ namespace Hakaton.Expeditions
 
         static readonly Collider[] Hits = new Collider[96];
         static readonly HashSet<Rigidbody> Seen = new HashSet<Rigidbody>();
+        static readonly HashSet<Breakable> SeenFixed = new HashSet<Breakable>();
 
         /// <summary>Dormant props awake at the same time (real bodies): the rest stay still scenery until one of these rests.</summary>
         public const int MaxAwake = 48;
@@ -99,12 +100,24 @@ namespace Hakaton.Expeditions
             if (radius <= 0 || speed <= 0) return 0;
             int count = Physics.OverlapSphereNonAlloc(centre, radius, Hits, ~0, QueryTriggerInteraction.Ignore);
             Seen.Clear();
+            SeenFixed.Clear();
             int moved = 0;
             for (int i = 0; i < count; i++)
             {
-                var body = Hits[i].attachedRigidbody;
+                var hit = Hits[i];
+                var body = hit.attachedRigidbody;
                 Hits[i] = null;
-                if (!body || body == except || !Seen.Add(body) || !IsLoose(body)) continue;
+                if (!body)
+                {
+                    // A fixed thing that breaks (a fence) takes the blow where it is nearest.
+                    var fixedOne = Fixed(hit);
+                    if (!fixedOne || !SeenFixed.Add(fixedOne)) continue;
+                    Vector3 at = hit.bounds.ClosestPoint(centre);
+                    float away = Vector3.Distance(at, centre);
+                    if (fixedOne.Hit(speed * Mathf.Lerp(1, .33f, Mathf.Clamp01(away / radius)), at, away > .05f ? (at - centre) / away : Vector3.up)) moved++;
+                    continue;
+                }
+                if (body == except || !Seen.Add(body) || !IsLoose(body)) continue;
                 if (!Ready(body)) continue;
                 Vector3 to = body.worldCenterOfMass - centre;
                 float distance = to.magnitude;
@@ -119,7 +132,23 @@ namespace Hakaton.Expeditions
                 moved++;
             }
             Seen.Clear();
+            SeenFixed.Clear();
             return moved;
+        }
+
+        /// <summary>A thing that breaks but stands fixed, without a body (a fence): the one this collider belongs to.</summary>
+        public static Breakable Fixed(Collider collider)
+        {
+            if (!collider || collider.attachedRigidbody) return null;
+            var breakable = collider.GetComponentInParent<Breakable>();
+            return breakable && !breakable.Broken ? breakable : null;
+        }
+
+        /// <summary>A blow on a fixed thing that breaks (a heavy card on a fence). True when it broke.</summary>
+        public static bool HitFixed(Collider collider, Vector3 point, Vector3 direction, float speed)
+        {
+            var breakable = Fixed(collider);
+            return breakable && breakable.Hit(speed, point, direction);
         }
 
         /// <summary>A hit on one loose body at a point (a card, a projectile): <paramref name="speed"/> m/s along the blow.</summary>

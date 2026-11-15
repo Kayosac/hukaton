@@ -57,7 +57,7 @@ namespace Hakaton.Expeditions
             if (world && world.Running)
             {
                 var velocity = TryGetComponent(out Rigidbody body) && !body.isKinematic ? body.linearVelocity : Vector3.zero;
-                PropDebris.Shatter(world, kind, bounds, direction, velocity);
+                PropDebris.Shatter(world, kind, bounds, direction, velocity, transform, point);
                 if (loot) Spill(world, bounds.center);
                 if (loot && kind.release && kind.releaseChance > 0 && Random.value < kind.releaseChance)
                     WorldCreature.Release(kind.release, world, bounds.center, transform.parent ? transform.parent : world.spawnedObjects);
@@ -109,7 +109,8 @@ namespace Hakaton.Expeditions
 
         public static int LiveCount { get { Live.RemoveAll(s => !s); return Live.Count; } }
 
-        public static void Shatter(ExpeditionWorld world, BreakableKind kind, Bounds bounds, Vector3 direction, Vector3 velocity)
+        public static void Shatter(ExpeditionWorld world, BreakableKind kind, Bounds bounds, Vector3 direction, Vector3 velocity,
+            Transform source = null, Vector3? point = null)
         {
             if (!kind) return;
             world.Spawn(kind.burst, bounds.center, Quaternion.identity, kind.burstTint, kind.burstScale * Mathf.Clamp(bounds.size.magnitude, .5f, 1.6f));
@@ -121,6 +122,11 @@ namespace Hakaton.Expeditions
             if (world.viewCamera && (bounds.center - world.viewCamera.transform.position).sqrMagnitude > SeenWithin * SeenWithin) return;
             if (player == null || player.Length == 0 || !player[0]) player = world.motor ? world.motor.GetComponentsInChildren<Collider>() : null;
             Live.RemoveAll(s => !s);
+            if (kind.piecesInPlace)
+            {
+                if (source && kind.piecePoses != null && kind.piecePoses.Length == kind.shards.Length) TakeApart(world, kind, bounds, direction, velocity, source, point ?? bounds.center);
+                return;
+            }
             int count = Random.Range(kind.shardCount.x, kind.shardCount.y + 1);
             // Room is made by letting the oldest pieces go.
             while (Live.Count + count > MaxPieces && Live.Count > 0)
@@ -145,6 +151,38 @@ namespace Hakaton.Expeditions
                 outward.y = Mathf.Abs(outward.y) + .25f;
                 Vector3 fly = outward.normalized * Random.Range(kind.shardSpeed.x, kind.shardSpeed.y) + push + velocity * .4f + Vector3.up;
                 shard.Launch(fly, Random.insideUnitSphere * 12, Random.Range(kind.shardLifetime.x, kind.shardLifetime.y), player);
+                Live.Add(shard);
+            }
+        }
+
+        /// <summary>
+        /// The thing comes apart where it stood (a fence: posts and rails): each piece starts in its place and the blow
+        /// knocks off hardest the ones nearest to it; the rest sag and fall.
+        /// </summary>
+        static void TakeApart(ExpeditionWorld world, BreakableKind kind, Bounds bounds, Vector3 direction, Vector3 velocity, Transform source, Vector3 point)
+        {
+            int count = kind.shards.Length;
+            while (Live.Count + count > MaxPieces && Live.Count > 0)
+            {
+                Live[0].Expire();
+                Live.RemoveAt(0);
+            }
+            Vector3 along = direction.sqrMagnitude > .001f ? direction.normalized : Vector3.zero;
+            float reach = Mathf.Max(.75f, bounds.extents.magnitude);
+            for (int i = 0; i < count; i++)
+            {
+                var prefab = kind.shards[i];
+                if (!prefab) continue;
+                var pose = kind.piecePoses[i];
+                Vector3 at = source.TransformPoint(pose.position);
+                var shard = Object.Instantiate(prefab, at, source.rotation * pose.rotation, world.spawnedObjects);
+                shard.transform.localScale = Vector3.Scale(prefab.transform.localScale, source.lossyScale);
+                // The pieces of one thing start inside each other (a rail in its post): they come apart slowly, not with a bang.
+                if (shard.body) shard.body.maxDepenetrationVelocity = 1;
+                float near = 1 - Mathf.Clamp01(Vector3.Distance(at, point) / (reach * 1.5f));
+                Vector3 fly = along * (Random.Range(kind.shardSpeed.x, kind.shardSpeed.y) * Mathf.Lerp(.3f, 1, near))
+                    + Random.insideUnitSphere * .5f + Vector3.up * (Random.Range(.4f, 1.4f) * near) + velocity * .4f;
+                shard.Launch(fly, Random.insideUnitSphere * (1 + 4 * near), Random.Range(kind.shardLifetime.x, kind.shardLifetime.y), player);
                 Live.Add(shard);
             }
         }

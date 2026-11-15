@@ -24,6 +24,11 @@ namespace Hakaton.Expeditions
         [Tooltip("Pieces are modelled at the thing's real size (rim, bottom, planks): spawned at their own size, each " +
                  "piece of the set once before any repeats. Off: generic chips scaled by the broken thing's size.")]
         public bool piecesAtOwnSize;
+        [Tooltip("The thing taken apart (a fence into its posts and rails): every piece once, starting where it is in the " +
+                 "thing (Piece Poses, in the thing's own space, one per piece) and knocked off by the blow. Shard Count and " +
+                 "Shard Scale are not used.")]
+        public bool piecesInPlace;
+        public Pose[] piecePoses = new Pose[0];
         [Tooltip("Scale of a piece against its prefab, from and to.")]
         public Vector2 shardScale = new Vector2(.7f, 1.2f);
         [Tooltip("Speed the pieces fly out with, m/s.")]

@@ -302,6 +302,8 @@ namespace Hakaton.Expeditions.Cards
                 {
                     var hit = overlaps[i];
                     var rb = hit ? hit.attachedRigidbody : null;
+                    // A blast takes apart the fixed things that break (fences) in its reach.
+                    if (!rb && PropPhysics.HitFixed(hit, hit.bounds.ClosestPoint(centre), hit.bounds.center - centre, float.MaxValue)) { pushed++; continue; }
                     if (!rb || rb == body || !seen.Add(rb) || Combat.Of(hit) != null || !PropPhysics.Ready(rb)) continue;
                     CardPhysics.Push(rb, PowderBarrelRules.Push(centre, rb.worldCenterOfMass, numbers.radius, numbers.knockback, pushAtEdge, lift));
                     pushed++;

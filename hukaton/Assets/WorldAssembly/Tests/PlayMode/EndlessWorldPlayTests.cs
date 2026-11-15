@@ -257,6 +257,55 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
+        public IEnumerator AFenceComesApartUnderAHardBlowAndStaysBroken()
+        {
+            Object.FindAnyObjectByType<CheatPowers>().SetInvulnerable(true);
+            var map = streamer.Map;
+            float size = map.Rules.ChunkSize;
+            ChunkPlan farm = null;
+            for (int r = 0; r <= 30 && farm == null; r++)
+                for (int x = -r; x <= r && farm == null; x++)
+                    for (int y = -r; y <= r && farm == null; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != r) continue;
+                        var p = map.Chunk(x, y);
+                        if (p.Theme == "farm" || p.Theme == "apiary") farm = p;
+                    }
+            Assert.That(farm, Is.Not.Null, "a farm or an apiary within 480 m");
+            Vector3 Centre() => streamer.root.position + new Vector3(farm.Coord.X * size, farm.BaseLevel * map.Rules.PlateauHeight, farm.Coord.Y * size);
+            List<Breakable> Fences() => Object.FindObjectsByType<Breakable>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(b => b.kind && b.kind.piecesInPlace && b.GetComponentInParent<ChunkView>(true) && streamer.CoordAt(b.GetComponentInParent<ChunkView>(true).transform.position).Equals(farm.Coord))
+                .OrderBy(b => b.transform.GetSiblingIndex()).ToList();
+            world.motor.Teleport(Centre() + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(farm.Coord), 10);
+            for (int f = 0; f < 30; f++) yield return null;
+            var fences = Fences();
+            if (fences.Count == 0) Assert.Inconclusive($"{farm} has no fence that breaks");
+            var fence = fences[0];
+            var at = fence.transform.position;
+            world.motor.Teleport(at + fence.transform.forward * 4 + Vector3.up * 1.5f, Quaternion.LookRotation(-fence.transform.forward));
+            for (int f = 0; f < 5; f++) yield return null;
+            var collider = fence.GetComponentsInChildren<Collider>().First(c => !c.isTrigger);
+            Assert.That(PropPhysics.HitFixed(collider, collider.bounds.center, -fence.transform.forward, 3), Is.False, "a light blow leaves it standing");
+            Assert.That(PropPhysics.HitFixed(collider, collider.bounds.center, -fence.transform.forward, 9), Is.True, "a hard one takes it apart");
+            Assert.That(fence.Broken && !fence.gameObject.activeSelf, Is.True);
+            yield return null;
+            var pieces = Object.FindObjectsByType<IceShard>(FindObjectsSortMode.None);
+            Assert.That(pieces.Length, Is.GreaterThanOrEqualTo(Mathf.Min(fence.kind.shards.Length, PropDebris.MaxPieces)), "every post and rail falls out");
+            yield return new WaitForSeconds(2);
+            foreach (var piece in Object.FindObjectsByType<IceShard>(FindObjectsSortMode.None))
+                Assert.That(Vector3.Distance(piece.transform.position, at), Is.LessThan(7), $"{piece.name} falls by the fence, not flung away");
+            // Far away and back: still broken.
+            world.motor.Teleport(Centre() + new Vector3(12 * size, 6, 0), Quaternion.identity);
+            yield return WaitFor(() => !streamer.IsLoaded(farm.Coord), 10);
+            world.motor.Teleport(Centre() + Vector3.up * 3, Quaternion.identity);
+            yield return WaitFor(() => streamer.IsLoaded(farm.Coord), 20);
+            for (int f = 0; f < 10; f++) yield return null;
+            Assert.That(Fences().Any(b => b.gameObject.activeSelf && Vector3.Distance(b.transform.position, at) < .1f), Is.False, "the broken fence stays broken");
+            Assert.That(Fences().Count(b => b.gameObject.activeSelf), Is.EqualTo(fences.Count - 1), "and the rest stand");
+        }
+
+        [UnityTest]
         public IEnumerator CheatsMakeThePlayerInvulnerableAndLetHimFly()
         {
             var powers = Object.FindAnyObjectByType<CheatPowers>();

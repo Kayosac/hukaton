@@ -466,7 +466,9 @@ namespace Hakaton.Expeditions
             {
                 effect.Apply(context);
                 // A card that strikes also knocks the loose thing it hit (a crate, a pot, a chest) along its flight.
-                if (effect.BodyNudge > 0 && target) PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge);
+                // A fixed thing that breaks (a fence) takes the same blow.
+                if (effect.BodyNudge > 0 && target && !PropPhysics.Nudge(target.attachedRigidbody, point, velocity, effect.BodyNudge))
+                    PropPhysics.HitFixed(target, point, velocity, effect.BodyNudge);
             }
             else Debug.LogWarning($"Card '{definition.id}' has no effect asset assigned.", definition);
             Impacted?.Invoke(copy, target, point);

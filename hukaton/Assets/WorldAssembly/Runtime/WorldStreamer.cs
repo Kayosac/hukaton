@@ -76,6 +76,8 @@ namespace Hakaton.WorldAssembly.Unity
             public readonly HashSet<int> burnt = new HashSet<int>();
             /// <summary>Props broken to pieces: they do not come back (nor what was inside).</summary>
             public readonly HashSet<int> broken = new HashSet<int>();
+            /// <summary>Fixed things taken apart (fences): they do not come back either.</summary>
+            public readonly HashSet<int> brokenFixed = new HashSet<int>();
             /// <summary>The prop patches' things (pumpkins) by the order they are laid in: broken ones, and where moved ones lie.</summary>
             public readonly HashSet<int> patchBroken = new HashSet<int>();
             public readonly Dictionary<int, (Vector3 position, Quaternion rotation)> patchMoved = new Dictionary<int, (Vector3, Quaternion)>();
@@ -537,6 +539,9 @@ namespace Hakaton.WorldAssembly.Unity
                     p.Restore(pose.position, pose.rotation);
                 world.props.Add(p);
             }
+            if (mem != null)
+                for (int i = 0; i < view.breakables.Length; i++)
+                    if (view.breakables[i] && mem.brokenFixed.Contains(i)) view.breakables[i].MarkBroken();
             for (int i = 0; i < view.trees.Length; i++)
                 if (view.trees[i] && mem != null && mem.awakened.Contains(i))
                 {
@@ -1019,6 +1024,8 @@ namespace Hakaton.WorldAssembly.Unity
                     if (p && p.TryGetComponent(out Breakable breakable) && breakable.Broken) { mem.broken.Add(i); continue; }
                     if (p && (!p.dormant || p.Stirred)) mem.props[i] = (p.transform.position, p.transform.rotation);
                 }
+                for (int i = 0; i < entry.view.breakables.Length; i++)
+                    if (entry.view.breakables[i] && entry.view.breakables[i].Broken) mem.brokenFixed.Add(i);
                 for (int i = 0; i < entry.view.burnables.Length; i++)
                     if (fire && fire.Touched(entry.view.burnables[i])) mem.burnt.Add(i);
                 // A tree that came alive walks on as an ally; its chunk keeps the empty place.

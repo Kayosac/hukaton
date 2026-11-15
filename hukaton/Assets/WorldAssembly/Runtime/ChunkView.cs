@@ -31,6 +31,8 @@ namespace Hakaton.WorldAssembly.Unity
         public float[] edgeHeights = new float[12];
         [Tooltip("Loose things the player and cards push about (crates, sacks, sticks, light logs), as in the Old Apiary.")]
         public PhysicsProp[] props = new PhysicsProp[0];
+        [Tooltip("Fixed things that break without a body of their own (fences): a hard blow takes them apart.")]
+        public Breakable[] breakables = new Breakable[0];
         [Tooltip("What Fire and Lightning set alight: grass, bushes, young trees, wood, sacks (the Old Apiary's rules).")]
         public Burnable[] burnables = new Burnable[0];
         [Tooltip("Trees «Оживление дерева» can bring to life.")]

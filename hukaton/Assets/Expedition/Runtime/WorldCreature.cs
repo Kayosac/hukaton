@@ -1162,6 +1162,10 @@ namespace Hakaton.Expeditions
             for (int i = 0; i < collision.contactCount; i++)
                 normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, collision.GetContact(i).normal));
             int damage = ExpeditionEffectRules.ImpactDamage(normalSpeed, world.settings.collisionDamageSpeed, world.settings.collisionDamageStep);
+            // A charge through a fence: it breaks, and the beast runs on.
+            if ((lunging || ramming) && normalSpeed > 3 && PropPhysics.Fixed(collision.collider) is Breakable fence
+                && fence.Crash(normalSpeed, collision.GetContact(0).point, collision.relativeVelocity.sqrMagnitude > .01f ? -collision.relativeVelocity : transform.forward))
+                return;
             // Rock, or a loose thing too heavy to be knocked aside (a boulder, a gravestone).
             bool crashed = State == CreatureState.Strike && lunging && normalSpeed > 4 && (!collision.rigidbody || collision.rigidbody.mass > 5 && collision.rigidbody.TryGetComponent<PhysicsProp>(out _));
             if (damage > 0)

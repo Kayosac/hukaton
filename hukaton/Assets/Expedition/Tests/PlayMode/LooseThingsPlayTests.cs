@@ -205,6 +205,44 @@ namespace Hakaton.Expeditions.Tests
             }
         }
 
+        /// <summary>A record to look at (Logs/world-plans/fence-*.png): a fence and a wattle coming apart.</summary>
+        [UnityTest]
+        public IEnumerator PhotographFencesComingApart()
+        {
+            string dir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Logs", "world-plans");
+            System.IO.Directory.CreateDirectory(dir);
+            var cam = world.viewCamera;
+            foreach (var (prefab, kindName) in new[] { ("Assets/ForestArt/Prefabs/Structures/FA_ST01_FenceSection.prefab", "ST01"), ("Assets/SwampArt/Prefabs/Paths/SM_SW19_WaterFenceWattle.prefab", "SW19b") })
+            {
+                var player = world.motor.transform;
+                var at = Spot(5, 0) - Vector3.up * .4f;
+                var fence = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefab), at, Quaternion.LookRotation(player.right), world.spawnedObjects);
+                var kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/Fences/Fence {kindName}.asset");
+                Assert.That(kind.piecePoses.Length, Is.EqualTo(kind.shards.Length));
+                // The swamp's art gets its colliders when a chunk is built (one per drawn part).
+                if (!fence.GetComponentInChildren<Collider>())
+                    foreach (var filter in fence.GetComponentsInChildren<MeshFilter>())
+                        if (!filter.name.EndsWith("_Plants")) filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+                var breakable = fence.AddComponent<Breakable>();
+                breakable.kind = kind;
+                yield return null;
+                var eye = player.position + Vector3.up * 1.4f - player.right * 1.5f;
+                var look = at + Vector3.up * .6f;
+                yield return Photo(cam, dir, $"fence-{kindName}-0", eye, look);
+                var collider = fence.GetComponentInChildren<Collider>();
+                Assert.That(PropPhysics.HitFixed(collider, look, player.forward, 9), Is.True);
+                for (int f = 0; f < 3; f++) yield return null;
+                yield return Photo(cam, dir, $"fence-{kindName}-1", eye, look);
+                yield return new WaitForSeconds(.4f);
+                yield return Photo(cam, dir, $"fence-{kindName}-2", eye, look);
+                yield return new WaitForSeconds(1.6f);
+                yield return Photo(cam, dir, $"fence-{kindName}-3", eye, look);
+                foreach (var piece in Object.FindObjectsByType<IceShard>(FindObjectsSortMode.None)) Object.Destroy(piece.gameObject);
+                Object.Destroy(fence);
+                yield return null;
+            }
+        }
+
         static IEnumerator Photo(Camera cam, string dir, string name, Vector3 eye, Vector3 look)
         {
             yield return new WaitForEndOfFrame();

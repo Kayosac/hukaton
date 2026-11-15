@@ -678,6 +678,18 @@ namespace Hakaton.WorldAssembly.EditorTools
             ["SM_SW24_WoodenCrossTall"] = 3, ["SM_SW24_WoodenCrossHeavy"] = 4, ["SM_SW24_WoodenCrossThinBroken"] = 2,
         };
 
+        /// <summary>
+        /// Fixed things that come apart under a hard blow, piece by piece where they stood (a Breakable without a
+        /// body): the fences, with their kind in Game/Data/Breakables/Fences.
+        /// </summary>
+        static readonly Dictionary<string, string> BreakApart = new Dictionary<string, string>
+        {
+            ["FA_ST01_FenceSection"] = "Fences/Fence ST01", ["FA_ST02_FenceBroken"] = "Fences/Fence ST02", ["FA_ST03_FenceCorner"] = "Fences/Fence ST03",
+            ["SM_SW19_WaterFenceRails"] = "Fences/Fence SW19a", ["SM_SW19_WaterFenceWattle"] = "Fences/Fence SW19b",
+            ["SM_SW19_WaterFenceBroken"] = "Fences/Fence SW19c", ["SM_SW25_GraveFenceTilted"] = "Fences/Fence SW25a",
+            ["SM_SW25_GraveFenceBroken"] = "Fences/Fence SW25b",
+        };
+
         /// <summary>Loose things that break (Breakable), with their kind in Game/Data/Breakables.</summary>
         static readonly Dictionary<string, string> BreakKind = new Dictionary<string, string>
         {
@@ -754,6 +766,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             var burnables = new List<Burnable>();
             var trees = new List<AwakenableTree>();
             var props = new List<PhysicsProp>();
+            var apart = new List<Breakable>();
             var pinned = Pinned(view);
             foreach (var (go, asset) in placed)
             {
@@ -800,6 +813,13 @@ namespace Hakaton.WorldAssembly.EditorTools
                     if (BreakKind.TryGetValue(id, out var kindName))
                         go.AddComponent<Breakable>().kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kindName}.asset");
                 }
+                // A fence stands where it is and comes apart under a hard blow; one that makes a wall stays whole.
+                else if (BreakApart.TryGetValue(id, out var apartName) && colliders.Length > 0 && !InWall(go.transform))
+                {
+                    var breakable = go.AddComponent<Breakable>();
+                    breakable.kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{apartName}.asset");
+                    if (breakable.kind) apart.Add(breakable); else Object.DestroyImmediate(breakable);
+                }
             }
             // What turned out to hold something that stays put (decided above: in a wall, too big, could not be eased
             // out) stays put too; that in turn may hold the next one, so round again until nothing changes.
@@ -822,17 +842,20 @@ namespace Hakaton.WorldAssembly.EditorTools
             view.burnables = burnables.ToArray();
             view.trees = trees.ToArray();
             view.props = props.ToArray();
+            // A fence that holds what cannot move (a flame, a lantern, a cloth on its post) stays whole.
+            foreach (var fence in Holding(apart)) { apart.Remove(fence); Object.DestroyImmediate(fence); }
+            view.breakables = apart.ToArray();
         }
 
         /// <summary>
         /// Loose props that something fixed depends on: a flame, smoke, light or sound on them, a fixed piece resting on
         /// them (straight down from under it) or stuck into them.
         /// </summary>
-        static List<PhysicsProp> Holding(List<PhysicsProp> props)
+        static List<T> Holding<T>(List<T> props) where T : Component
         {
-            var result = new List<PhysicsProp>();
+            var result = new List<T>();
             if (props.Count == 0) return result;
-            var loose = new Dictionary<Collider, PhysicsProp>();
+            var loose = new Dictionary<Collider, T>();
             foreach (var prop in props) foreach (var c in prop.GetComponentsInChildren<Collider>()) if (!c.isTrigger) loose[c] = prop;
             var root = props[0].GetComponentInParent<ChunkView>().transform;
             var ground = root.Find("Ground");
@@ -843,7 +866,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             foreach (var spot in root.GetComponentsInChildren<AmbientSpot>(true)) spots.Add(spot.transform.position);
             foreach (var light in root.GetComponentsInChildren<Light>(true))
                 if (!light.GetComponentInParent<PhysicsProp>()) spots.Add(light.transform.position);
-            var marked = new HashSet<PhysicsProp>();
+            var marked = new HashSet<T>();
             foreach (var kv in loose)
             {
                 var b = kv.Key.bounds;
