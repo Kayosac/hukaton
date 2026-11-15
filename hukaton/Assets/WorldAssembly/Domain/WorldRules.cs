@@ -22,7 +22,7 @@ namespace Hakaton.WorldAssembly
         public float RingScale = 7.25f;
         /// <summary>Ring 0 shrinks by this on top of <see cref="RingScale"/>, and everything beyond it moves in by as many
         /// metres (<see cref="ShiftIn"/>), keeping its width: .5 makes the calm start 232 m in radius, not 464 m; ring 1
-        /// then runs 232–580 m, the swamp begins at ~400 m, the middle of ring 2 is ~1276 m (~4¼ min of running).</summary>
+        /// then runs 232–580 m, the swamp begins at ~250 m, the middle of ring 2 is ~1276 m (~4¼ min of running).</summary>
         public float RingZeroScale = .5f;
         /// <summary>How far in everything beyond ring 0 moves: the metres ring 0 lost to <see cref="RingZeroScale"/>.</summary>
         public float ShiftIn => InnerRadiusBase * RingScale * (1 - RingZeroScale);
@@ -46,14 +46,14 @@ namespace Hakaton.WorldAssembly
         /// <summary>Swamp noise feature size, in chunks: bigger cells, bigger patches.</summary>
         public int SwampNoiseCell = 7;
         /// <summary>No swamp nearer than this to the start at <see cref="RingScale"/> 1 (metres, chunk centre); its share
-        /// grows linearly out to SwampFullBase. 87.17 puts the first swamp ~400 m from the centre in the real world
-        /// (87.17 × 7.25 − 232), in the middle of ring 1 (232–580 m); ring 0 and the inner ring 1 stay forest.</summary>
-        public float SwampFromBase = 87.17f, SwampFullBase = 272f;
+        /// grows linearly out to SwampFullBase. 66.48 puts the first swamp ~250 m from the centre in the real world
+        /// (66.48 × 7.25 − 232), just past ring 0 (it ends at 232 m): ring 0 stays forest, ring 1 has swamp almost from its start.</summary>
+        public float SwampFromBase = 66.48f, SwampFullBase = 272f;
         public float SwampFrom => SwampFromBase * RingScale - ShiftIn;
         public float SwampFull => SwampFullBase * RingScale - ShiftIn;
         /// <summary>Share of chunks that are swamp at SwampFrom and at SwampFull and beyond, growing linearly between
-        /// (<see cref="BiomeField.ThresholdForShare"/> turns a share into the swamp noise threshold): about 20% of
-        /// 112–176 m, 40% of 176–240 m, 60% from 240 m on (times <see cref="RingScale"/>).</summary>
+        /// (<see cref="BiomeField.ThresholdForShare"/> turns a share into the swamp noise threshold): about 30% of
+        /// 112–176 m, 44% of 176–240 m, 60% from 240 m on at <see cref="RingScale"/> 1).</summary>
         public double SwampShareNear = .06, SwampShareFar = .6;
         /// <summary>Rise noise above this lifts the swamp one level (6 m) deep inside a patch: its raised terraces.</summary>
         public double SwampRise = .56;

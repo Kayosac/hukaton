@@ -402,7 +402,7 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.AreEqual(compact.InnerRadius * rules.RingScale * rules.RingZeroScale, rules.InnerRadius, 1e-3);
             Assert.AreEqual(compact.MiddleRadius * rules.RingScale - rules.ShiftIn, rules.MiddleRadius, 1e-3);
             Assert.AreEqual((compact.MiddleRadius - compact.InnerRadius) * rules.RingScale, rules.MiddleRadius - rules.InnerRadius, 1e-3, "ring 1 keeps its width");
-            Assert.AreEqual(400, rules.SwampFrom, 1, "the swamp begins about 400 m from the centre");
+            Assert.AreEqual(250, rules.SwampFrom, 1, "the swamp begins about 250 m from the centre");
             Assert.Greater(rules.SwampFrom, rules.InnerRadius + rules.ChunkSize, "no swamp in ring 0");
             Assert.Greater(rules.FlatRadius, rules.InnerRadius + rules.ChunkSize * .7, "every ring 0 chunk is still flat");
             // The middle of ring 2's middle band (176–240 m in the compact world); plain running with the base stamina
@@ -507,11 +507,11 @@ namespace Hakaton.WorldAssembly.Tests
                 }
             }
             Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
-            Assert.Greater(swamp[1], 0, "the swamp begins in the middle of ring 1");
-            // Its share grows linearly with distance: about 20% of 112–176 m, 40% of 176–240 m, 60% further out.
+            Assert.Greater(swamp[1], 0, "the swamp begins just past ring 0");
+            // Its share grows linearly with distance from its start (66 m here): about 30% of 112–176 m, 44% of 176–240 m, 60% further out.
             double near = bandSwamp[0] / (double)bandTotal[0], middle = bandSwamp[1] / (double)bandTotal[1], far = bandSwamp[2] / (double)bandTotal[2];
-            Assert.That(near, Is.InRange(.12, .28), "about a fifth of 112–176 m is swamp");
-            Assert.That(middle, Is.InRange(.32, .48), "about two fifths of 176–240 m");
+            Assert.That(near, Is.InRange(.22, .38), "about three tenths of 112–176 m is swamp");
+            Assert.That(middle, Is.InRange(.36, .52), "a bit over two fifths of 176–240 m");
             Assert.That(far, Is.InRange(.52, .68), "about three fifths from 240 m on");
             Assert.Greater(bigPatches, 0, "some patches are bigger than a district");
         }
