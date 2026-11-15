@@ -227,8 +227,8 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(swap.Check(body, far, 2), Is.EqualTo(SwapEffect.Refusal.None), "20 m at level II.");
             body.mass = 2;
             Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.None), "μ = 2 is still fine.");
-            body.mass = 2.5f;
-            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.TooHeavy));
+            body.mass = 500;
+            Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.None), "Weight does not matter.");
             body.mass = 1;
             body.isKinematic = true;
             Assert.That(swap.Check(body, near, 1), Is.EqualTo(SwapEffect.Refusal.Fixed));
@@ -281,7 +281,6 @@ namespace Hakaton.Expeditions.Tests
 
             var swap = AssetDatabase.LoadAssetAtPath<SwapEffect>(folder + "Swap.asset");
             Assert.That((swap.range.i, swap.range.ii, swap.range.iii), Is.EqualTo((12f, 20f, 30f)));
-            Assert.That(swap.maxMass, Is.EqualTo(2));
             Assert.That(swap.swapVfx, Is.Not.Null);
         }
     }

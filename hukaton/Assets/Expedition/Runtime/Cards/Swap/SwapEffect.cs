@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
-    /// «Подмена» (тьма, ранг 5/5). On a real hit of the card into a loose, movable, non-living object with μ ≤ 2 (a
+    /// «Подмена» (тьма, ранг 5/5). On a real hit of the card into a loose, movable, non-living object of any weight (a
     /// non-kinematic Rigidbody that is not a creature or an ally; the Stone cube qualifies) within 12 m (upgraded 18 m)
     /// of the player, the player and the object swap places — if the player's capsule fits where the object was. Each
     /// keeps ITS OWN velocity (owner's decision): they exchange positions, not motion. Otherwise a miss.
@@ -19,8 +19,6 @@ namespace Hakaton.Expeditions.Cards
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Range, m (board: 12 → 18).")]
         public LevelFloat range = new LevelFloat(12, 20, 30);
-        [Tooltip("Heaviest object it swaps (μ).")]
-        [Min(0)] public float maxMass = 2;
 
         [Header("Placement")]
         [Tooltip("Furthest the player may be shifted from the object's place to fit, m.")]
@@ -45,7 +43,7 @@ namespace Hakaton.Expeditions.Cards
             if (!body) return Refusal.NoObject;
             if (body.GetComponentInParent<WorldCreature>() || body.GetComponentInParent<ICombatant>() != null) return Refusal.Living;
             if (body.isKinematic && !PropPhysics.Movable(body)) return Refusal.Fixed;
-            if (body.mass > maxMass + .001f) return Refusal.TooHeavy;
+            // Weight does not matter (owner's decision 2026-11-15): any loose object swaps.
             if (Vector3.Distance(playerCentre, body.worldCenterOfMass) > Range(level) + .001f) return Refusal.TooFar;
             return Refusal.None;
         }
