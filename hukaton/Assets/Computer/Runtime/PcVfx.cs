@@ -10,7 +10,8 @@ namespace Hakaton.Computer
     /// </summary>
     public static class PcVfx
     {
-        /// <summary>Above the PC canvas (order 0); the cursor and tooltip canvases override to <see cref="OverlayOrder"/>.</summary>
+        /// <summary>Above the PC canvas (order 0). The tooltip is plain graphics of the PC canvas, its last layer: as a nested
+        /// canvas with its own order its bounds came out invalid (Invalid AABB) whenever it was shown.</summary>
         public const int SortingOrder = 10;
         public const int OverlayOrder = 20;
 
