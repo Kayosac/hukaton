@@ -109,6 +109,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             dataPath = meshPath;
 
             placed.Clear();
+            fixedInPlace.Clear();
             var go = new GameObject(name);
             var view = go.AddComponent<ChunkView>();
             view.shapeId = shape.Id;
@@ -815,6 +816,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// that lost its colliders (inside maze and forest walls) only burns; big pieces (a log bridge) stay put.
         /// </summary>
         static readonly HashSet<GameObject> charred = new HashSet<GameObject>();
+        /// <summary>Placed things that never get a body whatever their kind (a ford's stepping stones).</summary>
+        static readonly HashSet<GameObject> fixedInPlace = new HashSet<GameObject>();
 
         /// <summary>
         /// The burnt swamp: everything placed is charred black (its materials' charred copies), what floats is ash grey.
@@ -892,7 +895,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 if ((asset.StartsWith("Trees/") || asset.StartsWith("Swamp/Trees/")) && colliders.Length > 0) trees.Add(go.AddComponent<AwakenableTree>());
                 // What makes a wall stays put: a log that rolled off would open it.
-                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform) && !pinned.Contains(go)
+                bool loose = LooseMass.TryGetValue(id, out float mass) && colliders.Length > 0 && !InWall(go.transform) && !pinned.Contains(go) && !fixedInPlace.Contains(go)
                     && Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) <= 1.6f
                     && colliders.All(c => !(c is MeshCollider mesh) || mesh.convex);
                 // A body set into a rock, a trunk or a shed as they are drawn would stick there or jump out of it: it
@@ -2023,12 +2026,19 @@ namespace Hakaton.WorldAssembly.EditorTools
                 case "river-straight/ford":
                 case "river-bend/ford":
                 {
+                    // Stepping stones: set in the riverbed for good (no body, they never wake or roll), each turned with
+                    // its narrow side along the crossing and spaced so none lies on or in its neighbour.
                     var centre = t.Shape.Id == "river-bend" ? new Vector2(16 - 8 * .7071f, 16 - 8 * .7071f) : new Vector2(8, 8);
+                    var along = t.Shape.Id == "river-bend" ? new Vector2(.7071f, .7071f) : Vector2.right;
+                    float heading = Mathf.Atan2(along.x, along.y) * Mathf.Rad2Deg;
                     for (int i = -2; i <= 2; i++)
                     {
-                        var p = centre + (t.Shape.Id == "river-bend" ? new Vector2(.7071f, .7071f) : Vector2.right) * i * 1.25f;
-                        var stone = Place(parent, "Rocks/FA_RK04_BoulderFlat", t, p, (float)rng.NextDouble() * 360, Vector3.one * 1.4f);
-                        if (stone) stone.transform.localPosition = new Vector3(p.x - 8, TileTerrain.WaterLevel - .15f, p.y - 8);
+                        var p = centre + along * i * 1.5f;
+                        float yaw = heading + ((float)rng.NextDouble() * 2 - 1) * 5 + (rng.Next(2) == 0 ? 0 : 180);
+                        var stone = Place(parent, "Rocks/FA_RK04_BoulderFlat", t, p, yaw, Vector3.one * 1.05f);
+                        if (!stone) continue;
+                        stone.transform.localPosition = new Vector3(p.x - 8, TileTerrain.WaterLevel - .15f, p.y - 8);
+                        fixedInPlace.Add(stone);
                     }
                     break;
                 }
