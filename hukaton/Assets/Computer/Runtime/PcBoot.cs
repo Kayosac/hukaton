@@ -29,7 +29,7 @@ namespace Hakaton.Computer
         [Min(.1f)] public float shortSeconds = .5f;
         [Min(.1f)] public float offSeconds = .7f;
 
-        public enum Mode { Off, Full, Short, Running, Shutdown }
+        public enum Mode { Off, Full, Short, Running, Shutdown, Crash }
         public Mode State { get; private set; } = Mode.Off;
         public float Time01 => State == Mode.Full ? time / fullSeconds : State == Mode.Short ? time / shortSeconds : State == Mode.Shutdown ? time / offSeconds : 1;
         float time;
@@ -68,6 +68,18 @@ namespace Hakaton.Computer
             Present();
         }
 
+        /// <summary>
+        /// The tube on and open but the desktop not taking input, with a short jolt of noise: the blue screen of
+        /// «Закрой окно» is drawn over it. A <see cref="PowerOn"/> (full) follows.
+        /// </summary>
+        public void Crash()
+        {
+            State = Mode.Crash;
+            time = 0;
+            screen.SetPowered(true);
+            Present();
+        }
+
         public void PowerOff()
         {
             if (State == Mode.Off || State == Mode.Shutdown) return;
@@ -101,6 +113,10 @@ namespace Hakaton.Computer
                     break;
                 case Mode.Running:
                     Glass(1, 1, 0, 0, 0);
+                    Panels(0, 0, 0, 1);
+                    break;
+                case Mode.Crash:
+                    Glass(1, 1, 0, .8f * Mathf.Exp(-time * 5), .6f * Mathf.Exp(-time * 3), time < .06f ? .3f : 0);
                     Panels(0, 0, 0, 1);
                     break;
                 case Mode.Full:
