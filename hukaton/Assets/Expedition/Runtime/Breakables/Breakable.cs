@@ -63,7 +63,9 @@ namespace Hakaton.Expeditions
                 PropDebris.Shatter(world, kind, bounds, direction, velocity, transform, point);
                 if (loot) Spill(world, bounds.center);
                 if (loot && kind.release && kind.releaseChance > 0 && Random.value < kind.releaseChance)
-                    WorldCreature.Release(kind.release, world, bounds.center, transform.parent ? transform.parent : world.spawnedObjects);
+                    // In a chunk they go with it; a ready-made place stays for the next outing, so there they go with the outing.
+                    WorldCreature.Release(kind.release, world, bounds.center,
+                        transform.parent && !GetComponentInParent<AuthoredOutingWorld>(true) ? transform.parent : world.spawnedObjects);
             }
             // What stood on it falls (found while its colliders are still there).
             PhysicsProp.WakeResting(transform);

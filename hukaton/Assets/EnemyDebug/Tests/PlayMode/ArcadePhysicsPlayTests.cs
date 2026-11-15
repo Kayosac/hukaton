@@ -132,7 +132,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         {
             var go = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefab), at, Quaternion.identity);
             made.Add(go);
-            var breakable = go.GetComponent<Breakable>() ?? go.AddComponent<Breakable>();
+            var breakable = go.TryGetComponent(out Breakable had) ? had : go.AddComponent<Breakable>();
             breakable.kind = AssetDatabase.LoadAssetAtPath<BreakableKind>($"Assets/Game/Data/Breakables/{kind}.asset");
             Assert.That(breakable.kind, Is.Not.Null, kind);
             return breakable;

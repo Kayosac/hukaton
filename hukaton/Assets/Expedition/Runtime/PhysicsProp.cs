@@ -26,6 +26,7 @@ namespace Hakaton.Expeditions
 
         Vector3 start;
         Quaternion rotation;
+        bool posed;
         float quietUntil, thrownUntil, lastHurtAt;
         WorldCreature lastHurt;
 
@@ -42,13 +43,23 @@ namespace Hakaton.Expeditions
         public bool InFlight => Time.time < thrownUntil;
         Collider[] colliders;
 
-        void Awake() { start = transform.position; rotation = transform.rotation; }
+        void Awake() => RememberPose();
+
+        /// <summary>Where it was made. One under a part of a place that is switched off has not woken yet: it is still there.</summary>
+        void RememberPose()
+        {
+            if (posed) return;
+            posed = true;
+            start = transform.position;
+            rotation = transform.rotation;
+        }
 
         // Appearing with its chunk it settles on the ground: that is not a knock.
         void OnEnable() => quietUntil = Time.time + 1;
 
         public void ResetForOuting()
         {
+            RememberPose();
             if (TryGetComponent(out Breakable breakable)) breakable.Restore();
             // A ready-made place starts every outing as it was made: dormant things asleep again where they were.
             if (dormant) Rest();

@@ -665,7 +665,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         };
 
         /// <summary>Loose things the player and cards push about, with their mass at scale 1 (the Old Apiary's bodies).</summary>
-        static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
+        internal static readonly Dictionary<string, float> LooseMass = new Dictionary<string, float>
         {
             ["FA_DW01_LogWhole"] = 5, ["FA_DW02_LogSplit"] = 3, ["FA_DW04_LogRotten"] = 3, ["FA_DW09_SticksSmall"] = .4f, ["FA_DW10_SticksLarge"] = 1.5f,
             ["FA_DW11_BranchForked"] = .5f, ["FA_DW12_BarkSlab"] = .3f, ["FA_DW03_LogHollow"] = 4,
@@ -684,7 +684,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         /// Fixed things that come apart under a hard blow, piece by piece where they stood (a Breakable without a
         /// body): the fences, with their kind in Game/Data/Breakables/Fences.
         /// </summary>
-        static readonly Dictionary<string, string> BreakApart = new Dictionary<string, string>
+        internal static readonly Dictionary<string, string> BreakApart = new Dictionary<string, string>
         {
             ["FA_ST01_FenceSection"] = "Fences/Fence ST01", ["FA_ST02_FenceBroken"] = "Fences/Fence ST02", ["FA_ST03_FenceCorner"] = "Fences/Fence ST03",
             ["SM_SW19_WaterFenceRails"] = "Fences/Fence SW19a", ["SM_SW19_WaterFenceWattle"] = "Fences/Fence SW19b",
@@ -792,7 +792,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         }
 
         /// <summary>Loose things that break (Breakable), with their kind in Game/Data/Breakables.</summary>
-        static readonly Dictionary<string, string> BreakKind = new Dictionary<string, string>
+        internal static readonly Dictionary<string, string> BreakKind = new Dictionary<string, string>
         {
             ["FA_PR09_PotLow"] = "Clay pot", ["FA_PR10_Pitcher"] = "Clay pot", ["FA_PR06_BottleSquat"] = "Bottle", ["FA_PR07_BottleTall"] = "Bottle",
             ["FA_PR13_CrateClosed"] = "Crate", ["FA_PR14_CrateOpen"] = "Crate", ["FA_PR02_LanternGround"] = "Lantern",
@@ -800,7 +800,7 @@ namespace Hakaton.WorldAssembly.EditorTools
         };
 
         /// <summary>What a loose thing knocks like (PropImpacts); wood when not listed.</summary>
-        static PropSurface SurfaceOf(string id) =>
+        internal static PropSurface SurfaceOf(string id) =>
             id.Contains("_RK") || id.Contains("_SP05") || id.Contains("_SP06") || id.Contains("_SP07") || id.Contains("_MK05") ? PropSurface.Stone
             : id.Contains("PotLow") || id.Contains("Pitcher") || id.Contains("Bottle") ? PropSurface.Clay
             : id.Contains("Lantern") || id.Contains("Candle") || id.Contains("Cage") ? PropSurface.Metal
@@ -1081,7 +1081,8 @@ namespace Hakaton.WorldAssembly.EditorTools
         static readonly Collider[] easeHits = new Collider[32];
 
         /// <summary>Moves a loose thing out of whatever solid it is set into (the ground too); false when it stays in deeper than 3 cm.</summary>
-        static bool EaseOut(GameObject go, Collider[] own)
+        /// <param name="down">May it be eased downwards? Not in a cave, whose floor is a thin shell it would go through.</param>
+        internal static bool EaseOut(GameObject go, Collider[] own, bool down = true)
         {
             for (int pass = 0; pass < 6; pass++)
             {
@@ -1101,6 +1102,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     }
                 }
                 if (deepest <= .03f) return true;
+                if (!down && push.y < -.01f) return false;
                 go.transform.position += push;
             }
             return false;

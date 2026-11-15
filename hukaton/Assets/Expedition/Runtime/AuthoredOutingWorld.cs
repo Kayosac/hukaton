@@ -17,6 +17,8 @@ namespace Hakaton.Expeditions
         public List<WorldObstacle> obstacles = new List<WorldObstacle>();
         public List<WorldCreature> creatures = new List<WorldCreature>();
         public List<PhysicsProp> props = new List<PhysicsProp>();
+        [Tooltip("Fixed things that break (fences): whole again every outing. Filled from the children when empty.")]
+        public List<Breakable> breakables = new List<Breakable>();
         [Tooltip("Places where a chest may turn up; each rolls its table every outing.")]
         public List<ChestSite> chestSites = new List<ChestSite>();
 
@@ -37,6 +39,7 @@ namespace Hakaton.Expeditions
             EndOuting();
             world = expedition;
             gameObject.SetActive(true);
+            Gather();
             Fill(world.finds, finds);
             Fill(world.obstacles, obstacles);
             Fill(world.creatures, creatures);
@@ -45,6 +48,7 @@ namespace Hakaton.Expeditions
             foreach (var o in obstacles) if (o) { o.world = expedition; o.ResetForOuting(); }
             foreach (var f in finds) if (f) { f.world = expedition; f.ResetForOuting(random); }
             foreach (var p in props) if (p) p.ResetForOuting();
+            foreach (var b in breakables) if (b) b.Restore();
             foreach (var c in creatures) if (c) { c.world = expedition; c.ResetForOuting(random); }
             foreach (var site in chestSites) if (site) site.ResetForOuting(expedition, random);
             var start = departure ? departure : transform;
@@ -63,6 +67,23 @@ namespace Hakaton.Expeditions
             foreach (var site in chestSites) if (site) site.Clear();
             world = null;
             gameObject.SetActive(false);
+        }
+
+        bool gathered;
+
+        /// <summary>
+        /// Every loose thing and fixed breakable under the place is reset each outing, the ones made physical after the
+        /// setup filled the lists too (PlaceLooseThings).
+        /// </summary>
+        void Gather()
+        {
+            if (gathered) return;
+            gathered = true;
+            var known = new HashSet<PhysicsProp>(props);
+            foreach (var p in GetComponentsInChildren<PhysicsProp>(true)) if (known.Add(p)) props.Add(p);
+            var fixedOnes = new HashSet<Breakable>(breakables);
+            foreach (var b in GetComponentsInChildren<Breakable>(true))
+                if (!b.TryGetComponent<PhysicsProp>(out _) && fixedOnes.Add(b)) breakables.Add(b);
         }
 
         static void Fill<T>(List<T> target, List<T> source) where T : Object
