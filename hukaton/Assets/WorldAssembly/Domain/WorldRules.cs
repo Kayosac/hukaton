@@ -22,7 +22,7 @@ namespace Hakaton.WorldAssembly
         public float RingScale = 7.25f;
         /// <summary>Ring 0 shrinks by this on top of <see cref="RingScale"/>, and everything beyond it moves in by as many
         /// metres (<see cref="ShiftIn"/>), keeping its width: .5 makes the calm start 232 m in radius, not 464 m; ring 1
-        /// then runs 232–580 m, the swamp begins at ~500 m, the middle of ring 2 is ~1276 m (~4¼ min of running).</summary>
+        /// then runs 232–580 m, the swamp begins at ~400 m, the middle of ring 2 is ~1276 m (~4¼ min of running).</summary>
         public float RingZeroScale = .5f;
         /// <summary>How far in everything beyond ring 0 moves: the metres ring 0 lost to <see cref="RingZeroScale"/>.</summary>
         public float ShiftIn => InnerRadiusBase * RingScale * (1 - RingZeroScale);
@@ -46,9 +46,9 @@ namespace Hakaton.WorldAssembly
         /// <summary>Swamp noise feature size, in chunks: bigger cells, bigger patches.</summary>
         public int SwampNoiseCell = 7;
         /// <summary>No swamp nearer than this to the start at <see cref="RingScale"/> 1 (metres, chunk centre); its share
-        /// grows linearly out to SwampFullBase. 101 puts the first swamp ~500 m from the centre in the real world
-        /// (101 × 7.25 − 232), in the outer part of ring 1 (232–580 m); ring 0 and the inner ring 1 stay forest.</summary>
-        public float SwampFromBase = 101f, SwampFullBase = 272f;
+        /// grows linearly out to SwampFullBase. 87.17 puts the first swamp ~400 m from the centre in the real world
+        /// (87.17 × 7.25 − 232), in the middle of ring 1 (232–580 m); ring 0 and the inner ring 1 stay forest.</summary>
+        public float SwampFromBase = 87.17f, SwampFullBase = 272f;
         public float SwampFrom => SwampFromBase * RingScale - ShiftIn;
         public float SwampFull => SwampFullBase * RingScale - ShiftIn;
         /// <summary>Share of chunks that are swamp at SwampFrom and at SwampFull and beyond, growing linearly between
