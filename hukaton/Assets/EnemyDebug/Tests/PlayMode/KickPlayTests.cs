@@ -13,7 +13,8 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
 {
     /// <summary>
     /// The kick (F) and the trophy cards (board «Пинок и трофейные карты»): a kick hurts, shoves and stuns a small
-    /// creature, goes through a swarm, breaks a pot; a slain creature's trophy card flies into the hand. Photographs of
+    /// creature, goes through a swarm, breaks a pot; it has its own cooldown, not stamina, and the leg is drawn under the
+    /// cards; a slain creature's trophy card flies into the hand. Photographs of
     /// the leg and the flying card go to Logs/kick/.
     /// </summary>
     public class KickPlayTests
@@ -37,6 +38,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             sandbox.control.CaptureCursor();
             yield return Wait(.2f);
             Assert.That(world.control.GameplayActive, Is.True);
+            world.kick.ResetCooldown();
         }
 
         [UnityTearDown]
@@ -86,11 +88,14 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             int before = rooster.Health;
             var from = rooster.Position;
             Assert.That(world.kick.TryKick(), Is.True, "a rested player kicks");
-            yield return Wait(.08f);
-            yield return Photograph("kick-rise");
-            yield return Wait(.08f);
+            yield return Wait(.03f);
+            yield return Photograph("kick-thrust");
+            yield return Wait(.06f);
             yield return Photograph("kick-full");
+            yield return Wait(.1f);
+            yield return Photograph("kick-retract");
             yield return Wait(.25f);
+            yield return Photograph("kick-ring");
             Assert.That(rooster.Health, Is.EqualTo(before - KickRules.Damage), "one point of damage");
             Assert.That(Vector3.Distance(rooster.Position, from), Is.GreaterThan(.3f), "and shoved");
             Assert.That(world.kick.TryKick(), Is.False, "not again before the cooldown");
@@ -109,12 +114,34 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TiredPlayersCannotKick()
+        public IEnumerator TheKickHasItsOwnThreeSecondCooldown()
         {
             var stamina = world.motor.stamina;
-            while (stamina.TrySpend(10)) { }
-            Assert.That(world.kick.TryKick(), Is.False);
-            yield return null;
+            for (int i = 0; i < 30 && stamina.TrySpend(10); i++) { }
+            float left = stamina.Value;
+            Assert.That(world.kick.TryKick(), Is.True, "out of breath, the leg still kicks: stamina is not its fuel");
+            Assert.That(stamina.Value, Is.LessThanOrEqualTo(left + .01f).And.GreaterThanOrEqualTo(left - .01f), "and spends none");
+            Assert.That(world.kick.CooldownLeft01, Is.EqualTo(1).Within(.02f));
+            yield return Wait(1);
+            Assert.That(world.kick.TryKick(), Is.False, "not before three seconds");
+            Assert.That(world.kick.CooldownLeft01, Is.InRange(.55f, .72f));
+            yield return Wait(2.1f);
+            Assert.That(world.kick.TryKick(), Is.True, "and again after them");
+        }
+
+        [Test]
+        public void TheLegIsDrawnUnderTheCardsAndNeverCut()
+        {
+            var view = world.kick.view;
+            Assert.That(view.canvas.renderMode, Is.EqualTo(RenderMode.ScreenSpaceCamera), "in front of the eyes, through the view camera");
+            Assert.That(view.canvas.worldCamera, Is.SameAs(world.viewCamera));
+            var material = view.body.materialForRendering;
+            Assert.That(material.renderQueue, Is.LessThan(3100), "before the card viewmodel's quads");
+            Assert.That(material.GetFloat("_ZTest"), Is.EqualTo((float)UnityEngine.Rendering.CompareFunction.Always), "the world never cuts it");
+            Assert.That(view.leg.pivot, Is.EqualTo(new Vector2(1, 0)), "pivot at the drawing's cut corner");
+            // The trouser leg is cut at the drawing's right edge, over its lowest 217 of 768 rows: kept under the screen.
+            float cutTop = view.restPosition.y + view.maxLift + view.leg.rect.height * 217f / 768 * (1 + view.thrustPunch);
+            Assert.That(cutTop, Is.LessThan(0), "the cut stays under the bottom edge");
         }
 
         [UnityTest]

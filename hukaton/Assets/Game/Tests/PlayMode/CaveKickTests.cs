@@ -90,6 +90,7 @@ namespace Hakaton.Game.Tests
                 thrown.Invoke(cave, new object[] { card });
             }
             Assert.That(cave.CanDiscard(), Is.False, "R waits for the kick");
+            world.kick.ResetCooldown();
             Assert.That(world.kick.TryKick(), Is.True);
             yield return null;
             Assert.That(trip.Deck.Hand.Contains(kickCard), Is.False, "the kick's card has done its job");

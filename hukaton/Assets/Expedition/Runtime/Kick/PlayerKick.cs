@@ -8,13 +8,13 @@ namespace Hakaton.Expeditions
 {
     /// <summary>
     /// The kick (board «Пинок и трофейные карты»): F on an outing and in the cave. The player always has it, cards or no
-    /// cards; it is for control, not for killing. It costs stamina and has a short cooldown; a worn-out player only
-    /// twitches his leg. The blow lands a beat after the press (<see cref="hitDelay"/>) on the nearest thing in front of the
-    /// eyes within reach: a creature (<see cref="WorldCreature.Kicked"/>: one point of damage, a shove and a stun by its
-    /// toughness), a chest mimic (<see cref="ChestMimic.Kicked"/>: shut, it wakes and bites, it never dies of it), a loose
-    /// thing (a crate, a pot, a barrel, the stone cube, a chest — shoved, broken by the thresholds of its kind) or a fixed
-    /// thing that breaks (a fence). The rest — the shove into a bog, off a cliff, a frozen shell shattering — the world
-    /// already does. The leg on screen and the feel are <see cref="KickView"/>'s.
+    /// cards, as often as its own cooldown allows (<see cref="cooldown"/>, 3 s for a start; the ring round the crosshair
+    /// shows it, <see cref="KickCooldownRing"/>). It is for control, not for killing. The blow lands at once: the nearest
+    /// thing in front of the eyes within reach — a creature (<see cref="WorldCreature.Kicked"/>: one point of damage, a
+    /// shove and a stun by its toughness), a chest mimic (<see cref="ChestMimic.Kicked"/>: shut, it wakes and bites, it
+    /// never dies of it), a loose thing (crate, pot, barrel, the stone cube, a chest — shoved, broken by the thresholds
+    /// of its kind) or a fixed thing that breaks (a fence). Every hit has its punch: a hit-stop, a jolt of the view, an
+    /// impact burst and a thump. The leg on screen is <see cref="KickView"/>'s.
     /// </summary>
     public sealed class PlayerKick : MonoBehaviour
     {
@@ -22,16 +22,14 @@ namespace Hakaton.Expeditions
         [Tooltip("The leg on screen.")]
         public KickView view;
 
-        [Header("Input and cost")]
+        [Header("Input and cooldown")]
         public Key key = Key.F;
-        [Tooltip("Seconds from one kick to the next.")]
-        [Min(0)] public float cooldown = .8f;
-        [Tooltip("Stamina a kick costs (a jump costs 12 of 100).")]
-        [Min(0)] public float staminaCost = 15;
+        [Tooltip("Seconds from one kick to the next (3 for a start; an upgrade may shorten it later).")]
+        [Min(0)] public float cooldown = 3;
 
         [Header("The blow")]
-        [Tooltip("The blow lands this long after the press: the leg's swing.")]
-        [Min(0)] public float hitDelay = .12f;
+        [Tooltip("The blow lands this long after the press: as soon as the leg is out.")]
+        [Min(0)] public float hitDelay = .045f;
         [Tooltip("Reach from the eyes, metres: about a goblin dog's bite — to kick, you have to come close.")]
         [Min(.2f)] public float reach = 1.8f;
         [Tooltip("Thickness of the swept leg, metres.")]
@@ -47,16 +45,19 @@ namespace Hakaton.Expeditions
         public LayerMask layers = ~0;
 
         [Header("Feel")]
-        [Tooltip("A hit stops time this long (seconds of real time).")]
-        [Min(0)] public float hitStop = .05f;
-        [Tooltip("The view nods into the kick (degrees per second, x down) and shakes on a hit.")]
-        public Vector3 swingKick = new Vector3(30, 0, 0);
-        public Vector3 hitKick = new Vector3(-40, 0, 0);
-        [Range(0, 1)] public float hitTrauma = .18f;
-        public SfxCue swingSound, hitSound, tiredSound;
-        [Tooltip("Dust where the boot lands (Retro Arsenal).")]
+        [Tooltip("The view dips into the kick as it starts (degrees per second, x down).")]
+        public Vector3 swingKick = new Vector3(45, -10, 0);
+        [Tooltip("A hit: time stops this long (real seconds), the view jolts back and shakes, the field of view punches.")]
+        [Min(0)] public float hitStop = .065f;
+        public Vector3 hitKick = new Vector3(-110, 25, 0);
+        [Range(0, 1)] public float hitTrauma = .28f;
+        public float hitFovPunch = -45;
+        public SfxCue swingSound, hitSound;
+        [Tooltip("The impact where the boot lands (Retro Arsenal) and a little dust with it.")]
+        public VfxBurst hitBurst;
+        [Min(.01f)] public float hitBurstScale = .28f;
         public VfxBurst hitDust;
-        [Min(.01f)] public float hitDustScale = .28f;
+        [Min(.01f)] public float hitDustScale = .15f;
 
         /// <summary>A kick was made (landed or not): the cave's instruction card waits for it.</summary>
         public event Action Kicked;
@@ -64,13 +65,28 @@ namespace Hakaton.Expeditions
         public event Action<Collider> Landed;
 
         public int KickCount { get; private set; }
+        /// <summary>The leg is on its way: the blow has not landed yet.</summary>
         public bool Swinging => hitAt > 0;
+        /// <summary>Seconds left until the next kick.</summary>
         public float ReadyIn => Mathf.Max(0, readyAt - Time.time);
+        /// <summary>1 right after a kick, 0 once the next one is allowed.</summary>
+        public float CooldownLeft01 => cooldown <= 0 ? 0 : Mathf.Clamp01(ReadyIn / cooldown);
 
         float readyAt, hitAt;
         static readonly RaycastHit[] Hits = new RaycastHit[24];
 
         bool Usable => world && world.Running && world.control && world.control.GameplayActive;
+
+        void Start()
+        {
+            if (view) view.Bind(world);
+            if (world) world.OutingBegan += ResetCooldown;
+        }
+
+        void OnDestroy()
+        {
+            if (world) world.OutingBegan -= ResetCooldown;
+        }
 
         void OnDisable() => hitAt = 0;
 
@@ -92,18 +108,10 @@ namespace Hakaton.Expeditions
             TryKick();
         }
 
-        /// <summary>Starts a kick if one is allowed now (also for tests and the cheat menu). False: cooling down, too tired.</summary>
+        /// <summary>Starts a kick if one is allowed now (also for tests and the cheat menu). False while cooling down.</summary>
         public bool TryKick()
         {
             if (!Usable || Time.time < readyAt || hitAt > 0) return false;
-            var stamina = world.motor ? world.motor.stamina : null;
-            if (stamina && !stamina.TrySpend(staminaCost))
-            {
-                readyAt = Time.time + cooldown * .5f;
-                if (view) view.Tired();
-                world.Play(tiredSound);
-                return false;
-            }
             readyAt = Time.time + cooldown;
             hitAt = Time.time + hitDelay;
             KickCount++;
@@ -113,6 +121,9 @@ namespace Hakaton.Expeditions
             Kicked?.Invoke();
             return true;
         }
+
+        /// <summary>The next kick is allowed at once (a new outing, the cheat menu).</summary>
+        public void ResetCooldown() => readyAt = 0;
 
         void Strike()
         {
@@ -126,9 +137,12 @@ namespace Hakaton.Expeditions
             {
                 world.feel.Kick(hitKick);
                 world.feel.AddTrauma(hitTrauma);
+                world.feel.PunchFov(hitFovPunch);
             }
             world.Play(hitSound, hit.point);
-            world.Spawn(hitDust, hit.point, Quaternion.LookRotation(-direction), Color.white, hitDustScale);
+            var facing = Quaternion.LookRotation(-direction);
+            world.Spawn(hitBurst, hit.point, facing, Color.white, hitBurstScale);
+            world.Spawn(hitDust, hit.point, facing, Color.white, hitDustScale);
             if (view) view.Landed();
             Landed?.Invoke(hit.collider);
         }

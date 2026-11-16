@@ -49,9 +49,8 @@ MonoBehaviour:
   world: {fileID: 0}
   view: {fileID: 1783274699260169251}
   key: 20
-  cooldown: 0.8
-  staminaCost: 15
-  hitDelay: 0.12
+  cooldown: 3
+  hitDelay: 0.045
   reach: 1.8
   radius: 0.45
   creatureShove: 6
@@ -61,15 +60,17 @@ MonoBehaviour:
   layers:
     serializedVersion: 2
     m_Bits: 4294967295
-  hitStop: 0.05
-  swingKick: {x: 30, y: 0, z: 0}
-  hitKick: {x: -40, y: 0, z: 0}
-  hitTrauma: 0.18
+  swingKick: {x: 45, y: -10, z: 0}
+  hitStop: 0.065
+  hitKick: {x: -110, y: 25, z: 0}
+  hitTrauma: 0.28
+  hitFovPunch: -45
   swingSound: {fileID: 11400000, guid: 23bebd6acdac4a919d2b3a54af973b39, type: 2}
   hitSound: {fileID: 11400000, guid: e67c52d6abbb4dcb8ade35b57e5851c1, type: 2}
-  tiredSound: {fileID: 11400000, guid: 3108b7650d614fa5b99f631ff17c3661, type: 2}
-  hitDust: {fileID: 0}
-  hitDustScale: 0.28
+  hitBurst: {fileID: 4466069475129538438, guid: 348741abef77e41758142129a3cc5926, type: 3}
+  hitBurstScale: 0.28
+  hitDust: {fileID: 8948856644754878334, guid: 92d4a009a27f0419fa408275dd5ba337, type: 3}
+  hitDustScale: 0.15
 --- !u!114 &1783274699260169251
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -89,15 +90,37 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 8965256d5cf14d5891bc85cc38ee09e6, type: 3}
   - {fileID: 21300000, guid: 02378ef0572c45ceb287334d2f94b26b, type: 3}
   - {fileID: 21300000, guid: 8c4aaf7af9c449c19d96dd6734994795, type: 3}
-  restPosition: {x: 140, y: -40}
-  enterOffset: {x: 120, y: -620}
-  enterAngle: -14
-  riseSeconds: 0.12
-  holdSeconds: 0.1
-  dropSeconds: 0.18
-  landedJolt: {x: -10, y: -34}
-  tiredRise: 0.45
-  tiredSeconds: 0.32
+  material: {fileID: 2100000, guid: b099fa0533bd84a468a92082a70c560c, type: 2}
+  planeDistance: 0.12
+  cellPixels: 2.5
+  restPosition: {x: 452, y: -375}
+  maxLift: 40
+  enterOffset: {x: 170, y: -560}
+  enterAngle: 9
+  exitOffset: {x: 110, y: -660}
+  exitAngle: -7
+  thrustSeconds: 0.06
+  thrustOvershoot: 1.6
+  holdSeconds: 0.07
+  retractSeconds: 0.2
+  halfAt: 0.18
+  bentAt: 0.45
+  thrustPunch: 0.07
+  landedJolt: {x: -260, y: -900}
+  landedTurn: -120
+  lookLag: 0.3
+  maxLookLag: 60
+  lookTilt: 0.02
+  maxLookTilt: 5
+  fallLag: 6
+  maxFallLag: 60
+  landKick: 40
+  lagFrequency: 4.5
+  lagDamping: 0.45
+  walkBob: {x: 6, y: 9}
+  runBob: {x: 12, y: 16}
+  walkStepRate: 3.4
+  runStepRate: 5.2
 --- !u!1 &6022370746012514499
 GameObject:
   m_ObjectHideFlags: 0
@@ -132,9 +155,9 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 512, y: 768}
-  m_Pivot: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 452, y: -375}
+  m_SizeDelta: {x: 640, y: 960}
+  m_Pivot: {x: 1, y: 0}
 --- !u!222 &512394115229274683
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -155,7 +178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: 7bae25061fc8143788b1a6ea462058cb, type: 2}
+  m_Material: {fileID: 2100000, guid: b099fa0533bd84a468a92082a70c560c, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -220,10 +243,10 @@ Canvas:
   m_GameObject: {fileID: 9079454083378149222}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
+  m_RenderMode: 1
   m_Camera: {fileID: 0}
-  m_PlaneDistance: 100
-  m_PixelPerfect: 1
+  m_PlaneDistance: 0.12
+  m_PixelPerfect: 0
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -232,7 +255,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 3
+  m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &2964527516471166659
 MonoBehaviour:

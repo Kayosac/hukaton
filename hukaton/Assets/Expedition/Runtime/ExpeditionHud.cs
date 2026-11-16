@@ -44,6 +44,10 @@ namespace Hakaton.Expeditions
         public Image reticle;
         public Image chargeRing;
         public Color reticleColour = Color.white;
+        [Tooltip("The kick's cooldown round the aim, inside the charge ring (PlayerKick): it draws itself clockwise while the leg recovers and, once the kick is ready, flashes and wipes away clockwise.")]
+        public Image kickRing;
+        [Min(.01f)] public float kickRingWipeSeconds = .22f;
+        public Color kickRingColour = new Color(1, 1, 1, .8f);
 
         [Header("Card counter")]
         [Tooltip("'Stock/Total' in the bottom-right corner, clear of the widest hand fan: cards still to draw / copies taken on this outing.")]
@@ -82,7 +86,9 @@ namespace Hakaton.Expeditions
 
         readonly List<(string name, int value, float time, string colour)> toastLines = new List<(string, int, float, string)>();
         SpringFloat[] heartScales;
-        SpringFloat heartsShake, ringScale;
+        SpringFloat heartsShake, ringScale, kickRingScale;
+        float kickRingWipe;
+        bool kickCooling;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
         Color vignetteColour;
         bool subscribed, hintedDiscard;
@@ -246,6 +252,44 @@ namespace Hakaton.Expeditions
                 chargeRing.rectTransform.localScale = Vector3.one * scale;
             }
             if (reticle) reticle.color = reticleColour;
+            UpdateKickRing(dt);
+        }
+
+        /// <summary>
+        /// The kick's ring: filled clockwise from the top as the cooldown runs (empty right after a kick, closed when the
+        /// next one is allowed); then a flash and a pop and it wipes away, clockwise too.
+        /// </summary>
+        void UpdateKickRing(float dt)
+        {
+            if (!kickRing) return;
+            float left = world.kick ? world.kick.CooldownLeft01 : 0;
+            float scale = kickRingScale.Step(1, 8, .35f, dt);
+            if (left > 0)
+            {
+                if (!kickCooling) kickRingScale.Kick(-4);
+                kickCooling = true;
+                kickRingWipe = 0;
+                kickRing.enabled = true;
+                kickRing.fillClockwise = true;
+                kickRing.fillAmount = 1 - left;
+                kickRing.color = kickRingColour;
+            }
+            else
+            {
+                if (kickCooling)
+                {
+                    kickCooling = false;
+                    kickRingWipe = 1;
+                    kickRingScale.Kick(9);
+                }
+                kickRingWipe = Mathf.Max(0, kickRingWipe - dt / kickRingWipeSeconds);
+                kickRing.enabled = kickRingWipe > 0;
+                // Counter-clockwise fill shrinking from the top: the gap opens clockwise.
+                kickRing.fillClockwise = false;
+                kickRing.fillAmount = kickRingWipe;
+                kickRing.color = Color.white;
+            }
+            kickRing.rectTransform.localScale = Vector3.one * scale;
         }
 
         Vector2 itemHintHome;

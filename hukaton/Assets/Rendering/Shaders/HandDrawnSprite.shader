@@ -27,6 +27,8 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         // Off for plates that carry text on top (speech bubbles).
         [Header(Depth)]
         [ToggleUI] _ZWrite ("Write Depth", Float) = 1
+        // Always for a drawing that must never be cut by the world (the kicking leg just in front of the eyes).
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("Depth Test", Float) = 4
         // A pulsing outline of hard cells around the drawing (hints: «Потяни меня» and its rope). Off by default:
         // ordinary sprites compile without it. Renderers fade it with _OutlineStrength in a MaterialPropertyBlock.
         // Ordered (Bayer 4 × 4) dithering on the drawing's own texels: fewer colour levels, the old-console look.
@@ -56,6 +58,7 @@ Shader "Hukaton/Sprites/Hand Drawn Pixel"
         Cull Off
         // Hard pixels: what survives the alpha cutoff is solid, so it may write depth (see _ZWrite).
         ZWrite [_ZWrite]
+        ZTest [_ZTest]
         Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
 
         HLSLINCLUDE
