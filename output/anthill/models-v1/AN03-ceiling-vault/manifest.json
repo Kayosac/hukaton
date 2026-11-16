@@ -1,0 +1,32 @@
+[
+ {
+  "id": "AN03a",
+  "name": "Ceiling vault 4 m span x 4 m",
+  "fbx": "SM_AN03_CeilingVault.fbx",
+  "tris": 374,
+  "tris_by_material": {
+   "Earth": 374
+  },
+  "size_xyz_m": [
+   5.374,
+   4.0,
+   1.834
+  ],
+  "min_z": -0.3204,
+  "objects": [
+   "AN03a_Earth"
+  ],
+  "solidity": "solid",
+  "collider": "mesh",
+  "joins": {
+   "grid": "spans X between two AN01 walls whose centre lines are at x = -2 / +2 (4 m span); tiles along Y every 4.0 m",
+   "pivot": "origin (0,0,0) = seating plane on the wall tops (place at the wall top height z = 4.0), centred; the scalloped feet hang 0.06-0.30 m below it to overlap the crooked wall tops and hide the seam",
+   "front_end": "flat plane y = -2.0",
+   "back_end": "flat plane y = +2.0",
+   "end_profile_note": "identical arch section at both ends: feet x = +/-1.36..2.55 at z = -0.30, underside apex z = 0.84, top z = 1.47",
+   "scale": "for wider spans scale X uniformly (span = 4 m x scale) and keep Y = 1 so the end profiles still tile"
+  },
+  "emissive": false,
+  "notes": "thick (0.45-0.6 m) faceted shell, concave underside that domes up toward the middle (ribbed when tiled), feet scalloped low at the 4 corners like the concept; top closed and convex."
+ }
+]

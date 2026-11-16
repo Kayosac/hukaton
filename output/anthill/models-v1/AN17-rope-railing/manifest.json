@@ -1,0 +1,30 @@
+{
+ "asset": "AN17 rope-railing",
+ "variants": [
+  {
+   "id": "AN17a",
+   "name": "RopeRailing",
+   "fbx": "SM_AN17_RopeRailing.fbx",
+   "tris": 1984,
+   "tris_by_material": {
+    "Wood": 712,
+    "Props": 1272
+   },
+   "size_xyz_m": [
+    3.133,
+    0.445,
+    1.049
+   ],
+   "min_z": 0.0,
+   "objects": [
+    "AN17a_Wood",
+    "AN17a_Props"
+   ],
+   "solidity": "solid",
+   "collider": "2 boxes for the posts + 1 thin box (or capsule) along the rope at 0.55-0.8 m; rope collider blocks walking off the edge",
+   "emissive": false,
+   "joins": "posts at x = +/-1.3 from the centre; neighbouring sections overlap one post or leave ~0.1 m; corners by rotating a section",
+   "notes": "Posts with carved notches (real recesses), 5 rope wraps, sagging rope, knot (2 loops) and tails are geometry; rope uses Props `rope`, post tops end_grain."
+  }
+ ]
+}

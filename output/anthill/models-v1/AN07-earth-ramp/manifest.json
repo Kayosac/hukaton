@@ -1,0 +1,34 @@
+[
+ {
+  "id": "AN07a",
+  "name": "Straight earth ramp 3 x 4 m, rise 1 m",
+  "fbx": "SM_AN07_EarthRamp.fbx",
+  "tris": 210,
+  "tris_by_material": {
+   "Earth": 130,
+   "Floor": 80
+  },
+  "size_xyz_m": [
+   3.196,
+   4.0,
+   1.0
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN07a_Earth",
+   "AN07a_Floor"
+  ],
+  "solidity": "walk-on-top",
+  "collider": "mesh or convex hull (wedge)",
+  "joins": {
+   "grid": "pivot bottom centre; 3 m wide (x +/-1.5), 4 m long (y -2..+2), rises toward +Y",
+   "low_end": "toe at y = -2.0, top edge z = 0.03 (sinks under AN06 floor tiles whose top is z = 0.15: no lip to step over)",
+   "high_end": "flat vertical face y = +2.0, x -1.5..+1.5, top edge z = 1.00 (flat across between the rounded lips)",
+   "chain": "continue at the high end with a floor/landing at z = 1.0, another AN07 placed at (0, +4, +0.97) on an earth base, or AN08 low end (top 0.5) placed at base z = +0.5 with its low-end centre (x=1.5 of AN08) on x = 0"
+  },
+  "emissive": false,
+  "slope_deg": 13.6,
+  "max_face_slope_deg": 15.8,
+  "notes": "wedge with a trodden Floor top (faceted +/-2 cm, no snags), rounded Earth lips, slightly bulging crooked Earth sides, closed bottom; thin toe vs 1 m high end."
+ }
+]

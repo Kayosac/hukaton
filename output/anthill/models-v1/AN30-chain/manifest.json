@@ -1,0 +1,32 @@
+{
+ "asset": "AN30 chain",
+ "variants": [
+  {
+   "id": "AN30a",
+   "name": "Chain",
+   "fbx": "SM_AN30_Chain.fbx",
+   "tris": 472,
+   "tris_by_material": {
+    "Props": 472
+   },
+   "size_xyz_m": [
+    0.128,
+    0.129,
+    1.203
+   ],
+   "min_z": -1.203,
+   "objects": [
+    "AN30a_Props"
+   ],
+   "solidity": "passable (decor)",
+   "collider": "none (or a thin capsule if it must stop the rope/cards)",
+   "attach": {
+    "pivot": "top attach point = top of the upper open half-link (0,0,0); hangs along -Z",
+    "bottom_attach_z": -1.203,
+    "repeat": "stack copies: next chain pivot at bottom_attach_z (+0.03 overlap)"
+   },
+   "emissive": false,
+   "notes": "6 full octagonal links (square section, alternating 90 deg, slight swing/jitter) + open half-links at both ends; all real geometry, Props `iron` region (rust painted)."
+  }
+ ]
+}

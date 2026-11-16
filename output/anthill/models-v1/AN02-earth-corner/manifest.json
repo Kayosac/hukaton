@@ -1,0 +1,30 @@
+[
+ {
+  "id": "AN02a",
+  "name": "Earth corner 90 deg concave (3 faces)",
+  "fbx": "SM_AN02_EarthCorner.fbx",
+  "tris": 560,
+  "tris_by_material": {
+   "Earth": 560
+  },
+  "size_xyz_m": [
+   4.746,
+   4.714,
+   4.429
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN02a_Earth"
+  ],
+  "solidity": "solid",
+  "collider": "mesh (or 2 boxes along the arms)",
+  "joins": {
+   "grid": "pivot (0,0,0) = centre of the 4x4 m corner cell; the two wall centre lines run on y = +2 (arm along X) and x = +2 (arm along Y); room side = toward the pivot (-X/-Y quadrant); inside corner is a concave 3-face bay (two arms + 45-degree face)",
+   "arm_x_end": "flat plane x = -2.0; profile (y,z): (2.40,0) (2.44,4.0) (1.44,4.0) (1.60,0)  = AN01 end profile shifted to y=+2",
+   "arm_y_end": "flat plane y = -2.0; profile (x,z): (2.40,0) (2.40,4.0) (1.44,4.0) (1.60,0) = AN01 end profile rotated 90 deg, centre line x=+2",
+   "snap": "AN01 wall at (x=-4, y=+2, rot 0) meets arm_x_end; AN01 wall at (x=+2, y=-4, rot Z -90 deg so its front faces -X) meets arm_y_end. Outside corner: use the same piece from the back (convex earth mass)."
+  },
+  "emissive": false,
+  "notes": "wall section swept along an L with a 45-degree chamfer: one big concave bay over three faces, brow higher and overhanging toward the corner; back = convex rounded earth mass; 3 rubble clods at the foot; bottom flat."
+ }
+]

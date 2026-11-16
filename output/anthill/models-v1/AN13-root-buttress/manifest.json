@@ -1,0 +1,33 @@
+{
+ "variants": [
+  {
+   "id": "AN13a",
+   "name": "RootButtress",
+   "fbx": "SM_AN13_RootButtress.fbx",
+   "tris": 972,
+   "tris_by_material": {
+    "Root": 972
+   },
+   "size_xyz_m": [
+    6.146,
+    3.15,
+    4.743
+   ],
+   "min_z": 0.0,
+   "objects": [
+    "AN13a_Root"
+   ],
+   "solidity": "passable",
+   "collider": "mesh collider or 4-6 convex pieces along the arch; the space under the arch stays open",
+   "emissive": false,
+   "pivot": "bottom centre (bounding box)",
+   "clear_under_arch_m": {
+    "x_span_with_height_ge_2.4": [
+     -1.0,
+     1.7
+    ]
+   },
+   "notes": "Asymmetric arch: split foot (6 toes) on -X, one leaning trunk arching to a thinner foot on +X; pair two copies (mirror in Unity)"
+  }
+ ]
+}

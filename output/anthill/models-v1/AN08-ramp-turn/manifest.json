@@ -1,0 +1,35 @@
+[
+ {
+  "id": "AN08a",
+  "name": "Ramp turn 90 deg, 3 m path, 0.5 -> 1.0 m",
+  "fbx": "SM_AN08_RampTurn.fbx",
+  "tris": 282,
+  "tris_by_material": {
+   "Earth": 186,
+   "Floor": 96
+  },
+  "size_xyz_m": [
+   6.095,
+   6.077,
+   1.0
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN08a_Earth",
+   "AN08a_Floor"
+  ],
+  "solidity": "walk-on-top",
+  "collider": "mesh",
+  "joins": {
+   "grid": "pivot bottom centre of the 6 x 6 m footprint; L-shaped 3 m wide path, turns 90 deg left (from +Y to -X); bottom flat at z=0",
+   "low_end": "flat face y = -3.0, x 0..+3 (centre x = +1.5), walk top z = 0.50",
+   "high_end": "flat face x = -3.0, y 0..+3 (centre y = +1.5), walk top z = 1.00",
+   "chain": "AN07 straight ramp (3 m wide) meets the low end when placed at (+1.5, -5, -0.5) [its 1.0 m high end -> 0.5]; at the high end continue with AN07 rotated 90 deg (rising toward -X) placed at (-5, +1.5, +0.97) on an earth base, or a landing at z = 1.0. Mirror in X for a right turn."
+  },
+  "emissive": false,
+  "path_length_m": 8.71,
+  "slope_deg": 3.3,
+  "max_face_slope_deg": 13.9,
+  "notes": "L-shaped earth block with a 45-deg chamfer on the inside corner and a square outer corner; Floor top rises evenly along the path, rounded Earth lips, crooked bulging sides, no steps."
+ }
+]

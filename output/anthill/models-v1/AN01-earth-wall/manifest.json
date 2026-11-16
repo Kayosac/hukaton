@@ -1,0 +1,49 @@
+[
+ {
+  "id": "AN01a",
+  "name": "Earth wall 4x4x0.8 (concave bay)",
+  "fbx": "SM_AN01_EarthWall.fbx",
+  "tris": 604,
+  "tris_by_material": {
+   "Earth": 604
+  },
+  "size_xyz_m": [
+   4.0,
+   1.58,
+   4.232
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN01a_Earth"
+  ],
+  "solidity": "solid",
+  "collider": "mesh (or box 4 x 0.8 x 4 m centred at y=0, z=2)",
+  "joins": {
+   "grid": "wall centre line on y = 0, room (front) side = -Y; 4.0 m module, pivot = bottom centre of the centre line",
+   "left_end": "flat plane x = -2.0",
+   "right_end": "flat plane x = +2.0",
+   "end_profile_yz": [
+    [
+     -0.4,
+     0.0
+    ],
+    [
+     -0.56,
+     4.0
+    ],
+    [
+     0.4,
+     4.0
+    ],
+    [
+     0.4,
+     0.0
+    ]
+   ],
+   "end_profile_note": "identical at both ends and shared with AN02 corner arms: 0.8 m thick at the floor, front leans 0.16 m into the room at the top (y=-0.56 at z=4), top z = 4.0 at the joins (crooked 4.0-4.25 between), back y=+0.40",
+   "snap": "next wall at x +/- 4.0 (same y); bend a run by rotating about a join end (gap on the outside is hidden in the earth); top joins AN03 vault feet at z = 4.0"
+  },
+  "emissive": false,
+  "notes": "front: one big concave faceted bay with 2 strata ledges, 3 protruding strata slabs and 2 rubble clods at the foot, thick rim pillars at the joins and a brow on top; back closed, slightly bulged; bottom flat at z=0."
+ }
+]

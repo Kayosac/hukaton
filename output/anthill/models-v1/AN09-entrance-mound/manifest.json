@@ -1,0 +1,54 @@
+{
+ "variants": [
+  {
+   "id": "AN09a",
+   "name": "EntranceMound",
+   "fbx": "SM_AN09_EntranceMound.fbx",
+   "tris": 1405,
+   "tris_by_material": {
+    "Earth": 960,
+    "Floor": 12,
+    "Props": 433
+   },
+   "size_xyz_m": [
+    10.706,
+    7.089,
+    4.55
+   ],
+   "min_z": -0.8,
+   "objects": [
+    "AN09a_Earth",
+    "AN09a_Floor",
+    "AN09a_Props"
+   ],
+   "solidity": "solid shell + walk-in throat",
+   "collider": "mesh collider (Earth + Floor); Props (dark plug + leaves) no collider",
+   "emissive": false,
+   "pivot": "z = 0 is the outside ground level, XY = bounds centre. Base skirt and throat floor go below 0 (sink into terrain).",
+   "mouth": "opening faces -Y; mouth centre at x = -0.47",
+   "clearance": {
+    "y=-3.1": {
+     "height": null,
+     "width_at_1m": 2.81
+    },
+    "y=-2.8": {
+     "height": 2.87,
+     "width_at_1m": 2.65
+    },
+    "y=-2.3": {
+     "height": 2.82,
+     "width_at_1m": 2.72
+    },
+    "y=-0.8": {
+     "height": 2.79,
+     "width_at_1m": 2.74
+    },
+    "y=0.4": {
+     "height": 2.65,
+     "width_at_1m": 2.62
+    }
+   },
+   "notes": "Heap with steep hood over the mouth, low right shoulder, 3 foot lumps; boolean-cut throat descending ~0.7 m (<= 16 deg) to a dark end (Props dark); 11 lobed dry leaves conformed to the surface"
+  }
+ ]
+}

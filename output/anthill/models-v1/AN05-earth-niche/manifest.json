@@ -1,0 +1,30 @@
+[
+ {
+  "id": "AN05a",
+  "name": "Earth niche with shelf 3 x 2.5 x 1.7 m",
+  "fbx": "SM_AN05_EarthNiche.fbx",
+  "tris": 308,
+  "tris_by_material": {
+   "Earth": 286,
+   "Floor": 22
+  },
+  "size_xyz_m": [
+   3.003,
+   1.724,
+   2.558
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN05a_Earth",
+   "AN05a_Floor"
+  ],
+  "solidity": "solid (shelf walk-on-top / props on top)",
+  "collider": "mesh, or box under the shelf + convex hulls for the sides/top",
+  "joins": {
+   "back": "flat plane y = +0.75 (x -1.0..+1.0 fully flat, z 0..1.9): push it against / into an AN01 wall front (wall front is at y = -0.40 of the wall, so niche origin = wall origin + (0, -1.15..-0.9, 0)); sides are closed rounded earth, not join ends",
+   "shelf": "Floor top at z = 0.72-0.78 (level within 2 cm), recess 1.9 m wide x ~1.0 m deep, opening top 2.05 m"
+  },
+  "emissive": false,
+  "notes": "closed-back shallow arched recess with a wide protruding shelf lip along the whole front; shelf top is Floor material; back closed and flat."
+ }
+]

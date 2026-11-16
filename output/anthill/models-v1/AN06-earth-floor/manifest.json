@@ -1,0 +1,59 @@
+[
+ {
+  "id": "AN06a",
+  "name": "Earth floor tile 4 x 4 x 0.15 (tileable)",
+  "fbx": "SM_AN06_EarthFloor.fbx",
+  "tris": 222,
+  "tris_by_material": {
+   "Earth": 94,
+   "Floor": 128
+  },
+  "size_xyz_m": [
+   4.0,
+   4.0,
+   0.169
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN06a_Earth",
+   "AN06a_Floor"
+  ],
+  "solidity": "walk-on-top",
+  "collider": "box 4 x 4 x 0.15 (top at z=0.15)",
+  "emissive": false,
+  "joins": {
+   "grid": "4 m tile, pivot bottom centre, edges x = +/-2, y = +/-2, straight and flat",
+   "walk_surface": "z = +0.15 exactly on all four edges (interior varies -0.03..+0.02), so tiles meet without steps in any rotation",
+   "texture": "Floor top + Earth sides use world-planar UVs at the kit density (2 m per repeat); procedural tunnel floors should use the same planar mapping"
+  },
+  "max_top_slope_deg": 9.0,
+  "notes": "gently faceted trodden top (0.5 m grid, jittered interior), vertical Earth edge, closed bottom."
+ },
+ {
+  "id": "AN06b",
+  "name": "Earth floor patch (irregular, concept outline)",
+  "fbx": "SM_AN06b_EarthFloorPatch.fbx",
+  "tris": 126,
+  "tris_by_material": {
+   "Earth": 46,
+   "Floor": 80
+  },
+  "size_xyz_m": [
+   3.944,
+   3.893,
+   0.135
+  ],
+  "min_z": 0.0,
+  "objects": [
+   "AN06b_Earth",
+   "AN06b_Floor"
+  ],
+  "solidity": "walk-on-top",
+  "collider": "none (overlay, the floor/terrain below collides) or mesh",
+  "emissive": false,
+  "joins": {
+   "grid": "free placement overlay, pivot bottom centre; not a snapping piece"
+  },
+  "notes": "irregular-outline trodden patch like the concept sheet; top 0.12 m, edge tapers to 0.09 then a short Earth lip to the ground."
+ }
+]

@@ -1,0 +1,42 @@
+{
+ "asset": "AN16 deck-bracket",
+ "variants": [
+  {
+   "id": "AN16a",
+   "name": "DeckBracket",
+   "fbx": "SM_AN16_DeckBracket.fbx",
+   "tris": 186,
+   "tris_by_material": {
+    "Wood": 168,
+    "Props": 18
+   },
+   "size_xyz_m": [
+    1.544,
+    0.502,
+    1.517
+   ],
+   "min_z": 0.0,
+   "objects": [
+    "AN16a_Wood",
+    "AN16a_Props"
+   ],
+   "solidity": "solid",
+   "collider": "box: post; box: beam; box: brace (or one convex hull)",
+   "emissive": false,
+   "deck_fit": {
+    "beam_top_z": 1.517,
+    "beam_top_x": [
+     -0.769,
+     0.731
+    ],
+    "beam_y": [
+     -0.198,
+     -0.018
+    ],
+    "wall_side": "+X (post back face against the wall / under the deck edge)",
+    "usage": "two brackets per SM_ST10_Boardwalk (1.7 x 2.0), beams across its 1.7 m width, placed under its end feet (about 0.25 m from each 2.0 m end); the boardwalk feet sit at beam_top_z. Nothing of the bracket rises above beam_top_z."
+   },
+   "notes": "Post, beam, brace and 6 square pegs (incl. through-ends on the back) are separate real geometry; beam/peg ends use the end_grain disc."
+  }
+ ]
+}

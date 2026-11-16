@@ -1,0 +1,29 @@
+{
+ "variants": [
+  {
+   "id": "AN12a",
+   "name": "WallRoot",
+   "fbx": "SM_AN12_WallRoot.fbx",
+   "tris": 477,
+   "tris_by_material": {
+    "Root": 468,
+    "Props": 9
+   },
+   "size_xyz_m": [
+    1.525,
+    1.313,
+    4.04
+   ],
+   "min_z": 0.0,
+   "objects": [
+    "AN12a_Root",
+    "AN12a_Props"
+   ],
+   "solidity": "solid",
+   "collider": "convex hull of lower trunk + capsule for the upper curl",
+   "emissive": false,
+   "attach": "pivot = floor level, centre of the flat back; back plane is y = 0 (wall), root extends to -Y",
+   "notes": "S curve in Y-Z (middle hugs the wall, top curls out), flat back, short forward fork near the base, slanted end-grain tip"
+  }
+ ]
+}
