@@ -863,6 +863,7 @@ namespace Hakaton.WorldAssembly.Unity
             loot.PickFromPool(new System.Random((int)(pick & 0x7fffffff)));
             loot.guaranteed = true;
             loot.spawnPoints = null;
+            loot.wander = 0;
             world.finds.Add(loot);
             // Rewards worth a detour sparkle, so they are seen from where the way to them starts; the glow goes with them.
             var glow = content.Glow(id);

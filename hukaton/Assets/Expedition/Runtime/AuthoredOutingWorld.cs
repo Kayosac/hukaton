@@ -46,9 +46,10 @@ namespace Hakaton.Expeditions
             Fill(world.props, props);
             var random = new System.Random(++outings * 1637 + expedition.workshop.Model.Journeys);
             foreach (var o in obstacles) if (o) { o.world = expedition; o.ResetForOuting(); }
-            foreach (var f in finds) if (f) { f.world = expedition; f.ResetForOuting(random); }
+            // Props and fences stand back in place first: a wandering find looks for a free patch of ground among them.
             foreach (var p in props) if (p) p.ResetForOuting();
             foreach (var b in breakables) if (b) b.Restore();
+            foreach (var f in finds) if (f) { f.world = expedition; f.ResetForOuting(random); }
             foreach (var c in creatures) if (c) { c.world = expedition; c.ResetForOuting(random); }
             foreach (var site in chestSites) if (site) site.ResetForOuting(expedition, random);
             var start = departure ? departure : transform;

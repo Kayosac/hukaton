@@ -2,6 +2,7 @@ using System.Collections;
 using Hakaton.Feel;
 using Hakaton.Loot;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Hakaton.Expeditions
 {
@@ -21,8 +22,12 @@ namespace Hakaton.Expeditions
         [Tooltip("Size of the built 3D model on the ground relative to the item's model (the shelf shows it at 1). " +
                  "Drawings keep their own height.")]
         [Min(.1f)] public float modelScale = 1;
+        [Tooltip("On a ready-made location: always there every outing. Off — it turns up with the chance below.")]
         public bool guaranteed = true;
         [Range(0, 1)] public float spawnChance = .7f;
+        [Tooltip("On a ready-made location the find lies somewhere new every outing, within this many metres of its spot " +
+                 "along walkable ground (never across water or a wall). 0 — always on its spot.")]
+        [Min(0)] public float wander;
         public Rigidbody body;
         [Tooltip("Bobs and spins. Leave it empty to show the item's model or drawing; authored children are kept as they are.")]
         public Transform visual;
@@ -122,9 +127,65 @@ namespace Hakaton.Expeditions
             Taken = false;
             var point = spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints[random.Next(spawnPoints.Length)] : null;
             transform.SetPositionAndRotation(point ? point.position : origin, point ? point.rotation : rotation);
+            if (wander > 0) Wander(random);
             if (body) { body.position = transform.position; body.rotation = transform.rotation; body.linearVelocity = body.angularVelocity = Vector3.zero; }
             if (visual) visual.localScale = Vector3.one;
             gameObject.SetActive(guaranteed || random.NextDouble() < spawnChance);
+        }
+
+        /// <summary>
+        /// Moves the find from its spot to a random place on the walkable ground nearby: reachable from the spot by a
+        /// short walk (so it never ends up across a river or behind a wall), on solid ground and not inside a prop.
+        /// Keeps the spot's height above the ground. Stays on the spot when no such place turns up.
+        /// </summary>
+        void Wander(System.Random random)
+        {
+            Vector3 home = transform.position;
+            if (!NavMesh.SamplePosition(home, out var start, 2, NavMesh.AllAreas)) return;
+            float lift = Ground(home, out var homeGround) ? home.y - homeGround.y : 0;
+            var path = new NavMeshPath();
+            for (int tries = 0; tries < 16; tries++)
+            {
+                double a = random.NextDouble() * System.Math.PI * 2;
+                float r = wander * (float)System.Math.Sqrt(random.NextDouble());
+                var probe = home + new Vector3((float)System.Math.Cos(a), 0, (float)System.Math.Sin(a)) * r;
+                if (!NavMesh.SamplePosition(probe, out var hit, 1.5f, NavMesh.AllAreas)) continue;
+                if (!NavMesh.CalculatePath(start.position, hit.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) continue;
+                if (PathLength(path) > wander * 1.6f + 1) continue;
+                // The ground right at the walkable surface, not a branch or a roof above it.
+                if (!Ground(hit.position, out var ground) || Mathf.Abs(ground.y - hit.position.y) > .6f || Blocked(ground)) continue;
+                transform.SetPositionAndRotation(ground + Vector3.up * lift,
+                    Quaternion.Euler(0, (float)(random.NextDouble() * 360), 0) * transform.rotation);
+                return;
+            }
+        }
+
+        const int SolidMask = ~((1 << 2) | (1 << 4));
+
+        /// <summary>Straight down onto the top solid under the point (water, triggers and the find itself ignored).</summary>
+        bool Ground(Vector3 point, out Vector3 ground)
+        {
+            ground = point;
+            float top = float.NegativeInfinity;
+            foreach (var hit in Physics.RaycastAll(point + Vector3.up * 1.5f, Vector3.down, 4, SolidMask, QueryTriggerInteraction.Ignore))
+                if (!hit.collider.transform.IsChildOf(transform) && hit.point.y > top) { top = hit.point.y; ground = hit.point; }
+            return top > float.NegativeInfinity;
+        }
+
+        /// <summary>Something solid (a stump, a hive, a rock) stands where the find would lie.</summary>
+        bool Blocked(Vector3 ground)
+        {
+            foreach (var c in Physics.OverlapSphere(ground + Vector3.up * .55f, .35f, SolidMask, QueryTriggerInteraction.Ignore))
+                if (!c.transform.IsChildOf(transform)) return true;
+            return false;
+        }
+
+        static float PathLength(NavMeshPath path)
+        {
+            float length = 0;
+            var corners = path.corners;
+            for (int i = 1; i < corners.Length; i++) length += Vector3.Distance(corners[i - 1], corners[i]);
+            return length;
         }
 
         /// <summary>Trophy pop: launched out of the defeated creature, then settles on the ground.</summary>
