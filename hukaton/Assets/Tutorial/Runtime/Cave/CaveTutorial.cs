@@ -71,6 +71,8 @@ namespace Hakaton.Tutorial
         [Header("Cards")]
         public CardDefinition throwInstruction;
         public CardDefinition moveInstruction, discardInstruction;
+        [Tooltip("The kick's instruction card (F), between move and discard: it goes once the player kicks.")]
+        public CardDefinition kickInstruction;
         public string fireId = "fire", iceId = "ice", strikeId = "strike";
         [TextArea] public string wheelHint = "Колесо мыши — выбрать карту";
 
@@ -116,6 +118,7 @@ namespace Hakaton.Tutorial
         WorldObstacle waterObstacle => Level ? Level.waterObstacle : null;
 
         int instructionsThrown;
+        bool kicked;
         bool continueRequested, wheelHintPending, handOverOpen;
         float bushShake;
         Vector3 goblinShove, goblinOffset;
@@ -166,6 +169,7 @@ namespace Hakaton.Tutorial
             if (bush) bushRest = bush.localPosition;
             instructions.Clear();
             instructionsThrown = 0;
+            kicked = false;
             wheelHintPending = false;
             string error = world.workshop.Model.DepartPrologue();
             if (error != null) { Debug.LogError("Cave prologue: " + error, this); return; }
@@ -174,10 +178,12 @@ namespace Hakaton.Tutorial
             world.thrower.Thrown += OnThrown;
             world.thrower.SelectionChanged += OnSelectionChanged;
             world.Impacted += OnImpacted;
+            if (world.kick) world.kick.Kicked += OnKicked;
             world.BeginPrologue(start);
             Level.BeginMoments(world, this);
-            foreach (var card in new[] { throwInstruction, moveInstruction, discardInstruction })
-                instructions.Add(Trip.GrantToHand(card.ToSpec()).Id);
+            // Throw, move, kick (when there is a kick and its card), discard — in this order.
+            foreach (var card in new[] { throwInstruction, moveInstruction, world.kick ? kickInstruction : null, discardInstruction })
+                if (card) instructions.Add(Trip.GrantToHand(card.ToSpec()).Id);
             world.thrower.SelectCopy(instructions[0]);
         }
 
@@ -196,10 +202,24 @@ namespace Hakaton.Tutorial
 
         public bool CanSelect(CardCopy card) => !IsInstruction(card) || card.Id == CurrentInstruction;
 
-        // The discard drawing is used by R alone.
-        public bool CanThrow(CardCopy card) => !IsInstruction(card) || card.Id != instructions[2];
+        int DiscardInstruction => instructions.Count > 0 ? instructions[instructions.Count - 1] : int.MinValue;
+        int KickInstruction => instructions.Count == 4 ? instructions[2] : int.MinValue;
 
-        public bool CanDiscard() => Stage != CaveStage.Instructions || instructionsThrown >= 2;
+        // The discard drawing is used by R alone, the kick drawing by F alone.
+        public bool CanThrow(CardCopy card) => !IsInstruction(card) || card.Id != DiscardInstruction && card.Id != KickInstruction;
+
+        public bool CanDiscard() => Stage != CaveStage.Instructions || instructionsThrown >= 2 && (kicked || KickInstruction == int.MinValue);
+
+        /// <summary>The player kicked: the kick's instruction card has done its job and leaves the hand.</summary>
+        void OnKicked()
+        {
+            if (Stage != CaveStage.Instructions || kicked || instructionsThrown < 2 || KickInstruction == int.MinValue) return;
+            if (CurrentInstruction != KickInstruction) return;
+            kicked = true;
+            Trip.Withdraw(KickInstruction);
+            world.thrower.SelectCopy(DiscardInstruction);
+            world.Play(world.cues ? world.cues.cardSelect : null, null, .7f);
+        }
 
         public void Discarded()
         {
@@ -596,6 +616,7 @@ namespace Hakaton.Tutorial
             world.EndPrologue();
             world.thrower.rules = null;
             world.thrower.Thrown -= OnThrown;
+            if (world.kick) world.kick.Kicked -= OnKicked;
             world.thrower.SelectionChanged -= OnSelectionChanged;
             world.Impacted -= OnImpacted;
             world.PrologueReturned -= OnReturnUsed;

@@ -61,6 +61,11 @@ namespace Hakaton.Decks
         /// <summary>Uses left in the current outing (outing snapshots only).</summary>
         public int UsesLeft { get; internal set; }
         public bool IsReturn => Id == -1;
+        /// <summary>
+        /// A copy given for this outing only (<see cref="Expedition.GrantToHand"/>): a trophy card, the phone's prize, the
+        /// cave's spells, a cheat. Never owned or saved; it is gone with the outing.
+        /// </summary>
+        public bool Temporary => Id <= -1000;
         public string LevelNumeral => Numeral(Level);
 
         internal CardCopy(int id, CardSpec spec, int level = 1, int paidPrice = 0, bool isProtected = false)

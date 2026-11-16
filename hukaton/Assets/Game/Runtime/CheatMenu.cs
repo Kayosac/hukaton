@@ -467,6 +467,22 @@ namespace Hakaton.Game
             }
             GUILayout.Space(8);
 
+            GUILayout.Label("Трофейные карты", title);
+            var trophies = world.trophies;
+            if (!trophies) GUILayout.Label("Нет на сцене.", body);
+            else
+            {
+                if (trophies.Luck != null)
+                    GUILayout.Label($"Убийств без карты подряд: {trophies.Luck.Dry} из {trophies.dryKills}" + (trophies.Luck.Starting ? " · старт: первое убийство — карта" : ""), body);
+                if (GUILayout.Button(trophies.Always ? "Трофей из всего: ВКЛ" : "Трофей из всего: выкл", button)) trophies.Always = !trophies.Always;
+                if (world.Running && world.viewCamera && GUILayout.Button("Трофейная карта сюда", button))
+                {
+                    var eye = world.viewCamera.transform;
+                    status = trophies.Give(eye.position + eye.forward * 3 - Vector3.up * .5f, 1) ? "Трофейная карта летит в руку." : "Не удалось дать трофейную карту.";
+                }
+            }
+            GUILayout.Space(8);
+
             GUILayout.Label("Дебаффы на себя", title);
             var statuses = world.statuses;
             if (!world.Running || !statuses) GUILayout.Label("Доступно во время вылазки.", body);

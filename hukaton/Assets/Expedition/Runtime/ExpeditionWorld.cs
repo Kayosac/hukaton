@@ -27,6 +27,10 @@ namespace Hakaton.Expeditions
         public PlayerStatuses statuses;
         public Camera viewCamera;
         public CardThrower thrower;
+        [Tooltip("The kick (F): the player's action without cards.")]
+        public PlayerKick kick;
+        [Tooltip("Trophy cards: now and then a creature, a chest or a crate leaves a one-throw card that flies into the hand.")]
+        public TrophyCards trophies;
         public ExpeditionHud hud;
         public CardHandView hand;
         [Header("Feel")]

@@ -48,6 +48,8 @@ namespace Hakaton.Expeditions
         [Header("Health and attack (board v0.1)")]
         public int maximumHealth = 8;
         public int attackHalfHearts = 2;
+        [Tooltip("How it takes the player's kick: hurt, shoved and stunned by its toughness (Normal); the leg goes through it (Immune: swarms, the ghost); hurt but it does not budge (Anchored: rooted turrets).")]
+        public KickResponse kick = KickResponse.Normal;
         public float windup = .7f, strikeSeconds = .45f, recovery = 1.1f;
         [Tooltip("Recovery after a missed strike. Negative uses the normal recovery.")]
         public float recoveryOnMiss = -1;
@@ -847,6 +849,33 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
+        /// The player's kick (<see cref="PlayerKick"/>): one point of damage like any physical hit (it shatters an ice
+        /// shell twice as hard), a shove along <paramref name="direction"/> of <paramref name="speed"/> m/s scaled down by
+        /// toughness, and a stun only the small ones feel (<see cref="KickRules"/>). A shelled one only knocks on its shell
+        /// and rolls off it. False when the leg finds nothing to kick (dead, burrowed, a swarm, a ghost).
+        /// </summary>
+        public bool Kicked(Vector3 point, Vector3 direction, float speed, float lift)
+        {
+            if (!KickRules.Lands(kick, Alive && !dying, burrowed)) return false;
+            var flat = direction;
+            flat.y = 0;
+            flat = flat.sqrMagnitude > .0001f ? flat.normalized : transform.forward;
+            float share = KickRules.ShoveShare(maximumHealth, kick);
+            var shove = body && !body.isKinematic && share > 0 ? (flat + Vector3.up * lift).normalized * (speed * share * body.mass) : Vector3.zero;
+            if (InShell)
+            {
+                ShellKnock(point);
+                if (shove != Vector3.zero) CardPhysics.Push(body, shove);
+                return true;
+            }
+            float stun = KickRules.StaggerSeconds(maximumHealth, kick);
+            // Off its feet first, so its legs do not cancel the shove.
+            if (stun > 0) Stagger(stun, point);
+            Damage(KickRules.Damage, shove, point, 0, DamageKind.Hit);
+            return true;
+        }
+
+        /// <summary>
         /// Blown away by the wind («Сквозняк»): gets this speed whatever it weighs, and is knocked off its feet for
         /// <paramref name="staggerSeconds"/> so its legs do not cancel it. A burrowed one is pulled out of the ground first;
         /// in its shell it flies off shelled. False when there is nothing to blow (dead, no free body).
@@ -1322,8 +1351,10 @@ namespace Hakaton.Expeditions
             if (world.InPrologue) return;
             // «Мародёр»: a loot mark on the body rolls the table more than once (ILootRollBonus).
             for (int roll = LootRolls; roll > 0; roll--) drops.Roll(dropped);
-            if (dropped.Count == 0) return;
             Vector3 from = at ?? transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
+            // Now and then it leaves a trophy card that flies into the hand (TrophyCards).
+            if (world.trophies) world.trophies.CreatureDied(this, from, LootRolls);
+            if (dropped.Count == 0) return;
             foreach (var item in dropped)
             {
                 var drop = world.SpawnLoot(item, from);

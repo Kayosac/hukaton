@@ -84,6 +84,7 @@ namespace Hakaton.Expeditions
                     coin.Launch(world, 1, Random.insideUnitSphere * 1.2f + Vector3.up * Random.Range(2.2f, 3.4f));
                 }
             }
+            if (kind.trophyCardChance > 0 && world.trophies) world.trophies.Broken(kind.trophyCardChance, at);
             if (kind.items && !kind.items.IsEmpty && kind.itemChance > 0 && Random.value < kind.itemChance)
             {
                 var item = kind.items.Pick(Random.value);

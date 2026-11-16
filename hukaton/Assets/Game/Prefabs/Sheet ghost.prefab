@@ -370,6 +370,8 @@ MonoBehaviour:
     patchRadius: 3
     patchSpacing: 1.1
     revealVfx: {fileID: 0}
+  flailEvery: {x: 0.18, y: 0.42}
+  distractionRecovery: 0.3
   flying: 1
   cruiseHeight: 0.6
   windupClimb: 0.6
@@ -391,6 +393,12 @@ MonoBehaviour:
     squeezeInterval: 0.75
     drainHeal: 0
     slip: 0.8
+    screenPicture: {fileID: 0}
+    screenFill: 1.1
+    screenDistance: 0.5
+    shake: 0.025
+    shakeRate: 18
+    snapSeconds: 0.1
   defendsKin: 1
   kinWitnessRange: 12
   kinGrudgeSeconds: 8
@@ -441,14 +449,17 @@ MonoBehaviour:
     - 0.25
     count: 1
     scatter: 1.6
+    sound: {fileID: 0}
   burrows: 0
   emergeSeconds: 2.5
   shellSeconds: 0
+  shellPicture: {fileID: 0}
   deflectCards: 0
   deflectVfx: {fileID: 0}
   staggerAngle: 0
   staggerFrequency: 0.8
   ramThrough: 1
+  ramPicture: {fileID: 0}
   blink:
     enabled: 0
     minRange: 4
@@ -495,6 +506,7 @@ MonoBehaviour:
   spawnPoints: []
   maximumHealth: 8
   attackHalfHearts: 1
+  kick: 1
   windup: 0.5
   strikeSeconds: 0.55
   recovery: 0.9

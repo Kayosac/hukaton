@@ -59,6 +59,8 @@ namespace Hakaton.Expeditions
         public float bobAmplitude = .008f;
         [Header("Colours")]
         public Color returnGlow = new Color(1f, .82f, .35f);
+        [Tooltip("Glow of a card that is in the hand for this outing only (a trophy card, the phone's prize).")]
+        public Color temporaryGlow = new Color(1f, .9f, .55f);
 
         sealed class Slot
         {
@@ -71,6 +73,8 @@ namespace Hakaton.Expeditions
         }
 
         readonly List<Slot> active = new List<Slot>();
+        // Cards flying in (trophy cards): their slots start where the flying card arrived, not below the screen.
+        readonly Dictionary<int, Pose> arrivals = new Dictionary<int, Pose>();
         readonly List<int> lastIds = new List<int>();
         int firstVisible;
         SpringVector3 sway;
@@ -125,6 +129,12 @@ namespace Hakaton.Expeditions
                 if (dealPending) Deal();
             }
         }
+
+        /// <summary>A card flying into the hand (a trophy card) arrives at this world pose: its slot starts there.</summary>
+        public void ArriveFrom(int copyId, Pose pose) => arrivals[copyId] = pose;
+
+        /// <summary>Where a card flying into the hand aims: the top of the fan, facing as the hand's cards do.</summary>
+        public Pose ArrivalPose() => new Pose(transform.TransformPoint(pivot + Vector3.up * radius), transform.rotation);
 
         /// <summary>The card is leaving the hand as a projectile: returns its pose and frees the slot.</summary>
         public bool Take(int copyId, out Pose pose, out CardView view)
@@ -238,6 +248,17 @@ namespace Hakaton.Expeditions
                 slot.rotation = Quaternion.Euler(0, 0, -30);
                 slot.drawDelay = dealt * .055f;
                 slot.view.transform.localScale = Vector3.zero;
+                if (arrivals.TryGetValue(card.Id, out var arrival))
+                {
+                    // Flew in (a trophy card): it starts where it arrived and springs into its place.
+                    arrivals.Remove(card.Id);
+                    var parent = slot.view.transform.parent ? slot.view.transform.parent : transform;
+                    slot.position.Snap(parent.InverseTransformPoint(arrival.position));
+                    slot.rotation = Quaternion.Inverse(parent.rotation) * arrival.rotation;
+                    slot.scale.Snap(1);
+                    slot.drawDelay = 0;
+                    continue;
+                }
                 if (!fresh && !windowMoved) world.Play(world.cues ? world.cues.cardDraw : null, null, .7f);
                 dealt++;
             }
@@ -301,7 +322,10 @@ namespace Hakaton.Expeditions
                 slot.view.SetOrder(isSelected ? 50 : 10 + visibleIndex);
 
                 float glow = card.IsReturn ? .55f + Mathf.Sin(Time.time * 6) * .3f : isSelected ? .18f + charge * .5f : 0;
-                slot.view.SetGlow(glow, card.IsReturn ? returnGlow : world.Accent(card));
+                // A card for this outing only (a trophy, the phone's prize) keeps a soft glow of its own.
+                bool temporary = card.Temporary && !world.InPrologue;
+                if (temporary) glow = Mathf.Max(glow, .32f + Mathf.Sin(Time.time * 3.5f + index) * .12f);
+                slot.view.SetGlow(glow, card.IsReturn ? returnGlow : temporary && !isSelected ? temporaryGlow : world.Accent(card));
             }
 
         }

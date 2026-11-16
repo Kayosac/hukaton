@@ -62,6 +62,8 @@ namespace Hakaton.Character
         public void ClearUnlimited() => unlimitedUntil = float.NegativeInfinity;
 
         public bool TryJump() => state != null && (Unlimited || state.TrySpend(jumpCost));
+        /// <summary>Pays <paramref name="amount"/> for an action (the kick); false when there is not enough or the player is worn out.</summary>
+        public bool TrySpend(float amount) { Build(); return Unlimited || amount <= 0 || state.TrySpend(amount); }
         public void Tick(float deltaTime, bool sprinting) => state?.Tick(deltaTime, sprinting && !Unlimited);
     }
 }

@@ -313,6 +313,9 @@ namespace Hakaton.Expeditions
             extras.Clear();
             if (tier.bonus != null) for (int roll = 0; roll < bonusRolls; roll++) tier.bonus.Roll(next, extras);
 
+            // Now and then a trophy card flies out with the coins (a killed mimic gives its own: ChestMimic).
+            if (world.trophies && !(Occupant is ChestMimic mimic && !mimic.Alive)) world.trophies.ChestOpened(tier, Mouth);
+
             int total = pieces.Count + extras.Count;
             float gap = total > 1 ? tier.spewSeconds / (total - 1) : 0;
             int launched = 0;

@@ -1259,6 +1259,80 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db044cc9a837042259364469fd3cf213, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.EnemyDebug::Hakaton.EnemyDebug.EnemyDebugPreview
+--- !u!1 &667496322
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 667496323}
+  - component: {fileID: 667496324}
+  m_Layer: 0
+  m_Name: Trophy cards
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &667496323
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 667496322}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1169113762}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &667496324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 667496322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86cad19f3aa004f58b35aa5f20feea1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.TrophyCards
+  world: {fileID: 1169113761}
+  flightPrefab: {fileID: 709392282668626304, guid: 497f9170bc17747329bbc780b49e5027, type: 3}
+  creatures:
+  - upToHealth: 3
+    chance: 0.08
+  - upToHealth: 8
+    chance: 0.2
+  - upToHealth: 15
+    chance: 0.4
+  - upToHealth: 9999
+    chance: 0.75
+  chestsByRank:
+  - 0.2
+  - 0.35
+  - 0.6
+  - 0.8
+  - 1
+  richChestRank: 5
+  richChestCardRank: 3
+  mimics: 1
+  dryKills: 4
+  startingCollection: 5
+  unownedWeight: 2
+  appearSound: {fileID: 0}
+  arriveSound: {fileID: 0}
+  appearSparkle: {fileID: 893262628003159939, guid: d37f568f9478043bd92281fe08a1a213, type: 3}
+  appearSparkleScale: 0.8
+  glow: {r: 1, g: 0.86, b: 0.45, a: 1}
+  notice: "\u0422\u0440\u043E\u0444\u0435\u0439\u043D\u0430\u044F \u043A\u0430\u0440\u0442\u0430:
+    \xAB{0}\xBB"
 --- !u!1001 &800992966
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1936,6 +2010,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 909672890}
     - target: {fileID: 1839265842234370174, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
+      propertyPath: kick
+      value: 
+      objectReference: {fileID: 1524746915}
+    - target: {fileID: 1839265842234370174, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
       propertyPath: motor
       value: 
       objectReference: {fileID: 1350465993}
@@ -1959,6 +2037,10 @@ PrefabInstance:
       propertyPath: statuses
       value: 
       objectReference: {fileID: 1645292314}
+    - target: {fileID: 1839265842234370174, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
+      propertyPath: trophies
+      value: 
+      objectReference: {fileID: 667496324}
     - target: {fileID: 1839265842234370174, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
       propertyPath: viewCamera
       value: 
@@ -2169,7 +2251,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4622811278052606023, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1524746914}
+    - targetCorrespondingSourceObject: {fileID: 4622811278052606023, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 667496323}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
 --- !u!114 &1169113761 stripped
@@ -2183,6 +2271,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 599e2656846c64c10a9c510428f13b03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.ExpeditionWorld
+--- !u!4 &1169113762 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4622811278052606023, guid: df06fb9ca41484dab97c9aa66a7ed9bc, type: 3}
+  m_PrefabInstance: {fileID: 1169113760}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1187987822
 GameObject:
   m_ObjectHideFlags: 0
@@ -3330,6 +3423,87 @@ Transform:
   - {fileID: 1740673458}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1524746913
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1169113762}
+    m_Modifications:
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 1169113761}
+    - target: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: hitDust
+      value: 
+      objectReference: {fileID: 8948856644754878334, guid: 92d4a009a27f0419fa408275dd5ba337, type: 3}
+    - target: {fileID: 4912288086570045812, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_Name
+      value: Kick
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+--- !u!4 &1524746914 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+  m_PrefabInstance: {fileID: 1524746913}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1524746915 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+  m_PrefabInstance: {fileID: 1524746913}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09d8d3ae4dc35493d88474822b328668, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PlayerKick
 --- !u!1001 &1575550157
 PrefabInstance:
   m_ObjectHideFlags: 0

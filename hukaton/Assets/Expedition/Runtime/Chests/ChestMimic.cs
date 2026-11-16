@@ -421,6 +421,30 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
+        /// The player's kick (<see cref="PlayerKick"/>). Shut and playing chest, it never dies of it: it wakes and goes
+        /// for the player (bites when he is close, which a kick means, otherwise runs). Awake, a kick is a plain physical
+        /// hit of <see cref="KickRules.Damage"/>. Frozen and shut, it only rattles. False when it is gone.
+        /// </summary>
+        public bool Kicked(Vector3 point, Vector3 direction)
+        {
+            var world = World;
+            if (!Alive || !world || !world.Running) return false;
+            if (mode == Mode.Disguised)
+            {
+                if (Frozen) { world.Play(rattleCue, Centre); return true; }
+                world.Play(hurtCue, Centre);
+                EndShiver();
+                StartCoroutine(Flinch());
+                alert = true;
+                if (!Distracted && PlayerDistance() <= biteReach + .4f) StartCoroutine(Bite());
+                else StartCoroutine(Flee());
+                return true;
+            }
+            // Awake: a kick is a hit like any other (with no instigator a shut mimic would die: it is not shut here).
+            return TakeDamage(new DamageInfo(KickRules.Damage, direction.normalized * 2, point, world.viewCamera ? world.viewCamera.transform.position : (Vector3?)null));
+        }
+
+        /// <summary>
         /// Pure rule (tests): a hit kills it outright while it is shut and playing chest, when the hit is the player's
         /// (his cards: no instigator, or one of his side).
         /// </summary>
@@ -464,6 +488,7 @@ namespace Hakaton.Expeditions
             if (overhead) overhead.Clear();
             world.Play(deathCue, Centre);
             world.Spawn(deathBurst, Centre, Quaternion.identity, Color.white, deathBurstScale);
+            if (world.trophies) world.trophies.MimicKilled(Centre);
             StartCoroutine(Dying());
         }
 

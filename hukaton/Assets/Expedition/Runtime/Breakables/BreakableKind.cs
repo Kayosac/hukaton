@@ -73,6 +73,8 @@ namespace Hakaton.Expeditions
         public Vector2Int coins = new Vector2Int(1, 3);
         [Range(0, 1)] public float itemChance;
         public LootPool items;
+        [Tooltip("Chance a trophy card flies out of it into the hand (TrophyCards): crates 8 %, pots and jugs 4 %.")]
+        [Range(0, 1)] public float trophyCardChance;
 
         [Header("Let out (rolled once, when it breaks)")]
         [Tooltip("A creature that comes out of it now and then (a bee swarm out of a hive) and goes for the player at once.")]

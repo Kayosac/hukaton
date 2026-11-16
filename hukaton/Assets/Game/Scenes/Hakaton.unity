@@ -1458,6 +1458,8 @@ MonoBehaviour:
   statuses: {fileID: 425666603}
   viewCamera: {fileID: 1042966975}
   thrower: {fileID: 5729559559069854568}
+  kick: {fileID: 1524746915}
+  trophies: {fileID: 667496323}
   hud: {fileID: 64077436}
   hand: {fileID: 5729559559069854570}
   feel: {fileID: 5729559559069854567}
@@ -1497,7 +1499,9 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1524746914}
+  - {fileID: 667496324}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &269433759
@@ -4640,6 +4644,80 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &667496322
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 667496324}
+  - component: {fileID: 667496323}
+  m_Layer: 0
+  m_Name: Trophy cards
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &667496323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 667496322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86cad19f3aa004f58b35aa5f20feea1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.TrophyCards
+  world: {fileID: 218823678}
+  flightPrefab: {fileID: 709392282668626304, guid: 497f9170bc17747329bbc780b49e5027, type: 3}
+  creatures:
+  - upToHealth: 3
+    chance: 0.08
+  - upToHealth: 8
+    chance: 0.2
+  - upToHealth: 15
+    chance: 0.4
+  - upToHealth: 9999
+    chance: 0.75
+  chestsByRank:
+  - 0.2
+  - 0.35
+  - 0.6
+  - 0.8
+  - 1
+  richChestRank: 5
+  richChestCardRank: 3
+  mimics: 1
+  dryKills: 4
+  startingCollection: 5
+  unownedWeight: 2
+  appearSound: {fileID: 11400000, guid: ea3442654de6e44bd8e052db5ac9330d, type: 2}
+  arriveSound: {fileID: 11400000, guid: 13ed6d4f8fffc4e4ea17b06b967ad6ff, type: 2}
+  appearSparkle: {fileID: 893262628003159939, guid: d37f568f9478043bd92281fe08a1a213, type: 3}
+  appearSparkleScale: 0.8
+  glow: {r: 1, g: 0.86, b: 0.45, a: 1}
+  notice: "\u0422\u0440\u043E\u0444\u0435\u0439\u043D\u0430\u044F \u043A\u0430\u0440\u0442\u0430:
+    \xAB{0}\xBB"
+--- !u!4 &667496324
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 667496322}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 218823680}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &691535757
 GameObject:
   m_ObjectHideFlags: 0
@@ -7250,17 +7328,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
---- !u!114 &935679593 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7639293369003571964, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
-  m_PrefabInstance: {fileID: 935679573}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
 --- !u!114 &935679594 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5415403714421568981, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
@@ -8097,17 +8164,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
---- !u!114 &935679670 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 63224084944360747, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
-  m_PrefabInstance: {fileID: 935679573}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
 --- !u!114 &935679671 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6759753084325553144, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
@@ -8375,17 +8431,6 @@ MonoBehaviour:
 --- !u!114 &935679695 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2608166421887315886, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
-  m_PrefabInstance: {fileID: 935679573}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f712acec588b449bb34a3ba8b83594d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PhysicsProp
---- !u!114 &935679696 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7280364777781549836, guid: 77fca55d31a334b1b892981cb0d7ad45, type: 3}
   m_PrefabInstance: {fileID: 935679573}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
@@ -9702,7 +9747,7 @@ MonoBehaviour:
   - {fileID: 935679699}
   - {fileID: 935679698}
   - {fileID: 935679697}
-  - {fileID: 935679696}
+  - {fileID: 0}
   - {fileID: 935679695}
   - {fileID: 935679694}
   - {fileID: 935679693}
@@ -9728,7 +9773,7 @@ MonoBehaviour:
   - {fileID: 935679673}
   - {fileID: 935679672}
   - {fileID: 935679671}
-  - {fileID: 935679670}
+  - {fileID: 0}
   - {fileID: 935679669}
   - {fileID: 935679668}
   - {fileID: 935679667}
@@ -9805,7 +9850,7 @@ MonoBehaviour:
   - {fileID: 935679596}
   - {fileID: 935679595}
   - {fileID: 935679594}
-  - {fileID: 935679593}
+  - {fileID: 0}
   - {fileID: 935679592}
   - {fileID: 935679591}
   - {fileID: 935679590}
@@ -9824,6 +9869,7 @@ MonoBehaviour:
   - {fileID: 935679577}
   - {fileID: 935679576}
   - {fileID: 935679574}
+  breakables: []
   chestSites:
   - {fileID: 859150517}
   - {fileID: 859150516}
@@ -10417,6 +10463,7 @@ MonoBehaviour:
     \u0442\u0435\u0431\u044F \u043A\u043E\u0435-\u0447\u0442\u043E \u0438\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u043E\u0435.
     \u0417\u0430\u0433\u043B\u044F\u0434\u044B\u0432\u0430\u0439."
   strangerChance: 0.3
+  strangerGuaranteedAt: 6
   strangerLines:
   - "\u0421\u0442\u0440\u0430\u043D\u043D\u043E, \u044D\u0442\u0430 \u043B\u0430\u0432\u043A\u0430
     \u0442\u0430\u043A \u0434\u0430\u0432\u043D\u043E \u043F\u0443\u0441\u0442\u043E\u0432\u0430\u043B\u0430."
@@ -12210,6 +12257,7 @@ MonoBehaviour:
   throwInstruction: {fileID: 11400000, guid: 375c1b8a4e6464d63b47ec832f1feaeb, type: 2}
   moveInstruction: {fileID: 11400000, guid: 09ee3d2b74efb42658bff760576608f0, type: 2}
   discardInstruction: {fileID: 11400000, guid: 82ae9d88f0ee64d30841a38536b7cc73, type: 2}
+  kickInstruction: {fileID: 11400000, guid: 6811c076db6e49308b0214377b89b28b, type: 2}
   fireId: fire
   iceId: ice
   strikeId: strike
@@ -12350,6 +12398,87 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 191571161801282129, guid: df79cebbee7e5a6751f70beb3c1e4fcc, type: 3}
   m_PrefabInstance: {fileID: 1524379762}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1524746913
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 218823680}
+    m_Modifications:
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: world
+      value: 
+      objectReference: {fileID: 218823678}
+    - target: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: hitDust
+      value: 
+      objectReference: {fileID: 8948856644754878334, guid: 92d4a009a27f0419fa408275dd5ba337, type: 3}
+    - target: {fileID: 4912288086570045812, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+      propertyPath: m_Name
+      value: Kick
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+--- !u!4 &1524746914 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 442998148434197708, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+  m_PrefabInstance: {fileID: 1524746913}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1524746915 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1314156192627527322, guid: f7a379b4317b34ec891dbce0787f4fa0, type: 3}
+  m_PrefabInstance: {fileID: 1524746913}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09d8d3ae4dc35493d88474822b328668, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.Expedition::Hakaton.Expeditions.PlayerKick
 --- !u!1 &1525923935
 GameObject:
   m_ObjectHideFlags: 0
