@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -32,6 +33,7 @@ def tile(vid, seed):
         k2 = (k + 1) % len(ring)
         s.quad(ring[k], ring[k2], bot[k2], bot[k], 'Earth')
     s.face(list(reversed(bot)), 'Earth')
+    dress_walk(s, rnd, lambda lo, hi: lo.x < -1.97 or lo.y < -1.97 or hi.x > 1.97 or hi.y > 1.97 or hi.z > T + 0.06, k=1.0)
     return s, s.finish(vid)
 
 
@@ -59,6 +61,7 @@ def patch(vid, seed):
             k2 = (k + 1) % A
             s.quad(rings[i][k], rings[i][k2], rings[i + 1][k2], rings[i + 1][k], m)
     s.face(list(reversed(rings[3])), 'Earth')
+    dress_walk(s, rnd, lambda lo, hi: hi.z > 0.19, k=0.75, ruts=1, filt=lambda p, n: n.z > 0.8 and p.length < 1.75)
     return s, s.finish(vid)
 
 
@@ -75,7 +78,7 @@ recs = [ak.variant_record('AN06a', 'Earth floor tile 4 x 4 x 0.15 (tileable)', o
                                  'walk_surface': 'z = +0.15 exactly on all four edges (interior varies -0.03..+0.02), so tiles meet without steps in any rotation',
                                  'texture': 'Floor top + Earth sides use world-planar UVs at the kit density (2 m per repeat); procedural tunnel floors should use the same planar mapping'},
                           max_top_slope_deg=round(max_slope(oa), 1),
-                          notes='gently faceted trodden top (0.5 m grid, jittered interior), vertical Earth edge, closed bottom.'),
+                          notes='gently faceted trodden top (0.5 m grid, jittered interior) dressed with flat details only (<= 6 cm): clay crumbs, flat pebbles, husks, pine needles, small cracks, a shallow rut track; vertical Earth edge, closed bottom.'),
         ak.variant_record('AN06b', 'Earth floor patch (irregular, concept outline)', ob, fb, solidity='walk-on-top',
                           collider='none (overlay, the floor/terrain below collides) or mesh', emissive=False,
                           joins={'grid': 'free placement overlay, pivot bottom centre; not a snapping piece'},

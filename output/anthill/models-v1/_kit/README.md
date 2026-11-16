@@ -30,7 +30,7 @@ shared by several agents: render small (≤ 480 px tiles, 8–12 samples), never
 | `Root` | tiling 1.6 m, root bark, grain along V | root pillar, wall root, root arch, mushroom-free roots |
 | `Wood` | tiling 1.6 m, boards/beams, grain along V | timber prop, deck bracket, railing posts, barricade, handcart, bins |
 | `Cloth` | tiling 1.2 m, burgundy weave | queen-bed cloth |
-| `Props` | 512 atlas (regions.json) | `end_grain`, `root_end`, `rope`, `iron`, `dark`, `cloth`, `egg`, `seed`, `shell_out`, `shell_in`, `paper`, `leaf_green`, `leaf_dry_0/1/2`, `resin`, `substrate` (glowing mycelium veins), `cap_mint`, `cap_yellow`, `gill_glow` (emissive), `stem`, `stem_glow` (emissive towards the top), `earth_props`, `wood_props`, `root_props` (small items on the atlas) |
+| `Props` | 512 atlas (regions.json) | `end_grain`, `root_end`, `rope`, `iron`, `dark`, `cloth`, `egg`, `seed`, `shell_out`, `shell_in`, `paper`, `leaf_green`, `leaf_dry_0/1/2`, `resin`, `substrate` (glowing mycelium veins), `cap_mint`, `cap_yellow`, `gill_glow` (emissive), `stem`, `stem_glow` (emissive towards the top), `earth_props`, `wood_props`, `root_props` (small items on the atlas), `pebble` (grey-brown stones), `needles` (dry pine needles/twig bark), `gill_glow_yellow` (emissive) |
 
 Glow: `gill_glow`, `stem_glow` and the mycelium in `substrate` are emissive through `T_Ant_Props_Emission.png`.
 Use them only where the concept glows (undersides of caps, upper stem of the tall mushroom, compost veins).
@@ -46,10 +46,16 @@ never squash a whole asset into 0–1. Atlas (Props) — `region=` in box/planar
 2. **PSX / game look**: simple CROOKED geometry with big flat faces, everything slightly crooked, sagging, leaning
    ("всё кривое, хаотичное и странное") — the irregularity is in the 3D form, not only in the texture.
    Flat shading, no micro-bevels, no subdivision smoothing.
-3. **Detail budget**: the user wants much more detail than a minimal low-poly — spend triangles on silhouette and
-   construction: real separate boards/beams/pegs/rope wraps, broken ends, chips, holes as real geometry, crooked
-   root branches and flares, faceted cracks/ledges in the earth. Fine stuff (grain, strata, fibres) stays painted.
-   Rough guide: small props 150–800 tris, medium 800–3000, big shell pieces / mound 1500–5000.
+3. **Detail budget — THE USER WANTS AS MANY DETAILS AS POSSIBLE, even if each detail itself is simple.**
+   v1 models were judged too bare. Every asset must be covered in small modelled details: separate little
+   clods, pebbles, crumbs, chips, cracks cut as real geometry, root tips and hair rootlets poking out, tiny burrow
+   holes (Props `dark` inside), drips, ledges, splinters, pegs/nails, extra rope wraps and loose ends, fibres
+   hanging off cloth, small leaves/seeds/husks stuck on or lying around, baby mushrooms at bases, etc.
+   Details may be crude (4–8-sided lumps, boxes, simple tubes) — quantity and rich silhouette matter more than
+   precision. Keep the concept's overall shape and composition; details must not change what the object is.
+   Rough guide now: small props 800–3000 tris, medium 3000–8000, big shell pieces / mound 6000–15000.
+   Modular shell pieces: details must stay inside the piece (nothing crossing the join planes / grid edges,
+   walkable floor zones stay walkable — small flat crumbs only, no snags on paths ≥ 2.4 m wide).
 4. All matte. Colours come from the shared textures — no per-asset textures, no vertex colours.
 5. No glowing anything except fungi (see Glow). No eyes/runes/ornaments.
 

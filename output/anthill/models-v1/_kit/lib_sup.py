@@ -229,7 +229,7 @@ def write_manifest(outdir, asset, records, **extra):
 
 # ------------------------------------------------------------------ leaves
 def leaf(mesh, M, L=1.0, W=0.6, thick=0.06, belly=0.35, seed=0, region='leaf_green', droop=0.0, curl=0.0,
-         n=8, serr=0.12, bend=None, tip_twist=0.0):
+         n=8, serr=0.12, bend=None, tip_twist=0.0, tears=0):
     """Solid lens-shaped leaf (closed, knife edge) along local X (length L), width W (local Y), domed top.
     droop: tips drop (m); curl: edges rise (m); bend(p, s, f) -> extra offset Vector (local);
     M: Matrix to place it. UV: midrib along region V (leaf atlas regions are vertical leaves)."""
@@ -246,6 +246,8 @@ def leaf(mesh, M, L=1.0, W=0.6, thick=0.06, belly=0.35, seed=0, region='leaf_gre
             p = p + bend(p, s, f)
         return p
     ej = [[1 + rnd.uniform(-serr, serr * .6) for r in range(2)] for j in range(n)]
+    for t_ in range(tears):                       # torn bites out of the edge
+        ej[rnd.randint(2, n - 3)][rnd.randint(0, 1)] = rnd.uniform(.35, .6)
     for j in range(1, n - 1):
         s = j / (n - 1)
         th = thick * math.sin(math.pi * s) ** .6
@@ -325,3 +327,209 @@ def hjit(p, amp, seed=0):
     k = (round(p[0], 4), round(p[1], 4), round(p[2], 4), seed)
     r = random.Random(hash(k))
     return Vector((r.uniform(-amp, amp), r.uniform(-amp, amp), r.uniform(-amp, amp)))
+
+
+# ================================================================== detail kit (v2 detail pass)
+def lump(mesh, c, r, region=None, sides=5, seed=0, rot=None, flat=0.0, jit=0.22, M=None):
+    """Crude faceted lump (clod, pebble, crumb, kernel): 2 rings + poles = 4*sides tris.
+    r=(rx,ry,rz) or float. region None -> tiling material (call auto_uv on the object later).
+    flat: 0..1 flattens the bottom (sits on the ground). M: optional rotation matrix (3x3/4x4) applied about c."""
+    rnd = random.Random(seed)
+    C = Vector(c)
+    if not isinstance(r, (list, tuple)):
+        r = (r, r, r)
+    rx, ry, rz = r
+    rot = rnd.uniform(0, 6.3) if rot is None else rot
+    def T(p):
+        if M is not None:
+            p = (M.to_3x3() if len(M) == 4 else M) @ p
+        return C + p
+    rings = []
+    for ri, lat in enumerate((-50.0, 12.0)):
+        la = math.radians(lat + rnd.uniform(-8, 8))
+        ring = []
+        for k in range(sides):
+            a = rot + 2 * math.pi * (k + .5 * ri) / sides
+            f = 1 + rnd.uniform(-jit, jit)
+            z = math.sin(la) * rz * f
+            if ri == 0 and flat:
+                z = -rz * (1 - flat) * .55 + z * flat * 0.2
+            ring.append(T(Vector((math.cos(a) * math.cos(la) * rx * f, math.sin(a) * math.cos(la) * ry * f, z))))
+        rings.append(ring)
+    bot = T(Vector((0, 0, -rz * (1 - flat) * (0.6 if flat else 1))))
+    top = T(Vector((rnd.uniform(-.2, .2) * rx, rnd.uniform(-.2, .2) * ry, rz * (1 + rnd.uniform(-jit, jit) * .5))))
+    def uv(k, v):
+        return R(region, k / sides, v, fold=False) if region else (0.0, 0.0)
+    r1, r2 = rings
+    for k in range(sides):
+        k2 = (k + 1) % sides
+        mesh.tri(bot, r1[k2], r1[k], uv(k + .5, 0), uv(k + 1, .3), uv(k, .3))
+        mesh.quad(r1[k], r1[k2], r2[k2], r2[k], uv(k, .3), uv(k + 1, .3), uv(k + 1, .75), uv(k, .75))
+        mesh.tri(r2[k], r2[k2], top, uv(k, .75), uv(k + 1, .75), uv(k + .5, 1))
+    return rings
+
+
+def scatter(mesh, n, sampler, size, region=None, seed=0, sides=4, flat=0.6, zsq=0.6):
+    """n lumps at sampler(rnd) -> (x, y, z) positions; size=(min, max) radius."""
+    rnd = random.Random(seed)
+    for i in range(n):
+        p = sampler(rnd)
+        if p is None:
+            continue
+        s = rnd.uniform(*size)
+        lump(mesh, (p[0], p[1], p[2] + s * zsq * .35), (s * rnd.uniform(.8, 1.3), s * rnd.uniform(.7, 1.1), s * zsq),
+             region, sides=sides, seed=seed * 1000 + i, flat=flat)
+
+
+def ring_sampler(cx, cy, r0, r1, z=0.0, sy=1.0, a0=0.0, a1=2 * math.pi):
+    def f(rnd):
+        a = rnd.uniform(a0, a1); r = rnd.uniform(r0, r1)
+        return (cx + math.cos(a) * r, cy + math.sin(a) * r * sy, z)
+    return f
+
+
+def twig(mesh, start, direction, length, r=0.012, seed=0, region='needles', branches=1, sides=4, segs=4, droop=0.0,
+         ground=False):
+    """Crooked twig (bark = needles region) with short side branches."""
+    rnd = random.Random(seed)
+    P = [Vector(start)]
+    d = Vector(direction).normalized()
+    for i in range(segs):
+        d = (d + Vector((rnd.uniform(-.35, .35), rnd.uniform(-.35, .35), rnd.uniform(-.15, .15) - droop))).normalized()
+        P.append(P[-1] + d * length / segs)
+        if ground:
+            P[-1].z = Vector(start).z + rnd.uniform(0, .02)
+    radii = [r * (1 - .55 * i / segs) for i in range(segs + 1)]
+    atlas_tube(mesh, P, radii, region, sides=sides, metres_u=.25, seed=seed, caps=(True, False))
+    for b in range(branches):
+        i = rnd.randint(1, max(1, segs - 1))
+        bd = (d.cross(Vector((0, 0, 1))) * rnd.choice((-1, 1)) + d * .6).normalized()
+        q = [P[i], P[i] + bd * length * .25, P[i] + bd * length * .42 + Vector((rnd.uniform(-.03, .03),) * 3)]
+        if ground:
+            for p in q[1:]:
+                p.z = P[i].z + rnd.uniform(-.005, .01)
+        atlas_tube(mesh, q, [radii[i] * .6, radii[i] * .45, radii[i] * .25], region, sides=3, metres_u=.25,
+                   caps=(False, False))
+    return P
+
+
+def shard(mesh, c, size, region_out, region_in=None, seed=0, curv=0.25, th=0.01, M=None, n=5):
+    """Curved shell fragment / flake: jagged n-gon plate, domed (curv * size), with thickness th."""
+    rnd = random.Random(seed)
+    region_in = region_in or region_out
+    C = Vector(c)
+    Mr = (M.to_3x3() if M is not None and len(M) == 4 else M) if M is not None else Matrix.Rotation(rnd.uniform(0, 6.3), 3, 'Z')
+    out = []
+    for k in range(n):
+        a = 2 * math.pi * k / n + rnd.uniform(-.3, .3)
+        rr = size * rnd.uniform(.55, 1.0)
+        out.append(Vector((math.cos(a) * rr, math.sin(a) * rr * .8, 0)))
+    for p in out:
+        p.z = curv * size * (1 - (p.length / size) ** 2) * .4
+    top_c = Vector((0, 0, curv * size * .4))
+    T = [C + Mr @ p for p in out]; B = [C + Mr @ (p - Vector((0, 0, th))) for p in out]
+    tc, bc = C + Mr @ top_c, C + Mr @ (top_c - Vector((0, 0, th)))
+    for k in range(n):
+        k2 = (k + 1) % n
+        u0 = (.5 + .45 * math.cos(2 * math.pi * k / n), .5 + .45 * math.sin(2 * math.pi * k / n))
+        u1 = (.5 + .45 * math.cos(2 * math.pi * k2 / n), .5 + .45 * math.sin(2 * math.pi * k2 / n))
+        mesh.tri(T[k], T[k2], tc, R(region_out, *u0, fold=False), R(region_out, *u1, fold=False), R(region_out, .5, .5, fold=False))
+        mesh.tri(B[k2], B[k], bc, R(region_in, *u1, fold=False), R(region_in, *u0, fold=False), R(region_in, .5, .5, fold=False))
+        mesh.quad(B[k], B[k2], T[k2], T[k], R(region_out, u0[0], .02, 0), R(region_out, u1[0], .02, 0),
+                  R(region_out, u1[0], .06, 0), R(region_out, u0[0], .06, 0))
+
+
+def small_leaf(mesh, c, L, W, region='leaf_dry_0', seed=0, rz=None, rx=0.0, ry=0.0, droop=0.01, curl=0.01, thick=None):
+    rnd = random.Random(seed)
+    rz = rnd.uniform(0, 6.3) if rz is None else rz
+    leaf(mesh, place(c[0], c[1], c[2], rz, rx=rx, ry=ry), L=L, W=W, thick=thick or max(W * .06, .006), belly=.5,
+         seed=seed, region=region, droop=droop, curl=curl, serr=.18, n=6)
+
+
+def fibres(mesh, start, direction, n=3, length=0.06, r=0.004, seed=0, region='rope', spread=0.5):
+    """Frayed fibres splaying from a rope/cloth end: thin 3-sided tubes."""
+    rnd = random.Random(seed)
+    d0 = Vector(direction).normalized()
+    for i in range(n):
+        d = (d0 + Vector((rnd.uniform(-spread, spread), rnd.uniform(-spread, spread), rnd.uniform(-spread, spread) - .2))).normalized()
+        L = length * rnd.uniform(.6, 1.2)
+        p0 = Vector(start); p1 = p0 + d * L * .5; p2 = p1 + (d + Vector((0, 0, -.4))).normalized() * L * .5
+        atlas_tube(mesh, [p0, p1, p2], [r, r * .8, r * .4], region, sides=3, metres_u=.2, caps=(False, False))
+
+
+def burrow(props, c, normal, r=0.05, depth=0.12, sides=6, seed=0):
+    """Tiny burrow hole: a short dark tube sunk into a surface (normals face into the hole), closed at the back."""
+    rnd = random.Random(seed)
+    N = Vector(normal).normalized(); C = Vector(c)
+    path = [C + N * 0.015, C - N * depth * .5, C - N * depth]
+    rings = rings_along(path, [r, r * .85, r * .6], sides, rot=rnd.uniform(0, 3), seed=seed, jit=r * .12)
+    skin(props, rings, lambda i, k: R('dark', k / sides, i / 2, fold=False), flip=True)
+    cap(props, rings[-1], 'dark', flip=True)
+
+
+def mushroom(props, base, h=0.08, cap_r=0.035, seed=0, lean=(0, 0), cap_region='cap_mint', stem_region='stem'):
+    """Tiny non-glowing baby mushroom (stem tube + cap cone)."""
+    rnd = random.Random(seed)
+    B = Vector(base); top = B + Vector((lean[0] * h, lean[1] * h, h))
+    atlas_tube(props, [B - Vector((0, 0, .01)), B.lerp(top, .5) + Vector((rnd.uniform(-.01, .01), rnd.uniform(-.01, .01), 0)), top],
+               [cap_r * .32, cap_r * .28, cap_r * .25], stem_region, sides=4, metres_u=.2, caps=(False, False))
+    ring = []
+    s = 6
+    for k in range(s):
+        a = 2 * math.pi * k / s
+        ring.append(top + Vector((math.cos(a) * cap_r, math.sin(a) * cap_r, -cap_r * .25 + rnd.uniform(-.005, .005))))
+    cap(props, ring, cap_region, apex=top + Vector((0, 0, cap_r * .7)), rad_uv=.45)
+    cap(props, ring, cap_region, flip=True, rad_uv=.2)
+
+
+def merge_objects(objs, name):
+    """Join several objects of the SAME material into one (bmesh)."""
+    bm = bmesh.new()
+    for o in objs:
+        bm.from_mesh(o.data)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    for p in me.polygons:
+        p.use_smooth = False
+    ob = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(ak.material(objs[0]['mat'])); ob['mat'] = objs[0]['mat']
+    for o in objs:
+        bpy.data.objects.remove(o)
+    return ob
+
+
+def seed_body(mesh, M, L=0.55, H=0.088, Wd=0.122, sides=12, nring=9, seed=4, gash=None, chips=0):
+    """Ribbed pointed seed along local X (keel on top). gash=(t0, t1, k): open split along side index k between
+    t0..t1 (deep groove). chips: number of random dented facets. Returns rings (local->M applied)."""
+    rnd = random.Random(seed)
+    ts = [0.035 + (0.955 - 0.035) * i / (nring - 1) for i in range(nring)]
+    path = [(-L / 2 + t * L, 0.006 * math.sin(t * 5), 0.018 * math.sin(math.pi * t) - 0.006 * t) for t in ts]
+    prof = [math.sin(math.pi * t) ** 0.62 for t in ts]
+    base = [1.13, .95, 1.05, 1.0, .88, .97, .93, .97, .88, 1.0, 1.05, .95]
+    if sides != 12:
+        base = [base[int(k * 12 / sides)] for k in range(sides)]
+    J = [[rnd.uniform(-.03, .03) for k in range(sides)] for t in ts]
+    dents = set((rnd.randint(1, nring - 2), rnd.randint(0, sides - 1)) for c in range(chips))
+    def rf(i, k, a):
+        m = base[k] + J[i][k]
+        if k == sides // 2:
+            m *= .9
+        if (i, k) in dents:
+            m *= .8
+        if gash and gash[0] <= ts[i] <= gash[1]:
+            kk = gash[2]
+            o = math.sin(math.pi * (ts[i] - gash[0]) / (gash[1] - gash[0]))
+            if k == kk:
+                m *= 1 - .5 * o
+            elif k in ((kk - 1) % sides, (kk + 1) % sides):
+                m *= 1 + .1 * o
+        return m
+    rings = rings_along(path, prof, sides, scale=[(H, Wd)] * nring, rfun=rf, up_hint=(0, 0, 1))
+    rings = [[M @ p for p in r] for r in rings]
+    skin(mesh, rings, lambda i, k: R('seed', k / sides, ts[i], fold=False))
+    tipA = M @ Vector((-L / 2 - 0.004, 0.004, 0.004)); tipB = M @ Vector((L / 2, -0.004, 0.012))
+    first, last = rings[0], rings[-1]
+    for k in range(sides):
+        k2 = (k + 1) % sides
+        mesh.tri(first[k2], first[k], tipA, R('seed', (k + 1) / sides, ts[0], 0), R('seed', k / sides, ts[0], 0), R('seed', (k + .5) / sides, 0, 0))
+        mesh.tri(last[k], last[k2], tipB, R('seed', k / sides, ts[-1], 0), R('seed', (k + 1) / sides, ts[-1], 0), R('seed', (k + .5) / sides, 1, 0))
+    return rings, ts

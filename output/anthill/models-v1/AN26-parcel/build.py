@@ -7,9 +7,9 @@ REND = '--norender' not in sys.argv
 ak.reset()
 HX, HY, HZ = 0.205, 0.155, 0.108
 BUL = 0.022           # face puffing
-ZR = [-1, -.45, .1, .55, 1]
-XR = [-1, -.35, .35, 1]
-YR = [-1, -.3, .3, 1]
+ZR = [-1, -.6, -.2, .15, .55, 1]
+XR = [-1, -.6, -.2, .2, .6, 1]
+YR = [-1, -.5, 0, .5, 1]
 
 def shape(b, extra=0.0):
     """box coords b in [-1,1]^3 -> world point (puffed, crooked). extra: push outward (cap shell)."""
@@ -57,9 +57,9 @@ for pts, d in body_faces:
 # --- cap/flap shell: top + upper part of the sides, offset outwards, wavy lower edge with a thickness strip
 OFF = 0.013
 def wav(c):
-    x, y, _ = c
+    x, y, z = c
     return 0.10 + 0.22 * math.sin(2.3 * x + 1.0) * (1 if abs(y) > .999 else .6) - 0.12 * (y < -.999) * (x < 0) + \
-        hjit((x, y, 0), .06, 5).x * 3
+        hjit((x, y, 0), .06, 5).x * 3 + (.12 if (round(x * 5) + round(y * 5)) % 2 else -.05) * (z < -.99)
 def capz(c):
     x, y, z = c
     if z <= -.99:          # bottom row -> wavy edge height
@@ -71,7 +71,7 @@ def cap_shape(c, off=OFF):
     p = shape(q)
     n = Vector((q[0] if abs(q[0]) > .999 else 0, q[1] if abs(q[1]) > .999 else 0, 1 if q[2] > .999 else 0))
     return p + n.normalized() * off if n.length else p
-CZ = [-1, 0, 1]
+CZ = [-1, -.4, .3, 1]
 cap_faces = []
 for s in (-1, 1):
     grid_face(0, s, YR, CZ, cap_shape, cap_faces)
@@ -137,17 +137,60 @@ kc = shape((XB, YB, 1)) + Vector((0, 0, OFF + RR * 2))
 rope_knot(body, kc, r=0.017, size=0.033, seed=4, axis=(0, 0, 1),
           ends=[[kc + Vector((.01, -.01, .01)), kc + Vector((.05, -.05, .0)), kc + Vector((.08, -.10, -.012))],
                 [kc + Vector((-.01, -.012, .01)), kc + Vector((-.025, -.07, -.006)), kc + Vector((-.03, -.11, -.016))]])
+# ---- details v2: second thinner strands, patches with stitches, torn flap corner, frayed ends, twig, leaf, crumbs
+rnd = random.Random(26)
+closed_loop_tube(body, round_loop(loop_yz(XB + .14)), RR * .7, 'rope', sides=4, metres_u=.25, seed=5)
+closed_loop_tube(body, round_loop(loop_xz(YB - .18)), RR * .7, 'rope', sides=4, metres_u=.25, seed=6)
+def patch(axis, sign, cu, cv, hu, hv, region, off, seed):
+    o = [k for k in range(3) if k != axis]
+    def bc(u, v):
+        c = [0, 0, 0]; c[axis] = sign; c[o[0]] = u; c[o[1]] = v; return tuple(c)
+    nrm = Vector([sign if k == axis else 0 for k in range(3)])
+    r2 = random.Random(seed)
+    corners = [(cu - hu, cv - hv), (cu + hu, cv - hv), (cu + hu, cv + hv), (cu - hu, cv + hv)]
+    top = [shape(bc(u + r2.uniform(-.05, .05), v + r2.uniform(-.05, .05))) + nrm * (off + .006) for u, v in corners]
+    bot = [p - nrm * .006 for p in top]
+    face_out(body, top, nrm, lambda pts, n: [R(region, a, b, 0) for a, b in ((.1, .1), (.9, .1), (.9, .9), (.1, .9))])
+    for i in range(4):
+        j = (i + 1) % 4
+        face_out(body, [bot[i], bot[j], top[j], top[i]], (top[i] + top[j]) / 2 - sum(top, Vector()) / 4,
+                 lambda pts, n: [R(region, .1, .1, 0)] * 4)
+        # two stitches crossing each edge
+        for f in (.3, .7):
+            pm = top[i].lerp(top[j], f)
+            inward = (sum(top, Vector()) / 4 - pm).normalized()
+            atlas_tube(body, [pm - inward * .012 + nrm * .002, pm + nrm * .006, pm + inward * .012 + nrm * .002],
+                       .0035, 'rope', sides=3, metres_u=.1, caps=(False, False))
+patch(1, -1, -.45, -.45, .28, .3, 'cloth', 0.0, 1)
+patch(0, 1, .25, -.35, .3, .28, 'paper', 0.0, 2)
+patch(2, 1, -.55, -.35, .25, .3, 'cloth', OFF, 3)
+patch(1, 1, .35, -.5, .25, .25, 'shell_in', 0.0, 4)
+# torn flap corner lifted on the top-left front
+tc = shape((-1, -1, 1)) + Vector((0, 0, OFF))
+tri3 = [tc + Vector((.0, .0, .004)), tc + Vector((.11, .01, .03)), tc + Vector((.02, .09, .035))]
+face_out(body, tri3, (0, 0, 1), uvf); face_out(body, [p - Vector((0, 0, .006)) for p in tri3], (0, 0, -1), uvf)
+# frayed fibres on the loose ends and at the knot
+fibres(body, kc + Vector((.08, -.10, -.012)), (1, -1, -.3), n=4, length=.04, r=.004, seed=7)
+fibres(body, kc + Vector((-.03, -.11, -.016)), (-.2, -1, -.4), n=3, length=.04, r=.004, seed=8)
+fibres(body, kc + Vector((0, 0, .03)), (0, .3, 1), n=3, length=.03, r=.003, seed=9)
+# a twig and a dry leaf tucked under the rope on top
+twig(body, shape((XB - .3, -.8, 1)) + Vector((0, 0, OFF + .01)), (-.4, 1, -.08), .3, r=.008, seed=10, branches=1, segs=3, droop=.12)
+small_leaf(body, shape((XB + .45, .3, 1)) + Vector((0, 0, OFF + .01)), .16, .07, 'leaf_dry_1', seed=11, rz=1.2, droop=.015)
+# crumbs and fibres on the ground
+scatter(body, 16, ring_sampler(0, 0, .26, .36, sy=.8), (.006, .014), 'paper', seed=12, sides=4)
+scatter(body, 8, ring_sampler(0, 0, .25, .34, sy=.8), (.006, .012), 'earth_props', seed=13, sides=4)
 ob = body.to_object('AN26a_Props')
-ak.ground([ob])
+ak.ground([ob], center_xy=False)
 check_normals([ob])
 f = os.path.join(D, 'SM_AN26_Parcel.fbx'); ak.export_fbx([ob], f)
 rec = ak.variant_record('AN26a', 'Tied parcel', [ob], f)
 print(rec)
 write_manifest(OUT, 'AN26 parcel', [rec], solidity='solid (pickup / interest item)', collider='box', emissive=False,
-               notes='Pivot bottom centre. Puffed crooked wrapped body, wrapping flap shell with wavy overhanging lower '
-               'edge, folded paper triangles on back and left side, two rope bands crossing on top, knot with two '
-               'loose ends modelled. Paper colour/creases painted (Props paper), rope (Props rope).')
+               notes='Pivot bottom centre. Puffed crooked wrapped body, flap shell with torn toothed overhanging edge and a '
+               'lifted torn corner, folded paper triangles on back and left side, two rope bands crossing on top + two '
+               'thinner extra strands, knot with two loose ends and frayed fibres, 4 sewn-on patches (cloth/paper/shell) '
+               'with stitches, a twig and a dry leaf tucked under the rope, crumbs on the ground. Paper creases painted.')
 if REND:
-    t, l = renders([ob], OUT, 'a', el=24)
-    card('26-parcel', OUT, t, l, 'AN26 parcel')
+    t, l = renders([ob], OUT, "a", el=26, margin=.95)
+    card('26-parcel', OUT, t, l, 'AN26 parcel (v2 detail)')
 ak.save_blend(os.path.join(D, 'AN26_Parcel.blend'))

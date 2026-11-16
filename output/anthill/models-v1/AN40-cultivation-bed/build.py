@@ -62,7 +62,6 @@ def build():
         band(e, rings[i], rings[i + 1])
     band(e, rings[-1], rings[0])
     recalc(e)
-    drop_bottom(e)
     # soil: substrate grid slightly below the rim top, edges tucked into the inner wall
     nx = 4
     soil = ring(0.24, 0.27)
@@ -84,10 +83,64 @@ def build():
             if nrm.z < 0:
                 pts = list(reversed(pts))
             fit_face(p, pts, SUB_CLEAN, metres=1.1, rnd=sr)
-    eo = e.to_object('AN40a_Earth'); po = p.to_object('AN40a_Props')
-    for o in (eo, po):   # concept: long axis runs along X
+    rim = e.to_object('rim'); po = p.to_object('AN40a_Props')
+    for o in (rim, po):   # concept: long axis runs along X
         o.data.transform(Matrix.Rotation(math.pi / 2, 4, 'Z'))
+    # cracks cut into the rim (exact boolean): down the outer wall and across the top
+    dr = random.Random(41)
+    WG = []
+    for (p0, n0) in samples([rim], 9, 400, lambda q, n: 0.1 < q.z < 0.3 and abs(n.z) < 0.5):
+        t = Vector((0, 0, 1)).cross(n0).normalized()
+        a = p0 + Vector((0, 0, 0.2)) + t * dr.uniform(-0.05, 0.05)
+        b = p0 - Vector((0, 0, 0.12)) + t * dr.uniform(-0.12, 0.12)
+        WG.append((a + n0 * 0.02, b + n0 * 0.02, n0, dr.uniform(0.025, 0.045), dr.uniform(0.06, 0.1)))
+    for (p0, n0) in samples([rim], 6, 401, lambda q, n: n.z > 0.85 and q.z > 0.36):
+        acr = Vector((0, 1 if p0.y < 0 else -1, 0)) if abs(p0.x) < 1.7 else Vector((1 if p0.x < 0 else -1, 0, 0))
+        WG.append((p0 - acr * 0.12 + Vector((dr.uniform(-.05, .05), 0, 0)), p0 + acr * 0.12, (0, 0, 1),
+                   dr.uniform(0.025, 0.04), dr.uniform(0.05, 0.08)))
+    polys, ncut = safe_cuts(rim, WG)
+    print('cracks applied', ncut, 'of', len(WG))
+    me = rim.data; bpy.data.objects.remove(rim); bpy.data.meshes.remove(me); bpy.context.view_layer.update()
+    E = ak.Mesh('Earth')
+    for q in polys:
+        if all(v.z < 1e-4 for v in q):
+            continue
+        E.face(q, [(0, 0)] * len(q))
+    eo = E.to_object('AN40a_Earth')
     ak.auto_uv(eo)
+    # details: clods + pebbles on the rim and at its foot, sprouting glow mushrooms, crumbs, leaves, twigs, needles,
+    # two little burrows in the soil
+    D = ak.Mesh('Props')
+    soil_ok = lambda q, n: n.z > 0.7
+    for j, (q, n) in enumerate(samples([eo], 26, 402, lambda q, n: n.z > 0.6 and q.z > 0.3)):
+        lump(D, q, dr.uniform(0.04, 0.09), n, sides=6, squash=dr.uniform(.5, .8), sink=0.35, seed=4100 + j,
+             spec=full('earth_props') if dr.random() < 0.7 else full('pebble'), metres=0.4)
+    for j in range(34):
+        a = dr.uniform(0, 6.28)
+        q = Vector((math.cos(a) * dr.uniform(2.1, 2.5), math.sin(a) * dr.uniform(0.9, 1.25), 0.0))
+        lump(D, q, dr.uniform(0.04, 0.12), (0, 0, 1), sides=dr.choice((5, 6, 7)), squash=dr.uniform(.45, .8), sink=0.3,
+             seed=4200 + j, spec=full('earth_props') if j % 2 else full('pebble'), metres=0.35)
+    sp = samples([po], 80, 403, soil_ok)
+    for j, (q, n) in enumerate(sp[:14]):
+        baby_mushroom(D, q, n, dr.uniform(0.06, 0.2), dr.uniform(0.035, 0.08), seed=4300 + j, lean=0.3)
+    for j, (q, n) in enumerate(sp[14:50]):
+        lump(D, q, dr.uniform(0.02, 0.045), n, sides=5, squash=0.55, sink=0.3, seed=4400 + j,
+             spec=full('earth_props') if j % 3 else full('substrate'), metres=0.2)
+    sb = bvh_of([po, eo])
+    for j, (q, n) in enumerate(sp[50:57]):
+        place_leaf(D, sb, (q.x, q.y, 2.0), (0, 0, -1), dr.uniform(0.2, 0.34), dr.choice(('leaf_dry_0', 'leaf_dry_1', 'leaf_dry_2')),
+                   seed=4500 + j, lift=0.01, curl=0.03)
+    for j, (q, n) in enumerate(sp[57:62]):
+        a = dr.uniform(0, 6.28)
+        twig(D, q + Vector((0, 0, 0.015)), (math.cos(a), math.sin(a), 0.05), dr.uniform(0.2, 0.4), 0.014, seed=4600 + j,
+             embed=0.0, bend=0.1)
+    for j, (q, n) in enumerate(sp[62:64]):
+        a = dr.uniform(0, 6.28)
+        needles(D, q, (math.cos(a), math.sin(a), 0.1), 0.25, 5, 0.5, seed=4700 + j, r=0.008, embed=0.0)
+    for j, (q, n) in enumerate(sp[64:66]):
+        burrow(D, q, n, 0.05, seed=4800 + j, depth=0.1)
+    clamp(D, 2, lo=0.0); drop_bottom(D)
+    join_into(po, D)
     objs = [eo, po]
     ak.ground(objs)
     return objs
@@ -97,8 +150,8 @@ if __name__ == '__main__':
     objs = build()
     rec = outputs(objs, HERE, 'SM_AN40_CultivationBed.fbx', 'AN40a', 'CultivationBed', SHEETS + '40-cultivation-bed.png',
                   manifest_extra=dict(solidity='solid (low obstacle) / walk-on-top possible', collider='box 4.1 x 1.6 x 0.42 (or mesh)',
-                                      emissive=False, pivot='bottom centre; long axis = X (as in the concept views; brief said 2.4 x 4)',
-                                      notes='earth rim (Earth) with bevelled crooked top and notches; soil = Props substrate (vein-free part) ~0.12 m below the rim top; mushrooms placed separately'),
+                                      emissive=True, emissive_parts='gill_glow_yellow under 14 tiny sprouting mushrooms', pivot='bottom centre; long axis = X (as in the concept views; brief said 2.4 x 4)',
+                                      notes='earth rim (Earth) with bevelled crooked top and notches; soil = Props substrate (vein-free part) ~0.12 m below the rim top; + cracks cut into the rim, clods/pebbles on the rim and around the foot, 14 tiny sprouting glow mushrooms, crumbs, leaves, twigs, needles, 2 burrows; big mushrooms placed separately'),
                   views=RENDER)
     write_manifest(HERE, [rec])
     print(rec)

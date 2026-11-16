@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -27,6 +28,16 @@ def ring(y, rnd, end):
     return R
 
 
+def forbid(lo, hi):
+    return lo.y < -1.97 or hi.y > 1.97 or abs(lo.x) > 2.8 or abs(hi.x) > 2.8 or lo.z < -1.2
+
+
+INNER = lambda p, n: abs(p.y) < 1.92 and abs(p.x) < 1.45 and n.z < 0.3
+UNDER = lambda p, n: abs(p.y) < 1.92 and abs(p.x) < 1.5 and n.z < -0.3
+TOP = lambda p, n: abs(p.y) < 1.92 and n.z > 0.45
+OUTER = lambda p, n: abs(p.y) < 1.92 and abs(p.x) > 2.1 and abs(n.z) < 0.6
+
+
 def build(vid, seed):
     rnd = random.Random(seed)
     s = Solid()
@@ -36,6 +47,10 @@ def build(vid, seed):
         end = abs(y) == 2
         secs.append([Vector((x, y + (0 if end else rnd.uniform(-0.07, 0.07)), z)) for x, z in ring(y, rnd, end)])
     s.loft(secs, 'Earth')
+    extra = [(45, hang_root, UNDER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.15, 0.8)}),
+             (12, root_tip, UNDER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.3, 0.7)}),
+             (14, hang_drip, UNDER, ('Earth',), None)]
+    dress_shell(s, rnd, forbid, INNER, UNDER, TOP, OUTER, None, k=1.0, extra=extra)
     return s, s.finish(vid)
 
 
@@ -52,7 +67,7 @@ JOINS = {
 }
 recs = [ak.variant_record('AN03a', 'Ceiling vault 4 m span x 4 m', objs, fbx, solidity='solid',
                           collider='mesh', joins=JOINS, emissive=False,
-                          notes='thick (0.45-0.6 m) faceted shell, concave underside that domes up toward the middle (ribbed when tiled), feet scalloped low at the 4 corners like the concept; top closed and convex.')]
+                          notes='thick (0.45-0.6 m) faceted shell covered in details (pebbles, clods, hanging hair rootlets and root tips, clay drips, burrows, cracks, husks, top crumbs/needles), concave underside that domes up toward the middle (ribbed when tiled), feet scalloped low at the 4 corners like the concept; top closed and convex.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN03-ceiling-vault.blend'))
 if wants_render():

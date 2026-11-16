@@ -1,10 +1,26 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
 ak.reset()
+
+
+def forbid(lo, hi):
+    return lo.x < -1.97 or lo.y < -1.97 or lo.z < -0.002 or hi.x > 3.0 or hi.y > 3.0
+
+
+def inner(p):   # room side of the corner centre line (x <= 2, y <= 2 band, toward the pivot)
+    return p.x + p.y < 3.6 and p.x < 1.9 and p.y < 1.9
+
+
+FRONT = lambda p, n: p.x > -1.92 and p.y > -1.92 and p.z > 0.06 and inner(p) and (n.x + n.y) < -0.2 and n.z < 0.7
+UNDER = lambda p, n: p.x > -1.9 and p.y > -1.9 and n.z < -0.25 and p.z > 0.3 and inner(p)
+TOP = lambda p, n: p.x > -1.9 and p.y > -1.9 and n.z > 0.6
+BACK = lambda p, n: p.x > -1.9 and p.y > -1.9 and (n.x + n.y) > 0.3 and p.z > 0.05
+HIGH = lambda p, n: FRONT(p, n) and p.z > 2.6
 
 
 def build(vid, seed):
@@ -24,6 +40,9 @@ def build(vid, seed):
     sweep(s, nodes, ring, rnd=rnd, tan_jitter=0.03)
     for c, r in (((0.75, 0.85, 0.0), (0.38, 0.3, 0.24)), ((-0.9, 1.55, 0.0), (0.26, 0.2, 0.16)), ((1.5, -0.7, 0.0), (0.22, 0.26, 0.15))):
         lump(s, c, r, rnd, rings=3, sides=7, jitter=0.2, flat_z=0.0, rot=rnd.uniform(0, 1))
+    rays = [((x, -1.0, 0.07), (0, 1, 0)) for x in (-1.6, -1.0, -0.4)] + [((-1.0, y, 0.07), (1, 0, 0)) for y in (-1.6, -1.0, -0.4)] + \
+           [((-0.5, -0.5, 0.07), (1, 1, 0))] * 3
+    dress_shell(s, rnd, forbid, FRONT, UNDER, TOP, BACK, HIGH, k=1.25, rays=rays, rubble=(13, 28, 22, 4))
     return s, s.finish(vid)
 
 
@@ -39,7 +58,7 @@ JOINS = {
 }
 recs = [ak.variant_record('AN02a', 'Earth corner 90 deg concave (3 faces)', objs, fbx, solidity='solid',
                           collider='mesh (or 2 boxes along the arms)', joins=JOINS, emissive=False,
-                          notes='wall section swept along an L with a 45-degree chamfer: one big concave bay over three faces, brow higher and overhanging toward the corner; back = convex rounded earth mass; 3 rubble clods at the foot; bottom flat.')]
+                          notes='wall section swept along an L with a 45-degree chamfer: one big concave bay over three faces, brow higher and overhanging toward the corner; back = convex rounded earth mass; rubble heap at the foot; dressed like AN01 (pebbles, clods, ledges, ribs, cracks, burrows, root tips, rootlets, drips, husks); bottom flat.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN02-earth-corner.blend'))
 if wants_render():

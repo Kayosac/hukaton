@@ -7,7 +7,7 @@ REND = '--norender' not in sys.argv
 ak.reset()
 rnd = random.Random(32)
 RX, RY = 0.98, 0.73
-NS = 18
+NS = 28
 TOPZ, RIMZ = 0.07, 0.045
 rj = [1 + rnd.uniform(-.04, .04) for k in range(NS)]
 def ring(scale, z, jz=0.0, off=0.0):
@@ -52,10 +52,30 @@ for ang, L, W, tilt, rs, dz, sd in specs:
     curv = 0.5 / (rad * rs)
     bend = lambda p, s, f, curv=curv: Vector((0, -curv * p.x * p.x, 0))
     leaf(lv, place(c.x, c.y, z, a - math.pi / 2, rx=t, ry=math.radians(rnd.uniform(-5, 5))), L=L, W=W * 1.1, thick=0.095,
-         belly=.5, seed=sd, droop=0.05, curl=-0.03, serr=.1, bend=bend, n=9)
+         belly=.5, seed=sd, droop=0.05, curl=-0.03, serr=.16, bend=bend, n=11, tears=2)
+# ---- details v2: twigs, small leaves, pebbles, crumbs, clods round the disc; a few bits on the disc edge
+def rim_pt(rnd, k0=1.0, k1=1.35):
+    a = rnd.uniform(0, 6.3); f = rnd.uniform(k0, k1)
+    return (math.cos(a) * RX * f, math.sin(a) * RY * f, 0.0)
+for i in range(9):
+    p = rim_pt(rnd, .98, 1.25)
+    a = math.atan2(p[1], p[0]) + rnd.choice((-1.4, 1.4)) + rnd.uniform(-.5, .5)
+    twig(lv, (p[0], p[1], 0.012), (math.cos(a), math.sin(a), 0), rnd.uniform(.3, .6), r=rnd.uniform(.009, .016),
+         seed=100 + i, branches=rnd.randint(1, 2), segs=4, ground=True)
+for i in range(13):
+    on_disc = i < 4
+    p = rim_pt(rnd, .55, .75) if on_disc else rim_pt(rnd, 1.0, 1.4)
+    z = TOPZ + .012 if on_disc else 0.012
+    small_leaf(lv, (p[0], p[1], z), rnd.uniform(.16, .3), rnd.uniform(.07, .13),
+               rnd.choice(('leaf_dry_0', 'leaf_dry_1', 'leaf_dry_2', 'leaf_green')), seed=200 + i,
+               rx=rnd.uniform(-.2, .2), droop=.015, curl=.015)
+scatter(lv, 20, lambda r: rim_pt(r, 1.02, 1.3), (.025, .05), 'pebble', seed=301, sides=5, flat=.5)
+scatter(lv, 46, lambda r: rim_pt(r, .98, 1.45), (.008, .02), 'earth_props', seed=302, sides=4)
+scatter(lv, 14, lambda r: rim_pt(r, 1.0, 1.15), (.035, .06), 'earth_props', seed=303, sides=5, flat=.7, zsq=.7)
+scatter(lv, 18, lambda r: (lambda p: (p[0], p[1], TOPZ - .004))(rim_pt(r, .2, .7)), (.006, .012), 'leaf_dry_0', seed=304, sides=4)
 lo = lv.to_object('AN32a_Props')
 objs = [eo, fo, lo]
-ak.ground(objs)
+ak.ground(objs, center_xy=False)
 check_normals(objs)
 f = os.path.join(D, 'SM_AN32_LeafNest.fbx'); ak.export_fbx(objs, f)
 rec = ak.variant_record('AN32a', 'Leaf nest (clutch bedding)', objs, f)
@@ -63,9 +83,10 @@ print(rec)
 write_manifest(OUT, 'AN32 leaf-nest', [rec], solidity='walk-on-top (low disc), leaves passable or low obstacle',
                collider='low cylinder/box for the disc (h 0.07); leaves no collider or a ring of 6 boxes', emissive=False,
                notes='Pivot bottom centre. Earth disc (Earth sides/chamfer, Floor top, slightly dished) + 6 separate broad solid '
-               'leaves standing round the rim like petals, overlapping, bent to the ring. Centre left open for AN31 eggs '
+               'leaves (torn bites) standing round the rim like petals, overlapping, bent to the ring; around the disc 9 '
+               'twigs, 9 small dry leaves, 20 pebbles, 14 clods, ~46 crumbs; 4 leaf bits and flakes on the disc. Centre left open for AN31 eggs '
                '(separate mesh). Veins painted (Props leaf_green).')
 if REND:
-    t, l = renders(objs, OUT, 'a', el=26)
-    card('32-leaf-nest', OUT, t, l, 'AN32 leaf nest')
+    t, l = renders(objs, OUT, 'a', el=28, margin=.9)
+    card('32-leaf-nest', OUT, t, l, 'AN32 leaf nest (v2 detail)')
 ak.save_blend(os.path.join(D, 'AN32_LeafNest.blend'))

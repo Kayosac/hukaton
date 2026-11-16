@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -24,6 +25,22 @@ def dens(L):
 INNER, OUTER = dens(INNER), dens(OUTER)
 TV = [0.0, 0.16, 0.38, 0.6, 0.8, 1.0]                     # layers from the opening edge to the outer edge
 FY = [-0.5, -0.82, -0.94, -0.9, -0.74, -0.62]             # front y per layer (bulging frame), mirrored at the back
+
+
+CLEAR = (Vector((-1.22, -1.3, 0.0)), Vector((1.22, 1.3, 2.62)))
+
+
+def forbid(lo, hi):
+    if lo.x < -1.97 or hi.x > 1.97 or lo.z < -0.002 or abs(lo.y) > 1.35 or abs(hi.y) > 1.35:
+        return True
+    a, b = CLEAR
+    return lo.x < b.x and hi.x > a.x and lo.y < b.y and hi.y > a.y and lo.z < b.z and hi.z > a.z
+
+
+FRONT = lambda p, n: abs(p.x) < 1.93 and p.z > 0.06 and n.z < 0.65
+UNDER = lambda p, n: abs(p.x) < 1.9 and n.z < -0.3 and p.z > 1.0
+TOP = lambda p, n: abs(p.x) < 1.9 and n.z > 0.6
+HIGH = lambda p, n: abs(p.x) < 1.9 and abs(n.y) > 0.3 and p.z > 2.9
 
 
 def build(vid, seed):
@@ -51,6 +68,10 @@ def build(vid, seed):
     s.loft(secs, 'Earth')
     for c, r in (((-1.72, -0.98, 0.0), (0.3, 0.24, 0.2)), ((1.68, -0.95, 0.0), (0.22, 0.2, 0.15)), ((1.75, 0.98, 0.0), (0.28, 0.22, 0.18))):
         lump(s, c, r, rnd, rings=3, sides=7, jitter=0.2, flat_z=0.0, rot=rnd.uniform(0, 1))
+    rays = [((x, sy * 1.8, 0.07), (0, -sy, 0)) for x in (-1.75, -1.55, 1.55, 1.75) for sy in (1, -1)] + \
+           [((0, sy * 0.4, 0.07), (sx, 0, 0)) for sx in (1, -1) for sy in (1, -1)]
+    extra = [(30, hang_root, UNDER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.15, 0.6)})]
+    dress_shell(s, rnd, forbid, FRONT, UNDER, TOP, None, HIGH, k=1.35, rays=rays, rubble=(14, 30, 24, 4), extra=extra)
     return s, s.finish(vid)
 
 
@@ -71,7 +92,7 @@ JOINS = {
 recs = [ak.variant_record('AN04a', 'Tunnel collar 4 x 4.3 x 1.7 m (opening 2.64 x 3.2)', objs, fbx, solidity='passable',
                           collider='mesh (or 2 leg boxes + arch convex pieces); walk-through opening must stay open', joins=JOINS,
                           emissive=False, clear_opening_2_4x2_6=clear,
-                          notes='thick crooked arch frame: chamfered opening lip, bulging faceted frame faces front and back, flared feet with 3 rubble clods (outside the passage); flat join sides for walls.')]
+                          notes='thick crooked arch frame: chamfered opening lip, bulging faceted frame faces front and back, flared feet with rubble outside the passage; covered in pebbles, clods, crumbling ledges, root tips, hair rootlets hanging from the soffit (all above 2.62 m), burrows, cracks, drips, ridges, husks; flat join sides for walls.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN04-tunnel-collar.blend'))
 if wants_render():

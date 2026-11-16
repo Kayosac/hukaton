@@ -36,6 +36,9 @@ def build():
     clamp(p, 1, hi=0.0)
     drop_degenerate(r)
     ro = r.to_object('AN12a_Root'); po = p.to_object('AN12a_Props')
+    root_details(ro, po, seed=12, n_rootlets=40, n_side=8, n_knots=5, n_chips=12, n_clods=10, n_pebbles=14,
+                 n_leaves=3, base_r=(0.45, 1.0), base_c=(0.0, -0.5), zmax=3.9, clamp_y=0.0, ground_chips=4,
+                 keep=lambda q: q.y < -0.04)
     objs = [ro, po]
     ak.ground(objs)
     lo, hi = ak.bounds(objs)

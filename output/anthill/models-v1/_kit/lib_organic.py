@@ -225,7 +225,7 @@ def toe(mesh, base, ang, length, h0=1.0, r0=0.36, seed=0, sides=6, drop=0.0):
 # ---------------------------------------------------------------- mushroom caps
 def cap(mesh, attach, R, H, sides=10, tilt=(0.0, 0.0), spin=0.0, seed=0, top='cap_mint', under='gill_glow',
         stem_r=0.1, droop=0.18, lump=0.08, rim=0.12, sxy=(1.0, 1.0), under_depth=0.0, flat_top=0.0,
-        bumps=None, glow_rim=False):
+        bumps=None, glow_rim=False, chips=0, spots=0, spot_uv=None):
     """Faceted mushroom cap. attach = point where the stem enters the underside. tilt = (rx, ry) radians.
     Returns list of world points of the outer rim (for checks)."""
     rnd = random.Random(seed)
@@ -236,10 +236,16 @@ def cap(mesh, attach, R, H, sides=10, tilt=(0.0, 0.0), spin=0.0, seed=0, top='ca
     lumpk = [1 + rnd.uniform(-lump, lump) for _ in range(sides)]
     zk = [rnd.uniform(-0.06, 0.06) for _ in range(sides)]
     bumps = bumps or []
+    chipd = {}
+    for c in range(chips):
+        chipd[rnd.randrange(sides)] = rnd.uniform(0.12, 0.3) if c else rnd.uniform(0.3, 0.45)   # first = crack
 
     def P(k, rf, z):
         a = 2 * math.pi * k / sides
         r = R * rf * (lumpk[k] if rf > 0.3 else 1.0)
+        if k in chipd and rf > 0.85:
+            r *= 1 - chipd[k]
+            z += chipd[k] * R * 0.25
         bz = 0.0
         for (ba, bh) in bumps:
             d = math.cos(a - ba)
@@ -293,6 +299,29 @@ def cap(mesh, attach, R, H, sides=10, tilt=(0.0, 0.0), spin=0.0, seed=0, top='ca
     for k in range(sides):
         k2 = (k + 1) % sides
         mesh.tri(last[k], last[k2], apex, ruv(top, *proj(last[k])), ruv(top, *proj(last[k2])), ruv(top, *proj(apex)))
+    # raised spots: small flat 5-6 sided studs on the upper cap
+    for sidx in range(spots):
+        j = rnd.choice((2, 3, 3, 4)) if len(ring_t) > 4 else 2
+        k = rnd.randrange(sides); k2 = (k + 1) % sides
+        a, b = ring_t[j], ring_t[min(j + 1, len(ring_t) - 1)]
+        u, v = rnd.uniform(.25, .75), rnd.uniform(.25, .75)
+        c0 = a[k].lerp(a[k2], u); c1 = b[k].lerp(b[k2], u); C = c0.lerp(c1, v)
+        nn = ((a[k2] - a[k]).cross(b[k] - a[k])).normalized()
+        if nn.z < 0:
+            nn = -nn
+        rr = R * rnd.uniform(0.06, 0.11)
+        xx, yy = frame(nn)
+        m = rnd.choice((5, 6))
+        topr = [C + nn * R * 0.03 + (xx * math.cos(2 * math.pi * i / m) + yy * math.sin(2 * math.pi * i / m)) * rr * rnd.uniform(.8, 1.2) for i in range(m)]
+        botr = [q - nn * R * 0.05 for q in topr]
+        su = spot_uv or ruv(top, .5, .5)
+        tp = list(topr)
+        if ((tp[1] - tp[0]).cross(tp[2] - tp[0])).dot(nn) < 0:
+            tp.reverse(); botr.reverse()
+        mesh.face(tp, [su] * m)
+        for i in range(m):
+            i2 = (i + 1) % m
+            mesh.face([botr[i], botr[i2], tp[i2], tp[i]], [su] * 4)
     return ring_u[-1]
 
 
@@ -542,3 +571,419 @@ def backface_check(objs, png, views=((-45, 25), (135, 25), (30, -30)), size=240)
         for mm in ms:
             o.data.materials.append(mm)
     return png
+
+
+# ================================================================ detail kit (v2: "as many details as possible")
+def full(region, inset=1):
+    rx, ry, rw, rh = ak.REG['T_Ant_Props.png']['regions'][region]
+    return (region, (inset, inset, rw - inset, rh - inset))
+
+
+def basis(n):
+    n = Vector(n).normalized()
+    x, y = frame(n)
+    return x, y, n
+
+
+def samples(objs, count, seed=0, filt=None, tries=40):
+    """Random surface points (p, normal) on objects, area weighted; filt(p, n) -> bool."""
+    rnd = random.Random(seed)
+    T, A = [], []
+    for o in objs:
+        me = o.data
+        me.calc_loop_triangles()
+        mw = o.matrix_world
+        for t in me.loop_triangles:
+            a, b, c = [mw @ me.vertices[i].co for i in t.vertices]
+            ar = ((b - a).cross(c - a)).length / 2
+            if ar > 1e-8:
+                T.append((a, b, c)); A.append(ar)
+    if not T:
+        return []
+    cum = []
+    s = 0
+    for ar in A:
+        s += ar; cum.append(s)
+    import bisect
+    out = []
+    for _ in range(count * tries):
+        if len(out) >= count:
+            break
+        i = bisect.bisect_left(cum, rnd.uniform(0, s))
+        a, b, c = T[min(i, len(T) - 1)]
+        u, v = rnd.random(), rnd.random()
+        if u + v > 1:
+            u, v = 1 - u, 1 - v
+        p = a + (b - a) * u + (c - a) * v
+        n = ((b - a).cross(c - a)).normalized()
+        if filt is None or filt(p, n):
+            out.append((p, n))
+    return out
+
+
+def ofit(mesh, pts, spec, metres, rs, center):
+    """fit_face, oriented so the face normal points away from `center`."""
+    P = [Vector(q) for q in pts]
+    cc = sum(P, Vector()) / len(P)
+    nn = (P[1] - P[0]).cross(P[2] - P[0])
+    if nn.dot(cc - Vector(center)) < 0:
+        P = list(reversed(P))
+    return fit_face(mesh, P, spec, metres, rs)
+
+
+def lump(mesh, c, r, normal=(0, 0, 1), sides=6, squash=0.6, sink=0.35, seed=0, spec=None, jitter=0.25,
+         bottom=False, metres=0.4, stretch=1.0):
+    """Crude faceted lump (pebble / clod / crumb) sitting on a surface. spec = (region, px) atlas sub-rect."""
+    rnd = random.Random(seed)
+    spec = spec or full('pebble')
+    x, y, n = basis(normal)
+    ang = rnd.uniform(0, 6.28)
+    x, y = x * math.cos(ang) + y * math.sin(ang), -x * math.sin(ang) + y * math.cos(ang)
+    h = r * squash
+    C = Vector(c) - n * (h * sink)
+    def P(rr, z, k, j=True):
+        a = 2 * math.pi * k / sides + (rnd.uniform(-0.25, 0.25) if j else 0)
+        f = 1 + (rnd.uniform(-jitter, jitter) if j else 0)
+        return C + x * (math.cos(a) * rr * f * stretch) + y * (math.sin(a) * rr * f) + n * z
+    r0 = [P(r, 0.0, k) for k in range(sides)]
+    r1 = [P(r * 0.68, h * 0.72, k + 0.5) for k in range(sides)]
+    top = C + n * h + x * rnd.uniform(-.15, .15) * r
+    rs = random.Random(seed + 1)
+    for k in range(sides):
+        k2 = (k + 1) % sides
+        ctr = C + n * h * 0.3
+        ofit(mesh, [r0[k], r0[k2], r1[k]], spec, metres, rs, ctr)
+        ofit(mesh, [r0[k2], r1[k2], r1[k]], spec, metres, rs, ctr)
+        ofit(mesh, [r1[k], r1[k2], top], spec, metres, rs, ctr)
+    if bottom:
+        ofit(mesh, list(r0), spec, metres, rs, C + n * h)
+
+
+def twig(mesh, base, direction, length, r=0.03, seed=0, region='wood_props', sides=4, fork=True, bend=0.15,
+         embed=0.15):
+    """Stick / twig poking out of a surface (embedded `embed` m), crooked, optional fork; end-grain tip."""
+    rnd = random.Random(seed)
+    d = Vector(direction).normalized()
+    x, y = frame(d)
+    B = Vector(base) - d * embed
+    pts = [B]
+    for i in range(1, 4):
+        t = i / 3
+        pts.append(B + d * (length + embed) * t + (x * rnd.uniform(-1, 1) + y * rnd.uniform(-1, 1)) * bend * length * t * 0.3
+                   + Vector((0, 0, -bend * length * t * t * 0.3)))
+    rad = [r, r * 0.9, r * 0.75, r * 0.55]
+    fy1 = min(0.98, (length + embed) / 1.2)
+    atlas_tube(mesh, pts, rad, sides, region, along='v', fy_range=(0.0, fy1), jitter=r * 0.15, seed=seed,
+               caps=(embed < 0.03, True), cap_region='end_grain', rot=rnd.uniform(0, 3))
+    if fork and length > 0.25:
+        q = pts[2]
+        fd = (d + (x * rnd.choice((-1, 1)) + y * rnd.uniform(-.5, .5)) * 0.9).normalized()
+        L2 = length * rnd.uniform(0.3, 0.5)
+        atlas_tube(mesh, [q - fd * r, q + fd * L2 * 0.5, q + fd * L2], [r * 0.6, r * 0.5, r * 0.35], sides, region,
+                   along='v', fy_range=(0.2, 0.2 + min(0.7, L2)), seed=seed + 7, caps=(False, True), cap_region='end_grain')
+
+
+def needles(mesh, base, direction, length=0.35, count=6, spread=0.45, seed=0, r=0.012, embed=0.05):
+    """Bundle of pine needles (thin 3-sided strands, Props `needles`)."""
+    rnd = random.Random(seed)
+    d = Vector(direction).normalized()
+    x, y = frame(d)
+    for i in range(count):
+        a = rnd.uniform(0, 6.28)
+        dd = (d + (x * math.cos(a) + y * math.sin(a)) * rnd.uniform(0.1, spread)).normalized()
+        L = length * rnd.uniform(0.75, 1.15)
+        B = Vector(base) - dd * embed + (x * rnd.uniform(-1, 1) + y * rnd.uniform(-1, 1)) * r * 1.5
+        mid = B + dd * L * 0.5 + Vector((0, 0, -0.03 * L))
+        atlas_tube(mesh, [B, mid, B + dd * L + Vector((0, 0, -0.08 * L))], [r, r * 0.8, r * 0.35], 3, 'needles',
+                   along='u', fy_range=(rnd.uniform(0, .3), rnd.uniform(.7, 1.0)), seed=seed + i, caps=(embed < 0.02, True),
+                   rot=rnd.uniform(0, 3))
+
+
+def burrow(mesh, p, normal, R=0.18, seed=0, sides=7, depth=0.25):
+    """Tiny ant burrow: raised clay lip (earth_props) around a dark well (Props `dark`)."""
+    rnd = random.Random(seed)
+    x, y, n = basis(normal)
+    P = Vector(p)
+    def ring(rr, z, jr=0.15):
+        out = []
+        for k in range(sides):
+            a = 2 * math.pi * k / sides
+            f = 1 + rnd.uniform(-jr, jr)
+            out.append(P + (x * math.cos(a) + y * math.sin(a)) * rr * f + n * z)
+        return out
+    o = ring(R * 1.6, -0.03)
+    lip = ring(R, R * 0.35)
+    w = ring(R * 0.55, -depth * 0.4, 0.05)
+    bot = P - n * depth
+    spec = full('earth_props'); rs = random.Random(seed + 3)
+    du = ruv('dark', .5, .5)
+    for k in range(sides):
+        k2 = (k + 1) % sides
+        ofit(mesh, [o[k], o[k2], lip[k2], lip[k]], spec, 0.5, rs, P - n * 1.0)
+        q = [lip[k], lip[k2], w[k2], w[k]]
+        if ((q[1] - q[0]).cross(q[3] - q[0])).dot(P - (q[0] + q[2]) / 2) < 0:
+            q.reverse()
+        mesh.face(q, [du] * 4)
+        q = [w[k], w[k2], bot]
+        if ((q[1] - q[0]).cross(q[2] - q[0])).dot(P + n * 0.5 - (q[0] + q[1] + q[2]) / 3) < 0:
+            q.reverse()
+        mesh.face(q, [du] * 3)
+
+
+def rootlet(mesh, p, normal, length=0.4, r=0.03, seed=0, sides=3, droop=0.6, embed=0.04, keep=None):
+    """Hair rootlet: thin crooked tapering strand growing from a surface and drooping."""
+    rnd = random.Random(seed)
+    n = Vector(normal).normalized()
+    x, y = frame(n)
+    side = (x * rnd.uniform(-1, 1) + y * rnd.uniform(-1, 1)) * 0.5
+    d = (n + side).normalized()
+    pts = [Vector(p) - n * embed]
+    cur = Vector(p)
+    for i in range(1, 5):
+        step = length / 4
+        d = (d + Vector((rnd.uniform(-.35, .35), rnd.uniform(-.35, .35), -droop * 0.5))).normalized()
+        cur = cur + d * step
+        pts.append(cur.copy())
+    if keep and not all(keep(q) for q in pts):
+        return False
+    mesh.tube(pts, [r, r * 0.8, r * 0.6, r * 0.4, r * 0.15], sides=sides, jitter=0.0, seed=seed, caps=(False, False),
+              rot=rnd.uniform(0, 3))
+
+
+def side_root(mesh, props, p, normal, length=0.6, r=0.08, seed=0, sides=5, cut=True, droop=0.3, keep=None):
+    """Small side root / broken stub growing out of a bigger root; cut end with end grain (Props root_end)."""
+    rnd = random.Random(seed)
+    n = Vector(normal).normalized()
+    x, y = frame(n)
+    d = (n + (x * rnd.uniform(-.6, .6) + y * rnd.uniform(-.6, .6))).normalized()
+    pts = [Vector(p) - n * r * 1.2]
+    cur = Vector(p)
+    for i in range(1, 4):
+        d = (d + Vector((rnd.uniform(-.25, .25), rnd.uniform(-.25, .25), -droop * 0.4))).normalized()
+        cur = cur + d * (length / 3)
+        pts.append(cur.copy())
+    if keep and not all(keep(q) for q in pts):
+        return None
+    if cut:
+        root(mesh, props, pts, [r * 1.1, r, r * 0.85, r * 0.75], sides=sides, seed=seed, jitter=r * 0.12,
+             cut=(rnd.uniform(-.3, .3), rnd.uniform(-.3, .3), rnd.uniform(0, .4)))
+    else:
+        mesh.tube(pts, [r * 1.1, r * 0.8, r * 0.5, r * 0.15], sides=sides, seed=seed, jitter=r * 0.1, caps=(False, True))
+    return pts
+
+
+def knot(mesh, props, p, normal, r=0.12, seed=0):
+    """Bark knot: short bulging stub with an end-grain face."""
+    n = Vector(normal).normalized()
+    P = Vector(p)
+    rnd = random.Random(seed)
+    t = (n + Vector((rnd.uniform(-.2, .2), rnd.uniform(-.2, .2), rnd.uniform(0, .25)))).normalized()
+    root(mesh, props, [P - n * r * 0.9, P + t * r * 0.25, P + t * r * 0.55], [r * 1.25, r * 1.1, r * 0.8], sides=6,
+         seed=seed, jitter=r * 0.06, cut=(rnd.uniform(-.2, .2), rnd.uniform(-.2, .2), 0.1))
+
+
+def chip(mesh, p, normal, size=0.1, seed=0, region='root_props', lift=0.25):
+    """Bark chip / flake: thin crooked plate on a surface, one edge lifted."""
+    rnd = random.Random(seed)
+    x, y, n = basis(normal)
+    a = rnd.uniform(0, 6.28)
+    x, y = x * math.cos(a) + y * math.sin(a), -x * math.sin(a) + y * math.cos(a)
+    P = Vector(p) + n * 0.006
+    pts2 = [(-1, -0.6), (0.2, -0.75), (1, -0.2), (0.8, 0.6), (-0.3, 0.7), (-0.9, 0.3)]
+    top = [P + x * (u * size * rnd.uniform(.8, 1.2)) + y * (v * size * 0.6 * rnd.uniform(.8, 1.2)) + n * (max(0, u) * size * lift)
+           for u, v in pts2]
+    thick = size * 0.12
+    bot = [q - n * thick for q in top]
+    spec = full(region); rs = random.Random(seed + 2)
+    ctr = sum(top, Vector()) / len(top) - n * thick * 0.5
+    ofit(mesh, top, spec, 0.6, rs, ctr - n * 0.3)
+    ofit(mesh, bot, spec, 0.6, rs, ctr + n * 0.3)
+    m = len(top)
+    for k in range(m):
+        k2 = (k + 1) % m
+        ofit(mesh, [bot[k], bot[k2], top[k2], top[k]], spec, 0.6, rs, ctr)
+
+
+def baby_mushroom(mesh, p, normal=(0, 0, 1), h=0.15, R=0.06, seed=0, top='cap_yellow', under='gill_glow_yellow',
+                  stem_region='stem', sides=7, lean=0.2):
+    """Small mushroom (stem + domed cap) growing from a surface point."""
+    rnd = random.Random(seed)
+    n = Vector(normal).normalized()
+    x, y = frame(n)
+    lv = (x * rnd.uniform(-1, 1) + y * rnd.uniform(-1, 1)) * lean
+    d = (n + lv + Vector((0, 0, 0.6))).normalized()
+    B = Vector(p) - n * 0.02
+    T = B + d * h
+    mid = B.lerp(T, 0.5) + (x * rnd.uniform(-1, 1)) * h * 0.06
+    rs = max(0.014, R * 0.36)
+    atlas_tube(mesh, [B, mid, T], [rs * 1.3, rs, rs * 0.9], 5, stem_region, along='u', fy_range=(0.1, 0.9), seed=seed,
+               caps=(False, True))
+    tilt = (rnd.uniform(-.25, .25), rnd.uniform(-.25, .25))
+    cap(mesh, T, R=R, H=R * rnd.uniform(0.55, 0.85), sides=sides, tilt=tilt, spin=rnd.uniform(0, 6), seed=seed + 5, top=top,
+        under=under, stem_r=rs * 0.95, droop=0.12, lump=0.08, rim=0.12, under_depth=R * 0.15,
+        glow_rim=(under != 'gill_glow'), chips=rnd.choice((0, 1)))
+
+
+def boolean_cut(obj, cutters_bm):
+    """Exact boolean difference of a closed bmesh (cutters) from obj; returns list of polygons (world pts)."""
+    bmesh.ops.recalc_face_normals(cutters_bm, faces=cutters_bm.faces)
+    me = bpy.data.meshes.new('cut_tmp'); cutters_bm.to_mesh(me)
+    co = bpy.data.objects.new('cut_tmp', me); bpy.context.scene.collection.objects.link(co)
+    mod = obj.modifiers.new('cut', 'BOOLEAN'); mod.operation = 'DIFFERENCE'; mod.solver = 'EXACT'; mod.object = co
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = obj.evaluated_get(dg)
+    m2 = ev.to_mesh()
+    polys = [[m2.vertices[i].co.copy() for i in p.vertices] for p in m2.polygons]
+    ev.to_mesh_clear()
+    obj.modifiers.remove(mod)
+    bpy.data.objects.remove(co); bpy.data.meshes.remove(me)
+    bpy.context.view_layer.update()
+    return polys
+
+
+def wedge(bm, a, b, normal, width=0.04, depth=0.08):
+    """Thin V-shaped crack cutter from a to b on a surface with normal (closed prism into bm)."""
+    a, b, n = Vector(a), Vector(b), Vector(normal).normalized()
+    t = (b - a).normalized()
+    s = t.cross(n).normalized()
+    pts = []
+    for P in (a, b):
+        pts += [P + s * width / 2 + n * 0.05, P - s * width / 2 + n * 0.05, P - n * depth]
+    v = [bm.verts.new(q) for q in pts]
+    for f in ((0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)):
+        bm.faces.new([v[i] for i in f])
+
+
+def ground_bvh(size=12.0, z=0.0):
+    return BVHTree.FromPolygons([(-size, -size, z), (size, -size, z), (size, size, z), (-size, size, z)], [(0, 1, 2, 3)])
+
+
+def root_details(ro, po, seed=0, n_rootlets=50, n_side=10, n_knots=6, n_chips=14, n_clods=14, n_pebbles=18,
+                 n_leaves=3, base_r=(1.0, 1.9), base_c=(0, 0), zmax=99.0, keep=None, ground_chips=6,
+                 rootlet_len=(0.2, 0.6), side_r=(0.05, 0.1), clamp_y=None):
+    """Detail pass for a root asset: hair rootlets, side roots / broken stubs, knots, bark chips, earth clods stuck
+    at the toes, pebbles + a few dry leaves on the ground around the base. Appends into ro (Root) / po (Props)."""
+    rnd = random.Random(seed)
+    R = ak.Mesh('Root'); P = ak.Mesh('Props')
+    kp = keep or (lambda q: True)
+    surf = lambda p, n: 0.12 < p.z < zmax
+    i = 0
+    for (p, n) in samples([ro], n_rootlets * 2, seed + 1, surf):
+        if i >= n_rootlets:
+            break
+        if rootlet(R, p, n, rnd.uniform(*rootlet_len), rnd.uniform(0.015, 0.035), seed=seed * 100 + i,
+                   droop=rnd.uniform(0.3, 0.9), keep=kp) is not False:
+            i += 1
+    i = 0
+    for (p, n) in samples([ro], n_side * 3, seed + 2, lambda p, n: 0.4 < p.z < zmax - 0.3 and abs(n.z) < 0.6):
+        if i >= n_side:
+            break
+        cut = rnd.random() < 0.6
+        if side_root(R, P, p, n, rnd.uniform(0.25, 0.7), rnd.uniform(*side_r), seed=seed * 100 + 50 + i, cut=cut,
+                     keep=kp) is not None:
+            i += 1
+    for j, (p, n) in enumerate(samples([ro], n_knots, seed + 3, lambda p, n: 0.5 < p.z < zmax and abs(n.z) < 0.5 and kp(p + n * 0.15))):
+        knot(R, P, p, n, rnd.uniform(0.07, 0.13), seed=seed * 100 + 80 + j)
+    for j, (p, n) in enumerate(samples([ro], n_chips, seed + 4, lambda p, n: 0.2 < p.z < zmax and n.z > -0.3 and kp(p + n * 0.1))):
+        chip(P, p, n, rnd.uniform(0.06, 0.12), seed=seed * 100 + 90 + j)
+    for j, (p, n) in enumerate(samples([ro], n_clods, seed + 5, lambda p, n: p.z < 0.45 and n.z > -0.2 and kp(p + n * 0.15 + Vector((0, 0, 0.1))))):
+        lump(P, p, rnd.uniform(0.06, 0.15), n.lerp(Vector((0, 0, 1)), 0.5), sides=6, squash=rnd.uniform(.5, .8),
+             sink=0.45, seed=seed * 100 + 120 + j, spec=full('earth_props'), metres=0.5)
+    gb = ground_bvh()
+    for j in range(n_pebbles + ground_chips + n_leaves):
+        a = rnd.uniform(0, 6.28); d = rnd.uniform(*base_r)
+        q = Vector((base_c[0] + math.cos(a) * d, base_c[1] + math.sin(a) * d, 0.0))
+        if clamp_y is not None and q.y > clamp_y - 0.1:
+            q.y = clamp_y - rnd.uniform(0.1, 0.5)
+        if not kp(q + Vector((0, 0, 0.1))):
+            continue
+        if j < n_pebbles:
+            sp = full('pebble') if rnd.random() < 0.7 else full('earth_props')
+            lump(P, q, rnd.uniform(0.04, 0.12), (0, 0, 1), sides=rnd.choice((5, 6, 7)), squash=rnd.uniform(.4, .7),
+                 sink=0.3, seed=seed * 100 + 150 + j, spec=sp, metres=0.3)
+        elif j < n_pebbles + ground_chips:
+            chip(P, q, (0, 0, 1), rnd.uniform(0.08, 0.14), seed=seed * 100 + 170 + j, lift=0.15)
+        else:
+            place_leaf(P, gb, (q.x, q.y, 1.0), (0, 0, -1), rnd.uniform(0.25, 0.4), rnd.choice(('leaf_dry_0', 'leaf_dry_1', 'leaf_dry_2')),
+                       seed=seed * 100 + 190 + j, lift=0.01, curl=0.04)
+    if clamp_y is not None:
+        clamp(R, 1, hi=clamp_y); clamp(P, 1, hi=clamp_y)
+    clamp(R, 2, lo=0.0); clamp(P, 2, lo=0.0)
+    join_into(ro, R); join_into(po, P)
+
+
+def foot_details(P, center, r_in, r_out, seed=0, n_clump=7, clump_r=(0.08, 0.16), n_babies=4, baby_h=(0.12, 0.3),
+                 baby_R=(0.05, 0.1), baby_top='cap_yellow', baby_under='gill_glow_yellow', n_pebbles=10, n_leaves=2,
+                 n_twigs=1, n_needles=0, n_crumbs=0, keep=None, z=0.0):
+    """Ground details around a foot: soil clump (earth_props lumps), baby mushrooms, pebbles, leaves, twigs, crumbs."""
+    rnd = random.Random(seed)
+    C = Vector((center[0], center[1], z))
+    kp = keep or (lambda q: True)
+    gb = ground_bvh(z=z)
+
+    def pt(a0, a1):
+        for _ in range(30):
+            a = rnd.uniform(0, 6.28); d = rnd.uniform(a0, a1)
+            q = C + Vector((math.cos(a) * d, math.sin(a) * d, 0))
+            if kp(q):
+                return q
+        return None
+    for j in range(n_clump):
+        q = pt(r_in * 0.7, r_in * 1.15)
+        if q:
+            lump(P, q, rnd.uniform(*clump_r), (0, 0, 1), sides=rnd.choice((6, 7)), squash=rnd.uniform(.6, .9), sink=0.15,
+                 seed=seed * 50 + j, spec=full('earth_props'), metres=0.5)
+    for j in range(n_babies):
+        q = pt(r_in * 0.9, r_out * 0.8)
+        if q:
+            baby_mushroom(P, q, (0, 0, 1), rnd.uniform(*baby_h), rnd.uniform(*baby_R), seed=seed * 50 + 10 + j,
+                          top=baby_top, under=baby_under, lean=0.35)
+    for j in range(n_pebbles):
+        q = pt(r_in * 0.8, r_out)
+        if q:
+            lump(P, q, rnd.uniform(0.03, 0.09), (0, 0, 1), sides=rnd.choice((5, 6)), squash=rnd.uniform(.4, .7), sink=0.3,
+                 seed=seed * 50 + 20 + j, spec=full('pebble') if rnd.random() < .7 else full('earth_props'), metres=0.3)
+    for j in range(n_crumbs):
+        q = pt(r_in * 0.6, r_out)
+        if q:
+            lump(P, q, rnd.uniform(0.02, 0.04), (0, 0, 1), sides=5, squash=0.5, sink=0.3, seed=seed * 50 + 30 + j,
+                 spec=full('earth_props'), metres=0.2)
+    for j in range(n_leaves):
+        q = pt(r_in, r_out)
+        if q:
+            place_leaf(P, gb, (q.x, q.y, z + 1.0), (0, 0, -1), rnd.uniform(0.18, 0.3), rnd.choice(('leaf_dry_0', 'leaf_dry_1', 'leaf_dry_2')),
+                       seed=seed * 50 + 40 + j, lift=0.008, curl=0.03)
+    for j in range(n_twigs):
+        q = pt(r_in, r_out)
+        if q:
+            a = rnd.uniform(0, 6.28)
+            twig(P, q + Vector((0, 0, 0.02)), (math.cos(a), math.sin(a), 0.05), rnd.uniform(0.25, 0.45), 0.015,
+                 seed=seed * 50 + 45 + j, embed=0.0, fork=True, bend=0.1)
+    for j in range(n_needles):
+        q = pt(r_in, r_out)
+        if q:
+            a = rnd.uniform(0, 6.28)
+            needles(P, q + Vector((0, 0, 0.01)), (math.cos(a), math.sin(a), 0.08), 0.25, 5, 0.5, seed=seed * 50 + 48 + j, r=0.008, embed=0.0)
+
+
+def safe_cuts(obj, wedges):
+    """Apply crack wedges one by one (exact boolean); a wedge that breaks the result is skipped.
+    Returns (polygons, number_applied)."""
+    polys = [[obj.matrix_world @ obj.data.vertices[i].co for i in p.vertices] for p in obj.data.polygons]
+    ok = 0
+    for w in wedges:
+        cb = bmesh.new(); wedge(cb, *w)
+        res = boolean_cut(obj, cb); cb.free()
+        if len(res) >= len(polys):
+            polys = res; ok += 1
+            bm = bmesh.new()
+            for q in res:
+                vs = [bm.verts.new(v) for v in q]
+                try:
+                    bm.faces.new(vs)
+                except ValueError:
+                    pass
+            bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+            bm.to_mesh(obj.data); bm.free()
+            obj.data.update()
+    return polys, ok

@@ -3,20 +3,22 @@
   "id": "AN06a",
   "name": "Earth floor tile 4 x 4 x 0.15 (tileable)",
   "fbx": "SM_AN06_EarthFloor.fbx",
-  "tris": 222,
+  "tris": 4878,
   "tris_by_material": {
-   "Earth": 94,
-   "Floor": 128
+   "Earth": 2798,
+   "Floor": 128,
+   "Props": 1952
   },
   "size_xyz_m": [
    4.0,
    4.0,
-   0.169
+   0.199
   ],
   "min_z": 0.0,
   "objects": [
    "AN06a_Earth",
-   "AN06a_Floor"
+   "AN06a_Floor",
+   "AN06a_Props"
   ],
   "solidity": "walk-on-top",
   "collider": "box 4 x 4 x 0.15 (top at z=0.15)",
@@ -27,26 +29,28 @@
    "texture": "Floor top + Earth sides use world-planar UVs at the kit density (2 m per repeat); procedural tunnel floors should use the same planar mapping"
   },
   "max_top_slope_deg": 9.0,
-  "notes": "gently faceted trodden top (0.5 m grid, jittered interior), vertical Earth edge, closed bottom."
+  "notes": "gently faceted trodden top (0.5 m grid, jittered interior) dressed with flat details only (<= 6 cm): clay crumbs, flat pebbles, husks, pine needles, small cracks, a shallow rut track; vertical Earth edge, closed bottom."
  },
  {
   "id": "AN06b",
   "name": "Earth floor patch (irregular, concept outline)",
   "fbx": "SM_AN06b_EarthFloorPatch.fbx",
-  "tris": 126,
+  "tris": 3922,
   "tris_by_material": {
-   "Earth": 46,
-   "Floor": 80
+   "Earth": 2270,
+   "Floor": 80,
+   "Props": 1572
   },
   "size_xyz_m": [
    3.944,
    3.893,
-   0.135
+   0.166
   ],
   "min_z": 0.0,
   "objects": [
    "AN06b_Earth",
-   "AN06b_Floor"
+   "AN06b_Floor",
+   "AN06b_Props"
   ],
   "solidity": "walk-on-top",
   "collider": "none (overlay, the floor/terrain below collides) or mesh",

@@ -5,43 +5,41 @@ D = os.path.dirname(os.path.abspath(__file__)); OUT = os.path.join(D, 'out'); os
 REND = '--norender' not in sys.argv
 
 ak.reset()
-rnd = random.Random(4)
-L = 0.55
-ts = [0.035, .1, .2, .33, .47, .61, .75, .87, .955]
-path = [(-L / 2 + t * L, 0.006 * math.sin(t * 5), 0.018 * math.sin(math.pi * t) - 0.006 * t) for t in ts]
-prof = [math.sin(math.pi * t) ** 0.62 for t in ts]
-SIDES = 12
-# radial shape per side index: keel on top (k=0), ribs at +-2, grooves at +-1, seam grooves low on the flanks,
-# flattened belly
-base = {0: 1.13, 1: .95, 2: 1.05, 3: 1.0, 4: .88, 5: .97, 6: .93, 7: .97, 8: .88, 9: 1.0, 10: 1.05, 11: .95}
-J = [[rnd.uniform(-.03, .03) for k in range(SIDES)] for t in ts]
-def rf(i, k, a):
-    m = base[k] + J[i][k]
-    if k == 6:
-        m *= .9
-    return m
-radii = [p for p in prof]
-scale = [(0.088, 0.122)] * len(ts)
+rnd = random.Random(22)
 m = ak.Mesh('Props')
-rings = rings_along(path, radii, SIDES, scale=scale, rfun=rf, up_hint=(0, 0, 1))
-skin(m, rings, lambda i, k: R('seed', k / SIDES, ts[i], fold=False))
-tipA = Vector((-L / 2 - 0.004, 0.004, 0.004)); tipB = Vector((L / 2, -0.004, 0.012))
-# tip fans (pointed ends)
-first, last = rings[0], rings[-1]
-for k in range(SIDES):
-    k2 = (k + 1) % SIDES
-    m.tri(first[k2], first[k], tipA, R('seed', (k + 1) / SIDES, ts[0], 0), R('seed', k / SIDES, ts[0], 0), R('seed', (k + .5) / SIDES, 0, 0))
-    m.tri(last[k], last[k2], tipB, R('seed', k / SIDES, ts[-1], 0), R('seed', (k + 1) / SIDES, ts[-1], 0), R('seed', (k + .5) / SIDES, 1, 0))
+SIDES = 16
+# seed shell: keel, ribs, seam grooves, belly, dented chips, and a split gash opening near the +x tip (side index 5
+# = lower front flank) revealing the pale kernel
+rings, ts = seed_body(m, Matrix.Identity(4), sides=SIDES, nring=15, seed=4, gash=(0.55, 0.95, 5), chips=7)
+# kernel inside the split (ivory = egg region), slightly bulging out of the gash
+for i, (x, y, z, s) in enumerate(((0.12, -0.05, 0.075, .035), (0.17, -0.05, 0.07, .03), (0.07, -0.045, 0.08, .025))):
+    lump(m, (x, y, z), (s * 1.6, s * .8, s * .9), 'egg', sides=6, seed=30 + i, jit=.12)
+# husk flake half peeled off the shell near the split
+shard(m, (0.15, -0.075, 0.115), 0.045, 'seed', 'shell_in', seed=3, curv=.5, th=.006,
+      M=Matrix.Rotation(math.radians(-60), 3, 'X') @ Matrix.Rotation(.4, 3, 'Z'))
+# sprout from the split tip: curved pale stem + two tiny leaves
+sp = [Vector((0.21, -0.05, 0.065)), Vector((0.25, -0.08, 0.09)), Vector((0.275, -0.09, 0.13)), Vector((0.28, -0.075, 0.165))]
+atlas_tube(m, sp, [0.009, 0.008, 0.007, 0.005], 'leaf_green', sides=5, metres_u=.2, caps=(False, True))
+small_leaf(m, (0.29, -0.07, 0.172), 0.05, 0.025, 'leaf_green', seed=5, rz=.3, ry=-.5, thick=.004)
+small_leaf(m, (0.265, -0.085, 0.17), 0.045, 0.022, 'leaf_green', seed=6, rz=2.8, ry=.5, thick=.004)
+# rootlet hair from the same tip
+for i in range(3):
+    fibres(m, (0.235, -0.05, 0.035), (0.6, -0.4, -0.6), n=1, length=0.05, r=0.003, seed=40 + i, region='paper', spread=.6)
+# broken husk flakes and crumbs lying beside it
+for i, (x, y) in enumerate(((0.2, -0.13), (0.27, 0.05), (-0.2, -0.12), (0.06, 0.15))):
+    shard(m, (x, y, 0.006), rnd.uniform(.022, .035), 'seed', 'shell_in', seed=50 + i, curv=.35, th=.005)
+scatter(m, 9, ring_sampler(0.0, 0.0, 0.17, 0.3, sy=.7), (.006, .013), 'seed', seed=7, sides=4)
 o = m.to_object('AN22a_Props')
 ak.ground([o])
 check_normals([o])
 f = os.path.join(D, 'SM_AN22_Seed.fbx'); ak.export_fbx([o], f)
 rec = ak.variant_record('AN22a', 'Large seed', [o], f)
 print(rec)
-write_manifest(OUT, 'AN22 seed', [rec], solidity='solid (small prop; scatter/fill mesh)', collider='capsule or convex',
-               emissive=False, notes='Pivot bottom centre, long axis X. Keel ridge, two flank ribs, seam grooves and '
-               'flattened belly modelled; ochre mottling and the dark seam colour painted (Props seed).')
+write_manifest(OUT, 'AN22 seed', [rec], solidity='solid (small prop; scatter/fill mesh)', collider='capsule or convex (seed body only)',
+               emissive=False, notes='Pivot bottom centre, long axis X. Keel ridge, flank ribs, seam grooves, flattened belly, '
+               '7 dented chips, a split gash at the +x end with the ivory kernel showing, a half-peeled husk flake, a small '
+               'sprout (stem + 2 leaves + rootlet hairs), 4 loose husk flakes and crumbs beside it. Mottling painted.')
 if REND:
     t, l = renders([o], OUT, 'a', el=22)
-    card('22-seed', OUT, t, l, 'AN22 seed')
+    card('22-seed', OUT, t, l, 'AN22 seed (v2 detail)')
 ak.save_blend(os.path.join(D, 'AN22_Seed.blend'))

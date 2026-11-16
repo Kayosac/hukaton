@@ -11,8 +11,8 @@ def build():
     p = ak.Mesh('Props')
     # thick crooked S-curved stem with a wide flared foot; the cap sits offset from the base
     path = [(0.0, 0.0, -0.02), (0.02, 0.01, 0.14), (0.0, 0.02, 0.4), (-0.12, 0.04, 0.78), (-0.22, 0.05, 1.1),
-            (-0.18, 0.03, 1.42), (0.0, -0.01, 1.7), (0.17, -0.05, 1.9), (0.24, -0.07, 2.0)]
-    radii = [0.5, 0.38, 0.29, 0.25, 0.23, 0.21, 0.2, 0.21, 0.22]
+            (-0.18, 0.03, 1.42), (0.0, -0.01, 1.7), (0.17, -0.05, 1.9), (0.24, -0.07, 2.02), (0.25, -0.07, 2.09)]
+    radii = [0.5, 0.38, 0.29, 0.25, 0.23, 0.21, 0.2, 0.21, 0.23, 0.22]
     tp, tr = densify(path, radii, 3, wob=0.012, seed=37)
     rj = random.Random(5)
     jit = [rj.uniform(-0.07, 0.07) for _ in range(8)]
@@ -30,8 +30,20 @@ def build():
     # broad faceted cap, tilted the way the stem leans, lumpy, droopy rim; glowing gills underneath
     cap(p, (0.24, -0.07, 1.98), R=0.8, H=0.5, sides=13, tilt=(-0.16, 0.24), spin=0.0, seed=7, top='cap_mint',
         under='gill_glow', stem_r=0.24, droop=0.1, lump=0.1, rim=0.15, sxy=(1.0, 0.92), under_depth=0.16,
-        bumps=[(2.2, 0.08), (5.2, 0.05)])
-    clamp(p, 2, lo=0.0)
+        bumps=[(2.2, 0.08), (5.2, 0.05)], chips=3, spots=7, spot_uv=ruv_px('cap_mint', 66.5, 30.5))
+    # small warts on the lower stem
+    rw = random.Random(3)
+    for i in range(6):
+        t = rw.uniform(0.15, 0.5); k = int(t * (len(tp) - 1))
+        q = Vector(tp[k]); a = rw.uniform(0, 6.28)
+        nrm = Vector((math.cos(a), math.sin(a), 0.2)).normalized()
+        lump(p, q + nrm * tr[k] * 0.95, rw.uniform(0.03, 0.05), nrm, sides=5, squash=0.6, sink=0.3, seed=300 + i,
+             spec=('stem_glow', (4, 14, 124, 30)), metres=0.2)
+    # foot: soil clump, baby lantern mushrooms, pebbles, leaves, twig, needles, crumbs
+    foot_details(p, (0.0, 0.01), 0.42, 0.95, seed=37, n_clump=10, clump_r=(0.14, 0.26), n_babies=6, baby_h=(0.16, 0.45),
+                 baby_R=(0.08, 0.17), baby_top='cap_mint', baby_under='gill_glow', n_pebbles=12, n_leaves=3, n_twigs=2,
+                 n_needles=1, n_crumbs=10)
+    clamp(p, 2, lo=0.0); drop_bottom(p)
     po = p.to_object('AN37a_Props')
     objs = [po]
     ak.ground(objs)

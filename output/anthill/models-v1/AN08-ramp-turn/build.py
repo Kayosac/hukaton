@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -23,6 +24,23 @@ def sections():
     for x in (-0.6, -1.5, -2.3, -3):
         S.append(((x, 0), (x, 3)))
     return S
+
+
+def in_path(x, y):
+    return (0 <= x <= 3 and -3 <= y <= 3) or (-3 <= x <= 3 and 0 <= y <= 3) or (x + y > -0.6 and x < 3 and y < 3)
+
+
+def forbid(lo, hi):
+    if lo.y < -2.97 or lo.x < -2.97 or hi.x > 3.1 or hi.y > 3.1 or lo.z < -0.002:
+        return True
+    if hi.z > 1.06:
+        return True
+    # over the walk path: flat only (top <= 0.5..1.0 + 5.5 cm); conservative: use the local top height
+    c = (lo + hi) / 2
+    return hi.z > max(TOPZ(c), TOPZ(Vector((hi.x, hi.y, 0))), TOPZ(Vector((lo.x, lo.y, 0)))) + 0.055
+
+
+SIDES = lambda p, n: abs(n.z) < 0.5 and p.z > 0.04 and p.x > -2.9 and p.y > -2.9
 
 
 def build(vid, seed):
@@ -54,6 +72,15 @@ def build(vid, seed):
     n = len(secs[0])
     mats = ['Floor' if 0 < k < len(TT) - 2 else 'Earth' for k in range(n)]
     s.loft(secs, mats)
+    surf0 = Surf(s, rnd)
+    global TOPZ
+    def TOPZ(c):
+        hit, _ = surf0.ray(Vector((c.x, c.y, 3.0)), Vector((0, 0, -1)))
+        return hit.z if hit is not None else 0.0
+    rays = [((4.0, y, 0.05), (-1, 0, 0)) for y in (-2.0, -0.5, 1.0, 2.5)] + [((x, 4.0, 0.05), (0, -1, 0)) for x in (-2.0, -0.5, 1.0)] + \
+           [((-1.5, -1.5, 0.05), (1, 1, 0))] * 2 + [((-1.5, -0.5, 0.05), (1, 0, 0)), ((-0.5, -1.5, 0.05), (0, 1, 0))]
+    dress_shell(s, rnd, forbid, SIDES, None, None, None, None, k=0.65, rays=rays, rubble=(18, 40, 30, 5))
+    dress_walk(s, rnd, forbid, filt=lambda p, n: n.z > 0.8, k=1.3, ruts=2)
     return s, s.finish(vid), L[-1]
 
 
@@ -72,7 +99,7 @@ JOINS = {
 recs = [ak.variant_record('AN08a', 'Ramp turn 90 deg, 3 m path, 0.5 -> 1.0 m', objs, fbx, solidity='walk-on-top',
                           collider='mesh', joins=JOINS, emissive=False, path_length_m=round(plen, 2),
                           slope_deg=round(math.degrees(math.atan2(H1 - H0, plen)), 1), max_face_slope_deg=round(slope, 1),
-                          notes='L-shaped earth block with a 45-deg chamfer on the inside corner and a square outer corner; Floor top rises evenly along the path, rounded Earth lips, crooked bulging sides, no steps.')]
+                          notes='L-shaped earth block with a 45-deg chamfer on the inside corner and a square outer corner; Floor top rises evenly along the path, rounded Earth lips, crooked bulging sides, no steps. Details: top only flat (<= 5.5 cm: crumbs, flat pebbles, husks, needles, cracks, rut tracks); sides with pebbles, clods, ledges, root tips, burrows, cracks, ridges, husks; rubble along the foot.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN08-ramp-turn.blend'))
 if wants_render():

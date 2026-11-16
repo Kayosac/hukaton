@@ -26,9 +26,16 @@ def build():
     for i, (ang, L, h0, r0) in enumerate([(280, 0.7, 0.7, 0.3), (60, 0.65, 0.65, 0.29), (5, 0.6, 0.6, 0.28), (150, 0.45, 0.5, 0.24)]):
         toe(r, (2.3, -0.14, 0), ang, L, h0, r0, seed=40 + i, sides=6)
     clamp(r, 2, lo=0.0)
-    ro = r.to_object('AN13a_Root')
-    objs = [ro]
-    ak.ground(objs)
+    p = ak.Mesh('Props')
+    ro = r.to_object('AN13a_Root'); po = p.to_object('AN13a_Props')
+    d = ak.ground([ro])                    # centre on the main arch first; details are added in final coordinates
+    # keep the passage under the arch clear: nothing below 2.55 m between the feet
+    keep = lambda q: not (-0.95 < q.x < 2.05 and abs(q.y) < 1.6 and 0.06 < q.z < 2.6)
+    root_details(ro, po, seed=13, n_rootlets=70, n_side=14, n_knots=8, n_chips=18, n_clods=18, n_pebbles=20,
+                 n_leaves=4, base_r=(0.9, 1.8), base_c=(-1.6 + d.x, d.y), zmax=4.7, keep=keep, rootlet_len=(0.2, 0.55))
+    root_details(ro, po, seed=113, n_rootlets=0, n_side=0, n_knots=0, n_chips=0, n_clods=6, n_pebbles=10,
+                 n_leaves=2, base_r=(0.45, 0.9), base_c=(2.3 + d.x, -0.14 + d.y), zmax=4.7, keep=keep, ground_chips=2)
+    objs = [ro, po]
     return objs
 
 

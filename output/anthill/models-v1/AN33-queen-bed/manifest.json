@@ -1,28 +1,32 @@
 {
  "asset": "AN33 queen-bed",
  "solidity": "walk-on-top (basin floor) + solid rim",
- "collider": "mesh collider (Earth + Floor); floor at z=0.25 is walkable, front lip ramp 15 deg",
+ "collider": "mesh collider on Earth + Floor (clods/roots/props decor: no collider or simple boxes); floor at z=0.25 is walkable, front lip ramp 15 deg",
  "emissive": false,
- "notes": "Pivot bottom centre. Polygonal horseshoe rim (Earth) of 10 straight facets around a 3.4 m front opening: steep outer walls with one facet break, flat rim tops with hard edges, steep faceted inner walls creased on long edges. Rim height highest at the back (1.25 m), sloping per facet and stepping down at corners (right/left ~0.12 m steps, front 0.66/0.62) to blunt front stubs ~0.5 m; vertical step faces at the corners. Front lip ramp 0.95 m (Floor) up to the basin floor (Floor, z=0.25, almost flat). 3 fallen clods. Leaves/cloth/queen are separate.",
+ "notes": "Pivot bottom centre. Polygonal horseshoe rim (Earth) of 10 straight facets around a 3.4 m front opening: steep outer walls with one facet break, flat rim tops with hard edges, faceted inner walls. Rim height highest at the back (~1.74 m, concept proportions), sloping per facet and stepping down at corners to blunt front stubs ~0.6 m. v2 details: 14 cracks cut into the rim (V notches in the rim top, down the outer wall, into the inner wall), 10 outer ledges, ~82 earth clods (foot/rim/floor edge), ~60 pebbles, ~170 crumbs, 18 egg-shell shards, 24 dry leaves, 12 twigs, 9 burrow holes with clod lips (Props dark), 6 clusters of baby mushrooms (non-glowing), 13 roots poking out of the rim with hair rootlets (Root). Front ramp kept clear (only crumbs nearby); basin centre kept clear for the queen. Front lip ramp 0.95 m (Floor) up to the basin floor (Floor, z=0.25).",
  "variants": [
   {
    "id": "AN33a",
    "name": "Queen earth bed",
    "fbx": "SM_AN33_QueenBed.fbx",
-   "tris": 581,
+   "tris": 11831,
    "tris_by_material": {
-    "Earth": 334,
-    "Floor": 247
+    "Earth": 2800,
+    "Floor": 576,
+    "Root": 1157,
+    "Props": 7298
    },
    "size_xyz_m": [
-    7.216,
-    5.254,
-    1.249
+    8.233,
+    6.291,
+    1.864
    ],
    "min_z": 0.0,
    "objects": [
     "AN33a_Earth",
-    "AN33a_Floor"
+    "AN33a_Floor",
+    "AN33a_Root",
+    "AN33a_Props"
    ]
   }
  ]

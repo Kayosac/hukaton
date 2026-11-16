@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -15,6 +16,21 @@ def centre(a):
     x = 1.66 * math.cos(a)
     y = 0.98 * math.sin(a) * (1 - 0.16 * math.cos(a) ** 2 * (1 if math.sin(a) > 0 else 0.3))
     return Vector((x, y, 0))
+
+
+def forbid(lo, hi):
+    return abs(lo.x) > 2.12 or abs(hi.x) > 2.12 or abs(lo.y) > 1.5 or abs(hi.y) > 1.5 or lo.z < -1.6
+
+
+def inward(p, n):
+    return n.x * p.x / 1.66 ** 2 + n.y * p.y / 0.98 ** 2 < -0.05
+
+
+INNER = lambda p, n: inward(p, n) and abs(n.z) < 0.75
+OUTER = lambda p, n: not inward(p, n) and abs(n.z) < 0.75
+TOP = lambda p, n: n.z > 0.6
+UNDER = lambda p, n: n.z < -0.4
+LIP = lambda p, n: inward(p, n) and p.z < 0.35
 
 
 def build(vid, seed):
@@ -38,6 +54,13 @@ def build(vid, seed):
             sec.append(p + n * rr + Vector((0, 0, 0.82 * max(0.0, zz))))
         secs.append(sec)
     s.loft(secs, 'Earth', wrap=True)
+    extra = [(40, hang_root, INNER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.4, 1.3) + p.z}),
+             (18, hang_root, UNDER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.2, 0.6)}),
+             (14, root_tip, INNER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.3, 0.7)}),
+             (26, clod, LIP, ('Earth',), lambda p, n: {'r': rnd.uniform(0.05, 0.12)}),
+             (16, hang_drip, UNDER, ('Earth',), None),
+             (40, pebble, OUTER, ('Earth',), None), (12, clod, OUTER, ('Earth',), None)]
+    dress_shell(s, rnd, forbid, INNER, UNDER, TOP, None, None, k=0.75, extra=extra)
     return s, s.finish(vid)
 
 
@@ -54,7 +77,7 @@ JOINS = {
 }
 recs = [ak.variant_record('AN10a', 'Vent collar (ceiling light slit rim)', objs, fbx, solidity='solid',
                           collider='mesh (ring)', joins=JOINS, emissive=False,
-                          notes='thick uneven closed earth ring around an elongated through-slot: crooked top height, chamfered inner bottom edge, bulging outer face, flat underside.')]
+                          notes='thick uneven closed earth ring around an elongated through-slot: crooked top height, chamfered inner bottom edge, bulging outer face, flat underside. Details: hair rootlets and root tips dangling through the slot (down to ~1.5 m below the underside), crumbling clods along the inner lip, clay drips, pebbles, ledges, burrows, cracks, husks, needles on top.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN10-vent-collar.blend'))
 if wants_render():

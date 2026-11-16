@@ -29,6 +29,8 @@ def build():
         toe(r, (0.04, 0.02, 0), ang, L, h0, r0, seed=10 + i)
     clamp(r, 2, lo=0.0)
     ro = r.to_object('AN11a_Root'); po = p.to_object('AN11a_Props')
+    root_details(ro, po, seed=11, n_rootlets=60, n_side=12, n_knots=7, n_chips=16, n_clods=16, n_pebbles=22,
+                 n_leaves=4, base_r=(0.9, 1.9), zmax=4.7)
     objs = [ro, po]
     ak.ground(objs)
     return objs

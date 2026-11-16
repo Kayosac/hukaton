@@ -164,6 +164,13 @@ gy=fill(64,32,P_GILLY,29,3,(4,.5),.15)
 for i in range(0,64,4): gy[:,i]=P_GILLY[1]
 put('gill_glow_yellow',0,224,64,32,gy,em=np.ones((32,64))*.9)
 
+P_PEBBLE=hexes('#3e3430','#544640','#6a5850','#7f6b60','#937e70')
+put('pebble',64,224,64,32,fill(64,32,P_PEBBLE,31,4))
+P_NEEDLE=hexes('#4a2c1c','#5f3a22','#76492a','#8c5a33')
+nd=fill(64,32,P_NEEDLE,32,3,(.4,4))
+for i in range(0,32,3): nd[i]=P_NEEDLE[0]
+put('needles',128,224,64,32,nd)
+
 def main():
     save('T_Ant_Earth.png',earth()); save('T_Ant_Floor.png',floor()); save('T_Ant_Root.png',root()); save('T_Ant_Wood.png',wood()); save('T_Ant_Cloth.png',cloth())
     save('T_Ant_Props.png',up2(A)); save('T_Ant_Props_Emission.png',up2(np.repeat(E[...,None],3,2)*255))

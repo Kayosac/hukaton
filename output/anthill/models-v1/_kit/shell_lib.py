@@ -18,25 +18,39 @@ def smooth(t):
 
 
 class Solid:
-    """Collects polygons (points, material); finish() merges, fixes normals, triangulates crooked faces and
-    splits into ak-style objects."""
+    """Collects polygons (points, material, optional uvs, optional normal hint); finish() merges, fixes normals
+    (recalc on closed shells, hint flips open details), box-UVs faces without explicit UVs, triangulates crooked
+    faces and splits into ak-style objects (one per material)."""
 
     def __init__(self):
         self.faces = []
 
-    def face(self, pts, mat='Earth'):
-        P = []
-        for p in pts:
+    def face(self, pts, mat='Earth', uvs=None, nrm=None):
+        P, U = [], []
+        for i, p in enumerate(pts):
             p = Vector(p)
             if not P or (P[-1] - p).length > 1e-6:
-                P.append(p)
+                P.append(p); U.append(uvs[i] if uvs else None)
         if len(P) > 2 and (P[0] - P[-1]).length < 1e-6:
-            P.pop()
+            P.pop(); U.pop()
         if len(P) >= 3:
-            self.faces.append((P, mat))
+            self.faces.append((P, mat, U if uvs else None, Vector(nrm) if nrm is not None else None))
 
-    def quad(self, a, b, c, d, mat='Earth'):
-        self.face([a, b, c, d], mat)
+    def quad(self, a, b, c, d, mat='Earth', uvs=None, nrm=None):
+        self.face([a, b, c, d], mat, uvs, nrm)
+
+    def mark(self):
+        return len(self.faces)
+
+    def aabb(self, m):
+        lo = Vector((1e9, 1e9, 1e9)); hi = -lo
+        for pts, *_ in self.faces[m:]:
+            for p in pts:
+                lo = Vector(map(min, lo, p)); hi = Vector(map(max, hi, p))
+        return lo, hi
+
+    def rollback(self, m):
+        del self.faces[m:]
 
     def loft(self, secs, mats='Earth', closed=True, cap0=True, cap1=True, capmat='Earth', wrap=False):
         """secs: list of rings (same count). mats: str or list per ring segment k (k -> k+1)."""
@@ -54,24 +68,72 @@ class Solid:
         if cap1 and not wrap:
             self.face(list(secs[-1]), capmat)
 
-    def finish(self, vid, check=True):
+    def _bm(self, upto=None):
         bm = bmesh.new()
         ml = bm.faces.layers.int.new('mat')
-        names = sorted(set(m for _, m in self.faces))
-        for pts, m in self.faces:
+        hl = bm.faces.layers.int.new('hint')
+        ul = bm.faces.layers.int.new('hasuv')
+        uvl = bm.loops.layers.uv.new('UVMap')
+        names = sorted(set(m for _, m, _, _ in self.faces))
+        hints = []
+        for pts, m, U, nh in (self.faces if upto is None else self.faces[:upto]):
             vs = [bm.verts.new(p) for p in pts]
             try:
                 f = bm.faces.new(vs)
             except ValueError:
                 continue
             f[ml] = names.index(m)
-        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
-        # drop degenerate faces
-        bad = [f for f in bm.faces if f.calc_area() < 1e-7]
+            if nh is not None:
+                hints.append(nh); f[hl] = len(hints)
+            if U:
+                for l, uv in zip(f.loops, U):
+                    l[uvl].uv = uv
+                f[ul] = 1                          # has explicit UVs
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+        bad = [f for f in bm.faces if f.calc_area() < 1e-9]
         if bad:
             bmesh.ops.delete(bm, geom=bad, context='FACES')
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        # triangulate ngons and non-planar quads (so Blender == Unity shading, big flat facets stay quads)
+        for f in bm.faces:
+            if f[hl] and f.normal.dot(hints[f[hl] - 1]) < 0:
+                f.normal_flip()
+        return bm, names
+
+    def surface(self):
+        """Closed-shell triangles with fixed outward normals: list of (a, b, c, normal, mat) + BVH + open edges."""
+        bm, names = self._bm()
+        ml = bm.faces.layers.int['mat']
+        self.surf_open_edges = sum(1 for e in bm.edges if not e.is_manifold)
+        tris = []
+        for f in bm.faces:
+            vs = [v.co.copy() for v in f.verts]
+            for i in range(1, len(vs) - 1):
+                tris.append((vs[0], vs[i], vs[i + 1], f.normal.copy(), names[f[ml]]))
+        verts = [v.co.copy() for v in bm.verts]
+        bm.verts.index_update()
+        tree = BVHTree.FromBMesh(bm)
+        bm.free()
+        return tris, tree
+
+    def finish(self, vid, check=True):
+        bm, names = self._bm()
+        ml = bm.faces.layers.int['mat']
+        uvl = bm.loops.layers.uv['UVMap']
+        ul = bm.faces.layers.int['hasuv']
+        for f in bm.faces:                         # world-planar box UVs (same as ak.auto_uv) for tiling mats
+            if f[ul]:
+                continue
+            t = ak.MATS[names[f[ml]]][2] or 1.0
+            n = f.normal
+            for l in f.loops:
+                co = l.vert.co
+                if abs(n.z) > 0.7:
+                    u, v = co.x, co.y
+                elif abs(n.x) > abs(n.y):
+                    u, v = co.y * (1 if n.x > 0 else -1), co.z
+                else:
+                    u, v = co.x * (-1 if n.y > 0 else 1), co.z
+                l[uvl].uv = (u / t, v / t)
         tri = []
         for f in bm.faces:
             if len(f.verts) > 4:
@@ -84,9 +146,11 @@ class Solid:
                     tri.append(f)
         if tri:
             bmesh.ops.triangulate(bm, faces=tri, quad_method='SHORT_EDGE', ngon_method='BEAUTY')
-        self.open_edges = sum(1 for e in bm.edges if not e.is_manifold)
+        self.all_open_edges = sum(1 for e in bm.edges if not e.is_manifold)
+        if not hasattr(self, 'open_edges'):
+            self.open_edges = self.all_open_edges
         if check and self.open_edges:
-            print('WARNING %s: %d non-manifold edges' % (vid, self.open_edges))
+            print('WARNING %s: %d non-manifold edges in the shell' % (vid, self.open_edges))
         objs = []
         for mi, m in enumerate(names):
             b2 = bm.copy()
@@ -101,19 +165,20 @@ class Solid:
             b2.free()
             for p in me.polygons:
                 p.use_smooth = False
-            me.attributes.remove(me.attributes['mat']) if 'mat' in me.attributes else None
+            for an in ('mat', 'hint', 'hasuv'):
+                if an in me.attributes:
+                    me.attributes.remove(me.attributes[an])
             o = bpy.data.objects.new(name, me)
             bpy.context.scene.collection.objects.link(o)
             me.materials.append(ak.material(m))
             o['mat'] = m
-            ak.auto_uv(o)
             w = me.uv_layers.new(name='Wind')
             for d in w.data:
                 d.uv = (1000.0, 1000.0)
             me.uv_layers.active_index = 0
             objs.append(o)
         bm.free()
-        order = {'Earth': 0, 'Floor': 1}
+        order = {'Earth': 0, 'Floor': 1, 'Root': 2, 'Props': 3}
         objs.sort(key=lambda o: order.get(o['mat'], 9))
         return objs
 
@@ -150,7 +215,7 @@ def max_slope(objs, mat='Floor'):
         if o['mat'] != mat:
             continue
         for p in o.data.polygons:
-            if p.normal.z > 0.3:
+            if p.normal.z > 0.3 and p.area > 0.03:
                 m = max(m, math.degrees(math.acos(min(1, p.normal.z))))
     return m
 

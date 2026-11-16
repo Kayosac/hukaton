@@ -1,6 +1,7 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
@@ -34,6 +35,16 @@ def ring(x, rnd, end):
     return out
 
 
+def forbid(lo, hi):
+    return abs(lo.x) > 1.6 or abs(hi.x) > 1.6 or hi.y > 0.74 or lo.y < -1.25 or lo.z < -0.002
+
+
+FRONT = lambda p, n: p.y < 0.6 and n.z < 0.6 and n.y < 0.5 and p.z > 0.06
+UNDER = lambda p, n: n.z < -0.3 and p.y < 0.6 and p.z > 0.2
+TOP = lambda p, n: n.z > 0.6 and p.z > 1.2
+SHELF = lambda p, n: True
+
+
 def build(vid, seed):
     rnd = random.Random(seed)
     s = Solid()
@@ -46,6 +57,14 @@ def build(vid, seed):
     mats = ['Earth'] * n
     mats[3] = 'Floor'
     s.loft(secs, mats)
+    flat = lambda p, n: {}
+    extra = [(40, crumb_flat, SHELF, ('Floor',), None),
+             (20, crumb_flat, SHELF, ('Floor',), lambda p, n: {'region': 'pebble', 'r': rnd.uniform(0.025, 0.06)}),
+             (8, husk, SHELF, ('Floor',), None), (10, needle, SHELF, ('Floor',), None),
+             (3, crack, SHELF, ('Floor',), lambda p, n: {'depth': 0.02, 'lips': False}),
+             (18, hang_root, UNDER, ('Earth',), lambda p, n: {'length': rnd.uniform(0.1, 0.4)})]
+    rays = [((x, -1.6, 0.07), (0, 1, 0)) for x in (-1.1, -0.5, 0.1, 0.7, 1.2)]
+    dress_shell(s, rnd, forbid, FRONT, UNDER, TOP, None, None, k=0.75, rays=rays, rubble=(10, 22, 16, 3), extra=extra)
     return s, s.finish(vid)
 
 

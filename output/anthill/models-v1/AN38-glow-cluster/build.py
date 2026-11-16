@@ -33,8 +33,19 @@ def build():
         atlas_tube(p, path, [rb * 1.35, rb, (rb + rt) / 2, rt], 7, 'stem', along='u', fy_range=(0.05, 0.95),
                    jitter=0.006, seed=sd, caps=(False, True))
         cap(p, T + Vector((0, 0, -0.01)), R=R, H=H, sides=10, tilt=tilt, spin=sd * 1.1, seed=10 + sd, top='cap_yellow',
-            under='gill_glow_yellow', stem_r=rt * 1.1, droop=0.1, lump=0.07, rim=0.1, sxy=(1.0, 0.95), under_depth=R * 0.22, glow_rim=True)
-    clamp(p, 2, lo=0.0); clamp(r, 2, lo=0.0); drop_bottom(r)
+            under='gill_glow_yellow', stem_r=rt * 1.1, droop=0.1, lump=0.07, rim=0.1, sxy=(1.0, 0.95), under_depth=R * 0.22, glow_rim=True,
+            chips=2 if R > 0.15 else 1)
+    # root hairs on the shared base, clods / pebbles / buttons / leaf / twig / crumbs around it
+    ro_tmp = None
+    rr = random.Random(38)
+    for i in range(14):
+        a = rr.uniform(0, 6.28); d = rr.uniform(0.2, 0.36)
+        q = Vector((math.cos(a) * d, math.sin(a) * d * 0.8, rr.uniform(0.02, 0.08)))
+        rootlet(r, q, Vector((math.cos(a), math.sin(a), -0.2)), rr.uniform(0.1, 0.22), rr.uniform(0.008, 0.015),
+                seed=380 + i, droop=0.8)
+    foot_details(p, (0.0, 0.0), 0.36, 0.62, seed=38, n_clump=8, clump_r=(0.05, 0.1), n_babies=6, baby_h=(0.06, 0.16),
+                 baby_R=(0.035, 0.07), n_pebbles=10, n_leaves=2, n_twigs=1, n_needles=1, n_crumbs=10)
+    clamp(p, 2, lo=0.0); clamp(r, 2, lo=0.0); drop_bottom(r); drop_bottom(p)
     po = p.to_object('AN38a_Props'); ro = r.to_object('AN38a_Root')
     ak.auto_uv(ro)
     objs = [po, ro]

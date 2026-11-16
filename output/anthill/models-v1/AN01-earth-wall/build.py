@@ -1,10 +1,27 @@
 import sys, os, random
 sys.path.insert(0, '/home/claude/ant/models')
 from shell_lib import *
+from detail_lib import *
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
 ak.reset()
+
+
+def forbid(lo, hi):
+    return lo.x < -1.97 or hi.x > 1.97 or lo.z < -0.002 or lo.y < -1.0 or hi.y > 0.95
+
+
+FRONT = lambda p, n: abs(p.x) < 1.92 and n.y < -0.3 and p.z > 0.06
+UNDER = lambda p, n: abs(p.x) < 1.8 and n.z < -0.25 and p.z > 0.3 and n.y < 0.3
+TOP = lambda p, n: abs(p.x) < 1.9 and n.z > 0.6
+BACK = lambda p, n: abs(p.x) < 1.8 and n.y > 0.4 and p.z > 0.05
+SIDE_UP = lambda p, n: abs(p.x) < 1.8 and n.y < -0.3 and p.z > 2.6
+
+
+def dress_wall(s, rnd):
+    rays = [((x, -1.6, 0.07), (0, 1, 0)) for x in (-1.2, -0.6, 0.0, 0.6, 1.2)]
+    dress_shell(s, rnd, forbid, FRONT, UNDER, TOP, BACK, SIDE_UP, k=1.0, rays=rays)
 
 
 def build(vid, seed):
@@ -24,6 +41,7 @@ def build(vid, seed):
         lump(s, (x, bay_y(z) - 0.06, z + 0.02), r, rnd, rings=3, sides=6, jitter=0.12, rot=rnd.uniform(-0.3, 0.3))
     for x, r in ((rnd.uniform(-0.7, -0.1), (0.34, 0.26, 0.2)), (rnd.uniform(0.6, 1.1), (0.22, 0.18, 0.14))):
         lump(s, (x, bay_y(0) - 0.2, 0.0), r, rnd, rings=3, sides=7, jitter=0.25, flat_z=0.0)
+    dress_wall(s, rnd)
     objs = s.finish(vid)
     return s, objs
 
@@ -41,7 +59,7 @@ JOINS = {
 }
 recs = [ak.variant_record('AN01a', 'Earth wall 4x4x0.8 (concave bay)', objs, fbx, solidity='solid',
                           collider='mesh (or box 4 x 0.8 x 4 m centred at y=0, z=2)', joins=JOINS, emissive=False,
-                          notes='front: one big concave faceted bay with 2 strata ledges, 3 protruding strata slabs and 2 rubble clods at the foot, thick rim pillars at the joins and a brow on top; back closed, slightly bulged; bottom flat at z=0.')]
+                          notes='front: one big concave faceted bay with 2 strata ledges, 3 protruding strata slabs, ~150 embedded pebbles, clods, crumbling ledge slabs, erosion ribs, cracks (dark V-grooves), 5 burrow holes, root tips, hair rootlets hanging from the brow, clay drips, seed husks, and a rubble/crumb/pebble heap at the foot, thick rim pillars at the joins and a brow on top; back closed, slightly bulged; bottom flat at z=0.')]
 write_manifest(OUT, recs)
 ak.save_blend(os.path.join(HERE, 'AN01-earth-wall.blend'))
 if wants_render():
