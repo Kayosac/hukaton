@@ -22,7 +22,7 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 Crediting Kenney is optional, but it is appreciated.
 
-The kick sounds (`kick/kick_hit_01-03`) layer Kenney Impact Sounds `impact_punch_heavy_001/002/003.ogg` and `impact_soft_heavy_000/001/002.ogg` (trimmed, tightened) with a synthesized sub thump, a body burst and a click; `kick/kick_swing_01-03` are synthesized only.
+The kick sounds (`kick/kick_hit_01-03`) layer Kenney Impact Sounds `impact_punch_heavy_001/002/003.ogg` (trimmed, tightened) and `impact_plank_medium_000/001/002.ogg` (woody crack) with a synthesized short low thump, a leather slap, a click and a high shelf; `kick/kick_swing_01-03` are synthesized only.
 
 The `manifest.json` `source` field lists the exact original Kenney file or files used for each cue.
 

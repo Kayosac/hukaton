@@ -33,18 +33,18 @@ namespace Hakaton.Expeditions
         [Tooltip("Slain aggressive and territorial creatures, by their health (ascending).")]
         public HealthBand[] creatures =
         {
-            new HealthBand { upToHealth = 3, chance = .08f }, new HealthBand { upToHealth = 8, chance = .2f },
-            new HealthBand { upToHealth = 15, chance = .4f }, new HealthBand { upToHealth = 9999, chance = .75f },
+            new HealthBand { upToHealth = 3, chance = .2f }, new HealthBand { upToHealth = 8, chance = .35f },
+            new HealthBand { upToHealth = 15, chance = .55f }, new HealthBand { upToHealth = 9999, chance = .85f },
         };
         [Tooltip("Opened chests by their rank 1–5 (beggar … legendary).")]
-        public float[] chestsByRank = { .2f, .35f, .6f, .8f, 1f };
+        public float[] chestsByRank = { .4f, .55f, .75f, .9f, 1f };
         [Tooltip("Chests of this rank and up give a card of at least this rarity (legendary: 3+).")]
         [Range(1, 5)] public int richChestRank = 5;
         [Range(1, 5)] public int richChestCardRank = 3;
         [Tooltip("A killed chest mimic.")]
         [Range(0, 1)] public float mimics = 1;
         [Tooltip("This many kills in a row without a card make the next one sure (0: never).")]
-        [Min(0)] public int dryKills = 4;
+        [Min(0)] public int dryKills = 2;
         [Tooltip("While the collection holds at most this many cards, the first kill of an outing gives a card for sure.")]
         [Min(0)] public int startingCollection = 5;
         [Tooltip("A card the player does not own weighs this many times as much (a taste of the goblin's cards).")]
