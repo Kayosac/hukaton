@@ -173,7 +173,7 @@ put('needles',128,224,64,32,nd)
 
 def main():
     save('T_Ant_Earth.png',earth()); save('T_Ant_Floor.png',floor()); save('T_Ant_Root.png',root()); save('T_Ant_Wood.png',wood()); save('T_Ant_Cloth.png',cloth())
-    save('T_Ant_Props.png',up2(A)); save('T_Ant_Props_Emission.png',up2(np.repeat(E[...,None],3,2)*255))
+    save('T_Ant_Props.png',up2(A)); save('T_Ant_Props_Emission.png',up2(A*E[...,None]))  # coloured: albedo x glow mask (like T_Forest_Props_Emission)
     json.dump({'T_Ant_Props.png':{'size':512,'regions':REG}},open(os.path.join(OUT,'regions.json'),'w'),indent=1)
     ims=[Image.open(os.path.join(OUT,n)).convert('RGB').resize((256,256),Image.NEAREST) for n in ['T_Ant_Earth.png','T_Ant_Floor.png','T_Ant_Root.png','T_Ant_Wood.png','T_Ant_Cloth.png']]
     ov=Image.new('RGB',(256*5+512*2,512),(30,30,30))
