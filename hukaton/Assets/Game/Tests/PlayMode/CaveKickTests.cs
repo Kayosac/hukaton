@@ -97,6 +97,47 @@ namespace Hakaton.Game.Tests
             Assert.That(cave.CanDiscard(), Is.True, "now R");
             Assert.That(world.thrower.Selected?.Spec.Id, Is.EqualTo(cave.discardInstruction.id), "the discard's card is up next");
         }
+        /// <summary>The leg is drawn in the real game too, where the world goes through a low-resolution image (Logs/kick/game-kick.png).</summary>
+        [UnityTest]
+        public IEnumerator TheLegShowsInTheGame()
+        {
+            var world = Object.FindAnyObjectByType<GameLoop>().expedition;
+            var cave = Object.FindAnyObjectByType<CaveTutorial>();
+            yield return WaitFor(() => cave.Stage == CaveStage.Instructions, 10);
+            world.control.SendMessage("OnApplicationFocus", true);
+            world.control.CaptureCursor();
+            yield return null;
+            yield return new WaitForSeconds(2.5f);
+            var view = world.kick.view;
+            var log = new System.Text.StringBuilder();
+            log.AppendLine("viewCamera=" + (world.viewCamera ? world.viewCamera.name + " enabled=" + world.viewCamera.isActiveAndEnabled + " near=" + world.viewCamera.nearClipPlane + " mask=" + world.viewCamera.cullingMask + " rt=" + world.viewCamera.targetTexture : "null"));
+            foreach (var cam in Camera.allCameras) log.AppendLine("camera " + cam.name + " depth=" + cam.depth + " near=" + cam.nearClipPlane + " mask=" + cam.cullingMask + " rt=" + cam.targetTexture);
+            world.kick.ResetCooldown();
+            Assert.That(world.kick.TryKick(), Is.True);
+            yield return new WaitForSeconds(.08f);
+            log.AppendLine("canvas mode=" + view.canvas.renderMode + " cam=" + (view.canvas.worldCamera ? view.canvas.worldCamera.name : "null") + " enabled=" + view.canvas.enabled + " active=" + view.canvas.isActiveAndEnabled + " plane=" + view.canvas.planeDistance + " layer=" + view.canvas.gameObject.layer);
+            Assert.That(view.canvas.worldCamera, Is.Not.Null.And.SameAs(view.RenderCamera()));
+            Assert.That(view.canvas.worldCamera.targetTexture, Is.Null, "the leg's camera draws to the screen, not into the low-resolution 3D image (whose camera draws no transparents)");
+            Assert.That(view.canvas.enabled && view.Showing, Is.True);
+            log.AppendLine("leg pos=" + view.leg.anchoredPosition + " scale=" + view.leg.localScale + " sprite=" + (view.body.sprite ? view.body.sprite.name : "null") + " colour=" + view.body.color + " mat=" + view.body.materialForRendering.name + " ppu=" + view.body.materialForRendering.GetFloat("_PixelsPerUnit") + " showing=" + view.Showing);
+            foreach (var card in Object.FindObjectsByType<Hakaton.Expeditions.CardView>(FindObjectsSortMode.None))
+                if (card.Visible)
+                {
+                    Assert.That(card.Front, Is.Not.Null, card.name + ": every card in the hand has its drawing (the kick's note is a story card)");
+                    log.AppendLine("card " + card.name + " front=" + (card.Front ? card.Front.name + " " + card.Front.width + "x" + card.Front.height + " " + card.Front.GetType().Name : "null") + " order=" + card.meshRenderer.sortingOrder);
+                }
+            foreach (var c in world.workshop.Model.Current.Deck.Hand) log.AppendLine("hand " + c.Spec.Id);
+            var corners = new Vector3[4];
+            view.leg.GetWorldCorners(corners);
+            foreach (var c in corners) log.AppendLine("corner viewport " + view.canvas.worldCamera?.WorldToViewportPoint(c));
+            yield return new WaitForEndOfFrame();
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "kick");
+            Directory.CreateDirectory(dir);
+            var shot = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(dir, "game-kick.png"), shot.EncodeToPNG());
+            Object.Destroy(shot);
+            File.WriteAllText(Path.Combine(dir, "game-kick.txt"), log.ToString());
+        }
     }
 }
 #endif

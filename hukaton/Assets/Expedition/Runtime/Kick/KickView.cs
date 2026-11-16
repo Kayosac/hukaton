@@ -11,7 +11,8 @@ namespace Hakaton.Expeditions
     /// and is pulled back down, bending as it goes (full → half → bent), so the leg is bent at the end of the kick, not
     /// at its start. It hangs on the view like the special items do in the hand (SpecialItems' HandHold): turning leaves it behind and tilts it, jumps and falls lag it, the step sways it, a landing knocks it.
     /// <para>
-    /// The canvas renders through the view camera a few centimetres in front of the eyes (Screen Space – Camera), on its
+    /// The canvas renders through the view camera (in the game — its presentation camera, see <see cref="RenderCamera"/>)
+    /// a few centimetres in front of the eyes (Screen Space – Camera), on its
     /// own copy of the material (depth test off, render queue under the card viewmodel's), so the cards in the hand are
     /// always drawn over the leg and nothing in the world cuts it. The drawing's cut edges (the trouser leg leaves the
     /// sprite at its right and bottom) stay below the screen: the pivot is the sprite's bottom-right corner, its resting
@@ -112,8 +113,8 @@ namespace Hakaton.Expeditions
             if (canvas && world && world.viewCamera)
             {
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
-                canvas.worldCamera = world.viewCamera;
                 canvas.planeDistance = planeDistance;
+                UseRenderCamera();
             }
             if (body && material && !instance)
             {
@@ -124,6 +125,29 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
+        /// The camera that draws the leg. In the game the world is rendered into a low-resolution image and shown by a
+        /// presentation camera (Rendering/WorldResolution, made at run time as a child of the view camera) that draws the
+        /// scene's transparents and the cards at the screen's own resolution; the view camera itself then draws no
+        /// transparents, so a canvas of its own would never show. Without it (the enemy sandbox) — the view camera.
+        /// </summary>
+        public Camera RenderCamera()
+        {
+            var view = world ? world.viewCamera : null;
+            if (!view || !view.targetTexture) return view;
+            foreach (var child in view.GetComponentsInChildren<Camera>(true))
+                if (child != view && !child.targetTexture && child.isActiveAndEnabled) return child;
+            return view;
+        }
+
+        void UseRenderCamera()
+        {
+            // (A camera-space canvas without its camera reports itself as an overlay: no test of the mode here.)
+            if (!canvas || !world || !world.viewCamera) return;
+            var camera = RenderCamera();
+            if (camera && canvas.worldCamera != camera) canvas.worldCamera = camera;
+        }
+
+        /// <summary>
         /// The editor compiles a shader variant the first time it is drawn and shows a cyan stand-in meanwhile: the leg is
         /// drawn once, far below the screen and all but transparent, for a moment after the outing binds it.
         /// </summary>
@@ -131,6 +155,7 @@ namespace Hakaton.Expeditions
         {
             if (!canvas || !leg || !body || Showing) return;
             warmUntil = Time.unscaledTime + 2;
+            UseRenderCamera();
             canvas.enabled = true;
             body.color = new Color(1, 1, 1, .004f);
             leg.anchoredPosition = restPosition + new Vector2(0, -3000);
@@ -233,6 +258,8 @@ namespace Hakaton.Expeditions
                 jolt.Step(Vector3.zero, 9, .45f, dt);
                 punch.Step(0, 11, .5f, dt);
             }
+            // The presentation camera comes and goes with the screen's size: follow it.
+            UseRenderCamera();
             UpdateGrid();
             if (!leg) return;
             var position = restPosition + way + follow + new Vector2(jolt.Value.x, jolt.Value.y);

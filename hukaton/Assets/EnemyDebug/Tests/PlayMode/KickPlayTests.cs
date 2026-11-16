@@ -134,7 +134,8 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         {
             var view = world.kick.view;
             Assert.That(view.canvas.renderMode, Is.EqualTo(RenderMode.ScreenSpaceCamera), "in front of the eyes, through the view camera");
-            Assert.That(view.canvas.worldCamera, Is.SameAs(world.viewCamera));
+            Assert.That(view.canvas.worldCamera, Is.SameAs(view.RenderCamera()));
+            Assert.That(view.canvas.worldCamera.targetTexture, Is.Null, "drawn straight to the screen");
             var material = view.body.materialForRendering;
             Assert.That(material.renderQueue, Is.LessThan(3100), "before the card viewmodel's quads");
             Assert.That(material.GetFloat("_ZTest"), Is.EqualTo((float)UnityEngine.Rendering.CompareFunction.Always), "the world never cuts it");
