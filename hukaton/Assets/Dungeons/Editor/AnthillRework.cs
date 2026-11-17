@@ -77,6 +77,59 @@ namespace Hakaton.Dungeons.EditorTools
             return $"dark {kit.passageDark.shader.name}, glow {kit.passageGlow.shader.name}";
         }
 
+        /// <summary>The hill alone in a throw-away scene, lit from the front, from a few places: Logs/bridge/hill/*.png.</summary>
+        static string HillShot(string arg)
+        {
+            var dir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Logs", "bridge", "hill");
+            System.IO.Directory.CreateDirectory(dir);
+            var active = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.EmptyScene, UnityEditor.SceneManagement.NewSceneMode.Additive);
+            var foreign = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.enabled).ToList();
+            foreach (var l in foreign) l.enabled = false;
+            var log = new System.Text.StringBuilder();
+            try
+            {
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+                var hill = (GameObject)PrefabUtility.InstantiatePrefab(P("Entrance", "AN09_EntranceHill"), scene);
+                hill.transform.position = new Vector3(0, -3000, 0);
+                foreach (var mr in hill.GetComponentsInChildren<MeshRenderer>())
+                {
+                    var mf = mr.GetComponent<MeshFilter>();
+                    var m = mf.sharedMesh;
+                    var uv = new List<Vector2>(); m.GetUVs(0, uv);
+                    var n = new List<Vector3>(); m.GetNormals(n);
+                    log.Append($"{mr.name}: v{m.vertexCount} t{m.triangles.Length / 3} uv0[{(uv.Count > 0 ? uv.Min(u => u.x).ToString("0.0") + ".." + uv.Max(u => u.x).ToString("0.0") : "none")}] mat {mr.sharedMaterial.name} sub{m.subMeshCount}; ");
+                }
+                var sun = new GameObject("Sun").AddComponent<Light>();
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(sun.gameObject, scene);
+                sun.type = LightType.Directional; sun.intensity = 1.3f; sun.transform.rotation = Quaternion.Euler(40, 20, 0);
+                var cam = new GameObject("Cam").AddComponent<Camera>();
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(cam.gameObject, scene);
+                cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(.75f, .74f, .7f); cam.fieldOfView = 60;
+                var rt = new RenderTexture(1280, 720, 24); cam.targetTexture = rt;
+                var tex = new Texture2D(1280, 720, TextureFormat.RGB24, false);
+                void Shot(string name, Vector3 at, Vector3 look)
+                {
+                    cam.transform.position = hill.transform.TransformPoint(at);
+                    cam.transform.LookAt(hill.transform.TransformPoint(look));
+                    cam.Render();
+                    RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); tex.Apply(); RenderTexture.active = null;
+                    System.IO.File.WriteAllBytes(System.IO.Path.Combine(dir, name + ".png"), tex.EncodeToPNG());
+                }
+                Shot("front15", new Vector3(0, 1.7f, -15), new Vector3(0, 3, 4));
+                Shot("side45", new Vector3(-11, 1.7f, -10), new Vector3(0, 3, 4));
+                Shot("close", new Vector3(3, 2.5f, -6), new Vector3(3, 3, 4));
+                cam.targetTexture = null; Object.DestroyImmediate(rt); Object.DestroyImmediate(tex);
+            }
+            finally
+            {
+                if (active.IsValid()) UnityEngine.SceneManagement.SceneManager.SetActiveScene(active);
+                UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+                foreach (var l in foreign) if (l) l.enabled = true;
+            }
+            return log.ToString();
+        }
+
         static string Entrance(string arg)
         {
             var root = PrefabUtility.LoadPrefabContents(EntrancePath);
