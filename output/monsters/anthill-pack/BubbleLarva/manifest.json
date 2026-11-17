@@ -1,0 +1,616 @@
+{
+  "character": "BubbleLarva",
+  "display_name": "Личинка-пузырь",
+  "type": "aggressive",
+  "temperament_status": "working_assumption_for_combat_concept",
+  "physical_height_m": 1.0,
+  "size_provided_by_user": false,
+  "size_reference": "Provisional art scale including default silhouette; no gameplay tuning.",
+  "nominal_world_scale": 1,
+  "gameplay_implemented": false,
+  "health": null,
+  "damage": null,
+  "loot_assigned": false,
+  "master_atlas": "output/monsters/anthill-pack/BubbleLarva/atlas.png",
+  "master_atlas_sha256": "2d520f9bf05cdb6edd9d730508ddc778a81085fb86b5cee22baec24a5184ed9c",
+  "master_cell_size": [
+    1800,
+    2000
+  ],
+  "master_columns": 3,
+  "master_rows": 3,
+  "master_ground_anchor": [
+    900.0,
+    1500
+  ],
+  "master_pivot": [
+    0.5,
+    0.25
+  ],
+  "master_pixels_per_unit": 670.0,
+  "master_cells": [
+    {
+      "name": "BubbleLarva_DefaultFront",
+      "state": "front-default",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/front-default.png",
+      "column": 0,
+      "row": 0,
+      "rect_top_left": [
+        0,
+        0,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/front-default.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        477
+      ],
+      "visible_bbox": [
+        116,
+        353,
+        1124,
+        1023
+      ],
+      "source_sha256": "f390681dec2e4097b4d9f1eb1286559f909f7f1a13d9499ff8072fd1e730d48d"
+    },
+    {
+      "name": "BubbleLarva_DefaultBack",
+      "state": "back-default",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/back-default.png",
+      "column": 1,
+      "row": 0,
+      "rect_top_left": [
+        1800,
+        0,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/back-default.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        478
+      ],
+      "visible_bbox": [
+        128,
+        354,
+        1128,
+        1022
+      ],
+      "source_sha256": "193f2af81db7b99fa271cfa1a0625dfa978bafaec44afeb3b7f8326bcaafecf7"
+    },
+    {
+      "name": "BubbleLarva_AggroFront",
+      "state": "front-aggro",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/front-aggro.png",
+      "column": 2,
+      "row": 0,
+      "rect_top_left": [
+        3600,
+        0,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/front-aggro.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        418
+      ],
+      "visible_bbox": [
+        44,
+        165,
+        1177,
+        1082
+      ],
+      "source_sha256": "00f668bd84674d14063831a6bc8b08f2ee90daedc868a27fa2a86f4c66d92cc4"
+    },
+    {
+      "name": "BubbleLarva_HurtFront",
+      "state": "front-hurt",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/front-hurt.png",
+      "column": 0,
+      "row": 1,
+      "rect_top_left": [
+        0,
+        2000,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/front-hurt.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        474
+      ],
+      "visible_bbox": [
+        204,
+        359,
+        1045,
+        1026
+      ],
+      "source_sha256": "977ea4027e8c2aa718aa1f59098a95bd681b2fd947d7880080651162dafa4ac2"
+    },
+    {
+      "name": "BubbleLarva_AttackFront",
+      "state": "front-attack",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/front-attack.png",
+      "column": 1,
+      "row": 1,
+      "rect_top_left": [
+        1800,
+        2000,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/front-attack.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        355
+      ],
+      "visible_bbox": [
+        115,
+        133,
+        1120,
+        1145
+      ],
+      "source_sha256": "4a2c7eae1ee2e8780e4927afd228953966e615e813e7f9027790d08184ad9bc0"
+    },
+    {
+      "name": "BubbleLarva_DeathFront",
+      "state": "front-death",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/front-death.png",
+      "column": 2,
+      "row": 1,
+      "rect_top_left": [
+        3600,
+        2000,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/front-death.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        471
+      ],
+      "visible_bbox": [
+        109,
+        806,
+        1145,
+        1029
+      ],
+      "source_sha256": "fcb63cca5a31baeb47ef4d307d91dcba1c89746cf0bf2c97de01a2da239b69d2"
+    },
+    {
+      "name": "BubbleLarva_DeathBack",
+      "state": "back-death",
+      "master": "output/monsters/anthill-pack/BubbleLarva/masters/back-death.png",
+      "column": 0,
+      "row": 2,
+      "rect_top_left": [
+        0,
+        4000,
+        1800,
+        2000
+      ],
+      "source": "output/monsters/anthill-pack/BubbleLarva/raw/back-death.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_offset": [
+        273,
+        472
+      ],
+      "visible_bbox": [
+        116,
+        810,
+        1107,
+        1028
+      ],
+      "source_sha256": "3ba1e42cb7ffb0bbf503f18fb1b3b869ca0599c775cb1bdc0da11ef08c5148b2"
+    }
+  ],
+  "atlas": "BubbleLarvaAtlas.png",
+  "width": 512,
+  "height": 1024,
+  "cell_width": 177,
+  "cell_height": 159,
+  "columns": 2,
+  "rows": 4,
+  "pixelsPerUnit": 100,
+  "pivot": [
+    0.5141243,
+    0.0251572
+  ],
+  "cells": [
+    {
+      "name": "BubbleLarva_DefaultFront",
+      "rect": [
+        0,
+        865,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 375
+    },
+    {
+      "name": "BubbleLarva_DefaultBack",
+      "rect": [
+        177,
+        865,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 370
+    },
+    {
+      "name": "BubbleLarva_AggroFront",
+      "rect": [
+        0,
+        706,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 571
+    },
+    {
+      "name": "BubbleLarva_HurtFront",
+      "rect": [
+        177,
+        706,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 334
+    },
+    {
+      "name": "BubbleLarva_AttackFront",
+      "rect": [
+        0,
+        547,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 5,
+      "edge": 434
+    },
+    {
+      "name": "BubbleLarva_DeathFront",
+      "rect": [
+        177,
+        547,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 326
+    },
+    {
+      "name": "BubbleLarva_DeathBack",
+      "rect": [
+        0,
+        388,
+        177,
+        159
+      ],
+      "pivot": [
+        0.5141243,
+        0.0251572
+      ],
+      "outline_fixed": 0,
+      "edge": 314
+    }
+  ],
+  "unity": {
+    "atlas": "BubbleLarvaAtlas.png",
+    "pixels_per_unit": 100,
+    "world_density": 100,
+    "world_scale": 1,
+    "sprites": [
+      {
+        "name": "BubbleLarva_DefaultFront",
+        "rect": [
+          0,
+          865,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 375
+      },
+      {
+        "name": "BubbleLarva_DefaultBack",
+        "rect": [
+          177,
+          865,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 370
+      },
+      {
+        "name": "BubbleLarva_AggroFront",
+        "rect": [
+          0,
+          706,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 571
+      },
+      {
+        "name": "BubbleLarva_HurtFront",
+        "rect": [
+          177,
+          706,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 334
+      },
+      {
+        "name": "BubbleLarva_AttackFront",
+        "rect": [
+          0,
+          547,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 5,
+        "edge": 434
+      },
+      {
+        "name": "BubbleLarva_DeathFront",
+        "rect": [
+          177,
+          547,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 326
+      },
+      {
+        "name": "BubbleLarva_DeathBack",
+        "rect": [
+          0,
+          388,
+          177,
+          159
+        ],
+        "pivot": [
+          0.5141243,
+          0.0251572
+        ],
+        "outline_fixed": 0,
+        "edge": 314
+      }
+    ],
+    "import_validation": "verified_actual_editor_import",
+    "actual_sprites": [
+      {
+        "name": "BubbleLarva_DefaultFront",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 865.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": -7824250159573901105
+      },
+      {
+        "name": "BubbleLarva_DefaultBack",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 177.0,
+          "y": 865.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": -5812277523607983487
+      },
+      {
+        "name": "BubbleLarva_AggroFront",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 706.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": -6753493233250190205
+      },
+      {
+        "name": "BubbleLarva_HurtFront",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 177.0,
+          "y": 706.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": -7426399915938090444
+      },
+      {
+        "name": "BubbleLarva_AttackFront",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 547.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": 1683046278416183501
+      },
+      {
+        "name": "BubbleLarva_DeathFront",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 177.0,
+          "y": 547.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": -6148281040609541905
+      },
+      {
+        "name": "BubbleLarva_DeathBack",
+        "guid": "6a66f2620f41f454eadac31392dd9a95",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 388.0,
+          "width": 177.0,
+          "height": 159.0
+        },
+        "pivot": {
+          "x": 91.0,
+          "y": 3.9999947547912598
+        },
+        "ppu": 100.0,
+        "fileID": 6473577765577128227
+      }
+    ],
+    "visual_review": {
+      "allSevenStatesReviewed": true,
+      "comparison": "output/monsters/anthill-pack/unity-scale-comparison.png",
+      "mode": "offscreen GPU render in disposable EnemyDebug preview; Sprites/Default material",
+      "gameplayPlayMode": false
+    }
+  },
+  "generation_mode": "built-in image_gen; transparent_background=true; separate state calls",
+  "prompts": "output/monsters/anthill-pack/prompts.json",
+  "user_art_approval": "concepts_approved_generated_sprites_not_yet_reviewed",
+  "unity_import_validation": "verified_actual_editor_import",
+  "source_padding": "Whole source RGBA pasted unchanged; integer offsets align alpha>=128 bottom to common ground; no per-state scaling, crop or rotation.",
+  "notes": [
+    "Seven full-body states; rear only for default and death.",
+    "Two unused master cells fully transparent.",
+    "No gameplay, loot, prefab or scene added."
+  ],
+  "status": "generated_saved_atlas_and_editor_verified",
+  "registry": {
+    "table": "tb_hakaton-enemies",
+    "row": "jppf0gazwt",
+    "attachment": "10fca464d2456081be24caf7251877b38ed2ef8308750de89f876eb501321ad2",
+    "verified": true,
+    "retrieved_and_visually_inspected": true
+  },
+  "brief": "КОНЦЕПТ — gameplay не реализован. Толстая бледно-жёлтая личинка с огромным зеленоватым брюхом. Медленно ползёт. Единственный обычный саморазрушающийся враг набора. Агрессивный характер — рабочее допущение. HP не определено.",
+  "combat_concept": "КОНЦЕПТ: Вблизи замирает, раздувается и пищит, затем лопается в кислотную лужу. Можно отбросить в других врагов. Лужа/VFX этим пакетом не создавались. Числовой баланс не задан."
+}

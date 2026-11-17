@@ -1,7 +1,7 @@
 {
   "project_id": "01M6WVK7017HGXKC9MDPA30KFS",
-  "updated_on": "2026-11-14",
-  "enemy_count": 26,
+  "updated_on": "2026-11-16",
+  "enemy_count": 31,
   "columns": [
     "Враг",
     "Спрайт врага",
@@ -3078,10 +3078,10 @@
       "native_row_id": "4kr54x4n00",
       "category": "Агрессивный",
       "category_status": "Рабочее художественное предположение; игровой префаб отсутствует",
-      "behavior": "Три муравья в касках обслуживают старый пулемёт на триноге: стрелок, подающий ленту и помощник. Один составной враг. Агрессивный характер и общая высота около 1,57 м — рабочие художественные предположения; игровой префаб и поведение ещё не реализованы.",
-      "combat_pattern": "В художественном наборе: подготовка расчёта, стрельба с короткой вспышкой у ствола, общая реакция на попадание и поражение установки. Игровые дистанции, очереди, темп стрельбы, точность и урон не заданы.",
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Три муравья в касках у старого пулемёта на триноге: стрелок, подающий ленту и помощник. Один составной враг данжа «Муравейник». Существующий облик сохранён. Агрессивный характер — рабочее допущение; HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: неподвижная позиция, поворот и подготовка, очередь в выбранном направлении почти без коррекции, затем пауза на ленту. Дистанции, темп, точность и числовой урон не заданы.",
       "health": null,
-      "health_text": "Не задано",
+      "health_text": "Не определено",
       "damage_half_hearts": null,
       "damage_text": "Ближний: не задан; дальний: не задан (урон за пулю не определён)",
       "prefab": null,
@@ -3105,7 +3105,23 @@
       "loot": [],
       "loot_text": "Нет — добыча не назначена",
       "verification": "output/monsters/ant-machine-gun-crew/registry-verification.json",
-      "gameplay_implemented": false
+      "gameplay_implemented": false,
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "4kr54x4n00",
+        "sprite_asset_id": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
+          "w": 480,
+          "h": 480,
+          "alt": "Три муравья в касках у старого пулемёта на триноге — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      }
     },
     {
       "enemy": "GiantVileToad",
@@ -3622,6 +3638,211 @@
       "projectile": "hukaton/Assets/Game/Data/Projectiles/Agaric spit.asset (prefab Game/Prefabs/Projectiles/Agaric spit.prefab, trail Retro Arsenal PoisonMissileYellow)",
       "spawn": "Гнилая топь: hummocks, drowned-graveyard, deadwood-isle; обычный мир: hollow, sinkhole — 1, кольцо 2+ — 1–2",
       "table_verified": "2026-11-14: строка y6q9w7qnvh записана (ответ сервера); обратно не читалась"
+    },
+    {
+      "enemy": "AntWorker",
+      "name": "Муравей-работяга",
+      "row_index": 26,
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Небольшой рыжий сутулый муравей с рабочими рукавицами, каской и киркой. Основной ближний враг данжа «Муравейник». Агрессивный характер — рабочее допущение. HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: Быстро подбегает, заметно заносит кирку и бьёт сверху. После промаха вытаскивает застрявшую кирку. Числовой баланс не задан.",
+      "category": "Агрессивный",
+      "gameplay_implemented": false,
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не определено",
+      "damage_text": "Ближний: не определён; дальний: не определён — игровой баланс не задан.",
+      "loot_text": "Нет — добыча не назначена",
+      "manifest": "hukaton/Assets/Content/Enemies/AntWorker/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/AntWorker/AntWorkerAtlas.png",
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "5j7xgv273r",
+        "sprite_asset_id": "7eac4a51df3ed26b41ca15c639d04a1391bfbfda52aa0e6f847012c3cd4669b7",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "7eac4a51df3ed26b41ca15c639d04a1391bfbfda52aa0e6f847012c3cd4669b7",
+          "w": 432,
+          "h": 480,
+          "alt": "Муравей-работяга — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      },
+      "sprite": "output/monsters/anthill-pack/AntWorker/registry.png",
+      "sprite_sha256": "7eac4a51df3ed26b41ca15c639d04a1391bfbfda52aa0e6f847012c3cd4669b7",
+      "sprite_size": [
+        432,
+        480
+      ],
+      "loot": [],
+      "loot_assigned": false,
+      "prefab": null
+    },
+    {
+      "enemy": "AntPlug",
+      "name": "Муравей-пробка",
+      "row_index": 27,
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Медленный защитник с огромной тёмной квадратной головой и крошечным телом. Защищён спереди, слаб по бокам и сзади. Агрессивный характер — рабочее допущение. HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: Короткий толчок головой: приподнимает её и открывает мягкий низ — окно уязвимости. Числовой баланс не задан.",
+      "category": "Агрессивный",
+      "gameplay_implemented": false,
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не определено",
+      "damage_text": "Ближний: не определён; дальний: не определён — игровой баланс не задан.",
+      "loot_text": "Нет — добыча не назначена",
+      "manifest": "hukaton/Assets/Content/Enemies/AntPlug/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/AntPlug/AntPlugAtlas.png",
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "knqza57a8w",
+        "sprite_asset_id": "df90b1ffb617929320bd2077edf35dca85ee4f3908b6d933485d40a17a772375",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "df90b1ffb617929320bd2077edf35dca85ee4f3908b6d933485d40a17a772375",
+          "w": 432,
+          "h": 480,
+          "alt": "Муравей-пробка — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      },
+      "sprite": "output/monsters/anthill-pack/AntPlug/registry.png",
+      "sprite_sha256": "df90b1ffb617929320bd2077edf35dca85ee4f3908b6d933485d40a17a772375",
+      "sprite_size": [
+        432,
+        480
+      ],
+      "loot": [],
+      "loot_assigned": false,
+      "prefab": null
+    },
+    {
+      "enemy": "WingedAnt",
+      "name": "Крылатый муравей",
+      "row_index": 28,
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Тонкий почти чёрный летун с длинным брюшком, четырьмя мутными крыльями и старыми лётными очками. Агрессивный характер — рабочее допущение. HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: Кружит, зависает и оттягивается назад, затем пикирует по прямой. После пике садится со сложенными крыльями и становится уязвим. Числовой баланс не задан.",
+      "category": "Агрессивный",
+      "gameplay_implemented": false,
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не определено",
+      "damage_text": "Ближний: не определён; дальний: не определён — игровой баланс не задан.",
+      "loot_text": "Нет — добыча не назначена",
+      "manifest": "hukaton/Assets/Content/Enemies/WingedAnt/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/WingedAnt/WingedAntAtlas.png",
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "dxqdpeah2a",
+        "sprite_asset_id": "edd9eb7d459eef2c12ff0a34c9d444a7cc9cdc77163dbfe721f31c508b93b54b",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "edd9eb7d459eef2c12ff0a34c9d444a7cc9cdc77163dbfe721f31c508b93b54b",
+          "w": 432,
+          "h": 480,
+          "alt": "Крылатый муравей — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      },
+      "sprite": "output/monsters/anthill-pack/WingedAnt/registry.png",
+      "sprite_sha256": "edd9eb7d459eef2c12ff0a34c9d444a7cc9cdc77163dbfe721f31c508b93b54b",
+      "sprite_size": [
+        432,
+        480
+      ],
+      "loot": [],
+      "loot_assigned": false,
+      "prefab": null
+    },
+    {
+      "enemy": "BubbleLarva",
+      "name": "Личинка-пузырь",
+      "row_index": 29,
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Толстая бледно-жёлтая личинка с огромным зеленоватым брюхом. Медленно ползёт. Единственный обычный саморазрушающийся враг набора. Агрессивный характер — рабочее допущение. HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: Вблизи замирает, раздувается и пищит, затем лопается в кислотную лужу. Можно отбросить в других врагов. Лужа/VFX этим пакетом не создавались. Числовой баланс не задан.",
+      "category": "Агрессивный",
+      "gameplay_implemented": false,
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не определено",
+      "damage_text": "Ближний: не определён; дальний: не определён — игровой баланс не задан.",
+      "loot_text": "Нет — добыча не назначена",
+      "manifest": "hukaton/Assets/Content/Enemies/BubbleLarva/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/BubbleLarva/BubbleLarvaAtlas.png",
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "jppf0gazwt",
+        "sprite_asset_id": "10fca464d2456081be24caf7251877b38ed2ef8308750de89f876eb501321ad2",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "10fca464d2456081be24caf7251877b38ed2ef8308750de89f876eb501321ad2",
+          "w": 432,
+          "h": 480,
+          "alt": "Личинка-пузырь — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      },
+      "sprite": "output/monsters/anthill-pack/BubbleLarva/registry.png",
+      "sprite_sha256": "10fca464d2456081be24caf7251877b38ed2ef8308750de89f876eb501321ad2",
+      "sprite_size": [
+        432,
+        480
+      ],
+      "loot": [],
+      "loot_assigned": false,
+      "prefab": null
+    },
+    {
+      "enemy": "AntQueen",
+      "name": "Матка",
+      "row_index": 30,
+      "behavior": "КОНЦЕПТ — gameplay не реализован. Малоподвижный босс: маленькая сердитая голова с кривой короной, потёртая бордовая накидка и гигантское кремовое брюшко. Агрессивный характер — рабочее допущение. HP не определено.",
+      "combat_pattern": "КОНЦЕПТ: Выводит ограниченные группы того же муравья-работяги из кладки. Вблизи приподнимает брюшко и тяжело бьёт им по полу, затем долго восстанавливается. Дополнительного типа призываемого врага нет. Числовой баланс не задан.",
+      "category": "Агрессивный",
+      "gameplay_implemented": false,
+      "health": null,
+      "damage_half_hearts": null,
+      "health_text": "Не определено",
+      "damage_text": "Ближний: не определён; дальний: не определён — игровой баланс не задан.",
+      "loot_text": "Нет — добыча не назначена",
+      "manifest": "hukaton/Assets/Content/Enemies/AntQueen/manifest.json",
+      "atlas": "hukaton/Assets/Content/Enemies/AntQueen/AntQueenAtlas.png",
+      "kayospace": {
+        "table_id": "tb_hakaton-enemies",
+        "row_id": "s3ter9gvt3",
+        "sprite_asset_id": "5e4f3cc2427a69de1fcc1261b1d2b798426cf5c238004b98442244b315593bff",
+        "sprite_column_type": "url",
+        "sprite_cell_value": null,
+        "image_attachment": {
+          "asset": "5e4f3cc2427a69de1fcc1261b1d2b798426cf5c238004b98442244b315593bff",
+          "w": 432,
+          "h": 480,
+          "alt": "Матка — обычный вид спереди"
+        },
+        "row_height": 172,
+        "image_attachment_readback_verified": true,
+        "image_retrieved_and_visually_inspected": true
+      },
+      "sprite": "output/monsters/anthill-pack/AntQueen/registry.png",
+      "sprite_sha256": "5e4f3cc2427a69de1fcc1261b1d2b798426cf5c238004b98442244b315593bff",
+      "sprite_size": [
+        432,
+        480
+      ],
+      "loot": [],
+      "loot_assigned": false,
+      "prefab": null
     }
   ],
   "artifact_kind": "table",
@@ -3718,7 +3939,7 @@
       "id": "jm428e0bxn",
       "name": "Добыча",
       "type": "text",
-      "width": 480
+      "width": 1200
     }
   ],
   "verification": {
@@ -4475,5 +4696,62 @@
       }
     ],
     "readback": "output/monsters/raging-fly-agaric/work/table-after.json"
+  },
+  "anthill_pack_update": {
+    "date": "2026-11-16",
+    "table": "tb_hakaton-enemies",
+    "five_rows_added_one_updated": true,
+    "rows": [
+      {
+        "enemy": "AntWorker",
+        "row": "5j7xgv273r",
+        "attachment": "7eac4a51df3ed26b41ca15c639d04a1391bfbfda52aa0e6f847012c3cd4669b7",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      },
+      {
+        "enemy": "AntPlug",
+        "row": "knqza57a8w",
+        "attachment": "df90b1ffb617929320bd2077edf35dca85ee4f3908b6d933485d40a17a772375",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      },
+      {
+        "enemy": "AntMachineGunCrew",
+        "row": "4kr54x4n00",
+        "attachment": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      },
+      {
+        "enemy": "WingedAnt",
+        "row": "dxqdpeah2a",
+        "attachment": "edd9eb7d459eef2c12ff0a34c9d444a7cc9cdc77163dbfe721f31c508b93b54b",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      },
+      {
+        "enemy": "BubbleLarva",
+        "row": "jppf0gazwt",
+        "attachment": "10fca464d2456081be24caf7251877b38ed2ef8308750de89f876eb501321ad2",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      },
+      {
+        "enemy": "AntQueen",
+        "row": "s3ter9gvt3",
+        "attachment": "5e4f3cc2427a69de1fcc1261b1d2b798426cf5c238004b98442244b315593bff",
+        "attachment_retrieved": true,
+        "visual_identity_verified": true
+      }
+    ],
+    "columns_and_unrelated_rows_preserved": true,
+    "row_height": 172,
+    "all_six_rows_read_back": true,
+    "all_six_images_retrieved_and_visually_inspected": true,
+    "table_layout_screenshot_review": false,
+    "concept_only": true,
+    "gameplay_verified": false,
+    "source": "output/monsters/anthill-pack/kayospace-readback.json"
   }
 }
