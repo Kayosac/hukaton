@@ -687,11 +687,11 @@ namespace Hakaton.WorldAssembly.Unity
             return best < float.MaxValue;
         }
 
-        /// <summary>Round the hill's foot (18 m wide, 17.5 m deep from the mouth), in the passage's frame.</summary>
+        /// <summary>Round the hill's foot (15.5 m wide, 14 m deep from the mouth), in the passage's frame.</summary>
         static readonly Vector3[] Skirt =
         {
-            new Vector3(-9, 0, -1), new Vector3(9, 0, -1), new Vector3(-9, 0, 5), new Vector3(9, 0, 5), new Vector3(-8, 0, 11),
-            new Vector3(8, 0, 11), new Vector3(0, 0, 16.5f), new Vector3(-5, 0, 15), new Vector3(5, 0, 15),
+            new Vector3(-7.5f, 0, 0), new Vector3(7.5f, 0, 0), new Vector3(-7.5f, 0, 5), new Vector3(7.5f, 0, 5), new Vector3(-6, 0, 10),
+            new Vector3(6, 0, 10), new Vector3(0, 0, 13.5f), new Vector3(-4, 0, 12.5f), new Vector3(4, 0, 12.5f),
         };
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }

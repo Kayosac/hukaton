@@ -172,7 +172,8 @@ namespace Hakaton.WorldAssembly.Unity
             var world = World;
             var body = world.motor.transform;
             var local = from.InverseTransformPoint(body.position);
-            var target = toPosition + toRotation * new Vector3(-local.x, local.y, darkAt - .25f);
+            // Kept near the middle: the two passages are not equally wide.
+            var target = toPosition + toRotation * new Vector3(Mathf.Clamp(-local.x, -.8f, .8f), local.y, darkAt - .25f);
             float yaw = body.eulerAngles.y - from.eulerAngles.y + 180 + toRotation.eulerAngles.y;
             float pitch = Camera.main ? Camera.main.transform.eulerAngles.x : 0;
             world.thrower.Cancel();

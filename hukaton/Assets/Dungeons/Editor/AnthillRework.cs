@@ -95,12 +95,15 @@ namespace Hakaton.Dungeons.EditorTools
                 passage.SetParent(root.transform, false);
                 var outside = new GameObject("Outside").transform;
                 outside.SetParent(root.transform, false);
-                outside.localPosition = new Vector3(0, 0, -6.5f);
+                outside.localPosition = new Vector3(0, 0, -7f);
                 var entrance = root.GetComponent<DungeonEntrance>();
                 entrance.passage = passage;
                 entrance.outside = outside;
                 entrance.clearCentre = new Vector3(0, 0, 5f);
-                entrance.clearRadius = 13f;
+                entrance.clearRadius = 12.5f;
+                // The hill has its own tunnel (3 m wide, 3.4 m tall at the mouth, narrowing to 2.7 x 3.05 at 9 m).
+                entrance.layModules = !hillPrefab;
+                entrance.veilHalfWidth = 1.55f; entrance.veilHeight = 3.45f; entrance.veilFrom = .8f; entrance.veilTo = 8.8f;
                 PrefabUtility.SaveAsPrefabAsset(root, EntrancePath);
                 return "entrance: hill " + (hillPrefab ? hillPrefab.name : "none yet");
             }
