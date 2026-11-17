@@ -55,6 +55,8 @@ namespace Hakaton.Dungeons.Unity
         public Color ambient = new Color(.16f, .12f, .1f);
         public Color fogColor = new Color(.05f, .035f, .03f);
         [Min(0)] public float fogDensity = .025f;
+        [Tooltip("How much of the open world's colour grade stays on underground (0 none, 1 all).")]
+        [Range(0, 1)] public float postProcessWeight = .15f;
 
         [Header("Planner")]
         [Range(0, 1)] public float largeChance = .4f;

@@ -17,7 +17,7 @@ namespace Hakaton.WorldAssembly.Unity
     /// restored when it loads again. Chunks are as alive as the Old Apiary: what burns there burns here (through
     /// <see cref="fire"/>), its trees can be awakened, its loose props pushed about.
     /// </summary>
-    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld, IOutingLocation
+    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld, IOutingLocation, IOutingCheats
     {
         [Header("Content")]
         public ChunkCatalog catalog;
@@ -125,8 +125,21 @@ namespace Hakaton.WorldAssembly.Unity
             return start ? new Pose(start.position, start.rotation) : new Pose(Origin + Vector3.up * 2, Quaternion.identity);
         }
 
+        DungeonSite dungeons;
+        /// <summary>The dungeons under this world's entrances.</summary>
+        public DungeonSite Dungeons
+        {
+            get
+            {
+                if (!dungeons) dungeons = GetComponent<DungeonSite>();
+                if (!dungeons) dungeons = gameObject.AddComponent<DungeonSite>();
+                return dungeons;
+            }
+        }
+
         public void EndOuting()
         {
+            if (dungeons) dungeons.Clear();
             if (!Active && loaded.Count == 0) return;
             foreach (var coord in new List<ChunkCoord>(loaded.Keys)) Unload(coord, remember: false);
             foreach (var m in memory.Values)
@@ -401,6 +414,7 @@ namespace Hakaton.WorldAssembly.Unity
         public string DescribeLocation(Vector3 position)
         {
             if (!Active || Map == null) return "Бесконечный мир не загружен.";
+            if (dungeons && dungeons.Underground) return dungeons.Describe(position);
             var rules = Map.Rules;
             var c = CoordAt(position);
             var plan = Map.Chunk(c);
@@ -426,6 +440,24 @@ namespace Hakaton.WorldAssembly.Unity
             if (!string.IsNullOrEmpty(plan.PocketReward)) sb.Append("\nНаграда в кармане: ").Append(plan.PocketReward);
             if (plan.Loot.Count > 0) sb.Append("\nНаходки: ").Append(string.Join(", ", plan.Loot));
             return sb.ToString();
+        }
+
+        public string GoToNearestDungeon()
+        {
+            if (!Active || Map == null || !player) return "Бесконечный мир не загружен.";
+            if (Dungeons.Underground) return "Вы уже в данже.";
+            var here = CoordAt(player.position);
+            for (int r = 0; r <= 24; r++)
+                for (int dx = -r; dx <= r; dx++)
+                    for (int dy = -r; dy <= r; dy++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                        var c = new ChunkCoord(here.X + dx, here.Y + dy);
+                        if (Map.Chunk(c).Event != WorldEvents.Dungeon) continue;
+                        Dungeons.GoTo(c, Origin + new Vector3(c.X * Size, 0, c.Y * Size));
+                        return $"Иду к муравейнику в чанке {c.X}, {c.Y}.";
+                    }
+            return "В радиусе 24 чанков данжей нет.";
         }
 
         static string BiomeName(ChunkPlan plan)
@@ -833,6 +865,19 @@ namespace Hakaton.WorldAssembly.Unity
                 if (mem != null && mem.brawl != null) brawl.Restore(mem.brawl);
                 else brawl.Spawn((int)Hash.Of(Seed, Salt.EventSeed, c.X, c.Y));
                 entry.brawl = brawl;
+                return;
+            }
+
+            if (plan.Event == WorldEvents.Dungeon)
+            {
+                if (!content.dungeonEntrance || !content.anthillKit) return;
+                if (!OdditySpot(entry, out var place)) { Debug.LogWarning($"[World] no room for a dungeon entrance on {plan}"); return; }
+                var turn = Quaternion.Euler(0, (float)(Hash.Unit(Seed, Salt.EventSpot, c.X, c.Y, 2) * 360), 0);
+                var mound = Instantiate(content.dungeonEntrance, place, turn, entry.view.transform);
+                mound.name = content.dungeonEntrance.name;
+                mound.site = Dungeons;
+                mound.coord = c;
+                mound.seed = (int)(Hash.Of(Seed, Salt.Dungeon, c.X, c.Y) & 0x7fffffff);
                 return;
             }
 

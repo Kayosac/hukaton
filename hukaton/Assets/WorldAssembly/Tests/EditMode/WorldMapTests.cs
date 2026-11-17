@@ -219,7 +219,7 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
-        public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts()
+        public void OdditiesAreVeryRareAndFarBrawlsGoAnywhereAndReplaceTheBeasts() // and dungeon entrances stand in roomy forest scenes
         {
             int chunks = 0, forest = 0, brawlsNear = 0;
             var kinds = new Dictionary<string, int>();
@@ -241,6 +241,12 @@ namespace Hakaton.WorldAssembly.Tests
                         Assert.IsTrue(WorldEvents.FitsBrawl(p), $"seed {seed}: no room for a brawl {p}");
                         Assert.IsEmpty(p.Spawns, $"seed {seed}: beasts besides the brawl's packs {p}");
                     }
+                    else if (p.Event == WorldEvents.Dungeon)
+                    {
+                        // Dungeon entrances (anthill mounds): roomy forest scenes in any ring.
+                        Assert.IsTrue(WorldEvents.FitsDungeon(p), $"seed {seed}: no room for a dungeon entrance on {p}");
+                        Assert.AreEqual(Biome.Forest, p.Biome, $"seed {seed}: an anthill outside the forest {p}");
+                    }
                     else
                     {
                         Assert.Greater(p.Ring, 0, $"seed {seed}: a {p.Event} in ring 0 {p}");
@@ -256,6 +262,7 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(oddities, Is.InRange(chunks / 500, chunks / 100), "payphones and televisions: about one chunk in two hundred");
             Assert.Greater(Count(WorldEvents.Payphone), 0);
             Assert.Greater(Count(WorldEvents.Television), 0);
+            Assert.That(Count(WorldEvents.Dungeon), Is.InRange(forest / 400, forest / 40), "dungeon entrances: rare but not too rare");
             // Brawls take roomy forest scenes only, so they are counted against the forest (the swamp grows further out).
             Assert.That(Count(WorldEvents.Brawl), Is.InRange(forest / 60, forest / 15), "brawls");
         }

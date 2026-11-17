@@ -64,6 +64,10 @@ namespace Hakaton.WorldAssembly.Unity
         public Hakaton.Expeditions.Events.BeastBrawl brawl;
         [Tooltip("«Странное»: a ringing payphone and a hissing television (WorldEvents.Payphone / Television).")]
         public Oddity payphone, television;
+        [Tooltip("A dungeon's way in on the surface (the anthill mound with its throat).")]
+        public DungeonEntrance dungeonEntrance;
+        [Tooltip("The anthill: its modules, chambers and planner numbers.")]
+        public Hakaton.Dungeons.Unity.DungeonKit anthillKit;
 
         [Header("Weather")]
         [Tooltip("The rain fronts heard round the player (flat loops): rain, and the downpour of a thunderstorm.")]

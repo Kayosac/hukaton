@@ -332,6 +332,8 @@ namespace Hakaton.Game
             game.StartOver(from);
         }
 
+        string dungeonNote;
+
         /// <summary>Where the player is: shop, cave, the god's mountains, or the outing world's own report.</summary>
         public string DescribeWhereabouts()
         {
@@ -448,6 +450,14 @@ namespace Hakaton.Game
             if (GUILayout.Button("Испуганный Гвоздик при следующем включении ПК", button)) NailFearNext();
             GUI.enabled = true;
             GUILayout.Label(StrangerProgress(), body);
+            GUILayout.Space(8);
+
+            GUILayout.Label("Данжи", title);
+            GUI.enabled = game.Ready && game.expedition.Running && game.expedition.OutingWorld is Expeditions.IOutingCheats;
+            if (GUILayout.Button("К ближайшему муравейнику", button) && game.expedition.OutingWorld is Expeditions.IOutingCheats cheats)
+                dungeonNote = cheats.GoToNearestDungeon();
+            GUI.enabled = true;
+            if (!string.IsNullOrEmpty(dungeonNote)) GUILayout.Label(dungeonNote, body);
             GUILayout.Space(8);
 
             GUILayout.Label("Карта в руку", title);

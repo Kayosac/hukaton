@@ -46,6 +46,8 @@ namespace Hakaton.WorldAssembly.Unity
 
         public const string Water = "water", Swamp = "swamp", Forest = "forest", High = "high", Deep = "deep", Rain = "rain", Storm = "storm", Snow = "snow";
         /// <summary>The swamp's parts and its fog banks (inside one the world is white).</summary>
+        /// <summary>Underground in a dungeon (held by DungeonSite): no sun, low warm light, thick dark air.</summary>
+        public const string Burrow = "burrow";
         public const string Drowned = "drowned", Burnt = "burnt", Moss = "moss", Reach = "reach", Mist = "mist";
 
         /// <summary>Moods added after scenes were saved: put in at start if the scene's list lacks them.</summary>
@@ -56,6 +58,7 @@ namespace Hakaton.WorldAssembly.Unity
             new Mood(Moss, .8f, new Color(.55f, .62f, .48f), .25f, 1.05f, 1.05f),
             new Mood(Reach, .85f, new Color(.6f, .66f, .6f), .2f, 1, 1),
             new Mood(Mist, 6f, new Color(.74f, .79f, .74f), .8f, .85f, 1.05f),
+            new Mood(Burrow, .7f, new Color(.36f, .27f, .2f), 1f, 0f, 1f),
         };
 
         readonly Dictionary<string, float> held = new Dictionary<string, float>();
@@ -80,6 +83,8 @@ namespace Hakaton.WorldAssembly.Unity
             Set(Burnt, 1.15f, new Color(.55f, .5f, .45f), .55f, .85f, .92f);
             Set(Mist, 5.5f, new Color(.78f, .76f, .64f), .8f, .85f, 1.05f);
             // The deep forest: thicker and darker, its air as neutral as the open forest's.
+            // Underground: no sun, the air thin and warm so the lamplight carries.
+            Set(Burrow, .7f, new Color(.36f, .27f, .2f), 1f, 0f, 1f);
             Set(Forest, 1.45f, new Color(.47f, .5f, .49f), .3f, .75f, .82f);
         }
 

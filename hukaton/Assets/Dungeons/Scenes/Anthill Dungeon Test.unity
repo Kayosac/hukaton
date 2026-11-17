@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &1321793710
+--- !u!1 &600109441
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,9 +127,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1321793713}
-  - component: {fileID: 1321793712}
-  - component: {fileID: 1321793711}
+  - component: {fileID: 600109444}
+  - component: {fileID: 600109443}
+  - component: {fileID: 600109442}
   m_Layer: 0
   m_Name: Anthill Dungeon
   m_TagString: Untagged
@@ -137,29 +137,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1321793711
+--- !u!114 &600109442
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1321793710}
+  m_GameObject: {fileID: 600109441}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e21be153a7604901a4df76e0b5b9b00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hakaton.Dungeons::Hakaton.Dungeons.Unity.DungeonCulling
   viewer: {fileID: 0}
-  radius: 34
-  verticalRadius: 14
-  interval: 0.2
---- !u!114 &1321793712
+  reach: 44
+  radius: 40
+  interval: 0.15
+--- !u!114 &600109443
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1321793710}
+  m_GameObject: {fileID: 600109441}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1c8fe5e88c3fb4ddf8e241186b94d09a, type: 3}
@@ -168,13 +168,13 @@ MonoBehaviour:
   kit: {fileID: 11400000, guid: a4f8643a8e3e542a88bb58430737d635, type: 2}
   buildOnStart: 1
   seed: 0
---- !u!4 &1321793713
+--- !u!4 &600109444
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1321793710}
+  m_GameObject: {fileID: 600109441}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -183,7 +183,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1644201347
+--- !u!1 &2010386713
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -191,8 +191,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1644201349}
-  - component: {fileID: 1644201348}
+  - component: {fileID: 2010386715}
+  - component: {fileID: 2010386714}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -200,13 +200,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!20 &1644201348
+--- !u!20 &2010386714
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1644201347}
+  m_GameObject: {fileID: 2010386713}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -251,13 +251,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &1644201349
+--- !u!4 &2010386715
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1644201347}
+  m_GameObject: {fileID: 2010386713}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 2, y: 1.7, z: 2}
@@ -270,5 +270,5 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1321793713}
-  - {fileID: 1644201349}
+  - {fileID: 600109444}
+  - {fileID: 2010386715}

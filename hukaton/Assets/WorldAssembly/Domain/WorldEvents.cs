@@ -8,7 +8,7 @@ namespace Hakaton.WorldAssembly
     /// </summary>
     public static class WorldEvents
     {
-        public const string Brawl = "brawl", Payphone = "payphone", Television = "television";
+        public const string Brawl = "brawl", Payphone = "payphone", Television = "television", Dungeon = "dungeon";
 
         /// <summary>Flat scenes with room for two packs to fight (an open circle of about 7 m).</summary>
         static readonly string[] Roomy = { "knoll", "grove", "camp", "farm", "yard", "ruins", "gap", "hollow", "boulders" };
@@ -21,10 +21,17 @@ namespace Hakaton.WorldAssembly
         public static bool FitsOddity(ChunkPlan plan) =>
             plan.Ring >= 1 && (plan.Shape.Kind == ShapeKind.Plain || plan.Shape.Kind == ShapeKind.PlateauTop || plan.Shape.Kind == ShapeKind.Maze);
 
+        /// <summary>
+        /// Room for a dungeon entrance (the anthill mound, about 11 × 7 m): roomy flat forest scenes. The ring only decides
+        /// which kind of dungeon it is (for now there is one: the anthill, in the forest of every ring).
+        /// </summary>
+        public static bool FitsDungeon(ChunkPlan plan) => plan.Biome == Biome.Forest && FitsBrawl(plan);
+
         public static string Choose(ChunkPlan plan, int seed, WorldRules rules)
         {
             var c = plan.Coord;
             if (WorldRules.IsStartArea(c)) return null;
+            if (FitsDungeon(plan) && Hash.Unit(seed, Salt.Dungeon, c.X, c.Y) < rules.DungeonChance[plan.Ring]) return Dungeon;
             if (FitsBrawl(plan) && Hash.Unit(seed, Salt.Event, c.X, c.Y) < rules.BrawlChance[plan.Ring]) return Brawl;
             if (FitsOddity(plan) && Hash.Unit(seed, Salt.EventKind, c.X, c.Y) < rules.OddityChance[plan.Ring])
                 return Hash.Unit(seed, Salt.EventKind + 1, c.X, c.Y) < .5 ? Payphone : Television;

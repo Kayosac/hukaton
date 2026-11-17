@@ -138,5 +138,19 @@ namespace Hakaton.Dev
             }
             return sb.ToString();
         }
+
+        static string ProbeParts(string n)
+        {
+            var sb = new StringBuilder();
+            var path = AssetDatabase.FindAssets(n + " t:Prefab", new[] { Root + "/Prefabs" }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault();
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+            {
+                var m = mf.sharedMesh; var mat = mf.transform.localToWorldMatrix; var b = new Bounds(); bool first = true;
+                foreach (var v in m.vertices) { var w = mat.MultiplyPoint3x4(v); if (first) { b = new Bounds(w, Vector3.zero); first = false; } else b.Encapsulate(w); }
+                sb.Append(mf.name).Append(" min=").Append(b.min.ToString("F2")).Append(" max=").Append(b.max.ToString("F2")).Append(" | ");
+            }
+            return sb.ToString();
+        }
     }
 }

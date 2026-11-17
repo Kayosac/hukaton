@@ -22,6 +22,12 @@ namespace Hakaton.Dungeons.Unity
         public Transform Built { get; private set; }
         public readonly Dictionary<int, ChamberTemplate> Chambers = new Dictionary<int, ChamberTemplate>();
         public readonly Dictionary<Cell, Transform> CellGroups = new Dictionary<Cell, Transform>();
+        /// <summary>Where the player appears coming down (entrance chamber's "Arrival" marker), facing in.</summary>
+        public Pose Arrival { get; private set; }
+        /// <summary>Under the light slot at the entrance: walking here takes the player back up.</summary>
+        public Vector3 WayOut { get; private set; }
+        /// <summary>Hand-placed markers of every chamber by name ("Spawn", "Reward", "Spawn Boss", "Exit"...).</summary>
+        public readonly List<(int room, string name, Transform at)> Markers = new List<(int, string, Transform)>();
         NavMeshDataInstance navigation;
         NavMeshData navData;
 
@@ -45,6 +51,7 @@ namespace Hakaton.Dungeons.Unity
             Plan = null;
             Chambers.Clear();
             CellGroups.Clear();
+            Markers.Clear();
         }
 
         static void Kill(Object o)
@@ -62,7 +69,15 @@ namespace Hakaton.Dungeons.Unity
 
             foreach (var kv in Plan.Cells) Shell(kv.Key, kv.Value, dice);
             foreach (var room in Plan.Rooms) PlaceChamber(room);
+            FindMarkers();
             DressCorridors(dice);
+            // The world's light probes (baked outdoors, green and blue) must not light the dungeon: it takes the ambient
+            // light the dungeon sets underground (DungeonKit.ambient) and its own lamps only.
+            foreach (var r in Built.GetComponentsInChildren<Renderer>(true))
+            {
+                r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            }
             BuildNavigation();
             var culling = GetComponent<DungeonCulling>();
             if (culling) culling.Collect(this);
@@ -223,6 +238,27 @@ namespace Hakaton.Dungeons.Unity
             }
         }
 
+        void FindMarkers()
+        {
+            foreach (var kv in Chambers)
+            {
+                var marks = kv.Value.transform.Find("Markers");
+                if (!marks) continue;
+                foreach (Transform m in marks) Markers.Add((kv.Key, m.name, m));
+            }
+            var entrance = Plan.Entrance;
+            var arrival = Markers.Find(m => m.room == entrance.Index && m.name == "Arrival").at;
+            var inward = Built.rotation * Quaternion.Euler(0, DungeonGeometry.Yaw(Dir.North), 0);
+            Arrival = arrival ? new Pose(arrival.position, inward) : new Pose(Built.TransformPoint(DungeonGeometry.Center(entrance.Cells[0], entrance.Floor)), inward);
+            var w = entrance.Shape.WayOut;
+            if (w.HasValue)
+            {
+                var cell = entrance.ToWorld(w.Value.cell); var side = entrance.ToWorld(w.Value.side);
+                WayOut = Built.TransformPoint(DungeonGeometry.Center(cell, entrance.Floor) + DungeonGeometry.Offset(side) * 1.1f);
+            }
+            else WayOut = Arrival.position;
+        }
+
         // ---------- navigation ----------
 
         void BuildNavigation()
@@ -253,12 +289,15 @@ namespace Hakaton.Dungeons.Unity
                 bounds.Encapsulate(center - new Vector3(S, 2, S));
             }
             // Hand-placed things in the chambers block the way as their colliders do.
+            // (as boxes round their colliders: model meshes are not readable at runtime, and boxes are cheap).
             foreach (var chamber in Chambers.Values)
-            {
-                var found = new List<NavMeshBuildSource>();
-                NavMeshBuilder.CollectSources(chamber.transform, ~0, NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), found);
-                foreach (var s in found) { var x = s; x.area = 1; sources.Add(x); }
-            }
+                foreach (var col in chamber.GetComponentsInChildren<Collider>())
+                {
+                    if (col.isTrigger || !col.enabled) continue;
+                    var bb = col.bounds;
+                    if (bb.size.y < .25f) continue;   // flat litter does not block anyone
+                    sources.Add(new NavMeshBuildSource { shape = NavMeshBuildSourceShape.ModifierBox, transform = Matrix4x4.TRS(bb.center, Quaternion.identity, Vector3.one), size = bb.size, area = 1 });
+                }
             navData = NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByID(0), sources, bounds, Vector3.zero, Quaternion.identity);
             navigation = NavMesh.AddNavMeshData(navData);
         }

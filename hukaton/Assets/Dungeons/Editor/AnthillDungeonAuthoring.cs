@@ -56,7 +56,7 @@ namespace Hakaton.Dungeons.EditorTools
             e.props.Add(("FA_D10_LeavesSparse", new Vector3(1.8f, 0, 2.2f), 70, 1.3f));
             e.props.Add(("FA_PR02_LanternGround", new Vector3(5.1f, 0, 7.4f), 200, 1));
             e.props.Add(("AN38_GlowCluster", new Vector3(-1.0f, 0, 8.6f), 30, 1));
-            e.lights.Add((new Vector3(0, 6.5f, -.5f), Day, 9, 2.2f, true));
+            e.lights.Add((new Vector3(0, 6.5f, -.5f), Day, 11, 4f, true));
             e.markers.Add(("Arrival", new Vector3(1.6f, 0, 1.4f)));
             e.markers.Add(("Spawn", new Vector3(4f, 0, 8f)));
 
@@ -160,7 +160,7 @@ namespace Hakaton.Dungeons.EditorTools
             q.props.Add(("AN35_ResinPatch", new Vector3(17.4f, 2.2f, 9f), -90, 1.2f));
             q.markers.Add(("Spawn Boss", new Vector3(8, .25f, 11.5f)));
             q.markers.Add(("Exit", new Vector3(0, 0, 16)));
-            q.lights.Add((new Vector3(8, 6, 11), new Color(.95f, .55f, .5f), 12, 1.2f, false));
+            q.lights.Add((new Vector3(8, 6, 11), new Color(.95f, .55f, .5f), 16, 2.5f, false));
             return list;
         }
 
@@ -184,6 +184,8 @@ namespace Hakaton.Dungeons.EditorTools
             kit.chambers = chambers;
             kit.corridorLight = P("FA_PR03_LanternBracket");
             kit.corridorLightEvery = 2;
+            kit.corridorLightColor = Warm; kit.corridorLightRange = 10; kit.corridorLightIntensity = 3f;
+            kit.ambient = new Color(.46f, .38f, .32f); kit.fogColor = new Color(.11f, .08f, .065f); kit.fogDensity = .018f;
             kit.wallDressing = new List<DungeonKit.Dressing>
             {
                 new DungeonKit.Dressing { prefab = P("AN12_WallRoot"), chance = .14f, yawJitter = 10, scaleRange = new Vector2(.85f, 1.1f) },
@@ -204,6 +206,30 @@ namespace Hakaton.Dungeons.EditorTools
             AssetDatabase.SaveAssets();
             MakeTestScene(kit);
             return "OK " + Log;
+        }
+
+        /// <summary>The way in on the surface: the mound with its throat; wired into the endless world's content.</summary>
+        static string AuthorEntrance()
+        {
+            Log.Clear();
+            var root = new GameObject("Anthill Entrance");
+            var entrance = root.AddComponent<Hakaton.WorldAssembly.Unity.DungeonEntrance>();
+            var mound = (GameObject)PrefabUtility.InstantiatePrefab(P("AN09_EntranceMound"), root.transform);
+            mound.transform.localPosition = Vector3.zero;
+            // The throat runs from the mouth (+Z, z 3.4) down into the heap to its dark end (z -1.4, 0.7 m down).
+            var inside = new GameObject("Inside").transform; inside.SetParent(root.transform, false); inside.localPosition = new Vector3(.4f, -.6f, -.6f);
+            var outside = new GameObject("Outside").transform; outside.SetParent(root.transform, false); outside.localPosition = new Vector3(.4f, 0, 5.8f);
+            entrance.inside = inside; entrance.outside = outside;
+            string path = Dir0 + "/Anthill Entrance.prefab";
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            var content = AssetDatabase.LoadAssetAtPath<Hakaton.WorldAssembly.Unity.WorldContent>("Assets/WorldAssembly/World content.asset");
+            if (!content) return "FAILED no World content";
+            content.dungeonEntrance = saved.GetComponent<Hakaton.WorldAssembly.Unity.DungeonEntrance>();
+            content.anthillKit = AssetDatabase.LoadAssetAtPath<DungeonKit>(Dir0 + "/Anthill Kit.asset");
+            EditorUtility.SetDirty(content);
+            AssetDatabase.SaveAssets();
+            return "OK entrance " + path + " kit=" + (content.anthillKit ? "set" : "MISSING") + " " + Log;
         }
 
         static ChamberTemplate MakeChamber(Spec s)
@@ -227,7 +253,7 @@ namespace Hakaton.Dungeons.EditorTools
                 go.transform.localPosition = pos;
                 go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
                 go.transform.localScale = Vector3.one * scale;
-                if (name.Contains("Lantern")) s.lights.Add((pos + Vector3.up * 1.1f, Warm, 9, 2.0f, false));
+                if (name.Contains("Lantern")) s.lights.Add((pos + Vector3.up * 1.1f, Warm, 12, 3.2f, false));
             }
             if (s.lights.Count > 0)
             {
