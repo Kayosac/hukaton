@@ -58,7 +58,7 @@ namespace Hakaton.WorldAssembly.Unity
             new Mood(Moss, .8f, new Color(.55f, .62f, .48f), .25f, 1.05f, 1.05f),
             new Mood(Reach, .85f, new Color(.6f, .66f, .6f), .2f, 1, 1),
             new Mood(Mist, 6f, new Color(.74f, .79f, .74f), .8f, .85f, 1.05f),
-            new Mood(Burrow, .7f, new Color(.36f, .27f, .2f), 1f, 0f, 1f),
+            new Mood(Burrow, .9f, new Color(.16f, .11f, .09f), 1f, 0f, 1f),
         };
 
         readonly Dictionary<string, float> held = new Dictionary<string, float>();
@@ -84,7 +84,7 @@ namespace Hakaton.WorldAssembly.Unity
             Set(Mist, 5.5f, new Color(.78f, .76f, .64f), .8f, .85f, 1.05f);
             // The deep forest: thicker and darker, its air as neutral as the open forest's.
             // Underground: no sun, the air thin and warm so the lamplight carries.
-            Set(Burrow, .7f, new Color(.36f, .27f, .2f), 1f, 0f, 1f);
+            Set(Burrow, .9f, new Color(.16f, .11f, .09f), 1f, 0f, 1f);
             Set(Forest, 1.45f, new Color(.47f, .5f, .49f), .3f, .75f, .82f);
         }
 
