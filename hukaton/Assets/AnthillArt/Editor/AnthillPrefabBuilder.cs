@@ -39,6 +39,8 @@ namespace Hakaton.Dev
                 foreach (var mr in go.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     string key = mats.Keys.FirstOrDefault(k => mr.name.EndsWith("_" + k));
+                    // A one-mesh FBX imports as the root itself (named after the file): those are all Props-only assets.
+                    if (key == null && mr.gameObject == go) key = "Props";
                     if (key == null) { log.AppendLine($"WARN {prefabName}: no material for {mr.name}"); continue; }
                     mr.sharedMaterials = Enumerable.Repeat(mats[key], mr.sharedMaterials.Length).ToArray();
                     // Hanging root tips / rootlets in walls and on the mound stay passable (like foliage); chain hangs free.
@@ -80,6 +82,42 @@ namespace Hakaton.Dev
             l.range = range;
             l.intensity = intensity;
             l.shadows = LightShadows.None;
+        }
+        // Renders every anthill prefab in an isolated preview scene (no project scene is touched).
+        static string Preview(string arg)
+        {
+            bool dark = arg == "dark";
+            var guids = AssetDatabase.FindAssets("t:Prefab", new[] { Root + "/Prefabs" });
+            var pru = new PreviewRenderUtility();
+            try
+            {
+                pru.camera.fieldOfView = 30;
+                pru.camera.nearClipPlane = 0.1f; pru.camera.farClipPlane = 400;
+                pru.camera.clearFlags = CameraClearFlags.SolidColor;
+                pru.camera.backgroundColor = dark ? new Color(0.02f, 0.015f, 0.012f) : new Color(0.55f, 0.53f, 0.5f);
+                pru.lights[0].intensity = dark ? 0.08f : 1.1f; pru.lights[0].transform.rotation = Quaternion.Euler(45, 35, 0);
+                pru.lights[1].intensity = dark ? 0.0f : 0.5f;
+                pru.ambientColor = dark ? new Color(0.03f, 0.025f, 0.02f) : new Color(0.35f, 0.33f, 0.3f);
+                int cols = 7; float cell = 8.5f; int i = 0;
+                foreach (var g in guids.OrderBy(x => Path.GetFileName(AssetDatabase.GUIDToAssetPath(x))))
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(g));
+                    var inst = pru.InstantiatePrefabInScene(prefab);
+                    inst.transform.position = new Vector3((i % cols) * cell, 0, -(i / cols) * cell);
+                    i++;
+                }
+                int rows = (i + cols - 1) / cols;
+                var center = new Vector3((cols - 1) * cell / 2, 0, -(rows - 1) * cell / 2);
+                pru.camera.transform.position = center + new Vector3(0, 62, -78);
+                pru.camera.transform.LookAt(center + Vector3.up * 1.5f);
+                pru.BeginStaticPreview(new Rect(0, 0, 2400, 1600));
+                pru.Render(true);
+                var tex = pru.EndStaticPreview();
+                string file = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "bridge", dark ? "an_preview_dark.png" : "an_preview.png");
+                File.WriteAllBytes(file, tex.EncodeToPNG());
+                return file + " prefabs=" + i;
+            }
+            finally { pru.Cleanup(); }
         }
     }
 }
