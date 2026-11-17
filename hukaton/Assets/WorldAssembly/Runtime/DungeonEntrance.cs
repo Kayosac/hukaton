@@ -19,8 +19,8 @@ namespace Hakaton.WorldAssembly.Unity
         [Tooltip("Before the mouth, facing it: where the debug jump puts the player.")]
         public Transform outside;
         [Tooltip("Kept clear of the chunk's trees and props round the hill and before its mouth, m (from the passage frame).")]
-        public Vector3 clearCentre = new Vector3(0, 0, 2.5f);
-        [Min(0)] public float clearRadius = 10f;
+        public Vector3 clearCentre = new Vector3(0, 0, 5f);
+        [Min(0)] public float clearRadius = 13f;
 
         [HideInInspector] public DungeonSite site;
         [HideInInspector] public ChunkCoord coord;

@@ -674,7 +674,7 @@ namespace Hakaton.WorldAssembly.Unity
                     if (step > .55f || Mathf.Max(front, before) > top + .35f) continue;
                     // The skirt goes a metre into the ground: the ground round the hill may not fall away further.
                     float skirt = 0;
-                    foreach (var r in new[] { new Vector3(-6, 0, -1), new Vector3(6, 0, -1), new Vector3(-6, 0, 4), new Vector3(6, 0, 4), new Vector3(-6, 0, 9), new Vector3(6, 0, 9), new Vector3(0, 0, 12.5f), new Vector3(-4, 0, 11.5f), new Vector3(4, 0, 11.5f) })
+                    foreach (var r in Skirt)
                         if (Ground(mouth + q * r, out float h)) skirt = Mathf.Max(skirt, top - h);
                     if (skirt > 1.05f) continue;
                     bool blocked = false;
@@ -686,6 +686,13 @@ namespace Hakaton.WorldAssembly.Unity
                 }
             return best < float.MaxValue;
         }
+
+        /// <summary>Round the hill's foot (18 m wide, 17.5 m deep from the mouth), in the passage's frame.</summary>
+        static readonly Vector3[] Skirt =
+        {
+            new Vector3(-9, 0, -1), new Vector3(9, 0, -1), new Vector3(-9, 0, 5), new Vector3(9, 0, 5), new Vector3(-8, 0, 11),
+            new Vector3(8, 0, 11), new Vector3(0, 0, 16.5f), new Vector3(-5, 0, 15), new Vector3(5, 0, 15),
+        };
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
 
@@ -733,7 +740,7 @@ namespace Hakaton.WorldAssembly.Unity
             foreach (var b in view.burnables) if (b && Near(b.transform.position, radius)) Hide(b.gameObject);
             foreach (var thing in entry.patch) if (thing && Near(thing.transform.position, radius)) Hide(thing);
             // Under the hill: finds and the chest would be buried.
-            const float hill = 7.5f;
+            const float hill = 10f;
             foreach (var (_, loot) in entry.loot) if (loot && Near(loot.transform.position, hill)) Hide(loot.gameObject);
             if (entry.chest && Near(entry.chest.transform.position, hill)) Hide(entry.chest.gameObject);
             // Still dressing drawn merged (bushes, stones, stumps, fallen logs): whatever stands up off the ground is cut
