@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c156be04105e34c9e8862502c3d27874, type: 3}
+  m_Name: Anthill Kit
+  m_EditorClassIdentifier: Hakaton.Dungeons::Hakaton.Dungeons.Unity.DungeonKit
+  walls:
+  - {fileID: 1061386873261963888, guid: 8ae2d228d0f32444aa4aee0cb6aa998c, type: 3}
+  corner: {fileID: 3948595617796367668, guid: 4e21ce74e4086425cac56c1989dcfcb7, type: 3}
+  doorway: {fileID: 165000131636129206, guid: 930e28b9db5114f5892cbe6c3668f924, type: 3}
+  vault: {fileID: 4082388208179501126, guid: 600354b2dad334dcb910e9f2675b4aa0, type: 3}
+  floors:
+  - {fileID: 6139717996373152013, guid: 81f9f208f333a41a2a7eeda5a040f36c, type: 3}
+  ramp: {fileID: 3375703586753098878, guid: d3b2997ec13304838a5944aa7f32594b, type: 3}
+  ventCollar: {fileID: 8323751746773241400, guid: 8c66c558b61de45348c2710d232501a1, type: 3}
+  chambers:
+  - {fileID: 2909703047604247394, guid: fdf071b6440764dac91650f102a74fed, type: 3}
+  - {fileID: 7922684945360284634, guid: e81ba9bbdbab64a2db21aa2fad7a53a6, type: 3}
+  - {fileID: 8384460049478791531, guid: 5ab35911815854a859cd0d744ed9891d, type: 3}
+  - {fileID: 6974636572856764819, guid: 0ae93c44d14c243f5961ea9d93ad6c56, type: 3}
+  - {fileID: 7049984008581502512, guid: a18038ea572be42c985fe0d927b3eb38, type: 3}
+  - {fileID: 5326327451626818093, guid: c83677a175d1d4f3fa196b303d864bf4, type: 3}
+  - {fileID: 8843187178022526728, guid: 8b8451f2f4a2f430794160411e85d1e4, type: 3}
+  wallDressing:
+  - prefab: {fileID: 35310257214510810, guid: 05a4c2130ee7b49d2b05e3738499cb6f, type: 3}
+    chance: 0.14
+    yawJitter: 10
+    scaleRange: {x: 0.85, y: 1.1}
+  - prefab: {fileID: 1463380764054489659, guid: d1405c67cab49469cac4f1fdf605910d, type: 3}
+    chance: 0.1
+    yawJitter: 10
+    scaleRange: {x: 0.9, y: 1.2}
+  - prefab: {fileID: 8814673342334405019, guid: 442c8c42db8574ca99ec53ef46f0f79d, type: 3}
+    chance: 0.06
+    yawJitter: 6
+    scaleRange: {x: 0.8, y: 1.1}
+  corridorFloorDressing:
+  - prefab: {fileID: 1472955167078134943, guid: e4fc0fe9c19bb437aa959fe9e891c207, type: 3}
+    chance: 0.12
+    yawJitter: 0
+    scaleRange: {x: 0.8, y: 1.1}
+  - prefab: {fileID: 411200133797524650, guid: 9785f287a8051431a849849feda9b8b1, type: 3}
+    chance: 0.06
+    yawJitter: 0
+    scaleRange: {x: 0.8, y: 1.2}
+  - prefab: {fileID: 1049674651967352781, guid: a990138c43c70c4a4d5d65d6b53ba49c, type: 3}
+    chance: 0.12
+    yawJitter: 0
+    scaleRange: {x: 1, y: 1.4}
+  ceilingDressing:
+  - prefab: {fileID: 650556241349221694, guid: 8943ab4c74ab645b49c8503e5984f3b9, type: 3}
+    chance: 0.04
+    yawJitter: 0
+    scaleRange: {x: 0, y: 0}
+  corridorLightEvery: 2
+  corridorLight: {fileID: 375588533191972770, guid: 67c0673bd490dbf3925b1995bc609c6c, type: 3}
+  corridorLightColor: {r: 1, g: 0.62, b: 0.32, a: 1}
+  corridorLightRange: 7
+  corridorLightIntensity: 1.8
+  ambient: {r: 0.16, g: 0.12, b: 0.1, a: 1}
+  fogColor: {r: 0.05, g: 0.035, b: 0.03, a: 1}
+  fogDensity: 0.025
+  largeChance: 0.4
+  threeLevelChance: 0.5
+  smallBranchChance: 0.5
+  corridorMin: 2
+  corridorMax: 6
+  levelDrop: 6
+  turnChance: 0.3

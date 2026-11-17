@@ -1,0 +1,86 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Hakaton.Dungeons.Unity
+{
+    /// <summary>
+    /// One dungeon kind (e.g. the anthill): its earth-shell modules, its hand-made chambers, corridor dressing and the
+    /// planner's numbers. Module conventions (as the AnthillArt models are built): pivot at floor level in the middle of
+    /// the cell or edge, room side facing +Z; the corner covers its cell's south and west edges; the ramp rises 1 m
+    /// towards −Z over one cell; the vault sits on the wall tops and spans walls at x = ±2.
+    /// </summary>
+    [CreateAssetMenu(menuName = "Hakaton/Dungeon Kit", fileName = "Dungeon Kit")]
+    public sealed class DungeonKit : ScriptableObject
+    {
+        [Serializable]
+        public struct Dressing
+        {
+            public GameObject prefab;
+            [Tooltip("Chance per eligible spot.")]
+            [Range(0, 1)] public float chance;
+            [Tooltip("Random extra yaw, degrees.")]
+            public float yawJitter;
+            public Vector2 scaleRange;
+        }
+
+        [Header("Earth shell")]
+        public GameObject[] walls;
+        public GameObject corner;
+        public GameObject doorway;
+        public GameObject vault;
+        public GameObject[] floors;
+        public GameObject ramp;
+        public GameObject ventCollar;
+
+        [Header("Chambers")]
+        public List<ChamberTemplate> chambers = new List<ChamberTemplate>();
+
+        [Header("Dressing")]
+        [Tooltip("Stood against a wall, facing into the corridor or room (niches, wall roots, resin, wall fungi, lantern brackets).")]
+        public List<Dressing> wallDressing = new List<Dressing>();
+        [Tooltip("Stood on the floor of corridor cells (glow clusters, clods, eggs...).")]
+        public List<Dressing> corridorFloorDressing = new List<Dressing>();
+        [Tooltip("Hung from the vault (chains, root tangles).")]
+        public List<Dressing> ceilingDressing = new List<Dressing>();
+        [Tooltip("A light every this many corridor cells (a wall dressing with a light is preferred there).")]
+        [Min(1)] public int corridorLightEvery = 3;
+        public GameObject corridorLight;
+        [Tooltip("The corridor lantern's own light is a candle; this light is added to it so the way stays readable.")]
+        public Color corridorLightColor = new Color(1f, .62f, .32f);
+        [Min(0)] public float corridorLightRange = 7f;
+        [Min(0)] public float corridorLightIntensity = 1.8f;
+
+        [Header("Atmosphere underground")]
+        public Color ambient = new Color(.16f, .12f, .1f);
+        public Color fogColor = new Color(.05f, .035f, .03f);
+        [Min(0)] public float fogDensity = .025f;
+
+        [Header("Planner")]
+        [Range(0, 1)] public float largeChance = .4f;
+        [Range(0, 1)] public float threeLevelChance = .5f;
+        [Range(0, 1)] public float smallBranchChance = .5f;
+        [Min(1)] public int corridorMin = 2;
+        [Min(1)] public int corridorMax = 6;
+        [Min(1)] public int levelDrop = 6;
+        [Range(0, 1)] public float turnChance = .3f;
+
+        public DungeonRecipe Recipe()
+        {
+            var recipe = new DungeonRecipe
+            {
+                LargeChance = largeChance,
+                ThreeLevelChance = threeLevelChance,
+                SmallBranchChance = smallBranchChance,
+                CorridorMin = corridorMin,
+                CorridorMax = Mathf.Max(corridorMin, corridorMax),
+                LevelDrop = levelDrop,
+                TurnChance = turnChance,
+            };
+            foreach (var c in chambers) if (c) recipe.Shapes.Add(c.ToShape());
+            return recipe;
+        }
+
+        public ChamberTemplate Chamber(string id) => chambers.Find(c => c && c.id == id);
+    }
+}
