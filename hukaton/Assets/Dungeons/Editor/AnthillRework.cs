@@ -46,23 +46,18 @@ namespace Hakaton.Dungeons.EditorTools
         static Material Veil(string name, bool additive)
         {
             string path = $"Assets/AnthillArt/Materials/{name}.mat";
+            var shader = Shader.Find("Hakaton/Passage Murk");
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (!m)
-            {
-                m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-                AssetDatabase.CreateAsset(m, path);
-            }
-            m.shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            m.SetFloat("_Surface", 1);
-            m.SetFloat("_Blend", additive ? 2 : 0);
-            m.SetFloat("_Cull", 2);
-            m.SetFloat("_ZWrite", 0);
-            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (!m) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
+            m.shader = shader;
+            m.shaderKeywords = new string[0];
+            m.SetFloat("_SrcBlend", (float)(additive ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.SrcAlpha));
             m.SetFloat("_DstBlend", (float)(additive ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
-            m.SetOverrideTag("RenderType", "Transparent");
-            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-            m.SetColor("_BaseColor", additive ? Color.white : Color.black);
+            m.SetFloat("_Additive", additive ? 1 : 0);
+            m.SetFloat("_Power", additive ? 2.4f : 1.6f);
+            m.SetFloat("_Haze", additive ? .3f : .35f);
+            m.SetColor("_Colour", additive ? Color.white : Color.black);
+            m.renderQueue = -1;
             EditorUtility.SetDirty(m);
             return m;
         }

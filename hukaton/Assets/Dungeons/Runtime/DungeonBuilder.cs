@@ -283,7 +283,7 @@ namespace Hakaton.Dungeons.Unity
             BuildPassage(kit, frame, dungeonSeed);
             // Daylight at the dead end: a glow that thickens towards it and a lamp that lights the last metres.
             if (kit.passageGlow)
-                Veil(frame, kit.passageGlow, 2.3f, 6.6f, 1.8f, PassageDepth - .5f, 10, kit.surfaceLight, .03f, .2f, 1.05f, "Daylight");
+                Murk(frame, kit.passageGlow, 2.3f, 6.6f, PassageDepth, 2f, PassageDepth - .1f, kit.surfaceLight * .85f, "Daylight");
             if (kit.surfaceLightIntensity > 0)
             {
                 var l = new GameObject("Daylight Lamp").AddComponent<Light>();
@@ -295,48 +295,54 @@ namespace Hakaton.Dungeons.Unity
             Passage = frame;
         }
 
-        static MaterialPropertyBlock veilBlock;
-        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
+        static MaterialPropertyBlock murkBlock;
+        static readonly int MurkColour = Shader.PropertyToID("_Colour"), MurkFrom = Shader.PropertyToID("_From"),
+            MurkTo = Shader.PropertyToID("_To"), MurkBox = Shader.PropertyToID("_Box");
 
         /// <summary>
-        /// <paramref name="count"/> see-through panes across a passage (frame +Z inwards) from <paramref name="from"/> to
-        /// <paramref name="to"/> m in, each a little stronger than the last (<paramref name="first"/> to
-        /// <paramref name="deepest"/>), the one at <paramref name="to"/> at <paramref name="end"/>. They face the mouth
-        /// and are culled from behind: seen looking in, never looking out. Black panes read as depth into darkness,
-        /// additive ones as light far ahead.
+        /// Depth for a passage (frame +Z inwards; Hakaton/Passage Murk): a box round its <paramref name="halfWidth"/> ×
+        /// <paramref name="height"/> × <paramref name="depth"/> inside, drawn from within, that darkens (or lights, with an
+        /// additive material) every surface in it by how deep it lies, from <paramref name="from"/> to full at
+        /// <paramref name="to"/> m in. A gradient through the space, not panes.
         /// </summary>
-        public static void Veil(Transform frame, Material material, float halfWidth, float height, float from, float to, int count, Color colour, float first, float deepest, float end, string name)
+        public static void Murk(Transform frame, Material material, float halfWidth, float height, float depth, float from, float to, Color colour, string name)
         {
-            if (!material || count < 2) return;
-            veilBlock ??= new MaterialPropertyBlock();
-            var mesh = new Mesh { name = name + " pane" };
-            mesh.SetVertices(new List<Vector3> { new Vector3(-halfWidth, -.1f, 0), new Vector3(halfWidth, -.1f, 0), new Vector3(halfWidth, height, 0), new Vector3(-halfWidth, height, 0) });
-            mesh.SetNormals(new List<Vector3> { Vector3.back, Vector3.back, Vector3.back, Vector3.back });
-            mesh.SetUVs(0, new List<Vector2> { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) });
-            // Clockwise seen from the mouth (from −Z): drawn facing it.
-            mesh.SetTriangles(new[] { 0, 3, 2, 0, 2, 1 }, 0);
-            mesh.RecalculateBounds();
-            var group = new GameObject(name).transform;
-            group.SetParent(frame, false);
-            for (int i = 0; i < count; i++)
+            if (!material) return;
+            murkBlock ??= new MaterialPropertyBlock();
+            float x = halfWidth + .5f, y0 = -.6f, y1 = height + .5f, z0 = -.3f, z1 = depth + .8f;
+            var v = new List<Vector3>
             {
-                float t = i / (float)(count - 1);
-                float k = i == count - 1 ? end : Mathf.Lerp(first, deepest, t * t);
-                var go = new GameObject($"{name} {i}");
-                go.transform.SetParent(group, false);
-                go.transform.localPosition = new Vector3(0, 0, Mathf.Lerp(from, to, t));
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var r = go.AddComponent<MeshRenderer>();
-                r.sharedMaterial = material;
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
-                r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-                r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-                // Black panes: alpha is the strength. Glow: the colour scales (additive), alpha stays 1.
-                var c = colour.r + colour.g + colour.b < .05f ? new Color(colour.r, colour.g, colour.b, Mathf.Clamp01(k)) : new Color(colour.r * k, colour.g * k, colour.b * k, 1);
-                veilBlock.SetColor(BaseColor, c);
-                r.SetPropertyBlock(veilBlock);
-            }
+                new Vector3(-x, y0, z0), new Vector3(x, y0, z0), new Vector3(x, y1, z0), new Vector3(-x, y1, z0),
+                new Vector3(-x, y0, z1), new Vector3(x, y0, z1), new Vector3(x, y1, z1), new Vector3(-x, y1, z1),
+            };
+            // Outward faces (clockwise seen from outside); the shader draws the inner sides.
+            var t = new[]
+            {
+                0, 3, 2, 0, 2, 1,   // -Z
+                4, 5, 6, 4, 6, 7,   // +Z
+                0, 1, 5, 0, 5, 4,   // -Y
+                3, 7, 6, 3, 6, 2,   // +Y
+                0, 4, 7, 0, 7, 3,   // -X
+                1, 2, 6, 1, 6, 5,   // +X
+            };
+            var mesh = new Mesh { name = name + " murk" };
+            mesh.SetVertices(v);
+            mesh.SetTriangles(t, 0);
+            mesh.RecalculateBounds();
+            var go = new GameObject(name);
+            go.transform.SetParent(frame, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = material;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            murkBlock.SetColor(MurkColour, colour);
+            murkBlock.SetFloat(MurkFrom, from);
+            murkBlock.SetFloat(MurkTo, to);
+            murkBlock.SetVector(MurkBox, new Vector4(halfWidth, height, depth, 0));
+            r.SetPropertyBlock(murkBlock);
         }
 
         /// <summary>

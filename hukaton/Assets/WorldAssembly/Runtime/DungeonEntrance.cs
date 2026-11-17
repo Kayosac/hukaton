@@ -42,7 +42,7 @@ namespace Hakaton.WorldAssembly.Unity
             laid = true;
             if (layModules) DungeonBuilder.BuildPassage(kit, passage, seed);
             // Darkness thickening towards the dead end: from outside the passage reads as a way down into the dark.
-            DungeonBuilder.Veil(passage, kit.passageDark, veilHalfWidth, veilHeight, veilFrom, veilTo, 12, Color.black, .05f, .3f, 1f, "Darkness");
+            DungeonBuilder.Murk(passage, kit.passageDark, veilHalfWidth, veilHeight, veilTo + .2f, veilFrom, veilTo, Color.black, "Darkness");
             if (layModules && kit.doorway)
             {
                 // Its room side towards the world outside, its tunnel side into the passage.
