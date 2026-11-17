@@ -40,6 +40,10 @@ namespace Hakaton.WorldAssembly.Unity
         /// <summary>After a crossing the player stands near the dark end: no crossing back until they step towards the mouth.</summary>
         bool armed = true;
         float darkness;
+        /// <summary>What the screen fades to: black into the surface passage, daylight into the dungeon's (towards the
+        /// surface). After a crossing the colour of the way the player came stays until they are out of the passage.</summary>
+        Color tint = Color.black;
+        bool carried;
 
         public bool Underground => current;
         public DungeonBuilder Current => current;
@@ -84,10 +88,13 @@ namespace Hakaton.WorldAssembly.Unity
         float Walk(float s, DungeonEntrance from)
         {
             if (s < darkAt - .5f) armed = true;
+            if (s < darkFrom - .2f) carried = false;
+            if (!carried) tint = from ? Color.black : Daylight;
             float dark = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(darkFrom, darkAt, s));
             if (armed && s >= darkAt)
             {
                 armed = false;
+                carried = true;
                 if (from) Down(from); else Up();
                 return 1;
             }
@@ -100,7 +107,16 @@ namespace Hakaton.WorldAssembly.Unity
             if (!fade) return;
             if (dark <= 0 && darkness <= 0) return;
             darkness = dark;
-            fade.Set(dark, Color.black);
+            fade.Set(dark, tint);
+        }
+
+        Color Daylight
+        {
+            get
+            {
+                var kit = streamer && streamer.content ? streamer.content.anthillKit : null;
+                return Color.Lerp(kit ? kit.surfaceLight : new Color(1f, .95f, .82f), Color.white, .35f);
+            }
         }
 
         // ---------- crossing ----------
@@ -225,6 +241,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (darkness > 0 && World && World.fade) World.fade.Set(0);
             darkness = 0;
             armed = true;
+            carried = false;
             current = null;
             currentEntrance = null;
             foreach (var b in built.Values) if (b) Destroy(b.gameObject);

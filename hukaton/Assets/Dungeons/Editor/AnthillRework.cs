@@ -43,6 +43,40 @@ namespace Hakaton.Dungeons.EditorTools
             return $"walls {kit.walls.Length} corners {kit.corners.Length} vaults {kit.vaults.Length} floors {kit.floors.Length} backstop {(kit.backstop ? kit.backstop.name : "none")}";
         }
 
+        static Material Veil(string name, bool additive)
+        {
+            string path = $"Assets/AnthillArt/Materials/{name}.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m)
+            {
+                m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(m, path);
+            }
+            m.shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            m.SetFloat("_Surface", 1);
+            m.SetFloat("_Blend", additive ? 2 : 0);
+            m.SetFloat("_Cull", 2);
+            m.SetFloat("_ZWrite", 0);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)(additive ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            m.SetColor("_BaseColor", additive ? Color.white : Color.black);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        static string Materials(string arg)
+        {
+            var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
+            kit.passageDark = Veil("M_Ant_PassageDark", false);
+            kit.passageGlow = Veil("M_Ant_PassageGlow", true);
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            return $"dark {kit.passageDark.shader.name}, glow {kit.passageGlow.shader.name}";
+        }
+
         static string Entrance(string arg)
         {
             var root = PrefabUtility.LoadPrefabContents(EntrancePath);

@@ -114,6 +114,10 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(site.Underground, Is.True);
             yield return new WaitForSeconds(2f);
             yield return Shot("03-entrance-chamber");
+            Stand(dungeon.Passage, -2.5f, 0);
+            yield return new WaitForSeconds(.5f);
+            Assert.That(site.Darkness, Is.EqualTo(0).Within(.01f));
+            yield return Shot("03b-way-out-from-the-chamber");
             Assert.That(NavMesh.SamplePosition(dungeon.Passage.position, out _, 2f, NavMesh.AllAreas), Is.True, "navigation at the passage's mouth");
             var culling = dungeon.GetComponent<DungeonCulling>();
             Assert.That(culling.Shown, Is.LessThan(culling.Total), "far cells are not drawn");

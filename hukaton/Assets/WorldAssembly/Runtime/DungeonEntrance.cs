@@ -22,6 +22,11 @@ namespace Hakaton.WorldAssembly.Unity
         public Vector3 clearCentre = new Vector3(0, 0, 5f);
         [Min(0)] public float clearRadius = 13f;
 
+        [Tooltip("Lay the dungeon's own passage modules in the passage (off when the hill model has its own tunnel).")]
+        public bool layModules = true;
+        [Tooltip("The darkness panes across the passage: half width and height of the tunnel, from and to how deep, m.")]
+        public float veilHalfWidth = 2.3f, veilHeight = 6.6f, veilFrom = 1f, veilTo = 7.35f;
+
         [HideInInspector] public DungeonSite site;
         [HideInInspector] public ChunkCoord coord;
         [HideInInspector] public int seed;
@@ -30,13 +35,15 @@ namespace Hakaton.WorldAssembly.Unity
         void OnEnable() => All.Add(this);
         void OnDisable() => All.Remove(this);
 
-        /// <summary>Lays the passage's modules (as the dungeon lays its own) and the doorway frame at the mouth.</summary>
+        /// <summary>Lays the passage: its modules and doorway frame (as the dungeon lays its own) unless the hill has its own tunnel, and its darkness.</summary>
         public void Lay(DungeonKit kit)
         {
             if (laid || !kit || !passage) return;
             laid = true;
-            DungeonBuilder.BuildPassage(kit, passage, seed);
-            if (kit.doorway)
+            if (layModules) DungeonBuilder.BuildPassage(kit, passage, seed);
+            // Darkness thickening towards the dead end: from outside the passage reads as a way down into the dark.
+            DungeonBuilder.Veil(passage, kit.passageDark, veilHalfWidth, veilHeight, veilFrom, veilTo, 12, Color.black, .05f, .3f, 1f, "Darkness");
+            if (layModules && kit.doorway)
             {
                 // Its room side towards the world outside, its tunnel side into the passage.
                 var frame = Instantiate(kit.doorway, passage);

@@ -56,6 +56,15 @@ namespace Hakaton.Dungeons.Unity
         [Min(0)] public float corridorLightRange = 7f;
         [Min(0)] public float corridorLightIntensity = 1.8f;
 
+        [Header("The way out")]
+        [Tooltip("Transparent black (alpha blended, back faces culled): veils in the surface passage that make its dead end read as depth.")]
+        public Material passageDark;
+        [Tooltip("Additive: the glow in the dungeon's passage that reads as daylight at its end.")]
+        public Material passageGlow;
+        public Color surfaceLight = new Color(1f, .95f, .82f);
+        [Min(0)] public float surfaceLightIntensity = 2.5f;
+        [Min(0)] public float surfaceLightRange = 10f;
+
         [Header("Atmosphere underground")]
         public Color ambient = new Color(.16f, .12f, .1f);
         public Color fogColor = new Color(.05f, .035f, .03f);

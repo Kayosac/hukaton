@@ -281,7 +281,62 @@ namespace Hakaton.Dungeons.Unity
             frame.localPosition = DungeonGeometry.Center(cell, Plan.Cells[cell].Floor) + DungeonGeometry.Offset(side) * (S / 2) - group.localPosition;
             frame.localRotation = Quaternion.Euler(0, DungeonGeometry.Yaw(side), 0);
             BuildPassage(kit, frame, dungeonSeed);
+            // Daylight at the dead end: a glow that thickens towards it and a lamp that lights the last metres.
+            if (kit.passageGlow)
+                Veil(frame, kit.passageGlow, 2.3f, 6.6f, 1.8f, PassageDepth - .5f, 10, kit.surfaceLight, .03f, .2f, 1.05f, "Daylight");
+            if (kit.surfaceLightIntensity > 0)
+            {
+                var l = new GameObject("Daylight Lamp").AddComponent<Light>();
+                l.transform.SetParent(frame, false);
+                l.transform.localPosition = new Vector3(0, 2.4f, PassageDepth - 1.4f);
+                l.type = LightType.Point; l.color = kit.surfaceLight; l.range = kit.surfaceLightRange;
+                l.intensity = kit.surfaceLightIntensity; l.shadows = LightShadows.None;
+            }
             Passage = frame;
+        }
+
+        static MaterialPropertyBlock veilBlock;
+        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
+
+        /// <summary>
+        /// <paramref name="count"/> see-through panes across a passage (frame +Z inwards) from <paramref name="from"/> to
+        /// <paramref name="to"/> m in, each a little stronger than the last (<paramref name="first"/> to
+        /// <paramref name="deepest"/>), the one at <paramref name="to"/> at <paramref name="end"/>. They face the mouth
+        /// and are culled from behind: seen looking in, never looking out. Black panes read as depth into darkness,
+        /// additive ones as light far ahead.
+        /// </summary>
+        public static void Veil(Transform frame, Material material, float halfWidth, float height, float from, float to, int count, Color colour, float first, float deepest, float end, string name)
+        {
+            if (!material || count < 2) return;
+            veilBlock ??= new MaterialPropertyBlock();
+            var mesh = new Mesh { name = name + " pane" };
+            mesh.SetVertices(new List<Vector3> { new Vector3(-halfWidth, -.1f, 0), new Vector3(halfWidth, -.1f, 0), new Vector3(halfWidth, height, 0), new Vector3(-halfWidth, height, 0) });
+            mesh.SetNormals(new List<Vector3> { Vector3.back, Vector3.back, Vector3.back, Vector3.back });
+            mesh.SetUVs(0, new List<Vector2> { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) });
+            // Clockwise seen from the mouth (from −Z): drawn facing it.
+            mesh.SetTriangles(new[] { 0, 3, 2, 0, 2, 1 }, 0);
+            mesh.RecalculateBounds();
+            var group = new GameObject(name).transform;
+            group.SetParent(frame, false);
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)(count - 1);
+                float k = i == count - 1 ? end : Mathf.Lerp(first, deepest, t * t);
+                var go = new GameObject($"{name} {i}");
+                go.transform.SetParent(group, false);
+                go.transform.localPosition = new Vector3(0, 0, Mathf.Lerp(from, to, t));
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = material;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+                // Black panes: alpha is the strength. Glow: the colour scales (additive), alpha stays 1.
+                var c = colour.r + colour.g + colour.b < .05f ? new Color(colour.r, colour.g, colour.b, Mathf.Clamp01(k)) : new Color(colour.r * k, colour.g * k, colour.b * k, 1);
+                veilBlock.SetColor(BaseColor, c);
+                r.SetPropertyBlock(veilBlock);
+            }
         }
 
         /// <summary>
