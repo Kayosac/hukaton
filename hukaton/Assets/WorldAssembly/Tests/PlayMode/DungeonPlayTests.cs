@@ -76,6 +76,10 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(entrance, Is.Not.Null, "the player stands before a hill's mouth");
             yield return new WaitForSeconds(1.5f);
             yield return Shot("00-hill");
+            var away = entrance.passage.TransformPoint(new Vector3(5, 0, -13));
+            world.motor.Teleport(away + Vector3.up * .3f, Quaternion.LookRotation(Flat(entrance.passage.TransformPoint(new Vector3(0, 0, 4)) - away)));
+            yield return new WaitForSeconds(.8f);
+            yield return Shot("00b-hill-afar");
             Assert.That(Blocked(entrance.passage), Is.Null, "nothing of the world stands in the passage");
 
             // Walk in: the screen darkens step by step, at the dark end the player is in the dungeon's passage.
@@ -154,6 +158,8 @@ namespace Hakaton.WorldAssembly.Tests
             }
             Assert.That(site.Current, Is.SameAs(dungeon), "the dungeon is kept as it was left");
         }
+
+        static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
 
         /// <summary>Puts the player <paramref name="s"/> m into a passage, facing in (0) or out (180).</summary>
         void Stand(Transform passage, float s, float yaw)

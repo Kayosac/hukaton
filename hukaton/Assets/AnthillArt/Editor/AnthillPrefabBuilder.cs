@@ -27,6 +27,8 @@ namespace Hakaton.Dev
                 string group = Path.GetFileName(Path.GetDirectoryName(path));
                 string fbxName = Path.GetFileNameWithoutExtension(path);          // SM_AN01_EarthWall
                 string prefabName = fbxName.Substring(3);                         // AN01_EarthWall
+                // Existing prefabs stay (chambers and the kit hold them): their meshes update with the FBX by name.
+                if (File.Exists($"{Root}/Prefabs/{group}/{prefabName}.prefab")) continue;
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 var go = (GameObject)PrefabUtility.InstantiatePrefab(model);
                 PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
