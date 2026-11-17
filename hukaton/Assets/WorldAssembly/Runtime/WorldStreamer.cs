@@ -473,6 +473,12 @@ namespace Hakaton.WorldAssembly.Unity
             }
         }
 
+        /// <summary>Loads up to <paramref name="budget"/> missing chunks round <paramref name="centre"/> now, nearest first (before a jump there).</summary>
+        public void StreamNow(Vector3 centre, int budget)
+        {
+            if (Active) Stream(centre, budget);
+        }
+
         void Stream(Vector3 centre, int budget)
         {
             var here = CoordAt(centre);
@@ -615,6 +621,145 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 var other = coord.Step(side);
                 if (loaded.ContainsKey(other)) Join(coord, side);
+            }
+            Clearings(entry);
+        }
+
+        // ---------- dungeon entrances ----------
+
+        readonly List<MeshCollider> groundHits = new List<MeshCollider>();
+
+        /// <summary>
+        /// Where the anthill's hill goes (the mouth of its passage, on the ground; the hill runs +Z from it): the spot and
+        /// way round, of a few dozen tried, where the ground under the passage is level, the mouth can be walked into
+        /// from the ground before it, the hill's skirt reaches the ground all round, and no card obstacle stands.
+        /// Trees and loose things there are cleared afterwards (<see cref="Clearings"/>). Same answer every load.
+        /// </summary>
+        bool EntranceSpot(Loaded entry, out Vector3 place, out Quaternion turn)
+        {
+            var c = entry.plan.Coord;
+            var middle = entry.view.transform.position;
+            groundHits.Clear();
+            foreach (var other in loaded.Values)
+            {
+                if ((other.view.transform.position - middle).sqrMagnitude > Size * Size * 2.5f) continue;
+                foreach (var f in other.view.worldUv)
+                    if (f && f.TryGetComponent(out MeshCollider mc) && mc.enabled) groundHits.Add(mc);
+            }
+            Physics.SyncTransforms();
+            var centres = new List<Vector3>();
+            for (int x = -1; x <= 1; x++)
+                for (int z = -1; z <= 1; z++)
+                    centres.Add(middle + new Vector3(x * 2.5f, 0, z * 2.5f));
+            float spin = (float)(Hash.Unit(Seed, Salt.EventSpot, c.X, c.Y, 2) * 45);
+            float best = float.MaxValue;
+            place = default; turn = Quaternion.identity;
+            foreach (var centre in centres)
+                for (int k = 0; k < 8; k++)
+                {
+                    var q = Quaternion.Euler(0, spin + k * 45, 0);
+                    var mouth = centre - q * new Vector3(0, 0, 4.25f);
+                    float top = float.MinValue, low = float.MaxValue;
+                    bool ok = true;
+                    for (int ix = -1; ix <= 1 && ok; ix++)
+                        for (int iz = 0; iz < 3 && ok; iz++)
+                        {
+                            if (!Ground(mouth + q * new Vector3(ix * 2.2f, 0, .5f + iz * 3.8f), out float h)) ok = false;
+                            else { top = Mathf.Max(top, h); low = Mathf.Min(low, h); }
+                        }
+                    if (!ok) continue;
+                    // Before the mouth: about the floor's height, so the player walks in.
+                    if (!Ground(mouth + q * new Vector3(0, 0, -1.6f), out float front) || !Ground(mouth + q * new Vector3(0, 0, -3.2f), out float before)) continue;
+                    float step = top - Mathf.Min(front, before);
+                    if (step > .55f || Mathf.Max(front, before) > top + .35f) continue;
+                    // The skirt goes a metre into the ground: the ground round the hill may not fall away further.
+                    float skirt = 0;
+                    foreach (var r in new[] { new Vector3(-6, 0, -1), new Vector3(6, 0, -1), new Vector3(-6, 0, 4), new Vector3(6, 0, 4), new Vector3(-6, 0, 9), new Vector3(6, 0, 9), new Vector3(0, 0, 12.5f), new Vector3(-4, 0, 11.5f), new Vector3(4, 0, 11.5f) })
+                        if (Ground(mouth + q * r, out float h)) skirt = Mathf.Max(skirt, top - h);
+                    if (skirt > 1.05f) continue;
+                    bool blocked = false;
+                    foreach (var o in entry.view.obstacles)
+                        if (o && Flat(o.transform.position - centre).sqrMagnitude < 8 * 8) { blocked = true; break; }
+                    if (blocked) continue;
+                    float score = (top - low) * 2 + Mathf.Abs(step) * 3 + skirt * .5f + Flat(centre - middle).magnitude * .15f;
+                    if (score < best) { best = score; place = new Vector3(mouth.x, top, mouth.z); turn = q; }
+                }
+            return best < float.MaxValue;
+        }
+
+        static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
+
+        bool Ground(Vector3 at, out float height)
+        {
+            height = float.MinValue;
+            var ray = new Ray(new Vector3(at.x, at.y + 60, at.z), Vector3.down);
+            foreach (var mc in groundHits)
+                if (mc && mc.Raycast(ray, out var hit, 160)) height = Mathf.Max(height, hit.point.y);
+            return height > float.MinValue;
+        }
+
+        /// <summary>
+        /// Clears round every dungeon entrance near <paramref name="entry"/>: its trees, bushes, stones and other still
+        /// dressing, loose props, patches, and (under the hill itself) finds and chests are taken away, so nothing
+        /// stands in the hill or before its mouth.
+        /// </summary>
+        void Clearings(Loaded entry)
+        {
+            if (!entry.view) return;
+            var at = entry.view.transform.position;
+            foreach (var e in DungeonEntrance.All)
+            {
+                if (!e) continue;
+                var c = e.ClearCentre;
+                float r = e.clearRadius;
+                if (Flat(at - c).magnitude > r + Size * .75f) continue;
+                Clear(entry, c, r, e.transform);
+            }
+        }
+
+        void Clear(Loaded entry, Vector3 centre, float radius, Transform keep)
+        {
+            var view = entry.view;
+            bool Near(Vector3 p, float r) => Flat(p - centre).sqrMagnitude < r * r;
+            void Hide(GameObject go)
+            {
+                if (!go || !go.activeSelf || go.transform.IsChildOf(keep)) return;
+                MergedLooks.Unmerge(go);
+                go.SetActive(false);
+            }
+            foreach (var t in view.trees) if (t && Near(t.transform.position, radius)) Hide(t.gameObject);
+            foreach (var p in view.props) if (p && Near(p.transform.position, radius)) Hide(p.gameObject);
+            foreach (var b in view.breakables) if (b && Near(b.transform.position, radius)) Hide(b.gameObject);
+            foreach (var b in view.burnables) if (b && Near(b.transform.position, radius)) Hide(b.gameObject);
+            foreach (var thing in entry.patch) if (thing && Near(thing.transform.position, radius)) Hide(thing);
+            // Under the hill: finds and the chest would be buried.
+            const float hill = 7.5f;
+            foreach (var (_, loot) in entry.loot) if (loot && Near(loot.transform.position, hill)) Hide(loot.gameObject);
+            if (entry.chest && Near(entry.chest.transform.position, hill)) Hide(entry.chest.gameObject);
+            // Still dressing drawn merged (bushes, stones, stumps, fallen logs): whatever stands up off the ground is cut
+            // out of the merged mesh and switched off, and so are the colliders standing there.
+            var ground = new HashSet<Component>();
+            foreach (var f in view.worldUv)
+                if (f)
+                {
+                    if (f.TryGetComponent(out Renderer gr)) ground.Add(gr);
+                    if (f.TryGetComponent(out Collider gc)) ground.Add(gc);
+                }
+            bool Small(Bounds b) => b.size.x <= 9 && b.size.z <= 9 && b.size.y >= .25f;
+            foreach (var look in view.GetComponentsInChildren<MergedLook>(true))
+                for (int i = 0; i < look.sources.Length; i++)
+                {
+                    var r = look.sources[i];
+                    if (!r || ground.Contains(r) || !r.enabled || !r.gameObject.activeInHierarchy || r.transform.IsChildOf(keep)) continue;
+                    if (!Small(r.bounds) || !Near(r.bounds.center, radius)) continue;
+                    look.Unmerge(i);
+                    r.enabled = false;
+                }
+            foreach (var col in view.GetComponentsInChildren<Collider>())
+            {
+                if (ground.Contains(col) || col.isTrigger || col.attachedRigidbody || col.transform.IsChildOf(keep)) continue;
+                if (col.GetComponentInParent<WorldObstacle>() || col.GetComponentInParent<WorldCreature>()) continue;
+                if (Small(col.bounds) && Near(col.bounds.center, radius)) col.enabled = false;
             }
         }
 
@@ -871,13 +1016,15 @@ namespace Hakaton.WorldAssembly.Unity
             if (plan.Event == WorldEvents.Dungeon)
             {
                 if (!content.dungeonEntrance || !content.anthillKit) return;
-                if (!OdditySpot(entry, out var place)) { Debug.LogWarning($"[World] no room for a dungeon entrance on {plan}"); return; }
-                var turn = Quaternion.Euler(0, (float)(Hash.Unit(Seed, Salt.EventSpot, c.X, c.Y, 2) * 360), 0);
+                if (!EntranceSpot(entry, out var place, out var turn)) { Debug.LogWarning($"[World] no room for a dungeon entrance on {plan}"); return; }
                 var mound = Instantiate(content.dungeonEntrance, place, turn, entry.view.transform);
                 mound.name = content.dungeonEntrance.name;
                 mound.site = Dungeons;
                 mound.coord = c;
                 mound.seed = (int)(Hash.Of(Seed, Salt.Dungeon, c.X, c.Y) & 0x7fffffff);
+                mound.Lay(content.anthillKit);
+                // The neighbours already standing lose what grows into the clearing; this chunk's own go when it is done.
+                foreach (var other in loaded.Values) if (other != entry) Clearings(other);
                 return;
             }
 

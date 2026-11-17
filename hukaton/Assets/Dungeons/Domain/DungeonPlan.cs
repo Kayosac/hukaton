@@ -40,7 +40,8 @@ namespace Hakaton.Dungeons
         public Dir ToWorld(Dir local) => local.Rotate(Rotation);
     }
 
-    public enum CellKind { Room = 0, Corridor = 1, Ramp = 2 }
+    /// <summary>Passage: the short dark tunnel behind the entrance chamber's way out (the way back to the surface).</summary>
+    public enum CellKind { Room = 0, Corridor = 1, Ramp = 2, Passage = 3 }
 
     public struct CellInfo
     {
@@ -74,6 +75,12 @@ namespace Hakaton.Dungeons
         public readonly List<PlacedRoom> Rooms = new List<PlacedRoom>();
         /// <summary>Cells of the corridors in laying order (for dressing).</summary>
         public readonly List<Cell> CorridorCells = new List<Cell>();
+        /// <summary>Cells of the way-out passage, from the entrance chamber outwards (dead end at the last one).</summary>
+        public readonly List<Cell> Passage = new List<Cell>();
+        /// <summary>The entrance chamber's cell and side the passage leaves through (a doorway).</summary>
+        public (Cell cell, Dir side)? PassageMouth;
+        /// <summary>Cells in the way-out passage.</summary>
+        public const int PassageLength = 2;
 
         public PlacedRoom Entrance => Rooms.Count > 0 ? Rooms[0] : null;
         public PlacedRoom Boss => Rooms.Find(r => r.Shape.Role == RoomRole.Queen);

@@ -98,6 +98,32 @@ namespace Hakaton.Dungeons.Tests
         }
 
         [Test]
+        public void TheWayOutIsAStraightDeadEndPassageBehindADoorway()
+        {
+            foreach (int seed in Seeds)
+            {
+                var plan = DungeonGenerator.Generate(seed, Recipe());
+                Assert.IsTrue(plan.PassageMouth.HasValue, "seed " + seed);
+                var (mouth, side) = plan.PassageMouth.Value;
+                Assert.AreEqual(plan.Entrance.Index, plan.Cells[mouth].Room, "seed " + seed);
+                Assert.IsTrue(plan.IsDoorway(mouth, side), "seed " + seed);
+                Assert.AreEqual(DungeonPlan.PassageLength, plan.Passage.Count, "seed " + seed);
+                var at = mouth;
+                foreach (var c in plan.Passage)
+                {
+                    at = at.Step(side);
+                    Assert.AreEqual(at, c, $"seed {seed}: the passage runs straight");
+                    Assert.AreEqual(CellKind.Passage, plan.Cells[c].Kind, "seed " + seed);
+                    Assert.AreEqual(plan.Entrance.Floor, plan.Cells[c].Floor, 1e-4, "seed " + seed);
+                    // Only along the passage: nothing else opens into it.
+                    foreach (var d in Dirs.All)
+                        if (d != side && d != side.Opposite()) Assert.IsFalse(plan.IsOpen(c, d), $"seed {seed}: side opening at {c}");
+                }
+                Assert.IsFalse(plan.IsOpen(at, side), $"seed {seed}: the passage ends in a wall");
+            }
+        }
+
+        [Test]
         public void LargeDungeonsEndWithTheQueenOnTheDeepestLevel()
         {
             int large = 0;

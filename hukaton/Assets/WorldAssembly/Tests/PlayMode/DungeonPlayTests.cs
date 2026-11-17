@@ -18,9 +18,9 @@ using UnityEngine.TestTools;
 namespace Hakaton.WorldAssembly.Tests
 {
     /// <summary>
-    /// The anthill in the real game: the cheat finds a mound, walking into its throat takes the player down into a
-    /// dungeon built under it, the way out under the light slot brings the player back to the mouth, and going in again
-    /// finds the same dungeon. Photographs the way in and some chambers into Logs/dungeon-play.
+    /// The anthill in the real game: the cheat finds a hill, walking into its passage darkens the screen and at the dark
+    /// end the player is in the dungeon's own passage, walking out of it into the light; the same way back up; going in
+    /// again finds the same dungeon. Photographs the way and the chambers into Logs/dungeon-play.
     /// </summary>
     public sealed class DungeonPlayTests
     {
@@ -65,52 +65,57 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [UnityTest]
-        public IEnumerator TheAnthillIsEnteredLeftAndFoundAsLeft()
+        public IEnumerator TheAnthillIsWalkedIntoLeftAndFoundAsLeft()
         {
             var site = streamer.Dungeons;
             string note = streamer.GoToNearestDungeon();
             Debug.Log("[Dungeon] " + note);
             Assert.That(note, Does.StartWith("Иду"), note);
             DungeonEntrance entrance = null;
-            yield return WaitFor(() => (entrance = Object.FindObjectsByType<DungeonEntrance>(FindObjectsSortMode.None).FirstOrDefault(e => (e.outside.position - world.motor.transform.position).sqrMagnitude < 4)) != null, 8);
-            Assert.That(entrance, Is.Not.Null, "the player stands at a mound's mouth");
+            yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && (e.outside.position - world.motor.transform.position).sqrMagnitude < 4)) != null, 8);
+            Assert.That(entrance, Is.Not.Null, "the player stands before a hill's mouth");
             yield return new WaitForSeconds(1.5f);
-            yield return Shot("00-mound");
+            yield return Shot("00-hill");
+            Assert.That(Blocked(entrance.passage), Is.Null, "nothing of the world stands in the passage");
 
-            // Walk into the throat.
-            world.motor.Teleport(entrance.inside.position + Vector3.up * .1f, entrance.inside.rotation);
-            yield return WaitFor(() => site.Underground, 4);
-            Assert.That(site.Underground, Is.True, "stepping into the throat takes the player down");
-            yield return new WaitForSeconds(3.5f);
+            // Walk in: the screen darkens step by step, at the dark end the player is in the dungeon's passage.
+            float last = -1;
+            for (float s = 0; s <= 6.6f && !site.Underground; s += .5f)
+            {
+                Stand(entrance.passage, s, 0);
+                yield return null; yield return null;
+                if (s > 1.5f && s < 6) Assert.That(site.Darkness, Is.GreaterThan(last), $"darker at {s} m in");
+                last = site.Darkness;
+                if (Mathf.Approximately(s, 3.5f)) yield return Shot("01-walking-in");
+            }
+            Assert.That(site.Underground, Is.True, "the dark end of the hill's passage leads down");
             var dungeon = site.Current;
             var plan = dungeon.Plan;
             Debug.Log($"[Dungeon] seed {plan.Seed} large={plan.Large} levels={plan.Levels} rooms={plan.Rooms.Count} cells={plan.Cells.Count}");
-            Assert.That(NavMesh.SamplePosition(dungeon.Arrival.position, out _, 1.5f, NavMesh.AllAreas), Is.True, "navigation where the player arrives");
-            Assert.That((world.motor.transform.position - dungeon.Arrival.position).magnitude, Is.LessThan(1.5f));
-            var air = streamer.GetComponent<WorldAtmosphere>();
-            Debug.Log($"[Dungeon] air: burrow {air.Strength(WorldAtmosphere.Burrow):0.00}, fog {RenderSettings.fogColor} x{RenderSettings.fogDensity:0.0000}, ambient {RenderSettings.ambientMode} {RenderSettings.ambientLight}");
-            yield return Shot("01-arrival");
-            // Diagnostics of the light underground.
-            var probe = RenderSettings.ambientProbe;
-            Debug.Log($"[Dungeon] probe L0 r{probe[0, 0]:0.000} g{probe[1, 0]:0.000} b{probe[2, 0]:0.000}; sun {RenderSettings.sun?.intensity}; volumes: " +
-                string.Join(", ", Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsSortMode.None).Where(v => v.isActiveAndEnabled).Select(v => $"{v.name} w{v.weight:0.00} {(v.sharedProfile ? string.Join("/", v.sharedProfile.components.Where(c => c.active).Select(c => c.name)) : "")}")));
-            var anyRenderer = dungeon.Built.GetComponentInChildren<MeshRenderer>();
-            Debug.Log($"[Dungeon] renderer {anyRenderer.name} probes {anyRenderer.lightProbeUsage} mat {anyRenderer.sharedMaterial.shader.name}");
-            var vols = Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsSortMode.None).Where(v => v.enabled).ToList();
-            foreach (var v in vols) v.enabled = false;
-            yield return null;
-            yield return Shot("01b-no-volumes");
-            foreach (var v in vols) v.enabled = true;
-            var was = RenderSettings.ambientLight;
-            RenderSettings.ambientLight = Color.white; DynamicGI.UpdateEnvironment();
-            yield return null; yield return null;
-            yield return Shot("01c-white-ambient");
-            RenderSettings.ambientLight = was; DynamicGI.UpdateEnvironment();
+            var local = dungeon.Passage.InverseTransformPoint(world.motor.transform.position);
+            Assert.That(local.z, Is.EqualTo(site.darkAt - .25f).Within(.3f), "as deep in the dungeon's passage");
+            Assert.That(Vector3.Dot(world.motor.transform.forward, dungeon.Passage.forward), Is.LessThan(-.9f), "facing its mouth");
+            Assert.That(site.Darkness, Is.GreaterThan(.9f), "still dark");
+            // Walk out of it into the entrance chamber: lighter with every step.
+            last = 2;
+            for (float s = 6; s >= -1; s -= .5f)
+            {
+                Stand(dungeon.Passage, s, 180);
+                yield return null; yield return null;
+                if (s > 1.5f && s < 6) Assert.That(site.Darkness, Is.LessThan(last), $"lighter at {s} m");
+                last = site.Darkness;
+                if (Mathf.Approximately(s, 3.5f)) yield return Shot("02-walking-out-below");
+            }
+            Assert.That(site.Darkness, Is.EqualTo(0).Within(.01f), "light in the entrance chamber");
+            Assert.That(site.Underground, Is.True);
+            yield return new WaitForSeconds(2f);
+            yield return Shot("03-entrance-chamber");
+            Assert.That(NavMesh.SamplePosition(dungeon.Passage.position, out _, 2f, NavMesh.AllAreas), Is.True, "navigation at the passage's mouth");
             var culling = dungeon.GetComponent<DungeonCulling>();
             Assert.That(culling.Shown, Is.LessThan(culling.Total), "far cells are not drawn");
 
             // A look into every chamber from its doorway.
-            int i = 2;
+            int i = 4;
             foreach (var room in plan.Rooms)
             {
                 var door = room.Doors[room.UsedDoors.FirstOrDefault()];
@@ -122,22 +127,49 @@ namespace Hakaton.WorldAssembly.Tests
                 yield return Shot($"{i++:00}-{room.Shape.Role}");
             }
 
-            // Back up the way out.
-            world.motor.Teleport(dungeon.Arrival.position, dungeon.Arrival.rotation);
-            yield return new WaitForSeconds(.5f);
-            world.motor.Teleport(dungeon.WayOut + Vector3.up * .1f, dungeon.Arrival.rotation);
-            yield return WaitFor(() => !site.Underground, 4);
-            Assert.That(site.Underground, Is.False, "the light slot takes the player back up");
+            // Back up: into the passage again, out of the hill's mouth.
+            for (float s = 0; s <= 6.6f && site.Underground; s += .5f)
+            {
+                Stand(dungeon.Passage, s, 0);
+                yield return null; yield return null;
+            }
+            Assert.That(site.Underground, Is.False, "the passage's dark end leads back up");
+            yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && e.passage && Mathf.Abs(e.passage.InverseTransformPoint(world.motor.transform.position).x) < 2.5f && (e.passage.position - world.motor.transform.position).magnitude < 9)) != null, 6);
+            Assert.That(entrance, Is.Not.Null, "in the hill's passage (its chunk loaded again)");
+            for (float s = 6; s >= -2; s -= .5f)
+            {
+                Stand(entrance.passage, s, 180);
+                yield return null; yield return null;
+                if (Mathf.Approximately(s, 3.5f)) yield return Shot("98-walking-out-above");
+            }
+            Assert.That(site.Darkness, Is.EqualTo(0).Within(.01f), "daylight again before the hill");
             yield return new WaitForSeconds(1f);
-            var coord = streamer.CoordAt(world.motor.transform.position);
-            yield return WaitFor(() => (entrance = Object.FindObjectsByType<DungeonEntrance>(FindObjectsSortMode.None).FirstOrDefault(e => (e.outside.position - world.motor.transform.position).sqrMagnitude < 2.25f)) != null, 6);
-            Assert.That(entrance, Is.Not.Null, "out at the mound's mouth (its chunk loaded again)");
             yield return Shot("99-back-out");
 
             // In again: the same dungeon.
-            world.motor.Teleport(entrance.inside.position + Vector3.up * .1f, entrance.inside.rotation);
-            yield return WaitFor(() => site.Underground, 4);
+            for (float s = 0; s <= 6.6f && !site.Underground; s += .5f)
+            {
+                Stand(entrance.passage, s, 0);
+                yield return null; yield return null;
+            }
             Assert.That(site.Current, Is.SameAs(dungeon), "the dungeon is kept as it was left");
+        }
+
+        /// <summary>Puts the player <paramref name="s"/> m into a passage, facing in (0) or out (180).</summary>
+        void Stand(Transform passage, float s, float yaw)
+        {
+            var at = passage.TransformPoint(new Vector3(0, .1f, s));
+            world.motor.Teleport(at, passage.rotation * Quaternion.Euler(0, yaw, 0));
+        }
+
+        /// <summary>The first collider of the world (not the passage's own modules nor the hill) inside the passage, or null.</summary>
+        static Collider Blocked(Transform passage)
+        {
+            var own = passage.GetComponentInParent<DungeonEntrance>().transform;
+            var centre = passage.TransformPoint(new Vector3(0, 1.6f, 3.8f));
+            foreach (var col in Physics.OverlapBox(centre, new Vector3(1.3f, 1.2f, 3.4f), passage.rotation, ~0, QueryTriggerInteraction.Ignore))
+                if (!col.transform.IsChildOf(own) && !col.GetComponentInParent<CharacterController>()) return col;
+            return null;
         }
 
         IEnumerator Shot(string name)

@@ -32,6 +32,11 @@ namespace Hakaton.Dungeons.Unity
         public GameObject[] floors;
         public GameObject ramp;
         public GameObject ventCollar;
+        [Tooltip("Variants of the corner and the vault (the single fields above are used when these are empty).")]
+        public GameObject[] corners = new GameObject[0];
+        public GameObject[] vaults = new GameObject[0];
+        [Tooltip("Dark earth behind every cell's modules: what shows through any seam between them.")]
+        public Material backstop;
 
         [Header("Chambers")]
         public List<ChamberTemplate> chambers = new List<ChamberTemplate>();

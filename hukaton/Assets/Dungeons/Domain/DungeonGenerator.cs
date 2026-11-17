@@ -84,6 +84,23 @@ namespace Hakaton.Dungeons
                 if (shape.WayOut.HasValue) while (shape.WayOut.Value.side.Rotate(rot) != Dir.South) rot++;
                 var room = NewRoom(shape, new Cell(0, 0), rot, 0f, 0, true);
                 Commit(room);
+                if (shape.WayOut.HasValue)
+                {
+                    // The way out: a short straight dead-end passage behind a doorway, towards the south.
+                    var w = room.ToWorld(shape.WayOut.Value.cell);
+                    var side = room.ToWorld(shape.WayOut.Value.side);
+                    Plan.PassageMouth = (w, side);
+                    var prev = w;
+                    for (int i = 0; i < DungeonPlan.PassageLength; i++)
+                    {
+                        var c = prev.Step(side);
+                        Plan.Cells[c] = new CellInfo { Kind = CellKind.Passage, Room = -1, Floor = room.Floor, Rows = 1 };
+                        Plan.Open.Add(Edge.Of(prev, side));
+                        Plan.Passage.Add(c);
+                        prev = c;
+                    }
+                    Plan.Doorways.Add(Edge.Of(w, side));
+                }
                 return room;
             }
 

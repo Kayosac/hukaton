@@ -8,15 +8,24 @@ namespace Hakaton.WorldAssembly.Unity
 {
     /// <summary>
     /// The endless world's dungeons: each entrance's dungeon is built deep under it the first time the player goes in
-    /// (same scene, no loading — a short darkening hides the step down), kept as the player left it for the rest of the
-    /// outing (<see cref="Leave"/> only switches it off), and thrown away when the outing ends. While the player is
-    /// underground the air holds the <see cref="WorldAtmosphere.Burrow"/> mood: no sun, dark warm fog.
+    /// (same scene, no loading), kept as the player left it for the rest of the outing, and thrown away when the outing
+    /// ends. While the player is underground the air holds the <see cref="WorldAtmosphere.Burrow"/> mood.
+    /// <para>
+    /// The way between is walked, not jumped: the surface mound and the dungeon's entrance chamber each have the same
+    /// short dead-end passage (<see cref="DungeonBuilder.BuildPassage"/>). Walking into one, the screen darkens with
+    /// every step; at the dark end the player is moved into the other passage at the same depth, turned to its mouth,
+    /// and the screen lightens as they keep walking out. As if the two passages were one tunnel.
+    /// </para>
     /// </summary>
     [RequireComponent(typeof(WorldStreamer))]
     public sealed class DungeonSite : MonoBehaviour
     {
         [Tooltip("How far below the entrance the dungeon is laid, m (deeper than any ground the world has).")]
         [Min(20)] public float depth = 90f;
+        [Tooltip("Into a passage: the screen starts darkening this far from the mouth, m.")]
+        [Min(0)] public float darkFrom = 1.2f;
+        [Tooltip("...and is black this far in: here the player crosses to the other passage.")]
+        [Min(1)] public float darkAt = 6.3f;
         [Min(0)] public float fadeOut = .3f, fadeIn = .45f;
 
         WorldStreamer streamer;
@@ -24,13 +33,19 @@ namespace Hakaton.WorldAssembly.Unity
         readonly Dictionary<ChunkCoord, DungeonBuilder> built = new Dictionary<ChunkCoord, DungeonBuilder>();
         DungeonBuilder current;
         DungeonEntrance currentEntrance;
-        /// <summary>Where the player comes out (kept: the mound's chunk may unload while the player is below).</summary>
-        Pose outsidePose;
+        ChunkCoord currentCoord;
+        /// <summary>The surface passage's frame, kept: the mound's chunk may unload while the player is below.</summary>
+        Pose surfacePassage;
         bool moving;
+        /// <summary>After a crossing the player stands near the dark end: no crossing back until they step towards the mouth.</summary>
+        bool armed = true;
+        float darkness;
 
         public bool Underground => current;
         public DungeonBuilder Current => current;
         public bool CanEnter => !moving && !current && World && World.Running;
+        /// <summary>How dark the passage the player is in has made the screen (0 outside any).</summary>
+        public float Darkness => darkness;
         ExpeditionWorld World => streamer ? streamer.World : null;
         public Vector3 PlayerPosition => streamer && streamer.player ? streamer.player.position : Vector3.one * 1e6f;
 
@@ -42,60 +57,118 @@ namespace Hakaton.WorldAssembly.Unity
 
         void Update()
         {
-            if (!current || moving || !World || !World.Running) return;
-            var d = PlayerPosition - current.WayOut;
-            if (Mathf.Abs(d.y) < 2.5f && new Vector2(d.x, d.z).sqrMagnitude < 1.3f * 1.3f) Leave();
-        }
-
-        public void Enter(DungeonEntrance entrance)
-        {
-            if (!CanEnter) return;
-            StartCoroutine(Move(entrance, true));
-        }
-
-        public void Leave()
-        {
-            if (!current || moving) return;
-            StartCoroutine(Move(currentEntrance, false));
-        }
-
-        IEnumerator Move(DungeonEntrance entrance, bool down)
-        {
-            moving = true;
             var world = World;
-            world.thrower.Cancel();
-            world.control.SetBlocked(this, true);
-            if (world.fade) yield return world.fade.FadeTo(1, fadeOut);
-            if (down)
+            if (!world || !world.Running || moving) return;
+            var p = PlayerPosition;
+            float dark = 0;
+            if (current)
             {
-                current = Prepare(entrance);
-                currentEntrance = entrance;
-                outsidePose = entrance.outside ? new Pose(entrance.outside.position, entrance.outside.rotation) : new Pose(entrance.transform.position + entrance.transform.forward * 6, entrance.transform.rotation);
-                current.gameObject.SetActive(true);
-                Physics.SyncTransforms();
-                var pose = current.Arrival;
-                world.motor.Teleport(pose.position + Vector3.up * .1f, pose.rotation);
-                Air(current.kit, true);
+                if (current.Passage && Along(current.Passage, p, out float s)) dark = Walk(s, null);
             }
             else
             {
-                var dungeon = current;
-                current = null;
-                currentEntrance = null;
-                Air(dungeon.kit, false);
-                world.motor.Teleport(outsidePose.position + Vector3.up * .1f, outsidePose.rotation);
-                dungeon.gameObject.SetActive(false);
+                foreach (var e in DungeonEntrance.All)
+                    if (e && e.passage && Along(e.passage, p, out float s)) { dark = Walk(s, e); break; }
             }
-            yield return new WaitForSecondsRealtime(.15f);
-            world.control.SetBlocked(this, false);
-            if (world.fade) yield return world.fade.FadeTo(0, fadeIn);
-            moving = false;
+            Darken(dark);
+        }
+
+        /// <summary>How deep into a passage <paramref name="p"/> is, if it is inside one at all.</summary>
+        static bool Along(Transform passage, Vector3 p, out float s)
+        {
+            var local = passage.InverseTransformPoint(p);
+            s = local.z;
+            return Mathf.Abs(local.x) < 2.3f && local.y > -1f && local.y < 3.5f && s > -1f && s < DungeonBuilder.PassageDepth + .5f;
+        }
+
+        float Walk(float s, DungeonEntrance from)
+        {
+            if (s < darkAt - .5f) armed = true;
+            float dark = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(darkFrom, darkAt, s));
+            if (armed && s >= darkAt)
+            {
+                armed = false;
+                if (from) Down(from); else Up();
+                return 1;
+            }
+            return dark;
+        }
+
+        void Darken(float dark)
+        {
+            var fade = World ? World.fade : null;
+            if (!fade) return;
+            if (dark <= 0 && darkness <= 0) return;
+            darkness = dark;
+            fade.Set(dark, Color.black);
+        }
+
+        // ---------- crossing ----------
+
+        void Down(DungeonEntrance entrance)
+        {
+            var dungeon = Prepare(entrance);
+            if (!dungeon || !dungeon.Passage) return;
+            current = dungeon;
+            currentEntrance = entrance;
+            currentCoord = entrance.coord;
+            surfacePassage = new Pose(entrance.passage.position, entrance.passage.rotation);
+            dungeon.gameObject.SetActive(true);
+            Physics.SyncTransforms();
+            Air(dungeon.kit, true);
+            Cross(entrance.passage, dungeon.Passage.position, dungeon.Passage.rotation);
+        }
+
+        void Up()
+        {
+            var dungeon = current;
+            current = null;
+            Air(dungeon.kit, false);
+            // The mound's chunk may have gone while the player was below: have it (and the ground round it) back first.
+            var frame = Surface();
+            if (!frame)
+            {
+                streamer.StreamNow(surfacePassage.position, 9);
+                Physics.SyncTransforms();
+                frame = Surface();
+            }
+            if (frame) Cross(dungeon.Passage, frame.position, frame.rotation);
+            else Cross(dungeon.Passage, surfacePassage.position, surfacePassage.rotation);
+            dungeon.gameObject.SetActive(false);
+            currentEntrance = null;
+        }
+
+        Transform Surface()
+        {
+            if (currentEntrance && currentEntrance.passage) return currentEntrance.passage;
+            foreach (var e in DungeonEntrance.All)
+                if (e && e.coord.Equals(currentCoord) && e.passage) { currentEntrance = e; return e.passage; }
+            return null;
+        }
+
+        /// <summary>
+        /// Moves the player from one passage to the other as if the two were one tunnel joined at their dark ends:
+        /// the same depth in (a step short of the crossing), the same offset from the middle seen from the mouth's
+        /// side, and turned half round, so walking on leads out of the other passage's mouth.
+        /// </summary>
+        void Cross(Transform from, Vector3 toPosition, Quaternion toRotation)
+        {
+            var world = World;
+            var body = world.motor.transform;
+            var local = from.InverseTransformPoint(body.position);
+            var target = toPosition + toRotation * new Vector3(-local.x, local.y, darkAt - .25f);
+            float yaw = body.eulerAngles.y - from.eulerAngles.y + 180 + toRotation.eulerAngles.y;
+            float pitch = Camera.main ? Camera.main.transform.eulerAngles.x : 0;
+            world.thrower.Cancel();
+            world.motor.Teleport(target + Vector3.up * .05f, Quaternion.Euler(pitch, yaw, 0));
+            Physics.SyncTransforms();
         }
 
         DungeonBuilder Prepare(DungeonEntrance entrance)
         {
             if (built.TryGetValue(entrance.coord, out var b) && b) return b;
             var kit = streamer.content ? streamer.content.anthillKit : null;
+            if (!kit) return null;
             var go = new GameObject($"Dungeon {entrance.coord}");
             go.transform.SetParent(transform, false);
             // Under the mound, turned with it so the way in lies beneath the way down.
@@ -117,7 +190,8 @@ namespace Hakaton.WorldAssembly.Unity
 
         void Air(DungeonKit kit, bool underground)
         {
-            if (atmosphere) atmosphere.Hold(WorldAtmosphere.Burrow, underground ? 1 : 0);
+            // At once: the crossing happens in the dark, the mood must not be seen catching up.
+            if (atmosphere) atmosphere.Hold(WorldAtmosphere.Burrow, underground ? 1 : 0, true);
             // The open world's grade (teal split toning, heavy vignette) is made for daylight; underground it would bury
             // the lamplight, so it is mostly let go below.
             if (atmosphere && atmosphere.postProcess) atmosphere.postProcess.weight = underground ? (kit ? kit.postProcessWeight : .15f) : 1;
@@ -148,13 +222,16 @@ namespace Hakaton.WorldAssembly.Unity
             if (moving && World) World.control.SetBlocked(this, false);
             moving = false;
             if (current) Air(current.kit, false);
+            if (darkness > 0 && World && World.fade) World.fade.Set(0);
+            darkness = 0;
+            armed = true;
             current = null;
             currentEntrance = null;
             foreach (var b in built.Values) if (b) Destroy(b.gameObject);
             built.Clear();
         }
 
-        /// <summary>Debug (F1): fly to the entrance on chunk <paramref name="coord"/> and stand at its mouth.</summary>
+        /// <summary>Debug (F1): fly to the entrance on chunk <paramref name="coord"/> and stand before its mouth.</summary>
         public void GoTo(ChunkCoord coord, Vector3 roughly)
         {
             if (moving || current || !World) return;
@@ -172,8 +249,8 @@ namespace Hakaton.WorldAssembly.Unity
             DungeonEntrance found = null;
             for (float t = 0; t < 4 && !found; t += Time.unscaledDeltaTime)
             {
-                foreach (var e in FindObjectsByType<DungeonEntrance>(FindObjectsSortMode.None))
-                    if (e.coord.Equals(coord)) found = e;
+                foreach (var e in DungeonEntrance.All)
+                    if (e && e.coord.Equals(coord)) found = e;
                 if (!found) yield return null;
             }
             if (found && found.outside) world.motor.Teleport(found.outside.position + Vector3.up * .1f, found.outside.rotation);
@@ -197,7 +274,7 @@ namespace Hakaton.WorldAssembly.Unity
             {
                 sb.Append("Клетка ").Append(cell.X).Append(", ").Append(cell.Y).Append(": ");
                 if (info.Room >= 0) { var room = plan.Rooms[info.Room]; sb.Append(room.Shape.Role).Append(" (").Append(room.Shape.Id).Append("), этаж ").Append(room.Level + 1); }
-                else sb.Append(info.Kind == Hakaton.Dungeons.CellKind.Ramp ? "пандус" : "коридор");
+                else sb.Append(info.Kind == Hakaton.Dungeons.CellKind.Ramp ? "пандус" : info.Kind == Hakaton.Dungeons.CellKind.Passage ? "выход" : "коридор");
                 sb.Append(", пол ").Append(info.Floor.ToString("0")).Append(" м");
             }
             var cull = current.GetComponent<DungeonCulling>();
@@ -209,8 +286,9 @@ namespace Hakaton.WorldAssembly.Unity
         public DungeonEntrance Nearest(Vector3 from)
         {
             DungeonEntrance best = null; float bestD = float.MaxValue;
-            foreach (var e in FindObjectsByType<DungeonEntrance>(FindObjectsSortMode.None))
+            foreach (var e in DungeonEntrance.All)
             {
+                if (!e) continue;
                 float d = (e.transform.position - from).sqrMagnitude;
                 if (d < bestD) { bestD = d; best = e; }
             }

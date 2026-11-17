@@ -219,7 +219,7 @@ namespace Hakaton.Dungeons.EditorTools
             // The throat runs from the mouth (+Z, z 3.4) down into the heap to its dark end (z -1.4, 0.7 m down).
             var inside = new GameObject("Inside").transform; inside.SetParent(root.transform, false); inside.localPosition = new Vector3(.4f, -.6f, -.6f);
             var outside = new GameObject("Outside").transform; outside.SetParent(root.transform, false); outside.localPosition = new Vector3(.4f, 0, 5.8f);
-            entrance.inside = inside; entrance.outside = outside;
+            entrance.outside = outside;   // (the walk-in passage replaced the throat: AnthillRework.Entrance)
             string path = Dir0 + "/Anthill Entrance.prefab";
             var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);

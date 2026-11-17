@@ -24,8 +24,13 @@ namespace Hakaton.Dungeons.Unity
         public readonly Dictionary<Cell, Transform> CellGroups = new Dictionary<Cell, Transform>();
         /// <summary>Where the player appears coming down (entrance chamber's "Arrival" marker), facing in.</summary>
         public Pose Arrival { get; private set; }
-        /// <summary>Under the light slot at the entrance: walking here takes the player back up.</summary>
+        /// <summary>The middle of the way-out passage (fallback for code that only wants a spot near the way up).</summary>
         public Vector3 WayOut { get; private set; }
+        /// <summary>
+        /// The way-out passage's frame: origin on the floor in the middle of its mouth (the entrance chamber's doorway),
+        /// +Z running into the passage towards its dead end. The surface entrance has the same passage.
+        /// </summary>
+        public Transform Passage { get; private set; }
         /// <summary>Hand-placed markers of every chamber by name ("Spawn", "Reward", "Spawn Boss", "Exit"...).</summary>
         public readonly List<(int room, string name, Transform at)> Markers = new List<(int, string, Transform)>();
         NavMeshDataInstance navigation;
@@ -49,6 +54,7 @@ namespace Hakaton.Dungeons.Unity
             if (Built) Kill(Built.gameObject);
             Built = null;
             Plan = null;
+            Passage = null;
             Chambers.Clear();
             CellGroups.Clear();
             Markers.Clear();
@@ -67,7 +73,13 @@ namespace Hakaton.Dungeons.Unity
             Built.SetParent(transform, false);
             var dice = new Dice(dungeonSeed ^ 0x5bd1e995);
 
-            foreach (var kv in Plan.Cells) Shell(kv.Key, kv.Value, dice);
+            foreach (var kv in Plan.Cells)
+            {
+                if (kv.Value.Kind == CellKind.Passage) continue;
+                Shell(kv.Key, kv.Value, dice);
+                Backstop(kv.Key, kv.Value);
+            }
+            LayPassage(dungeonSeed);
             foreach (var room in Plan.Rooms) PlaceChamber(room);
             FindMarkers();
             DressCorridors(dice);
@@ -127,7 +139,7 @@ namespace Hakaton.Dungeons.Unity
             {
                 // The corner covers its south and west sides: (S, W) is rotation 0, then (W, N), (N, E), (E, S).
                 int rot = ((int)a - (int)Dir.South + 4) % 4;
-                for (int r = 0; r < rows; r++) Put(kit.corner, c, Vector3.zero, rot * 90f, h + r * RowHeight);
+                for (int r = 0; r < rows; r++) Put(Pick(kit.corners, dice) ?? kit.corner, c, Vector3.zero, rot * 90f, h + r * RowHeight);
             }
             foreach (var d in closed)
             {
@@ -153,7 +165,7 @@ namespace Hakaton.Dungeons.Unity
             {
                 // Span the vault across a corridor; rooms keep one direction.
                 bool alongX = info.Kind == CellKind.Room ? Plan.Cells[c].Room % 2 == 0 : CorridorRunsAlongX(c, info);
-                Put(kit.vault, c, Vector3.zero, alongX ? 90f : 0f, top);
+                Put(Pick(kit.vaults, dice) ?? kit.vault, c, Vector3.zero, alongX ? 90f : 0f, top);
             }
         }
 
@@ -250,13 +262,163 @@ namespace Hakaton.Dungeons.Unity
             var arrival = Markers.Find(m => m.room == entrance.Index && m.name == "Arrival").at;
             var inward = Built.rotation * Quaternion.Euler(0, DungeonGeometry.Yaw(Dir.North), 0);
             Arrival = arrival ? new Pose(arrival.position, inward) : new Pose(Built.TransformPoint(DungeonGeometry.Center(entrance.Cells[0], entrance.Floor)), inward);
-            var w = entrance.Shape.WayOut;
-            if (w.HasValue)
+            WayOut = Passage ? Passage.TransformPoint(new Vector3(0, 0, PassageDepth / 2)) : Arrival.position;
+        }
+
+        // ---------- the way-out passage ----------
+
+        /// <summary>How deep the passage runs from its mouth to the face of its end wall, m.</summary>
+        public const float PassageDepth = DungeonPlan.PassageLength * S - .45f;
+
+        void LayPassage(int dungeonSeed)
+        {
+            if (!Plan.PassageMouth.HasValue || Plan.Passage.Count == 0) return;
+            var (cell, side) = Plan.PassageMouth.Value;
+            var group = Group(Plan.Passage[0]);
+            foreach (var c in Plan.Passage) Group(c);
+            var frame = new GameObject("Passage").transform;
+            frame.SetParent(group, false);
+            frame.localPosition = DungeonGeometry.Center(cell, Plan.Cells[cell].Floor) + DungeonGeometry.Offset(side) * (S / 2) - group.localPosition;
+            frame.localRotation = Quaternion.Euler(0, DungeonGeometry.Yaw(side), 0);
+            BuildPassage(kit, frame, dungeonSeed);
+            Passage = frame;
+        }
+
+        /// <summary>
+        /// Lays the way-out passage in <paramref name="frame"/> (origin = middle of the mouth on the floor, +Z inwards):
+        /// <see cref="DungeonPlan.PassageLength"/> corridor cells ending in a wall, with its own backstop. The same
+        /// <paramref name="seed"/> lays the same passage, so the one under the surface mound and the one in the dungeon
+        /// look alike. No doorway frame: the dungeon's entrance chamber or the surface mound puts its own.
+        /// </summary>
+        public static void BuildPassage(DungeonKit kit, Transform frame, int seed)
+        {
+            var dice = new Dice(seed ^ 0x2c1b3c6d);
+            int n = DungeonPlan.PassageLength;
+            GameObject At(GameObject prefab, Vector3 pos, float yaw)
             {
-                var cell = entrance.ToWorld(w.Value.cell); var side = entrance.ToWorld(w.Value.side);
-                WayOut = Built.TransformPoint(DungeonGeometry.Center(cell, entrance.Floor) + DungeonGeometry.Offset(side) * 1.1f);
+                if (!prefab) return null;
+                var go = Instantiate(prefab, frame);
+                go.transform.localPosition = pos;
+                go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+                return go;
             }
-            else WayOut = Arrival.position;
+            for (int i = 0; i < n; i++)
+            {
+                float z = S / 2 + i * S;
+                if (kit.floors.Length > 0) At(kit.floors[dice.Range(0, kit.floors.Length)], new Vector3(0, -.15f, z), dice.Range(0, 4) * 90f);
+                bool last = i == n - 1;
+                // The dead end's far wall and east side make one corner piece (as the dungeon shell lays them).
+                if (last) At(Pick(kit.corners, dice) ?? kit.corner, new Vector3(0, 0, z), 180f);
+                else At(Pick(kit.walls, dice), new Vector3(S / 2, 0, z), 270f);
+                At(Pick(kit.walls, dice), new Vector3(-S / 2, 0, z), 90f);
+                At(Pick(kit.vaults, dice) ?? kit.vault, new Vector3(0, RowHeight, z), 0f);
+            }
+            // Backstop: a dark earth box round the passage, closing the arch above the mouth too.
+            var mesh = new BoxMesh();
+            float depth = n * S, top = RowHeight + Ceiling, bottom = -Under;
+            mesh.Quad(new Vector3(-Reach, top, 0), new Vector3(Reach, top, 0), new Vector3(Reach, top, depth + .45f), new Vector3(-Reach, top, depth + .45f), Vector3.down);
+            mesh.Quad(new Vector3(-Reach, bottom, 0), new Vector3(Reach, bottom, 0), new Vector3(Reach, bottom, depth + .45f), new Vector3(-Reach, bottom, depth + .45f), Vector3.up);
+            mesh.Quad(new Vector3(Reach, bottom, 0), new Vector3(Reach, top, 0), new Vector3(Reach, top, depth + .45f), new Vector3(Reach, bottom, depth + .45f), Vector3.left);
+            mesh.Quad(new Vector3(-Reach, bottom, 0), new Vector3(-Reach, top, 0), new Vector3(-Reach, top, depth + .45f), new Vector3(-Reach, bottom, depth + .45f), Vector3.right);
+            mesh.Quad(new Vector3(-Reach, bottom, depth + .45f), new Vector3(Reach, bottom, depth + .45f), new Vector3(Reach, top, depth + .45f), new Vector3(-Reach, top, depth + .45f), Vector3.back);
+            mesh.Quad(new Vector3(-Reach, RowHeight + .45f, 0), new Vector3(Reach, RowHeight + .45f, 0), new Vector3(Reach, top, 0), new Vector3(-Reach, top, 0), Vector3.forward);
+            mesh.Make(frame, kit.backstop, "Backstop");
+        }
+
+        static GameObject Pick(GameObject[] options, Dice dice)
+        {
+            if (options == null || options.Length == 0) return null;
+            return options[dice.Range(0, options.Length)];
+        }
+
+        // ---------- backstop ----------
+
+        /// <summary>The backstop's walls stand this far from the cell's middle (just behind the wall modules).</summary>
+        const float Reach = S / 2 + .45f;
+        /// <summary>Above the wall tops (the vault is 2.5 m tall) and below the floor slabs.</summary>
+        const float Ceiling = 2.75f, Under = .6f, VentShaft = 6f;
+
+        /// <summary>
+        /// A dark earth box behind the modules of one cell: wherever two modules do not quite meet (vault ends, steps
+        /// down a ramp, the crooked joins), the eye finds earth instead of the void. Six quads at most, no colliders.
+        /// </summary>
+        void Backstop(Cell c, CellInfo info)
+        {
+            if (!kit.backstop) return;
+            var (bottom, top) = Span(c, info);
+            var mesh = new BoxMesh();
+            mesh.Quad(new Vector3(-Reach, top, -Reach), new Vector3(Reach, top, -Reach), new Vector3(Reach, top, Reach), new Vector3(-Reach, top, Reach), Vector3.down);
+            mesh.Quad(new Vector3(-Reach, bottom, -Reach), new Vector3(Reach, bottom, -Reach), new Vector3(Reach, bottom, Reach), new Vector3(-Reach, bottom, Reach), Vector3.up);
+            foreach (var d in Dirs.All)
+            {
+                var out_ = DungeonGeometry.Offset(d);
+                var along = DungeonGeometry.Offset(d.Right());
+                if (!Plan.IsOpen(c, d))
+                {
+                    Side(mesh, out_ * Reach, along, bottom, top, -out_);
+                    continue;
+                }
+                var n = c.Step(d);
+                if (!Plan.Cells.TryGetValue(n, out var ni)) continue;
+                var (nb, nt) = Span(n, ni);
+                // Steps between neighbours of different height: close the part of the edge the other cell does not see.
+                if (nb > bottom) Side(mesh, out_ * (S / 2), along, bottom, nb, -out_);
+                if (nt < top) Side(mesh, out_ * (S / 2), along, nt, top, -out_);
+            }
+            mesh.Make(Group(c), kit.backstop, "Backstop");
+        }
+
+        static void Side(BoxMesh mesh, Vector3 at, Vector3 along, float y0, float y1, Vector3 facing)
+        {
+            var a = at - along * Reach; var b = at + along * Reach;
+            mesh.Quad(new Vector3(a.x, y0, a.z), new Vector3(b.x, y0, b.z), new Vector3(b.x, y1, b.z), new Vector3(a.x, y1, a.z), facing);
+        }
+
+        (float bottom, float top) Span(Cell c, CellInfo info)
+        {
+            float h = info.Floor;
+            int rows = Mathf.Max(1, info.Rows);
+            float top = h + rows * RowHeight + Ceiling;
+            if (info.Kind == CellKind.Room && IsVent(c)) top += VentShaft;
+            return (h - Under, top);
+        }
+
+        /// <summary>A few quads in one mesh, each turned to face a given way; earth UVs in metres (2 m tile).</summary>
+        sealed class BoxMesh
+        {
+            readonly List<Vector3> v = new List<Vector3>();
+            readonly List<Vector3> nrm = new List<Vector3>();
+            readonly List<Vector2> uv = new List<Vector2>();
+            readonly List<int> t = new List<int>();
+
+            public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 facing)
+            {
+                int i = v.Count;
+                foreach (var p in new[] { a, b, c, d })
+                {
+                    v.Add(p); nrm.Add(facing);
+                    // Project onto the quad's own plane: horizontal ones by x/z, upright ones by their run and height.
+                    uv.Add(Mathf.Abs(facing.y) > .5f ? new Vector2(p.x, p.z) / 2f : new Vector2(Mathf.Abs(facing.x) > .5f ? p.z : p.x, p.y) / 2f);
+                }
+                // Unity draws a triangle's clockwise side: (a, b, c) faces along Cross(b - a, c - a).
+                bool along = Vector3.Dot(Vector3.Cross(b - a, c - a), facing) > 0;
+                if (along) { t.Add(i); t.Add(i + 1); t.Add(i + 2); t.Add(i); t.Add(i + 2); t.Add(i + 3); }
+                else { t.Add(i); t.Add(i + 2); t.Add(i + 1); t.Add(i); t.Add(i + 3); t.Add(i + 2); }
+            }
+
+            public void Make(Transform parent, Material material, string name)
+            {
+                if (v.Count == 0 || !material) return;
+                var m = new Mesh { name = name };
+                m.SetVertices(v); m.SetNormals(nrm); m.SetUVs(0, uv); m.SetTriangles(t, 0);
+                m.RecalculateBounds();
+                var go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+                go.AddComponent<MeshFilter>().sharedMesh = m;
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = material;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
         }
 
         // ---------- navigation ----------

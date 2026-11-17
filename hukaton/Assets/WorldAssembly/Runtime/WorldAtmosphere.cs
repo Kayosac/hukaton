@@ -91,6 +91,15 @@ namespace Hakaton.WorldAssembly.Unity
         /// <summary>Holds a mood at <paramref name="k"/> from outside (SwampLife's fog banks) until it says otherwise.</summary>
         public void Hold(string mood, float k) => held[mood] = k;
 
+        /// <summary>As <see cref="Hold(string, float)"/>; <paramref name="atOnce"/>: the air is there next frame, no settling (a step made in the dark).</summary>
+        public void Hold(string mood, float k, bool atOnce)
+        {
+            held[mood] = k;
+            if (atOnce) snap = true;
+        }
+
+        bool snap;
+
         public List<Mood> moods = new List<Mood>
         {
             new Mood(Water, 1.3f, new Color(.56f, .69f, .76f), .25f, .95f, 1),
@@ -165,7 +174,8 @@ namespace Hakaton.WorldAssembly.Unity
             }
             if (!active) return;
             Sense();
-            float ease = 1 - Mathf.Exp(-Time.deltaTime / settle);
+            float ease = snap ? 1 : 1 - Mathf.Exp(-Time.deltaTime / settle);
+            snap = false;
             foreach (var mood in moods)
             {
                 target.TryGetValue(mood.name, out float want);
