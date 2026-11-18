@@ -124,6 +124,33 @@ namespace Hakaton.Dungeons.Tests
         }
 
         [Test]
+        public void StashesAreStraightDeadEndsBehindADoorway()
+        {
+            int total = 0;
+            foreach (int seed in Seeds)
+            {
+                var plan = DungeonGenerator.Generate(seed, Recipe());
+                foreach (var stash in plan.Stashes)
+                {
+                    total++;
+                    Assert.IsTrue(plan.IsDoorway(stash.Room, stash.Side), "seed " + seed);
+                    Assert.AreNotEqual(plan.Entrance.Index, plan.Cells[stash.Room].Room, "seed " + seed);
+                    var at = stash.Room;
+                    foreach (var c in stash.Cells)
+                    {
+                        at = at.Step(stash.Side);
+                        Assert.AreEqual(at, c, $"seed {seed}: straight");
+                        Assert.AreEqual(CellKind.Corridor, plan.Cells[c].Kind);
+                        foreach (var d in Dirs.All)
+                            if (d != stash.Side && d != stash.Side.Opposite()) Assert.IsFalse(plan.IsOpen(c, d), $"seed {seed}: side opening at {c}");
+                    }
+                    Assert.IsFalse(plan.IsOpen(at, stash.Side), $"seed {seed}: the stash ends in a wall");
+                }
+            }
+            Assert.Greater(total, 150, "most dungeons have a stash or two");
+        }
+
+        [Test]
         public void LargeDungeonsEndWithTheQueenOnTheDeepestLevel()
         {
             int large = 0;

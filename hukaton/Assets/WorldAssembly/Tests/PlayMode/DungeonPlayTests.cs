@@ -6,6 +6,8 @@ using System.Linq;
 using Hakaton.Dungeons;
 using Hakaton.Dungeons.Unity;
 using Hakaton.Expeditions;
+using Hakaton.Expeditions.Cards;
+using Hakaton.Decks.Unity;
 using Hakaton.Game;
 using Hakaton.WorldAssembly.Unity;
 using NUnit.Framework;
@@ -69,7 +71,7 @@ namespace Hakaton.WorldAssembly.Tests
         {
             var site = streamer.Dungeons;
             // The anthill's garrison fights back; the photographer must live to the end.
-            world.vitals.Immortal = true;
+            Invulnerable(true);
             string note = streamer.GoToNearestDungeon();
             Debug.Log("[Dungeon] " + note);
             Assert.That(note, Does.StartWith("Иду"), note);
@@ -124,6 +126,7 @@ namespace Hakaton.WorldAssembly.Tests
             Debug.Log("[Dungeon] chests: " + string.Join(", ", chests.Select(c => c.name)));
             Assert.That(chests.Count(c => c.tier && c.tier.displayName == "Сундук муравейника"), Is.EqualTo(1), "one prize chest");
             yield return Hazards(site, dungeon);
+            yield return Stashes(site, dungeon);
             Assert.That(site.Underground, Is.True);
             yield return new WaitForSeconds(2f);
             yield return Shot("03-entrance-chamber");
@@ -169,8 +172,11 @@ namespace Hakaton.WorldAssembly.Tests
                 // The prize under the way up: a rare curio is always in it.
                 var prize = site.Chests.First(c => c.tier.displayName == "Сундук муравейника");
                 var lootBefore = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
-                // Opened from afar, so the player does not pick the loot up before it is counted.
-                Stand(dungeon.Passage, -1, 180);
+                // Opened from the middle of the chamber (in sight, so the chest is drawn and its lid moves), not so near
+                // that the player picks the loot up before it is counted.
+                var middle = dungeon.Markers.First(m => m.name == "Spawn Boss").at.position;
+                world.motor.Teleport(middle + Vector3.up * .1f, Quaternion.LookRotation(Flat(prize.transform.position - middle)));
+                yield return new WaitForSeconds(.3f);
                 Assert.That(prize.Open(), Is.True);
                 yield return new WaitForSeconds(3f);
                 var poured = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Where(l => !lootBefore.Contains(l) && l.item).ToList();
@@ -218,7 +224,7 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(site.Current, Is.SameAs(dungeon), "the dungeon is kept as it was left");
             Assert.That(site.Creatures.Length, Is.GreaterThan(0));
             Assert.That(site.Creatures.All(c => world.creatures.Contains(c)), Is.True, "and its creatures are awake again");
-            world.vitals.Immortal = false;
+            Invulnerable(false);
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
@@ -245,11 +251,11 @@ namespace Hakaton.WorldAssembly.Tests
                     world.motor.Teleport(view + Vector3.up * .1f, Quaternion.LookRotation((puddle.position - view).normalized + Vector3.down * .5f));
                     yield return new WaitForSeconds(.6f);
                     yield return Shot($"20-acid-level{level}");
-                    world.vitals.Immortal = false;
+                    Invulnerable(false);
                     world.motor.Teleport(puddle.position + Vector3.up * .1f, Quaternion.identity);
                     yield return new WaitForSeconds(.4f);
                     Assert.That(world.statuses.Has(PlayerStatusKind.Poison), Is.True, "standing in acid poisons");
-                    world.vitals.Immortal = true;
+                    Invulnerable(true);
                 }
                 else if (modifier == DungeonHazards.Modifier.Collapse)
                 {
@@ -280,6 +286,55 @@ namespace Hakaton.WorldAssembly.Tests
             }
         }
 
+        /// <summary>Hidden stashes: each shut by a lock only its card opens (roots: Fire, rubble: Сквозняк), a chest behind.</summary>
+        IEnumerator Stashes(DungeonSite site, DungeonBuilder dungeon)
+        {
+            var plan = dungeon.Plan;
+            Debug.Log($"[Dungeon] stashes: {plan.Stashes.Count}, locks: " + string.Join(", ", site.StashLocks.Select(l => l.name)));
+            Assert.That(plan.Stashes.Count, Is.GreaterThan(0), "this dungeon has a hidden stash");
+            Assert.That(site.StashLocks.Length, Is.EqualTo(plan.Stashes.Count), "every stash is locked");
+            int i = 0;
+            foreach (var lockPart in site.StashLocks)
+            {
+                var t = lockPart.transform;
+                var before = t.position - t.forward * 3.4f;
+                world.motor.Teleport(before + Vector3.up * .1f, Quaternion.LookRotation(t.forward));
+                yield return new WaitForSeconds(.6f);
+                yield return Shot($"30-stash{i}-{lockPart.GetType().Name}");
+                var eye = t.position - t.forward * 1.5f + Vector3.up * 1.3f;
+                Assert.That(Physics.Raycast(eye, t.forward, 4f, ~0, QueryTriggerInteraction.Ignore), Is.True, "the lock shuts the way");
+                if (lockPart is WorldObstacle roots) Assert.That(roots.React(CardAction.Fire, t.position + Vector3.up), Is.True, "Fire burns the roots");
+                else if (lockPart is RubblePlug plug) plug.Blow(t.forward);
+                yield return new WaitForSeconds(2.2f);
+                yield return Shot($"31-stash{i}-open");
+                bool blocked = Physics.Raycast(eye, t.forward, out var stillHit, 2.4f, ~0, QueryTriggerInteraction.Ignore);
+                if (blocked) Debug.Log($"[Dungeon] still blocked by {stillHit.collider.name} ({stillHit.collider.transform.parent?.name}) at {stillHit.distance:0.00}, intact active {(lockPart is WorldObstacle w && w.intact ? w.intact.activeInHierarchy : false)}");
+                Assert.That(blocked, Is.False, "opened: the way is free");
+                i++;
+            }
+            Assert.That(site.Chests.Count(c => c.name.StartsWith("Chest 4 Rich")), Is.EqualTo(plan.Stashes.Count), "a chest in every stash");
+            // Both locks get looked at: a rubble plug where this dungeon has none, laid in the first (now open) stash.
+            if (!site.StashLocks.Any(l => l is RubblePlug))
+            {
+                var spot = site.StashLocks[0].transform;
+                var prefab = dungeon.kit.stashLocks.First(l => l && l.GetComponent<RubblePlug>());
+                var plug = Object.Instantiate(prefab, spot.position, spot.rotation, spot.parent).GetComponent<RubblePlug>();
+                plug.Init(world, dungeon.kit.debris, dungeon.kit.collapseDust);
+                Physics.SyncTransforms();
+                world.motor.Teleport(spot.position - spot.forward * 3.4f + Vector3.up * .1f, Quaternion.LookRotation(spot.forward));
+                yield return new WaitForSeconds(.6f);
+                yield return Shot("32-stash-RubblePlug");
+                var eye = spot.position - spot.forward * 1.5f + Vector3.up * 1.3f;
+                Assert.That(Physics.Raycast(eye, spot.forward, 4f, ~0, QueryTriggerInteraction.Ignore), Is.True, "the rubble shuts the way");
+                plug.Blow(spot.forward);
+                yield return new WaitForSeconds(.4f);
+                yield return Shot("33-stash-RubblePlug-blown");
+                yield return new WaitForSeconds(2f);
+                Assert.That(plug.Cleared, Is.True);
+                Assert.That(plug.barrier.enabled, Is.False, "blown away: the way is free");
+            }
+        }
+
         /// <summary>A spot up to <paramref name="far"/> m from <paramref name="from"/> with nothing solid between (to look back at it).</summary>
         static Vector3 Clear(Vector3 from, float far)
         {
@@ -291,6 +346,13 @@ namespace Hakaton.WorldAssembly.Tests
                 if (room > bestRoom && NavMesh.SamplePosition(from + dir * room, out var nav, 1f, NavMesh.AllAreas)) { bestRoom = room; best = nav.position; }
             }
             return best;
+        }
+
+        /// <summary>The cheat menu's invulnerability (it keeps the vitals' flag in step every frame, so set it there).</summary>
+        static void Invulnerable(bool on)
+        {
+            var cheats = Object.FindAnyObjectByType<CheatPowers>();
+            if (cheats) cheats.SetInvulnerable(on);
         }
 
         /// <summary>Puts the player <paramref name="s"/> m into a passage, facing in (0) or out (180).</summary>

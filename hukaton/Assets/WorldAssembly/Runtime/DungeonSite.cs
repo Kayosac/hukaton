@@ -304,6 +304,59 @@ namespace Hakaton.WorldAssembly.Unity
                     }
                 }
             Reward(dungeon, root, random);
+            Stashes(dungeon, root, random);
+        }
+
+        /// <summary>
+        /// Hidden stashes (<see cref="Hakaton.Dungeons.DungeonPlan.Stashes"/>): a lock only a card opens across the first
+        /// cell (one of <see cref="DungeonKit.stashLocks"/>: roots Fire burns, rubble Сквозняк blows away) and a chest at
+        /// the dead end.
+        /// </summary>
+        void Stashes(DungeonBuilder dungeon, Transform root, System.Random random)
+        {
+            var kit = dungeon.kit;
+            const float S = Hakaton.Dungeons.DungeonPlan.CellSize;
+            foreach (var stash in dungeon.Plan.Stashes)
+            {
+                var info = dungeon.Plan.Cells[stash.Room];
+                var turn = dungeon.Built.rotation * Quaternion.Euler(0, DungeonGeometry.Yaw(stash.Side), 0);
+                var mouth = dungeon.Built.TransformPoint(DungeonGeometry.Center(stash.Room, info.Floor) + DungeonGeometry.Offset(stash.Side) * (S / 2));
+                if (kit.stashLocks != null && kit.stashLocks.Length > 0)
+                {
+                    var prefab = kit.stashLocks[random.Next(kit.stashLocks.Length)];
+                    if (prefab)
+                    {
+                        var lockGo = Instantiate(prefab, mouth + turn * Vector3.forward * 1.4f, turn, root);
+                        lockGo.name = prefab.name;
+                        if (lockGo.TryGetComponent(out WorldObstacle thicket))
+                        {
+                            thicket.world = World;
+                            thicket.ResetForOuting();
+                            World.obstacles.Add(thicket);
+                            if (streamer.fire) streamer.fire.JoinThorns(thicket);
+                        }
+                        if (lockGo.TryGetComponent(out RubblePlug plug)) plug.Init(World, kit.debris, kit.collapseDust);
+                    }
+                }
+                var end = stash.Cells[stash.Cells.Count - 1];
+                var at = dungeon.Built.TransformPoint(DungeonGeometry.Center(end, info.Floor)) + turn * Vector3.forward * .6f;
+                // Its lock (−Z) towards the way in.
+                Chest(kit.stashChest, at, turn, root);
+            }
+        }
+
+        /// <summary>The locks of the dungeon the player is in, nearest first (debug, tests).</summary>
+        public Component[] StashLocks
+        {
+            get
+            {
+                var root = current ? current.transform.Find(CreaturesName) : null;
+                if (!root) return new Component[0];
+                var list = new List<Component>();
+                list.AddRange(root.GetComponentsInChildren<WorldObstacle>(true));
+                list.AddRange(root.GetComponentsInChildren<RubblePlug>(true));
+                return list.ToArray();
+            }
         }
 
         /// <summary>

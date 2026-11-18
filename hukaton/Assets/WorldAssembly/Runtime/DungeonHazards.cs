@@ -286,7 +286,7 @@ namespace Hakaton.WorldAssembly.Unity
                     var source = kit.debris.transform.GetChild(Random.Range(0, kit.debris.transform.childCount));
                     var chunk = Instantiate(source.gameObject, above + new Vector3(Random.Range(-.7f, .7f), Random.Range(-.3f, 0), Random.Range(-.7f, .7f)), Random.rotation, root);
                     chunk.name = "Fallen " + source.name;
-                    foreach (var col in chunk.GetComponentsInChildren<Collider>()) Destroy(col);
+                    foreach (var col in chunk.GetComponentsInChildren<Collider>()) DestroyImmediate(col);
                     var mesh = chunk.GetComponentInChildren<MeshFilter>();
                     if (mesh)
                     {

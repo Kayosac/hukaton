@@ -211,6 +211,74 @@ namespace Hakaton.Dungeons.EditorTools
             return $"acid {kit.acidPuddles.Length} rubble {kit.rubble.Length} debris {(kit.debris ? kit.debris.transform.childCount : 0)} dust {(kit.collapseDust ? "ok" : "none")}";
         }
 
+        static GameObject Place(GameObject prefab, Transform parent, Vector3 at, float yaw, float scale = 1)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.transform.localPosition = at;
+            go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+            go.transform.localScale = Vector3.one * scale;
+            return go;
+        }
+
+        /// <summary>
+        /// Stash locks from the approved anthill models only: a root curtain (Fire burns it, like the world's thickets)
+        /// and a rubble plug (Сквозняк blows it away); the stash chest.
+        /// </summary>
+        static string StashLocks(string arg)
+        {
+            const string RootsPath = "Assets/Dungeons/Anthill/Anthill Root Curtain.prefab";
+            const string PlugPath = "Assets/Dungeons/Anthill/Anthill Rubble Plug.prefab";
+            // Thicket feedback (flames, sounds, tint) as the world's deadfall thickets have it.
+            var thicketSource = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/WorldAssembly/Chunks/maze-bend/maze-bend forest-deadfall.prefab")
+                .GetComponentsInChildren<WorldObstacle>(true).First(o => o.kind == ObstacleKind.Thorns);
+
+            // Root curtain: a thick root grown across the way with wall roots either side.
+            var roots = new GameObject("Anthill Root Curtain");
+            var intact = new GameObject("Roots").transform; intact.SetParent(roots.transform, false);
+            Place(P("Roots", "AN11_RootPillar"), intact, new Vector3(0, -.2f, .15f), 90, .9f);
+            Place(P("Roots", "AN12_WallRoot"), intact, new Vector3(-1.05f, 0, -.15f), 180, 1.05f);
+            Place(P("Roots", "AN12_WallRoot"), intact, new Vector3(1.05f, 0, -.05f), 160, .95f);
+            var rootBox = intact.gameObject.AddComponent<BoxCollider>();
+            rootBox.center = new Vector3(0, 1.8f, 0); rootBox.size = new Vector3(2.9f, 3.6f, .9f);
+            var burnt = new GameObject("Burnt").transform; burnt.SetParent(roots.transform, false);
+            var stub = Place(P("Roots", "AN12_WallRoot"), burnt, new Vector3(-1.2f, -.1f, .2f), 200, .45f);
+            var stub2 = Place(P("Roots", "AN12_WallRoot"), burnt, new Vector3(1.1f, -.1f, .1f), 150, .4f);
+            foreach (var c in burnt.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            burnt.gameObject.SetActive(false);
+            var thicket = roots.AddComponent<WorldObstacle>();
+            thicket.kind = ObstacleKind.Thorns;
+            thicket.barrier = rootBox;
+            thicket.intact = intact.gameObject;
+            thicket.changed = burnt.gameObject;
+            thicket.reactVfx = thicketSource.reactVfx; thicket.loopVfx = thicketSource.loopVfx;
+            thicket.reactSound = thicketSource.reactSound; thicket.loopSound = thicketSource.loopSound;
+            thicket.transformSeconds = thicketSource.transformSeconds; thicket.tint = thicketSource.tint;
+            PrefabUtility.SaveAsPrefabAsset(roots, RootsPath);
+            Object.DestroyImmediate(roots);
+
+            // Rubble plug: one big heap from wall to wall, its slope towards the way in, smaller ones at its feet.
+            var plug = new GameObject("Anthill Rubble Plug");
+            var heap = new GameObject("Heap").transform; heap.SetParent(plug.transform, false);
+            Place(P("Hazards", "AN42_Rubble"), heap, new Vector3(0, 0, .9f), 180, 2.05f);
+            Place(P("Hazards", "AN42_Rubble_B"), heap, new Vector3(-1.4f, 0, -.2f), 115, 1f);
+            Place(P("Hazards", "AN42_Rubble_C"), heap, new Vector3(1.35f, 0, -.1f), 250, 1.1f);
+            var plugBox = heap.gameObject.AddComponent<BoxCollider>();
+            plugBox.center = new Vector3(0, 1.5f, .5f); plugBox.size = new Vector3(2.9f, 3f, 1.2f);
+            var rubble = plug.AddComponent<RubblePlug>();
+            rubble.intact = heap.gameObject;
+            rubble.barrier = plugBox;
+            PrefabUtility.SaveAsPrefabAsset(plug, PlugPath);
+            Object.DestroyImmediate(plug);
+
+            var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
+            kit.stashLocks = new[] { AssetDatabase.LoadAssetAtPath<GameObject>(RootsPath), AssetDatabase.LoadAssetAtPath<GameObject>(PlugPath) };
+            kit.stashChest = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Expedition/Prefabs/Chests/Chest 4 Rich.prefab");
+            kit.stashes = new Vector2Int(1, 2);
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            return $"locks {kit.stashLocks.Count(l => l)} chest {(kit.stashChest ? kit.stashChest.name : "none")}";
+        }
+
         static string Entrance(string arg)
         {
             var root = PrefabUtility.LoadPrefabContents(EntrancePath);

@@ -21,6 +21,10 @@ namespace Hakaton.Dungeons
         public int CorridorMin = 2, CorridorMax = 6;
         /// <summary>Ramp cells (1 m each) between levels.</summary>
         public int LevelDrop = 6;
+        /// <summary>Hidden stashes per dungeon: from and to (fewer when no chamber has a free door).</summary>
+        public int StashMin = 1, StashMax = 2;
+        /// <summary>Cells in a stash's corridor.</summary>
+        public int StashLength = 2;
         /// <summary>Chance per corridor step to turn (never on a ramp).</summary>
         public double TurnChance = 0.3;
 
@@ -141,6 +145,45 @@ namespace Hakaton.Dungeons
                     }
                 }
                 return null;
+            }
+
+            /// <summary>A straight dead-end stash off a free door of <paramref name="from"/>; false if none fits.</summary>
+            public bool TryStash(PlacedRoom from)
+            {
+                var doors = Enumerable.Range(0, from.Doors.Count).Where(i => !from.UsedDoors.Contains(i)).ToList();
+                Dice.Shuffle(doors);
+                foreach (int di in doors)
+                {
+                    var (doorCell, side) = from.Doors[di];
+                    temp.Clear();
+                    var cells = new List<Cell>();
+                    var prev = doorCell;
+                    bool ok = true;
+                    for (int i = 0; i < Recipe.StashLength && ok; i++)
+                    {
+                        var next = prev.Step(side);
+                        if (!Free(next, prev)) ok = false;
+                        else { temp.Add(next); cells.Add(next); prev = next; }
+                    }
+                    temp.Clear();
+                    if (!ok) continue;
+                    from.UsedDoors.Add(di);
+                    var stash = new Stash { Room = doorCell, Side = side };
+                    Plan.Open.Add(Edge.Of(doorCell, side));
+                    Plan.Doorways.Add(Edge.Of(doorCell, side));
+                    prev = doorCell;
+                    foreach (var c in cells)
+                    {
+                        Plan.Cells[c] = new CellInfo { Kind = CellKind.Corridor, Room = -1, Floor = from.Floor, Rows = 1 };
+                        Plan.CorridorCells.Add(c);
+                        if (!prev.Equals(doorCell)) Plan.Open.Add(Edge.Of(prev, side));
+                        stash.Cells.Add(c);
+                        prev = c;
+                    }
+                    Plan.Stashes.Add(stash);
+                    return true;
+                }
+                return false;
             }
 
             PlacedRoom TryCorridorAndRoom(PlacedRoom from, int doorIndex, RoomShape shape, int drop, bool main)
@@ -274,6 +317,16 @@ namespace Hakaton.Dungeons
                 dice.Shuffle(hosts);
                 foreach (var host in hosts)
                     if (b.Extend(host, role, 0, main: false) != null) break;
+            }
+
+            // Hidden stashes off any chamber but the entrance with a door to spare.
+            int stashes = dice.Range(recipe.StashMin, recipe.StashMax + 1);
+            for (int s = 0; s < stashes; s++)
+            {
+                var hosts = plan.Rooms.Where(r => r != plan.Entrance && r.UsedDoors.Count < r.Doors.Count).ToList();
+                dice.Shuffle(hosts);
+                foreach (var host in hosts)
+                    if (b.TryStash(host)) break;
             }
             return plan;
         }

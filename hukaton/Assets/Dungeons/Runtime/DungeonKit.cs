@@ -104,6 +104,12 @@ namespace Hakaton.Dungeons.Unity
         [Tooltip("Dust before and on a fall (a VfxBurst prefab).")]
         public GameObject collapseDust;
 
+        [Header("Hidden stashes")]
+        [Tooltip("What closes a stash, one picked per stash: prefabs that a card opens (a root curtain Fire burns, a rubble plug Сквозняк blows away). Laid across the stash's first cell, +Z into the stash.")]
+        public GameObject[] stashLocks = new GameObject[0];
+        [Tooltip("The chest at a stash's dead end.")]
+        public GameObject stashChest;
+
         [Header("The way out")]
         [Tooltip("Transparent black (alpha blended, back faces culled): veils in the surface passage that make its dead end read as depth.")]
         public Material passageDark;
@@ -128,6 +134,8 @@ namespace Hakaton.Dungeons.Unity
         [Min(1)] public int corridorMax = 6;
         [Min(1)] public int levelDrop = 6;
         [Range(0, 1)] public float turnChance = .3f;
+        [Tooltip("Hidden stashes per dungeon: from and to.")]
+        public Vector2Int stashes = new Vector2Int(1, 2);
 
         public DungeonRecipe Recipe()
         {
@@ -140,6 +148,8 @@ namespace Hakaton.Dungeons.Unity
                 CorridorMax = Mathf.Max(corridorMin, corridorMax),
                 LevelDrop = levelDrop,
                 TurnChance = turnChance,
+                StashMin = Mathf.Max(0, Mathf.Min(stashes.x, stashes.y)),
+                StashMax = Mathf.Max(stashes.x, stashes.y),
             };
             foreach (var c in chambers) if (c) recipe.Shapes.Add(c.ToShape());
             return recipe;

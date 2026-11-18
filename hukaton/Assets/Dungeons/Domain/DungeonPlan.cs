@@ -41,6 +41,19 @@ namespace Hakaton.Dungeons
     }
 
     /// <summary>Passage: the short dark tunnel behind the entrance chamber's way out (the way back to the surface).</summary>
+    /// <summary>
+    /// A hidden side pocket: a short dead-end corridor off a chamber's free door, closed by something only a card opens
+    /// (the game picks what), with a chest at its end. Never on the main way.
+    /// </summary>
+    public sealed class Stash
+    {
+        /// <summary>The chamber cell and the side the stash leaves through.</summary>
+        public Cell Room;
+        public Dir Side;
+        /// <summary>Its corridor cells, from the chamber outwards; the last one is the dead end.</summary>
+        public readonly List<Cell> Cells = new List<Cell>();
+    }
+
     public enum CellKind { Room = 0, Corridor = 1, Ramp = 2, Passage = 3 }
 
     public struct CellInfo
@@ -79,6 +92,8 @@ namespace Hakaton.Dungeons
         public readonly List<Cell> Passage = new List<Cell>();
         /// <summary>The entrance chamber's cell and side the passage leaves through (a doorway).</summary>
         public (Cell cell, Dir side)? PassageMouth;
+        /// <summary>Hidden side pockets (see <see cref="Stash"/>).</summary>
+        public readonly List<Stash> Stashes = new List<Stash>();
         /// <summary>Cells in the way-out passage.</summary>
         public const int PassageLength = 2;
 
