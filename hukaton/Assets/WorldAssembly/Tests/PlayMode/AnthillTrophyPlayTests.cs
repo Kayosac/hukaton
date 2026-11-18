@@ -117,7 +117,8 @@ namespace Hakaton.WorldAssembly.Tests
             var chests = site.Chests;
             var prize = chests.First(c => c.tier && c.tier.displayName == "Сундук муравейника");
             Assert.That(prize.tier.rank, Is.EqualTo(5));
-            Assert.That(prize.tier.bonus.entries.Select(e => e.item.id), Is.EquivalentTo(new[] { "ant_amber_fly", "ant_royal_jelly", "ant_fossil_queen_egg" }));
+            Assert.That(prize.tier.bonus.entries.Select(e => e.item.id), Is.SupersetOf(new[] { "ant_amber_fly", "ant_royal_jelly", "ant_fossil_queen_egg" }));
+            Assert.That(prize.tier.bonus.entries.All(e => e.item.id.StartsWith("ant_")), Is.True, "the prize is the anthill's own");
             var kit = dungeon.kit;
             Assert.That(kit.stashChest.GetComponent<TreasureChest>().tier.bonus.entries.Select(e => e.item.id), Has.Member("ant_inverted_farm"));
             Assert.That(kit.sideChest.GetComponent<TreasureChest>().tier.bonus.entries.Select(e => e.item.id), Has.Member("ant_button_drum"));

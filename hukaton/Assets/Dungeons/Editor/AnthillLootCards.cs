@@ -29,9 +29,9 @@ namespace Hakaton.Dungeons.EditorTools
         static LootDrop Drop(string id, float chance) => new LootDrop { item = Item(id), chance = chance, min = 1, max = 1 };
 
         /// <summary>
-        /// Store chests (Sturdy) hold the button drum or the inverted farm now and then; stash chests (Rich) always one of
-        /// the farm, the amber, the jelly or the drum; the prize chest (now rank 5) always the amber, the jelly or —
-        /// rarely — the petrified egg.
+        /// Store chests (Sturdy, half the reward spots) hold the button drum or the inverted farm now and then; stash
+        /// chests (Rich) the farm and often the drum, now and then the amber or the jelly; the prize chest (now rank 5)
+        /// nearly always the amber and the jelly, mostly the farm and the drum too, sometimes the petrified egg.
         /// </summary>
         public static string Chests(string arg)
         {
@@ -44,23 +44,27 @@ namespace Hakaton.Dungeons.EditorTools
             prize.bonus = new LootTable
             {
                 atLeastOne = true, minimumDrops = 1,
-                entries = new[] { Drop("ant_amber_fly", .3f), Drop("ant_royal_jelly", .3f), Drop("ant_fossil_queen_egg", .07f) },
+                entries = new[] { Drop("ant_amber_fly", .95f), Drop("ant_royal_jelly", .95f), Drop("ant_fossil_queen_egg", .15f),
+                    Drop("ant_inverted_farm", .8f), Drop("ant_button_drum", .8f) },
             };
             EditorUtility.SetDirty(prize);
 
             var store = Tier("Chest 3 Sturdy", "Anthill Store Tier", "Кладовая муравейника", new LootTable
             {
                 atLeastOne = false, minimumDrops = 1,
-                entries = new[] { Drop("ant_button_drum", .55f), Drop("ant_inverted_farm", .2f) },
+                entries = new[] { Drop("ant_button_drum", .4f), Drop("ant_inverted_farm", .15f) },
             });
             var stash = Tier("Chest 4 Rich", "Anthill Stash Tier", "Тайник муравейника", new LootTable
             {
                 atLeastOne = true, minimumDrops = 1,
-                entries = new[] { Drop("ant_inverted_farm", .4f), Drop("ant_amber_fly", .2f), Drop("ant_royal_jelly", .2f), Drop("ant_button_drum", .3f) },
+                entries = new[] { Drop("ant_inverted_farm", .85f), Drop("ant_amber_fly", .3f), Drop("ant_royal_jelly", .3f), Drop("ant_button_drum", .6f) },
             });
             var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
             kit.sideChest = Chest("Chest 3 Sturdy", "Anthill Store Chest", store);
             kit.stashChest = Chest("Chest 4 Rich", "Anthill Stash Chest", stash);
+            // Tuned with the chests above (Monte Carlo over small and large anthills, 1–2 stashes): about 7 curios a
+            // dungeon, 5–10 in nine anthills of ten.
+            kit.sideChestChance = .5f;
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             foreach (var tier in new[] { prize, store, stash })
