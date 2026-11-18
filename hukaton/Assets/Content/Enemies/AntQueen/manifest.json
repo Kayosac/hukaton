@@ -2,15 +2,15 @@
   "character": "AntQueen",
   "display_name": "Матка",
   "type": "aggressive",
-  "temperament_status": "working_assumption_for_combat_concept",
+  "temperament_status": "confirmed_by_user",
   "physical_height_m": 2.8,
   "size_provided_by_user": false,
   "size_reference": "Provisional art scale including default silhouette; no gameplay tuning.",
   "nominal_world_scale": 1,
-  "gameplay_implemented": false,
-  "health": null,
-  "damage": null,
-  "loot_assigned": false,
+  "gameplay_implemented": true,
+  "health": 20,
+  "damage": 2,
+  "loot_assigned": true,
   "master_atlas": "output/monsters/anthill-pack/AntQueen/atlas.png",
   "master_atlas_sha256": "95c4ed7bf0dfae5481657b35bba6fac9b5f8f582529ec3412e6fd9d483569326",
   "master_cell_size": [
@@ -240,7 +240,7 @@
   "cell_height": 415,
   "columns": 2,
   "rows": 4,
-  "pixelsPerUnit": 100,
+  "pixelsPerUnit": 100.0,
   "pivot": [
     0.4982014,
     0.0096386
@@ -354,7 +354,7 @@
   ],
   "unity": {
     "atlas": "AntQueenAtlas.png",
-    "pixels_per_unit": 100,
+    "pixels_per_unit": 100.0,
     "world_density": 100,
     "world_scale": 1,
     "sprites": [
@@ -464,7 +464,7 @@
         "edge": 1247
       }
     ],
-    "import_validation": "verified_actual_editor_import",
+    "import_validation": "verified_actual_editor_gameplay",
     "actual_sprites": [
       {
         "name": "AntQueen_DefaultFront",
@@ -477,8 +477,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": 7226424469069359632
@@ -494,8 +494,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": -1737526610511663996
@@ -511,8 +511,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": -8063438422688936289
@@ -528,8 +528,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": 2854182535695416556
@@ -545,8 +545,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": -5607203650639722007
@@ -562,8 +562,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": 6503939633094829800
@@ -579,8 +579,8 @@
           "height": 415.0
         },
         "pivot": {
-          "x": 276.9999694824219,
-          "y": 4.000019073486328
+          "x": 276.99997840000003,
+          "y": 4.000019
         },
         "ppu": 100.0,
         "fileID": -1770952393124700556
@@ -590,20 +590,29 @@
       "allSevenStatesReviewed": true,
       "comparison": "output/monsters/anthill-pack/unity-scale-comparison.png",
       "mode": "offscreen GPU render in disposable EnemyDebug preview; Sprites/Default material",
-      "gameplayPlayMode": false
-    }
+      "gameplayPlayMode": true,
+      "savedEnemyDebugPreview": true,
+      "gameplayScreenshot": "hukaton/Logs/bridge/shots/ar-queen-preview.png"
+    },
+    "width": 2048,
+    "height": 2048,
+    "cell_width": 556,
+    "cell_height": 415,
+    "columns": 2,
+    "rows": 4,
+    "atlas_sha256": "a53da3799b59c9bb3f64b73ed032e4e56c029ba0bc4f39792ed2736aa6ea4b79"
   },
   "generation_mode": "built-in image_gen; transparent_background=true; separate state calls",
   "prompts": "output/monsters/anthill-pack/prompts.json",
   "user_art_approval": "concepts_approved_generated_sprites_not_yet_reviewed",
-  "unity_import_validation": "verified_actual_editor_import",
+  "unity_import_validation": "verified_actual_editor_gameplay",
   "source_padding": "Whole source RGBA pasted unchanged; integer offsets align alpha>=128 bottom to common ground; no per-state scaling, crop or rotation.",
   "notes": [
     "Seven full-body states; rear only for default and death.",
     "Two unused master cells fully transparent.",
-    "No gameplay, loot, prefab or scene added."
+    "Editable gameplay prefab and saved EnemyDebug preview verified in Play Mode. Spawn placement is intentionally not configured by the agent."
   ],
-  "status": "generated_saved_atlas_and_editor_verified",
+  "status": "integrated_prefab_and_playmode_verified",
   "registry": {
     "table": "tb_hakaton-enemies",
     "row": "s3ter9gvt3",
@@ -612,5 +621,52 @@
     "retrieved_and_visually_inspected": true
   },
   "brief": "КОНЦЕПТ — gameplay не реализован. Малоподвижный босс: маленькая сердитая голова с кривой короной, потёртая бордовая накидка и гигантское кремовое брюшко. Агрессивный характер — рабочее допущение. HP не определено.",
-  "combat_concept": "КОНЦЕПТ: Выводит ограниченные группы того же муравья-работяги из кладки. Вблизи приподнимает брюшко и тяжело бьёт им по полу, затем долго восстанавливается. Дополнительного типа призываемого врага нет. Числовой баланс не задан."
+  "combat_concept": "КОНЦЕПТ: Выводит ограниченные группы того же муравья-работяги из кладки. Вблизи приподнимает брюшко и тяжело бьёт им по полу, затем долго восстанавливается. Дополнительного типа призываемого врага нет. Числовой баланс не задан.",
+  "attack_half_hearts": 4,
+  "approved_world_height_m": 2.8,
+  "prefab": "hukaton/Assets/Game/Prefabs/AntQueen.prefab",
+  "spawn_configuration": "not_changed_user_will_configure_spawn_separately",
+  "atlas_sha256": "a53da3799b59c9bb3f64b73ed032e4e56c029ba0bc4f39792ed2736aa6ea4b79",
+  "loot_items": [
+    {
+      "id": "ant_queen_crown",
+      "asset": "hukaton/Assets/Loot/Items/ant_queen_crown.asset",
+      "chance": 0.1,
+      "price": 500,
+      "icon": "hukaton/Assets/Content/Enemies/AntQueen/AntQueen_crown_loot.png"
+    },
+    {
+      "id": "ant_queen_cape",
+      "asset": "hukaton/Assets/Loot/Items/ant_queen_cape.asset",
+      "chance": 0.35,
+      "price": 150,
+      "icon": "hukaton/Assets/Content/Enemies/AntQueen/AntQueen_cape_loot.png"
+    },
+    {
+      "id": "ant_queen_egg",
+      "asset": "hukaton/Assets/Loot/Items/ant_queen_egg.asset",
+      "chance": 0.5,
+      "price": 100,
+      "icon": "hukaton/Assets/Content/Enemies/AntQueen/AntQueen_egg_loot.png"
+    }
+  ],
+  "drops": {
+    "atLeastOne": true,
+    "minimumDrops": 1,
+    "counts": [
+      1,
+      1
+    ]
+  },
+  "playmode_verification": {
+    "AnthillRemainingAssetTests": "4 passed",
+    "AntQueenPlayTests": "2 passed",
+    "EnemyDebugAssetTests": "2 passed",
+    "EnemyDebugPlayTests": "8 passed",
+    "LootTests": "19 passed",
+    "WorldSpritePixelTests": "28 passed",
+    "PatrolSquadPlayTests": "2 passed",
+    "AntWorkerPlayTests": "4 passed",
+    "AntPlugPlayTests": "3 passed"
+  }
 }

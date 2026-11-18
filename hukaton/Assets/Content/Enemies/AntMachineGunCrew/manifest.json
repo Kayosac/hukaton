@@ -3,16 +3,16 @@
   "display_name": "Муравьиный пулемётный расчёт",
   "brief": "Три муравья за старой пулемётной установкой на триноге. В касках.",
   "type": "aggressive",
-  "temperament_status": "working_art_assumption_not_explicitly_user_specified",
+  "temperament_status": "confirmed_by_user",
   "physical_height_m": 1.5675,
   "size_provided_by_user": false,
   "size_reference": "Working assumption: total default group height matches GiantDungBeetle body; includes antennae and tripod.",
-  "nominal_world_scale": 1,
+  "nominal_world_scale": 1.0207336523125998,
   "master_pixels_per_unit": 676.2360446570973,
   "default_visible_body_pixels": 1060,
   "master_atlas": "output/monsters/ant-machine-gun-crew/atlas.png",
-  "cell_width": 184,
-  "cell_height": 173,
+  "cell_width": 188,
+  "cell_height": 176,
   "columns": 2,
   "rows": 4,
   "width": 512,
@@ -30,13 +30,13 @@
       "name": "AntMachineGunCrew_DefaultFront",
       "rect": [
         0,
-        851,
-        184,
-        173
+        848,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 0,
       "edge": 1590
@@ -44,14 +44,14 @@
     {
       "name": "AntMachineGunCrew_DefaultBack",
       "rect": [
-        184,
-        851,
-        184,
-        173
+        188,
+        848,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 0,
       "edge": 1588
@@ -60,13 +60,13 @@
       "name": "AntMachineGunCrew_AggroFront",
       "rect": [
         0,
-        678,
-        184,
-        173
+        672,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 0,
       "edge": 1498
@@ -74,14 +74,14 @@
     {
       "name": "AntMachineGunCrew_HurtFront",
       "rect": [
-        184,
-        678,
-        184,
-        173
+        188,
+        672,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 0,
       "edge": 1500
@@ -90,13 +90,13 @@
       "name": "AntMachineGunCrew_AttackFront",
       "rect": [
         0,
-        505,
-        184,
-        173
+        496,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 0,
       "edge": 1621
@@ -104,14 +104,14 @@
     {
       "name": "AntMachineGunCrew_DeathFront",
       "rect": [
-        184,
-        505,
-        184,
-        173
+        188,
+        496,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 7,
       "edge": 658
@@ -120,13 +120,13 @@
       "name": "AntMachineGunCrew_DeathBack",
       "rect": [
         0,
-        332,
-        184,
-        173
+        320,
+        188,
+        176
       ],
       "pivot": [
         0.5,
-        0.0115607
+        0.0113636
       ],
       "outline_fixed": 30,
       "edge": 650
@@ -137,11 +137,11 @@
   "generation_mode": "built-in image_gen, transparent_background=true",
   "prompts": "prompts.json",
   "user_art_approval": "not_yet_recorded",
-  "unity_import_validation": "verified_actual_editor_import",
-  "gameplay_implemented": false,
-  "health": null,
-  "damage": null,
-  "loot_assigned": false,
+  "unity_import_validation": "verified_actual_editor_gameplay",
+  "gameplay_implemented": true,
+  "health": 8,
+  "damage": 0.5,
+  "loot_assigned": true,
   "references": [
     "output/shop-visitors/09-peasant-line-details.png",
     "output/monsters/style-current.json",
@@ -153,31 +153,32 @@
     "All original RGBA pixels preserved by transparent padding; no per-state rescaling.",
     "Aggression has one red exclamation and four red emphasis strokes in generated result.",
     "Death front has black X eyes on all three faces; rear shows no eyes.",
-    "Height and temperament are explicitly provisional art assumptions; gameplay not implemented."
+    "Height and temperament are explicitly provisional art assumptions; gameplay not implemented.",
+    "Editable gameplay prefab and saved EnemyDebug preview verified in Play Mode. Spawn placement is intentionally not configured by the agent."
   ],
   "unity": {
     "atlas": "AntMachineGunCrewAtlas.png",
     "width": 512,
     "height": 1024,
-    "cell_width": 184,
-    "cell_height": 173,
+    "cell_width": 188,
+    "cell_height": 176,
     "columns": 2,
     "rows": 4,
-    "pixels_per_unit": 100,
+    "pixels_per_unit": 102.07336523125998,
     "world_density": 100,
-    "world_scale": 1,
+    "world_scale": 1.0207336523125998,
     "sprites": [
       {
         "name": "AntMachineGunCrew_DefaultFront",
         "rect": [
           0,
-          851,
-          184,
-          173
+          848,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 0,
         "edge": 1590
@@ -185,14 +186,14 @@
       {
         "name": "AntMachineGunCrew_DefaultBack",
         "rect": [
-          184,
-          851,
-          184,
-          173
+          188,
+          848,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 0,
         "edge": 1588
@@ -201,13 +202,13 @@
         "name": "AntMachineGunCrew_AggroFront",
         "rect": [
           0,
-          678,
-          184,
-          173
+          672,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 0,
         "edge": 1498
@@ -215,14 +216,14 @@
       {
         "name": "AntMachineGunCrew_HurtFront",
         "rect": [
-          184,
-          678,
-          184,
-          173
+          188,
+          672,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 0,
         "edge": 1500
@@ -231,13 +232,13 @@
         "name": "AntMachineGunCrew_AttackFront",
         "rect": [
           0,
-          505,
-          184,
-          173
+          496,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 0,
         "edge": 1621
@@ -245,14 +246,14 @@
       {
         "name": "AntMachineGunCrew_DeathFront",
         "rect": [
-          184,
-          505,
-          184,
-          173
+          188,
+          496,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 7,
         "edge": 658
@@ -261,26 +262,152 @@
         "name": "AntMachineGunCrew_DeathBack",
         "rect": [
           0,
-          332,
-          184,
-          173
+          320,
+          188,
+          176
         ],
         "pivot": [
           0.5,
-          0.0115607
+          0.0113636
         ],
         "outline_fixed": 30,
         "edge": 650
       }
     ],
-    "import_validation": "verified_actual_editor_import",
-    "atlas_sha256": "fec2a9b813f19ce5063c945219bb2d002700c45d53bf45ccbf0a5dfedc870bcd",
-    "visual_review": "All seven states and scale comparison inspected in an isolated preview copy of saved EnemyDebug scene",
-    "scale_comparison": "output/monsters/ant-machine-gun-crew/unity-scale-comparison.png"
+    "import_validation": "verified_actual_editor_gameplay",
+    "atlas_sha256": "3291b7f79d8cfeba7e779c57365cdf14c7dd4759fc01c8da12c4a38b722f06a2",
+    "visual_review": {
+      "previous_status": "All seven states and scale comparison inspected in an isolated preview copy of saved EnemyDebug scene",
+      "gameplayPlayMode": true,
+      "savedEnemyDebugPreview": true,
+      "gameplayScreenshot": "hukaton/Logs/bridge/shots/ar-machine-gun-preview.png"
+    },
+    "scale_comparison": "output/monsters/ant-machine-gun-crew/unity-scale-comparison.png",
+    "actual_sprites": [
+      {
+        "name": "AntMachineGunCrew_DefaultFront",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 848.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": -5372248556309335708,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_DefaultBack",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 188.0,
+          "y": 848.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": -1149803394104954008,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_AggroFront",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 672.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": 2273867546685410310,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_HurtFront",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 188.0,
+          "y": 672.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": -1806576017501092414,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_AttackFront",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 496.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": -1963866627604461012,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_DeathFront",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 188.0,
+          "y": 496.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": 8178225483477266483,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      },
+      {
+        "name": "AntMachineGunCrew_DeathBack",
+        "rect": {
+          "serializedVersion": "2",
+          "x": 0.0,
+          "y": 320.0,
+          "width": 188.0,
+          "height": 176.0
+        },
+        "pivot": {
+          "x": 94.0,
+          "y": 1.9999936
+        },
+        "ppu": 102.07336523125998,
+        "fileID": 1627195875737708117,
+        "guid": "32af62eab1b504b35bc7fe0c55abf87b"
+      }
+    ]
   },
   "atlas": "AntMachineGunCrewAtlas.png",
   "master_directory": "output/monsters/ant-machine-gun-crew",
-  "pixelsPerUnit": 100,
+  "pixelsPerUnit": 102.07336523125998,
   "master_cells": [
     {
       "name": "AntMachineGunCrew_DefaultFront",
@@ -472,12 +599,59 @@
       ]
     }
   ],
-  "status": "generated_saved_atlas_and_unity_import_verified",
+  "status": "integrated_prefab_and_playmode_verified",
   "master_atlas_sha256": "12fa5463c9a19843236c9bd6f3e561a6f0b34c4cbce95931e61fb16e2bd77ce7",
   "registry": {
     "table": "tb_hakaton-enemies",
     "row": "4kr54x4n00",
     "attachment": "3c8e052c8131921537a429ca131e2ac91b8f250f8c128f1ae1eef85dc4f06a93",
     "verified": true
+  },
+  "attack_half_hearts": 1,
+  "approved_world_height_m": 1.6,
+  "prefab": "hukaton/Assets/Game/Prefabs/AntMachineGunCrew.prefab",
+  "spawn_configuration": "not_changed_user_will_configure_spawn_separately",
+  "atlas_sha256": "3291b7f79d8cfeba7e779c57365cdf14c7dd4759fc01c8da12c4a38b722f06a2",
+  "loot_items": [
+    {
+      "id": "ant_machine_gun_barrel_jacket",
+      "asset": "hukaton/Assets/Loot/Items/ant_machine_gun_barrel_jacket.asset",
+      "chance": 0.5,
+      "price": 80,
+      "icon": "hukaton/Assets/Content/Enemies/AntMachineGunCrew/AntMachineGunCrew_barrel_jacket_loot.png"
+    },
+    {
+      "id": "ant_machine_gun_ammo_belt",
+      "asset": "hukaton/Assets/Loot/Items/ant_machine_gun_ammo_belt.asset",
+      "chance": 0.15,
+      "price": 250,
+      "icon": "hukaton/Assets/Content/Enemies/AntMachineGunCrew/AntMachineGunCrew_ammo_belt_loot.png"
+    },
+    {
+      "id": "ant_machine_gun_helmet",
+      "asset": "hukaton/Assets/Loot/Items/ant_machine_gun_helmet.asset",
+      "chance": 0.25,
+      "price": 140,
+      "icon": "hukaton/Assets/Content/Enemies/AntMachineGunCrew/AntMachineGunCrew_helmet_loot.png"
+    }
+  ],
+  "drops": {
+    "atLeastOne": true,
+    "minimumDrops": 2,
+    "counts": [
+      1,
+      1
+    ]
+  },
+  "playmode_verification": {
+    "AnthillRemainingAssetTests": "4 passed",
+    "AntMachineGunCrewPlayTests": "1 passed",
+    "EnemyDebugAssetTests": "2 passed",
+    "EnemyDebugPlayTests": "8 passed",
+    "LootTests": "19 passed",
+    "WorldSpritePixelTests": "28 passed",
+    "PatrolSquadPlayTests": "2 passed",
+    "AntWorkerPlayTests": "4 passed",
+    "AntPlugPlayTests": "3 passed"
   }
 }

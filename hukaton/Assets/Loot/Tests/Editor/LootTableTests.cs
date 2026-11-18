@@ -103,5 +103,25 @@ namespace Hakaton.Loot.Tests
             Assert.That(dropped, Is.Empty);
             Assert.That(new LootTable().IsEmpty, Is.True);
         }
+
+        [Test]
+        public void MinimumDropsAddsOnlyMissingCopiesAndAllowsRepeats()
+        {
+            var item = Item("a");
+            var table = new LootTable { atLeastOne = true, minimumDrops = 2, entries = new[] { Drop(item, 0) } };
+            var dropped = new List<LootItem>();
+            table.Roll(Values(.9f, .2f, .2f), dropped);
+            Assert.That(dropped, Is.EqualTo(new[] { item, item }), "Two copies may have the same kind.");
+
+            dropped.Clear();
+            table.entries = new[] { Drop(item, 1) };
+            table.Roll(Values(.2f), dropped);
+            Assert.That(dropped, Is.EqualTo(new[] { item, item }), "One ordinary copy plus one fallback copy reaches two.");
+
+            table.atLeastOne = false;
+            dropped.Clear();
+            table.Roll(Values(.2f), dropped);
+            Assert.That(dropped.Count, Is.EqualTo(1), "minimumDrops is inert while atLeastOne is disabled.");
+        }
     }
 }

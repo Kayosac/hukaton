@@ -558,6 +558,7 @@ namespace Hakaton.Expeditions
             // A sticky tongue from a few metres (WorldCreature.Tongue.cs).
             if (TryTongue()) return;
             if (HasRangedAttack && ThinkRanged()) return;
+            if (ThinkSelfDestruct()) return;
             switch (State)
             {
                 case CreatureState.Chase:

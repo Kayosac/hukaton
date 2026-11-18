@@ -21,13 +21,16 @@ namespace Hakaton.Loot
 
     /// <summary>
     /// What a creature (or anything else) leaves behind. Every row is rolled on its own, so several items can drop
-    /// at once. With <see cref="atLeastOne"/> an empty roll still gives one row, picked with the chances as weights.
+    /// at once. With <see cref="atLeastOne"/>, <see cref="minimumDrops"/> copies are picked with the chances as weights
+    /// when ordinary rolls produced fewer. Copies may repeat; distinct item kinds are not required.
     /// </summary>
     [Serializable]
     public sealed class LootTable
     {
-        [Tooltip("Если ни одна строка не сработала — всё равно выдать одну (строки с большим шансом выпадают чаще).")]
+        [Tooltip("Если обычные броски дали меньше minimumDrops — добрать копии (строки с большим шансом выпадают чаще).")]
         public bool atLeastOne = true;
+        [Tooltip("Минимум копий при включённом atLeastOne. 1 сохраняет прежнее поведение; копии могут повторяться.")]
+        [Min(1)] public int minimumDrops = 1;
         public LootDrop[] entries = new LootDrop[0];
 
         public bool IsEmpty
@@ -53,22 +56,26 @@ namespace Hakaton.Loot
                 if (entry.chance < 1 && next() >= entry.chance) continue;
                 Add(entry, next, into);
             }
-            if (!atLeastOne || into.Count > before) return;
+            int required = before + Mathf.Max(1, minimumDrops);
+            if (!atLeastOne || into.Count >= required) return;
             float total = 0;
             int valid = 0;
             foreach (var entry in entries)
                 if (entry != null && entry.item) { total += Mathf.Max(0, entry.chance); valid++; }
             if (valid == 0) return;
-            float pick = next() * (total > 0 ? total : valid);
-            LootDrop chosen = null;
-            foreach (var entry in entries)
+            while (into.Count < required)
             {
-                if (entry == null || !entry.item) continue;
-                chosen = entry;
-                pick -= total > 0 ? Mathf.Max(0, entry.chance) : 1;
-                if (pick < 0) break;
+                float pick = next() * (total > 0 ? total : valid);
+                LootDrop chosen = null;
+                foreach (var entry in entries)
+                {
+                    if (entry == null || !entry.item) continue;
+                    chosen = entry;
+                    pick -= total > 0 ? Mathf.Max(0, entry.chance) : 1;
+                    if (pick < 0) break;
+                }
+                Add(chosen, next, into);
             }
-            Add(chosen, next, into);
         }
 
         static void Add(LootDrop entry, Func<float> next, List<LootItem> into)

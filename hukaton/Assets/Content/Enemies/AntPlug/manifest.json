@@ -6,11 +6,11 @@
   "physical_height_m": 1.6,
   "size_provided_by_user": false,
   "size_reference": "Provisional art scale including default silhouette; no gameplay tuning.",
-  "nominal_world_scale": 1,
-  "gameplay_implemented": false,
-  "health": null,
-  "damage": null,
-  "loot_assigned": false,
+  "nominal_world_scale": 1.25,
+  "gameplay_implemented": true,
+  "health": 12,
+  "damage": 3,
+  "loot_assigned": true,
   "master_atlas": "output/monsters/anthill-pack/AntPlug/atlas.png",
   "master_atlas_sha256": "f6798b3da6cc5a59b91ff5c7138dbd72807c799a8905b2e2fe02cdfa340dfe3c",
   "master_cell_size": [
@@ -234,13 +234,13 @@
     }
   ],
   "atlas": "AntPlugAtlas.png",
-  "width": 512,
-  "height": 1024,
-  "cell_width": 213,
-  "cell_height": 188,
-  "columns": 2,
-  "rows": 4,
-  "pixelsPerUnit": 100,
+  "width": 2048,
+  "height": 256,
+  "cell_width": 265,
+  "cell_height": 233,
+  "columns": 7,
+  "rows": 1,
+  "pixelsPerUnit": 125,
   "pivot": [
     0.5070423,
     0.0212766
@@ -250,13 +250,13 @@
       "name": "AntPlug_DefaultFront",
       "rect": [
         0,
-        836,
-        213,
-        188
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 772
@@ -264,14 +264,14 @@
     {
       "name": "AntPlug_DefaultBack",
       "rect": [
-        213,
-        836,
-        213,
-        188
+        265,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 758
@@ -279,14 +279,14 @@
     {
       "name": "AntPlug_AggroFront",
       "rect": [
-        0,
-        648,
-        213,
-        188
+        530,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 940
@@ -294,14 +294,14 @@
     {
       "name": "AntPlug_HurtFront",
       "rect": [
-        213,
-        648,
-        213,
-        188
+        795,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 764
@@ -309,14 +309,14 @@
     {
       "name": "AntPlug_AttackFront",
       "rect": [
-        0,
-        460,
-        213,
-        188
+        1060,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 809
@@ -324,14 +324,14 @@
     {
       "name": "AntPlug_DeathFront",
       "rect": [
-        213,
-        460,
-        213,
-        188
+        1325,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 715
@@ -339,14 +339,14 @@
     {
       "name": "AntPlug_DeathBack",
       "rect": [
-        0,
-        272,
-        213,
-        188
+        1590,
+        23,
+        265,
+        233
       ],
       "pivot": [
-        0.5070423,
-        0.0212766
+        0.5056604,
+        0.0171674
       ],
       "outline_fixed": 0,
       "edge": 704
@@ -354,21 +354,21 @@
   ],
   "unity": {
     "atlas": "AntPlugAtlas.png",
-    "pixels_per_unit": 100,
+    "pixels_per_unit": 125,
     "world_density": 100,
-    "world_scale": 1,
+    "world_scale": 1.25,
     "sprites": [
       {
         "name": "AntPlug_DefaultFront",
         "rect": [
           0,
-          836,
-          213,
-          188
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 772
@@ -376,14 +376,14 @@
       {
         "name": "AntPlug_DefaultBack",
         "rect": [
-          213,
-          836,
-          213,
-          188
+          265,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 758
@@ -391,14 +391,14 @@
       {
         "name": "AntPlug_AggroFront",
         "rect": [
-          0,
-          648,
-          213,
-          188
+          530,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 940
@@ -406,14 +406,14 @@
       {
         "name": "AntPlug_HurtFront",
         "rect": [
-          213,
-          648,
-          213,
-          188
+          795,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 764
@@ -421,14 +421,14 @@
       {
         "name": "AntPlug_AttackFront",
         "rect": [
-          0,
-          460,
-          213,
-          188
+          1060,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 809
@@ -436,14 +436,14 @@
       {
         "name": "AntPlug_DeathFront",
         "rect": [
-          213,
-          460,
-          213,
-          188
+          1325,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 715
@@ -451,14 +451,14 @@
       {
         "name": "AntPlug_DeathBack",
         "rect": [
-          0,
-          272,
-          213,
-          188
+          1590,
+          23,
+          265,
+          233
         ],
         "pivot": [
-          0.5070423,
-          0.0212766
+          0.5056604,
+          0.0171674
         ],
         "outline_fixed": 0,
         "edge": 704
@@ -472,15 +472,15 @@
         "rect": {
           "serializedVersion": "2",
           "x": 0.0,
-          "y": 836.0,
-          "width": 213.0,
-          "height": 188.0
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": -4585160978766725428
       },
       {
@@ -488,16 +488,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 213.0,
-          "y": 836.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 265.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 1195353034435546292
       },
       {
@@ -505,16 +505,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 0.0,
-          "y": 648.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 530.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 913618365350513373
       },
       {
@@ -522,16 +522,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 213.0,
-          "y": 648.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 795.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 9008155106033845414
       },
       {
@@ -539,16 +539,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 0.0,
-          "y": 460.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 1060.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 6408272035437503079
       },
       {
@@ -556,16 +556,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 213.0,
-          "y": 460.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 1325.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 2843438298630477972
       },
       {
@@ -573,16 +573,16 @@
         "guid": "411c2df207368408d8889efd885c3ff9",
         "rect": {
           "serializedVersion": "2",
-          "x": 0.0,
-          "y": 272.0,
-          "width": 213.0,
-          "height": 188.0
+          "x": 1590.0,
+          "y": 23.0,
+          "width": 265.0,
+          "height": 233.0
         },
         "pivot": {
-          "x": 108.00000762939453,
-          "y": 4.000000953674316
+          "x": 134.000006,
+          "y": 4.0000042
         },
-        "ppu": 100.0,
+        "ppu": 125,
         "fileID": 5374530687415326780
       }
     ],
@@ -590,7 +590,9 @@
       "allSevenStatesReviewed": true,
       "comparison": "output/monsters/anthill-pack/unity-scale-comparison.png",
       "mode": "offscreen GPU render in disposable EnemyDebug preview; Sprites/Default material",
-      "gameplayPlayMode": false
+      "gameplayPlayMode": true,
+      "savedEnemyDebugPreview": true,
+      "gameplayScreenshot": "hukaton/Logs/bridge/shots/ap-plug-preview.png"
     }
   },
   "generation_mode": "built-in image_gen; transparent_background=true; separate state calls",
@@ -601,9 +603,9 @@
   "notes": [
     "Seven full-body states; rear only for default and death.",
     "Two unused master cells fully transparent.",
-    "No gameplay, loot, prefab or scene added."
+    "Editable gameplay prefab and saved EnemyDebug preview verified in Play Mode. Spawn placement is intentionally not configured by the agent."
   ],
-  "status": "generated_saved_atlas_and_editor_verified",
+  "status": "integrated_prefab_and_playmode_verified",
   "registry": {
     "table": "tb_hakaton-enemies",
     "row": "knqza57a8w",
@@ -612,5 +614,35 @@
     "retrieved_and_visually_inspected": true
   },
   "brief": "КОНЦЕПТ — gameplay не реализован. Медленный защитник с огромной тёмной квадратной головой и крошечным телом. Защищён спереди, слаб по бокам и сзади. Агрессивный характер — рабочее допущение. HP не определено.",
-  "combat_concept": "КОНЦЕПТ: Короткий толчок головой: приподнимает её и открывает мягкий низ — окно уязвимости. Числовой баланс не задан."
+  "combat_concept": "КОНЦЕПТ: Короткий толчок головой: приподнимает её и открывает мягкий низ — окно уязвимости. Числовой баланс не задан.",
+  "attack_half_hearts": 6,
+  "approved_world_height_m": 2.0,
+  "prefab": "hukaton/Assets/Game/Prefabs/AntPlug.prefab",
+  "spawn_configuration": "not_changed_user_will_configure_spawn_separately",
+  "loot_items": [
+    {
+      "id": "ant_plug_dead_head",
+      "asset": "hukaton/Assets/Loot/Items/ant_plug_dead_head.asset",
+      "chance": 0.8,
+      "price": 217,
+      "icon": "hukaton/Assets/Content/Enemies/AntPlug/AntPlug_loot.png"
+    }
+  ],
+  "drops": {
+    "atLeastOne": false,
+    "counts": [
+      1
+    ]
+  },
+  "playmode_verification": {
+    "AntPlugAssetTests": "2 passed",
+    "AntPlugPlayTests": "3 passed",
+    "EnemyDebugAssetTests": "2 passed",
+    "LootTests": "19 passed",
+    "WorldSpritePixelTests": "28 passed",
+    "EnemyDebugPlayTests": "8 passed",
+    "PatrolSquadPlayTests": "2 passed",
+    "AntWorkerPlayTests": "4 passed",
+    "AnthillRemainingAssetTests": "4 passed"
+  }
 }

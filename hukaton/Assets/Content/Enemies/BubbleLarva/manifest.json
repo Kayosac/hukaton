@@ -2,15 +2,15 @@
   "character": "BubbleLarva",
   "display_name": "Личинка-пузырь",
   "type": "aggressive",
-  "temperament_status": "working_assumption_for_combat_concept",
+  "temperament_status": "confirmed_by_user",
   "physical_height_m": 1.0,
   "size_provided_by_user": false,
   "size_reference": "Provisional art scale including default silhouette; no gameplay tuning.",
-  "nominal_world_scale": 1,
-  "gameplay_implemented": false,
-  "health": null,
-  "damage": null,
-  "loot_assigned": false,
+  "nominal_world_scale": 0.6,
+  "gameplay_implemented": true,
+  "health": 2,
+  "damage": 1,
+  "loot_assigned": true,
   "master_atlas": "output/monsters/anthill-pack/BubbleLarva/atlas.png",
   "master_atlas_sha256": "2d520f9bf05cdb6edd9d730508ddc778a81085fb86b5cee22baec24a5184ed9c",
   "master_cell_size": [
@@ -234,13 +234,13 @@
     }
   ],
   "atlas": "BubbleLarvaAtlas.png",
-  "width": 512,
-  "height": 1024,
-  "cell_width": 177,
-  "cell_height": 159,
+  "width": 256,
+  "height": 512,
+  "cell_width": 109,
+  "cell_height": 98,
   "columns": 2,
   "rows": 4,
-  "pixelsPerUnit": 100,
+  "pixelsPerUnit": 60.0,
   "pivot": [
     0.5141243,
     0.0251572
@@ -250,13 +250,13 @@
       "name": "BubbleLarva_DefaultFront",
       "rect": [
         0,
-        865,
-        177,
-        159
+        414,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 375
@@ -264,14 +264,14 @@
     {
       "name": "BubbleLarva_DefaultBack",
       "rect": [
-        177,
-        865,
-        177,
-        159
+        109,
+        414,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 370
@@ -280,13 +280,13 @@
       "name": "BubbleLarva_AggroFront",
       "rect": [
         0,
-        706,
-        177,
-        159
+        316,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 571
@@ -294,14 +294,14 @@
     {
       "name": "BubbleLarva_HurtFront",
       "rect": [
-        177,
-        706,
-        177,
-        159
+        109,
+        316,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 334
@@ -310,13 +310,13 @@
       "name": "BubbleLarva_AttackFront",
       "rect": [
         0,
-        547,
-        177,
-        159
+        218,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 5,
       "edge": 434
@@ -324,14 +324,14 @@
     {
       "name": "BubbleLarva_DeathFront",
       "rect": [
-        177,
-        547,
-        177,
-        159
+        109,
+        218,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 326
@@ -340,13 +340,13 @@
       "name": "BubbleLarva_DeathBack",
       "rect": [
         0,
-        388,
-        177,
-        159
+        120,
+        109,
+        98
       ],
       "pivot": [
-        0.5141243,
-        0.0251572
+        0.5137615,
+        0.0408163
       ],
       "outline_fixed": 0,
       "edge": 314
@@ -354,21 +354,21 @@
   ],
   "unity": {
     "atlas": "BubbleLarvaAtlas.png",
-    "pixels_per_unit": 100,
+    "pixels_per_unit": 60.0,
     "world_density": 100,
-    "world_scale": 1,
+    "world_scale": 0.6,
     "sprites": [
       {
         "name": "BubbleLarva_DefaultFront",
         "rect": [
           0,
-          865,
-          177,
-          159
+          414,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 375
@@ -376,14 +376,14 @@
       {
         "name": "BubbleLarva_DefaultBack",
         "rect": [
-          177,
-          865,
-          177,
-          159
+          109,
+          414,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 370
@@ -392,13 +392,13 @@
         "name": "BubbleLarva_AggroFront",
         "rect": [
           0,
-          706,
-          177,
-          159
+          316,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 571
@@ -406,14 +406,14 @@
       {
         "name": "BubbleLarva_HurtFront",
         "rect": [
-          177,
-          706,
-          177,
-          159
+          109,
+          316,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 334
@@ -422,13 +422,13 @@
         "name": "BubbleLarva_AttackFront",
         "rect": [
           0,
-          547,
-          177,
-          159
+          218,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 5,
         "edge": 434
@@ -436,14 +436,14 @@
       {
         "name": "BubbleLarva_DeathFront",
         "rect": [
-          177,
-          547,
-          177,
-          159
+          109,
+          218,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 326
@@ -452,19 +452,19 @@
         "name": "BubbleLarva_DeathBack",
         "rect": [
           0,
-          388,
-          177,
-          159
+          120,
+          109,
+          98
         ],
         "pivot": [
-          0.5141243,
-          0.0251572
+          0.5137615,
+          0.0408163
         ],
         "outline_fixed": 0,
         "edge": 314
       }
     ],
-    "import_validation": "verified_actual_editor_import",
+    "import_validation": "verified_actual_editor_gameplay",
     "actual_sprites": [
       {
         "name": "BubbleLarva_DefaultFront",
@@ -472,15 +472,15 @@
         "rect": {
           "serializedVersion": "2",
           "x": 0.0,
-          "y": 865.0,
-          "width": 177.0,
-          "height": 159.0
+          "y": 414.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": -7824250159573901105
       },
       {
@@ -488,16 +488,16 @@
         "guid": "6a66f2620f41f454eadac31392dd9a95",
         "rect": {
           "serializedVersion": "2",
-          "x": 177.0,
-          "y": 865.0,
-          "width": 177.0,
-          "height": 159.0
+          "x": 109.0,
+          "y": 414.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": -5812277523607983487
       },
       {
@@ -506,15 +506,15 @@
         "rect": {
           "serializedVersion": "2",
           "x": 0.0,
-          "y": 706.0,
-          "width": 177.0,
-          "height": 159.0
+          "y": 316.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": -6753493233250190205
       },
       {
@@ -522,16 +522,16 @@
         "guid": "6a66f2620f41f454eadac31392dd9a95",
         "rect": {
           "serializedVersion": "2",
-          "x": 177.0,
-          "y": 706.0,
-          "width": 177.0,
-          "height": 159.0
+          "x": 109.0,
+          "y": 316.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": -7426399915938090444
       },
       {
@@ -540,15 +540,15 @@
         "rect": {
           "serializedVersion": "2",
           "x": 0.0,
-          "y": 547.0,
-          "width": 177.0,
-          "height": 159.0
+          "y": 218.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": 1683046278416183501
       },
       {
@@ -556,16 +556,16 @@
         "guid": "6a66f2620f41f454eadac31392dd9a95",
         "rect": {
           "serializedVersion": "2",
-          "x": 177.0,
-          "y": 547.0,
-          "width": 177.0,
-          "height": 159.0
+          "x": 109.0,
+          "y": 218.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": -6148281040609541905
       },
       {
@@ -574,15 +574,15 @@
         "rect": {
           "serializedVersion": "2",
           "x": 0.0,
-          "y": 388.0,
-          "width": 177.0,
-          "height": 159.0
+          "y": 120.0,
+          "width": 109.0,
+          "height": 98.0
         },
         "pivot": {
-          "x": 91.0,
-          "y": 3.9999947547912598
+          "x": 56.0000035,
+          "y": 3.9999974
         },
-        "ppu": 100.0,
+        "ppu": 60.0,
         "fileID": 6473577765577128227
       }
     ],
@@ -590,20 +590,29 @@
       "allSevenStatesReviewed": true,
       "comparison": "output/monsters/anthill-pack/unity-scale-comparison.png",
       "mode": "offscreen GPU render in disposable EnemyDebug preview; Sprites/Default material",
-      "gameplayPlayMode": false
-    }
+      "gameplayPlayMode": true,
+      "savedEnemyDebugPreview": true,
+      "gameplayScreenshot": "hukaton/Logs/bridge/shots/ar-larva-preview.png"
+    },
+    "width": 256,
+    "height": 512,
+    "cell_width": 109,
+    "cell_height": 98,
+    "columns": 2,
+    "rows": 4,
+    "atlas_sha256": "31f17f6ba187fcc13597e138a3bebcb68da81eb44779cc39fce7e0c554ec52e6"
   },
   "generation_mode": "built-in image_gen; transparent_background=true; separate state calls",
   "prompts": "output/monsters/anthill-pack/prompts.json",
   "user_art_approval": "concepts_approved_generated_sprites_not_yet_reviewed",
-  "unity_import_validation": "verified_actual_editor_import",
+  "unity_import_validation": "verified_actual_editor_gameplay",
   "source_padding": "Whole source RGBA pasted unchanged; integer offsets align alpha>=128 bottom to common ground; no per-state scaling, crop or rotation.",
   "notes": [
     "Seven full-body states; rear only for default and death.",
     "Two unused master cells fully transparent.",
-    "No gameplay, loot, prefab or scene added."
+    "Editable gameplay prefab and saved EnemyDebug preview verified in Play Mode. Spawn placement is intentionally not configured by the agent."
   ],
-  "status": "generated_saved_atlas_and_editor_verified",
+  "status": "integrated_prefab_and_playmode_verified",
   "registry": {
     "table": "tb_hakaton-enemies",
     "row": "jppf0gazwt",
@@ -612,5 +621,52 @@
     "retrieved_and_visually_inspected": true
   },
   "brief": "КОНЦЕПТ — gameplay не реализован. Толстая бледно-жёлтая личинка с огромным зеленоватым брюхом. Медленно ползёт. Единственный обычный саморазрушающийся враг набора. Агрессивный характер — рабочее допущение. HP не определено.",
-  "combat_concept": "КОНЦЕПТ: Вблизи замирает, раздувается и пищит, затем лопается в кислотную лужу. Можно отбросить в других врагов. Лужа/VFX этим пакетом не создавались. Числовой баланс не задан."
+  "combat_concept": "КОНЦЕПТ: Вблизи замирает, раздувается и пищит, затем лопается в кислотную лужу. Можно отбросить в других врагов. Лужа/VFX этим пакетом не создавались. Числовой баланс не задан.",
+  "attack_half_hearts": 2,
+  "approved_world_height_m": 0.6,
+  "prefab": "hukaton/Assets/Game/Prefabs/BubbleLarva.prefab",
+  "spawn_configuration": "not_changed_user_will_configure_spawn_separately",
+  "atlas_sha256": "31f17f6ba187fcc13597e138a3bebcb68da81eb44779cc39fce7e0c554ec52e6",
+  "loot_items": [
+    {
+      "id": "bubble_larva_bubble_sac",
+      "asset": "hukaton/Assets/Loot/Items/bubble_larva_bubble_sac.asset",
+      "chance": 0.25,
+      "price": 100,
+      "icon": "hukaton/Assets/Content/Enemies/BubbleLarva/BubbleLarva_bubble_sac_loot.png"
+    },
+    {
+      "id": "bubble_larva_jelly",
+      "asset": "hukaton/Assets/Loot/Items/bubble_larva_jelly.asset",
+      "chance": 0.6,
+      "price": 40,
+      "icon": "hukaton/Assets/Content/Enemies/BubbleLarva/BubbleLarva_jelly_loot.png"
+    },
+    {
+      "id": "bubble_larva_shed_skin",
+      "asset": "hukaton/Assets/Loot/Items/bubble_larva_shed_skin.asset",
+      "chance": 0.45,
+      "price": 60,
+      "icon": "hukaton/Assets/Content/Enemies/BubbleLarva/BubbleLarva_shed_skin_loot.png"
+    }
+  ],
+  "drops": {
+    "atLeastOne": true,
+    "minimumDrops": 1,
+    "counts": [
+      1,
+      1
+    ]
+  },
+  "playmode_verification": {
+    "AnthillRemainingAssetTests": "4 passed",
+    "BubbleLarvaPlayTests": "1 passed",
+    "EnemyDebugAssetTests": "2 passed",
+    "EnemyDebugPlayTests": "8 passed",
+    "LootTests": "19 passed",
+    "WorldSpritePixelTests": "28 passed",
+    "PatrolSquadPlayTests": "2 passed",
+    "AntWorkerPlayTests": "4 passed",
+    "AntPlugPlayTests": "3 passed"
+  }
 }
