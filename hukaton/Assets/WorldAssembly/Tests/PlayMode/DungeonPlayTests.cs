@@ -123,6 +123,7 @@ namespace Hakaton.WorldAssembly.Tests
             var chests = site.Chests;
             Debug.Log("[Dungeon] chests: " + string.Join(", ", chests.Select(c => c.name)));
             Assert.That(chests.Count(c => c.tier && c.tier.displayName == "Сундук муравейника"), Is.EqualTo(1), "one prize chest");
+            yield return Hazards(site, dungeon);
             Assert.That(site.Underground, Is.True);
             yield return new WaitForSeconds(2f);
             yield return Shot("03-entrance-chamber");
@@ -168,6 +169,8 @@ namespace Hakaton.WorldAssembly.Tests
                 // The prize under the way up: a rare curio is always in it.
                 var prize = site.Chests.First(c => c.tier.displayName == "Сундук муравейника");
                 var lootBefore = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
+                // Opened from afar, so the player does not pick the loot up before it is counted.
+                Stand(dungeon.Passage, -1, 180);
                 Assert.That(prize.Open(), Is.True);
                 yield return new WaitForSeconds(3f);
                 var poured = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Where(l => !lootBefore.Contains(l) && l.item).ToList();
@@ -219,6 +222,76 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
+
+        /// <summary>Floor modifiers of this dungeon: acid poisons whoever stands in it, collapses bring the ceiling down near the player.</summary>
+        IEnumerator Hazards(DungeonSite site, DungeonBuilder dungeon)
+        {
+            var hazards = dungeon.GetComponent<DungeonHazards>();
+            Assert.That(hazards, Is.Not.Null);
+            Debug.Log("[Dungeon] floor modifiers: " + string.Join(", ", hazards.Levels) + $"; acid puddles {hazards.AcidPuddles}");
+            // Both kinds get looked at: a level without one is given collapses for the test.
+            if (!hazards.Levels.Contains(DungeonHazards.Modifier.Collapse) && hazards.Levels.Contains(DungeonHazards.Modifier.None))
+                hazards.Force(hazards.Levels.ToList().IndexOf(DungeonHazards.Modifier.None), DungeonHazards.Modifier.Collapse);
+            var root = dungeon.transform.Find("Hazards");
+            var plan = dungeon.Plan;
+            for (int level = 0; level < hazards.Levels.Count; level++)
+            {
+                var modifier = hazards.Levels[level];
+                if (modifier == DungeonHazards.Modifier.Acid)
+                {
+                    var puddle = root.Cast<Transform>().FirstOrDefault(t => t.name.StartsWith("AN44") && hazards.LevelOf(dungeon.Built.InverseTransformPoint(t.position).y) == level);
+                    Assert.That(puddle, Is.Not.Null, "an acid level has puddles");
+                    var view = Clear(puddle.position, 3f);
+                    world.motor.Teleport(view + Vector3.up * .1f, Quaternion.LookRotation((puddle.position - view).normalized + Vector3.down * .5f));
+                    yield return new WaitForSeconds(.6f);
+                    yield return Shot($"20-acid-level{level}");
+                    world.vitals.Immortal = false;
+                    world.motor.Teleport(puddle.position + Vector3.up * .1f, Quaternion.identity);
+                    yield return new WaitForSeconds(.4f);
+                    Assert.That(world.statuses.Has(PlayerStatusKind.Poison), Is.True, "standing in acid poisons");
+                    world.vitals.Immortal = true;
+                }
+                else if (modifier == DungeonHazards.Modifier.Collapse)
+                {
+                    var heap = root.Cast<Transform>().FirstOrDefault(t => t.name.StartsWith("AN42") && hazards.LevelOf(dungeon.Built.InverseTransformPoint(t.position).y) == level);
+                    if (heap)
+                    {
+                        var view = Clear(heap.position + heap.forward * .8f, 3f);
+                        world.motor.Teleport(view + Vector3.up * .1f, Quaternion.LookRotation((heap.position - view).normalized + Vector3.down * .2f));
+                        yield return new WaitForSeconds(.6f);
+                        yield return Shot($"21-rubble-level{level}");
+                    }
+                    // Somewhere on that level: a corridor, if it has one.
+                    var cell = plan.CorridorCells.Where(c => plan.Cells[c].Kind == CellKind.Corridor && hazards.LevelOf(plan.Cells[c].Floor) == level).DefaultIfEmpty(plan.Cells.First(kv => kv.Value.Kind == CellKind.Room && hazards.LevelOf(kv.Value.Floor) == level).Key).First();
+                    var at = dungeon.Built.TransformPoint(DungeonGeometry.Center(cell, plan.Cells[cell].Floor));
+                    int falls = hazards.Falls;
+                    float until = Time.time + 16;
+                    while (Time.time < until && hazards.Falls == falls)
+                    {
+                        world.motor.Teleport(at + Vector3.up * .1f, world.motor.transform.rotation);
+                        yield return new WaitForSeconds(.5f);
+                    }
+                    Assert.That(hazards.Falls, Is.GreaterThan(falls), "the ceiling comes down on a collapse level");
+                    yield return new WaitForSeconds(.5f);
+                    yield return Shot($"22-collapse-level{level}");
+                    yield return new WaitForSeconds(1.5f);
+                    Assert.That(root.Cast<Transform>().Any(t => t.name.StartsWith("Fallen")), Is.True, "fallen chunks lie on the floor");
+                }
+            }
+        }
+
+        /// <summary>A spot up to <paramref name="far"/> m from <paramref name="from"/> with nothing solid between (to look back at it).</summary>
+        static Vector3 Clear(Vector3 from, float far)
+        {
+            var best = from; float bestRoom = 0;
+            for (int i = 0; i < 12; i++)
+            {
+                var dir = Quaternion.Euler(0, i * 30, 0) * Vector3.forward;
+                float room = Physics.Raycast(from + Vector3.up * 1.2f, dir, out var hit, far, ~0, QueryTriggerInteraction.Ignore) ? hit.distance - .5f : far;
+                if (room > bestRoom && NavMesh.SamplePosition(from + dir * room, out var nav, 1f, NavMesh.AllAreas)) { bestRoom = room; best = nav.position; }
+            }
+            return best;
+        }
 
         /// <summary>Puts the player <paramref name="s"/> m into a passage, facing in (0) or out (180).</summary>
         void Stand(Transform passage, float s, float yaw)

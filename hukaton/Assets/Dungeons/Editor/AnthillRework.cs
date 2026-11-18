@@ -190,6 +190,27 @@ namespace Hakaton.Dungeons.EditorTools
             return "prize curios: " + string.Join(", ", drops.Select(d => d.item.id + " " + d.chance));
         }
 
+        /// <summary>Floor modifiers: acid puddles with their glowing material, rubble heaps, falling chunks, dust.</summary>
+        static string Hazards(string arg)
+        {
+            const string AcidPath = "Assets/AnthillArt/Materials/M_Ant_Acid.mat";
+            var acid = AssetDatabase.LoadAssetAtPath<Material>(AcidPath);
+            if (!acid) { acid = new Material(Shader.Find("Universal Render Pipeline/Unlit")); AssetDatabase.CreateAsset(acid, AcidPath); }
+            acid.shader = Shader.Find("Universal Render Pipeline/Unlit");
+            acid.SetColor("_BaseColor", new Color(.52f, .95f, .22f));
+            EditorUtility.SetDirty(acid);
+            var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
+            kit.acidPuddles = Variants("Hazards", "AN44_AcidPuddle");
+            kit.acidMaterial = acid;
+            kit.rubble = Variants("Hazards", "AN42_Rubble");
+            kit.debris = P("Hazards", "AN43_Debris");
+            kit.collapseDust = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Effects/Retro/Dust puff.prefab");
+            kit.modifierChance = .5f;
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            return $"acid {kit.acidPuddles.Length} rubble {kit.rubble.Length} debris {(kit.debris ? kit.debris.transform.childCount : 0)} dust {(kit.collapseDust ? "ok" : "none")}";
+        }
+
         static string Entrance(string arg)
         {
             var root = PrefabUtility.LoadPrefabContents(EntrancePath);

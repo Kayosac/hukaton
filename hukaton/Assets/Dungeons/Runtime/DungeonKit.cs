@@ -83,6 +83,27 @@ namespace Hakaton.Dungeons.Unity
         public GameObject sideChest;
         [Range(0, 1)] public float sideChestChance = .6f;
 
+        [Header("Floor modifiers")]
+        [Tooltip("Chance that a level has a modifier (acid or collapses); each level rolls on its own.")]
+        [Range(0, 1)] public float modifierChance = .5f;
+        [Tooltip("Acid: puddles that poison the player standing in them (Яд).")]
+        public GameObject[] acidPuddles = new GameObject[0];
+        public Material acidMaterial;
+        public Color acidGlow = new Color(.55f, 1f, .25f);
+        [Range(0, 1)] public float acidPerCorridorCell = .3f;
+        [Range(0, 1)] public float acidPerRoomCell = .08f;
+        [Tooltip("Collapses: heaps of fallen earth against the walls, and the ceiling coming down now and then near the player.")]
+        public GameObject[] rubble = new GameObject[0];
+        [Range(0, 1)] public float rubblePerCorridorCell = .25f;
+        [Range(0, 1)] public float rubblePerRoomWall = .06f;
+        [Tooltip("Loose chunks that fall from the ceiling (each child of this prefab is one chunk).")]
+        public GameObject debris;
+        [Tooltip("Seconds between ceiling falls on a collapse level: from and to.")]
+        public Vector2 collapseEvery = new Vector2(7, 14);
+        [Min(0)] public int collapseHalfHearts = 2;
+        [Tooltip("Dust before and on a fall (a VfxBurst prefab).")]
+        public GameObject collapseDust;
+
         [Header("The way out")]
         [Tooltip("Transparent black (alpha blended, back faces culled): veils in the surface passage that make its dead end read as depth.")]
         public Material passageDark;

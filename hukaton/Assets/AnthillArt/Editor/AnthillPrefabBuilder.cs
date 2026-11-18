@@ -17,7 +17,7 @@ namespace Hakaton.Dev
         static string Build()
         {
             var log = new StringBuilder();
-            var mats = new[] { "Earth", "Floor", "Root", "Wood", "Cloth", "Props", "Needles" }
+            var mats = new[] { "Earth", "Floor", "Root", "Wood", "Cloth", "Props", "Needles", "Acid" }
                 .ToDictionary(k => k, k => AssetDatabase.LoadAssetAtPath<Material>($"{Root}/Materials/M_Ant_{k}.mat"));
             foreach (var kv in mats) if (kv.Value == null) return "FAILED missing material M_Ant_" + kv.Key;
 
@@ -46,7 +46,7 @@ namespace Hakaton.Dev
                     if (key == null) { log.AppendLine($"WARN {prefabName}: no material for {mr.name}"); continue; }
                     mr.sharedMaterials = Enumerable.Repeat(mats[key], mr.sharedMaterials.Length).ToArray();
                     // Hanging root tips / rootlets in walls and on the mound stay passable (like foliage); chain hangs free.
-                    bool passable = chain || (shellLike && key == "Root") || (group == "Entrance" && key == "Props");
+                    bool passable = chain || (shellLike && key == "Root") || (group == "Entrance" && key == "Props") || prefabName.StartsWith("AN44") || (group == "Hazards" && key == "Props");
                     if (!passable)
                     {
                         var mc = mr.gameObject.AddComponent<MeshCollider>();

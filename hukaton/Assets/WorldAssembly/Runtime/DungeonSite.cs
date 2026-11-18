@@ -252,6 +252,7 @@ namespace Hakaton.WorldAssembly.Unity
             go.AddComponent<DungeonCulling>().viewer = Camera.main ? Camera.main.transform : null;
             b.Build(entrance.seed);
             Populate(b, entrance.seed);
+            DungeonHazards.Lay(b, World, entrance.seed);
             built[entrance.coord] = b;
             return b;
         }
