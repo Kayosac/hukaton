@@ -101,6 +101,13 @@ namespace Hakaton.Expeditions
             return squad;
         }
 
+        /// <summary>The member leaves the squad for good (it went over to the player's side, Вербовка).</summary>
+        public void Remove(WorldCreature member)
+        {
+            if (!members.Remove(member)) return;
+            if (Leader == member) Leader = FirstAlive();
+        }
+
         WorldCreature FirstAlive()
         {
             foreach (var member in members) if (member && member.Alive && member.isActiveAndEnabled) return member;

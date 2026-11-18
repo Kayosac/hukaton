@@ -165,7 +165,7 @@ namespace Hakaton.Expeditions
                 if (shooter && hit.collider.transform.IsChildOf(shooter.transform)) continue;
                 if (!EnemyProjectileFlight.Blocks(hit.collider)) continue;
                 var fighter = Combat.Of(hit.collider);
-                if (fighter is WorldCreature && !profile.hitsCreatures) continue;
+                if (!Hits(fighter)) continue;
                 // Started inside it: count the hit where the step starts.
                 bool inside = hit.distance <= 0 && hit.point == Vector3.zero;
                 nearest = hit.distance;
@@ -174,8 +174,8 @@ namespace Hakaton.Expeditions
                 collider = hit.collider;
                 victim = fighter != null && fighter.Alive ? fighter : null;
             }
-            // The player rig is outside the physics mask: test its capsule directly.
-            if (PlayerCapsule(out var bottom, out var top, out float playerRadius))
+            // The player rig is outside the physics mask: test its capsule directly. A recruit's shot passes the player by.
+            if (!Spared(world.Player) && PlayerCapsule(out var bottom, out var top, out float playerRadius))
             {
                 float distance = EnemyProjectileFlight.SegmentDistance(from, to, bottom, top, out float s, out float t);
                 float along = s * length;
@@ -190,6 +190,22 @@ namespace Hakaton.Expeditions
             }
             return nearest < float.MaxValue;
         }
+
+        /// <summary>
+        /// The shot can hit this fighter: never its own side when a recruit fired it (Вербовка: the player, allies, other
+        /// recruits); creatures only with <see cref="EnemyProjectileProfile.hitsCreatures"/> — or when they are on the
+        /// other side from the shooter (a wild shot at a recruit, a recruit's at a wild one).
+        /// </summary>
+        bool Hits(ICombatant fighter)
+        {
+            if (fighter == null) return true;
+            if (Spared(fighter)) return false;
+            if (fighter is WorldCreature creature && !profile.hitsCreatures)
+                return shooter && creature.Faction != shooter.Faction;
+            return true;
+        }
+
+        bool Spared(ICombatant fighter) => shooter && shooter.Recruited && fighter != null && fighter.Faction == Faction.Player;
 
         bool PlayerCapsule(out Vector3 bottom, out Vector3 top, out float radius)
         {
@@ -237,13 +253,14 @@ namespace Hakaton.Expeditions
                 foreach (var fighter in nearby)
                 {
                     if (ReferenceEquals(fighter, victim) || ReferenceEquals(fighter, shooter) || !fighter.Alive) continue;
-                    if (fighter is WorldCreature && !profile.hitsCreatures) continue;
+                    if (!Hits(fighter)) continue;
                     if (Vector3.Distance(fighter.Centre, point) > profile.splashRadius && Vector3.Distance(fighter.Position, point) > profile.splashRadius) continue;
                     Vector3 away = fighter.Position - point; away.y = 0;
                     Hit(fighter, point, away.sqrMagnitude > .01f ? away.normalized : flight);
                 }
             }
-            if (profile.puddle && profile.puddleRadius > 0) EnemyPuddle.Spawn(world, point, profile, shooter);
+            // A puddle only ever hurts the player: a recruit's shot leaves none.
+            if (profile.puddle && profile.puddleRadius > 0 && !(shooter && shooter.Recruited)) EnemyPuddle.Spawn(world, point, profile, shooter);
             world.Spawn(profile.impact, point + normal * .05f, Quaternion.LookRotation(normal.sqrMagnitude > 1e-4f ? normal : Vector3.up), profile.impactTint, profile.effectScale);
             world.PlayIn(SfxBus.Creature, this, AtPlayer ? 1 : .55f, profile.impactCue, point);
             End();

@@ -57,6 +57,17 @@ namespace Hakaton.Decks
             return options[options.Count - 1];
         }
 
+        /// <summary>
+        /// Level I / II / III of a dungeon's own trophy card (Вербовка, Эхолот), by how tough its source was: a creature by
+        /// its health (up to <paramref name="levelTwoHealth"/>: I, up to <paramref name="levelThreeHealth"/>: II, above: III).
+        /// </summary>
+        public static int LevelByHealth(int maximumHealth, int levelTwoHealth, int levelThreeHealth)
+            => maximumHealth > levelThreeHealth ? 3 : maximumHealth > levelTwoHealth ? 2 : 1;
+
+        /// <summary>The same for a chest by its rank 1–5: from <paramref name="levelTwoRank"/> II, from <paramref name="levelThreeRank"/> III.</summary>
+        public static int LevelByChestRank(int rank, int levelTwoRank, int levelThreeRank)
+            => rank >= levelThreeRank ? 3 : rank >= levelTwoRank ? 2 : 1;
+
         static int Weight(int rank) => rank >= 1 && rank <= GoblinOffer.RankWeights.Length ? GoblinOffer.RankWeights[rank - 1] : 1;
 
         static double Clamp01(double value) => value < 0 ? 0 : value > 1 ? 1 : value;

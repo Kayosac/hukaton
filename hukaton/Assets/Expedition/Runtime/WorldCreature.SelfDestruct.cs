@@ -30,6 +30,15 @@ namespace Hakaton.Expeditions
         {
             var profile = selfDestruct.explosion;
             Vector3 at = body.position;
+            // A recruit's burst (Вербовка) hurts the wild creatures round it and leaves no puddle for the player.
+            if (Recruited)
+            {
+                RecruitBurst(profile, at);
+                world.Spawn(profile.impact, at + Vector3.up * .2f, Quaternion.identity, profile.impactTint, profile.effectScale);
+                world.Play(profile.fireCue, at);
+                Damage(maximumHealth, Vector3.zero, Centre, 0, DamageKind.Other);
+                return;
+            }
             if (profile.splashRadius > 0 && PlayerDistance <= profile.splashRadius && Mathf.Abs(PlayerPosition.y - at.y) <= 2)
             {
                 var player = world.Player;

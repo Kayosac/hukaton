@@ -46,7 +46,10 @@ namespace Hakaton.Decks.Unity
         Crows = 39,
         PowderBarrel = 40,
         Boomerang = 41,
-        Fan = 42
+        Fan = 42,
+        // Трофеи данжа (18.11.2026, pg_anthill-loot-cards): только из муравейника, у гоблина их нет.
+        Recruitment = 43,
+        Sonar = 44
     }
 
     [CreateAssetMenu(menuName = "Hakaton/Decks/Card definition")]

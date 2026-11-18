@@ -312,7 +312,7 @@ namespace Hakaton.WorldAssembly.Tests
                 Assert.That(blocked, Is.False, "opened: the way is free");
                 i++;
             }
-            Assert.That(site.Chests.Count(c => c.name.StartsWith("Chest 4 Rich")), Is.EqualTo(plan.Stashes.Count), "a chest in every stash");
+            Assert.That(site.Chests.Count(c => c.name.StartsWith("Anthill Stash Chest")), Is.EqualTo(plan.Stashes.Count), "a chest in every stash");
             // Both locks get looked at: a rubble plug where this dungeon has none, laid in the first (now open) stash.
             if (!site.StashLocks.Any(l => l is RubblePlug))
             {

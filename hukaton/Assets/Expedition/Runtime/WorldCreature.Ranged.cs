@@ -218,6 +218,8 @@ namespace Hakaton.Expeditions
             Vector3 toAim = aimPoint - from;
             int count = Mathf.Max(1, r.projectiles);
             var target = Target;
+            // A recruit never shoots at its own side (its foe fell during the aim).
+            if (Spares(target)) return;
             for (int i = 0; i < count; i++)
             {
                 float angle = count > 1 ? Mathf.Lerp(-r.spreadAngle * .5f, r.spreadAngle * .5f, i / (float)(count - 1)) : 0;

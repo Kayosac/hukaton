@@ -8,9 +8,11 @@ using UnityEngine;
 namespace Hakaton.Loot.EditorTools
 {
     /// <summary>
-    /// Brings the 19 collectible curios (Blender models from output/collectible-models) into the game as world finds
+    /// Brings the collectible curios (Blender models from output/collectible-models) into the game as world finds
     /// that also stand on the shop shelf: import settings, materials, look-only prefabs, LootItem assets in the
     /// «Диковины» category, the three find pools (find / find-hard / crystal) and the find prefabs that use them.
+    /// The anthill's own curios (20–24) get the same item, model and shelf look but stay out of the world's find
+    /// pools: they only come from the anthill's chests (its kit and chest tiers).
     /// Idempotent: run again after replacing an FBX or texture. Tools → Hakaton → Лут → Подключить диковины.
     /// </summary>
     static class CurioSetup
@@ -31,8 +33,15 @@ namespace Hakaton.Loot.EditorTools
         struct Spec
         {
             public string folder, model, id, name; public LootRarity rarity; public int price;
-            public Spec(string folder, string model, string id, string name, LootRarity rarity, int price)
-            { this.folder = folder; this.model = model; this.id = id; this.name = name; this.rarity = rarity; this.price = price; }
+            /// <summary>Lies about the world as a find (the find pools); false: only from the anthill's chests.</summary>
+            public bool worldFind;
+            /// <summary>Material slot drawn as see-through glass (alpha of the texture), -1 for none.</summary>
+            public int glassSlot;
+            public Spec(string folder, string model, string id, string name, LootRarity rarity, int price, bool worldFind = true, int glassSlot = -1)
+            {
+                this.folder = folder; this.model = model; this.id = id; this.name = name; this.rarity = rarity; this.price = price;
+                this.worldFind = worldFind; this.glassSlot = glassSlot;
+            }
         }
 
         static readonly Spec[] Curios =
@@ -56,6 +65,12 @@ namespace Hakaton.Loot.EditorTools
             new Spec("17-baby-bottle", "CI17_BabyBottle", "baby_bottle", "Бутылочка", LootRarity.Common, 25),
             new Spec("18-battered-case", "CI18_BatteredCase", "battered_case", "Потрёпанный кейс", LootRarity.Common, 60),
             new Spec("19-kerosene-lamp", "CI19_KeroseneLamp", "kerosene_lamp", "Керосиновая лампа", LootRarity.Common, 55),
+            // The anthill's curios (pg_anthill-loot-cards): only from its chests.
+            new Spec("20-button-drum", "CI20_ButtonDrum", "ant_button_drum", "Пуговичный барабан", LootRarity.Common, 55, false),
+            new Spec("21-inverted-farm", "CI21_InvertedFarm", "ant_inverted_farm", "Перевёрнутая ферма", LootRarity.Uncommon, 150, false, 1),
+            new Spec("22-amber-fly", "CI22_AmberFly", "ant_amber_fly", "Янтарь с мухой", LootRarity.Rare, 260, false),
+            new Spec("23-royal-jelly", "CI23_RoyalJelly", "ant_royal_jelly", "Королевское желе", LootRarity.Rare, 220, false),
+            new Spec("24-petrified-queen-egg", "CI24_PetrifiedQueenEgg", "ant_fossil_queen_egg", "Окаменевшее яйцо Матки", LootRarity.Legendary, 380, false),
         };
 
         // Pool weights per rarity: what each kind of find spot turns out to be.
@@ -76,6 +91,7 @@ namespace Hakaton.Loot.EditorTools
             if (!template) return "FAILED no material template " + Template;
             Directory.CreateDirectory(PoolRoot);
             var items = new List<LootItem>();
+            var finds = new List<LootItem>();
             foreach (var spec in Curios)
             {
                 string dir = $"{ModelsRoot}/{spec.folder}";
@@ -85,13 +101,15 @@ namespace Hakaton.Loot.EditorTools
                 SetupModel(fbx);
                 var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(png);
                 var material = SaveMaterial($"{dir}/M_{spec.model}.mat", template, texture);
-                var prefab = SavePrefab(spec, fbx, material, out Bounds bounds);
+                var glass = spec.glassSlot >= 0 ? SaveGlass($"{dir}/M_{spec.model}_Glass.mat", material) : null;
+                var prefab = SavePrefab(spec, fbx, material, glass, out Bounds bounds);
                 var item = SaveItem(spec, prefab);
                 items.Add(item);
+                if (spec.worldFind) finds.Add(item);
                 log.AppendLine($"{spec.id}: size {bounds.size.x:0.000}x{bounds.size.y:0.000}x{bounds.size.z:0.000} min.y {bounds.min.y:0.000} tex {texture.width}");
             }
             AddToCatalog(items, log);
-            var pools = Pools.Select(p => SavePool(p.file, p.label, p.weights, items)).ToArray();
+            var pools = Pools.Select(p => SavePool(p.file, p.label, p.weights, finds)).ToArray();
             SetFindPool(CommonFind, pools[0], log);
             SetFindPool(SpecialFind, pools[1], log);
             if (!File.Exists(CrystalFind)) AssetDatabase.CopyAsset(SpecialFind, CrystalFind);
@@ -145,7 +163,37 @@ namespace Hakaton.Loot.EditorTools
             return material;
         }
 
-        static GameObject SavePrefab(Spec spec, string fbx, Material material, out Bounds bounds)
+        /// <summary>
+        /// See-through glass from the curio's own material: the same texture, transparent by its alpha, no shadow of
+        /// its own (the inverted farm's panes).
+        /// </summary>
+        static Material SaveGlass(string path, Material solid)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var glass = existing ? existing : new Material(solid);
+            if (existing) glass.CopyPropertiesFromMaterial(solid);
+            glass.shader = solid.shader;
+            glass.name = Path.GetFileNameWithoutExtension(path);
+            glass.SetFloat("_Surface", 1);
+            glass.SetFloat("_Blend", 0);
+            glass.SetFloat("_AlphaClip", 0);
+            glass.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            glass.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            glass.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+            glass.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            glass.SetFloat("_ZWrite", 0);
+            glass.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            glass.DisableKeyword("_ALPHATEST_ON");
+            glass.SetOverrideTag("RenderType", "Transparent");
+            glass.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            glass.SetShaderPassEnabled("ShadowCaster", false);
+            glass.SetShaderPassEnabled("DepthOnly", false);
+            if (!existing) AssetDatabase.CreateAsset(glass, path);
+            EditorUtility.SetDirty(glass);
+            return glass;
+        }
+
+        static GameObject SavePrefab(Spec spec, string fbx, Material material, Material glass, out Bounds bounds)
         {
             string path = $"{PrefabRoot}/{spec.id} model.prefab";
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
@@ -156,7 +204,11 @@ namespace Hakaton.Loot.EditorTools
             // so the look is turned to face -X there; on the ground the pickup spins anyway.
             mesh.transform.localRotation = Quaternion.Euler(0, -90, 0);
             foreach (var r in mesh.GetComponentsInChildren<Renderer>(true))
-                r.sharedMaterials = Enumerable.Repeat(material, Mathf.Max(1, r.sharedMaterials.Length)).ToArray();
+            {
+                var materials = Enumerable.Repeat(material, Mathf.Max(1, r.sharedMaterials.Length)).ToArray();
+                if (glass && spec.glassSlot < materials.Length) materials[spec.glassSlot] = glass;
+                r.sharedMaterials = materials;
+            }
             foreach (var c in mesh.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
             var renderers = root.GetComponentsInChildren<Renderer>(true);
             bounds = renderers[0].bounds;
@@ -185,7 +237,9 @@ namespace Hakaton.Loot.EditorTools
             item.rarity = spec.rarity;
             item.model = model;
             item.shelfModel = null;
-            item.notes = $"Диковина: находка в мире (пулы находок), стоит и на витрине. Модель: output/collectible-models/{spec.folder}.";
+            item.notes = spec.worldFind
+                ? $"Диковина: находка в мире (пулы находок), стоит и на витрине. Модель: output/collectible-models/{spec.folder}."
+                : $"Диковина муравейника: только из сундуков муравейника (кладовые, тайники, призовой), стоит и на витрине. Модель: output/collectible-models/{spec.folder}.";
             EditorUtility.SetDirty(item);
             return item;
         }

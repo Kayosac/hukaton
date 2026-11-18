@@ -31,6 +31,9 @@ namespace Hakaton.Decks.Unity
         public CardDefinition[] cards;
         [Tooltip("Cards that exist only in the story (the cave's instruction cards): never sold, dealt or kept.")]
         public CardDefinition[] storyCards = Array.Empty<CardDefinition>();
+        [Tooltip("Cards that only ever come as a trophy in a dungeon (Вербовка, Эхолот): never sold, dealt or kept, " +
+                 "only flown into the hand for one outing (TrophyCards.dungeonCards).")]
+        public CardDefinition[] trophyCards = Array.Empty<CardDefinition>();
         [Tooltip("The goblin's dummy («Пустышка»): the penalty for buying blind. Kept apart from the cards above: never in " +
                  "his rank draw, never merged, never given by the debug unlock. Bought, it takes a place in the collection " +
                  "and the deck like any card, and leaves both for good as the next outing begins.")]
@@ -73,6 +76,7 @@ namespace Hakaton.Decks.Unity
         }
 
         public CardDefinition Find(string id) => cards.FirstOrDefault(c => c.id == id) ?? storyCards.FirstOrDefault(c => c && c.id == id)
+            ?? (trophyCards ?? Array.Empty<CardDefinition>()).FirstOrDefault(c => c && c.id == id)
             ?? (dummyCard && dummyCard.id == id ? dummyCard : null);
     }
 }

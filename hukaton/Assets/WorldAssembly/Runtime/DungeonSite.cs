@@ -63,6 +63,8 @@ namespace Hakaton.WorldAssembly.Unity
         void Update()
         {
             var world = World;
+            // Underground the trophy cards include the dungeon's own (Вербовка, Эхолот).
+            if (world && world.trophies) world.trophies.Underground = current;
             if (!world || !world.Running || moving) return;
             var p = PlayerPosition;
             float dark = 0;

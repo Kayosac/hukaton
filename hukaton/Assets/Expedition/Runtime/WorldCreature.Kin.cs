@@ -72,7 +72,7 @@ namespace Hakaton.Expeditions
             if (!victim || victim == this || !StandsUpForKin || !IsKinOf(victim)) return;
             if (!world || !world.Running || !Alive || !isActiveAndEnabled) return;
             // A brawl has its own referee; a lured one hears only the noise; frozen or knocked out, it notices nothing.
-            if (Referee != null || Brawling || lured || Time.time < frozenUntil || Time.time < stunnedUntil) return;
+            if (Referee != null || Brawling || lured || Recruited || Time.time < frozenUntil || Time.time < stunnedUntil) return;
             if (!NoticesAttackOn(victim)) return;
             float delay = Random.Range(Mathf.Min(kinReactionDelay.x, kinReactionDelay.y), Mathf.Max(kinReactionDelay.x, kinReactionDelay.y));
             float at = Time.time + Mathf.Max(0, delay);

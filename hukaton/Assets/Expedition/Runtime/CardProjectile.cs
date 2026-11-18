@@ -166,6 +166,17 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>
+        /// The card goes off right where it is and vanishes in a puff, struck nothing (Эхолот: the wave starts from the
+        /// hand, <see cref="ICustomFlight"/>).
+        /// </summary>
+        public void ResolveInPlace(Vector3 normal)
+        {
+            if (resolved || !world) return;
+            if (world.Running) world.ApplyImpact(card, definition, null, transform.position, normal, velocity, launchPosition);
+            Fizzle();
+        }
+
+        /// <summary>
         /// The card struck something solid on its own flight: the impact is applied, the card bounces off and drops,
         /// and its attempt is over (held cards settle in <see cref="OnDestroy"/>).
         /// </summary>

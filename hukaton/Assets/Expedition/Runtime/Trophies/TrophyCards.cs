@@ -13,7 +13,9 @@ namespace Hakaton.Expeditions
     /// the hand's limit, for this outing only (R discards it, it is gone with the outing, it never enters the
     /// collection). Peaceful and timid creatures leave none. A card is sure after a few dry kills, and on the first kill
     /// of an outing while the player still has few cards. Not in the cave prologue, not at the god.
-    /// Which card: <see cref="TrophyCardRules.Pick"/>.
+    /// Which card: <see cref="TrophyCardRules.Pick"/>. Underground (in a dungeon, <see cref="Underground"/>) a share of the
+    /// cards are the dungeon's own (the config's <see cref="DeckPrototypeConfig.trophyCards"/>: Вербовка, Эхолот) — never sold by the goblin, their level
+    /// by how tough the source was (a worker I, a plug II, the Queen III; a chest by its rank).
     /// </summary>
     public sealed class TrophyCards : MonoBehaviour
     {
@@ -50,6 +52,18 @@ namespace Hakaton.Expeditions
         [Tooltip("A card the player does not own weighs this many times as much (a taste of the goblin's cards).")]
         [Min(1)] public float unownedWeight = 2;
 
+        [Header("Dungeon")]
+        [Tooltip("Underground, this share of the trophy cards is one of the dungeon's own (the config's trophyCards: Вербовка, Эхолот).")]
+        [Range(0, 1)] public float dungeonShare = .5f;
+        [Tooltip("A dungeon card from a creature is level II above this much health (the plug: 12)…")]
+        [Min(1)] public int levelTwoHealth = 8;
+        [Tooltip("…and level III above this much (the Queen: 20).")]
+        [Min(1)] public int levelThreeHealth = 15;
+        [Tooltip("A dungeon card from a chest is level II from this rank (a stash's rich chest)…")]
+        [Range(1, 5)] public int levelTwoChestRank = 4;
+        [Tooltip("…and level III from this rank (the anthill's prize chest).")]
+        [Range(1, 5)] public int levelThreeChestRank = 5;
+
         [Header("Feel")]
         public SfxCue appearSound;
         public SfxCue arriveSound;
@@ -63,6 +77,10 @@ namespace Hakaton.Expeditions
         /// <summary>A trophy card reached the hand.</summary>
         public event Action<CardCopy> Arrived;
         public TrophyLuck Luck { get; private set; }
+        /// <summary>The player is in a dungeon (DungeonSite keeps it up to date): its own cards come too.</summary>
+        public bool Underground { get; set; }
+        /// <summary>Tests: underground every trophy is a dungeon card.</summary>
+        public bool AlwaysDungeon { get; set; }
 
         readonly System.Random random = new System.Random();
         readonly List<(int, double)> bands = new List<(int, double)>();
@@ -98,7 +116,7 @@ namespace Hakaton.Expeditions
             if (chance <= 0 && !Always) return;
             bool card = Always;
             for (int roll = 0; roll < Mathf.Max(1, rolls) && !card; roll++) card = Luck.Kill(chance, random.NextDouble()) || card;
-            if (card) Give(at, 1);
+            if (card) Give(at, 1, TrophyCardRules.LevelByHealth(creature.maximumHealth, levelTwoHealth, levelThreeHealth));
         }
 
         /// <summary>A chest opened and poured out its coins.</summary>
@@ -106,7 +124,8 @@ namespace Hakaton.Expeditions
         {
             if (!Allowed || !tier) return;
             float chance = chestsByRank.Length == 0 ? 0 : chestsByRank[Mathf.Clamp(tier.rank, 1, chestsByRank.Length) - 1];
-            if (Always || random.NextDouble() < chance) Give(at, tier.rank >= richChestRank ? richChestCardRank : 1);
+            if (Always || random.NextDouble() < chance)
+                Give(at, tier.rank >= richChestRank ? richChestCardRank : 1, TrophyCardRules.LevelByChestRank(tier.rank, levelTwoChestRank, levelThreeChestRank));
         }
 
         /// <summary>A chest mimic was killed.</summary>
@@ -121,10 +140,15 @@ namespace Hakaton.Expeditions
             if (Allowed && (Always || chance > 0 && random.NextDouble() < chance)) Give(at, 1);
         }
 
-        /// <summary>Picks a card and sends it flying from <paramref name="from"/> into the hand. False when nothing could be given.</summary>
-        public bool Give(Vector3 from, int minimumRank)
+        /// <summary>
+        /// Picks a card and sends it flying from <paramref name="from"/> into the hand. False when nothing could be given.
+        /// <paramref name="dungeonLevel"/>: the level a dungeon card from this source has.
+        /// </summary>
+        public bool Give(Vector3 from, int minimumRank, int dungeonLevel = 1)
         {
             if (!Allowed) return false;
+            var own = DungeonCard();
+            if (own) { Send(own, from, Mathf.Clamp(dungeonLevel, 1, 3)); return true; }
             var config = world.workshop.config;
             var model = world.workshop.Model;
             var definitions = new Dictionary<string, CardDefinition>();
@@ -139,23 +163,44 @@ namespace Hakaton.Expeditions
             foreach (var copy in model.Owned) owned.Add(copy.Spec.Id);
             var spec = TrophyCardRules.Pick(specs, owned, random, unownedWeight, minimumRank);
             if (spec == null || !definitions.TryGetValue(spec.Id, out var definition)) return false;
+            Send(definition, from, 1);
+            return true;
+        }
+
+        /// <summary>Underground, by <see cref="dungeonShare"/>: one of the dungeon's own cards; otherwise null.</summary>
+        CardDefinition DungeonCard()
+        {
+            var dungeonCards = world.workshop.config ? world.workshop.config.trophyCards : null;
+            if (!Underground || dungeonCards == null) return null;
+            int count = 0;
+            foreach (var card in dungeonCards) if (card && card.artwork) count++;
+            if (count == 0 || !AlwaysDungeon && random.NextDouble() >= dungeonShare) return null;
+            int pick = random.Next(count);
+            foreach (var card in dungeonCards)
+                if (card && card.artwork && pick-- == 0) return card;
+            return null;
+        }
+
+        /// <summary>Sends <paramref name="definition"/> at <paramref name="level"/> flying from <paramref name="from"/> into the hand.</summary>
+        public void Send(CardDefinition definition, Vector3 from, int level)
+        {
+            if (!Allowed || !definition) return;
             world.Play(appearSound, from);
             world.Spawn(appearSparkle, from, Quaternion.identity, glow, appearSparkleScale);
             var front = definition.artwork ? definition.artwork.texture : null;
             if (flightPrefab && world.hand && world.viewCamera)
             {
                 var flight = Instantiate(flightPrefab, from, Quaternion.identity, world.spawnedObjects);
-                flight.Launch(world.hand, world.viewCamera.transform, front, world.hand.cardBack, 1, glow, from, pose => Arrive(definition, pose));
+                flight.Launch(world.hand, world.viewCamera.transform, front, world.hand.cardBack, level, glow, from, pose => Arrive(definition, level, pose));
             }
-            else Arrive(definition, null);
-            return true;
+            else Arrive(definition, level, null);
         }
 
-        void Arrive(CardDefinition definition, Pose? pose)
+        void Arrive(CardDefinition definition, int level, Pose? pose)
         {
             var trip = world && world.Running ? world.workshop.Model.Current : null;
             if (trip == null) return;
-            var copy = trip.GrantToHand(definition.ToSpec(), 1, 1);
+            var copy = trip.GrantToHand(definition.ToSpec(), level, 1);
             if (copy == null) return;
             if (pose.HasValue && world.hand) world.hand.ArriveFrom(copy.Id, pose.Value);
             world.Play(arriveSound);

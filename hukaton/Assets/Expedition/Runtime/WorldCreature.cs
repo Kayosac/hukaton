@@ -218,6 +218,7 @@ namespace Hakaton.Expeditions
         {
             StopAllCoroutines();
             ResetBrawl();
+            ResetRecruit();
             gameObject.SetActive(true);
             dying = false;
             Health = maximumHealth;
@@ -302,6 +303,8 @@ namespace Hakaton.Expeditions
 
             if (lured && State != CreatureState.Investigate) lured = false;
             if (Brawling) ThinkBrawl();
+            // Went over to the player's side (Вербовка, WorldCreature.Recruit.cs).
+            else if (Recruited) ThinkRecruit();
             // Lured: walks to the noise and listens, deaf to the player, until the noise ends or it is hurt.
             else if (lured) ThinkIdle(false);
             else switch (temperament)
@@ -318,6 +321,8 @@ namespace Hakaton.Expeditions
         {
             // A brawler always knows where its rival is: the fight is a few metres across.
             if (Brawling) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
+            // A recruit keeps track of the foe it picked (WorldCreature.Recruit.cs).
+            if (Recruited && Combat.IsAlive(attackTarget)) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
             // The Mark debuff on the player: it knows where the player is, wherever that is.
             if (Time.time < markedUntil && ReferenceEquals(Target, world.Player)) { sees = true; lastSeen = TargetPosition; unseen = 0; return; }
             if (Time.time >= nextSight)
@@ -733,6 +738,8 @@ namespace Hakaton.Expeditions
             // A flyer dives in with its whole body: the reach is measured from the middle of the drawing.
             Vector3 snout = flying ? Centre + transform.forward * Mathf.Max(.3f, TopHeight * .5f) : body.position + (transform.forward * .65f + Vector3.up * .6f) * size;
             var victim = Target;
+            // A recruit's blow never lands on its own side (its foe fell mid-strike: the target fell back to the player).
+            if (Spares(victim)) return;
             Vector3 aim = victim.Position + Vector3.up * .9f;
             // A big beast standing right on its target reaches it with its body, not only its snout (StrikeConnects).
             if (!StrikeConnects(snout, body.position, CapsuleRadius, size, strikeDirection, victim.Position, aim, contactRange)) return;
@@ -1024,6 +1031,8 @@ namespace Hakaton.Expeditions
         public bool Investigate(Vector3 point, float seconds, bool pull = false, bool distract = false)
         {
             if (!world || !world.Running || !Alive || seconds <= 0) return false;
+            // A recruit keeps to the player (WorldCreature.Recruit.cs).
+            if (Recruited) return false;
             if (distract)
             {
                 if (Brawling || Time.time < lureDeafUntil || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
@@ -1057,7 +1066,7 @@ namespace Hakaton.Expeditions
         {
             if (!world || !world.Running || !Alive || seconds <= 0) return false;
             if (temperament != Temperament.Aggressive && temperament != Temperament.Territorial) return false;
-            if (Brawling || Referee != null || lured || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
+            if (Brawling || Referee != null || lured || Recruited || Time.time < frozenUntil || Time.time < stunnedUntil) return false;
             markedUntil = Mathf.Max(markedUntil, Time.time + seconds);
             provokedUntil = Mathf.Max(provokedUntil, Time.time + seconds);
             SetTarget(null);
@@ -1073,7 +1082,7 @@ namespace Hakaton.Expeditions
         public void SetTarget(ICombatant fighter) => attackTarget = ReferenceEquals(fighter, this) ? null : fighter;
 
         // ICombatant
-        public Faction Faction => Faction.Wild;
+        public Faction Faction => Recruited ? Faction.Player : Faction.Wild;
         public Vector3 Position => body ? body.position : transform.position;
         public Vector3 Centre => Position + Vector3.up * TopHeight * .5f;
         public Transform Root => transform;
@@ -1303,6 +1312,8 @@ namespace Hakaton.Expeditions
             // In its shell: a dull stony grey, so it is plain that hitting it now does nothing (WorldCreature.Tricks.cs).
             else if (InShell && !shellPicture) Tint(new Color(.62f, .66f, .74f), .55f);
             else if (Time.time < burnUntil) Tint(burnTint, .45f + Mathf.Sin(Time.time * 30) * .15f);
+            // Gone over to the player's side (Вербовка): its own colour for as long as it lasts.
+            else if (Recruited && recruitOrders != null) Tint(recruitOrders.tint, recruitOrders.tintAmount);
             else Tint(Color.white, 0);
             // A ghost is see-through from afar and thickens as it comes close (WorldCreature.Flight.cs).
             if (farOpacity < 1 && view && view.spriteRenderer)
