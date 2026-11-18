@@ -302,7 +302,49 @@ namespace Hakaton.WorldAssembly.Unity
                         if (prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, random.Next());
                     }
                 }
+            Reward(dungeon, root, random);
         }
+
+        /// <summary>
+        /// Chests: the prize (rich, a rare curio guaranteed) in the goal chamber, at its Reward marker or, in the queen's
+        /// chamber, under the way up a few steps towards where she sits; ordinary ones at the other Reward markers by
+        /// chance. Opened ones stay opened (they live under the dungeon).
+        /// </summary>
+        void Reward(DungeonBuilder dungeon, Transform root, System.Random random)
+        {
+            var kit = dungeon.kit;
+            var goal = dungeon.Plan.Goal;
+            bool prized = false;
+            foreach (var (room, name, at) in dungeon.Markers)
+            {
+                if (name != "Reward" || !at) continue;
+                bool prize = !prized && goal != null && room == goal.Index;
+                if (prize) prized = true;
+                else if (random.NextDouble() > kit.sideChestChance) continue;
+                Chest(prize ? kit.prizeChest : kit.sideChest, at.position, at.rotation, root);
+            }
+            if (!prized && dungeon.Exit)
+            {
+                var boss = dungeon.Markers.Find(m => m.name == "Spawn Boss").at;
+                var toward = boss ? boss.position - dungeon.Exit.position : dungeon.Exit.forward;
+                toward.y = 0;
+                var at = dungeon.Exit.position + toward.normalized * 2.6f;
+                if (NavMesh.SamplePosition(at, out var hit, 2, NavMesh.AllAreas)) at = hit.position;
+                Chest(kit.prizeChest, at, Quaternion.LookRotation(-toward.normalized), root);
+            }
+        }
+
+        void Chest(GameObject prefab, Vector3 at, Quaternion facing, Transform parent)
+        {
+            if (!prefab || !prefab.TryGetComponent(out TreasureChest _)) return;
+            var chest = Instantiate(prefab, at, facing, parent).GetComponent<TreasureChest>();
+            chest.name = prefab.name;
+            chest.world = World;
+            chest.ResetForOuting();
+        }
+
+        /// <summary>The chests of the dungeon the player is in (debug, tests).</summary>
+        public TreasureChest[] Chests => current && current.transform.Find(CreaturesName) ? current.transform.Find(CreaturesName).GetComponentsInChildren<TreasureChest>(true) : new TreasureChest[0];
 
         const string CreaturesName = "Creatures";
 

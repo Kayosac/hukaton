@@ -120,6 +120,9 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(garrison.All(c => c.navigator && c.navigator.isOnNavMesh), Is.True, "every one stands on the dungeon's navigation");
             if (plan.Large) Assert.That(garrison.Count(c => c.name == "AntQueen"), Is.EqualTo(1), "the queen waits at the bottom");
             Assert.That(garrison.Any(c => c.name == "AntQueen" || c.name == "AntWorker"), Is.True);
+            var chests = site.Chests;
+            Debug.Log("[Dungeon] chests: " + string.Join(", ", chests.Select(c => c.name)));
+            Assert.That(chests.Count(c => c.tier && c.tier.displayName == "Сундук муравейника"), Is.EqualTo(1), "one prize chest");
             Assert.That(site.Underground, Is.True);
             yield return new WaitForSeconds(2f);
             yield return Shot("03-entrance-chamber");
@@ -162,6 +165,15 @@ namespace Hakaton.WorldAssembly.Tests
                 world.motor.Teleport(under - back * 3.5f + Vector3.up * .1f, Quaternion.LookRotation(back + Vector3.up * .9f));
                 yield return new WaitForSeconds(.5f);
                 Assert.That(dungeon.ExitOpen, Is.True, "the queen is dead: daylight comes down the shaft");
+                // The prize under the way up: a rare curio is always in it.
+                var prize = site.Chests.First(c => c.tier.displayName == "Сундук муравейника");
+                var lootBefore = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
+                Assert.That(prize.Open(), Is.True);
+                yield return new WaitForSeconds(3f);
+                var poured = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Where(l => !lootBefore.Contains(l) && l.item).ToList();
+                Debug.Log("[Dungeon] prize: " + string.Join(", ", poured.Select(l => l.item.id + "/" + l.item.rarity)));
+                Assert.That(poured.Any(l => l.item.category == "Диковины" && l.item.rarity >= Hakaton.Loot.LootRarity.Rare), Is.True, "a rare curio in the prize chest");
+                yield return Shot("10a-prize");
                 yield return Shot("10-way-up-after-the-queen");
                 for (float r = 3.4f; r >= 0 && site.Underground; r -= .4f)
                 {

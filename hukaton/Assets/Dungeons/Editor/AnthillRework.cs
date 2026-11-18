@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hakaton.Dungeons.Unity;
 using Hakaton.WorldAssembly.Unity;
+using Hakaton.Expeditions;
 using UnityEditor;
 using UnityEngine;
 
@@ -152,6 +153,41 @@ namespace Hakaton.Dungeons.EditorTools
             EditorUtility.SetDirty(kit);
             AssetDatabase.SaveAssets();
             return string.Join(", ", kit.garrison.Select(g => $"{g.role}/{g.marker}:{(g.creature ? g.creature.name : "MISSING")}"));
+        }
+
+        /// <summary>The anthill's prize chest: the rich chest with its own tier that always holds a rare curio; and the kit's chests.</summary>
+        static string Chests(string arg)
+        {
+            const string RichTier = "Assets/Game/Data/Chests/Chest 4 Rich.asset";
+            const string TierPath = "Assets/Dungeons/Anthill/Anthill Prize Tier.asset";
+            const string ChestPath = "Assets/Dungeons/Anthill/Anthill Prize Chest.prefab";
+            if (!AssetDatabase.LoadAssetAtPath<ChestTier>(TierPath)) AssetDatabase.CopyAsset(RichTier, TierPath);
+            var tier = AssetDatabase.LoadAssetAtPath<ChestTier>(TierPath);
+            tier.displayName = "Сундук муравейника";
+            tier.announcement = "Сокровище муравейника!";
+            var drops = new List<Hakaton.Loot.LootDrop>();
+            foreach (var guid in AssetDatabase.FindAssets("t:LootItem", new[] { "Assets/Loot/Items" }))
+            {
+                var item = AssetDatabase.LoadAssetAtPath<Hakaton.Loot.LootItem>(AssetDatabase.GUIDToAssetPath(guid));
+                if (!item || item.category != "Диковины" || item.rarity < Hakaton.Loot.LootRarity.Rare) continue;
+                drops.Add(new Hakaton.Loot.LootDrop { item = item, chance = item.rarity == Hakaton.Loot.LootRarity.Rare ? .25f : .04f, min = 1, max = 1 });
+            }
+            tier.bonus = new Hakaton.Loot.LootTable { atLeastOne = true, minimumDrops = 1, entries = drops.ToArray() };
+            EditorUtility.SetDirty(tier);
+
+            var rich = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Expedition/Prefabs/Chests/Chest 4 Rich.prefab");
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(rich);
+            instance.GetComponent<TreasureChest>().tier = tier;
+            PrefabUtility.SaveAsPrefabAsset(instance, ChestPath);
+            Object.DestroyImmediate(instance);
+
+            var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
+            kit.prizeChest = AssetDatabase.LoadAssetAtPath<GameObject>(ChestPath);
+            kit.sideChest = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Expedition/Prefabs/Chests/Chest 3 Sturdy.prefab");
+            kit.sideChestChance = .6f;
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            return "prize curios: " + string.Join(", ", drops.Select(d => d.item.id + " " + d.chance));
         }
 
         static string Entrance(string arg)

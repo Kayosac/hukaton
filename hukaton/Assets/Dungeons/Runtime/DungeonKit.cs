@@ -75,6 +75,14 @@ namespace Hakaton.Dungeons.Unity
         [Header("Inhabitants")]
         public List<Garrison> garrison = new List<Garrison>();
 
+        [Header("Rewards")]
+        [Tooltip("The dungeon's prize chest (a TreasureChest prefab: rich, with a guaranteed rare curio): at the goal chamber's " +
+                 "Reward marker, or, where the goal has none (the queen's chamber), under the way up.")]
+        public GameObject prizeChest;
+        [Tooltip("At every other Reward marker, by chance.")]
+        public GameObject sideChest;
+        [Range(0, 1)] public float sideChestChance = .6f;
+
         [Header("The way out")]
         [Tooltip("Transparent black (alpha blended, back faces culled): veils in the surface passage that make its dead end read as depth.")]
         public Material passageDark;
