@@ -125,6 +125,35 @@ namespace Hakaton.Dungeons.EditorTools
             return log.ToString();
         }
 
+        static GameObject Ant(string name) => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Game/Prefabs/{name}.prefab");
+
+        /// <summary>Who lives where in the anthill (first pass; numbers to tune by play).</summary>
+        static string Garrison(string arg)
+        {
+            var kit = AssetDatabase.LoadAssetAtPath<DungeonKit>(KitPath);
+            DungeonKit.Garrison G(RoomRole role, string marker, int slot, string creature, int min, int max, float chance) =>
+                new DungeonKit.Garrison { role = role, marker = marker, slot = slot, creature = Ant(creature), count = new Vector2Int(min, max), chance = chance };
+            kit.garrison = new List<DungeonKit.Garrison>
+            {
+                // The entrance chamber stays empty: the player arrives there.
+                G(RoomRole.Junction, "Spawn", 0, "AntWorker", 2, 3, 1f),
+                G(RoomRole.Junction, "Spawn", 1, "WingedAnt", 1, 2, .5f),
+                G(RoomRole.Barracks, "Spawn", 0, "AntPlug", 1, 1, 1f),
+                G(RoomRole.Barracks, "Spawn", 1, "AntWorker", 3, 3, 1f),
+                G(RoomRole.Barracks, "Spawn", 2, "WingedAnt", 2, 2, .6f),
+                G(RoomRole.Barracks, "Spawn MachineGun", -1, "AntMachineGunCrew", 1, 1, 1f),
+                G(RoomRole.Store, "Spawn", -1, "AntWorker", 2, 2, .7f),
+                G(RoomRole.Farm, "Spawn", 0, "AntWorker", 2, 3, 1f),
+                G(RoomRole.Farm, "Spawn", 1, "WingedAnt", 1, 2, .5f),
+                G(RoomRole.Nursery, "Spawn Larva", -1, "BubbleLarva", 2, 3, 1f),
+                G(RoomRole.Nursery, "Spawn", -1, "AntWorker", 2, 2, 1f),
+                G(RoomRole.Queen, "Spawn Boss", -1, "AntQueen", 1, 1, 1f),
+            };
+            EditorUtility.SetDirty(kit);
+            AssetDatabase.SaveAssets();
+            return string.Join(", ", kit.garrison.Select(g => $"{g.role}/{g.marker}:{(g.creature ? g.creature.name : "MISSING")}"));
+        }
+
         static string Entrance(string arg)
         {
             var root = PrefabUtility.LoadPrefabContents(EntrancePath);

@@ -68,6 +68,8 @@ namespace Hakaton.WorldAssembly.Tests
         public IEnumerator TheAnthillIsWalkedIntoLeftAndFoundAsLeft()
         {
             var site = streamer.Dungeons;
+            // The anthill's garrison fights back; the photographer must live to the end.
+            world.vitals.Immortal = true;
             string note = streamer.GoToNearestDungeon();
             Debug.Log("[Dungeon] " + note);
             Assert.That(note, Does.StartWith("Иду"), note);
@@ -111,6 +113,13 @@ namespace Hakaton.WorldAssembly.Tests
                 if (Mathf.Approximately(s, 3.5f)) yield return Shot("02-walking-out-below");
             }
             Assert.That(site.Darkness, Is.EqualTo(0).Within(.01f), "light in the entrance chamber");
+            var garrison = site.Creatures;
+            Debug.Log("[Dungeon] garrison: " + string.Join(", ", garrison.GroupBy(c => c.name).Select(g => g.Key + " x" + g.Count())));
+            Assert.That(garrison.Length, Is.GreaterThan(3), "the anthill is inhabited");
+            Assert.That(garrison.All(c => world.creatures.Contains(c)), Is.True, "its creatures take part in the outing");
+            Assert.That(garrison.All(c => c.navigator && c.navigator.isOnNavMesh), Is.True, "every one stands on the dungeon's navigation");
+            if (plan.Large) Assert.That(garrison.Count(c => c.name == "AntQueen"), Is.EqualTo(1), "the queen waits at the bottom");
+            Assert.That(garrison.Any(c => c.name == "AntQueen" || c.name == "AntWorker"), Is.True);
             Assert.That(site.Underground, Is.True);
             yield return new WaitForSeconds(2f);
             yield return Shot("03-entrance-chamber");
@@ -142,6 +151,7 @@ namespace Hakaton.WorldAssembly.Tests
                 yield return null; yield return null;
             }
             Assert.That(site.Underground, Is.False, "the passage's dark end leads back up");
+            Assert.That(world.creatures.Any(c => c && c.transform.IsChildOf(dungeon.transform)), Is.False, "the dungeon's creatures sleep while the player is up");
             yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && e.passage && Mathf.Abs(e.passage.InverseTransformPoint(world.motor.transform.position).x) < 2.5f && (e.passage.position - world.motor.transform.position).magnitude < 9)) != null, 6);
             Assert.That(entrance, Is.Not.Null, "in the hill's passage (its chunk loaded again)");
             for (float s = 6; s >= -2; s -= .5f)
@@ -161,6 +171,9 @@ namespace Hakaton.WorldAssembly.Tests
                 yield return null; yield return null;
             }
             Assert.That(site.Current, Is.SameAs(dungeon), "the dungeon is kept as it was left");
+            Assert.That(site.Creatures.Length, Is.GreaterThan(0));
+            Assert.That(site.Creatures.All(c => world.creatures.Contains(c)), Is.True, "and its creatures are awake again");
+            world.vitals.Immortal = false;
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }

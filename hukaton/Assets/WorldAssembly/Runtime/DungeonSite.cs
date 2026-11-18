@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Hakaton.Dungeons.Unity;
 using Hakaton.Expeditions;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Hakaton.WorldAssembly.Unity
 {
@@ -131,6 +132,7 @@ namespace Hakaton.WorldAssembly.Unity
             surfacePassage = new Pose(entrance.passage.position, entrance.passage.rotation);
             dungeon.gameObject.SetActive(true);
             Physics.SyncTransforms();
+            Wake(dungeon, true);
             Air(dungeon.kit, true);
             Cross(entrance.passage, dungeon.Passage.position, dungeon.Passage.rotation);
         }
@@ -150,6 +152,7 @@ namespace Hakaton.WorldAssembly.Unity
             }
             if (frame) Cross(dungeon.Passage, frame.position, frame.rotation);
             else Cross(dungeon.Passage, surfacePassage.position, surfacePassage.rotation);
+            Wake(dungeon, false);
             dungeon.gameObject.SetActive(false);
             currentEntrance = null;
         }
@@ -194,9 +197,94 @@ namespace Hakaton.WorldAssembly.Unity
             b.kit = kit;
             go.AddComponent<DungeonCulling>().viewer = Camera.main ? Camera.main.transform : null;
             b.Build(entrance.seed);
+            Populate(b, entrance.seed);
             built[entrance.coord] = b;
             return b;
         }
+
+        // ---------- inhabitants ----------
+
+        /// <summary>
+        /// The dungeon's garrison (<see cref="DungeonKit.garrison"/>) at its chambers' markers, once, when it is first
+        /// laid: squads walk a route round their marker. They live under the dungeon's "Creatures" and are kept as they
+        /// are left (the dead stay dead) for the rest of the outing.
+        /// </summary>
+        void Populate(DungeonBuilder dungeon, int seed)
+        {
+            var kit = dungeon.kit;
+            var world = World;
+            if (!kit || kit.garrison == null || !world) return;
+            var root = new GameObject(CreaturesName).transform;
+            root.SetParent(dungeon.transform, false);
+            var random = new System.Random(seed ^ 0x51ed27);
+            foreach (var room in dungeon.Plan.Rooms)
+                foreach (var g in kit.garrison)
+                {
+                    if (g.role != room.Shape.Role || !g.creature || !g.creature.TryGetComponent(out WorldCreature prefab)) continue;
+                    var marks = new List<Transform>();
+                    foreach (var (r, name, at) in dungeon.Markers) if (r == room.Index && name == g.marker && at) marks.Add(at);
+                    if (marks.Count == 0) continue;
+                    for (int i = 0; i < marks.Count; i++)
+                    {
+                        if (g.slot >= 0 && i != g.slot % marks.Count) continue;
+                        if (random.NextDouble() > g.chance) continue;
+                        int low = Mathf.Max(0, Mathf.Min(g.count.x, g.count.y)), high = Mathf.Max(g.count.x, g.count.y);
+                        int n = low + random.Next(high - low + 1);
+                        var group = new List<WorldCreature>();
+                        var centre = marks[i].position;
+                        for (int m = 0; m < n; m++)
+                        {
+                            float a = (float)random.NextDouble() * 6.28f + m * 2.4f;
+                            var at = m == 0 ? centre : centre + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * (1.3f + .45f * m);
+                            if (NavMesh.SamplePosition(at, out var hit, 2.5f, NavMesh.AllAreas)) at = hit.position;
+                            var creature = Instantiate(prefab, at, marks[i].rotation, root);
+                            creature.name = prefab.name;
+                            creature.world = world;
+                            creature.spawnPoints = null;
+                            creature.ResetForOuting(null);
+                            world.creatures.Add(creature);
+                            group.Add(creature);
+                        }
+                        if (prefab.patrol.enabled && group.Count > 0) PatrolSquad.Form(group, centre, random.Next());
+                    }
+                }
+        }
+
+        const string CreaturesName = "Creatures";
+
+        /// <summary>
+        /// The dungeon's creatures join the outing while the player is below and leave it while the dungeon sleeps
+        /// (switched off with it). Those that came into being below on their own (the queen's summoned workers) are
+        /// taken in under the dungeon too.
+        /// </summary>
+        void Wake(DungeonBuilder dungeon, bool on)
+        {
+            var world = World;
+            var root = dungeon.transform.Find(CreaturesName);
+            if (!world || !root) return;
+            if (on)
+            {
+                foreach (var c in root.GetComponentsInChildren<WorldCreature>(true))
+                    if (c && !world.creatures.Contains(c)) world.creatures.Add(c);
+                return;
+            }
+            float below = dungeon.transform.position.y + depth * .5f;
+            for (int i = world.creatures.Count - 1; i >= 0; i--)
+            {
+                var c = world.creatures[i];
+                if (!c) continue;
+                bool ours = c.transform.IsChildOf(dungeon.transform);
+                if (!ours && c.transform.position.y < below && Vector3.Distance(c.transform.position, dungeon.transform.position) < 400)
+                {
+                    c.transform.SetParent(root, true);
+                    ours = true;
+                }
+                if (ours) world.creatures.RemoveAt(i);
+            }
+        }
+
+        /// <summary>The creatures of the dungeon the player is in (debug, tests).</summary>
+        public WorldCreature[] Creatures => current && current.transform.Find(CreaturesName) ? current.transform.Find(CreaturesName).GetComponentsInChildren<WorldCreature>() : new WorldCreature[0];
 
         // The sky's ambient light (cool blue from above) has no business underground: while below, the scene's
         // ambient is the dungeon's own flat warm light, and the open world's is put back on the way up.

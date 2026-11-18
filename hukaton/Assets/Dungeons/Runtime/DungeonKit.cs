@@ -24,6 +24,22 @@ namespace Hakaton.Dungeons.Unity
             public Vector2 scaleRange;
         }
 
+        /// <summary>Who lives at a chamber's markers when the dungeon is first laid (spawned by the game's dungeon site).</summary>
+        [Serializable]
+        public struct Garrison
+        {
+            public RoomRole role;
+            [Tooltip("Marker name in the chamber: Spawn, Spawn MachineGun, Spawn Larva, Spawn Boss.")]
+            public string marker;
+            [Tooltip("Which of the chamber's markers of that name (0 = the first); -1 = every one of them.")]
+            public int slot;
+            [Tooltip("The creature prefab (a WorldCreature). Squad creatures form a patrol round the marker.")]
+            public GameObject creature;
+            [Tooltip("How many at the marker: from and to.")]
+            public Vector2Int count;
+            [Range(0, 1)] public float chance;
+        }
+
         [Header("Earth shell")]
         public GameObject[] walls;
         public GameObject corner;
@@ -55,6 +71,9 @@ namespace Hakaton.Dungeons.Unity
         public Color corridorLightColor = new Color(1f, .62f, .32f);
         [Min(0)] public float corridorLightRange = 7f;
         [Min(0)] public float corridorLightIntensity = 1.8f;
+
+        [Header("Inhabitants")]
+        public List<Garrison> garrison = new List<Garrison>();
 
         [Header("The way out")]
         [Tooltip("Transparent black (alpha blended, back faces culled): veils in the surface passage that make its dead end read as depth.")]
