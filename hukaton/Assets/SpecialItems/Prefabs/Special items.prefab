@@ -301,6 +301,7 @@ Transform:
   - {fileID: 3300345270080470871}
   - {fileID: 6349564701873506703}
   - {fileID: 854631519877914764}
+  - {fileID: 3639749916626207084}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5484426207042643593
@@ -321,9 +322,12 @@ MonoBehaviour:
   tools:
   - {fileID: 5563444920937007575}
   - {fileID: 3730242156542251224}
+  - {fileID: 4673689199886327278}
   holdSeconds: 0.2
   menuOpenSound: {fileID: 11400000, guid: bbc418de98f9b4002b6c6f7b82fa6c5b, type: 2}
   menuPickSound: {fileID: 11400000, guid: df631c469e3824425920bf6b41f90bd8, type: 2}
+  stowHint: "Q \u2014 \u0443\u0431\u0440\u0430\u0442\u044C\n\u0437\u0430\u0436\u0430\u0442\u044C
+    Q \u2014 \u0434\u0440\u0443\u0433\u043E\u0439 \u043F\u0440\u0435\u0434\u043C\u0435\u0442"
 --- !u!1 &2792831876703439964
 GameObject:
   m_ObjectHideFlags: 0
@@ -616,6 +620,79 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 7565862180123847961, guid: 64e918b61f5a84aa5b6735ac0fdb2ad2, type: 3}
   m_PrefabInstance: {fileID: 3522229309670401174}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5694133427998456882
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8743338416827705287}
+    m_Modifications:
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083754453816451850, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+      propertyPath: m_Name
+      value: Compass
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+--- !u!4 &3639749916626207084 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9045301098327653726, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+  m_PrefabInstance: {fileID: 5694133427998456882}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4673689199886327278 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1142198791031202268, guid: 115390a0b8f724416a925dd7732a71dc, type: 3}
+  m_PrefabInstance: {fileID: 5694133427998456882}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f972d7b125a154b50a3e87371aba21a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hakaton.SpecialItems.Expedition::Hakaton.SpecialItems.CompassTool
 --- !u!1001 &8528445203490135506
 PrefabInstance:
   m_ObjectHideFlags: 0

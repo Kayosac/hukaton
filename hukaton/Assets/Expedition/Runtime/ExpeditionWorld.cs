@@ -127,6 +127,9 @@ namespace Hakaton.Expeditions
         public IReadOnlyList<WorldCreature> ActiveCreatures => InPrologue ? (IReadOnlyList<WorldCreature>)prologueCreatures : creatures;
         /// <summary>The player's side (cards, hazards, allies) hit, knocked down or froze a creature (at most every quarter second per creature).</summary>
         public event Action<WorldCreature> CreatureAttackedByPlayer;
+        /// <summary>A creature died (any cause). The game loop notes the first slain Queen (the ant compass opens).</summary>
+        public event Action<WorldCreature> CreatureDied;
+        public void ReportCreatureDied(WorldCreature creature) => CreatureDied?.Invoke(creature);
 
         /// <summary>
         /// The player's side attacked <paramref name="victim"/> (<paramref name="by"/>: null for cards and hazards, or an

@@ -1366,6 +1366,7 @@ namespace Hakaton.Expeditions
             Vector3 from = at ?? transform.position + Vector3.up * Mathf.Max(.4f, TopHeight * .5f);
             // Now and then it leaves a trophy card that flies into the hand (TrophyCards).
             if (world.trophies) world.trophies.CreatureDied(this, from, LootRolls);
+            world.ReportCreatureDied(this);
             if (dropped.Count == 0) return;
             foreach (var item in dropped)
             {

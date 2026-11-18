@@ -10,6 +10,7 @@ using Hakaton.Expeditions;
 using Hakaton.Expeditions.Cards;
 using Hakaton.Game;
 using Hakaton.Loot;
+using Hakaton.SpecialItems;
 using Hakaton.WorldAssembly.Unity;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -117,8 +118,7 @@ namespace Hakaton.WorldAssembly.Tests
             var chests = site.Chests;
             var prize = chests.First(c => c.tier && c.tier.displayName == "Сундук муравейника");
             Assert.That(prize.tier.rank, Is.EqualTo(5));
-            Assert.That(prize.tier.bonus.entries.Select(e => e.item.id), Is.SupersetOf(new[] { "ant_amber_fly", "ant_royal_jelly", "ant_fossil_queen_egg" }));
-            Assert.That(prize.tier.bonus.entries.All(e => e.item.id.StartsWith("ant_")), Is.True, "the prize is the anthill's own");
+            Assert.That(prize.tier.bonus.entries.Select(e => e.item.id), Is.EquivalentTo(new[] { "ant_amber_fly", "ant_royal_jelly", "ant_fossil_queen_egg" }));
             var kit = dungeon.kit;
             Assert.That(kit.stashChest.GetComponent<TreasureChest>().tier.bonus.entries.Select(e => e.item.id), Has.Member("ant_inverted_farm"));
             Assert.That(kit.sideChest.GetComponent<TreasureChest>().tier.bonus.entries.Select(e => e.item.id), Has.Member("ant_button_drum"));
@@ -233,6 +233,77 @@ namespace Hakaton.WorldAssembly.Tests
             yield return Shot("22-sonar-around");
             yield return new WaitForSeconds(11);
             Assert.That(Object.FindObjectsByType<SonarMark>(FindObjectsSortMode.None).Length, Is.EqualTo(0), "the silhouettes go out after their time");
+            Invulnerable(false);
+        }
+
+        [UnityTest]
+        public IEnumerator TheAntCompassSmellsAnthillsThenStashesThenTheWayOut()
+        {
+            var site = streamer.Dungeons;
+            Invulnerable(true);
+            var host = Object.FindAnyObjectByType<SpecialItemsHost>();
+            var hand = Object.FindAnyObjectByType<SpecialItemsHand>();
+            var compass = host.Find("ant_compass");
+            Assert.That(compass, Is.Not.Null, "the compass is in the catalogue");
+            Assert.That(compass.price, Is.EqualTo(800));
+            Assert.That(compass.unlock, Is.EqualTo(SpecialItemUnlock.AfterQueen));
+            Assert.That(game.QueenSlain, Is.False);
+            Assert.That(host.IsUnlocked(compass), Is.False, "not for sale before the Queen falls");
+            host.Grant(compass);
+            var tool = (CompassTool)hand.ToolFor(compass);
+            Assert.That(tool, Is.Not.Null, "its tool is on the player");
+
+            // Above ground: toward the nearest anthill, from a few chunks away.
+            yield return new WaitForSeconds(.5f);
+            hand.Take(compass);
+            yield return new WaitForSeconds(.6f);
+            Assert.That(tool.IsOut, Is.True);
+            Assert.That(tool.Target.Kind, Is.EqualTo(CompassTargetKind.Entrance), "above ground it smells an anthill");
+            var target = tool.Target.Point;
+            var feet = world.motor.transform.position;
+            // Facing the anthill the ant points straight up; turned away, it points the other way round.
+            world.motor.Teleport(feet, Quaternion.LookRotation(Flat(target - feet)));
+            yield return new WaitForSeconds(1.5f);
+            Debug.Log($"[Anthill] compass facing the anthill: {tool.Heading:0}° ({Flat(target - feet).magnitude:0} m)");
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(0, tool.Heading)), Is.LessThan(30), "facing it, the ant looks straight ahead");
+            yield return Shot("40-compass-facing");
+            world.motor.Teleport(feet, Quaternion.LookRotation(Quaternion.Euler(0, 90, 0) * Flat(target - feet)));
+            yield return new WaitForSeconds(1.5f);
+            Assert.That(Mathf.DeltaAngle(0, tool.Heading), Is.InRange(-120, -60), "anthill on the left: the ant turns left");
+            yield return Shot("41-compass-left");
+
+            // Down in the anthill: toward the stashes, then — every stash opened — toward the way up.
+            string note = streamer.GoToNearestDungeon();
+            Assert.That(note, Does.StartWith("Иду"), note);
+            DungeonEntrance entrance = null;
+            yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && (e.outside.position - world.motor.transform.position).sqrMagnitude < 4)) != null, 8);
+            yield return new WaitForSeconds(.5f);
+            Assert.That(Flat(tool.Target.Point - entrance.passage.position).magnitude, Is.LessThan(1f), "by the hill it smells this hill's mouth");
+            for (float s = 0; s <= 6.6f && !site.Underground; s += .5f) { Stand(entrance.passage, s, 0); yield return null; yield return null; }
+            for (float s = 6; s >= -1; s -= .5f) { Stand(site.Current.Passage, s, 180); yield return null; yield return null; }
+            yield return new WaitForSeconds(.6f);
+            if (!tool.IsOut) hand.Take(compass);
+            yield return new WaitForSeconds(.6f);
+            var stashes = site.Chests.Where(c => c.name == "Anthill Stash Chest").ToList();
+            Assert.That(stashes.Count, Is.GreaterThan(0));
+            Assert.That(tool.Target.Kind, Is.EqualTo(CompassTargetKind.Stash), "below it smells a stash");
+            var nearest = stashes.OrderBy(c => (c.transform.position - world.motor.transform.position).sqrMagnitude).First();
+            Assert.That((tool.Target.Point - nearest.transform.position).magnitude, Is.LessThan(.1f), "the nearest one");
+            yield return Shot("42-compass-stash");
+            foreach (var chest in stashes) chest.Open();
+            yield return new WaitForSeconds(.6f);
+            Assert.That(tool.Target.Kind, Is.EqualTo(CompassTargetKind.WayOut), "every stash opened: toward the way up");
+
+            // The first slain Queen puts it on the goblin's table.
+            var queen = site.Creatures.FirstOrDefault(c => c && c.name == "AntQueen");
+            if (queen)
+            {
+                queen.Damage(queen.maximumHealth * 2, Vector3.zero, queen.Centre, 0);
+                yield return new WaitForSeconds(.3f);
+                Assert.That(game.QueenSlain, Is.True, "the Queen's death is noted");
+                Assert.That(host.IsUnlocked(compass), Is.True, "the compass is on sale now");
+            }
+            else Debug.Log("[Anthill] small anthill: no Queen to slay here");
             Invulnerable(false);
         }
 

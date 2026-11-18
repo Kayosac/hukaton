@@ -58,6 +58,59 @@ namespace Hakaton.WorldAssembly.Unity
         {
             streamer = GetComponent<WorldStreamer>();
             atmosphere = GetComponent<WorldAtmosphere>();
+            bearing = Bearing;
+        }
+
+        // ---------- the ant compass ----------
+
+        [Tooltip("The ant compass smells anthills this many chunks round the player.")]
+        [Min(1)] public int compassReach = 12;
+        System.Func<Vector3, CompassTarget> bearing;
+        ChunkCoord compassFrom;
+        bool compassKnown, compassFound;
+        ChunkCoord compassCoord;
+        Vector3 compassCentre;
+        object compassMap;
+
+        void OnEnable() { if (bearing != null) CompassBearings.Source = bearing; }
+
+        void OnDisable() { if (CompassBearings.Source == bearing) CompassBearings.Source = null; }
+
+        /// <summary>
+        /// What the ant compass is drawn to from <paramref name="from"/>: below, the nearest stash with its chest still
+        /// shut, or the way up when none is left; above, the nearest anthill's mouth (or its chunk while it is not loaded).
+        /// </summary>
+        public CompassTarget Bearing(Vector3 from)
+        {
+            if (current)
+            {
+                string stash = current.kit && current.kit.stashChest ? current.kit.stashChest.name : null;
+                TreasureChest best = null;
+                float bestDistance = float.MaxValue;
+                if (stash != null)
+                    foreach (var chest in Chests)
+                    {
+                        if (!chest || chest.Opened || chest.name != stash) continue;
+                        float d = (chest.transform.position - from).sqrMagnitude;
+                        if (d < bestDistance) { bestDistance = d; best = chest; }
+                    }
+                if (best) return new CompassTarget(CompassTargetKind.Stash, best.transform.position);
+                return current.Passage ? new CompassTarget(CompassTargetKind.WayOut, current.Passage.position) : default;
+            }
+            if (!streamer || !streamer.Active || streamer.Map == null) return default;
+            var here = streamer.CoordAt(from);
+            // A new outing has a new world: look again.
+            if (!compassKnown || !here.Equals(compassFrom) || !ReferenceEquals(compassMap, streamer.Map))
+            {
+                compassMap = streamer.Map;
+                compassFound = streamer.NearestDungeonChunk(from, compassReach, out compassCoord, out compassCentre);
+                compassFrom = here;
+                compassKnown = true;
+            }
+            if (!compassFound) return default;
+            foreach (var e in DungeonEntrance.All)
+                if (e && e.coord.Equals(compassCoord) && e.passage) return new CompassTarget(CompassTargetKind.Entrance, e.passage.position);
+            return new CompassTarget(CompassTargetKind.Entrance, compassCentre);
         }
 
         void Update()

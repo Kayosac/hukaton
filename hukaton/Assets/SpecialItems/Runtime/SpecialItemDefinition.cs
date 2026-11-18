@@ -14,7 +14,9 @@ namespace Hakaton.SpecialItems
         /// <summary>Back from the god: once the goblin on the counter has had his word (the phone, the player).</summary>
         AfterGod,
         /// <summary>After the stranger at the end of a shift: once the goblin has had his word about him (the хаPAY account).</summary>
-        AfterStranger
+        AfterStranger,
+        /// <summary>Once the anthill's Queen has been slain for the first time (the ant compass).</summary>
+        AfterQueen
     }
 
     /// <summary>How a special item sits with the cards while it is out.</summary>

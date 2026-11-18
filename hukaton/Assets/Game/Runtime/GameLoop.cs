@@ -173,6 +173,18 @@ namespace Hakaton.Game
         public bool InGodMountains => godVisit && godVisit.Active;
         /// <summary>The god has been met (saved): his «?» is gone from the map for good.</summary>
         public bool GodMet => godMet;
+        /// <summary>An anthill's Queen has been slain (saved): the ant compass is for sale.</summary>
+        public bool QueenSlain => queenSlain;
+        [Tooltip("The name of the anthill's Queen (WorldCreature.displayName): slaying her the first time opens the ant compass.")]
+        public string queenName = "Матка";
+        bool queenSlain;
+
+        void NoteSlain(Hakaton.Expeditions.WorldCreature creature)
+        {
+            if (queenSlain || !creature || creature.displayName != queenName) return;
+            queenSlain = true;
+            dirty = true;
+        }
         /// <summary>The goblin is in the shop with his word about deep water.</summary>
         public bool LectureActive => lecture && lecture.Active;
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
@@ -237,7 +249,10 @@ namespace Hakaton.Game
                     // The goblin's word after the god ends with «у меня есть для тебя кое-что интересное»: the items open then.
                     || unlock == SpecialItemUnlock.AfterGod && godMet && !godLectureRunning
                     // The goblin's word after the stranger ends with «загляни ко мне…»: the хаPAY account opens then.
-                    || unlock == SpecialItemUnlock.AfterStranger && strangerVisited && !strangerGoblinDue && !strangerLectureRunning;
+                    || unlock == SpecialItemUnlock.AfterStranger && strangerVisited && !strangerGoblinDue && !strangerLectureRunning
+                    // The first slain Queen: the ant compass lies on the goblin's table from the next visit.
+                    || unlock == SpecialItemUnlock.AfterQueen && queenSlain;
+                if (expedition) expedition.CreatureDied += NoteSlain;
                 cardShop.SpecialItems = specialItems;
                 if (services.computer) services.computer.SpecialItems = specialItems;
                 specialItems.Inventory.Changed += MarkDirty;
@@ -794,7 +809,7 @@ namespace Hakaton.Game
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
                 heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
-            map = outingMap ? outingMap.Save() : null, godMet = godMet,
+            map = outingMap ? outingMap.Save() : null, godMet = godMet, queenSlain = queenSlain,
             endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null,
@@ -832,6 +847,7 @@ namespace Hakaton.Game
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);
             if (expedition.vitals) expedition.vitals.Upgrade.Restore(save.HeartsLevel);
             godMet = save.godMet;
+            queenSlain = save.queenSlain;
             endlessVisited = save.endlessVisited;
             strangerVisited = save.strangerVisited;
             strangerChances = Math.Max(0, save.strangerChances);

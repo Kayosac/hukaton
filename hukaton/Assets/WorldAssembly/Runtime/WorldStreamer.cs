@@ -460,6 +460,33 @@ namespace Hakaton.WorldAssembly.Unity
             return "В радиусе 24 чанков данжей нет.";
         }
 
+        /// <summary>
+        /// The nearest chunk (by straight distance) within <paramref name="reach"/> chunks of <paramref name="from"/> that
+        /// holds a dungeon entrance, and its centre (the ant compass, before the hill itself is loaded).
+        /// </summary>
+        public bool NearestDungeonChunk(Vector3 from, int reach, out ChunkCoord coord, out Vector3 centre)
+        {
+            coord = default;
+            centre = default;
+            if (!Active || Map == null) return false;
+            var here = CoordAt(from);
+            float best = float.MaxValue;
+            bool found = false;
+            for (int dx = -reach; dx <= reach; dx++)
+                for (int dy = -reach; dy <= reach; dy++)
+                {
+                    var c = new ChunkCoord(here.X + dx, here.Y + dy);
+                    var at = Origin + new Vector3(c.X * Size, 0, c.Y * Size);
+                    float d = new Vector2(at.x - from.x, at.z - from.z).sqrMagnitude;
+                    if (d >= best || Map.Chunk(c).Event != WorldEvents.Dungeon) continue;
+                    best = d;
+                    coord = c;
+                    centre = at;
+                    found = true;
+                }
+            return found;
+        }
+
         static string BiomeName(ChunkPlan plan)
         {
             if (plan.Biome != Biome.Swamp) return "Лес";

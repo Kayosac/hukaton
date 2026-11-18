@@ -30,6 +30,8 @@ namespace Hakaton.Game
         public bool endlessVisited;
         /// <summary>The stranger at the end of a shift has come (once per save). False in older saves.</summary>
         public bool strangerVisited;
+        /// <summary>An anthill's Queen has been slain (the ant compass is on the goblin's table). False in older saves.</summary>
+        public bool queenSlain;
         /// <summary>Shifts that ended by themselves after the first endless outing while the stranger had not come (his
         /// bad-luck guard counts them). 0 in older saves.</summary>
         public int strangerChances;
