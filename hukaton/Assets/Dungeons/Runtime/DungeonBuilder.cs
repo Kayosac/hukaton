@@ -31,6 +31,13 @@ namespace Hakaton.Dungeons.Unity
         /// +Z running into the passage towards its dead end. The surface entrance has the same passage.
         /// </summary>
         public Transform Passage { get; private set; }
+        /// <summary>
+        /// The way up after the boss (the queen's chamber "Exit" marker, under its light slot): a column of daylight down
+        /// the shaft, switched off until the way opens (<see cref="OpenExit"/>). Null where the dungeon has none.
+        /// </summary>
+        public Transform Exit { get; private set; }
+        public bool ExitOpen { get; private set; }
+        GameObject exitLight;
         /// <summary>Hand-placed markers of every chamber by name ("Spawn", "Reward", "Spawn Boss", "Exit"...).</summary>
         public readonly List<(int room, string name, Transform at)> Markers = new List<(int, string, Transform)>();
         NavMeshDataInstance navigation;
@@ -55,6 +62,9 @@ namespace Hakaton.Dungeons.Unity
             Built = null;
             Plan = null;
             Passage = null;
+            Exit = null;
+            ExitOpen = false;
+            exitLight = null;
             Chambers.Clear();
             CellGroups.Clear();
             Markers.Clear();
@@ -263,6 +273,46 @@ namespace Hakaton.Dungeons.Unity
             var inward = Built.rotation * Quaternion.Euler(0, DungeonGeometry.Yaw(Dir.North), 0);
             Arrival = arrival ? new Pose(arrival.position, inward) : new Pose(Built.TransformPoint(DungeonGeometry.Center(entrance.Cells[0], entrance.Floor)), inward);
             WayOut = Passage ? Passage.TransformPoint(new Vector3(0, 0, PassageDepth / 2)) : Arrival.position;
+            var exit = Markers.Find(m => m.name == "Exit");
+            if (exit.at) LayExit(exit.at, Mathf.Max(1, Plan.Rooms[exit.room].Shape.Rows));
+        }
+
+        // ---------- the way up after the boss ----------
+
+        /// <summary>How tall the shaft above the chamber's vault is lit, m.</summary>
+        const float ExitShaftTop = 8f;
+
+        void LayExit(Transform marker, int rows)
+        {
+            // The light lives in the shaft above the chamber's vault: the chamber itself is lit by the lamp only.
+            float vault = rows * RowHeight - .3f;
+            Exit = marker;
+            exitLight = new GameObject("Exit Daylight");
+            exitLight.transform.SetParent(marker, false);
+            // The glow's frame stands upright (+Z up), its box centred on the column.
+            var frame = new GameObject("Shaft").transform;
+            frame.SetParent(exitLight.transform, false);
+            frame.SetPositionAndRotation(marker.position, Quaternion.LookRotation(Vector3.up, marker.forward));
+            frame.position -= frame.up * 1.3f;
+            if (kit.passageGlow) Murk(frame, kit.passageGlow, 1.3f, 2.6f, vault + ExitShaftTop, vault + .6f, vault + ExitShaftTop, kit.surfaceLight * .75f, "Exit Glow");
+            if (kit.surfaceLightIntensity > 0)
+            {
+                var l = new GameObject("Exit Lamp").AddComponent<Light>();
+                l.transform.SetParent(exitLight.transform, false);
+                // A pool of daylight on the floor under the shaft (kept low: up high it would flood the shaft's backstop).
+                l.transform.position = marker.position + Vector3.up * 3f;
+                l.type = LightType.Point; l.color = kit.surfaceLight; l.range = kit.surfaceLightRange * .8f;
+                l.intensity = kit.surfaceLightIntensity * 1.2f; l.shadows = LightShadows.None;
+            }
+            exitLight.SetActive(false);
+        }
+
+        /// <summary>The way up opens (the boss is dead): daylight comes down the shaft.</summary>
+        public void OpenExit()
+        {
+            if (!Exit || ExitOpen) return;
+            ExitOpen = true;
+            if (exitLight) exitLight.SetActive(true);
         }
 
         // ---------- the way-out passage ----------

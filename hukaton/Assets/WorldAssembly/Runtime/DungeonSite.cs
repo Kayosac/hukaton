@@ -69,6 +69,7 @@ namespace Hakaton.WorldAssembly.Unity
             if (current)
             {
                 if (current.Passage && Along(current.Passage, p, out float s)) dark = Walk(s, null);
+                else if (current.Exit) dark = Climb(p);
             }
             else
             {
@@ -100,6 +101,47 @@ namespace Hakaton.WorldAssembly.Unity
                 return 1;
             }
             return dark;
+        }
+
+        // ---------- the way up after the boss ----------
+
+        [Tooltip("Under the exit shaft: the screen starts going to daylight this far from its middle, m...")]
+        [Min(.5f)] public float exitFrom = 2.8f;
+        [Tooltip("...and the player goes up this close to it.")]
+        [Min(.1f)] public float exitAt = .7f;
+
+        /// <summary>
+        /// The queen's chamber has a shaft to the surface under its light slot: dark while she lives, daylight down it
+        /// once she is dead. Stepping under it the screen goes to daylight; in its middle the player is up, in the
+        /// hill's passage, walking out of it.
+        /// </summary>
+        float Climb(Vector3 p)
+        {
+            var exit = current.Exit;
+            if (!current.ExitOpen)
+            {
+                if (!QueenAlive()) current.OpenExit();
+                return 0;
+            }
+            var d = p - exit.position;
+            if (Mathf.Abs(d.y) > 3) return 0;
+            float r = new Vector2(d.x, d.z).magnitude;
+            if (r > exitFrom) { armed = true; carried = false; return 0; }
+            if (!carried) tint = Daylight;
+            if (armed && r <= exitAt)
+            {
+                armed = false;
+                carried = true;
+                Up(true);
+                return 1;
+            }
+            return Mathf.SmoothStep(0, 1, Mathf.InverseLerp(exitFrom, exitAt, r));
+        }
+
+        bool QueenAlive()
+        {
+            foreach (var c in Creatures) if (c && c.name == "AntQueen" && c.Alive) return true;
+            return false;
         }
 
         void Darken(float dark)
@@ -137,7 +179,7 @@ namespace Hakaton.WorldAssembly.Unity
             Cross(entrance.passage, dungeon.Passage.position, dungeon.Passage.rotation);
         }
 
-        void Up()
+        void Up(bool byShaft = false)
         {
             var dungeon = current;
             current = null;
@@ -150,8 +192,9 @@ namespace Hakaton.WorldAssembly.Unity
                 Physics.SyncTransforms();
                 frame = Surface();
             }
-            if (frame) Cross(dungeon.Passage, frame.position, frame.rotation);
-            else Cross(dungeon.Passage, surfacePassage.position, surfacePassage.rotation);
+            var to = frame ? new Pose(frame.position, frame.rotation) : surfacePassage;
+            if (byShaft) Arrive(to);
+            else Cross(dungeon.Passage, to.position, to.rotation);
             Wake(dungeon, false);
             dungeon.gameObject.SetActive(false);
             currentEntrance = null;
@@ -181,6 +224,17 @@ namespace Hakaton.WorldAssembly.Unity
             float pitch = Camera.main ? Camera.main.transform.eulerAngles.x : 0;
             world.thrower.Cancel();
             world.motor.Teleport(target + Vector3.up * .05f, Quaternion.Euler(pitch, yaw, 0));
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>Up the shaft: in the middle of the hill's passage, as deep as a crossing leaves one, facing its mouth.</summary>
+        void Arrive(Pose passage)
+        {
+            var world = World;
+            var target = passage.position + passage.rotation * new Vector3(0, 0, darkAt - .25f);
+            float yaw = passage.rotation.eulerAngles.y + 180;
+            world.thrower.Cancel();
+            world.motor.Teleport(target + Vector3.up * .05f, Quaternion.Euler(0, yaw, 0));
             Physics.SyncTransforms();
         }
 

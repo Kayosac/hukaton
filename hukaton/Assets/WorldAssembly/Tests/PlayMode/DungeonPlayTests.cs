@@ -144,13 +144,43 @@ namespace Hakaton.WorldAssembly.Tests
                 yield return Shot($"{i++:00}-{room.Shape.Role}");
             }
 
-            // Back up: into the passage again, out of the hill's mouth.
-            for (float s = 0; s <= 6.6f && site.Underground; s += .5f)
+            if (plan.Large)
             {
-                Stand(dungeon.Passage, s, 0);
-                yield return null; yield return null;
+                // The way up after the queen: dark while she lives, daylight down the shaft once she is dead.
+                Assert.That(dungeon.Exit, Is.Not.Null, "the queen's chamber has a way up");
+                var queen = site.Creatures.First(c => c.name == "AntQueen");
+                var under = dungeon.Exit.position;
+                // Into the chamber from the shaft: towards where the queen sat.
+                var boss = dungeon.Markers.First(m => m.name == "Spawn Boss").at.position - under; boss.y = 0;
+                var back = -boss.normalized;
+                world.motor.Teleport(under - back * 1.5f + Vector3.up * .1f, Quaternion.LookRotation(back));
+                yield return new WaitForSeconds(.4f);
+                Assert.That(site.Underground, Is.True, "no way up while the queen lives");
+                Assert.That(dungeon.ExitOpen, Is.False);
+                queen.Damage(queen.maximumHealth * 3, Vector3.zero, queen.Centre, 0);
+                yield return new WaitForSeconds(queen.corpseSeconds + 1f);
+                world.motor.Teleport(under - back * 3.5f + Vector3.up * .1f, Quaternion.LookRotation(back + Vector3.up * .9f));
+                yield return new WaitForSeconds(.5f);
+                Assert.That(dungeon.ExitOpen, Is.True, "the queen is dead: daylight comes down the shaft");
+                yield return Shot("10-way-up-after-the-queen");
+                for (float r = 3.4f; r >= 0 && site.Underground; r -= .4f)
+                {
+                    world.motor.Teleport(under - back * r + Vector3.up * .1f, Quaternion.LookRotation(back));
+                    yield return null; yield return null;
+                    if (Mathf.Abs(r - 1.8f) < .21f) yield return Shot("11-into-the-light");
+                }
+                Assert.That(site.Underground, Is.False, "the shaft leads up");
             }
-            Assert.That(site.Underground, Is.False, "the passage's dark end leads back up");
+            else
+            {
+                // Back up: into the passage again, out of the hill's mouth.
+                for (float s = 0; s <= 6.6f && site.Underground; s += .5f)
+                {
+                    Stand(dungeon.Passage, s, 0);
+                    yield return null; yield return null;
+                }
+                Assert.That(site.Underground, Is.False, "the passage's dark end leads back up");
+            }
             Assert.That(world.creatures.Any(c => c && c.transform.IsChildOf(dungeon.transform)), Is.False, "the dungeon's creatures sleep while the player is up");
             yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && e.passage && Mathf.Abs(e.passage.InverseTransformPoint(world.motor.transform.position).x) < 2.5f && (e.passage.position - world.motor.transform.position).magnitude < 9)) != null, 6);
             Assert.That(entrance, Is.Not.Null, "in the hill's passage (its chunk loaded again)");
