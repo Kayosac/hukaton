@@ -16,7 +16,9 @@ def field(t,k):
 def yname(s):
     if s is None: return None
     s=s.strip()
-    if s.startswith('"'): return json.loads(s)
+    if s.startswith('"'):
+        try: return json.loads(s)
+        except Exception: return None
     return s
 def cue(p):
     t=txt(p)
@@ -96,14 +98,14 @@ for n in sorted(os.listdir(A+'/Game/Prefabs')):
     p=A+'/Game/Prefabs/'+n
     if 'alertCue:' not in txt(p): continue
     name=n[:-7]
-    folder='BuddingTroll' if name.startswith('Budding troll') else ''.join(w.capitalize() for w in name.split())
+    folder='BuddingTroll' if name.startswith('Budding troll') else (name if ' ' not in name else ''.join(w.capitalize() for w in name.split()))
     man=json.load(open(A+'/Content/Enemies/%s/manifest.json'%folder))
     t=txt(p)
     entries=scan(p)
     enemies.append(dict(prefab=name,folder=folder,ru=man.get('display_name',name)+(' — отросток' if name=='Budding troll bud' else ''),type=man.get('type',''),entries=entries,sprite=sprite_png(folder,name)))
 # mimic
 mp=A+'/Expedition/Prefabs/Chests/Mimics/Mimic 2 Common.prefab'
-mi=Image.open('/dev/stdin' if False else R+'/output/mimic/mimic-seq3.png').convert('RGBA').crop((72,66,250,236))
+mi=Image.open(os.path.join(HERE,'mimic.png')).convert('RGBA')
 b=io.BytesIO(); mi.save(b,'PNG')
 enemies.append(dict(prefab='Mimic (все 5 тиров)',folder='',ru='Мимик-сундук',type='3D, не спрайт',entries=scan(mp),sprite=('data:image/png;base64,'+base64.b64encode(b.getvalue()).decode(),mi.size),photo=True))
 
@@ -135,7 +137,7 @@ for e in enemies:
     out.append(dict(ru=e['ru'],prefab=e['prefab'],type=TYPES.get(e['type'],e['type']),img=e['sprite'][0],w=e['sprite'][1][0],h=e['sprite'][1][1],photo=e.get('photo',False),
         sounds=[dict(group=r['group'],title=r['title'],desc=r['desc'],cue=r['cue']['id'],shared=len(use[r['cue']['id']]),vol=float(r['cue']['volume'] or 1),pitch=[float(v) for v in re.findall(r'[\d.]+',r['cue']['pitch'] or '1 1')][:2],
                      clips=[dict(a=enc(c),file=os.path.relpath(c,A)) for c in r['cue']['clips']]) for r in rr]))
-PRJ={'Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Beer mug':'пивная кружка','Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
+PRJ={'Ant machine gun bullet':'пуля пулемёта','Bubble larva explosion':'подрыв личинки','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Beer mug':'пивная кружка','Honey glob':'медовый плевок','Beer mug':'пивная кружка','Blood clot':'сгусток крови','Web':'паутина','Toad slime':'жабья слизь','Agaric spit':'плевок мухомора','Baseball':'бейсбольный мяч'}
 for e in out:
     if ' — ' in e['ru'] and not e['ru'].endswith('отросток'): e['ru']=e['ru'].split(' — ')[0]
     for s in e['sounds']:
