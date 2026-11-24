@@ -18,8 +18,9 @@ namespace Hakaton.Backroom
     /// «Гоблин-торговец»): ten cards in a row, face down at half price or all turned up at full price, chosen with the
     /// mouse; player movement is blocked. Until the shop's first goal the table is friendly («по-свойски», see
     /// <see cref="FriendlyTrade"/>): face up at half price, no dummy, no «Раскрыть все». On the first visit he talks first
-    /// (the introduction), then the table opens; at the first usual table he explains the usual trade (the explanation).
-    /// A face-down card refused for want of coins is marked «дороговато» while the purse is short of its half price.
+    /// (the introduction; at a usual table its friendly-only lines, <see cref="friendlyOnlyIntroduction"/>, are passed over),
+    /// then the table opens; at the first usual table he explains the usual trade (the explanation).
+    /// A face-down card refused for want of coins is marked «дорого» while the purse is short of its half price.
     /// A bought card is brought up to the eyes (<see cref="CardInspect"/>): the table steps aside, the left button held
     /// turns the card. A click, E, Space or Enter at any moment (on its way up, held, or on its way out) puts it away at
     /// once and snaps the table back; Esc or the right button sends it off into the bag with the spin.
@@ -83,6 +84,9 @@ namespace Hakaton.Backroom
             "Пока лавка не встала на ноги, торгую по-свойски: всё на виду и за полцены.",
             "Можешь брать хоть несколько. Можешь ничего. Но первый вариант мне нравится больше."
         };
+        [Tooltip("Indices of the introduction's lines that belong to the friendly trade («по-свойски») only: at a usual " +
+                 "table (the first call after the shop's first goal) they are passed over and count as read.")]
+        public int[] friendlyOnlyIntroduction = { 1 };
         [Tooltip("The first usual (face-down) table, after the shop's first goal: the usual trade explained, read once, " +
                  "after the introduction and before any special item's.")]
         [TextArea] public string[] explanation =
@@ -162,7 +166,11 @@ namespace Hakaton.Backroom
         bool swallowRelease;
         int skippedFrame = -10;
         bool JustSkipped => swallowRelease || Time.frameCount <= skippedFrame + 1;
-        bool CardIntroduction => Visits.IntroductionRead < introduction.Length;
+        /// <summary>The mode of the table the introduction goes with: the laid table's, or the trade's now when none is laid.</summary>
+        bool TableFriendly => Visits.Offer != null ? Visits.Offer.Friendly : FriendlyNow;
+        /// <summary>The introduction's line to say next (an index into <see cref="introduction"/>), the friendly-only ones passed over at a usual table.</summary>
+        int IntroductionLine => Visits.NextIntroductionLine(introduction.Length, TableFriendly, friendlyOnlyIntroduction);
+        bool CardIntroduction => IntroductionLine < introduction.Length;
         /// <summary>The usual trade is still to be explained: a face-down table, after the introduction.</summary>
         bool TradeExplanation => !CardIntroduction && Visits.Offer != null && !Visits.Offer.Friendly
             && explanation != null && Visits.ExplanationRead < explanation.Length;
@@ -239,7 +247,7 @@ namespace Hakaton.Backroom
             EndInspect();
             DealItems();
             Play(dealSound);
-            if (CardIntroduction) Say(introduction[Visits.IntroductionRead], true);
+            if (CardIntroduction) Say(introduction[IntroductionLine], true);
             else if (TradeExplanation) Say(explanation[Visits.ExplanationRead], true);
             else if (StartItemIntroduction()) { }
             else if (!offer.AnyLeft && !AnyItemOnSale) Say(emptyLine);
@@ -338,8 +346,8 @@ namespace Hakaton.Backroom
         {
             if (CardIntroduction)
             {
-                Visits.ReadIntroductionLine(introduction.Length);
-                if (CardIntroduction) { Say(introduction[Visits.IntroductionRead], true); Refresh(); return; }
+                Visits.ReadIntroductionLine(introduction.Length, TableFriendly, friendlyOnlyIntroduction);
+                if (CardIntroduction) { Say(introduction[IntroductionLine], true); Refresh(); return; }
                 if (TradeExplanation) { Say(explanation[Visits.ExplanationRead], true); Refresh(); return; }
                 if (StartItemIntroduction()) { Refresh(); return; }
             }

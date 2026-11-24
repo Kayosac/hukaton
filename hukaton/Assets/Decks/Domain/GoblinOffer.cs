@@ -137,7 +137,9 @@ namespace Hakaton.Decks
     /// face up) until the player comes back from an outing; a new ten is rolled only on the very first visit, on the first
     /// call after a return from an outing, and when the table's mode (<see cref="GoblinOffer.Friendly"/>) is not the one
     /// asked for (the first call after the shop's first goal). The table is kept in the save. The first conversation's
-    /// lines and the explanation of the usual trade are each read once.
+    /// lines and the explanation of the usual trade are each read once. Some lines of the first conversation belong to the
+    /// friendly trade only (<see cref="NextIntroductionLine(int, int, bool, IEnumerable{int})"/>): at a usual table they
+    /// are passed over.
     /// </summary>
     public sealed class GoblinVisits
     {
@@ -146,7 +148,10 @@ namespace Hakaton.Decks
 
         bool visited, outingSince, shiftSince;
         public GoblinOffer Offer { get; private set; }
-        /// <summary>How many lines of the first conversation were closed.</summary>
+        /// <summary>
+        /// Where the first conversation stands: the index, in the full list of its lines, after the last line closed. A line
+        /// passed over (friendly only, at a usual table) counts as gone by once a later line is closed.
+        /// </summary>
         public int IntroductionRead { get; private set; }
         /// <summary>How many lines of the explanation of the usual trade (face down, after the first goal) were closed.</summary>
         public int ExplanationRead { get; private set; }
@@ -194,10 +199,42 @@ namespace Hakaton.Decks
         /// <summary>The next <see cref="Call"/> in this mode rolls a new ten (no table, an outing since, or the other mode).</summary>
         public bool NeedsNewTable(bool friendly) => Offer == null || outingSince || Offer.Friendly != friendly;
 
-        public void ReadIntroductionLine(int total)
+        /// <summary>
+        /// The first conversation's line to be said next, as an index into its full list of <paramref name="total"/> lines;
+        /// <paramref name="total"/> (or more) when the conversation is over. It goes on from <paramref name="read"/>
+        /// (<see cref="IntroductionRead"/>); at a usual table (<paramref name="friendly"/> false) the lines listed in
+        /// <paramref name="friendlyOnly"/> are passed over. So a conversation begun at a friendly table and finished at a
+        /// usual one goes on where it stopped and passes over the friendly lines still ahead.
+        /// </summary>
+        public static int NextIntroductionLine(int read, int total, bool friendly, IEnumerable<int> friendlyOnly)
         {
-            if (IntroductionRead >= total) return;
-            IntroductionRead++;
+            int line = Math.Max(0, read);
+            if (friendly || friendlyOnly == null) return Math.Min(line, Math.Max(0, total));
+            var skipped = new HashSet<int>(friendlyOnly);
+            while (line < total && skipped.Contains(line)) line++;
+            return Math.Min(line, Math.Max(0, total));
+        }
+
+        /// <summary><see cref="NextIntroductionLine(int, int, bool, IEnumerable{int})"/> from <see cref="IntroductionRead"/>.</summary>
+        public int NextIntroductionLine(int total, bool friendly, IEnumerable<int> friendlyOnly) =>
+            NextIntroductionLine(IntroductionRead, total, friendly, friendlyOnly);
+
+        /// <summary>The first conversation is over at a table of this mode: no line of it is left to say.</summary>
+        public bool IntroductionOver(int total, bool friendly, IEnumerable<int> friendlyOnly) =>
+            NextIntroductionLine(total, friendly, friendlyOnly) >= total;
+
+        /// <summary>Closes the first conversation's next line, every line counted (none is passed over).</summary>
+        public void ReadIntroductionLine(int total) => ReadIntroductionLine(total, true, null);
+
+        /// <summary>
+        /// Closes the first conversation's next line at a table of this mode (<see cref="NextIntroductionLine(int, bool, IEnumerable{int})"/>):
+        /// <see cref="IntroductionRead"/> moves past it, and so past the friendly lines passed over before it.
+        /// </summary>
+        public void ReadIntroductionLine(int total, bool friendly, IEnumerable<int> friendlyOnly)
+        {
+            int line = NextIntroductionLine(total, friendly, friendlyOnly);
+            if (line >= total) return;
+            IntroductionRead = line + 1;
             Changed?.Invoke();
         }
 
@@ -214,19 +251,30 @@ namespace Hakaton.Decks
             shiftSince = shiftSince, introductionRead = IntroductionRead, explanationRead = ExplanationRead, offer = Offer?.Save() };
 
         /// <summary>
+        /// The introduction before balance stage 4: four lines — the greeting (now the first line), the blind half price,
+        /// the free reveal at full price (both now in the explanation), and «Можешь брать хоть несколько…» (now the last).
+        /// </summary>
+        const int OldIntroductionLines = 4, OldRulesTold = 3;
+
+        /// <summary>
         /// Brings a save from before balance stage 4 (<see cref="GoblinSave.version"/> 0) up to date, in place; a current
         /// save is left as it is. <paramref name="friendlyTradeOver"/>: the friendly trade has ended (the caller knows why —
-        /// in the game, the shop's first goal is reached). A player who knows the goblin and is past it has heard the old
-        /// introduction, which told the usual rules: the explanation counts as read. A player who knows him but is not past
-        /// it keeps the friendly trade (his old face-down table is not in that mode, so the next call rolls a friendly one)
-        /// and hears the explanation later. The old introduction had four lines: what was read is clamped to
-        /// <paramref name="introductionLines"/>.
+        /// in the game, the shop's first goal is reached). The old introduction's lines read map onto the new one: all four
+        /// read — the new one is read too (<paramref name="introductionLines"/>); only part of it — just the greeting counts
+        /// as heard (the new conversation goes on from its second line, which a usual table passes over if it is friendly
+        /// only); none — none. A player past the friendly trade who closed the old lines telling the usual rules (the first
+        /// three) has heard them: the explanation counts as read; one who did not hears it after the introduction. A player
+        /// who knows him but is not past it keeps the friendly trade (his old face-down table is not in that mode, so the
+        /// next call rolls a friendly one) and hears the explanation later.
         /// </summary>
         public static void UpgradeSave(GoblinSave save, bool friendlyTradeOver, int introductionLines, int explanationLines)
         {
             if (save == null || save.version >= SaveVersion) return;
-            if (save.visited && friendlyTradeOver) save.explanationRead = Math.Max(save.explanationRead, explanationLines);
-            save.introductionRead = Math.Min(save.introductionRead, Math.Max(0, introductionLines));
+            int oldRead = save.introductionRead;
+            if (save.visited && friendlyTradeOver && oldRead >= OldRulesTold)
+                save.explanationRead = Math.Max(save.explanationRead, explanationLines);
+            int lines = Math.Max(0, introductionLines);
+            save.introductionRead = oldRead >= OldIntroductionLines ? lines : oldRead > 0 ? Math.Min(1, lines) : 0;
             save.version = SaveVersion;
         }
 

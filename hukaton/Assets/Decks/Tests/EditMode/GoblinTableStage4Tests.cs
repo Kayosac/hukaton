@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -9,13 +10,16 @@ namespace Hakaton.Decks.Tests
     /// <summary>
     /// Balance stage 4 (24.11.2026), the goblin's table: «по-свойски» until the shop's first goal (face up, half price,
     /// no dummy, nothing to reveal); the usual face-down trade after it, with dummies at 10%; the same table until the
-    /// player comes back from an outing; the table and the read lines kept in the save; saves from before the stage.
+    /// player comes back from an outing; the table and the read lines kept in the save; saves from before the stage;
+    /// the introduction's friendly-only line («Пока лавка не встала на ноги…») passed over at a usual table.
     /// The goal itself is the game's: here the mode is passed to the call, as the game passes it.
     /// </summary>
     public sealed class GoblinTableStage4Tests
     {
         const double DummyChance = .1;
         const int IntroductionLines = 3, ExplanationLines = 4;
+        /// <summary>The table's <c>friendlyOnlyIntroduction</c>: «Пока лавка не встала на ноги, торгую по-свойски…».</summary>
+        static readonly int[] FriendlyOnly = { 1 };
 
         static readonly CardSpec Dummy = new CardSpec("dummy", "Пустышка", 50, 1, true, null, dummy: true);
         static readonly CardSpec[] Shop =
@@ -30,6 +34,30 @@ namespace Hakaton.Decks.Tests
         static int Dummies(GoblinOffer offer) => Enumerable.Range(0, offer.Count).Count(i => offer.CardAt(i) == Dummy.Id);
 
         static GoblinSave RoundTrip(GoblinSave save) => JsonUtility.FromJson<GoblinSave>(JsonUtility.ToJson(save));
+
+        /// <summary>
+        /// What he says at the laid table, as the shop goes through it (each line closed by E): the introduction, its
+        /// friendly-only lines passed over at a usual table, then, at a usual table, the explanation. «I0» is the
+        /// introduction's first line, «E3» the explanation's last. <paramref name="lines"/>: stop after so many.
+        /// </summary>
+        static string[] Talk(GoblinVisits visits, int lines = int.MaxValue)
+        {
+            var said = new List<string>();
+            bool friendly = visits.Offer.Friendly;
+            while (said.Count < lines && !visits.IntroductionOver(IntroductionLines, friendly, FriendlyOnly))
+            {
+                said.Add("I" + visits.NextIntroductionLine(IntroductionLines, friendly, FriendlyOnly));
+                visits.ReadIntroductionLine(IntroductionLines, friendly, FriendlyOnly);
+            }
+            while (said.Count < lines && !friendly && visits.ExplanationRead < ExplanationLines)
+            {
+                said.Add("E" + visits.ExplanationRead);
+                visits.ReadExplanationLine(ExplanationLines);
+            }
+            return said.ToArray();
+        }
+
+        static readonly string[] Explanation = { "E0", "E1", "E2", "E3" };
 
         // ---------- before the goal: «по-свойски» ----------
 
@@ -167,6 +195,61 @@ namespace Hakaton.Decks.Tests
             Assert.That(visits.Offer.AnyLeft, Is.False, "«Всё разобрали»: nothing new without an outing.");
         }
 
+        // ---------- the introduction ----------
+
+        [Test]
+        public void TheFirstVisitBeforeTheGoalHearsTheWholeIntroductionAndNoExplanation()
+        {
+            var visits = new GoblinVisits();
+            visits.Call(Shop, new Random(41), DummyChance, friendly: true);
+            Assert.That(Talk(visits), Is.EqualTo(new[] { "I0", "I1", "I2" }));
+            Assert.That((visits.IntroductionRead, visits.ExplanationRead), Is.EqualTo((IntroductionLines, 0)));
+        }
+
+        [Test]
+        public void TheFirstVisitAfterTheGoalPassesOverTheFriendlyLineThenExplains()
+        {
+            var visits = new GoblinVisits();
+            visits.Call(Shop, new Random(42), DummyChance, friendly: false);
+            Assert.That(visits.NextIntroductionLine(IntroductionLines, false, FriendlyOnly), Is.Zero);
+            Assert.That(Talk(visits), Is.EqualTo(new[] { "I0", "I2" }.Concat(Explanation)),
+                "«Пока лавка не встала на ноги…» is not said at a usual table.");
+            Assert.That(visits.IntroductionRead, Is.EqualTo(IntroductionLines), "The line passed over counts as gone by.");
+            Assert.That(visits.IntroductionOver(IntroductionLines, true, FriendlyOnly), Is.True, "Over in either mode.");
+            Assert.That(Talk(visits), Is.Empty, "Nothing more to say on the next visit.");
+        }
+
+        [Test]
+        public void TheFriendlyOnlyLinesAreData()
+        {
+            Assert.That(GoblinVisits.NextIntroductionLine(0, 3, false, null), Is.Zero, "No friendly-only lines: nothing passed over.");
+            Assert.That(GoblinVisits.NextIntroductionLine(1, 3, false, new int[0]), Is.EqualTo(1));
+            Assert.That(GoblinVisits.NextIntroductionLine(1, 3, true, FriendlyOnly), Is.EqualTo(1), "A friendly table says it.");
+            Assert.That(GoblinVisits.NextIntroductionLine(1, 3, false, FriendlyOnly), Is.EqualTo(2));
+            Assert.That(GoblinVisits.NextIntroductionLine(1, 3, false, new[] { 1, 2 }), Is.EqualTo(3), "Friendly-only to the end: over.");
+            Assert.That(GoblinVisits.NextIntroductionLine(0, 3, false, new[] { 0 }), Is.EqualTo(1));
+            Assert.That(GoblinVisits.NextIntroductionLine(5, 3, true, null), Is.EqualTo(3), "Past the end: over.");
+        }
+
+        [Test]
+        public void AnIntroductionBegunBeforeTheGoalEndsAfterItFromWhereItStopped([Values(1, 2)] int readBefore)
+        {
+            var w = Workshop();
+            var visits = new GoblinVisits();
+            visits.Call(Shop, new Random(43), DummyChance, friendly: true);
+            Assert.That(Talk(visits, readBefore), Is.EqualTo(new[] { "I0", "I1" }.Take(readBefore)));
+            Assert.That(visits.IntroductionRead, Is.EqualTo(readBefore));
+
+            // Left (the game saved and loaded) before the end; the goal is reached meanwhile.
+            var restored = new GoblinVisits();
+            Assert.That(restored.TryRestore(RoundTrip(visits.Save()), id => w.Spec(id) != null), Is.True);
+            restored.Call(Shop, new Random(44), DummyChance, friendly: false);
+            Assert.That(restored.Offer.Friendly, Is.False);
+            Assert.That(Talk(restored), Is.EqualTo(new[] { "I2" }.Concat(Explanation)),
+                "The rest of the introduction, the friendly line passed over, then the explanation.");
+            Assert.That((restored.IntroductionRead, restored.ExplanationRead), Is.EqualTo((IntroductionLines, ExplanationLines)));
+        }
+
         // ---------- the save ----------
 
         [Test]
@@ -279,12 +362,48 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void AnOldPartlyReadIntroductionIsKeptAndACurrentSaveIsNotUpgradedAgain()
+        public void AnOldSaveOfAStrangerAfterTheGoalHearsTheGreetingTheLastLineAndTheExplanation()
         {
-            var partly = OldSave(true, 2);
-            GoblinVisits.UpgradeSave(partly, false, IntroductionLines, ExplanationLines);
-            Assert.That((partly.introductionRead, partly.explanationRead), Is.EqualTo((2, 0)));
+            var visits = Load(OldSave(false, 0), goalReached: true);
+            visits.Call(Shop, new Random(6), DummyChance, friendly: false);
+            Assert.That(Talk(visits), Is.EqualTo(new[] { "I0", "I2" }.Concat(Explanation)));
+        }
 
+        [Test]
+        public void AnOldSaveOfAnAcquaintanceHearsTheExplanationOnlyIfItWasBeforeTheGoal([Values(false, true)] bool goalReached)
+        {
+            var visits = Load(OldSave(true, 4), goalReached);
+            if (!goalReached)
+            {
+                visits.Call(Shop, new Random(7), DummyChance, friendly: true);
+                Assert.That(Talk(visits), Is.Empty, "Known: no introduction again, and no explanation at a friendly table.");
+            }
+            visits.Call(Shop, new Random(8), DummyChance, friendly: false);
+            Assert.That(Talk(visits), Is.EqualTo(goalReached ? new string[0] : Explanation),
+                "Past the goal he already knows the rules; before it he hears them at the first usual table.");
+        }
+
+        /// <summary>
+        /// The old introduction read in part (the game left mid-conversation): the greeting counts as heard, the new
+        /// conversation goes on from its second line. The old lines 2–3 told the usual rules: with both closed, the
+        /// explanation counts as read past the goal.
+        /// </summary>
+        [Test]
+        public void AnOldPartlyReadIntroductionKeepsTheGreeting([Values(1, 2, 3)] int oldRead, [Values(false, true)] bool goalReached)
+        {
+            var old = OldSave(true, oldRead);
+            var visits = Load(old, goalReached);
+            Assert.That(visits.IntroductionRead, Is.EqualTo(1), "The greeting heard.");
+            visits.Call(Shop, new Random(9), DummyChance, friendly: !goalReached);
+            string[] expected = !goalReached ? new[] { "I1", "I2" }
+                : oldRead >= 3 ? new[] { "I2" }
+                : new[] { "I2" }.Concat(Explanation).ToArray();
+            Assert.That(Talk(visits), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ACurrentSaveIsNotUpgradedAgain()
+        {
             var visits = new GoblinVisits();
             visits.Call(Shop, new Random(5), DummyChance, friendly: false);
             visits.ReadExplanationLine(ExplanationLines);
