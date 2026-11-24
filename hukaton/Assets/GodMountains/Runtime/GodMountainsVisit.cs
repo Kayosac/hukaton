@@ -45,7 +45,7 @@ namespace Hakaton.GodMountains
         [Tooltip("How long the screen stays dark in the pocket before it opens (the first breath is heard).")]
         [Min(0)] public float darkSeconds = 1.5f;
         [Min(.05f)] public float openSeconds = .8f;
-        [TextArea] public string returnHint = "ЛКМ — вернуться в лавку";
+        [TextArea] public string returnHint = "Удерживай ЛКМ — вернуться в лавку";
 
         public GodVisitStage Stage { get; private set; } = GodVisitStage.Off;
         /// <summary>From the moment the level starts loading until the player stands in the shop again.</summary>

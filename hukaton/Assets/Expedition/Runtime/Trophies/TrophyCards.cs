@@ -48,7 +48,7 @@ namespace Hakaton.Expeditions
         [Tooltip("This many kills in a row without a card make the next one sure (0: never).")]
         [Min(0)] public int dryKills = 2;
         [Tooltip("While the collection holds at most this many cards, the first kill of an outing gives a card for sure.")]
-        [Min(0)] public int startingCollection = 5;
+        [Min(0)] public int startingCollection = 8;
         [Tooltip("A card the player does not own weighs this many times as much (a taste of the goblin's cards).")]
         [Min(1)] public float unownedWeight = 2;
 
@@ -70,7 +70,7 @@ namespace Hakaton.Expeditions
         public VfxBurst appearSparkle;
         [Min(.01f)] public float appearSparkleScale = .8f;
         public Color glow = new Color(1f, .86f, .45f);
-        [TextArea] public string notice = "Трофейная карта: «{0}»";
+        [TextArea] public string notice = "Трофейная карта: «{0}» — до конца вылазки";
 
         /// <summary>F1: every source gives a card.</summary>
         public bool Always { get; set; }

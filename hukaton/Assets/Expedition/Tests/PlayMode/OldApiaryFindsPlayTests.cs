@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
@@ -15,7 +16,22 @@ namespace Hakaton.Expeditions.Tests
     public sealed class OldApiaryFindsPlayTests
     {
         const string PrefabPath = "Assets/OldApiary/Prefabs/Old Apiary.prefab";
+        const string FirstFind = "L11";
+        const string CartSite = "Chest site 2 ";
         GameObject holder;
+
+        /// <summary>The place without its creatures: only the ground, the navigation, the finds and the chest sites matter.</summary>
+        IEnumerator Place()
+        {
+            holder = new GameObject("Apiary holder");
+            holder.SetActive(false);
+            var apiary = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath), holder.transform);
+            var creatures = apiary.transform.Find("Creatures");
+            if (creatures) Object.DestroyImmediate(creatures.gameObject);
+            holder.SetActive(true);
+            yield return null;
+            yield return new WaitForFixedUpdate();
+        }
 
         [TearDown]
         public void Clear()
@@ -28,14 +44,8 @@ namespace Hakaton.Expeditions.Tests
         {
             // The place without its creatures: only the ground, the navigation and the finds matter here.
             LogAssert.ignoreFailingMessages = true;
-            holder = new GameObject("Apiary holder");
-            holder.SetActive(false);
-            var apiary = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath), holder.transform);
-            var creatures = apiary.transform.Find("Creatures");
-            if (creatures) Object.DestroyImmediate(creatures.gameObject);
-            holder.SetActive(true);
-            yield return null;
-            yield return new WaitForFixedUpdate();
+            yield return Place();
+            var apiary = holder.transform.GetChild(0).gameObject;
 
             var finds = apiary.GetComponentsInChildren<WorldLoot>(true);
             Assert.That(finds.Length, Is.GreaterThanOrEqualTo(15), "the apiary's hand-placed finds");
@@ -43,7 +53,8 @@ namespace Hakaton.Expeditions.Tests
             var valuable = finds.Where(f => f.wander <= 0).ToArray();
             Assert.That(ordinary.Length, Is.GreaterThan(0), "some finds wander");
             Assert.That(valuable.Length, Is.GreaterThan(0), "some finds keep a guarded spot");
-            Assert.That(ordinary.All(f => !f.guaranteed), "no ordinary find is there for sure");
+            // Ordinary finds may be missing; only L11, the first find of the first loop (~18 m from the deck), is there for sure.
+            Assert.That(ordinary.Where(f => f.name != FirstFind).All(f => !f.guaranteed), "no ordinary find but L11 is there for sure");
             Assert.That(valuable.All(f => f.guaranteed), "every valuable find is there for sure");
             var spots = finds.ToDictionary(f => f, f => f.transform.position);
 
@@ -73,6 +84,51 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(moved, Is.GreaterThan(wandering / 3), $"ordinary finds lie somewhere new ({moved} of {wandering})");
             Assert.That(absent, Is.GreaterThan(0), "some ordinary finds are missing on some outings");
             Assert.That(absent, Is.LessThan(rolls / 3), $"most ordinary finds are there ({absent} of {rolls} missing)");
+            LogAssert.ignoreFailingMessages = false;
+        }
+
+        /// <summary>
+        /// The first loop teaches rather than bites (balance stage 1): in every outing the first find L11 lies within 3 m of
+        /// its spot and the broken cart has a chest — a beggar's or a common one, never a mimic. 50 outings, each with its
+        /// own seed, rolled in the order the location uses (finds, then chest sites).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator FirstFindAndCartChestAreThereEveryOuting()
+        {
+            LogAssert.ignoreFailingMessages = true;
+            yield return Place();
+            var apiary = holder.transform.GetChild(0).gameObject;
+            var finds = apiary.GetComponentsInChildren<WorldLoot>(true);
+            var first = finds.Single(f => f.name == FirstFind);
+            var cart = apiary.GetComponentsInChildren<ChestSite>(true).Single(s => s.name.StartsWith(CartSite));
+            var sites = apiary.GetComponentsInChildren<ChestSite>(true);
+            Assert.That(first.guaranteed, FirstFind + " is there for sure");
+            Assert.That(first.wander, Is.EqualTo(3f).Within(.01f), FirstFind + " wanders at most 3 m");
+            var spot = first.transform.position;
+
+            var ranks = new HashSet<int>();
+            for (int outing = 1; outing <= 50; outing++)
+            {
+                var random = new System.Random(outing * 1637 + outing % 7);
+                foreach (var find in finds) find.ResetForOuting(random);
+                TreasureChest chest = null;
+                foreach (var site in sites)
+                {
+                    var made = site.ResetForOuting(null, random);
+                    if (site == cart) chest = made;
+                }
+                Assert.That(first.gameObject.activeSelf, $"outing {outing}: {FirstFind} is there");
+                var shift = first.transform.position - spot;
+                shift.y = 0;
+                Assert.That(shift.magnitude, Is.LessThanOrEqualTo(3f + 1.6f), $"outing {outing}: {FirstFind} stays near its spot");
+                Assert.That(chest, Is.Not.Null, $"outing {outing}: the cart has a chest");
+                Assert.That(chest.GetComponent<ChestMimic>(), Is.Null, $"outing {outing}: the cart's chest is not a mimic");
+                Assert.That(chest.tier.rank, Is.InRange(1, 2), $"outing {outing}: the cart's chest is a beggar's or a common one");
+                ranks.Add(chest.tier.rank);
+                yield return null;
+            }
+            Assert.That(ranks.Count, Is.EqualTo(2), "both a beggar's and a common chest turn up at the cart");
+            foreach (var site in sites) site.Clear();
             LogAssert.ignoreFailingMessages = false;
         }
     }

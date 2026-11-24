@@ -154,7 +154,11 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             var rolled = new List<Hakaton.Loot.LootItem>();
             larva.drops.Roll(() => .99f, rolled);
             Assert.That(rolled.Count, Is.EqualTo(1), "The larva table guarantees one copy");
-            var before = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
+            // The player stands 2 m from the burst, inside the 2 m loot magnet, until the puddle ticks; a drop that
+            // pops his way is picked up (into the bag, inactive) before he steps away — whether it does depends on
+            // the pop direction (UnityEngine.Random, so on the tests before) and on frame timing. A drop counts on the
+            // ground or in the bag, so inactive pickups are listed too.
+            var before = Object.FindObjectsByType<WorldLoot>(FindObjectsInactive.Include, FindObjectsSortMode.None).ToList();
             StandOnGroundNear(larva, Vector3.back * 2);
             yield return Until(() => larva.State == CreatureState.Windup, 5);
             Assert.That(larva.State, Is.EqualTo(CreatureState.Windup));
@@ -167,9 +171,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(puddle.Radius, Is.EqualTo(2.5f).Within(1e-5));
             StandOnGroundNear(larva, Vector3.back * 25);
             yield return Wait(larva.corpseSeconds + 2f);
-            CollectNewLoot(before);
+            madeLoot.AddRange(Object.FindObjectsByType<WorldLoot>(FindObjectsInactive.Include, FindObjectsSortMode.None).Except(before));
             var accepted = new[] { "bubble_larva_bubble_sac", "bubble_larva_jelly", "bubble_larva_shed_skin" };
-            Assert.That(madeLoot.Count, Is.GreaterThanOrEqualTo(1), "Active world loot: " + string.Join(", ", Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Select(l => l.item ? l.item.id : "null")));
+            Assert.That(madeLoot.Count, Is.GreaterThanOrEqualTo(1), "World loot (taken ones too): " + string.Join(", ", Object.FindObjectsByType<WorldLoot>(FindObjectsInactive.Include, FindObjectsSortMode.None).Select(l => (l.item ? l.item.id : "null") + (l.Taken ? " (taken)" : ""))));
             foreach (var loot in madeLoot) Assert.That(accepted, Contains.Item(loot.item.id));
             LogAssert.NoUnexpectedReceived();
         }

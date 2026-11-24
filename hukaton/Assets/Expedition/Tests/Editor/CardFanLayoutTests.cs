@@ -90,6 +90,44 @@ namespace Hakaton.Expeditions.Tests
         }
 
         /// <summary>
+        /// Trophy cards come into the hand without a limit. However big the hand, no card — the raised, magnified selection
+        /// included — reaches into the bottom corners the HUD keeps for itself (here about where the controls line and the
+        /// card counter are on 16:9), the fan stays centred and symmetric, and a hand that already keeps clear (up to seven
+        /// cards on 16:9) is laid out exactly as before.
+        /// </summary>
+        [TestCase(16, 9)]
+        [TestCase(16, 10)]
+        [TestCase(4, 3)]
+        public void AFanKeptOutOfTheHudCornersSqueezesOnlyAsMuchAsItMust(int width, int height)
+        {
+            var hand = Hand();
+            float aspect = width / (float)height;
+            var left = new Vector2(-.7f, -.87f);
+            var right = new Vector2(.79f, -.8f);
+            float previousSpread = 0;
+            for (int n = 1; n <= CardFanLayout.MaxCards; n++)
+            {
+                var free = hand.Fan(n, aspect);
+                var kept = hand.Fan(n, aspect, left, right);
+                Assert.That(hand.Reach(kept, 0, aspect, left.y, -1), Is.LessThanOrEqualTo(-left.x + 1e-4f), $"{n} cards reach into the controls line on {width}:{height}");
+                Assert.That(hand.Reach(kept, n - 1, aspect, right.y, 1), Is.LessThanOrEqualTo(right.x + 1e-4f), $"{n} cards reach into the counter on {width}:{height}");
+                for (int i = 0; i < n; i++)
+                    Assert.That(kept.Offset(i).x, Is.EqualTo(-kept.Offset(n - 1 - i).x).Within(1e-5f), $"{n} cards: the kept fan stays symmetric");
+                bool alreadyClear = hand.Reach(free, 0, aspect, left.y, -1) <= -left.x && hand.Reach(free, n - 1, aspect, right.y, 1) <= right.x;
+                if (alreadyClear)
+                {
+                    Assert.That(kept.HalfSpread, Is.EqualTo(free.HalfSpread), $"{n} cards already clear: untouched");
+                    Assert.That(kept.HalfAngle, Is.EqualTo(free.HalfAngle));
+                }
+                else Assert.That(kept.HalfSpread, Is.LessThan(free.HalfSpread), $"{n} cards squeeze tighter");
+                if (width == 16 && height == 9 && n <= 7) Assert.That(alreadyClear, Is.True, $"The usual hand of {n} keeps clear by itself");
+                Assert.That(kept.HalfSpread, Is.GreaterThanOrEqualTo(previousSpread - 1e-4f), $"{n} cards spread no narrower than {n - 1}");
+                previousSpread = kept.HalfSpread;
+            }
+            Assert.That(hand.Fan(12, aspect, left, right).HalfSpread, Is.LessThan(hand.Fan(12, aspect).HalfSpread), "Twelve cards had to squeeze.");
+        }
+
+        /// <summary>
         /// Share of the card inside the view at its depth, and its outermost corner as a share of the half-screen
         /// width. The card stays parallel to the screen (only rolled), so its depth is uniform.
         /// </summary>

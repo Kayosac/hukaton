@@ -153,6 +153,22 @@ namespace Hakaton.Expeditions.Tests
             var hidden = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests Old Apiary hidden.asset");
             var normal = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests Old Apiary.asset");
             Assert.That(ExpectedRank(hidden), Is.GreaterThan(ExpectedRank(normal)), "hard-to-reach places hide richer chests");
+
+            // The first chest of the first loop (the broken cart, ~31 m from the deck) teaches, it does not bite:
+            // its own table — always there, a beggar's or a common chest, never a mimic. The other ordinary sites keep the shared table.
+            var cart = sites.Single(s => s.name.StartsWith("Chest site 2 "));
+            var cartTable = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests Old Apiary cart.asset");
+            Assert.That(cartTable, Is.Not.Null, "the cart's own table");
+            Assert.That(cart.table, Is.EqualTo(cartTable), cart.name);
+            Assert.That(cartTable.chance, Is.EqualTo(1f), "the cart always has a chest");
+            Assert.That(cartTable.entries, Is.Not.Empty);
+            foreach (var entry in cartTable.entries)
+            {
+                Assert.That(entry.prefab, Is.Not.Null);
+                Assert.That(entry.prefab.GetComponent<ChestMimic>(), Is.Null, entry.prefab.name + " is not a mimic");
+                Assert.That(entry.prefab.tier.rank, Is.InRange(1, 2), entry.prefab.name + " is a beggar's or a common chest");
+            }
+            Assert.That(sites.Where(s => s != cart && s.table != hidden).All(s => s.table == normal), "the other ordinary sites keep the shared table");
         }
     }
 }

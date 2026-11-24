@@ -21,6 +21,19 @@ namespace Hakaton.Expeditions.Tests.PlayMode
         static readonly Vector3 Spot = new Vector3(0, 0, -78);
         const int DogsAndRats = 0, RoosterAndRats = 1, BeesAndBushes = 2;
 
+        // The shortest believable fight of each pairing, seconds from the start (an already-fighting brawl the player
+        // walks up to has a 0.2 s standoff); the longest is 40 s for all. Fights run on real time (frame timing,
+        // retarget jitter), so one seed does not give one length. Measured 2026-11-24, the same spread on balance
+        // stage 1 and on its base 7690508d3: dogs vs rats 6.7–10.9 s, rooster vs rats 9.6–10.0 s, bee swarm vs
+        // hostile bushes 4.4–12 s. The bee pairing is tuned short (healthA 5.5 / healthB 3.5: three or four 6-HP
+        // swarms against two 10-HP bushes) and is over in 4.4–5 s whenever the first blows land on the same targets;
+        // the bees win about three fights in four. The bushes' spring from cover (pounceWindup) plays no part: it is
+        // armed only while a bush lurks calm (WorldCreature.Ambush.cs, ThinkLurk); in a brawl it postures and fights
+        // with its ordinary wind-up. So 3 s for the bees, well over the standoff and one full bush attack (wind-up .5
+        // + strike .3 + recovery .9 s): a fight settled in the very first exchange still fails. 5 s for the others,
+        // a margin under what they really take.
+        static readonly float[] ShortestFight = { 5f, 5f, 3f };
+
         ExpeditionWorld world;
         readonly List<BeastBrawl> made = new List<BeastBrawl>();
 
@@ -140,7 +153,7 @@ namespace Hakaton.Expeditions.Tests.PlayMode
                 yield return FightToTheEnd(brawl, 70);
                 string pair = brawl.pairings[pairing].name;
                 Debug.Log($"[brawl] {pair}: {brawl.FightSeconds:0.0} s, survivors {brawl.AliveIn(0)} + {brawl.AliveIn(1)}");
-                Assert.That(brawl.FightSeconds, Is.InRange(8f, 40f), pair + ": the fight lasts a while, but not forever");
+                Assert.That(brawl.FightSeconds, Is.InRange(ShortestFight[pairing], 40f), pair + ": the fight lasts a while, but not forever");
                 Assert.That(brawl.AliveIn(0) + brawl.AliveIn(1), Is.GreaterThan(0), pair + ": somebody survives");
                 Assert.That(Alive(brawl).All(b => !b.Brawling), pair + ": the survivors are back to their usual selves");
                 int winners = brawl.AliveIn(0) > 0 ? 0 : 1;
