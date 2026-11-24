@@ -19,6 +19,7 @@ namespace Hakaton.Backroom
     /// mouse; player movement is blocked. Until the shop's first goal the table is friendly («по-свойски», see
     /// <see cref="FriendlyTrade"/>): face up at half price, no dummy, no «Раскрыть все». On the first visit he talks first
     /// (the introduction), then the table opens; at the first usual table he explains the usual trade (the explanation).
+    /// A face-down card refused for want of coins is marked «дороговато» while the purse is short of its half price.
     /// A bought card is brought up to the eyes (<see cref="CardInspect"/>): the table steps aside, the left button held
     /// turns the card. A click, E, Space or Enter at any moment (on its way up, held, or on its way out) puts it away at
     /// once and snaps the table back; Esc or the right button sends it off into the bag with the spin.
@@ -91,6 +92,9 @@ namespace Hakaton.Backroom
             "Хочешь всё рассмотреть? Открою бесплатно. Но тогда каждая — за полную цену. Любопытство у нас дорогое.",
             "И ещё: под рубашкой иногда пустышка. Двадцать пять монет за урок. Ничего личного."
         };
+        [Tooltip("Over a face-down card he refused for want of coins, while the purse is short of its half price. Two lines: " +
+                 "the word in one line at the smallest Ithaca size (16) is wider than the fan's step, so two neighbours' notes overlapped.")]
+        public string priceyNote = "дорого-\nвато";
         [TextArea] public string[] boughtLines = { "Сюрприз!", "Хороший выбор. Наверное.", "Бери, пока тёплая.", "Ни капли не жалею." };
         [Tooltip("He mocks the buyer of a dummy, instead of the bought line: when it turns over at the eyes (bought blind) " +
                  "or at once (bought face up).")]
@@ -163,6 +167,9 @@ namespace Hakaton.Backroom
         bool TradeExplanation => !CardIntroduction && Visits.Offer != null && !Visits.Offer.Friendly
             && explanation != null && Visits.ExplanationRead < explanation.Length;
         bool Talking => CardIntroduction || TradeExplanation || introducing || explaining;
+        /// <summary>Face-down places refused for want of coins (<see cref="priceyNote"/>), for <see cref="priceyOffer"/> only.</summary>
+        readonly bool[] pricey = new bool[GoblinOffer.Size];
+        GoblinOffer priceyOffer;
         /// <summary>The special item he is introducing now (its lines wait for E), or null.</summary>
         SpecialItemDefinition introducing;
         int introducingLine;
@@ -261,6 +268,8 @@ namespace Hakaton.Backroom
             // Swallowed until the skipping press is let go (its release frame included).
             if (swallowRelease && (mouse == null || !mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)) swallowRelease = false;
             if (!IsOpen) return;
+            // The purse may change while he is down (a purchase, a cheat): the «дороговато» notes follow it.
+            Notes();
             if (Talking)
             {
                 bool next = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame
@@ -502,9 +511,12 @@ namespace Hakaton.Backroom
             if (!IsOpen || Talking || inspecting || itemShown || offer == null || slot < 0 || slot >= cards.Length) return false;
             var view = cards[slot];
             bool blind = !offer.Revealed;
+            bool full = Model.CollectionFull;
             string error = offer.Buy(slot, Model, out var copy);
             if (error != null)
             {
+                // Face down and short of coins: «дороговато» over it while the purse stays short (Notes).
+                if (blind && !full && !offer.IsSold(slot) && Model.Coins < offer.PriceAt(slot, Model)) MarkPricey(offer, slot);
                 view.Refuse();
                 Play(refuseSound);
                 Play(scoffVoice);
@@ -552,9 +564,40 @@ namespace Hakaton.Backroom
             Refresh();
         }
 
+        // ---------- «дороговато» ----------
+
+        void MarkPricey(GoblinOffer offer, int slot)
+        {
+            if (priceyOffer != offer) ForgetPricey(offer);
+            pricey[slot] = true;
+        }
+
+        void ForgetPricey(GoblinOffer offer)
+        {
+            priceyOffer = offer;
+            Array.Clear(pricey, 0, pricey.Length);
+        }
+
+        /// <summary>
+        /// The note over each refused face-down card: kept while the purse is short of its half price and the table is
+        /// face down; once the coins are enough, or the table is revealed or replaced, it is gone for good.
+        /// </summary>
+        void Notes()
+        {
+            var offer = Visits.Offer;
+            if (priceyOffer != offer) ForgetPricey(offer);
+            for (int i = 0; i < cards.Length && i < pricey.Length; i++)
+            {
+                if (pricey[i] && (offer == null || offer.Revealed || offer.IsSold(i) || Model.Coins >= offer.PriceAt(i, Model)))
+                    pricey[i] = false;
+                cards[i].SetNote(pricey[i] ? priceyNote : null);
+            }
+        }
+
         void Refresh()
         {
             var offer = Visits.Offer;
+            Notes();
             // The same count as the brazier's, over the corner of the row.
             collection.text = $"{Model.Owned.Count}/{Model.CollectionLimit}";
             bool canReveal = offer != null && !offer.Revealed && offer.AnyLeft && !Talking;

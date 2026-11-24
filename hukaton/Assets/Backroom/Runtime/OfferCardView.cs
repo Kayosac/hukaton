@@ -17,8 +17,12 @@ namespace Hakaton.Backroom
         public RectTransform body;
         public Image face;
         public RawImage back;
-        [Tooltip("Price over the card: shown on hover, only for a face-up card.")]
+        [Tooltip("Price over the card: shown on hover, only for a face-up card. Also carries the card's note (SetNote), " +
+                 "shown face down or up, without hover, whenever no price is up.")]
         public TMP_Text price;
+        [Tooltip("Text size of the note in the price label (the goblin's «дороговато»): the label's own pixel font at its " +
+                 "native grid, so a word fits over one card of the fan. 0: the label's own size.")]
+        public float noteFontSize = 16;
         [Tooltip("Optional line under the card: a short note under the card.")]
         public TMP_Text badge;
         public TMP_Text levelMark;
@@ -48,6 +52,9 @@ namespace Hakaton.Backroom
         float fear, fearSeed;
         float dealDelay, flyTime = -1, flipTarget = 1;
         bool faceUp, showPrice, flying, toTarget;
+        // The price label's two texts: the hovered face-up price, the note (SetNote); the label shows one at a time.
+        string priceText = "", note, shownText;
+        float priceFontSize = -1;
         Vector2 home, target;
         Sprite pendingFace;
         System.Collections.Generic.Dictionary<Graphic, Color> shadeBase;
@@ -111,6 +118,7 @@ namespace Hakaton.Backroom
             group.alpha = 1;
             group.blocksRaycasts = true;
             showPrice = false;
+            note = null;
             Present();
         }
 
@@ -259,8 +267,43 @@ namespace Hakaton.Backroom
 
         public void SetPrice(string text)
         {
-            price.text = text ?? "";
+            priceText = text ?? "";
             showPrice = !string.IsNullOrEmpty(text);
+            ShowLabel();
+        }
+
+        /// <summary>
+        /// A short note in the price label (the goblin's «дороговато» over a face-down card he refused): shown without
+        /// hover, face down or up, whenever the price is not up. Null or empty takes it away; every deal clears it.
+        /// </summary>
+        public void SetNote(string text)
+        {
+            text = string.IsNullOrEmpty(text) ? null : text;
+            if (note == text) return;
+            note = text;
+            ShowLabel();
+        }
+
+        public string Note => note;
+
+        bool PriceUp => showPrice && faceUp && Hovering && !flying;
+        bool NoteUp => note != null && !PriceUp && !flying;
+
+        /// <summary>The price label: the hovered price, else the note (at its own size), else hidden.</summary>
+        void ShowLabel()
+        {
+            if (!price) return;
+            bool noteUp = NoteUp;
+            string text = PriceUp ? priceText : noteUp ? note : priceText;
+            if (priceFontSize < 0) priceFontSize = price.fontSize;
+            float size = noteUp && noteFontSize > 0 ? noteFontSize : priceFontSize;
+            if (shownText != text || !Mathf.Approximately(price.fontSize, size))
+            {
+                shownText = text;
+                price.text = text;
+                price.fontSize = size;
+            }
+            price.gameObject.SetActive(PriceUp || noteUp);
         }
 
         /// <summary>Turns the card over; the art swaps at the edge-on moment.</summary>
@@ -414,7 +457,7 @@ namespace Hakaton.Backroom
             face.enabled = faceUp;
             if (levelMark) levelMark.transform.parent.gameObject.SetActive(faceUp && levelMark.text.Length > 0);
             back.enabled = !faceUp;
-            price.gameObject.SetActive(showPrice && faceUp && Hovering && !flying);
+            ShowLabel();
         }
     }
 }
