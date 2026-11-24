@@ -45,6 +45,10 @@ namespace Hakaton.Trading.Unity
         [Tooltip("White resting face over the faded clock when the shift has ended (outside Clock Body, never faded).")]
         public GameObject clockRestingFace;
         [Range(0, 1)] public float endedClockAlpha = .38f;
+        [Tooltip("Clock Body while the shift's time stands (TradingPrototype.ShiftClockRunning is false: nobody at the counter, " +
+                 "a line still typing, the visitor thinking, a story visitor talking, the camera moving, the shop closed). Unlike " +
+                 "the ended shift there is no resting face. The cross is outside Clock Body and stays bright.")]
+        [Range(0, 1)] public float standingClockAlpha = .6f;
         [Tooltip("Over the last this many seconds of a running shift the clock shakes and ShopFeel ticks (one setting for both).")]
         [Min(0)] public float countdownSeconds = 3;
         [Tooltip("How far the clock jumps about at the very end, in layout units (whole units: crisp pixels).")]
@@ -177,7 +181,10 @@ namespace Hakaton.Trading.Unity
         public static bool InCountdownWindow(TradingSession session, float seconds)
             => session != null && session.RemainingSeconds > 0 && session.RemainingSeconds <= seconds;
 
-        /// <summary>The clock is running out: open, ticking, within the last <paramref name="seconds"/>.</summary>
+        /// <summary>
+        /// The session's side of the countdown: open, not paused by the tutorial, within the last <paramref name="seconds"/>.
+        /// The clock ticks and shakes only while its time also runs (TradingPrototype.ShiftClockRunning).
+        /// </summary>
         public static bool InCountdown(TradingSession session, float seconds)
             => session != null && session.IsOpen && !session.ClockPaused && session.RemainingSeconds > 0
                && session.RemainingSeconds <= seconds;
@@ -248,7 +255,9 @@ namespace Hakaton.Trading.Unity
 
         /// <summary>
         /// Radial fill of the remaining shift. Once time is up the cross goes (the shift is over already), the clock
-        /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served.
+        /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served. While the
+        /// time stands (TradingPrototype.ShiftClockRunning is false) the clock is only faded to Standing Clock Alpha; the
+        /// cross, outside Clock Body, stays bright.
         /// </summary>
         void RefreshClock(TradingSession session)
         {
@@ -260,7 +269,7 @@ namespace Hakaton.Trading.Unity
             // The cross closes an open shop; away from the counter there is nothing to close.
             clockClose.gameObject.SetActive(session.IsOpen && !ended);
             clockClose.interactable = !controller.ViewTransitioning;
-            clockBody.alpha = ended ? endedClockAlpha : 1;
+            clockBody.alpha = ended ? endedClockAlpha : controller.ShiftClockRunning ? 1 : standingClockAlpha;
             clockRestingFace.SetActive(ended);
             ShakeClock(session);
         }
@@ -271,9 +280,9 @@ namespace Hakaton.Trading.Unity
         /// </summary>
         void ShakeClock(TradingSession session)
         {
-            if (!InCountdown(session, countdownSeconds))
+            if (!InCountdown(session, countdownSeconds) || !controller.ShiftClockRunning)
             {
-                // Closed or paused within the last seconds: the beat goes on from where it was when the clock runs again.
+                // Closed, paused or standing within the last seconds: the beat goes on from where it was when the clock runs again.
                 StopShake(!InCountdownWindow(session, countdownSeconds));
                 return;
             }
