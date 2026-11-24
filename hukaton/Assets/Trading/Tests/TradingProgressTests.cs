@@ -232,7 +232,24 @@ namespace Hakaton.Trading.Tests
             long id = session.BeginExpedition();
             Assert.That(session.CompleteExpedition(id), Is.True);
             Assert.That(session.RemainingSeconds, Is.EqualTo(100));
-            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.HalfShift));
+            // Nothing was raised, so the message does not promise half a shift.
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.Unchanged));
+            Assert.That(session.LastMessage, Is.EqualTo("Вернулись без новой добычи. Остаток времени не изменился."));
+
+            // Exactly half left: not raised either, on every way back.
+            Assert.That(session.Open(), Is.True); session.Tick(40); session.Close();
+            id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.Unchanged)));
+            Assert.That(session.ReturnWithoutLoot(), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.Unchanged)));
+            Assert.That(session.LastMessage, Is.EqualTo("Вернулись без новой добычи. Остаток времени не изменился."));
+
+            // A second under half: raised, and now it says so.
+            Assert.That(session.Open(), Is.True); session.Tick(1); session.Close();
+            Assert.That(session.ReturnWithoutLoot(), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.HalfShift)));
+            Assert.That(session.LastMessage, Is.EqualTo(HalfShiftMessage));
         }
 
         [Test]

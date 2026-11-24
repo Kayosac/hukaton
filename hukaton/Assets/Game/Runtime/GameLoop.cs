@@ -703,8 +703,8 @@ namespace Hakaton.Game
             string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + "."
                     + (halfShift ? "\n" + TradingSession.HalfShiftNote : "") + "\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
-                : halfShift ? trade.Session.LastMessage
-                : "Вы вернулись без добычи. Остаток смены сохранён.";
+                // Without loot the shop's own message: «полсмены ваши» only when the clock was raised, else the clock is as it was.
+                : trade.Session.LastMessage;
             // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;
             // the notice comes once he is gone.
             if (defeated && expedition.LastOutingDrowned && !drownLectureGiven && !tutorial.Active && lecture && lecture.Play(drownLecture))

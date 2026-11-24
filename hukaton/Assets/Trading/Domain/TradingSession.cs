@@ -700,23 +700,21 @@ namespace Hakaton.Trading
 
         /// <summary>
         /// Back without loot: with goods in storage or on the display the shift has at least half its length left, so a
-        /// full storage never leaves the shop shut; with nothing to sell the clock stays as it was. Raised from zero, it is
-        /// a new shift for the bulk buyer.
+        /// full storage never leaves the shop shut; with nothing to sell the clock stays as it was. Only a clock actually
+        /// raised says so («полсмены ваши»); half a shift or more left is kept as it was, with the plain message. Raised
+        /// from zero, it is a new shift for the bulk buyer.
         /// </summary>
         void ApplyEmptyReturn()
         {
-            if (TotalStockCount == 0)
+            float half = ShiftLength * EmptyReturnShiftShare;
+            if (TotalStockCount == 0 || RemainingSeconds >= half)
             {
                 LastReturn = ShiftReturn.Unchanged;
                 LastMessage = "Вернулись без новой добычи. Остаток времени не изменился.";
                 return;
             }
-            float half = ShiftLength * EmptyReturnShiftShare;
-            if (RemainingSeconds < half)
-            {
-                if (RemainingSeconds <= 0) BulkBuyerCameThisShift = false;
-                RemainingSeconds = half;
-            }
+            if (RemainingSeconds <= 0) BulkBuyerCameThisShift = false;
+            RemainingSeconds = half;
             LastReturn = ShiftReturn.HalfShift;
             LastMessage = "Вернулись без добычи. " + HalfShiftNote;
         }
@@ -992,9 +990,9 @@ namespace Hakaton.Trading
         None,
         /// <summary>Fresh loot: a whole new shift.</summary>
         Restored,
-        /// <summary>No loot, but goods in the shop: at least half a shift.</summary>
+        /// <summary>No loot, but goods in the shop: the clock was below half a shift and is raised to half.</summary>
         HalfShift,
-        /// <summary>No loot and nothing to sell: the clock is as it was.</summary>
+        /// <summary>No loot, and nothing to sell or half a shift or more already left: the clock is as it was.</summary>
         Unchanged
     }
 }
