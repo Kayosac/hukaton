@@ -20,7 +20,7 @@ namespace Hakaton.Backroom
         [Tooltip("Price over the card: shown on hover, only for a face-up card. Also carries the card's note (SetNote), " +
                  "shown face down or up, without hover, whenever no price is up.")]
         public TMP_Text price;
-        [Tooltip("Text size of the note in the price label (the goblin's «дороговато»): the label's own pixel font at its " +
+        [Tooltip("Text size of the note in the price label (the goblin's «дорого»): the label's own pixel font at its " +
                  "native grid, so a word fits over one card of the fan. 0: the label's own size.")]
         public float noteFontSize = 16;
         [Tooltip("Optional line under the card: a short note under the card.")]
@@ -273,7 +273,7 @@ namespace Hakaton.Backroom
         }
 
         /// <summary>
-        /// A short note in the price label (the goblin's «дороговато» over a face-down card he refused): shown without
+        /// A short note in the price label (the goblin's «дорого» over a face-down card he refused): shown without
         /// hover, face down or up, whenever the price is not up. Null or empty takes it away; every deal clears it.
         /// </summary>
         public void SetNote(string text)

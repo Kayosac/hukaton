@@ -92,9 +92,9 @@ namespace Hakaton.Backroom
             "Хочешь всё рассмотреть? Открою бесплатно. Но тогда каждая — за полную цену. Любопытство у нас дорогое.",
             "И ещё: под рубашкой иногда пустышка. Двадцать пять монет за урок. Ничего личного."
         };
-        [Tooltip("Over a face-down card he refused for want of coins, while the purse is short of its half price. Two lines: " +
-                 "the word in one line at the smallest Ithaca size (16) is wider than the fan's step, so two neighbours' notes overlapped.")]
-        public string priceyNote = "дорого-\nвато";
+        [Tooltip("Over a face-down card he refused for want of coins, while the purse is short of its half price. One short " +
+                 "line, narrower than the fan's step at Ithaca 16, so two neighbours' notes do not overlap.")]
+        public string priceyNote = "дорого";
         [TextArea] public string[] boughtLines = { "Сюрприз!", "Хороший выбор. Наверное.", "Бери, пока тёплая.", "Ни капли не жалею." };
         [Tooltip("He mocks the buyer of a dummy, instead of the bought line: when it turns over at the eyes (bought blind) " +
                  "or at once (bought face up).")]
@@ -268,7 +268,7 @@ namespace Hakaton.Backroom
             // Swallowed until the skipping press is let go (its release frame included).
             if (swallowRelease && (mouse == null || !mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)) swallowRelease = false;
             if (!IsOpen) return;
-            // The purse may change while he is down (a purchase, a cheat): the «дороговато» notes follow it.
+            // The purse may change while he is down (a purchase, a cheat): the «дорого» notes follow it.
             Notes();
             if (Talking)
             {
@@ -515,7 +515,7 @@ namespace Hakaton.Backroom
             string error = offer.Buy(slot, Model, out var copy);
             if (error != null)
             {
-                // Face down and short of coins: «дороговато» over it while the purse stays short (Notes).
+                // Face down and short of coins: «дорого» over it while the purse stays short (Notes).
                 if (blind && !full && !offer.IsSold(slot) && Model.Coins < offer.PriceAt(slot, Model)) MarkPricey(offer, slot);
                 view.Refuse();
                 Play(refuseSound);
@@ -564,7 +564,7 @@ namespace Hakaton.Backroom
             Refresh();
         }
 
-        // ---------- «дороговато» ----------
+        // ---------- «дорого» ----------
 
         void MarkPricey(GoblinOffer offer, int slot)
         {
