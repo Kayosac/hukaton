@@ -28,8 +28,6 @@ namespace Hakaton.WorldAssembly.Tests
     public sealed class EndlessWorldPlayTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         GameLoop game;
         ExpeditionWorld world;
         WorldStreamer streamer;
@@ -37,10 +35,8 @@ namespace Hakaton.WorldAssembly.Tests
         [UnitySetUp]
         public IEnumerator DepartIntoANewWorld()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) { playerSaves[file] = File.ReadAllBytes(file); File.Delete(file); }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(EndlessWorldPlayTests));
             // The game itself, without the main menu lying over it.
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
@@ -63,9 +59,7 @@ namespace Hakaton.WorldAssembly.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Endless world teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]

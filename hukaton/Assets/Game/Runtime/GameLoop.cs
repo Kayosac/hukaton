@@ -152,7 +152,8 @@ namespace Hakaton.Game
         /// <summary>The endless (procedural) world opens only once the god has been met (in a scene without the god's
         /// trip, with the revenue goal).</summary>
         public bool EndlessWorldUnlocked => godMet || !godVisit && PlaceChoiceUnlocked;
-        public string SavePath => Path.Combine(Application.persistentDataPath, "Hakaton", EditorSaveFile ?? saveFile);
+        /// <summary>The save file, in <see cref="GameSaveFolder.Current"/> (the player's folder; a temporary one under tests).</summary>
+        public string SavePath => Path.Combine(GameSaveFolder.Current, EditorSaveFile ?? saveFile);
 #if UNITY_EDITOR
         /// <summary>
         /// Dev tooling: an editor (a worktree's) can play on a save file of its own (SessionState «Hakaton.SaveFile», set

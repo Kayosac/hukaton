@@ -14,8 +14,6 @@ namespace Hakaton.Game.Tests
     public sealed class MenuPlayTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         GameLoop game;
         MainMenu main;
         PauseMenu pause;
@@ -23,10 +21,8 @@ namespace Hakaton.Game.Tests
         [UnitySetUp]
         public IEnumerator LoadWithoutASave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) { playerSaves[file] = File.ReadAllBytes(file); File.Delete(file); }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(MenuPlayTests));
             MainMenu.SkipNextLaunch = false;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             yield return WaitFor(() => Object.FindAnyObjectByType<GameLoop>()?.Ready == true, 5);
@@ -45,9 +41,7 @@ namespace Hakaton.Game.Tests
                 var scene = SceneManager.GetSceneAt(i);
                 if (scene.isLoaded && scene.name != "Menu test teardown") yield return SceneManager.UnloadSceneAsync(scene);
             }
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
             Time.timeScale = 1;
             AudioListener.pause = false;
         }

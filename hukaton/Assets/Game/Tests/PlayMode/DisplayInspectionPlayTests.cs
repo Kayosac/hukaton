@@ -15,26 +15,18 @@ namespace Hakaton.Game.Tests
     /// <summary>
     /// A close look at an item on the display (DisplayItemInspector) in the real shop: it lifts a copy while the shelf
     /// original hides, holds the player, and puts everything back; it ends at once when the item leaves the display.
-    /// The player's own save files are moved aside for the run and put back afterwards.
+    /// The save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class DisplayInspectionPlayTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
         internal const string Curio = "mantel_clock", Drawing = "agaric_cap";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(DisplayInspectionPlayTests));
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             yield return WaitFor(() => Object.FindAnyObjectByType<GameLoop>()?.Ready == true, 5);
@@ -46,9 +38,7 @@ namespace Hakaton.Game.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Inspection test teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]

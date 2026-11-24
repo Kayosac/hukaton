@@ -17,27 +17,21 @@ namespace Hakaton.Game.Tests
     /// Skipping the goblin's bought card (user rule 2026-11-13): a skip while the card is on its way up skips only the
     /// flight, the card is at the eyes at once (a blind card turned) so the player sees what he bought; the next press
     /// puts it away. A skip once it is at the eyes puts it away at once. In the real scene, with its own keyboard and
-    /// mouse; the player's save files are moved aside for the run and put back afterwards.
+    /// mouse; the save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class GoblinPurchaseSkipTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         Keyboard keyboard;
         Mouse mouse;
+        InputSettings.EditorInputBehaviorInPlayMode focusRule;
+        InputSettings.BackgroundBehavior background;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(GoblinPurchaseSkipTests));
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             float waited = 0;
@@ -46,6 +40,12 @@ namespace Hakaton.Game.Tests
             keyboard.MakeCurrent();
             mouse = InputSystem.AddDevice<Mouse>("Skip test mouse");
             mouse.MakeCurrent();
+            // The test's own devices reach the game whether or not the Game view (or the editor) has focus, as in
+            // DialogueAdvanceTests: otherwise his lines could not be closed while another window or editor is in front.
+            focusRule = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            background = InputSystem.settings.backgroundBehavior;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
         }
 
         [UnityTearDown]
@@ -53,12 +53,12 @@ namespace Hakaton.Game.Tests
         {
             if (keyboard != null) InputSystem.RemoveDevice(keyboard);
             if (mouse != null) InputSystem.RemoveDevice(mouse);
+            InputSystem.settings.editorInputBehaviorInPlayMode = focusRule;
+            InputSystem.settings.backgroundBehavior = background;
             SceneManager.SetActiveScene(SceneManager.CreateScene("Goblin skip test teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]
@@ -101,6 +101,7 @@ namespace Hakaton.Game.Tests
         static GoblinCardShop OpenTheTable()
         {
             var game = Object.FindAnyObjectByType<GameLoop>();
+            Assert.That(game != null && game.Ready && game.FreshStart, Is.True, "a new game on an empty save, nobody's save loaded");
             game.SkipTutorial();
             var shop = game.services.cardShop;
             game.workshop.Model.Wallet.Credit(100000);
@@ -119,7 +120,11 @@ namespace Hakaton.Game.Tests
                 bought = shop.Choose(FirstUnsold(shop));
                 if (!bought) { yield return Press(); yield return Press(); }
             }
-            Assert.That(bought, Is.True, "bought once he has had his say");
+            var visits = shop.Visits;
+            Assert.That(bought, Is.True, "bought once he has had his say (introduction " + visits.IntroductionRead + "/" +
+                shop.introduction.Length + ", explanation " + visits.ExplanationRead + "/" + shop.explanation.Length + ", friendly table " +
+                visits.Offer.Friendly + ", collection full " + Object.FindAnyObjectByType<GameLoop>().workshop.Model.CollectionFull +
+                ", keyboard " + Keyboard.current?.name + ")");
         }
 
         static int FirstUnsold(GoblinCardShop shop)
