@@ -26,7 +26,6 @@ namespace Hakaton.Expeditions.Tests
             { "ClownEmoji_17", new Vector2(99f, 34f) },
             { "DwarfRobot_22", new Vector2(65f, 113f) },
             { "LeshySkater_21", new Vector2(92f, 59f) },
-            { "LivingTree_20", new Vector2(47f, 39f) },
             { "Mushroom_03", new Vector2(15.5f, 38.5f) },
             { "RatPumpkin_05", new Vector2(35f, 73.5f) },
             { "Rooster_09", new Vector2(57f, 80f) },
@@ -113,6 +112,32 @@ namespace Hakaton.Expeditions.Tests
             }
             Assert.That(checkedCount, Is.GreaterThan(0), "copies to check");
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        // The heavy ones (sinister tree, bee mutant, troll, dwarf robot) live only in the far band, exempt or not:
+        // the first loop (up to 55 m) has nothing a starting deck cannot handle (balance stage 1, LivingTree_20 moved out).
+        [Test]
+        public void HeavyCreaturesLiveOnlyInTheFarBand()
+        {
+            var apiary = Apiary();
+            var rule = Rule(apiary);
+            float far = rule.bands[rule.bands.Count - 1].radius;
+            var failures = new List<string>();
+            int heavy = 0;
+            foreach (var creature in Creatures(apiary))
+            {
+                if (rule.TierOf(creature) < 4) continue;
+                heavy++;
+                var places = new List<Transform> { creature.transform };
+                places.AddRange(creature.spawnPoints);
+                foreach (var place in places)
+                    if (place && rule.Distance(place.position) < far)
+                        failures.Add($"{place.name}: {rule.Distance(place.position):0.0} m from the departure, closer than {far} m");
+            }
+            Assert.That(heavy, Is.GreaterThan(0), "heavy creatures to check");
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+            var tree = Creatures(apiary).First(c => c.name == "LivingTree_20");
+            Assert.That(rule.exempt.Contains(tree), Is.False, "the moved tree follows the band rule like any other copy");
         }
 
         [Test]
