@@ -205,8 +205,12 @@ namespace Hakaton.Decks
         public Expedition(IEnumerable<CardCopy> cards, int handSize, int seed, bool prologue = false)
         {
             if (handSize < 1) throw new ArgumentOutOfRangeException(nameof(handSize));
+            Seed = seed;
             Deck = new ExpeditionDeck(cards, handSize, seed, prologue);
         }
+
+        /// <summary>The outing's seed (set on departure): the deck's shuffle and the outing's other rolls (which finds a defeat keeps).</summary>
+        public int Seed { get; }
 
         public bool Prologue => Deck.Prologue;
 

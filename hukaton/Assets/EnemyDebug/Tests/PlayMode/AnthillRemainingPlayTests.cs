@@ -104,7 +104,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
     public class WingedAntPlayTests : AnthillRemainingPlayFixture
     {
         [UnityTest]
-        public IEnumerator FlyingDiveTakesOneAndHalfHeartsAndRotChanceIsTwentyFivePercent()
+        public IEnumerator FlyingDiveTakesOneAndHalfHeartsAndRotChanceIsFifteenPercent()
         {
             var ant = Spawn("WingedAnt");
             yield return Wait(.35f);
@@ -113,11 +113,12 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             StandOnGroundNear(ant, Vector3.back * 1.6f);
             yield return Until(() => sandbox.ReceivedDamage > 0, 9);
             Assert.That(sandbox.ReceivedDamage, Is.EqualTo(3));
-            int applied = StatusInflict.ApplyAll(ant.strikeStatuses, sandbox.world.statuses, () => .24f);
+            sandbox.world.statuses.Remove(PlayerStatusKind.Rot);
+            int applied = StatusInflict.ApplyAll(ant.strikeStatuses, sandbox.world.statuses, () => .14f);
             Assert.That(applied, Is.EqualTo(1));
             Assert.That(sandbox.world.statuses.Has(PlayerStatusKind.Rot), Is.True);
             sandbox.world.statuses.Remove(PlayerStatusKind.Rot);
-            applied = StatusInflict.ApplyAll(ant.strikeStatuses, sandbox.world.statuses, () => .25f);
+            applied = StatusInflict.ApplyAll(ant.strikeStatuses, sandbox.world.statuses, () => .15f);
             Assert.That(applied, Is.Zero);
 
             var rolled = new List<Hakaton.Loot.LootItem>();
@@ -177,14 +178,19 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
     public class AntQueenPlayTests : AnthillRemainingPlayFixture
     {
         [UnityTest]
-        public IEnumerator SlamTakesTwoHeartsAndAlwaysDeafens()
+        public IEnumerator SlamTakesTwoHeartsAndDeafensHalfTheTime()
         {
             var queen = Spawn("AntQueen");
             StandOnGroundNear(queen, Vector3.back * 1.8f);
             yield return Until(() => sandbox.ReceivedDamage > 0, 8);
             Assert.That(sandbox.ReceivedDamage, Is.EqualTo(4));
+            // Оглушение comes with half the slams: whatever this one rolled, the configured chance is checked exactly.
+            sandbox.world.statuses.Remove(PlayerStatusKind.Deafen);
+            Assert.That(StatusInflict.ApplyAll(queen.strikeStatuses, sandbox.world.statuses, () => .49f), Is.EqualTo(1));
             Assert.That(sandbox.world.statuses.Has(PlayerStatusKind.Deafen), Is.True);
-            Assert.That(sandbox.world.statuses.Remaining(PlayerStatusKind.Deafen), Is.InRange(4.5f, 5f));
+            Assert.That(sandbox.world.statuses.Remaining(PlayerStatusKind.Deafen), Is.InRange(4.5f, 5.01f));
+            sandbox.world.statuses.Remove(PlayerStatusKind.Deafen);
+            Assert.That(StatusInflict.ApplyAll(queen.strikeStatuses, sandbox.world.statuses, () => .5f), Is.Zero);
             LogAssert.NoUnexpectedReceived();
         }
 

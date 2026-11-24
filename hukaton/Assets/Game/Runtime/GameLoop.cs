@@ -282,6 +282,9 @@ namespace Hakaton.Game
             if (expedition.vitals) expedition.vitals.Upgrade.Changed += MarkDirty;
             if (lecture) lecture.Finished += OnLectureFinished;
             if (guides) guides.Progress.Changed += MarkDirty;
+            // Anthills are small until a prize chest has been opened (saved): a new game starts with none opened.
+            Hakaton.Expeditions.DungeonProgress.Restore(false);
+            Hakaton.Expeditions.DungeonProgress.Changed += MarkDirty;
             restoring = true;
             string warning = null;
             bool loaded = false;
@@ -335,6 +338,7 @@ namespace Hakaton.Game
             if (guides) guides.Progress.Changed -= MarkDirty;
             if (Popups) Popups.Changed -= MarkDirty;
             if (NailFear) NailFear.Changed -= MarkDirty;
+            Hakaton.Expeditions.DungeonProgress.Changed -= MarkDirty;
         }
         /// <summary>The PC's popup mini-game (part of the backroom PC prefab).</summary>
         Hakaton.Computer.PcPopupAttack Popups => services && services.computer ? services.computer.popups : null;
@@ -671,7 +675,8 @@ namespace Hakaton.Game
             // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             int kept = delivery.Sum(x => x.count);
-            string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
+            // After a defeat the world's own line says what came home (DefeatLoot.Notice): «Поражение. Домой пришло …».
+            string notice = defeated ? (string.IsNullOrEmpty(expedition.LastOutingNotice) ? "Поражение." : expedition.LastOutingNotice)
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
                 : "Вы вернулись без добычи. Остаток смены сохранён.";
             // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;
@@ -806,10 +811,12 @@ namespace Hakaton.Game
         }
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
+            outingFirsts = expedition.SaveFirsts(),
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
                 heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
             map = outingMap ? outingMap.Save() : null, godMet = godMet, queenSlain = queenSlain,
+            anthillPrizeOpened = Hakaton.Expeditions.DungeonProgress.AnthillPrizeOpened,
             endlessVisited = endlessVisited, strangerVisited = strangerVisited, strangerChances = strangerChances,
             specialItems = specialItems ? specialItems.Inventory.Save() : null,
             guides = guides ? guides.Progress.Save() : null,
@@ -848,6 +855,7 @@ namespace Hakaton.Game
             if (expedition.vitals) expedition.vitals.Upgrade.Restore(save.HeartsLevel);
             godMet = save.godMet;
             queenSlain = save.queenSlain;
+            Hakaton.Expeditions.DungeonProgress.Restore(save.anthillPrizeOpened);
             endlessVisited = save.endlessVisited;
             strangerVisited = save.strangerVisited;
             strangerChances = Math.Max(0, save.strangerChances);
@@ -865,6 +873,8 @@ namespace Hakaton.Game
             if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
+            // Saves from before the forgiven first drowning: a player who has heard the goblin about water has drowned already.
+            expedition.RestoreFirsts(save.outingFirsts ?? new Hakaton.Expeditions.OutingFirstsSave { drownForgiven = save.drownLectureGiven });
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
             RefreshProgress(); // The goals list follows the restored revenue at once.

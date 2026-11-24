@@ -18,7 +18,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(creature, Is.Not.Null);
             Assert.That(creature.temperament, Is.EqualTo(Temperament.Territorial));
             Assert.That(creature.maximumHealth, Is.EqualTo(4));
-            Assert.That(creature.attackHalfHearts, Is.EqualTo(4));
+            Assert.That(creature.attackHalfHearts, Is.EqualTo(3), "one and a half hearts");
             Assert.That(creature.kick, Is.EqualTo(KickResponse.Normal));
             Assert.That(creature.windup, Is.EqualTo(.8f).Within(1e-5));
             Assert.That(creature.strikeSeconds, Is.EqualTo(.2f).Within(1e-5));
@@ -59,7 +59,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(sprites.All(s => s.textureRect.size == new Vector2(254, 210)), Is.True);
             Assert.That(creature.strikeStatuses.Length, Is.EqualTo(1));
             Assert.That(creature.strikeStatuses[0].status.kind, Is.EqualTo(PlayerStatusKind.Deafen));
-            Assert.That(creature.strikeStatuses[0].chance, Is.EqualTo(.5f).Within(1e-5));
+            Assert.That(creature.strikeStatuses[0].chance, Is.EqualTo(.25f).Within(1e-5), "Оглушение with a quarter of the hits");
             Assert.That(creature.strikeStatuses[0].seconds, Is.Zero);
             Assert.That(creature.strikeStatuses[0].strength, Is.Zero);
             Assert.That(creature.strikeStatuses[0].status.seconds, Is.EqualTo(5));

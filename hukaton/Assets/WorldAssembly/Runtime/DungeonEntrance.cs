@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Hakaton.Dungeons.Unity;
+using Hakaton.Expeditions;
 using UnityEngine;
 
 namespace Hakaton.WorldAssembly.Unity
@@ -26,6 +27,8 @@ namespace Hakaton.WorldAssembly.Unity
         public bool layModules = true;
         [Tooltip("The darkness panes across the passage: half width and height of the tunnel, from and to how deep, m.")]
         public float veilHalfWidth = 2.3f, veilHeight = 6.6f, veilFrom = 1f, veilTo = 7.35f;
+        [Tooltip("Coming this close to the mouth (m, from the passage frame) shows the outing's once-per-game line about the anthill.")]
+        [Min(0)] public float approachLineRadius = 10f;
 
         [HideInInspector] public DungeonSite site;
         [HideInInspector] public ChunkCoord coord;
@@ -34,6 +37,15 @@ namespace Hakaton.WorldAssembly.Unity
 
         void OnEnable() => All.Add(this);
         void OnDisable() => All.Remove(this);
+
+        // The first time in the game the player comes up to a mouth, the world shows its line about the anthill.
+        void Update()
+        {
+            var world = ExpeditionWorld.Active;
+            if (!world || world.Firsts.anthillLineShown || !world.Running || !world.motor || !passage) return;
+            if ((world.motor.transform.position - passage.position).sqrMagnitude <= approachLineRadius * approachLineRadius)
+                world.NoteAnthillApproached();
+        }
 
         /// <summary>Lays the passage: its modules and doorway frame (as the dungeon lays its own) unless the hill has its own tunnel, and its darkness.</summary>
         public void Lay(DungeonKit kit)

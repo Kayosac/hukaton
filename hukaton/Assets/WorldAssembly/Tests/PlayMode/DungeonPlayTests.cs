@@ -78,6 +78,9 @@ namespace Hakaton.WorldAssembly.Tests
             DungeonEntrance entrance = null;
             yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && (e.outside.position - world.motor.transform.position).sqrMagnitude < 4)) != null, 8);
             Assert.That(entrance, Is.Not.Null, "the player stands before a hill's mouth");
+            yield return null;
+            Assert.That(world.Firsts.anthillLineShown, Is.True, "the first anthill's mouth brings its once-per-game line");
+            Assert.That(world.Notice, Is.EqualTo(Hakaton.Expeditions.ExpeditionWorld.AnthillLine));
             yield return new WaitForSeconds(1.5f);
             yield return Shot("00-hill");
             var away = entrance.passage.TransformPoint(new Vector3(5, 0, -13));
@@ -362,13 +365,14 @@ namespace Hakaton.WorldAssembly.Tests
             world.motor.Teleport(at, passage.rotation * Quaternion.Euler(0, yaw, 0));
         }
 
-        /// <summary>The first collider of the world (not the passage's own modules nor the hill) inside the passage, or null.</summary>
+        /// <summary>The first collider of the world (not the passage's own modules nor the hill, nor a creature that has
+        /// wandered in) inside the passage, or null.</summary>
         static Collider Blocked(Transform passage)
         {
             var own = passage.GetComponentInParent<DungeonEntrance>().transform;
             var centre = passage.TransformPoint(new Vector3(0, 1.6f, 3.8f));
             foreach (var col in Physics.OverlapBox(centre, new Vector3(1.3f, 1.2f, 3.4f), passage.rotation, ~0, QueryTriggerInteraction.Ignore))
-                if (!col.transform.IsChildOf(own) && !col.GetComponentInParent<CharacterController>()) return col;
+                if (!col.transform.IsChildOf(own) && !col.GetComponentInParent<CharacterController>() && !col.GetComponentInParent<WorldCreature>()) return col;
             return null;
         }
 

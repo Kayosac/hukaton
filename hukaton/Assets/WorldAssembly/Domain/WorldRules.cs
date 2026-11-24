@@ -113,8 +113,10 @@ namespace Hakaton.WorldAssembly
         public double[] BrawlChance = { .12, .12, .165 };
         /// <summary>Chance of a payphone or a television on a chunk where one fits, by ring: very rare, never in ring 0.</summary>
         public double[] OddityChance = { 0, .015, .015 };
-        /// <summary>Chance per fitting forest chunk to hold a dungeon entrance (an anthill mound), by ring: rare but not too rare.</summary>
-        public double[] DungeonChance = { .03, .03, .03 };
+        /// <summary>Chance per fitting forest chunk to hold a dungeon entrance (an anthill mound), by ring: rare but not too rare,
+        /// and none in ring 0 (no anthill within <see cref="InnerRadius"/> of the start: the first outings are not met by
+        /// its garrison; the nearest ones stand just beyond, in ring 1).</summary>
+        public double[] DungeonChance = { 0, .03, .03 };
         public double[] FindChance = { .35, .45, .5 };
         public double[] SceneFindChance = { .6, .65, .7 };
         public double[] SecondMaze = { 0, .5, .6 };
