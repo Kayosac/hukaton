@@ -161,9 +161,30 @@ namespace Hakaton.WorldAssembly.Tests
             yield return new WaitForSeconds(.6f);
             yield return Shot("10-recruited");
 
-            // It follows the player.
-            var away = Clear(start, 10);
-            world.motor.Teleport(away + Vector3.up * .1f, Quaternion.LookRotation(Flat(start - away).sqrMagnitude > .01f ? Flat(start - away) : Vector3.forward));
+            // It follows the player: the player steps off to where the worker's way after them is open (see OpenWalk),
+            // from here or, if it is cramped here, from a quiet spot elsewhere in the anthill where the worker is put.
+            float followDistance = recruitment.orders.followDistance;
+            var bodyShape = recruit.body.GetComponent<CapsuleCollider>();
+            float bodyHeight = bodyShape ? bodyShape.bounds.size.y : 1.6f;
+            Vector3 walkFrom = recruit.Position, away = default;
+            bool open = OpenWalk(walkFrom, recruit.CapsuleRadius, bodyHeight, dungeon.Passage, 10, followDistance, out away);
+            if (!open)
+                foreach (var mark in dungeon.Markers.Select(m => m.at.position).OrderBy(at => (at - start).sqrMagnitude))
+                {
+                    if (!NavMesh.SamplePosition(mark, out var nav, 2, NavMesh.AllAreas)) continue;
+                    // Out of the garrison's way: the worker goes for wild ones near the player instead of following.
+                    bool Quiet(Vector3 at) => !site.Creatures.Any(c => c && c.Alive && c != recruit && Flat(c.Position - at).magnitude < 14);
+                    if (!Quiet(nav.position)) continue;
+                    if (OpenWalk(nav.position, recruit.CapsuleRadius, bodyHeight, dungeon.Passage, 10, followDistance, out away) && Quiet(away)) { walkFrom = nav.position; open = true; break; }
+                }
+            Assert.That(open, Is.True, "somewhere in the anthill the worker has an open way after the player");
+            if (walkFrom != recruit.Position)
+            {
+                Put(recruit, walkFrom);
+                world.motor.Teleport(walkFrom + (away - walkFrom).normalized * 2.5f + Vector3.up * .1f, Quaternion.LookRotation(Flat(walkFrom - away)));
+                yield return new WaitForSeconds(.5f);
+            }
+            world.motor.Teleport(away + Vector3.up * .1f, Quaternion.LookRotation(Flat(walkFrom - away)));
             yield return WaitFor(() => Flat(recruit.Position - world.motor.transform.position).magnitude < 4.5f, 8);
             Assert.That(Flat(recruit.Position - world.motor.transform.position).magnitude, Is.LessThan(4.5f), "the recruit caught up with the player");
             yield return Shot("11-follows");
@@ -224,7 +245,9 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(marks.Any(m => m.Target == recruit), Is.False, "the recruit is not an enemy");
             Assert.That(marks.Where(m => m.Shown).All(m => m.Copies > 0), Is.True, "every lit enemy has its silhouette");
             float reach = ((SonarEffect)sonarCard.effectAsset).radius.At(2);
-            Assert.That(marks.All(m => Vector3.Distance(m.Target.transform.position, world.motor.transform.position) <= reach + 12), Is.True);
+            var beyond = marks.Where(m => Vector3.Distance(m.Target.transform.position, world.motor.transform.position) > reach + 12).ToList();
+            Assert.That(beyond, Is.Empty, $"the wave reaches {reach} m from {world.motor.transform.position}: "
+                + string.Join("; ", beyond.Select(m => $"{m.Target.name} at {m.Target.transform.position} ({Vector3.Distance(m.Target.transform.position, world.motor.transform.position):F1} m)")));
             yield return Shot("22-sonar-around");
             yield return new WaitForSeconds(11);
             Assert.That(Object.FindObjectsByType<SonarMark>(FindObjectsSortMode.None).Length, Is.EqualTo(0), "the silhouettes go out after their time");
@@ -381,6 +404,60 @@ namespace Hakaton.WorldAssembly.Tests
                 if (room > bestRoom && NavMesh.SamplePosition(from + dir * room, out var nav, 1f, NavMesh.AllAreas)) { bestRoom = room; best = nav.position; }
             }
             return best;
+        }
+
+        /// <summary>
+        /// A spot up to <paramref name="far"/> from <paramref name="from"/> (at least 6 m off, so a recruit standing at
+        /// <paramref name="from"/> has to follow) for the player to step off to, facing back to <paramref name="from"/>,
+        /// such that the recruit's way to its place behind the player (anywhere on its arc, as <see cref="WorldCreature"/>
+        /// picks it) is whole on the navigation and nothing stands in the way of its body: the chambers' navigation does
+        /// not cut every prop out, and a body brushing a prop's corner can stick on it for good. The roomiest such spot.
+        /// </summary>
+        static bool OpenWalk(Vector3 from, float radius, float height, Transform passage, float far, float followDistance, out Vector3 away)
+        {
+            away = from;
+            if (!NavMesh.SamplePosition(from, out var own, 1.5f, NavMesh.AllAreas)) return false;
+            var path = new NavMeshPath();
+            bool Open(Vector3 to)
+            {
+                // Where the recruit will head (it looks for the navigation within 4 m of its place) and the way there.
+                if (!NavMesh.SamplePosition(to, out var nav, 4, NavMesh.AllAreas)) return false;
+                if (!NavMesh.CalculatePath(own.position, nav.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) return false;
+                var corners = path.corners;
+                for (int c = 1; c < corners.Length; c++)
+                {
+                    // The body's way along each leg, its whole height above the floor's litter: no chamber prop in it (the
+                    // walls are kept off by the navigation itself).
+                    Vector3 leg = corners[c] - corners[c - 1];
+                    if (leg.sqrMagnitude < .0001f) continue;
+                    Vector3 low = corners[c - 1] + Vector3.up * (radius + .1f), high = corners[c - 1] + Vector3.up * Mathf.Max(radius + .1f, height - radius);
+                    foreach (var hit in Physics.CapsuleCastAll(low, high, radius + .03f, leg.normalized, leg.magnitude, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                        if (!hit.rigidbody && hit.collider.GetComponentInParent<ChamberTemplate>() && hit.collider.bounds.size.y >= .25f) return false;
+                }
+                return true;
+            }
+            float bestRoom = 0;
+            for (int i = 0; i < 24; i++)
+            {
+                var dir = Quaternion.Euler(0, i * 15, 0) * Vector3.forward;
+                float room = Physics.Raycast(own.position + Vector3.up * 1.2f, dir, out var wall, far, ~0, QueryTriggerInteraction.Ignore) ? wall.distance - .5f : far;
+                if (room <= bestRoom || !NavMesh.SamplePosition(own.position + dir * room, out var nav, 1f, NavMesh.AllAreas)) continue;
+                var spot = nav.position;
+                if (Flat(spot - own.position).magnitude < 6 || Mathf.Abs(spot.y - own.position.y) > 1) continue;
+                // Not in the way out: walked down it, the player climbs out of the anthill.
+                var inPassage = passage.InverseTransformPoint(spot);
+                if (inPassage.z > -2 && Mathf.Abs(inPassage.x) < 4) continue;
+                if (!Open(spot)) continue;
+                // Its place: behind the player, who faces back the way they came, up to 75° to either side.
+                var back = Flat(spot - own.position).normalized;
+                bool open = true;
+                for (float side = -75; side <= 75 && open; side += 5)
+                    open = Open(spot + Quaternion.Euler(0, side, 0) * back * followDistance);
+                if (!open) continue;
+                bestRoom = room;
+                away = spot;
+            }
+            return bestRoom > 0;
         }
 
         static void Invulnerable(bool on)
