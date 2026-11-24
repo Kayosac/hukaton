@@ -808,6 +808,7 @@ namespace Hakaton.Game
         }
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
+            outingFirsts = expedition.SaveFirsts(),
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
                 heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
@@ -867,6 +868,8 @@ namespace Hakaton.Game
             if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
+            // Saves from before the forgiven first drowning: a player who has heard the goblin about water has drowned already.
+            expedition.RestoreFirsts(save.outingFirsts ?? new Hakaton.Expeditions.OutingFirstsSave { drownForgiven = save.drownLectureGiven });
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
             RefreshProgress(); // The goals list follows the restored revenue at once.

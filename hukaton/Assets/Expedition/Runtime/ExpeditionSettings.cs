@@ -41,8 +41,8 @@ namespace Hakaton.Expeditions
         [Header("Water")]
         [Tooltip("Water at least this deep over the player's feet, m, drowns at once. Shallower water does nothing.")]
         [Min(.1f)] public float drownDepth = 1f;
-        [Tooltip("Deep water: the screen goes black this fast, seconds.")]
-        [Min(.01f)] public float drownDarkenSeconds = .25f;
+        [Tooltip("Deep water: the screen goes black this fast, seconds (slow enough to see the body go under).")]
+        [Min(.01f)] public float drownDarkenSeconds = .8f;
         [Tooltip("Speed the cards fly out of the hand at, m/s.")]
         [Min(0)] public float drownCardsSpeed = 2.4f;
         [Tooltip("Then the body keeps sinking in the dark this long before the shop, seconds. The mouse still looks around.")]

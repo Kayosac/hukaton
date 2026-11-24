@@ -14,6 +14,8 @@ namespace Hakaton.Game
         public bool goalCelebrated;
         /// <summary>The goblin's word after the first drowning was heard to the end. False in older saves: it comes once more.</summary>
         public bool drownLectureGiven;
+        /// <summary>Once-per-game moments of the outings (the forgiven first drowning…). Null in older saves.</summary>
+        public Hakaton.Expeditions.OutingFirstsSave outingFirsts;
         public WorkshopSave cards;
         public TradingSave shop;
         /// <summary>The goblin card dealer: his current ten, its reveal, purchases and when he may come again. Null in old saves.</summary>
