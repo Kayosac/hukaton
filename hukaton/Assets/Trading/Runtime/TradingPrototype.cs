@@ -547,7 +547,7 @@ namespace Hakaton.Trading.Unity
             for (int i = 0; i < Session.Inventory.Count; i++)
                 if (Session.Inventory[i].Definition.Id == definitionId) { selectedInventory = i; return; }
         }
-        void Notify(string text) { notice = text; noticeUntil = Time.unscaledTime + 2.6f; }
+        void Notify(string text, float seconds = 2.6f) { notice = text; noticeUntil = Time.unscaledTime + seconds; }
         void OnEnable()
         {
             if (Session != null && World != null && World.Control != null)
@@ -783,7 +783,8 @@ namespace Hakaton.Trading.Unity
             SyncControl(); RefreshWorld();
         }
 
-        public void ShowNotice(string text) => Notify(text);
+        /// <summary>The shop's own notice line (the same as its sale and refusal notices), for this many seconds.</summary>
+        public void ShowNotice(string text, float seconds = 2.6f) => Notify(text, seconds);
         IEnumerator Snap(Transform item)
         {
             // Drop in, then a squash-and-settle: the "clack" of putting goods on a shelf.

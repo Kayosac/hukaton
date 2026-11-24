@@ -241,6 +241,23 @@ namespace Hakaton.Game.Tests
             Assert.That(older.drownLectureGiven, Is.False);
         }
 
+        [Test]
+        public void ShiftClockLineFlagRoundTripsAndOlderSavesSeeItOnce()
+        {
+            var domains = new Domains();
+            var captured = domains.Capture();
+            Assert.That(captured.shiftClockLineGiven, Is.False, "A new game has not been told how the shift clock runs.");
+            captured.shiftClockLineGiven = true;
+            Save(captured);
+            Assert.That(GameSaveStore.Load(path, domains.Validate, out var loaded, out var warning), Is.True, warning);
+            Assert.That(loaded.shiftClockLineGiven, Is.True);
+
+            // A save written before the flag existed reads it as false: the line comes once.
+            var older = JsonUtility.FromJson<GameSave>("{\"version\":1,\"coins\":0,\"drownLectureGiven\":true}");
+            Assert.That(older.drownLectureGiven, Is.True);
+            Assert.That(older.shiftClockLineGiven, Is.False);
+        }
+
         /// <summary>«Закрой окно» keeps its counters, record and walked-out attack; older saves count nothing yet.</summary>
         [Test]
         public void PopupAttackStateRoundTripsAndOlderSavesStartFromNothing()

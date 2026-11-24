@@ -14,6 +14,9 @@ namespace Hakaton.Game
         public bool goalCelebrated;
         /// <summary>The goblin's word after the first drowning was heard to the end. False in older saves: it comes once more.</summary>
         public bool drownLectureGiven;
+        /// <summary>The line about the shift clock was shown at the first shift after the tutorial. False in older saves: it
+        /// comes once.</summary>
+        public bool shiftClockLineGiven;
         public WorkshopSave cards;
         public TradingSave shop;
         /// <summary>The goblin card dealer: his current ten, its reveal, purchases and when he may come again. Null in old saves.</summary>

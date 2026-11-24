@@ -53,6 +53,11 @@ namespace Hakaton.Game
             "Когда-нибудь ты научишься плавать, но не сегодня.",
             "Больше так не рискуй."
         };
+        [Tooltip("Said once, as the shop's notice, the first time the player opens the shop after the tutorial (saved: never " +
+                 "again; never in the tutorial's own trade). Empty: nothing.")]
+        public string shiftClockLine = "Часы идут, только пока ты думаешь над ценой.";
+        [Tooltip("How long the line about the shift clock stays up, seconds.")]
+        [Min(1)] public float shiftClockLineSeconds = 5;
         [Tooltip("Back from the god: the goblin waits on the counter (the shop tutorial's goblin) and has a word, then poofs.")]
         [TextArea] public string[] godReturnLecture =
         {
@@ -189,6 +194,9 @@ namespace Hakaton.Game
         public bool LectureActive => lecture && lecture.Active;
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
         public bool DrownLectureGiven => drownLectureGiven;
+        /// <summary>The line about the shift clock has been shown (saved): the first shift after the tutorial had it.</summary>
+        public bool ShiftClockLineGiven => shiftClockLineGiven;
+        bool shiftClockLineGiven;
         bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet, godLectureRunning;
         // The stranger: an endless outing is back; he has come (saved); sent for this closing; the goblin's word after him.
         bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning;
@@ -401,10 +409,22 @@ namespace Hakaton.Game
         void TrackShift()
         {
             bool open = trade.Session.IsOpen;
-            if (open && !shopWasOpen) salesAtOpen = trade.Session.SalesCount;
+            if (open && !shopWasOpen) { salesAtOpen = trade.Session.SalesCount; AnnounceShiftClock(); }
             if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
             shopWasOpen = open;
         }
+        /// <summary>
+        /// The first shift the player opens after the tutorial: once per save, the shop's notice tells how its clock runs
+        /// (only while the player decides on a price). Not in the tutorial's trade, nor in the cave.
+        /// </summary>
+        void AnnounceShiftClock()
+        {
+            if (shiftClockLineGiven || tutorial.Active || InCave || string.IsNullOrEmpty(shiftClockLine)) return;
+            shiftClockLineGiven = true;
+            dirty = true;
+            trade.ShowNotice(shiftClockLine, shiftClockLineSeconds);
+        }
+
         /// <summary>
         /// The shop is about to close by itself: after the first endless outing, once per save, with <see cref="strangerChance"/>
         /// (for sure on the <see cref="strangerGuaranteedAt"/>-th such closing, or by the cheat), one more visitor — the stranger
@@ -823,6 +843,7 @@ namespace Hakaton.Game
         }
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
+            shiftClockLineGiven = shiftClockLineGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
                 heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
@@ -882,6 +903,7 @@ namespace Hakaton.Game
             if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
+            shiftClockLineGiven = save.shiftClockLineGiven;
             trade.RefreshPresentation(); workshop.RefreshWorkshop();
             restoring = wasRestoring; dirty = false;
             RefreshProgress(); // The goals list follows the restored revenue at once.
