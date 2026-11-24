@@ -61,9 +61,10 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             // Close: it springs out and both sickles land, the second one through the first one's protection.
             yield return Stand(mantis, 4.5f);
             float until = Time.time + 4;
-            while (Time.time < until && sandbox.ReceivedDamage < 4) yield return null;
+            while (Time.time < until && sandbox.ReceivedDamage < 2) yield return null;
             Assert.That(mantis.Lurking, Is.False, "it sprang out");
-            Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(4), "two sickles, a heart each");
+            Assert.That(preview.source.attackHalfHearts, Is.EqualTo(1), "each sickle takes half a heart");
+            Assert.That(sandbox.ReceivedDamage, Is.GreaterThanOrEqualTo(2), "two sickles, half a heart each: one heart in all");
         }
     }
 }
