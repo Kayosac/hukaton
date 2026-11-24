@@ -94,7 +94,7 @@ namespace Hakaton.Tutorial
         [Min(0)] public float thinkSeconds = 1.6f;
         [Tooltip("His last words: he hands over the Return card and the player uses it.")]
         [TextArea] public string handOverLine = "На! Используй эту";
-        [TextArea] public string returnHint = "ЛКМ — вернуться в лавку";
+        [TextArea] public string returnHint = "Удерживай ЛКМ — вернуться в лавку";
         [Min(.05f)] public float darkSeconds = .7f;
 
         public CaveStage Stage { get; private set; } = CaveStage.Off;

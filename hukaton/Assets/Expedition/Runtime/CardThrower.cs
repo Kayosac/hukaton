@@ -18,8 +18,10 @@ namespace Hakaton.Expeditions
 
     /// <summary>
     /// Expedition input and the throw itself. Hold LMB to charge, release LMB to throw; Shift stays a plain sprint,
-    /// also while charging. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand, R discards the hand (a new one is drawn),
-    /// E picks up. Charging never changes card power — only flight speed and range.
+    /// also while charging. RMB cancels. Wheel / 1–9, 0 (also on the numpad; 0 is the tenth card) select from the one shared hand,
+    /// R held for <see cref="ExpeditionSettings.discardHold"/> discards the hand (a new one is drawn; in the cave prologue a press
+    /// is enough), E picks up. «Пора домой» goes home after LMB is held for <see cref="ExpeditionSettings.returnHold"/>, counted
+    /// only from a press made once the card is selected. Charging never changes card power — only flight speed and range.
     /// </summary>
     [DefaultExecutionOrder(-225)]
     public sealed class CardThrower : MonoBehaviour
@@ -53,6 +55,10 @@ namespace Hakaton.Expeditions
         [Range(.1f, 1)] public float volleySideAlpha = .75f;
 
         public ThrowPreparation Preparation { get; } = new ThrowPreparation();
+        /// <summary>R being held to discard the hand (the HUD shows its ring).</summary>
+        public HoldGesture DiscardHold { get; } = new HoldGesture();
+        /// <summary>LMB being held on «Пора домой» to go back to the shop (the HUD shows its ring).</summary>
+        public HoldGesture ReturnHold { get; } = new HoldGesture();
         /// <summary>Optional limits (the cave's instruction cards: strict order, R only after two throws).</summary>
         public IThrowRules rules;
         public event Action<CardCopy> Thrown;
@@ -69,7 +75,9 @@ namespace Hakaton.Expeditions
             { Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9, Key.Numpad0 };
 
         int selectedId = int.MinValue, selectedIndex;
-        float returnReadyAt, nextDiscard;
+        float nextDiscard;
+        // The frame «Пора домой» became the selected card: only a press after it counts towards going home.
+        int returnSelectedFrame = -1;
         bool returnWasInHand, fullChargeCued;
         readonly Vector3[] previewPoints = new Vector3[128];
         readonly Gradient previewGradient = new Gradient();
@@ -101,12 +109,37 @@ namespace Hakaton.Expeditions
             }
         }
 
-        /// <summary>True while the Return card is ready to be used (after its anti-misclick grace).</summary>
-        public bool ReturnReady => Selected != null && Selected.IsReturn && Time.time >= returnReadyAt;
+        /// <summary>
+        /// True while «Пора домой» is the selected card and may be used: holding LMB (a fresh press) for
+        /// <see cref="ExpeditionSettings.returnHold"/> takes the player home.
+        /// </summary>
+        public bool ReturnReady
+        {
+            get
+            {
+                var card = Selected;
+                return card != null && card.IsReturn && (rules == null || rules.CanThrow(card));
+            }
+        }
+
+        /// <summary>R would discard something right now: the hand holds a card other than «Пора домой», the rules allow it
+        /// and the short cooldown after the last discard is over.</summary>
+        public bool DiscardAvailable
+        {
+            get
+            {
+                if (!world.Running || Time.time < nextDiscard) return false;
+                if (rules != null && !rules.CanDiscard()) return false;
+                var trip = world.workshop.Model?.Current;
+                if (trip == null || trip.Completed) return false;
+                foreach (var card in trip.Deck.Hand) if (!card.IsReturn) return true;
+                return false;
+            }
+        }
 
         void Update()
         {
-            if (!world.Running || !control.GameplayActive) { Cancel(); return; }
+            if (!world.Running || !control.GameplayActive) { Cancel(); CancelHolds(); return; }
             if (control.CapturedThisFrame) return;
             TrackReturnCard();
             var keys = Keyboard.current;
@@ -114,7 +147,15 @@ namespace Hakaton.Expeditions
             if (mouse == null) return;
             if (keys != null)
             {
-                if (keys.rKey.wasPressedThisFrame) Discard();
+                // The cave prologue teaches R as a press (its instruction card); everywhere else the hand goes only after a hold.
+                if (world.InPrologue)
+                {
+                    DiscardHold.Cancel();
+                    if (keys.rKey.wasPressedThisFrame) Discard();
+                }
+                else if (DiscardHold.Tick(keys.rKey.wasPressedThisFrame, keys.rKey.isPressed, Time.deltaTime,
+                             world.settings.discardHold, DiscardAvailable))
+                    Discard();
                 if (keys.eKey.wasPressedThisFrame) world.TryPickUpFocused();
                 for (int i = 0; i < CardKeys.Length; i++)
                     if (keys[CardKeys[i]].wasPressedThisFrame || keys[NumpadCardKeys[i]].wasPressedThisFrame) { Select(i); break; }
@@ -124,7 +165,20 @@ namespace Hakaton.Expeditions
             float wheel = Mathf.Abs(scroll.y) >= Mathf.Abs(scroll.x) ? scroll.y : scroll.x;
             if (Mathf.Abs(wheel) > .1f && !Preparation.Active) Step(wheel > 0 ? -1 : 1);
             if (mouse.rightButton.wasPressedThisFrame && Preparation.Active) { Cancel(); world.Play(world.cues ? world.cues.cancel : null); return; }
-            if (mouse.leftButton.wasPressedThisFrame) Begin();
+            var selected = Selected;
+            if (selected != null && selected.IsReturn)
+            {
+                // A charge begun on a card that has since left the hand has nothing to throw.
+                if (Preparation.Active) Cancel();
+                // A button still down from before the card was selected (the last throw) never counts: a new press is needed.
+                bool freshPress = mouse.leftButton.wasPressedThisFrame && Time.frameCount > returnSelectedFrame;
+                if (ReturnHold.Tick(freshPress, mouse.leftButton.isPressed, Time.deltaTime, world.settings.returnHold, ReturnReady))
+                {
+                    world.ReturnToShop(false);
+                    return;
+                }
+            }
+            else if (mouse.leftButton.wasPressedThisFrame) Begin();
             if (Preparation.Active)
             {
                 Preparation.Tick(Time.deltaTime, world.settings.chargeSeconds);
@@ -140,22 +194,20 @@ namespace Hakaton.Expeditions
             bool hasReturn = selected != null && selected.IsReturn;
             if (hasReturn && !returnWasInHand)
             {
-                returnReadyAt = Time.time + world.settings.returnGrace;
-                world.Announce("Карта возвращения готова — ЛКМ, чтобы вернуться в лавку", 4);
+                returnSelectedFrame = Time.frameCount;
+                ReturnHold.Cancel();
+                world.Announce("Карта возвращения готова — удерживай ЛКМ, чтобы вернуться в лавку", 4);
                 world.Play(world.cues ? world.cues.returnAppears : null);
             }
+            if (!hasReturn) ReturnHold.Cancel();
             returnWasInHand = hasReturn;
         }
 
+        /// <summary>Starts charging the selected card. «Пора домой» is not thrown: it is held (see <see cref="ReturnHold"/>).</summary>
         public void Begin()
         {
             var card = Selected;
-            if (!world.Running || card == null) return;
-            if (card.IsReturn)
-            {
-                if (Time.time >= returnReadyAt) world.ReturnToShop(false);
-                return;
-            }
+            if (!world.Running || card == null || card.IsReturn) return;
             if (rules != null && !rules.CanThrow(card))
             {
                 world.Play(world.cues ? world.cues.cancel : null);
@@ -239,6 +291,13 @@ namespace Hakaton.Expeditions
             HideVolleyLines(0);
         }
 
+        /// <summary>Drops a hold of R or of LMB on «Пора домой» in progress: a new press is needed.</summary>
+        public void CancelHolds()
+        {
+            DiscardHold.Cancel();
+            ReturnHold.Cancel();
+        }
+
         public void ResetSelection()
         {
             Cancel();
@@ -246,6 +305,8 @@ namespace Hakaton.Expeditions
             selectedIndex = 0;
             nextDiscard = 0;
             returnWasInHand = false;
+            returnSelectedFrame = -1;
+            CancelHolds();
         }
 
         void Step(int direction)
@@ -290,6 +351,7 @@ namespace Hakaton.Expeditions
             }
         }
 
+        /// <summary>Discards the hand at once: what a completed hold of R does (in the cave prologue, a press of R).</summary>
         public void Discard()
         {
             if (!world.Running || Time.time < nextDiscard) return;
@@ -531,6 +593,6 @@ namespace Hakaton.Expeditions
             line.widthCurve = widthCurve;
         }
 
-        void OnDisable() => Cancel();
+        void OnDisable() { Cancel(); CancelHolds(); }
     }
 }

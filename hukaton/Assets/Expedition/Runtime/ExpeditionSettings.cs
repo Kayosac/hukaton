@@ -19,9 +19,13 @@ namespace Hakaton.Expeditions
         [Min(0)] public float previewSeconds = .55f;
         [Min(1)] public float aimConvergeDistance = 18;
         [Header("Hand")]
-        [Tooltip("Input grace after the Return card appears, so a held click can't send you home by accident.")]
-        [Min(0)] public float returnGrace = .6f;
+        [Tooltip("«Пора домой»: LMB held this long goes back to the shop, seconds. Only a press made after the card was selected " +
+                 "counts (a button still down from the last throw does not), so a stray click can't send you home.")]
+        [Min(0)] public float returnHold = .8f;
         [Min(0)] public float discardCooldown = .65f;
+        [Tooltip("R held this long discards the hand, seconds; letting go earlier does nothing. The next discard needs a new " +
+                 "press. In the cave prologue a press is enough.")]
+        [Min(0)] public float discardHold = .5f;
         [Header("Player")]
         [Min(2)] public int maximumHalfHearts = 8;
         [Tooltip("«Сердца» on the PC: price of each step, in order; each step adds one whole heart (4 » 5 » 6 » 7 » 8 at the default tuning).")]
