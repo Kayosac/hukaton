@@ -153,12 +153,12 @@ namespace Hakaton.Expeditions
             var model = world.workshop.Model;
             var definitions = new Dictionary<string, CardDefinition>();
             var specs = new List<CardSpec>();
-            foreach (var card in config.cards)
-                if (card && card != config.dummyCard && !card.dummy && card.artwork && !definitions.ContainsKey(card.id))
-                {
-                    definitions[card.id] = card;
-                    specs.Add(card.ToSpec());
-                }
+            // Only the player's current pool stage (CardPool): no dummy, no story or dungeon cards.
+            foreach (var card in StagedCards.OnSale(config, model.PoolStage))
+            {
+                definitions[card.id] = card;
+                specs.Add(card.ToSpec());
+            }
             var owned = new HashSet<string>();
             foreach (var copy in model.Owned) owned.Add(copy.Spec.Id);
             var spec = TrophyCardRules.Pick(specs, owned, random, unownedWeight, minimumRank);

@@ -433,9 +433,8 @@ namespace Hakaton.SpecialItems
         void GrantCard()
         {
             var config = World.workshop.config;
-            var pool = new List<CardDefinition>();
-            foreach (var card in config.cards)
-                if (card && card != config.dummyCard && card.artwork) pool.Add(card);
+            // Only the player's current pool stage (CardPool), like the goblin and the trophy cards.
+            var pool = StagedCards.OnSale(config, World.workshop.Model.PoolStage);
             var trip = World.workshop.Model.Current;
             if (pool.Count == 0 || trip == null) return;
             var pick = pool[random.Next(pool.Count)];

@@ -362,9 +362,19 @@ namespace Hakaton.Game
         void OnApplicationPause(bool paused) { if (paused) SaveNow(); }
         void OnDisable() { if (Ready && !quitting) SaveNow(); }
         void MarkDirty() { if (!restoring) dirty = true; }
+
+        /// <summary>
+        /// The goblin, trophy cards and the phone offer only the cards of the player's pool stage (CardPool): 1 until the
+        /// god is met, 2 after him, 3 after the first return from the endless world. Derived, never saved on its own.
+        /// </summary>
+        void SyncPoolStage()
+        {
+            if (workshop && workshop.Model != null) workshop.Model.PoolStage = CardPool.StageOf(godMet, endlessVisited);
+        }
         void LateUpdate()
         {
             if (!Ready) return;
+            SyncPoolStage();
             if (Popups) Popups.CountPlayTime(Time.unscaledDeltaTime);
             // Once the endless world is open, the first shift opened with a full display starts with the bulk buyer.
             trade.Session.BulkBuyerPromised = EndlessWorldUnlocked;
@@ -703,6 +713,7 @@ namespace Hakaton.Game
             cardShop.Visits.OutingReturned();
             // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
+            SyncPoolStage();
             int kept = delivery.Sum(x => x.count);
             // Nothing brought back but goods in the shop: the session has given at least half a shift.
             bool halfShift = trade.Session.LastReturn == ShiftReturn.HalfShift;
@@ -898,6 +909,7 @@ namespace Hakaton.Game
             queenSlain = save.queenSlain;
             Hakaton.Expeditions.DungeonProgress.Restore(save.anthillPrizeOpened);
             endlessVisited = save.endlessVisited;
+            SyncPoolStage();
             strangerVisited = save.strangerVisited;
             strangerChances = Math.Max(0, save.strangerChances);
             if (outingMap)

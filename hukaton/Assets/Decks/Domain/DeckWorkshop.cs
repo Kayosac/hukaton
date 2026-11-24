@@ -29,6 +29,11 @@ namespace Hakaton.Decks
         public int Journeys { get; private set; }
         public IReadOnlyList<CardCopy> Owned => owned.AsReadOnly();
         public IEnumerable<CardSpec> Catalog => catalog.Values;
+        /// <summary>
+        /// The player's pool stage 1–3 (<see cref="CardPool"/>): which cards new offers may hold. Not saved — the game
+        /// sets it from its own progress (<see cref="CardPool.StageOf"/>); without a game every card is on sale.
+        /// </summary>
+        public int PoolStage { get; set; } = CardSpec.MaxStage;
         public Expedition Current { get; private set; }
         public bool IsAway => Current != null && !Current.Completed;
 

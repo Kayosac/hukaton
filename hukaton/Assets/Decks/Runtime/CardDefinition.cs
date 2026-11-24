@@ -72,6 +72,9 @@ namespace Hakaton.Decks.Unity
         [Tooltip("The goblin's dummy («Пустышка», the config's dummy card): does nothing, never merges, always sells for " +
                  "half its price, and leaves the deck and the collection for good as an outing begins.")]
         public bool dummy;
+        [Tooltip("Pool stage from which the goblin, trophy cards and the phone may offer this card: 1 from the start, " +
+                 "2 after the god is met, 3 after the first return from the endless world. Owned copies stay at any stage.")]
+        [Range(1, 3)] public int stage = 1;
 
         [Header("Levels I / II / III")]
         [Tooltip("Off keeps every copy at level I (no merging on the PC).")]
@@ -89,7 +92,8 @@ namespace Hakaton.Decks.Unity
         public CardSpec ToSpec(bool asDummy = false)
         {
             bool isDummy = dummy || asDummy;
-            return new CardSpec(id, displayName, purchasePrice, rank, upgradable && !isDummy, uses.ToArray(), isDummy);
+            return new CardSpec(id, displayName, purchasePrice, rank, upgradable && !isDummy, uses.ToArray(), isDummy,
+                Mathf.Clamp(stage, 1, CardSpec.MaxStage));
         }
     }
 }

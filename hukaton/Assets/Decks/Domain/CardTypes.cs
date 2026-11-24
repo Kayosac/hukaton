@@ -11,6 +11,8 @@ namespace Hakaton.Decks
     public sealed class CardSpec
     {
         public const int MaxLevel = 3;
+        /// <summary>The last pool stage (<see cref="Stage"/>): every card is on sale.</summary>
+        public const int MaxStage = 3;
         public readonly string Id, Name;
         /// <summary>Full price of one copy at the goblin («цена копии»).</summary>
         public readonly int Price;
@@ -24,19 +26,27 @@ namespace Hakaton.Decks
         /// and leaves both for good as an outing begins.
         /// </summary>
         public readonly bool Dummy;
+        /// <summary>
+        /// Pool stage 1–3 from which the goblin, trophies and the phone may offer this card (<see cref="CardPool"/>):
+        /// 1 from the start, 2 after the god is met, 3 after the first return from the endless world.
+        /// </summary>
+        public readonly int Stage;
         readonly int[] uses;
 
         /// <param name="usesPerLevel">Uses of one copy per outing at I / II / III. One for ordinary cards; Teleport 1 / 2 / 3.</param>
         /// <param name="dummy">A dummy card (<see cref="Dummy"/>); it never merges.</param>
+        /// <param name="stage">Pool stage 1–3 (<see cref="Stage"/>).</param>
         public CardSpec(string id, string name, int price, int rank = 1, bool mergeable = true, IReadOnlyList<int> usesPerLevel = null,
-            bool dummy = false)
+            bool dummy = false, int stage = 1)
         {
             if (price < 0 || rank < 1 || rank > 5) throw new ArgumentOutOfRangeException(nameof(price));
+            if (stage < 1 || stage > MaxStage) throw new ArgumentOutOfRangeException(nameof(stage));
             Id = id;
             Name = name;
             Price = price;
             Rank = rank;
             Dummy = dummy;
+            Stage = stage;
             Mergeable = mergeable && !dummy;
             uses = usesPerLevel == null ? new[] { 1, 1, 1 } : usesPerLevel.ToArray();
             if (uses.Length != MaxLevel || uses.Any(u => u < 1)) throw new ArgumentException("One use count per level", nameof(usesPerLevel));
