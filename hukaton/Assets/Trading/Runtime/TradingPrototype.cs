@@ -24,10 +24,14 @@ namespace Hakaton.Trading.Unity
         public int randomSeed = 42;
         [Range(.67f, .99f)] public float minOpeningRatio = .7f;
         [Range(.67f, .99f)] public float maxOpeningRatio = .9f;
-        [Range(1, 2)] public float minCeilingRatio = 1;
-        [Range(1, 2)] public float maxCeilingRatio = 1.4f;
-        [Range(.01f, 2)] public float minOfferCeilingRatio = .95f;
-        [Range(.01f, 2)] public float maxOfferCeilingRatio = 1.2f;
+        [Tooltip("Limit of a visitor who asks the price, as a share of the price: drawn between min and max.")]
+        [Range(1, 2)] public float minCeilingRatio = 1.05f;
+        [Range(1, 2)] public float maxCeilingRatio = 1.6f;
+        [Tooltip("Limit of a visitor who names his own price, as a share of the price: drawn between min and max.")]
+        [Range(.01f, 2)] public float minOfferCeilingRatio = 1;
+        [Range(.01f, 2)] public float maxOfferCeilingRatio = 1.35f;
+        [Tooltip("The first counter of a visitor who asked the price starts at this share of the price (no more than his limit). 1: never below the price.")]
+        [Range(.5f, 1.5f)] public float askerFirstCounterRatio = 1;
         [Range(0, 1)] public float asksPriceProbability = .5f;
         public bool usePresetPatienceCosts;
         [Min(1)] public int minPatience = 3;
@@ -179,6 +183,24 @@ namespace Hakaton.Trading.Unity
         string notice = string.Empty;
         float noticeUntil;
 
+        /// <summary>The trade tuning from the Inspector fields, as the session gets it (the trade balance tests use it too).</summary>
+        public TradeSettings CreateTradeSettings() => new TradeSettings {
+            SlotCount = 6, ShiftSeconds = shiftSeconds,
+            ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
+            ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
+            MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
+            MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
+            MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
+            AskerFirstCounterRatio = askerFirstCounterRatio,
+            AsksPriceProbability = asksPriceProbability,
+            UsePresetPatienceCosts = usePresetPatienceCosts,
+            MinPatience = minPatience, MaxPatience = maxPatience,
+            BulkBuyerChance = bulkBuyerChance / 100f,
+            BulkBuyerUpgradeChances = System.Array.ConvertAll(bulkBuyerSteps, step => step.percent / 100f),
+            BulkBuyerUpgradePrices = System.Array.ConvertAll(bulkBuyerSteps, step => step.price),
+            BulkBuyerMinDisplay = bulkBuyerMinDisplay, BulkBuyerPriceRatio = bulkBuyerPriceRatio
+        };
+
         void Awake()
         {
             slotHighlight = new MaterialPropertyBlock();
@@ -194,21 +216,7 @@ namespace Hakaton.Trading.Unity
                 enabled = false;
                 return;
             }
-            Session = new TradingSession(new TradeSettings {
-                SlotCount = 6, ShiftSeconds = shiftSeconds,
-                ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
-                ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
-                MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
-                MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
-                MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
-                AsksPriceProbability = asksPriceProbability,
-                UsePresetPatienceCosts = usePresetPatienceCosts,
-                MinPatience = minPatience, MaxPatience = maxPatience,
-                BulkBuyerChance = bulkBuyerChance / 100f,
-                BulkBuyerUpgradeChances = System.Array.ConvertAll(bulkBuyerSteps, step => step.percent / 100f),
-                BulkBuyerUpgradePrices = System.Array.ConvertAll(bulkBuyerSteps, step => step.price),
-                BulkBuyerMinDisplay = bulkBuyerMinDisplay, BulkBuyerPriceRatio = bulkBuyerPriceRatio
-            }, randomSeed, walletHost ? walletHost.Wallet : null);
+            Session = new TradingSession(CreateTradeSettings(), randomSeed, walletHost ? walletHost.Wallet : null);
             RegisterCatalogue();
             displayed = new GameObject[6];
             displayedIds = new long[6];

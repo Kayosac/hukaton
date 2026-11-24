@@ -57,6 +57,11 @@ namespace Hakaton.Trading
         public float MaxCeilingRatio { get; set; } = 1.4f;
         public float MinOfferCeilingRatio { get; set; } = .95f;
         public float MaxOfferCeilingRatio { get; set; } = 1.2f;
+        /// <summary>
+        /// Where the first counter of a visitor who asked the price starts: this share of the price R (no more than his
+        /// limit). 1: his counter is never below R.
+        /// </summary>
+        public float AskerFirstCounterRatio { get; set; } = 1f;
         public float AsksPriceProbability { get; set; } = .5f;
         public bool UsePresetPatienceCosts { get; set; }
         public int MinPatience { get; set; } = 3;
@@ -87,7 +92,7 @@ namespace Hakaton.Trading
                 || MaxOpeningRatio >= 1 || !Positive(MaxOpeningRatio)
                 || !Positive(MinCeilingRatio) || !Positive(MaxCeilingRatio)
                 || !Positive(MinOfferCeilingRatio) || !Positive(MaxOfferCeilingRatio)
-                || MaxOfferCeilingRatio < MinOfferCeilingRatio
+                || MaxOfferCeilingRatio < MinOfferCeilingRatio || !Positive(AskerFirstCounterRatio)
                 || float.IsNaN(AsksPriceProbability) || AsksPriceProbability < 0 || AsksPriceProbability > 1
                 || MaxCeilingRatio < MinCeilingRatio || MinPatience < 1
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue

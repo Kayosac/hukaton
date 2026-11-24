@@ -488,7 +488,7 @@ namespace Hakaton.Trading
             deal.Patience -= cost;
 
             // Counter: move from the previous position towards what you asked (capped by the limit) — or hold.
-            int previous = deal.N ?? Math.Max(1, TradeDeal.RoundMoney(Math.Min(deal.MaxPrice, deal.R) * .9));
+            int previous = deal.N ?? Math.Max(1, TradeDeal.RoundMoney(Math.Min(deal.MaxPrice, deal.R) * (double)Settings.AskerFirstCounterRatio));
             int target = Math.Min(price - 1, deal.MaxPrice);
             bool stubborn = random.NextDouble() < .2 || target <= previous;
             int counter = stubborn ? previous
