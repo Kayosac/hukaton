@@ -58,6 +58,14 @@ namespace Hakaton.Decks
         }
 
         /// <summary>
+        /// The pool stage (<see cref="CardPool.ForStage"/>) a trophy card is picked from. A card guaranteed a rank
+        /// (<paramref name="minimumRank"/> above 1: a rich chest's, <c>TrophyCards.richChestCardRank</c>) comes from every
+        /// card on sale, whatever the player's stage (<see cref="CardSpec.MaxStage"/>) — the early pools hold no rank III;
+        /// any other card only from the player's <paramref name="poolStage"/>.
+        /// </summary>
+        public static int CatalogueStage(int poolStage, int minimumRank) => minimumRank > 1 ? CardSpec.MaxStage : poolStage;
+
+        /// <summary>
         /// Level I / II / III of a dungeon's own trophy card (Вербовка, Эхолот), by how tough its source was: a creature by
         /// its health (up to <paramref name="levelTwoHealth"/>: I, up to <paramref name="levelThreeHealth"/>: II, above: III).
         /// </summary>

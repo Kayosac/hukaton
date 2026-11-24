@@ -153,8 +153,9 @@ namespace Hakaton.Expeditions
             var model = world.workshop.Model;
             var definitions = new Dictionary<string, CardDefinition>();
             var specs = new List<CardSpec>();
-            // Only the player's current pool stage (CardPool): no dummy, no story or dungeon cards.
-            foreach (var card in StagedCards.OnSale(config, model.PoolStage))
+            // Only the player's current pool stage (CardPool), but a rich chest's card of a guaranteed rank comes from every
+            // stage (TrophyCardRules.CatalogueStage): no dummy, no story or dungeon cards.
+            foreach (var card in StagedCards.OnSale(config, TrophyCardRules.CatalogueStage(model.PoolStage, minimumRank)))
             {
                 definitions[card.id] = card;
                 specs.Add(card.ToSpec());

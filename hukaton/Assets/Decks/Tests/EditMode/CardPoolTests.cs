@@ -10,6 +10,7 @@ namespace Hakaton.Decks.Tests
     /// <summary>
     /// Balance stage 4, «Пул карт по этапам»: 12 cards until the god is met, 26 after him, all 39 after the first return
     /// from the endless world. The goblin, trophy cards and the phone offer only the current pool; owned copies stay.
+    /// A rich chest's card of a guaranteed rank (III and up) comes from all 39, whatever the stage.
     /// </summary>
     public sealed class CardPoolTests
     {
@@ -111,7 +112,8 @@ namespace Hakaton.Decks.Tests
             Assert.That(onSale.Select(c => c.id), Is.EquivalentTo(Upto(stage)));
             Assert.That(onSale, Has.No.Member(config.dummyCard));
             foreach (var card in config.storyCards.Concat(config.trophyCards)) Assert.That(onSale, Has.No.Member(card));
-            // TrophyCards.Give picks among these; a rich chest asks for rank 3+ and falls back to the pool when it has none.
+            // TrophyCards.Give picks among these for any trophy but a rich chest's (see the next test); Pick itself, asked for
+            // rank 3+ in a pool without one, falls back to the pool's own ranks.
             var specs = onSale.Select(c => c.ToSpec()).ToList();
             var random = new Random(stage);
             var allowed = new HashSet<string>(Upto(stage));
@@ -120,6 +122,34 @@ namespace Hakaton.Decks.Tests
                 var pick = TrophyCardRules.Pick(specs, new HashSet<string> { "fire" }, random, 2, i % 2 == 0 ? 1 : 3);
                 Assert.That(allowed, Does.Contain(pick.Id));
             }
+        }
+
+        [Test]
+        public void ARichChestsCardComesFromAllCardsOtherTrophiesOnlyFromTheStagesPool()
+        {
+            const int richCardRank = 3; // TrophyCards.richChestCardRank
+            Assert.That(TrophyCardRules.CatalogueStage(1, richCardRank), Is.EqualTo(CardSpec.MaxStage));
+            Assert.That(TrophyCardRules.CatalogueStage(2, 1), Is.EqualTo(2));
+            var config = Catalogue();
+            // As TrophyCards.Give: the cards on sale at TrophyCardRules.CatalogueStage, then Pick with the same minimum rank.
+            var rich = StagedCards.OnSale(config, TrophyCardRules.CatalogueStage(1, richCardRank)).Select(c => c.ToSpec()).ToList();
+            var usual = StagedCards.OnSale(config, TrophyCardRules.CatalogueStage(1, 1)).Select(c => c.ToSpec()).ToList();
+            Assert.That(rich.Select(s => s.Id), Is.EquivalentTo(Upto(3)), "A rich chest: all 39 cards.");
+            Assert.That(usual.Select(s => s.Id), Is.EquivalentTo(StageOne), "Any other trophy: the stage's pool.");
+            Assert.That(usual.Max(s => s.Rank), Is.LessThan(richCardRank), "Stage 1 holds no rank III.");
+            var random = new Random(5);
+            var owned = new HashSet<string> { "fire" };
+            var richPicks = new HashSet<string>();
+            for (int i = 0; i < 2000; i++)
+            {
+                var pick = TrophyCardRules.Pick(rich, owned, random, 2, richCardRank);
+                Assert.That(pick.Rank, Is.GreaterThanOrEqualTo(richCardRank), pick.Id);
+                Assert.That(StageOne, Has.No.Member(pick.Id), "Rank III+ lies beyond the stage 1 pool.");
+                richPicks.Add(pick.Id);
+                Assert.That(StageOne, Has.Member(TrophyCardRules.Pick(usual, owned, random, 2, 1).Id));
+            }
+            Assert.That(richPicks.Any(id => StageTwo.Contains(id)) && richPicks.Any(id => StageThree.Contains(id)), Is.True,
+                "Rich chests at stage 1 give cards of stages 2 and 3 alike.");
         }
 
         [Test]
