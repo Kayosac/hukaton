@@ -18,27 +18,19 @@ namespace Hakaton.Game.Tests
     /// Balance, stage 1: the goblin's finale warns that forest cards are one-use and «Пора домой» comes when they run
     /// out, right before he leaves; saves made in the middle of the finale still read on correctly. Trophy cards: the
     /// first kill is sure while the collection holds at most eight cards, and the notice says the card lasts the outing.
-    /// The player's own save files are moved aside for the run and put back afterwards.
+    /// The save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class TutorialFinaleAndTrophyNoticeTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
         const string ReturnCardLine = "Там не пещера. Каждая карта — один раз. Последней придёт „Пора домой“: зажми и держи, пока не унесёт. В глубокую воду не суйся: я за тобой нырять не буду.";
         const string LeavingLine = "А у меня дела поважнее.";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(TutorialFinaleAndTrophyNoticeTests));
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             yield return WaitFor(() => Object.FindAnyObjectByType<GameLoop>()?.Ready == true, 5);
@@ -50,9 +42,7 @@ namespace Hakaton.Game.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Finale and trophy notice teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]

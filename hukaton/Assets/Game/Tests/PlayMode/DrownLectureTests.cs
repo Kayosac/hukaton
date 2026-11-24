@@ -14,25 +14,17 @@ namespace Hakaton.Game.Tests
     /// <summary>
     /// The goblin's word after the first drowning, in the real scene: out to the ready-made location, into deep water,
     /// and he is waiting in the shop; his lines close one by one, he leaves in a poof, and a second drowning brings only
-    /// the notice. The player's own save files are moved aside for the run and put back afterwards.
+    /// the notice. The save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class DrownLectureTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(DrownLectureTests));
             // The game itself, without the main menu lying over it.
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
@@ -46,9 +38,7 @@ namespace Hakaton.Game.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Drown lecture test teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]

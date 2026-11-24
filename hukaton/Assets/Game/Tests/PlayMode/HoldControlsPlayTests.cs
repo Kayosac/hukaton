@@ -18,13 +18,11 @@ namespace Hakaton.Game.Tests
     /// On an outing R discards the hand only after a hold (<see cref="ExpeditionSettings.discardHold"/>) and «Пора домой»
     /// takes the player home only after LMB is held (<see cref="ExpeditionSettings.returnHold"/>) from a press made once the
     /// card is selected; the HUD shows the hold's ring and the standing controls line. Real scene, real input devices fed
-    /// state every frame. The player's own save files are moved aside for the run and put back afterwards.
+    /// state every frame. The save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class HoldControlsPlayTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         GameLoop game;
         ExpeditionWorld world;
         Keyboard keyboard, previousKeyboard;
@@ -38,14 +36,8 @@ namespace Hakaton.Game.Tests
         [UnitySetUp]
         public IEnumerator DepartWithFreshSaveAndOwnDevices()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(HoldControlsPlayTests));
             previousKeyboard = Keyboard.current; previousMouse = Mouse.current;
             previousEditorBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
             previousBackground = InputSystem.settings.backgroundBehavior;
@@ -91,9 +83,7 @@ namespace Hakaton.Game.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Hold controls teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         void Feed()

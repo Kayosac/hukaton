@@ -17,27 +17,19 @@ namespace Hakaton.Game.Tests
     /// Skipping the goblin's bought card (user rule 2026-11-13): a skip while the card is on its way up skips only the
     /// flight, the card is at the eyes at once (a blind card turned) so the player sees what he bought; the next press
     /// puts it away. A skip once it is at the eyes puts it away at once. In the real scene, with its own keyboard and
-    /// mouse; the player's save files are moved aside for the run and put back afterwards.
+    /// mouse; the save goes to a temporary folder of the test (GameSaveFolder): the player's own files are never touched.
     /// </summary>
     public sealed class GoblinPurchaseSkipTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         Keyboard keyboard;
         Mouse mouse;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(GoblinPurchaseSkipTests));
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
             float waited = 0;
@@ -56,9 +48,7 @@ namespace Hakaton.Game.Tests
             SceneManager.SetActiveScene(SceneManager.CreateScene("Goblin skip test teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         [UnityTest]
