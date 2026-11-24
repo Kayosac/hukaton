@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Hakaton.Trading;
 using Hakaton.Trading.Unity;
@@ -23,22 +22,14 @@ namespace Hakaton.Game.Tests
     public sealed class ShiftClockPlayTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
-        string saveFolder;
         TradingPrototype trade;
         TradingSession session;
 
         [UnitySetUp]
         public IEnumerator LoadTheGameWithAFreshSave()
         {
-            saveFolder = Path.Combine(Application.persistentDataPath, "Hakaton");
-            playerSaves.Clear();
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder))
-                {
-                    playerSaves[file] = File.ReadAllBytes(file);
-                    File.Delete(file);
-                }
+            // The save lives in a temporary folder of this test: the player's own files are never read or touched.
+            GameSaveFolder.UseTemporaryForTests(nameof(ShiftClockPlayTests));
             // The game itself, without the main menu lying over it.
             MainMenu.SkipNextLaunch = true;
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Single));
@@ -46,17 +37,15 @@ namespace Hakaton.Game.Tests
         }
 
         [UnityTearDown]
-        public IEnumerator RestoreThePlayersSave()
+        public IEnumerator UnloadTheGame()
         {
             if (session != null) session.CustomerScript = null;
             trade = null; session = null;
-            // Unload the game first so nothing writes a save after the files are restored.
+            // Unload the game first so its last save still goes to the test's folder.
             SceneManager.SetActiveScene(SceneManager.CreateScene("Shift clock test teardown"));
             var gameScene = SceneManager.GetSceneByPath(ScenePath);
             if (gameScene.isLoaded) yield return SceneManager.UnloadSceneAsync(gameScene);
-            if (Directory.Exists(saveFolder))
-                foreach (var file in Directory.GetFiles(saveFolder)) File.Delete(file);
-            foreach (var save in playerSaves) File.WriteAllBytes(save.Key, save.Value);
+            GameSaveFolder.EndTemporaryForTests();
         }
 
         GameLoop StartInTheShop()

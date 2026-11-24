@@ -45,7 +45,8 @@ namespace Hakaton.Game.Tests
             var sources = Directory.GetFiles("Assets", "*.cs", SearchOption.AllDirectories)
                 .Where(p => p.Replace('\\', '/').Contains("/Tests/") && Path.GetFileName(p) != self).ToArray();
             Assert.That(sources, Is.Not.Empty);
-            var gameScene = sources.Where(p => File.ReadAllText(p).Contains("Game/Scenes/Hakaton.unity")).ToArray();
+            // Tests that run the game (load its scene in Play mode); a test that only reads the scene file saves nothing.
+            var gameScene = sources.Where(p => { string t = File.ReadAllText(p); return t.Contains("Game/Scenes/Hakaton.unity") && t.Contains("LoadScene"); }).ToArray();
             Assert.That(gameScene, Is.Not.Empty);
             foreach (string path in gameScene)
             {
