@@ -22,7 +22,7 @@ namespace Hakaton.Decks.Tests
             { "stone_cube", (180, 3) }, { "branch_bridge", (180, 3) }, { "lightness", (180, 3) },
             { "mushroom_trampoline", (160, 3) }, { "moon_gravity", (180, 3) }, { "rope", (180, 3) },
             { "updraft", (260, 4) }, { "tree_awakening", (300, 4) }, { "swap", (360, 5) }, { "teleport", (450, 5) },
-            { "strike", (120, 1) }, { "heavy_strike", (140, 1) }, { "heal", (140, 1) },
+            { "strike", (120, 1) }, { "heavy_strike", (110, 1) }, { "heal", (120, 1) },
         };
 
         /// <summary>The main I / II / III number of each card as the PC shows it.</summary>

@@ -88,7 +88,7 @@ namespace Hakaton.Expeditions.Tests
             var card = Card();
             Assert.That(card.action, Is.EqualTo(CardAction.Fan));
             Assert.That((int)CardAction.Fan, Is.EqualTo(42));
-            Assert.That((card.rank, card.purchasePrice), Is.EqualTo((1, 150)));
+            Assert.That((card.rank, card.purchasePrice), Is.EqualTo((1, 120)));
             Assert.That((card.uses.i, card.uses.ii, card.uses.iii), Is.EqualTo((1, 1, 1)));
             Assert.That(card.artwork, Is.Not.Null);
             Assert.That(card.description, Is.EqualTo("Бросает сразу несколько карт веером. Каждая ранит."));
