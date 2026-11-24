@@ -154,6 +154,9 @@ namespace Hakaton.Trading.Unity
         /// <summary>Prints the rest of the visitor's line at once; true if it was still typing (the press is spent on that).</summary>
         public bool SkipSpeechTyping() => speech && speech.TryGetComponent(out TypedLine typed) && typed.Skip();
 
+        /// <summary>The visitor's line is still appearing letter by letter (the shift clock waits for it).</summary>
+        public bool SpeechTyping => speech && speech.isActiveAndEnabled && speech.TryGetComponent(out TypedLine typed) && typed.IsTyping;
+
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
         /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
         public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);

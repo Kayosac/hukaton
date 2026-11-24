@@ -271,6 +271,8 @@ namespace Hakaton.Game
             trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
             // A shift that ends by itself may bring the stranger as its last visitor.
             trade.Session.ClosingVisitor = StrangerAtClosing;
+            // The goblin's word at the counter holds the shift clock like any story visitor's.
+            trade.ShiftClockHold = () => LectureActive;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;

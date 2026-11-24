@@ -178,6 +178,35 @@ namespace Hakaton.Trading.Unity
         /// read on through his lines; there is nothing to sell him or refuse.
         /// </summary>
         public bool TalkerSpeaking => Session?.CurrentCustomer != null && Session.CurrentCustomer.IsTalker;
+
+        /// <summary>
+        /// Something outside the shop holds the shift clock while it is true (the game loop: the goblin has a word at the
+        /// counter). Null: nothing does. The tutorial holds it with <see cref="TradingSession.ClockPaused"/> instead.
+        /// </summary>
+        public System.Func<bool> ShiftClockHold { get; set; }
+
+        /// <summary>
+        /// The one rule of the shift clock: its time runs only while the player decides, that is while the answers to the
+        /// visitor at the counter can be pressed (<see cref="ActionsReady"/>: he has reached the counter, the camera is not
+        /// moving to the display or back, the short beat after an answer is over). It stands while nobody is at the counter
+        /// (a visitor walks in or out, the pause between visitors), while his line still types, during the «…» after a
+        /// counter-offer (<see cref="ReactionRevealed"/>), while a story visitor talks (the bulk buyer until his offer is on
+        /// screen, the stranger), while <see cref="ShiftClockHold"/> holds it (the goblin at the counter), and of course while
+        /// the shop is closed, the tutorial pauses the clock (<see cref="TradingSession.ClockPaused"/>) or a menu is in front.
+        /// A visitor who came in before the time ran out is still served to the end (the session's rule).
+        /// </summary>
+        public bool ShiftClockShouldRun => Session != null && Session.IsOpen && !Session.ClockPaused && Session.RemainingSeconds > 0
+            && !GamePause.Suspended && Session.CurrentCustomer != null
+            && ActionsReady && ReactionRevealed && !BulkBuyerExplaining && !TalkerSpeaking
+            && (hud == null || !hud.SpeechTyping) && (ShiftClockHold == null || !ShiftClockHold());
+
+        /// <summary>
+        /// The shift clock ran this frame: <see cref="ShiftClockShouldRun"/> held this frame and the one before (a line the
+        /// HUD starts typing in its LateUpdate is seen typing only the next frame). The clock looks and sounds alive only
+        /// then (TradingHud, ShopFeel); otherwise it stands faded and silent.
+        /// </summary>
+        public bool ShiftClockRunning => shiftClockRunning && !GamePause.Suspended;
+        bool shiftClockRunning, shiftClockWanted;
         Coroutine[] itemMotion;
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
@@ -235,7 +264,12 @@ namespace Hakaton.Trading.Unity
             if (GamePause.Suspended) return;
             World.Customers.HoldExpression = !ReactionRevealed;
             World.Customers.Sync(Session);
-            Session.Tick(Time.unscaledDeltaTime);
+            // Time runs only while the player decides (ShiftClockShouldRun). The session still ticks with no time
+            // passing, so a shift whose time is up ends as soon as the counter is free.
+            bool clockWanted = ShiftClockShouldRun;
+            shiftClockRunning = clockWanted && shiftClockWanted;
+            shiftClockWanted = clockWanted;
+            Session.Tick(shiftClockRunning ? Time.unscaledDeltaTime : 0);
             if (Session.IsOpen && Session.CurrentCustomer == null && World.Customers.CanStartNextCustomer)
             {
                 Session.AdvanceCustomer();
