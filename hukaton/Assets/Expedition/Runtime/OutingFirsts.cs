@@ -14,5 +14,9 @@ namespace Hakaton.Expeditions
         /// From the next one on a drowning costs as any defeat.
         /// </summary>
         public bool drownForgiven;
+        /// <summary>The line at an anthill's mouth has been shown (the first time the player came up to one).</summary>
+        public bool anthillLineShown;
+        /// <summary>The line about the defeat's cost has been shown (the first hit taken on an outing, not in the prologue).</summary>
+        public bool firstHurtLineShown;
     }
 }

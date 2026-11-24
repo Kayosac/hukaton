@@ -165,6 +165,7 @@ namespace Hakaton.Expeditions
                 motor.PushFilter = PropPhysics.IsLoose;
                 motor.Bumped += WakeBumped;
             }
+            if (vitals) vitals.Changed += NoteHurt;
         }
 
         // Walking into a dormant prop light enough to be shoved makes it a real body; the same step then shoves it.
@@ -176,6 +177,7 @@ namespace Hakaton.Expeditions
         {
             if (Active == this) Active = null;
             if (motor) motor.Bumped -= WakeBumped;
+            if (vitals) vitals.Changed -= NoteHurt;
             if (workshop) workshop.Departed -= BeginOuting;
         }
 

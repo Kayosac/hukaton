@@ -18,6 +18,32 @@ namespace Hakaton.Expeditions
         public void RestoreFirsts(OutingFirstsSave save)
             => Firsts = save != null ? JsonUtility.FromJson<OutingFirstsSave>(JsonUtility.ToJson(save)) : new OutingFirstsSave();
 
+        /// <summary>Shown the first time the player comes up to an anthill's mouth (once per game).</summary>
+        public const string AnthillLine = "Муравейник. Внутри темно и бьют больно. „Пора домой“ работает и там.";
+        /// <summary>Shown at the first hit taken on an outing, not in the cave prologue (once per game).</summary>
+        public const string FirstHurtLine = "Упадёшь — половина добычи останется в лесу.";
+        const float FirstLineSeconds = 5;
+
+        /// <summary>
+        /// The player has come up to an anthill's mouth (<c>DungeonEntrance</c> asks): the first time in the game the line
+        /// about the anthill comes, as the outing's other notices do. True when it was shown now.
+        /// </summary>
+        public bool NoteAnthillApproached()
+        {
+            if (Firsts.anthillLineShown || !Running || InPrologue) return false;
+            Firsts.anthillLineShown = true;
+            Announce(AnthillLine, FirstLineSeconds);
+            return true;
+        }
+
+        // The first hit of the game on an outing (not in the prologue, not the one that ends it): what a defeat costs.
+        void NoteHurt(int change)
+        {
+            if (change >= 0 || Firsts.firstHurtLineShown || !Running || InPrologue || !vitals || vitals.HalfHearts <= 0) return;
+            Firsts.firstHurtLineShown = true;
+            Announce(FirstHurtLine, FirstLineSeconds);
+        }
+
         /// <summary>
         /// Called as a defeat is counted: true for the game's first drowning (outside the prologue, which never gets here),
         /// which keeps all the loot; marks the forgiveness as used.
