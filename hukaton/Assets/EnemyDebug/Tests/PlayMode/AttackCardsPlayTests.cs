@@ -432,6 +432,9 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             sandbox.squadSize = 1;
             var dog = sandbox.Spawn(preview);
             sandbox.squadSize = squad;
+            // A goblin dog has 4 HP: the crows' 4 pecks would kill it before it is seen hunting again.
+            dog.maximumHealth = 12;
+            dog.Resume(12, dog.Position);
             Vector3 front = dog.Position + Vector3.back * 3.5f;
             sandbox.motor.Teleport(front + Vector3.up * .05f, Quaternion.LookRotation(dog.Position - front));
             float until = Time.time + 8;
