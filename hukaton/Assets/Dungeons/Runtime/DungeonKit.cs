@@ -92,6 +92,9 @@ namespace Hakaton.Dungeons.Unity
         public Color acidGlow = new Color(.55f, 1f, .25f);
         [Range(0, 1)] public float acidPerCorridorCell = .3f;
         [Range(0, 1)] public float acidPerRoomCell = .08f;
+        [Tooltip("How long the poison from an acid puddle lasts, s (shorter than the «Яд» asset's own, which other sources " +
+                 "such as the toad's slime keep). Touching acid again only refreshes it. 0: the asset's own.")]
+        [Min(0)] public float acidPoisonSeconds = 4;
         [Tooltip("Collapses: heaps of fallen earth against the walls, and the ceiling coming down now and then near the player.")]
         public GameObject[] rubble = new GameObject[0];
         [Range(0, 1)] public float rubblePerCorridorCell = .25f;

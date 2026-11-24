@@ -14,7 +14,8 @@ namespace Hakaton.WorldAssembly.Unity
     /// (<see cref="DungeonKit.modifierChance"/>):
     /// <list type="bullet">
     /// <item><b>Acid</b> — glowing puddles on the floor of corridors and chambers; standing in one poisons the player
-    /// (the ready «Яд», refreshed while standing).</item>
+    /// (the ready «Яд», but for <see cref="DungeonKit.acidPoisonSeconds"/> instead of its own 8 s; refreshed while
+    /// standing).</item>
     /// <item><b>Collapses</b> — heaps of fallen earth against the walls (never across the way: a lane stays), and now and
     /// then the ceiling comes down a few steps ahead of the player: dust first, then chunks that hurt whoever is under
     /// them. The chunks stay where they fall.</item>
@@ -236,10 +237,13 @@ namespace Hakaton.WorldAssembly.Unity
                 var d = feet - at;
                 if (Mathf.Abs(d.y) > 1.2f || new Vector2(d.x, d.z).sqrMagnitude > radius * radius) continue;
                 nextPoison = Time.time + acidEvery;
-                if (world.statuses) world.statuses.Apply(PlayerStatusKind.Poison);
+                if (world.statuses) world.statuses.Apply(PlayerStatusKind.Poison, AcidPoisonSeconds(dungeon.kit));
                 return;
             }
         }
+
+        /// <summary>How long acid poisons for (the kit's setting; 0 there means the «Яд» asset's own).</summary>
+        public static float AcidPoisonSeconds(DungeonKit kit) => kit ? kit.acidPoisonSeconds : 0;
 
         void Collapse(Vector3 feet, Cell cell, CellInfo info)
         {

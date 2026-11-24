@@ -8,6 +8,7 @@ using Hakaton.Expeditions;
 using Hakaton.Game;
 using Hakaton.WorldAssembly.Unity;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -17,7 +18,7 @@ namespace Hakaton.WorldAssembly.Tests
 {
     /// <summary>
     /// The anthill in a new game: small (one level, no Queen) until its prize chest is opened; opening it is noted in the
-    /// game's save, and the anthill already laid stays as it was.
+    /// game's save, and the anthill already laid stays as it was. Its acid poisons for 4 s, the toad's slime still for 8.
     /// </summary>
     public sealed class AnthillFirstSmallPlayTests
     {
@@ -94,6 +95,51 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(site.Current, Is.SameAs(dungeon), "the anthill is kept as it was left");
             Assert.That(site.Current.Plan.Large, Is.False, "and stays small");
             Assert.That(prize.Opened, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator AcidPoisonsForFourSecondsTheToadsSlimeForEight()
+        {
+            var site = streamer.Dungeons;
+            Invulnerable(true);
+            yield return GoIn(_ => { });
+            var dungeon = site.Current;
+            var hazards = dungeon.GetComponent<DungeonHazards>();
+            if (hazards.Levels[0] != DungeonHazards.Modifier.Acid) hazards.Force(0, DungeonHazards.Modifier.Acid);
+            var root = dungeon.transform.Find("Hazards");
+            var puddle = root.Cast<Transform>().FirstOrDefault(t => t.name.StartsWith("AN44") && hazards.LevelOf(dungeon.Built.InverseTransformPoint(t.position).y) == 0);
+            Assert.That(puddle, Is.Not.Null, "an acid level has puddles");
+            var statuses = world.statuses;
+            var poison = AssetDatabase.LoadAssetAtPath<PlayerStatusDefinition>("Assets/Game/Data/Statuses/Poison.asset");
+            Assert.That(poison.seconds, Is.EqualTo(8), "the «Яд» asset keeps its 8 s");
+            Assert.That(dungeon.kit.acidPoisonSeconds, Is.EqualTo(4));
+
+            // Into the acid: 4 s of poison; standing on only refreshes it, it never grows past 4 s.
+            statuses.Remove(PlayerStatusKind.Poison);
+            Invulnerable(false);
+            world.motor.Teleport(puddle.position + Vector3.up * .1f, Quaternion.identity);
+            yield return new WaitForSeconds(.4f);
+            Assert.That(statuses.Has(PlayerStatusKind.Poison), Is.True, "standing in acid poisons");
+            Assert.That(statuses.Remaining(PlayerStatusKind.Poison), Is.InRange(3.3f, 4.01f), "acid poisons for 4 s");
+            yield return new WaitForSeconds(1.5f);
+            Assert.That(statuses.Remaining(PlayerStatusKind.Poison), Is.InRange(3.3f, 4.01f), "standing on refreshes it to 4 s");
+            var away = dungeon.Passage.position;
+            world.motor.Teleport(away + Vector3.up * .1f, Quaternion.identity);
+            yield return new WaitForSeconds(1f);
+            Assert.That(statuses.Remaining(PlayerStatusKind.Poison), Is.InRange(2.3f, 3.2f), "and it runs out 4 s after the last touch");
+            statuses.Remove(PlayerStatusKind.Poison);
+
+            // The toad's slime: the same «Яд» for its own 8 s; acid does not cut a longer poison short.
+            var slime = AssetDatabase.LoadAssetAtPath<EnemyProjectileProfile>("Assets/Game/Data/Projectiles/Toad slime.asset");
+            Assert.That(slime.playerStatuses.Single().status, Is.SameAs(poison));
+            Assert.That(StatusInflict.ApplyAll(slime.playerStatuses, statuses, () => 0), Is.EqualTo(1));
+            Assert.That(statuses.Remaining(PlayerStatusKind.Poison), Is.InRange(7.8f, 8.01f), "the toad's slime poisons for 8 s");
+            world.motor.Teleport(puddle.position + Vector3.up * .1f, Quaternion.identity);
+            yield return new WaitForSeconds(.6f);
+            Assert.That(statuses.Remaining(PlayerStatusKind.Poison), Is.GreaterThan(6.5f), "acid only refreshes: the longer poison stays");
+            world.motor.Teleport(away + Vector3.up * .1f, Quaternion.identity);
+            statuses.Remove(PlayerStatusKind.Poison);
+            Invulnerable(true);
         }
 
         IEnumerator GoIn(System.Action<DungeonEntrance> found)
