@@ -45,7 +45,8 @@ namespace Hakaton.ShopBlockout
                 case ShopServiceKind.Goblin:
                     if (!goblin || !cardShop) return false;
                     if (goblin.IsDeployed) return cardShop.Open();
-                    // No conditions: every pull of the rope brings him down.
+                    // No conditions: every pull of the rope brings him down, with the same table until the next outing
+                    // (or a new one when the trade's mode changed: GoblinCardShop.FriendlyTrade).
                     return kind == ShopServiceKind.GoblinRope && goblin.IsStowed && cardShop.TryCall(Environment.TickCount)
                         && goblin.Summon();
                 default:

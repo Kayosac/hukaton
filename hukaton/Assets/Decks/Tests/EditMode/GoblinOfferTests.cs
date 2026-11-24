@@ -111,7 +111,10 @@ namespace Hakaton.Decks.Tests
             var first = visits.Offer;
             Assert.That(visits.CanCall, Is.True, "No outing or shift is needed before the next call.");
             Assert.That(visits.Call(Specs, new Random(2)), Is.True);
-            Assert.That(visits.Offer, Is.Not.SameAs(first), "A new visit, a new ten.");
+            Assert.That(visits.Offer, Is.SameAs(first), "Balance stage 4: the same table until the next outing.");
+            visits.OutingReturned();
+            Assert.That(visits.Call(Specs, new Random(3)), Is.True);
+            Assert.That(visits.Offer, Is.Not.SameAs(first), "Back from an outing, a new ten.");
         }
 
         [Test]

@@ -16,7 +16,9 @@ namespace Hakaton.Backroom
     /// <summary>
     /// The goblin card dealer's table, drawn right over the game view while the player keeps looking at him (board,
     /// «Гоблин-торговец»): ten cards in a row, face down at half price or all turned up at full price, chosen with the
-    /// mouse; player movement is blocked. On the first visit he talks first (four lines), then the table opens.
+    /// mouse; player movement is blocked. Until the shop's first goal the table is friendly («по-свойски», see
+    /// <see cref="FriendlyTrade"/>): face up at half price, no dummy, no «Раскрыть все». On the first visit he talks first
+    /// (the introduction), then the table opens; at the first usual table he explains the usual trade (the explanation).
     /// A bought card is brought up to the eyes (<see cref="CardInspect"/>): the table steps aside, the left button held
     /// turns the card. A click, E, Space or Enter at any moment (on its way up, held, or on its way out) puts it away at
     /// once and snaps the table back; Esc or the right button sends it off into the bag with the spin.
@@ -73,12 +75,21 @@ namespace Hakaton.Backroom
         public SpecialItemOfferView[] rightColumn = new SpecialItemOfferView[0];
 
         [Header("Lines")]
+        [Tooltip("The first visit's lines, read once (each waits for E or a click).")]
         [TextArea] public string[] introduction =
         {
             "О, партнёр! Чего уставился? В кустах я был без рабочей формы.",
-            "Берёшь вслепую — полцены. Карту и цену до покупки не показываю. Сюрприз должен быть полным!",
-            "Хочешь всё рассмотреть? Открою оставшиеся бесплатно. Но тогда каждая — за полную цену. Любопытство у нас дорогое.",
+            "Пока лавка не встала на ноги, торгую по-свойски: всё на виду и за полцены.",
             "Можешь брать хоть несколько. Можешь ничего. Но первый вариант мне нравится больше."
+        };
+        [Tooltip("The first usual (face-down) table, after the shop's first goal: the usual trade explained, read once, " +
+                 "after the introduction and before any special item's.")]
+        [TextArea] public string[] explanation =
+        {
+            "Лавка процветает, партнёр. Значит, скидки для своих кончились.",
+            "Теперь карты лежат рубашкой вверх. Берёшь вслепую — полцены. Карту и цену до покупки не показываю.",
+            "Хочешь всё рассмотреть? Открою бесплатно. Но тогда каждая — за полную цену. Любопытство у нас дорогое.",
+            "И ещё: под рубашкой иногда пустышка. Двадцать пять монет за урок. Ничего личного."
         };
         [TextArea] public string[] boughtLines = { "Сюрприз!", "Хороший выбор. Наверное.", "Бери, пока тёплая.", "Ни капли не жалею." };
         [Tooltip("He mocks the buyer of a dummy, instead of the bought line: when it turns over at the eyes (bought blind) " +
@@ -90,6 +101,12 @@ namespace Hakaton.Backroom
         [TextArea] public string emptyLine = "Всё разобрали. Приходи после работы.";
 
         public GoblinVisits Visits { get; } = new GoblinVisits();
+        /// <summary>
+        /// Whether he trades «по-свойски» now (the game: until the shop's first goal). Asked at every call and every
+        /// opening; a table of the other mode is replaced. Unset (the backroom without the game): the usual trade.
+        /// </summary>
+        public Func<bool> FriendlyTrade { get; set; }
+        bool FriendlyNow => FriendlyTrade != null && FriendlyTrade();
         /// <summary>The scene's special items (the game hands them over, like the collection in <see cref="Bind"/>).</summary>
         public SpecialItemsHost SpecialItems { get; set; }
         /// <summary>A special item was bought.</summary>
@@ -111,6 +128,13 @@ namespace Hakaton.Backroom
             control = controls;
             viewCamera = view;
         }
+
+        /// <summary>
+        /// Brings an older save of <see cref="Visits"/> up to date before it is restored (<see cref="GoblinVisits.UpgradeSave"/>),
+        /// with this table's own numbers of lines. <paramref name="friendlyTradeOver"/>: the friendly trade has ended.
+        /// </summary>
+        public void UpgradeSave(GoblinSave save, bool friendlyTradeOver) =>
+            GoblinVisits.UpgradeSave(save, friendlyTradeOver, introduction?.Length ?? 0, explanation?.Length ?? 0);
 
         /// <summary>A bought card is up at the eyes (or on its way there or away).</summary>
         public bool Inspecting => inspecting;
@@ -135,7 +159,10 @@ namespace Hakaton.Backroom
         int skippedFrame = -10;
         bool JustSkipped => swallowRelease || Time.frameCount <= skippedFrame + 1;
         bool CardIntroduction => Visits.IntroductionRead < introduction.Length;
-        bool Talking => CardIntroduction || introducing || explaining;
+        /// <summary>The usual trade is still to be explained: a face-down table, after the introduction.</summary>
+        bool TradeExplanation => !CardIntroduction && Visits.Offer != null && !Visits.Offer.Friendly
+            && explanation != null && Visits.ExplanationRead < explanation.Length;
+        bool Talking => CardIntroduction || TradeExplanation || introducing || explaining;
         /// <summary>The special item he is introducing now (its lines wait for E), or null.</summary>
         SpecialItemDefinition introducing;
         int introducingLine;
@@ -175,17 +202,23 @@ namespace Hakaton.Backroom
 
         void OnDisable() => Close();
 
-        /// <summary>The rope was pulled and he is on his way down: a fresh ten if he may come at all.</summary>
+        /// <summary>
+        /// The rope was pulled and he is on his way down with his table: the same one, or a new ten from the player's card
+        /// pool after an outing or when the trade's mode has changed (<see cref="GoblinVisits.Call"/>).
+        /// </summary>
         public bool TryCall(int seed)
         {
             if (!workshop || !Visits.CanCall) return false;
-            return Visits.Call(Model.Catalog, new System.Random(seed), workshop.config ? workshop.config.dummyChance : 0);
+            return Visits.Call(CardPool.ForStage(Model.Catalog, Model.PoolStage), new System.Random(seed),
+                workshop.config ? workshop.config.dummyChance : 0, FriendlyNow);
         }
 
-        /// <summary>He is down: lay out the table (the current ten).</summary>
+        /// <summary>He is down: lay out the table (the current ten; a new one if the trade's mode changed since the call).</summary>
         public bool Open()
         {
             if (IsOpen || !isActiveAndEnabled || !workshop || Visits.Offer == null || Model.IsAway) return false;
+            // The first goal was reached while he was on his way down: the friendly table goes, a usual one is laid.
+            if (Visits.NeedsNewTable(FriendlyNow)) TryCall(Environment.TickCount);
             IsOpen = true;
             if (control) control.SetBlocked(this, true);
             SetVisible(true);
@@ -200,6 +233,7 @@ namespace Hakaton.Backroom
             DealItems();
             Play(dealSound);
             if (CardIntroduction) Say(introduction[Visits.IntroductionRead], true);
+            else if (TradeExplanation) Say(explanation[Visits.ExplanationRead], true);
             else if (StartItemIntroduction()) { }
             else if (!offer.AnyLeft && !AnyItemOnSale) Say(emptyLine);
             else HideBubble();
@@ -297,6 +331,13 @@ namespace Hakaton.Backroom
             {
                 Visits.ReadIntroductionLine(introduction.Length);
                 if (CardIntroduction) { Say(introduction[Visits.IntroductionRead], true); Refresh(); return; }
+                if (TradeExplanation) { Say(explanation[Visits.ExplanationRead], true); Refresh(); return; }
+                if (StartItemIntroduction()) { Refresh(); return; }
+            }
+            else if (TradeExplanation && !explaining && !introducing)
+            {
+                Visits.ReadExplanationLine(explanation.Length);
+                if (TradeExplanation) { Say(explanation[Visits.ExplanationRead], true); Refresh(); return; }
                 if (StartItemIntroduction()) { Refresh(); return; }
             }
             else if (explaining)

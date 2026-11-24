@@ -288,6 +288,9 @@ namespace Hakaton.Game
             workshop.Model.Changed += MarkDirty;
             if (outingMap) outingMap.Changed += MarkDirty;
             cardShop.Visits.Changed += MarkDirty;
+            // The goblin dealer trades «по-свойски» (face up, half price, no dummy) until the shop's first goal; his first
+            // call or opening after it lays a new usual table and he explains the usual trade.
+            cardShop.FriendlyTrade = () => !GoalReached;
             tutorial.Changed += MarkDirty;
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
             if (expedition.vitals) expedition.vitals.Upgrade.Changed += MarkDirty;
@@ -620,6 +623,8 @@ namespace Hakaton.Game
             if (met)
             {
                 godMet = true;
+                // Back from the god like from any outing: the goblin's next call brings a new table.
+                cardShop.Visits.OutingReturned();
                 if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
                 // A trip without loot like any other: goods already in the shop still get at least half a shift.
                 string shiftNotice = trade.Session.ReturnWithoutLoot() && trade.Session.LastReturn == ShiftReturn.HalfShift
@@ -900,7 +905,12 @@ namespace Hakaton.Game
             if (!trade.Session.TryRestore(save.shop) || !workshop.Model.TryRestoreProgress(save.cards))
             { restoring = wasRestoring; return false; }
             wallet.Wallet.TryRestoreBalance(save.coins);
-            if (save.goblin != null) cardShop.Visits.TryRestore(save.goblin, id => workshop.Model.Spec(id) != null);
+            if (save.goblin != null)
+            {
+                // Saves from before balance stage 4: the shop (restored above) tells whether the friendly trade is over.
+                cardShop.UpgradeSave(save.goblin, GoalReached);
+                cardShop.Visits.TryRestore(save.goblin, id => workshop.Model.Spec(id) != null);
+            }
             if (save.tutorial != null) tutorial.TryRestore(save.tutorial);
             // Resizes the stamina to the bought steps and fills it (older saves: none bought).
             if (player.stamina) player.stamina.Upgrade.Restore(save.StaminaLevel);

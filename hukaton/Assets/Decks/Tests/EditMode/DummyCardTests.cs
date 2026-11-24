@@ -6,7 +6,7 @@ namespace Hakaton.Decks.Tests
 {
     /// <summary>
     /// Playtest 12.11.2026: the goblin's dummy («Пустышка»), the penalty for buying blind. About one place in ten holds
-    /// it (never on his first visit); it costs 25 face down and face up, does nothing, takes a place in the collection and
+    /// it (balance stage 4: on every usual table, never on a friendly one); it costs 25 face down and face up, does nothing, takes a place in the collection and
     /// the deck like any card, never merges, and leaves the deck and the collection for good as the next outing begins.
     /// </summary>
     public sealed class DummyCardTests
@@ -83,21 +83,19 @@ namespace Hakaton.Decks.Tests
         }
 
         [Test]
-        public void TheFirstVisitNeverLaysOutADummy()
+        public void AFriendlyTableNeverLaysOutADummyAndTheFirstUsualOneMay()
         {
             for (int seed = 0; seed < 100; seed++)
             {
                 var visits = new GoblinVisits();
-                Assert.That(visits.Call(ShopWithDummy, new Random(seed), 1), Is.True);
-                Assert.That(HasDummy(visits.Offer), Is.False, "The introduction visit.");
+                Assert.That(visits.Call(ShopWithDummy, new Random(seed), 1, friendly: true), Is.True);
+                Assert.That(HasDummy(visits.Offer), Is.False, "A friendly table (before the first goal).");
                 Assert.That(visits.Offer.Save().cards, Is.EqualTo(GoblinOffer.Roll(Shop, new Random(seed)).Save().cards));
             }
-            var later = new GoblinVisits();
-            later.Call(ShopWithDummy, new Random(1), 1);
-            later.OutingReturned();
-            later.ShiftClosed(true);
-            Assert.That(later.Call(ShopWithDummy, new Random(2), 1), Is.True);
-            Assert.That(later.Offer.Save().cards, Is.All.EqualTo("dummy"), "Later visits use the chance (here: every place).");
+            var first = new GoblinVisits();
+            Assert.That(first.Call(ShopWithDummy, new Random(2), 1), Is.True);
+            Assert.That(first.Offer.Save().cards, Is.All.EqualTo("dummy"),
+                "Balance stage 4: dummies from the very first usual table (here: every place).");
         }
 
         [Test]
