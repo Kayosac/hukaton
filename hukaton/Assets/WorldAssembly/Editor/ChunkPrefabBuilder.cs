@@ -1169,17 +1169,28 @@ namespace Hakaton.WorldAssembly.EditorTools
             void Bare(GameObject go) { if (go) foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c); }
             void NoShadow(GameObject go) { if (go) foreach (var r in go.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
             // A solid piece of the wall near a giant tree is the tree's: woken, the tree takes it along and its place is open.
-            void Own(GameObject go, Vector2 at)
+            // Near by where it was set, or by what it is: a big piece set further off (a root plate at twice its size, a
+            // fallen trunk) whose body reaches into a trunk's place goes with that tree first, or the place stays shut by it.
+            // One in the places of two trunks cannot go with both: it is left out (null), unless it must stay (keep).
+            GameObject Own(GameObject go, Vector2 at, bool keep = false)
             {
-                if (!go) return;
+                if (!go) return null;
                 GameObject owner = null;
-                float best = float.MaxValue;
+                (bool, float) best = (false, float.MaxValue);
+                int places = 0;
                 foreach (var o in owners)
                 {
+                    if (!o.go) continue;
                     float s = Vector2.Distance(at, o.at) - o.reach - .8f;
-                    if (o.go && s <= 0 && s < best) { best = s; owner = o.go; }
+                    bool inPlace = InTrunkPlace(go, o.go, o.reach);
+                    if (inPlace) places++;
+                    if (!inPlace && s > 0) continue;
+                    // In a trunk's place beats near a trunk; then the nearest.
+                    if (owner == null || (inPlace && !best.Item1) || (inPlace == best.Item1 && s < best.Item2)) { best = (inPlace, s); owner = o.go; }
                 }
+                if (places > 1 && !keep) { Object.DestroyImmediate(go); return null; }
                 if (owner) go.transform.SetParent(owner.transform, true);
+                return go;
             }
 
             // Grid of points in the tangle, shuffled.
@@ -1258,6 +1269,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                 float yaw = Mathf.Atan2(along.x, along.y) * Mathf.Rad2Deg;
                 var log = Fit(Place(dead, "Deadwood/" + Fallen[rng.Next(Fallen.Length)], t, p, yaw, new Vector3(Rnd(1.2f, 1.5f), Rnd(1.2f, 1.5f), length / 3.55f)), t, f.WallDepth);
                 if (!log) continue;
+                // One in the places of two trunks is left out; its spot stays taken, the wall round it as it was.
                 Own(log, p);
                 logs.Add(p);
             }
@@ -1324,7 +1336,7 @@ namespace Hakaton.WorldAssembly.EditorTools
                     solid = true;
                 }
                 // Thorns and trunks are as solid as they look (and keep out of the lanes); leaves and ferns are not.
-                if (solid) Own(piece = Fit(piece, t, f.WallDepth), p); else Bare(piece);
+                if (solid) piece = Own(Fit(piece, t, f.WallDepth), p); else Bare(piece);
                 NoShadow(piece);
                 tangle.Add(p);
             }
@@ -1411,14 +1423,34 @@ namespace Hakaton.WorldAssembly.EditorTools
                 }
                 else if (kind < .9) piece = Place(thorns, "Deadwood/FA_DW08_StumpUprooted", t, p, Rnd(0, 360), Vector3.one * Rnd(1.2f, 1.6f));
                 else piece = Place(thorns, "Rocks/FA_RK06_BoulderSplit", t, p, Rnd(0, 360), Vector3.one * Rnd(1.1f, 1.5f));
-                // Kept out of the lanes; where nothing that size fits, a small thicket.
-                piece = Fit(piece, t, f.WallDepth) ?? Fit(Place(thorns, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(.8f, 1.6f, .8f)), t, f.WallDepth);
+                // Kept out of the lanes (and out of the places of two trunks); where nothing that size fits, a small thicket.
+                piece = Own(Fit(piece, t, f.WallDepth), p) ?? Own(Fit(Place(thorns, "Plants/FA_VG10_ThornThicket", t, p, Rnd(0, 360), new Vector3(.8f, 1.6f, .8f)), t, f.WallDepth), p, true);
                 NoShadow(piece);
-                Own(piece, p);
                 return piece;
             }, 160, "forest wall");
         }
 
+
+        /// <summary>
+        /// Whether the solid body of <paramref name="piece"/> stands in the place of a giant tree's trunk: the column
+        /// of the trunk, a walker's shoulder wider, from a little over its foot to over a walker's head. What stands
+        /// there would keep the place shut after the tree walks off.
+        /// </summary>
+        static bool InTrunkPlace(GameObject piece, GameObject tree, float trunk)
+        {
+            const float Shoulder = .3f, Low = .3f, High = 1.8f;
+            Physics.SyncTransforms();
+            var foot = tree.transform.position;
+            float reach = trunk + Shoulder;
+            var solids = piece.GetComponentsInChildren<Collider>().Where(c => !c.isTrigger).ToList();
+            if (!solids.Any(c => c.bounds.SqrDistance(new Vector3(foot.x, Mathf.Clamp(foot.y + (Low + High) / 2, c.bounds.min.y, c.bounds.max.y), foot.z)) < reach * reach)) return false;
+            int n = Physics.OverlapCapsuleNonAlloc(foot + Vector3.up * Low, foot + Vector3.up * High, reach, trunkHits, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+                if (solids.Contains(trunkHits[i])) return true;
+            return false;
+        }
+
+        static readonly Collider[] trunkHits = new Collider[512];
 
         /// <summary>
         /// The way up the greatest tree to its lookout: giant shelf fungi winding round the trunk, a walkable ramp hidden
