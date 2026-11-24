@@ -23,7 +23,7 @@ namespace Hakaton.Game.Tests
     public sealed class TutorialFinaleAndTrophyNoticeTests
     {
         const string ScenePath = "Assets/Game/Scenes/Hakaton.unity";
-        const string ReturnCardLine = "Карты в лесу одноразовые, партнёр. Ты в глубокой воде — тоже. Кончатся карты — придёт „Пора домой“: брось её и неси добычу мне.";
+        const string ReturnCardLine = "Там не пещера. Каждая карта — один раз. Последней придёт „Пора домой“: зажми и держи, пока не унесёт. В глубокую воду не суйся: я за тобой нырять не буду.";
         const string LeavingLine = "А у меня дела поважнее.";
         readonly Dictionary<string, byte[]> playerSaves = new Dictionary<string, byte[]>();
         string saveFolder;
