@@ -140,6 +140,109 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(rule.exempt.Contains(tree), Is.False, "the moved tree follows the band rule like any other copy");
         }
 
+        // ---- the first threat and the first easy kill (balance stage 1) ----
+
+        const string FirstThreat = "Bush_x4";
+        const string FirstKill = "RatPumpkin_x4";
+
+        static Vector2 Flat(Vector3 v) => new Vector2(v.x, v.z);
+
+        static List<Vector3> SpawnPlaces(WorldCreature creature)
+        {
+            var places = new List<Vector3>();
+            if (creature.spawnPoints != null) foreach (var point in creature.spawnPoints) if (point) places.Add(point.position);
+            if (places.Count == 0) places.Add(creature.transform.position);
+            return places;
+        }
+
+        static bool Hostile(WorldCreature creature) => creature.temperament == Temperament.Aggressive || creature.temperament == Temperament.Territorial;
+
+        // How far from its spawn point a creature can notice the player: a lurker stands still in its cover (it walks
+        // back once more than 0.8 m away) but sees all round; any other creature wanders its territory first.
+        static float NoticeRadius(WorldCreature creature, bool withWander)
+            => creature.sightRange + (creature.ambush.enabled ? .8f : withWander ? creature.territoryRadius : 0);
+
+        // Every pumpkin rat keeps 20 m and more from the first threat at every pair of spawn points, and no spot is
+        // close enough for both to notice (let alone spring at) the player at once.
+        [Test]
+        public void PumpkinRatsKeepClearOfTheFirstThreat()
+        {
+            var apiary = Apiary();
+            var creatures = Creatures(apiary);
+            var bush = creatures.First(c => c.name == FirstThreat);
+            var kill = creatures.First(c => c.name == FirstKill);
+            Assert.That(bush.ambush.enabled && kill.ambush.enabled, "both lie in wait");
+            var rats = creatures.Where(c => c.displayName == kill.displayName).ToList();
+            Assert.That(rats.Count, Is.GreaterThan(1), "pumpkin rats to check");
+            var failures = new List<string>();
+            foreach (var rat in rats)
+                foreach (var b in SpawnPlaces(bush))
+                    foreach (var r in SpawnPlaces(rat))
+                    {
+                        float distance = Vector2.Distance(Flat(b), Flat(r));
+                        float springs = Mathf.Min(bush.ambush.pounceRange, bush.sightRange) + Mathf.Min(rat.ambush.pounceRange, rat.sightRange) + 1.6f;
+                        float notices = NoticeRadius(bush, true) + NoticeRadius(rat, true);
+                        if (distance < 20) failures.Add($"{rat.name}: {distance:0.0} m from {FirstThreat}, closer than 20 m");
+                        if (springs >= distance) failures.Add($"{rat.name}: ambushes reach {springs:0.0} m, points {distance:0.0} m apart");
+                        if (notices >= distance) failures.Add($"{rat.name}: both notice within {notices:0.0} m, points {distance:0.0} m apart");
+                    }
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        // The first easy kill (a guaranteed trophy card) stays on the first loop, in the 30–55 m band.
+        [Test]
+        public void FirstKillLivesOnTheFirstLoop()
+        {
+            var apiary = Apiary();
+            var rule = Rule(apiary);
+            var kill = Creatures(apiary).First(c => c.name == FirstKill);
+            var places = SpawnPlaces(kill);
+            places.Add(kill.transform.position);
+            foreach (var place in places)
+                Assert.That(rule.Distance(place), Is.InRange(30f, 55f), FirstKill + " in the 30–55 m band");
+        }
+
+        // At the first threat (15 m round its points) at most two hostile creatures can notice the player at once,
+        // even counting how far the others wander from their points. Across the first loop's band (30–55 m) a pumpkin
+        // rat is never the third to notice the player (by sight from any spawn point). The crowd of a bee swarm, a
+        // clown and a goblin dog past the arch (about 55 m, north-east) is left as the level design has it.
+        [Test]
+        public void AtMostTwoHostilesNoticeThePlayerOnTheFirstLoop()
+        {
+            var apiary = Apiary();
+            var rule = Rule(apiary);
+            var creatures = Creatures(apiary);
+            var hostiles = creatures.Where(Hostile).ToList();
+            var bush = creatures.First(c => c.name == FirstThreat);
+            var kill = creatures.First(c => c.name == FirstKill);
+            var bushPlaces = SpawnPlaces(bush);
+            Vector3 centre = rule.transform.position;
+            var failures = new List<string>();
+            int nearSpots = 0, bandSpots = 0;
+            for (int x = -55; x <= 55; x++)
+                for (int z = -55; z <= 55; z++)
+                {
+                    var spot = centre + new Vector3(x, 0, z);
+                    float distance = rule.Distance(spot);
+                    bool band = distance >= 30 && distance <= 55;
+                    bool nearThreat = bushPlaces.Any(p => Vector2.Distance(Flat(p), Flat(spot)) <= 15);
+                    if (!band && !nearThreat) continue;
+                    if (nearThreat) nearSpots++;
+                    if (band) bandSpots++;
+                    var seeing = hostiles.Where(c => SpawnPlaces(c).Any(p => Vector2.Distance(Flat(p), Flat(spot)) <= NoticeRadius(c, nearThreat))).ToList();
+                    if (seeing.Count <= 2) continue;
+                    if (!nearThreat && !seeing.Any(c => c.displayName == kill.displayName)) continue;
+                    if (failures.Count < 20)
+                    {
+                        var local = apiary.transform.InverseTransformPoint(spot);
+                        failures.Add($"({local.x:0};{local.z:0}), {distance:0} m from the departure: {string.Join(", ", seeing.Select(c => c.name))}");
+                    }
+                }
+            Assert.That(nearSpots, Is.GreaterThan(100), "spots round the first threat");
+            Assert.That(bandSpots, Is.GreaterThan(1000), "spots in the band");
+            Assert.That(failures, Is.Empty, "more than two hostiles notice the player at\n" + string.Join("\n", failures));
+        }
+
         [Test]
         public void PointsOfInterestKeepTheirInhabitants()
         {
