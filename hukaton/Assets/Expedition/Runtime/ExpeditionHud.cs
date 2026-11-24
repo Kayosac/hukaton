@@ -197,7 +197,13 @@ namespace Hakaton.Expeditions
 
         void LateUpdate()
         {
-            if (!world || !world.Running) return;
+            if (!world || !world.Running)
+            {
+                // The outing is over (the fade home): a completed hold must not leave its full ring on screen.
+                if (holdRing) holdRing.enabled = false;
+                holding = false;
+                return;
+            }
             float dt = Time.unscaledDeltaTime;
             UpdateHearts(dt);
             UpdateReticle(dt);
