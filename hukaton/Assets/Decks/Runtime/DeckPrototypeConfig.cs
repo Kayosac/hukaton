@@ -38,7 +38,8 @@ namespace Hakaton.Decks.Unity
                  "his rank draw, never merged, never given by the debug unlock. Bought, it takes a place in the collection " +
                  "and the deck like any card, and leaves both for good as the next outing begins.")]
         public CardDefinition dummyCard;
-        [Tooltip("Chance for each of the goblin's ten places to hold the dummy instead of a rolled card (never on his first visit).")]
+        [Tooltip("Chance for each of the goblin's ten places to hold the dummy instead of a rolled card (never on a friendly " +
+                 "table, before the shop's first goal).")]
         [Range(0, 1)] public float dummyChance = .1f;
         public Sprite returnArtwork;
         [Tooltip("Deck limit at the start. The collection holds twice the current deck limit.")]
