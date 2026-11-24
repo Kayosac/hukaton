@@ -64,17 +64,24 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator AggressiveHeadbuttTakesThreeHeartsAndAlwaysDeafens()
+        public IEnumerator AggressiveHeadbuttTakesTwoAndAHalfHeartsAndDeafensHalfTheTime()
         {
             var worker = SpawnWorker();
             Stand(worker.Position + Vector3.back * 4);
             yield return Wait(.35f);
             Assert.That(worker.State, Is.Not.EqualTo(CreatureState.Threat), "Aggressive plug attacks without a territorial warning");
             yield return Until(() => sandbox.ReceivedDamage > 0, 9);
-            Assert.That(sandbox.ReceivedDamage, Is.EqualTo(6));
+            Assert.That(sandbox.ReceivedDamage, Is.EqualTo(5), "One headbutt takes two and a half hearts");
+            // Оглушение comes with half the headbutts: whatever this one rolled, the configured chance is checked exactly.
+            sandbox.world.statuses.Remove(PlayerStatusKind.Deafen);
+            int applied = StatusInflict.ApplyAll(worker.strikeStatuses, sandbox.world.statuses, () => .49f);
+            Assert.That(applied, Is.EqualTo(1));
             Assert.That(sandbox.world.statuses.Has(PlayerStatusKind.Deafen), Is.True);
-            Assert.That(sandbox.world.statuses.Remaining(PlayerStatusKind.Deafen), Is.InRange(4.5f, 5f));
+            Assert.That(sandbox.world.statuses.Remaining(PlayerStatusKind.Deafen), Is.InRange(4.5f, 5.01f));
             Assert.That(sandbox.world.statuses.Strength(PlayerStatusKind.Deafen, 0), Is.EqualTo(600));
+            sandbox.world.statuses.Remove(PlayerStatusKind.Deafen);
+            applied = StatusInflict.ApplyAll(worker.strikeStatuses, sandbox.world.statuses, () => .5f);
+            Assert.That(applied, Is.Zero, "The configured chance is exactly 50 per cent");
             LogAssert.NoUnexpectedReceived();
         }
 

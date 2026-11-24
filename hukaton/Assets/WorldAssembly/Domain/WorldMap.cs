@@ -86,6 +86,37 @@ namespace Hakaton.WorldAssembly
 
         public ChunkPlan Chunk(int x, int y) => Chunk(new ChunkCoord(x, y));
 
+        /// <summary>
+        /// The chunk with event <paramref name="kind"/> (e.g. <see cref="WorldEvents.Dungeon"/>) whose centre is nearest
+        /// to the point <paramref name="x"/>, <paramref name="y"/> (metres from the start chunk's centre), within
+        /// <paramref name="reach"/> chunks of it each way; false when there is none (the ant compass, the debug jump).
+        /// Searched in square rings outward and stopped once nothing further can be nearer, so the far reaches are only
+        /// planned when nothing is near.
+        /// </summary>
+        public bool NearestEvent(string kind, double x, double y, int reach, out ChunkCoord found)
+        {
+            found = default;
+            double size = Rules.ChunkSize, best = double.MaxValue;
+            var here = new ChunkCoord((int)Math.Round(x / size), (int)Math.Round(y / size));
+            for (int r = 0; r <= reach; r++)
+            {
+                // Every chunk r rings out has its centre at least (r - ½) chunks from any point of the middle one.
+                double near = (r - .5) * size;
+                if (near > 0 && near * near >= best) break;
+                for (int dx = -r; dx <= r; dx++)
+                    for (int dy = -r; dy <= r; dy++)
+                    {
+                        if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
+                        var c = new ChunkCoord(here.X + dx, here.Y + dy);
+                        double ex = c.X * size - x, ey = c.Y * size - y, d = ex * ex + ey * ey;
+                        if (d >= best || Chunk(c).Event != kind) continue;
+                        best = d;
+                        found = c;
+                    }
+            }
+            return best < double.MaxValue;
+        }
+
         public ChunkFeature FeatureAt(ChunkCoord c)
         {
             var key = DistrictPlanner.DistrictOf(c, Rules.District);

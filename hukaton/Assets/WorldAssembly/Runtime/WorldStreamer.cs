@@ -469,22 +469,9 @@ namespace Hakaton.WorldAssembly.Unity
             coord = default;
             centre = default;
             if (!Active || Map == null) return false;
-            var here = CoordAt(from);
-            float best = float.MaxValue;
-            bool found = false;
-            for (int dx = -reach; dx <= reach; dx++)
-                for (int dy = -reach; dy <= reach; dy++)
-                {
-                    var c = new ChunkCoord(here.X + dx, here.Y + dy);
-                    var at = Origin + new Vector3(c.X * Size, 0, c.Y * Size);
-                    float d = new Vector2(at.x - from.x, at.z - from.z).sqrMagnitude;
-                    if (d >= best || Map.Chunk(c).Event != WorldEvents.Dungeon) continue;
-                    best = d;
-                    coord = c;
-                    centre = at;
-                    found = true;
-                }
-            return found;
+            if (!Map.NearestEvent(WorldEvents.Dungeon, from.x - Origin.x, from.z - Origin.z, reach, out coord)) return false;
+            centre = Origin + new Vector3(coord.X * Size, 0, coord.Y * Size);
+            return true;
         }
 
         static string BiomeName(ChunkPlan plan)
@@ -659,8 +646,9 @@ namespace Hakaton.WorldAssembly.Unity
         /// <summary>
         /// Where the anthill's hill goes (the mouth of its passage, on the ground; the hill runs +Z from it): the spot and
         /// way round, of a few dozen tried, where the ground under the passage is level, the mouth can be walked into
-        /// from the ground before it, the hill's skirt reaches the ground all round, and no card obstacle stands.
-        /// Trees and loose things there are cleared afterwards (<see cref="Clearings"/>). Same answer every load.
+        /// from the ground before it, the hill's skirt reaches the ground all round, no card obstacle stands, and no part
+        /// of the scene's ground rises into the passage (<see cref="Pokes"/>). Round the chunk's middle first, a step
+        /// further out when nothing there fits. Trees and loose things there are cleared afterwards (<see cref="Clearings"/>). Same answer every load.
         /// </summary>
         bool EntranceSpot(Loaded entry, out Vector3 place, out Quaternion turn)
         {
@@ -674,44 +662,64 @@ namespace Hakaton.WorldAssembly.Unity
                     if (f && f.TryGetComponent(out MeshCollider mc) && mc.enabled) groundHits.Add(mc);
             }
             Physics.SyncTransforms();
-            var centres = new List<Vector3>();
-            for (int x = -1; x <= 1; x++)
-                for (int z = -1; z <= 1; z++)
-                    centres.Add(middle + new Vector3(x * 2.5f, 0, z * 2.5f));
             float spin = (float)(Hash.Unit(Seed, Salt.EventSpot, c.X, c.Y, 2) * 45);
             float best = float.MaxValue;
             place = default; turn = Quaternion.identity;
-            foreach (var centre in centres)
-                for (int k = 0; k < 8; k++)
-                {
-                    var q = Quaternion.Euler(0, spin + k * 45, 0);
-                    var mouth = centre - q * new Vector3(0, 0, 4.25f);
-                    float top = float.MinValue, low = float.MaxValue;
-                    bool ok = true;
-                    for (int ix = -1; ix <= 1 && ok; ix++)
-                        for (int iz = 0; iz < 3 && ok; iz++)
-                        {
-                            if (!Ground(mouth + q * new Vector3(ix * 2.2f, 0, .5f + iz * 3.8f), out float h)) ok = false;
-                            else { top = Mathf.Max(top, h); low = Mathf.Min(low, h); }
-                        }
-                    if (!ok) continue;
-                    // Before the mouth: about the floor's height, so the player walks in.
-                    if (!Ground(mouth + q * new Vector3(0, 0, -1.6f), out float front) || !Ground(mouth + q * new Vector3(0, 0, -3.2f), out float before)) continue;
-                    float step = top - Mathf.Min(front, before);
-                    if (step > .55f || Mathf.Max(front, before) > top + .35f) continue;
-                    // The skirt goes a metre into the ground: the ground round the hill may not fall away further.
-                    float skirt = 0;
-                    foreach (var r in Skirt)
-                        if (Ground(mouth + q * r, out float h)) skirt = Mathf.Max(skirt, top - h);
-                    if (skirt > 1.05f) continue;
-                    bool blocked = false;
-                    foreach (var o in entry.view.obstacles)
-                        if (o && Flat(o.transform.position - centre).sqrMagnitude < 8 * 8) { blocked = true; break; }
-                    if (blocked) continue;
-                    float score = (top - low) * 2 + Mathf.Abs(step) * 3 + skirt * .5f + Flat(centre - middle).magnitude * .15f;
-                    if (score < best) { best = score; place = new Vector3(mouth.x, top, mouth.z); turn = q; }
-                }
+            // Round the chunk's middle first; only if nothing there fits, a step further out (a scene with something
+            // standing in its middle).
+            var centres = new List<Vector3>();
+            for (int ring = 1; ring <= 2 && best == float.MaxValue; ring++)
+            {
+                centres.Clear();
+                for (int x = -ring; x <= ring; x++)
+                    for (int z = -ring; z <= ring; z++)
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(z)) == ring || ring == 1) centres.Add(middle + new Vector3(x * 2.5f, 0, z * 2.5f));
+                foreach (var centre in centres)
+                    for (int k = 0; k < 8; k++)
+                    {
+                        var q = Quaternion.Euler(0, spin + k * 45, 0);
+                        var mouth = centre - q * new Vector3(0, 0, 4.25f);
+                        float top = float.MinValue, low = float.MaxValue;
+                        bool ok = true;
+                        for (int ix = -1; ix <= 1 && ok; ix++)
+                            for (int iz = 0; iz < 3 && ok; iz++)
+                            {
+                                if (!Ground(mouth + q * new Vector3(ix * 2.2f, 0, .5f + iz * 3.8f), out float h)) ok = false;
+                                else { top = Mathf.Max(top, h); low = Mathf.Min(low, h); }
+                            }
+                        if (!ok) continue;
+                        // Before the mouth: about the floor's height, so the player walks in.
+                        if (!Ground(mouth + q * new Vector3(0, 0, -1.6f), out float front) || !Ground(mouth + q * new Vector3(0, 0, -3.2f), out float before)) continue;
+                        float step = top - Mathf.Min(front, before);
+                        if (step > .55f || Mathf.Max(front, before) > top + .35f) continue;
+                        // The skirt goes a metre into the ground: the ground round the hill may not fall away further.
+                        float skirt = 0;
+                        foreach (var r in Skirt)
+                            if (Ground(mouth + q * r, out float h)) skirt = Mathf.Max(skirt, top - h);
+                        if (skirt > 1.05f) continue;
+                        bool blocked = false;
+                        foreach (var o in entry.view.obstacles)
+                            if (o && Flat(o.transform.position - centre).sqrMagnitude < 8 * 8) { blocked = true; break; }
+                        if (blocked) continue;
+                        float score = (top - low) * 2 + Mathf.Abs(step) * 3 + skirt * .5f + Flat(centre - middle).magnitude * .15f;
+                        if (score >= best || Pokes(mouth, q, top)) continue;
+                        best = score; place = new Vector3(mouth.x, top, mouth.z); turn = q;
+                    }
+            }
             return best < float.MaxValue;
+        }
+
+        /// <summary>
+        /// Whether the ground rises into the passage anywhere between the few points the spot was judged by (a step or a
+        /// rock of the scene a metre or two wide can stand between them and block the way in): looked at every metre
+        /// or so across its whole floor.
+        /// </summary>
+        bool Pokes(Vector3 mouth, Quaternion q, float floor)
+        {
+            for (int ix = -4; ix <= 4; ix++)
+                for (int iz = 0; iz <= 8; iz++)
+                    if (Ground(mouth + q * new Vector3(ix * .55f, 0, .3f + iz * .95f), out float h) && h > floor + .3f) return true;
+            return false;
         }
 
         /// <summary>Round the hill's foot (15.5 m wide, 14 m deep from the mouth), in the passage's frame.</summary>

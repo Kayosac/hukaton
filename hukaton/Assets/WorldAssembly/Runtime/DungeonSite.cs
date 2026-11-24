@@ -12,6 +12,11 @@ namespace Hakaton.WorldAssembly.Unity
     /// (same scene, no loading), kept as the player left it for the rest of the outing, and thrown away when the outing
     /// ends. While the player is underground the air holds the <see cref="WorldAtmosphere.Burrow"/> mood.
     /// <para>
+    /// Until the player has opened an anthill's prize chest (<see cref="DungeonProgress.AnthillPrizeOpened"/>, saved with
+    /// the game) every anthill is laid small: one level, no Queen. A dungeon is sized when it is first laid, so one already
+    /// laid this outing stays as it is even if the first prize is opened meanwhile.
+    /// </para>
+    /// <para>
     /// The way between is walked, not jumped: the surface mound and the dungeon's entrance chamber each have the same
     /// short dead-end passage (<see cref="DungeonBuilder.BuildPassage"/>). Walking into one, the screen darkens with
     /// every step; at the dark end the player is moved into the other passage at the same depth, turned to its mouth,
@@ -63,8 +68,9 @@ namespace Hakaton.WorldAssembly.Unity
 
         // ---------- the ant compass ----------
 
-        [Tooltip("The ant compass smells anthills this many chunks round the player.")]
-        [Min(1)] public int compassReach = 12;
+        [Tooltip("The ant compass smells anthills this many chunks round the player. Ring 0 has none (232 m round the " +
+                 "start), so from the start it has to reach well into ring 1; with nothing in reach the ant wanders round the dial.")]
+        [Min(1)] public int compassReach = 24;
         System.Func<Vector3, CompassTarget> bearing;
         ChunkCoord compassFrom;
         bool compassKnown, compassFound;
@@ -115,6 +121,7 @@ namespace Hakaton.WorldAssembly.Unity
 
         void Update()
         {
+            NotePrize();
             var world = World;
             // Underground the trophy cards include the dungeon's own (Вербовка, Эхолот).
             if (world && world.trophies) world.trophies.Underground = current;
@@ -293,6 +300,19 @@ namespace Hakaton.WorldAssembly.Unity
             Physics.SyncTransforms();
         }
 
+        /// <summary>A dungeon laid now may be the large one only once an anthill's prize chest has been opened.</summary>
+        public static bool LargeAllowed => DungeonProgress.AnthillPrizeOpened;
+
+        /// <summary>The prize chests of the dungeons laid this outing: the first one opened is noted for good.</summary>
+        readonly List<TreasureChest> prizes = new List<TreasureChest>();
+
+        void NotePrize()
+        {
+            if (DungeonProgress.AnthillPrizeOpened || prizes.Count == 0) return;
+            foreach (var prize in prizes)
+                if (prize && prize.Opened) { DungeonProgress.NoteAnthillPrizeOpened(); return; }
+        }
+
         DungeonBuilder Prepare(DungeonEntrance entrance)
         {
             if (built.TryGetValue(entrance.coord, out var b) && b) return b;
@@ -305,7 +325,7 @@ namespace Hakaton.WorldAssembly.Unity
             b = go.AddComponent<DungeonBuilder>();
             b.kit = kit;
             go.AddComponent<DungeonCulling>().viewer = Camera.main ? Camera.main.transform : null;
-            b.Build(entrance.seed);
+            b.Build(entrance.seed, LargeAllowed);
             Populate(b, entrance.seed);
             DungeonHazards.Lay(b, World, entrance.seed);
             built[entrance.coord] = b;
@@ -430,7 +450,8 @@ namespace Hakaton.WorldAssembly.Unity
                 bool prize = !prized && goal != null && room == goal.Index;
                 if (prize) prized = true;
                 else if (random.NextDouble() > kit.sideChestChance) continue;
-                Chest(prize ? kit.prizeChest : kit.sideChest, at.position, at.rotation, root);
+                var chest = Chest(prize ? kit.prizeChest : kit.sideChest, at.position, at.rotation, root);
+                if (prize && chest) prizes.Add(chest);
             }
             if (!prized && dungeon.Exit)
             {
@@ -439,17 +460,19 @@ namespace Hakaton.WorldAssembly.Unity
                 toward.y = 0;
                 var at = dungeon.Exit.position + toward.normalized * 2.6f;
                 if (NavMesh.SamplePosition(at, out var hit, 2, NavMesh.AllAreas)) at = hit.position;
-                Chest(kit.prizeChest, at, Quaternion.LookRotation(-toward.normalized), root);
+                var chest = Chest(kit.prizeChest, at, Quaternion.LookRotation(-toward.normalized), root);
+                if (chest) prizes.Add(chest);
             }
         }
 
-        void Chest(GameObject prefab, Vector3 at, Quaternion facing, Transform parent)
+        TreasureChest Chest(GameObject prefab, Vector3 at, Quaternion facing, Transform parent)
         {
-            if (!prefab || !prefab.TryGetComponent(out TreasureChest _)) return;
+            if (!prefab || !prefab.TryGetComponent(out TreasureChest _)) return null;
             var chest = Instantiate(prefab, at, facing, parent).GetComponent<TreasureChest>();
             chest.name = prefab.name;
             chest.world = World;
             chest.ResetForOuting();
+            return chest;
         }
 
         /// <summary>The chests of the dungeon the player is in (debug, tests).</summary>
@@ -538,8 +561,10 @@ namespace Hakaton.WorldAssembly.Unity
             carried = false;
             current = null;
             currentEntrance = null;
+            NotePrize();
             foreach (var b in built.Values) if (b) Destroy(b.gameObject);
             built.Clear();
+            prizes.Clear();
         }
 
         /// <summary>Debug (F1): fly to the entrance on chunk <paramref name="coord"/> and stand before its mouth.</summary>

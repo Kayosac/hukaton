@@ -94,7 +94,7 @@ namespace Hakaton.Game.Tests
             Assert.That(lecture.bubble.Visible, Is.False);
             Assert.That(game.player.control.HasModalOwner, Is.False, "The shop is the player's again.");
             Assert.That(game.DrownLectureGiven, Is.True);
-            Assert.That(game.LastNotice, Does.Contain("поражения"), "The return notice follows him.");
+            Assert.That(game.LastNotice, Does.Contain("Вы утонули"), "The return notice follows him.");
             yield return null; // the game loop saves the change in its LateUpdate
             Assert.That(GameSaveStore.Load(game.SavePath, game.ValidateSave, out var save, out var warning), Is.True, warning);
             Assert.That(save.drownLectureGiven, Is.True);
@@ -104,7 +104,7 @@ namespace Hakaton.Game.Tests
             Assert.That(lecture.Active, Is.False, "He says it once.");
             Assert.That(lecture.goblin.gameObject.activeSelf, Is.False);
             Assert.That(game.player.control.HasModalOwner, Is.False);
-            Assert.That(game.LastNotice, Does.Contain("поражения"));
+            Assert.That(game.LastNotice, Does.Contain("Вы утонули"));
             // Errors and exceptions still fail the test on their own; plain logs (the apiary's shadow-atlas note) do not.
         }
 

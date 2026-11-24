@@ -14,6 +14,8 @@ namespace Hakaton.Game
         public bool goalCelebrated;
         /// <summary>The goblin's word after the first drowning was heard to the end. False in older saves: it comes once more.</summary>
         public bool drownLectureGiven;
+        /// <summary>Once-per-game moments of the outings (the forgiven first drowning…). Null in older saves.</summary>
+        public Hakaton.Expeditions.OutingFirstsSave outingFirsts;
         /// <summary>The line about the shift clock was shown at the first shift after the tutorial. False in older saves: it
         /// comes once.</summary>
         public bool shiftClockLineGiven;
@@ -35,6 +37,9 @@ namespace Hakaton.Game
         public bool strangerVisited;
         /// <summary>An anthill's Queen has been slain (the ant compass is on the goblin's table). False in older saves.</summary>
         public bool queenSlain;
+        /// <summary>An anthill's prize chest has been opened (from now on an anthill may be the large one, with the Queen).
+        /// False in older saves: the next anthills are small until a prize chest is opened.</summary>
+        public bool anthillPrizeOpened;
         /// <summary>Shifts that ended by themselves after the first endless outing while the stranger had not come (his
         /// bad-luck guard counts them). 0 in older saves.</summary>
         public int strangerChances;

@@ -23,9 +23,11 @@ namespace Hakaton.WorldAssembly
 
         /// <summary>
         /// Room for a dungeon entrance (the anthill mound, about 11 × 7 m): roomy flat forest scenes. The ring only decides
-        /// which kind of dungeon it is (for now there is one: the anthill, in the forest of every ring).
+        /// which kind of dungeon it is (for now there is one: the anthill, in the forest of rings 1 and 2: its chance in
+        /// ring 0 is nil, <see cref="WorldRules.DungeonChance"/>). Not a scene with a card pocket in its middle (the
+        /// walled yard): the hill would stand over the pocket's walls and they would block its passage.
         /// </summary>
-        public static bool FitsDungeon(ChunkPlan plan) => plan.Biome == Biome.Forest && FitsBrawl(plan);
+        public static bool FitsDungeon(ChunkPlan plan) => plan.Biome == Biome.Forest && FitsBrawl(plan) && !TileShapes.IsPocketScene(plan.Variant.Id);
 
         public static string Choose(ChunkPlan plan, int seed, WorldRules rules)
         {

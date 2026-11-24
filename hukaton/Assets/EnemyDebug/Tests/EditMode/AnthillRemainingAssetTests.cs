@@ -117,7 +117,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(c.fireVulnerability.settings, Is.Not.Null);
             Assert.That(c.strikeStatuses.Length, Is.EqualTo(1));
             Assert.That(c.strikeStatuses[0].status.kind, Is.EqualTo(PlayerStatusKind.Rot));
-            Assert.That(c.strikeStatuses[0].chance, Is.EqualTo(.25f).Within(1e-5));
+            Assert.That(c.strikeStatuses[0].chance, Is.EqualTo(.15f).Within(1e-5), "Гниль with 15 % of the dives");
             Assert.That(c.strikeStatuses[0].seconds, Is.Zero);
             Assert.That(c.strikeStatuses[0].strength, Is.Zero);
             Assert.That(c.view.height * c.size, Is.EqualTo(1.4f).Within(1e-4));
@@ -181,7 +181,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(c.patrol.enabled, Is.False);
             Assert.That(c.fireVulnerability, Is.Not.Null);
             Assert.That(c.strikeStatuses.Single().status.kind, Is.EqualTo(PlayerStatusKind.Deafen));
-            Assert.That(c.strikeStatuses[0].chance, Is.EqualTo(1));
+            Assert.That(c.strikeStatuses[0].chance, Is.EqualTo(.5f).Within(1e-5), "Оглушение with half the slams");
             Assert.That(c.offspring.enabled, Is.True);
             Assert.That(c.offspring.prefab.name, Is.EqualTo("AntWorker"));
             Assert.That(c.offspring.atHealth, Is.EqualTo(new[] { .6f, .3f }));
