@@ -179,6 +179,7 @@ namespace Hakaton.Expeditions
             InPrologue = false;
             Returning = false;
             LastOutingDrowned = false;
+            outingSeed = workshop.Model.Current != null ? workshop.Model.Current.Seed : workshop.Model.Journeys * 1637;
             Impacts = 0;
             LootValue = 0;
             Coins = 0;
@@ -494,6 +495,9 @@ namespace Hakaton.Expeditions
 
         public void ReturnToShop(bool defeated) => ReturnToShop(defeated, false);
 
+        // The outing's seed (the deck's, set on departure): a defeat draws the finds it keeps from it.
+        int outingSeed;
+
         /// <summary>Deep water: no damage over time, the player drowns at once — the view darkens while the body sinks.</summary>
         public void Drown()
         {
@@ -666,19 +670,18 @@ namespace Hakaton.Expeditions
             if (sfx) sfx.StopLoop(this);
 
             // The purse goes into the wallet; a defeat costs the same share as the finds.
-            int coinsKept = defeated ? Mathf.FloorToInt(Coins * (1 - settings.defeatLootLoss)) : Coins;
+            int coinsKept = defeated ? DefeatLoot.KeptCoins(Coins, settings.defeatLootLoss) : Coins;
             if (coinsKept > 0) workshop.Model.Wallet.Credit(coinsKept);
             string coinNote = Coins > 0 ? (defeated ? $" Монет: {coinsKept} из {Coins}." : $" Монет: +{coinsKept}.") : "";
             Coins = 0;
-            int kept = 0, lost = 0;
-            var retained = new List<LootSave>();
-            foreach (var entry in loot)
-            {
-                int count = defeated ? Mathf.FloorToInt(entry.count * (1 - settings.defeatLootLoss)) : entry.count;
-                kept += count;
-                lost += entry.count - count;
-                if (count > 0) retained.Add(new LootSave { id = entry.id, name = entry.name, count = count, value = entry.value });
-            }
+            // A defeat keeps ceil(half) of the whole bag, single copies drawn at random from the outing's seed.
+            var retained = defeated
+                ? DefeatLoot.Keep(loot, settings.defeatLootLoss, DefeatLoot.RandomFor(outingSeed))
+                : loot.ConvertAll(entry => new LootSave { id = entry.id, name = entry.name, count = entry.count, value = entry.value });
+            int total = 0, kept = 0;
+            foreach (var entry in loot) total += entry.count;
+            foreach (var entry in retained) kept += entry.count;
+            int lost = total - kept;
             // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
             ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
