@@ -75,10 +75,12 @@ namespace Hakaton.Dungeons.Unity
             if (Application.isPlaying) Destroy(o); else DestroyImmediate(o);
         }
 
-        public DungeonPlan Build(int dungeonSeed)
+        /// <param name="largeAllowed">False: the small layout whatever the kit's chance of a large one (see
+        /// <see cref="DungeonKit.Recipe"/>).</param>
+        public DungeonPlan Build(int dungeonSeed, bool largeAllowed = true)
         {
             Clear();
-            Plan = DungeonGenerator.Generate(dungeonSeed, kit.Recipe());
+            Plan = DungeonGenerator.Generate(dungeonSeed, kit.Recipe(largeAllowed));
             Built = new GameObject("Dungeon " + dungeonSeed).transform;
             Built.SetParent(transform, false);
             var dice = new Dice(dungeonSeed ^ 0x5bd1e995);

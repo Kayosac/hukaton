@@ -137,11 +137,13 @@ namespace Hakaton.Dungeons.Unity
         [Tooltip("Hidden stashes per dungeon: from and to.")]
         public Vector2Int stashes = new Vector2Int(1, 2);
 
-        public DungeonRecipe Recipe()
+        /// <param name="largeAllowed">False: always the small one (one level, no Queen), whatever
+        /// <see cref="largeChance"/> says (the world's first anthills, until a prize chest has been opened).</param>
+        public DungeonRecipe Recipe(bool largeAllowed = true)
         {
             var recipe = new DungeonRecipe
             {
-                LargeChance = largeChance,
+                LargeChance = largeAllowed ? largeChance : 0,
                 ThreeLevelChance = threeLevelChance,
                 SmallBranchChance = smallBranchChance,
                 CorridorMin = corridorMin,
