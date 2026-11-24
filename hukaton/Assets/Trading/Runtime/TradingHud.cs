@@ -49,6 +49,10 @@ namespace Hakaton.Trading.Unity
                  "a line still typing, the visitor thinking, a story visitor talking, the camera moving, the shop closed). Unlike " +
                  "the ended shift there is no resting face. The cross is outside Clock Body and stays bright.")]
         [Range(0, 1)] public float standingClockAlpha = .6f;
+        [Tooltip("Seconds Clock Body takes between the running look (full) and the standing one (Standing Clock Alpha), both " +
+                 "ways, in unscaled time like the rest of the clock: no blink after every answer. 0: at once. Only the fade is " +
+                 "eased: the fill shows each change at once, the cross never fades, the ended shift's look comes at once.")]
+        [Min(0)] public float clockFadeSeconds = .15f;
         [Tooltip("Over the last this many seconds of a running shift the clock shakes and ShopFeel ticks (one setting for both).")]
         [Min(0)] public float countdownSeconds = 3;
         [Tooltip("How far the clock jumps about at the very end, in layout units (whole units: crisp pixels).")]
@@ -123,7 +127,7 @@ namespace Hakaton.Trading.Unity
         int bulkLineShown = -1;
         RectTransform clockRect;
         Vector2 clockRest;
-        bool clockShaking;
+        bool clockShaking, clockEasing;
         int countdownSecond = -1;
         float punchAt = -1, nextShake;
         Vector2 shakeOffset;
@@ -256,22 +260,37 @@ namespace Hakaton.Trading.Unity
         /// <summary>
         /// Radial fill of the remaining shift. Once time is up the cross goes (the shift is over already), the clock
         /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served. While the
-        /// time stands (TradingPrototype.ShiftClockRunning is false) the clock is only faded to Standing Clock Alpha; the
-        /// cross, outside Clock Body, stays bright.
+        /// time stands (TradingPrototype.ShiftClockRunning is false) the clock is only faded to Standing Clock Alpha, over
+        /// Clock Fade Seconds both ways (<see cref="ClockBodyAlpha"/>); the cross, outside Clock Body, stays bright.
         /// </summary>
         void RefreshClock(TradingSession session)
         {
             bool shown = ShiftClockShown(session);
             shiftClock.SetActive(shown);
-            if (!shown) { StopShake(true); return; }
+            if (!shown) { clockEasing = false; StopShake(true); return; }
             bool ended = session.RemainingSeconds <= 0;
             clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
             // The cross closes an open shop; away from the counter there is nothing to close.
             clockClose.gameObject.SetActive(session.IsOpen && !ended);
             clockClose.interactable = !controller.ViewTransitioning;
-            clockBody.alpha = ended ? endedClockAlpha : controller.ShiftClockRunning ? 1 : standingClockAlpha;
+            clockBody.alpha = ClockBodyAlpha(ended);
             clockRestingFace.SetActive(ended);
             ShakeClock(session);
+        }
+
+        /// <summary>
+        /// Clock Body's alpha this frame. Between running (1) and standing (Standing Clock Alpha) it moves at the speed that
+        /// covers that whole way in Clock Fade Seconds (unscaled), both ways. The ended shift's look comes at once, as before
+        /// (its white resting face appears at once too); right after the clock appears or that look goes, the running or
+        /// standing look is taken at once rather than faded into.
+        /// </summary>
+        float ClockBodyAlpha(bool ended)
+        {
+            if (ended) { clockEasing = false; return endedClockAlpha; }
+            float target = controller.ShiftClockRunning ? 1 : standingClockAlpha;
+            if (!clockEasing || clockFadeSeconds <= 0) { clockEasing = true; return target; }
+            float speed = Mathf.Max(.01f, 1 - standingClockAlpha) / clockFadeSeconds;
+            return Mathf.MoveTowards(clockBody.alpha, target, speed * Time.unscaledDeltaTime);
         }
 
         /// <summary>

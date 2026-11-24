@@ -16,8 +16,9 @@ namespace Hakaton.Game.Tests
     /// <summary>
     /// The shift clock in the real scene: its time runs only while the player decides (the answers can be pressed). It
     /// stands while the visitor walks in, while his line types, during the «…» after a counter-offer, between visitors and
-    /// while the bulk buyer explains himself; standing, the clock is faded (not like the ended shift) and its cross stays
-    /// bright. The player's own save files are moved aside for the run and put back afterwards.
+    /// while the bulk buyer explains himself; standing, the clock is faded (not like the ended shift; the fade eases over
+    /// 0,15 s both ways) and its cross stays bright. The player's own save files are moved aside for the run and put back
+    /// afterwards.
     /// </summary>
     public sealed class ShiftClockPlayTests
     {
@@ -116,6 +117,8 @@ namespace Hakaton.Game.Tests
             }
             Assert.That(typed, Is.True, "The visitor's line types letter by letter.");
             Assert.That(session.RemainingSeconds, Is.GreaterThan(full - .1f), "The clock starts only once his line is out.");
+            // It brightens over Clock Fade Seconds, not at once.
+            yield return EaseTo(hud, 1);
 
             // The answers can be pressed: now the time runs, and the clock is bright.
             Assert.That(trade.ActionsReady, Is.True);
@@ -131,6 +134,7 @@ namespace Hakaton.Game.Tests
             var deal = session.CurrentDeal;
             Assert.That(deal, Is.Not.Null);
             trade.OfferPrice(deal.Id, deal.Revision, 0);
+            float named = Time.realtimeSinceStartup, faded = -1;
             Assert.That(session.CurrentDeal, Is.SameAs(deal), "He counters with his last word.");
             Assert.That(deal.N.HasValue, Is.True);
             Assert.That(trade.ReactionRevealed, Is.False, "The «…» beat after a counter-offer.");
@@ -141,15 +145,22 @@ namespace Hakaton.Game.Tests
             Assert.That(session.RemainingSeconds, Is.EqualTo(held));
             bool thought = false;
             typed = false;
+            // …and fades to the standing look over Clock Fade Seconds: no blink after the answer.
+            var ease = new ClockEase(hud);
             end = Time.realtimeSinceStartup + 10;
             while (!trade.ShiftClockRunning && Time.realtimeSinceStartup < end)
             {
+                ease.Step();
+                if (faded < 0 && Mathf.Abs(hud.clockBody.alpha - hud.standingClockAlpha) < .001f) faded = Time.realtimeSinceStartup - named;
                 thought |= !trade.ReactionRevealed;
                 typed |= trade.ReactionRevealed && hud.SpeechTyping;
                 yield return null;
                 if (!trade.ShiftClockRunning) Assert.That(session.RemainingSeconds, Is.EqualTo(held), "No time passes during «…» and his answer.");
             }
             Assert.That(thought && typed, Is.True, "Both the beat and the typed answer were seen.");
+            Assert.That(faded, Is.GreaterThan(hud.clockFadeSeconds * .8f).And.LessThan(hud.clockFadeSeconds + .3f),
+                "Down to the standing look in about Clock Fade Seconds.");
+            Assert.That(ease.SeenBetween, Is.True, "Seen on its way down.");
             Assert.That(session.RemainingSeconds, Is.GreaterThan(held - .1f));
 
             // Sold: nobody at the counter, the time stands until the next visitor can be answered.
@@ -315,6 +326,55 @@ namespace Hakaton.Game.Tests
             foreach (var group in hud.clockClose.GetComponentsInParent<CanvasGroup>()) alpha *= group.alpha;
             Assert.That(alpha, Is.EqualTo(1).Within(.001f), "The cross stays bright.");
             Assert.That(hud.clockClose.interactable || trade.ViewTransitioning, Is.True);
+        }
+
+        /// <summary>
+        /// Clock Body eases to <paramref name="target"/>: no step faster than Clock Fade Seconds for the whole way between
+        /// the running and the standing look allows, there within about that time, seen halfway.
+        /// </summary>
+        static IEnumerator EaseTo(TradingHud hud, float target)
+        {
+            Assert.That(hud.clockFadeSeconds, Is.EqualTo(.15f).Within(.001f), "0,15 s both ways (the prefab's value).");
+            var ease = new ClockEase(hud);
+            float start = Time.realtimeSinceStartup;
+            while (Mathf.Abs(hud.clockBody.alpha - target) > .001f && Time.realtimeSinceStartup < start + 1)
+            {
+                yield return null;
+                ease.Step();
+            }
+            Assert.That(hud.clockBody.alpha, Is.EqualTo(target).Within(.001f));
+            Assert.That(Time.realtimeSinceStartup - start, Is.LessThan(hud.clockFadeSeconds + .3f), "About Clock Fade Seconds.");
+            Assert.That(ease.SeenBetween, Is.True, "Seen halfway.");
+        }
+
+        /// <summary>
+        /// Watches Clock Body frame by frame. A test resumes after Update, before the HUD's LateUpdate: the alpha read now
+        /// is the one the HUD set in the previous frame, with the previous frame's unscaled delta.
+        /// </summary>
+        sealed class ClockEase
+        {
+            readonly TradingHud hud;
+            readonly float speed;
+            float previous, previousDelta;
+            public bool SeenBetween { get; private set; }
+
+            public ClockEase(TradingHud hud)
+            {
+                this.hud = hud;
+                speed = (1 - hud.standingClockAlpha) / hud.clockFadeSeconds;
+                previous = hud.clockBody.alpha;
+                previousDelta = Time.unscaledDeltaTime;
+            }
+
+            public void Step()
+            {
+                float alpha = hud.clockBody.alpha;
+                Assert.That(Mathf.Abs(alpha - previous), Is.LessThanOrEqualTo(speed * previousDelta * 1.05f + .002f),
+                    "The clock eases, it does not jump.");
+                SeenBetween |= alpha > hud.standingClockAlpha + .001f && alpha < 1 - .001f;
+                previous = alpha;
+                previousDelta = Time.unscaledDeltaTime;
+            }
         }
 
         static IEnumerator WaitFor(System.Func<bool> condition, float seconds)
