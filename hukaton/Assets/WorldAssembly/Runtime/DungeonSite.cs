@@ -63,8 +63,9 @@ namespace Hakaton.WorldAssembly.Unity
 
         // ---------- the ant compass ----------
 
-        [Tooltip("The ant compass smells anthills this many chunks round the player.")]
-        [Min(1)] public int compassReach = 12;
+        [Tooltip("The ant compass smells anthills this many chunks round the player. Ring 0 has none (232 m round the " +
+                 "start), so from the start it has to reach well into ring 1; with nothing in reach the ant wanders round the dial.")]
+        [Min(1)] public int compassReach = 24;
         System.Func<Vector3, CompassTarget> bearing;
         ChunkCoord compassFrom;
         bool compassKnown, compassFound;
