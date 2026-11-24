@@ -182,6 +182,7 @@ namespace Hakaton.Trading
             if (!IsOpen || customer == null || customer.Id != customerId || !customer.IsBulkBuyer) return false;
             // The display cannot change while the shop is open; still, the offer is only good for the goods it was made for.
             if (DisplayCount != customer.BulkCount || BulkOfferForDisplay() != customer.BulkPrice) return false;
+            PayAnswerFloor();
             int price = customer.BulkPrice, count = customer.BulkCount;
             long nextRevenue = checked(GrossRevenue + price);
             int nextSalesCount = checked(SalesCount + count);
@@ -380,6 +381,61 @@ namespace Hakaton.Trading
             Touch();
         }
 
+        // ---------- the floor of an answer ----------
+
+        // Shift time left when the line the player answers began (null: no answer has a floor now), and whose line it is.
+        float? answerFrom;
+        long answerCustomer;
+
+        /// <summary>Seconds of the shift the last answer paid on top of the time spent deciding (0: none owed).</summary>
+        public float LastAnswerFloorCharge { get; private set; }
+
+        /// <summary>
+        /// The line the player answers begins now (a visitor's first line, his counter after «…», the bulk buyer's offer): an
+        /// answer to it costs at least <see cref="TradeSettings.MinAnswerSeconds"/> of the shift, counted from here. The clock
+        /// stands while a line types, so what is counted is the time the player spent deciding. Never while the clock is
+        /// paused (the tutorial's trade).
+        /// </summary>
+        void OpenAnswer()
+        {
+            answerFrom = ClockPaused || CurrentCustomer == null ? (float?)null : RemainingSeconds;
+            answerCustomer = CurrentCustomer?.Id ?? 0;
+        }
+
+        /// <summary>
+        /// The bulk buyer's offer is on screen (the shop says when: after his explanation at the first meeting, at once on
+        /// later visits): from now on the answer to him has the floor of an answer; his explanation before it costs nothing.
+        /// Once a visit; false if he is not the visitor at the counter or his offer is already open.
+        /// </summary>
+        public bool OpenBulkOffer(long customerId)
+        {
+            var customer = CurrentCustomer;
+            if (!IsOpen || customer == null || customer.Id != customerId || !customer.IsBulkBuyer || answerCustomer == customerId)
+                return false;
+            OpenAnswer();
+            return true;
+        }
+
+        /// <summary>
+        /// The player answers the open line (a price, accepting, refusing, selling to the bulk buyer): if less than
+        /// <see cref="TradeSettings.MinAnswerSeconds"/> of the shift has passed since it began, the rest goes now, never below
+        /// zero. A visitor at the counter is still served to the end.
+        /// </summary>
+        void PayAnswerFloor()
+        {
+            LastAnswerFloorCharge = 0;
+            if (answerFrom is float from && !ClockPaused && CurrentCustomer != null && CurrentCustomer.Id == answerCustomer)
+            {
+                float owed = Settings.MinAnswerSeconds - Math.Max(0, from - RemainingSeconds);
+                if (owed > 0)
+                {
+                    LastAnswerFloorCharge = Math.Min(owed, RemainingSeconds);
+                    RemainingSeconds = Math.Max(0, RemainingSeconds - owed);
+                }
+            }
+            answerFrom = null;
+        }
+
         public void Tick(float elapsedSeconds)
         {
             if (elapsedSeconds < 0 || float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds))
@@ -411,6 +467,8 @@ namespace Hakaton.Trading
                 nextTerms = BulkBuyerComes() ? new CustomerTerms { Name = "Скупщик", BulkBuyer = true } : GenerateCustomer();
             ValidateCustomerTerms(nextTerms);
             CurrentCustomer = new Customer(++nextCustomerId, nextTerms);
+            // A story visitor's lines have no floor; the bulk buyer's offer opens it when the shop shows it (OpenBulkOffer).
+            answerFrom = null; answerCustomer = 0;
             if (CurrentCustomer.IsTalker)
             {
                 // He only talks: no item, no deal; his lines are read on (ReadOnTalker).
@@ -433,6 +491,7 @@ namespace Hakaton.Trading
             }
             int slot = CurrentCustomer.RequestedSlot;
             CurrentDeal = new TradeDeal(++nextDealId, CurrentCustomer, slots[slot], slot);
+            OpenAnswer();
             LastMessage = CurrentDeal.Reaction;
             Touch();
             return true;
@@ -453,6 +512,7 @@ namespace Hakaton.Trading
             var options = deal.GetPriceOptions();
             if (optionIndex < 0 || optionIndex >= options.Length || !options[optionIndex].Enabled) return false;
             int price = options[optionIndex].Price;
+            PayAnswerFloor();
             deal.Round++; deal.Revision++;
             if (deal.IsLastOffer)
             {
@@ -503,6 +563,7 @@ namespace Hakaton.Trading
                 : deal.Mood == CustomerMood.Angry ? Pick(AngryLines)
                 : stubborn ? Pick(StubbornLines)
                 : deal.Mood == CustomerMood.Displeased ? Pick(DispleasedLines) : Pick(CounterLines), deal.N);
+            OpenAnswer();
             LastMessage = deal.Reaction;
             Touch();
             return true;
@@ -521,6 +582,7 @@ namespace Hakaton.Trading
             deal.IsLastOffer = true;
             deal.Mood = CustomerMood.Angry;
             deal.Reaction = string.Format(Pick(LastOfferLines), deal.N);
+            OpenAnswer();
             LastMessage = deal.Reaction;
             Touch();
         }
@@ -546,6 +608,7 @@ namespace Hakaton.Trading
         public bool Accept(long dealId, int revision)
         {
             if (!MatchesDeal(dealId, revision) || !CurrentDeal.N.HasValue) return false;
+            PayAnswerFloor();
             Settle(CurrentDeal.N.Value);
             return true;
         }
@@ -555,6 +618,7 @@ namespace Hakaton.Trading
             if (!IsOpen || CurrentCustomer == null || CurrentCustomer.Id != customerId) return false;
             // A talker is a conversation, not an offer: nothing to refuse, he is read to the end.
             if (CurrentCustomer.IsTalker) return false;
+            PayAnswerFloor();
             if (CurrentCustomer.IsBulkBuyer)
             {
                 // A refusal is an answer too: he has been met and leaves calmly, the goods stay where they are.

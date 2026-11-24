@@ -188,7 +188,14 @@ namespace Hakaton.Trading.Tests
                 if (session.IsOpen && session.DisplayCount < 3) session.Close();
                 if (!session.IsOpen)
                 {
-                    // Restock the display between visitors: the shop never runs out, and the clock is never ticked.
+                    // The clock is never ticked, but every answer has its floor (minAnswerSeconds): a shift spent on answers
+                    // is refilled by a trip back without loot (half a shift), which draws no random numbers.
+                    if (session.RemainingSeconds <= 0)
+                    {
+                        long trip = session.BeginExpedition();
+                        if (!session.CompleteExpedition(trip) || session.RemainingSeconds <= 0) Assert.Fail("refill the shift");
+                    }
+                    // Restock the display between visitors: the shop never runs out.
                     int missing = session.Slots.Count - session.DisplayCount;
                     session.SeedInventory(Ware, missing);
                     for (int slot = 0; slot < session.Slots.Count; slot++)

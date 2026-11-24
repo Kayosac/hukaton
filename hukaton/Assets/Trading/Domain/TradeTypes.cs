@@ -51,6 +51,12 @@ namespace Hakaton.Trading
     {
         public int SlotCount { get; set; } = 6;
         public float ShiftSeconds { get; set; } = 120f;
+        /// <summary>
+        /// The floor of an answer: every answer to a visitor (a price, accepting, refusing, selling to the bulk buyer) costs at
+        /// least this many seconds of the shift, counted from the start of the line it answers; a quicker answer pays the
+        /// rest at once. 0: no floor (the game sets it from <c>TradingPrototype.minAnswerSeconds</c>).
+        /// </summary>
+        public float MinAnswerSeconds { get; set; }
         public float MinOpeningRatio { get; set; } = .7f;
         public float MaxOpeningRatio { get; set; } = .9f;
         public float MinCeilingRatio { get; set; } = 1f;
@@ -98,6 +104,8 @@ namespace Hakaton.Trading
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue
                 || !Positive(CounterStepRatio))
                 throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid trade tuning.");
+            if (float.IsNaN(MinAnswerSeconds) || float.IsInfinity(MinAnswerSeconds) || MinAnswerSeconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid answer floor.");
             var upgradeSeconds = ShiftUpgradeSeconds ?? Array.Empty<float>();
             var upgradePrices = ShiftUpgradePrices ?? Array.Empty<int>();
             float longestShift = ShiftSeconds;

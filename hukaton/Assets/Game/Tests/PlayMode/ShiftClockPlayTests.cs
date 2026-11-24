@@ -229,6 +229,84 @@ namespace Hakaton.Game.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator AnAnswerCostsAtLeastTheFloorFromTheStartOfItsLine()
+        {
+            StartInTheShop();
+            var hud = trade.hud;
+            Assert.That(trade.minAnswerSeconds, Is.EqualTo(2), "The scene's floor of an answer.");
+            float floor = trade.minAnswerSeconds;
+            // One staged visitor who asks the price of the first item and answers any price with his last word: the price.
+            int slot = Enumerable.Range(0, session.Slots.Count).First(i => session.Slots[i] != null);
+            int price = session.Slots[slot].Definition.RecommendedPrice;
+            bool staged = false;
+            session.CustomerScript = () =>
+            {
+                if (staged) return null;
+                staged = true;
+                return new CustomerTerms { Name = "Тест", RequestedSlot = slot, AsksPrice = true, MaxPrice = price * 2, Script = new ScriptedHaggle(1, price, price * 10) };
+            };
+            float full = session.RemainingSeconds;
+            Assert.That(session.Open(), Is.True);
+
+            // A price pressed while his first line still types: reading was free, the answer pays the whole floor.
+            yield return WaitFor(() => trade.ActionsReady && hud.SpeechTyping, 10);
+            Assert.That(trade.ActionsReady && hud.SpeechTyping, Is.True, "His line types and the answers can be pressed.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(full));
+            var deal = session.CurrentDeal;
+            trade.OfferPrice(deal.Id, deal.Revision, 0);
+            Assert.That(session.CurrentDeal, Is.SameAs(deal), "He counters with his last word.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(full - floor).Within(1e-4f), "Exactly the floor.");
+            // The clock shows the jump honestly: the fill stands at the new time on the next frame, not eased to it.
+            yield return null;
+            Assert.That(hud.clockFill.fillAmount,
+                Is.EqualTo(TradingHud.ClockFill(session.RemainingSeconds, session.ShiftLength)).Within(1e-4f));
+
+            // His counter: three seconds of deciding once it has typed cost those three seconds, nothing on top.
+            float lineStart = session.RemainingSeconds;
+            yield return WaitFor(() => trade.ShiftClockRunning, 10);
+            yield return WaitFor(() => session.RemainingSeconds <= lineStart - 3, 6);
+            Assert.That(session.RemainingSeconds, Is.LessThanOrEqualTo(lineStart - 3), "Three seconds spent deciding.");
+            float before = session.RemainingSeconds;
+            trade.AcceptPrice(deal.Id, deal.Revision);
+            Assert.That(session.CurrentCustomer, Is.Null, "Sold.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(before), "Nothing on top of the time spent deciding.");
+            Assert.That(session.LastAnswerFloorCharge, Is.Zero);
+            trade.CloseShopNow();
+            yield return WaitFor(() => !trade.ViewTransitioning, 3);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TheBulkBuyersOfferHasTheFloorButNotHisExplanation()
+        {
+            StartInTheShop();
+            float floor = trade.minAnswerSeconds;
+            // The first meeting: refused while he still explains himself, which costs nothing.
+            session.ForceBulkBuyerNext = true;
+            float full = session.RemainingSeconds;
+            Assert.That(session.Open(), Is.True);
+            var buyer = session.CurrentCustomer;
+            yield return WaitFor(() => trade.ActionsReady, 10);
+            Assert.That(trade.BulkBuyerExplaining, Is.True);
+            trade.RefuseCustomer(buyer.Id);
+            Assert.That(session.CurrentCustomer, Is.Null, "Refused.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(full), "His explanation is free, even refused.");
+
+            // Met: next time his offer is his first line, and an answer pressed at once pays the floor.
+            session.ForceBulkBuyerNext = true;
+            yield return WaitFor(() => session.CurrentCustomer != null && trade.ActionsReady, 10);
+            buyer = session.CurrentCustomer;
+            Assert.That(buyer != null && buyer.IsBulkBuyer && !buyer.FirstMeeting && trade.BulkOfferShown, Is.True, "His offer at once.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(full));
+            trade.RefuseCustomer(buyer.Id);
+            Assert.That(session.CurrentCustomer, Is.Null, "Refused.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(full - floor).Within(1e-4f), "The answer to his offer pays the floor.");
+            trade.CloseShopNow();
+            yield return WaitFor(() => !trade.ViewTransitioning, 3);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         /// <summary>The red cross that closes the shop is shown, pressable and never faded with the clock's body.</summary>
         void AssertCrossBright(TradingHud hud)
         {

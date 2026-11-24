@@ -15,6 +15,11 @@ namespace Hakaton.Trading.Unity
         [Header("Temporary prototype balance")]
         [Tooltip("A full shift before any upgrade, seconds.")]
         [Min(1)] public float shiftSeconds = 15;
+        [Tooltip("The floor of an answer, seconds of the shift: every answer to a visitor (accept, a price, refuse, the bulk buyer's offer) " +
+                 "costs at least this much, counted from the start of the line it answers; a quicker answer pays the rest at once. " +
+                 "Reading stays free (the clock stands while a line types). Not in the tutorial, nor for story visitors " +
+                 "(the bulk buyer before his offer, the stranger).")]
+        [Range(0, 10)] public float minAnswerSeconds = 2;
         [Tooltip("Shift upgrades bought on the PC («Время смены»), in order: seconds added to the shift and their price.")]
         public ShiftStep[] shiftSteps =
         {
@@ -214,7 +219,7 @@ namespace Hakaton.Trading.Unity
 
         /// <summary>The trade tuning from the Inspector fields, as the session gets it (the trade balance tests use it too).</summary>
         public TradeSettings CreateTradeSettings() => new TradeSettings {
-            SlotCount = 6, ShiftSeconds = shiftSeconds,
+            SlotCount = 6, ShiftSeconds = shiftSeconds, MinAnswerSeconds = minAnswerSeconds,
             ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
             ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
             MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
@@ -266,6 +271,8 @@ namespace Hakaton.Trading.Unity
             World.Customers.Sync(Session);
             // Time runs only while the player decides (ShiftClockShouldRun). The session still ticks with no time
             // passing, so a shift whose time is up ends as soon as the counter is free.
+            // The bulk buyer's offer is on screen: the answer to it has the floor of an answer (his explanation had none).
+            if (BulkOfferShown) Session.OpenBulkOffer(Session.CurrentCustomer.Id);
             bool clockWanted = ShiftClockShouldRun;
             shiftClockRunning = clockWanted && shiftClockWanted;
             shiftClockWanted = clockWanted;
