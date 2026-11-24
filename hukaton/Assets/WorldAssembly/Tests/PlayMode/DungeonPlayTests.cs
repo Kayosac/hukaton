@@ -78,6 +78,9 @@ namespace Hakaton.WorldAssembly.Tests
             DungeonEntrance entrance = null;
             yield return WaitFor(() => (entrance = DungeonEntrance.All.FirstOrDefault(e => e && (e.outside.position - world.motor.transform.position).sqrMagnitude < 4)) != null, 8);
             Assert.That(entrance, Is.Not.Null, "the player stands before a hill's mouth");
+            yield return null;
+            Assert.That(world.Firsts.anthillLineShown, Is.True, "the first anthill's mouth brings its once-per-game line");
+            Assert.That(world.Notice, Is.EqualTo(Hakaton.Expeditions.ExpeditionWorld.AnthillLine));
             yield return new WaitForSeconds(1.5f);
             yield return Shot("00-hill");
             var away = entrance.passage.TransformPoint(new Vector3(5, 0, -13));
