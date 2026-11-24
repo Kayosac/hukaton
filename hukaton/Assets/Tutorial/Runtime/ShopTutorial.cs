@@ -45,10 +45,14 @@ namespace Hakaton.Tutorial
         [TextArea] public string cheapLine = "Можно было попросить больше. Но монеты уже у тебя.";
         [TextArea] public string walkedLine = "Ушёл? Товар-то остался. Следующий!";
         [TextArea] public string refusedLine = "Не хочешь — не продавай. Найдём другого.";
+        [Tooltip("The goblin's last words; the last one sends him off in a poof. A save keeps how many lines of the " +
+                 "current explanation were read, so a new line goes before the last one: a player saved in the middle " +
+                 "of the finale then reads it instead of skipping or repeating one.")]
         [TextArea] public string[] finale =
         {
             "Вот и первые деньги. Теперь будет куда нести свои находки.",
             "Перед уходом загляни за занавеску. Там ещё кое-что есть.",
+            "Карты в лесу одноразовые, партнёр. Ты в глубокой воде — тоже. Кончатся карты — придёт „Пора домой“: брось её и неси добычу мне.",
             "А у меня дела поважнее."
         };
 
