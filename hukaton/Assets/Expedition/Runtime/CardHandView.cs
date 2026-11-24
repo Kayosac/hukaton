@@ -12,7 +12,9 @@ namespace Hakaton.Expeditions
     /// look, bobs with the walk, lifts the selected card and winds it back while a throw is charged.
     /// The draw pile is not drawn: the HUD counts it in the bottom-right corner. The whole hand is shown at once, up to
     /// <see cref="CardFanLayout.MaxCards"/> cards: bigger hands flatten and squeeze the fan to the screen
-    /// (<see cref="CardFanLayout"/>), and a hand bigger than the authored slots clones the slot template (pooled).
+    /// (<see cref="CardFanLayout"/>) and, past that, enough to keep even the raised selected card off the HUD's bottom corners
+    /// (the standing controls line, the card counter: <see cref="ExpeditionHud.FanKeepOut"/>), and a hand bigger than the
+    /// authored slots clones the slot template (pooled).
     /// Oversized cheat hands scroll a window of that size around the selected card; every copy stays selectable.
     /// </summary>
     [DefaultExecutionOrder(100)]
@@ -344,10 +346,92 @@ namespace Hakaton.Expeditions
         }
 
         /// <summary>The fan for this many cards on a view of this aspect (width / height).</summary>
-        public CardFanLayout Fan(int count, float aspect) => CardFanLayout.Solve(count, radius, degreesPerCard,
-            new Vector2(cardWidth, cardWidth * CardAspect), pivot.z, maxSink, screenShare, fitFieldOfView, aspect);
+        public CardFanLayout Fan(int count, float aspect) => Fan(count, aspect, screenShare);
 
-        CardFanLayout Fan(int count) => Fan(count, world && world.viewCamera ? world.viewCamera.aspect : 16f / 9f);
+        /// <summary>
+        /// The fan on the real view: kept out of the HUD's bottom corners (the standing controls line on the left, the card
+        /// counter on the right) through <see cref="ExpeditionWorld.hud"/>, whatever the resolution and UI scale.
+        /// </summary>
+        CardFanLayout Fan(int count)
+        {
+            var eye = world ? world.viewCamera : null;
+            float aspect = eye ? eye.aspect : 16f / 9f;
+            if (!eye || !world.hud || !world.hud.FanKeepOut(out var left, out var right)) return Fan(count, aspect);
+            if (count == cachedCount && aspect == cachedAspect && left == cachedLeft && right == cachedRight) return cachedFan;
+            cachedCount = count; cachedAspect = aspect; cachedLeft = left; cachedRight = right;
+            return cachedFan = Fan(count, aspect, left, right);
+        }
+
+        int cachedCount = -1;
+        float cachedAspect;
+        Vector2 cachedLeft, cachedRight;
+        CardFanLayout cachedFan;
+
+        void OnValidate() => cachedCount = -1;
+
+        /// <summary>
+        /// The fan for this many cards kept out of two bottom corners of the screen: no card, resting or raised and magnified as
+        /// the selection, reaches left of <paramref name="left"/>.x below <paramref name="left"/>.y or right of
+        /// <paramref name="right"/>.x below <paramref name="right"/>.y (x a share of the half-screen width from the middle, y of
+        /// the half height). A hand that already keeps clear is <see cref="Fan(int, float)"/> unchanged; a bigger one shrinks
+        /// its spread (the cards overlap more), staying centred and symmetric.
+        /// </summary>
+        public CardFanLayout Fan(int count, float aspect, Vector2 left, Vector2 right)
+        {
+            var fan = Fan(count, aspect);
+            if (count <= 1 || KeepsOut(fan, aspect, left, right)) return fan;
+            // The spread grows with the screen share: the widest share that still keeps out.
+            float fits = 0, fails = screenShare;
+            for (int round = 0; round < 16; round++)
+            {
+                float share = (fits + fails) * .5f;
+                if (KeepsOut(Fan(count, aspect, share), aspect, left, right)) fits = share; else fails = share;
+            }
+            return Fan(count, aspect, fits);
+        }
+
+        CardFanLayout Fan(int count, float aspect, float share) => CardFanLayout.Solve(count, radius, degreesPerCard,
+            new Vector2(cardWidth, cardWidth * CardAspect), pivot.z, maxSink, share, fitFieldOfView, aspect);
+
+        bool KeepsOut(CardFanLayout fan, float aspect, Vector2 left, Vector2 right) =>
+            Reach(fan, 0, aspect, left.y, -1) <= -left.x + 1e-5f && Reach(fan, fan.Count - 1, aspect, right.y, 1) <= right.x + 1e-5f;
+
+        /// <summary>
+        /// How far toward <paramref name="side"/> (-1 left, 1 right) the card at <paramref name="index"/> reaches below
+        /// <paramref name="top"/> (a share of the half height from the middle), resting or raised and magnified as the selection,
+        /// whichever reaches further: a share of the half-screen width from the middle, signed toward that side;
+        /// <see cref="float.NegativeInfinity"/> if the card never comes that low.
+        /// </summary>
+        public float Reach(CardFanLayout fan, int index, float aspect, float top, float side) =>
+            Mathf.Max(Reach(fan, index, aspect, top, side, false), Reach(fan, index, aspect, top, side, true));
+
+        float Reach(CardFanLayout fan, int index, float aspect, float top, float side, bool selected)
+        {
+            Vector3 centre = Target(fan, index, selected, 0, false);
+            float tan = Mathf.Tan(fitFieldOfView * .5f * Mathf.Deg2Rad);
+            Vector2 half = new Vector2(cardWidth, cardWidth * CardAspect) * ((selected ? selectedScale : 1) * .5f);
+            // The view rolls the card by -Roll around the camera's forward axis; it stays parallel to the screen.
+            float roll = -fan.Roll(index) * Mathf.Deg2Rad, cos = Mathf.Cos(roll), sin = Mathf.Sin(roll);
+            float reach = float.NegativeInfinity;
+            Vector2 previous = Corner(3);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector2 corner = Corner(i);
+                if (corner.y <= top) reach = Mathf.Max(reach, corner.x * side);
+                // An edge crossing the top: the card reaches that far right at its height.
+                if ((corner.y - top) * (previous.y - top) < 0)
+                    reach = Mathf.Max(reach, Mathf.Lerp(previous.x, corner.x, (top - previous.y) / (corner.y - previous.y)) * side);
+                previous = corner;
+            }
+            return reach;
+
+            // Corners in order around the card, as shares of the half-screen at the card's depth.
+            Vector2 Corner(int i)
+            {
+                float x = (i == 0 || i == 3 ? -half.x : half.x), y = (i < 2 ? -half.y : half.y);
+                return new Vector2((centre.x + x * cos - y * sin) / (centre.z * tan * aspect), (centre.y + x * sin + y * cos) / (centre.z * tan));
+            }
+        }
 
         /// <summary>
         /// Camera-space centre of the card at <paramref name="index"/> in the fan: on the arc whose top is

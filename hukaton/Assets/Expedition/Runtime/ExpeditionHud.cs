@@ -58,6 +58,11 @@ namespace Hakaton.Expeditions
         [Tooltip("'Stock/Total' in the bottom-right corner, clear of the widest hand fan: cards still to draw / copies taken on this outing.")]
         public TMP_Text cardCounter;
 
+        [Header("Hand fan clearance")]
+        [Tooltip("Gap, in HUD layout units, the hand fan keeps from the end of the standing controls line (its shadow is added on " +
+            "top) and from the card counter: a big hand squeezes its cards tighter instead of covering them.")]
+        [Min(0)] public float fanGap = 2;
+
         [Header("Pickups")]
         [Tooltip("Rows top right: '+ name  value', the name in its rarity colour (common items keep the text colour). Hold I to list every carried find in the same rows.")]
         public TMP_Text pickups;
@@ -340,6 +345,57 @@ namespace Hakaton.Expeditions
         /// (the enemy debug sandbox) leaves it out.</summary>
         public string ControlsLine(bool inPrologue, bool returnSelected, bool discardAllowed = true) =>
             inPrologue ? "" : returnSelected ? returnControl : discardAllowed ? discardControl : "";
+
+        string measuredControls;
+        Vector2 controlsSize;
+
+        /// <summary>
+        /// The bottom corners of the screen the hand fan keeps out of, <see cref="fanGap"/> included, as shares of the screen from
+        /// its middle (x of the half width, y of the half height; the 3D view covers the whole screen, whatever its own render
+        /// resolution): no card may reach left of <paramref name="left"/>.x below <paramref name="left"/>.y (the end of the standing
+        /// controls line as it reads now; «Удерживай ЛКМ — домой», the longer text, only shows while «Пора домой» — always alone in
+        /// the hand — is selected) nor right of
+        /// <paramref name="right"/>.x below <paramref name="right"/>.y (the card counter). A corner the HUD leaves free is
+        /// infinitely far. False when neither is there.
+        /// </summary>
+        public bool FanKeepOut(out Vector2 left, out Vector2 right)
+        {
+            left = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            right = new Vector2(float.PositiveInfinity, float.NegativeInfinity);
+            var eye = canvas && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            var screen = canvas ? canvas.pixelRect : new Rect(0, 0, Screen.width, Screen.height);
+            if (screen.width <= 0 || screen.height <= 0) return false;
+            Vector2 Share(Vector2 pixel) => new Vector2((pixel.x - screen.center.x) / (screen.width * .5f), (pixel.y - screen.center.y) / (screen.height * .5f));
+            if (controls && !string.IsNullOrEmpty(controls.text))
+            {
+                if (measuredControls != controls.text || controlsSize.x <= 0)
+                {
+                    controlsSize = controls.GetPreferredValues(controls.text);
+                    measuredControls = controls.text;
+                }
+                // The line is left- and bottom-aligned in its rect and may run past it; its shadow is offset by a unit.
+                var line = controls.rectTransform;
+                var rect = line.rect;
+                var corner = new Vector2(rect.xMin + controlsSize.x + 1 + fanGap, rect.yMin + Mathf.Max(controlsSize.y, rect.height) + fanGap);
+                left = Share(RectTransformUtility.WorldToScreenPoint(eye, line.TransformPoint(corner)));
+            }
+            if (cardCounter)
+            {
+                // The tilted plate the counter sits on.
+                var plate = cardCounter.transform.parent as RectTransform ?? cardCounter.rectTransform;
+                var rect = plate.rect;
+                float x = float.PositiveInfinity, y = float.NegativeInfinity;
+                for (int i = 0; i < 4; i++)
+                {
+                    var corner = new Vector2((i & 2) == 0 ? rect.xMin - fanGap : rect.xMax + fanGap, (i & 1) == 0 ? rect.yMin - fanGap : rect.yMax + fanGap);
+                    var point = RectTransformUtility.WorldToScreenPoint(eye, plate.TransformPoint(corner));
+                    x = Mathf.Min(x, point.x);
+                    y = Mathf.Max(y, point.y);
+                }
+                right = Share(new Vector2(x, y));
+            }
+            return controls || cardCounter;
+        }
 
         Vector2 itemHintHome;
         bool itemHintKnown;
