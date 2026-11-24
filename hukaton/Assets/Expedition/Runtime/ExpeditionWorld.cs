@@ -87,6 +87,11 @@ namespace Hakaton.Expeditions
         public bool Returning { get; private set; }
         /// <summary>The last outing ended in deep water (not the prologue's dips); read by the shop on the way home.</summary>
         public bool LastOutingDrowned { get; private set; }
+        /// <summary>
+        /// How the last outing ended, for the player (<see cref="DefeatLoot.Notice"/> after a defeat: what came home of
+        /// the finds and coins); set just before the outing is handed back to the game.
+        /// </summary>
+        public string LastOutingNotice { get; private set; }
         public bool Running => workshop.Model != null && workshop.Model.IsAway && !Returning;
         public int Impacts { get; private set; }
         public WorldLoot FocusedLoot { get; private set; }
@@ -672,7 +677,8 @@ namespace Hakaton.Expeditions
             // The purse goes into the wallet; a defeat costs the same share as the finds.
             int coinsKept = defeated ? DefeatLoot.KeptCoins(Coins, settings.defeatLootLoss) : Coins;
             if (coinsKept > 0) workshop.Model.Wallet.Credit(coinsKept);
-            string coinNote = Coins > 0 ? (defeated ? $" Монет: {coinsKept} из {Coins}." : $" Монет: +{coinsKept}.") : "";
+            string coinNote = Coins > 0 ? $" Монет: +{coinsKept}." : "";
+            int coinsCarried = Coins;
             Coins = 0;
             // A defeat keeps ceil(half) of the whole bag, single copies drawn at random from the outing's seed.
             var retained = defeated
@@ -681,7 +687,8 @@ namespace Hakaton.Expeditions
             int total = 0, kept = 0;
             foreach (var entry in loot) total += entry.count;
             foreach (var entry in retained) kept += entry.count;
-            int lost = total - kept;
+            LastOutingNotice = defeated ? DefeatLoot.Notice(drowned, kept, total, coinsKept, coinsCarried)
+                : $"Вы дома. В запас лавки добавлено: {kept}.{coinNote}";
             // Nothing a card made outlives the outing: objects, zones, statuses, the player's modifiers.
             ClearCardEffects();
             motor.Teleport(shopPose.position, shopPose.rotation);
@@ -692,11 +699,7 @@ namespace Hakaton.Expeditions
             hud.canvas.enabled = false;
             Returning = false;
             // Complete only after local cleanup: the integration callback disables this world root.
-            workshop.CompleteOuting(drowned
-                ? $"Вы утонули — глубокую воду лучше заморозить. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
-                : defeated
-                ? $"Вы вернулись после поражения. Сохранено: {kept}; потеряно: {lost}.{coinNote}"
-                : $"Вы дома. В запас лавки добавлено: {kept}.{coinNote}", retained, defeated);
+            workshop.CompleteOuting(LastOutingNotice, retained, defeated);
             if (fade) fade.StartCoroutine(fade.FadeTo(0, settings.arriveFadeSeconds));
         }
     }

@@ -66,6 +66,24 @@ namespace Hakaton.Expeditions
             return retained;
         }
 
+        /// <summary>The first words of the notice after drowning.</summary>
+        public const string DrownedLead = "Вы утонули — глубокую воду лучше заморозить.";
+
+        /// <summary>
+        /// The line the player reads at home after a defeat: «Поражение.» or the drowning lead, then «Домой пришло {kept}
+        /// из {items} вещей и {kept coins} из {coins} монет.» A part with nothing in it (no finds, no coins) is left out;
+        /// with neither, «Добычи с собой не было.» The forgiven first drowning says only that the loot is whole.
+        /// </summary>
+        public static string Notice(bool drowned, int keptItems, int items, int keptCoins, int coins, bool forgiven = false)
+        {
+            string lead = drowned ? DrownedLead : "Поражение.";
+            if (drowned && forgiven) return lead + " На первый раз добыча цела.";
+            string things = items > 0 ? $"{keptItems} из {items} вещей" : null;
+            string money = coins > 0 ? $"{keptCoins} из {coins} монет" : null;
+            if (things == null && money == null) return lead + " Добычи с собой не было.";
+            return lead + " Домой пришло " + (things != null && money != null ? things + " и " + money : things ?? money) + ".";
+        }
+
         /// <summary>The random a defeat draws its kept items from: the outing's seed, salted so it is not the deck's shuffle.</summary>
         public static Random RandomFor(int outingSeed) => new Random(unchecked(outingSeed * 7919 + 104729));
     }

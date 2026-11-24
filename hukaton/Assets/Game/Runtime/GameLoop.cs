@@ -671,7 +671,9 @@ namespace Hakaton.Game
             // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             int kept = delivery.Sum(x => x.count);
-            string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
+            // After a defeat the world's own line says what came home (DefeatLoot.Notice): «Поражение. Домой пришло …».
+            string notice = defeated ? (string.IsNullOrEmpty(expedition.LastOutingNotice) ? "Поражение." : expedition.LastOutingNotice)
+                    + "\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
                 : "Вы вернулись без добычи. Остаток смены сохранён.";
             // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;

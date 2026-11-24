@@ -103,6 +103,21 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(DefeatLoot.Keep(new List<LootSave>(), Loss, DefeatLoot.RandomFor(1)), Is.Empty);
         }
 
+        [Test]
+        public void TheNoticeSaysWhatCameHomeAndLeavesOutEmptyParts()
+        {
+            Assert.That(DefeatLoot.Notice(false, 2, 3, 5, 11),
+                Is.EqualTo("Поражение. Домой пришло 2 из 3 вещей и 5 из 11 монет."));
+            Assert.That(DefeatLoot.Notice(false, 2, 3, 0, 0), Is.EqualTo("Поражение. Домой пришло 2 из 3 вещей."));
+            Assert.That(DefeatLoot.Notice(false, 0, 0, 3, 7), Is.EqualTo("Поражение. Домой пришло 3 из 7 монет."));
+            Assert.That(DefeatLoot.Notice(false, 0, 0, 0, 0), Is.EqualTo("Поражение. Добычи с собой не было."));
+            Assert.That(DefeatLoot.Notice(true, 1, 2, 4, 9),
+                Is.EqualTo("Вы утонули — глубокую воду лучше заморозить. Домой пришло 1 из 2 вещей и 4 из 9 монет."));
+            Assert.That(DefeatLoot.Notice(true, 0, 0, 0, 0), Is.EqualTo("Вы утонули — глубокую воду лучше заморозить. Добычи с собой не было."));
+            Assert.That(DefeatLoot.Notice(true, 3, 3, 9, 9, forgiven: true),
+                Is.EqualTo("Вы утонули — глубокую воду лучше заморозить. На первый раз добыча цела."));
+        }
+
         static List<LootSave> Bag(params (string id, int count)[] entries)
             => entries.Select(e => new LootSave { id = e.id, name = e.id.ToUpperInvariant(), count = e.count, value = 10 }).ToList();
 
