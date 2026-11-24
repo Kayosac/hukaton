@@ -733,6 +733,14 @@ namespace Hakaton.Trading.Unity
             return true;
         }
 
+        /// <summary>The outing never left (the workshop refused): the token goes back, the shift stays as it was.</summary>
+        public bool CancelExternalExpedition(long id)
+        {
+            if (Session == null || !Session.CancelExpedition(id)) return false;
+            RefreshPresentation();
+            return true;
+        }
+
         public void RefreshPresentation()
         {
             if (Session == null) return;

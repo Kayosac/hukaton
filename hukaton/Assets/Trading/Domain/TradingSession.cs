@@ -73,7 +73,7 @@ namespace Hakaton.Trading
 
         /// <summary>
         /// Buys the next shift upgrade with the shared wallet (the PC), only between outings with the shop closed. Time
-        /// still left in the current shift grows by the bought seconds; a finished shift waits for fresh loot as before.
+        /// still left in the current shift grows by the bought seconds; a finished shift waits for the next trip as before.
         /// Returns an error to show, or null.
         /// </summary>
         public string ImproveShift()
@@ -110,7 +110,7 @@ namespace Hakaton.Trading
         public bool BulkBuyerUnlocked => GrossRevenue >= BulkBuyerUnlockRevenue;
         /// <summary>The player has met him once: later visits skip the explanation, the PC sells his upgrade.</summary>
         public bool BulkBuyerMet { get; private set; }
-        /// <summary>He has already come during this shift (a new shift starts with fresh loot from an outing).</summary>
+        /// <summary>He has already come during this shift (a new shift: fresh loot, or an empty return raising a finished shift).</summary>
         public bool BulkBuyerCameThisShift { get; private set; }
         /// <summary>Debug/cheat: the next generated visitor is the bulk buyer, whatever the chance, goal or shift.</summary>
         public bool ForceBulkBuyerNext { get; set; }
@@ -360,7 +360,7 @@ namespace Hakaton.Trading
         public bool Open()
         {
             if (IsOpen || ExpeditionId != 0) return false;
-            if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Вернитесь из вылазки с новой добычей."; return false; }
+            if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Сходите на вылазку — время вернётся."; return false; }
             if (DisplayCount == 0) { LastMessage = "Сначала выставьте хотя бы один предмет."; return false; }
             IsOpen = true; Touch();
             // The promised bulk buyer: the first shift opened with a full display (never in the tutorial) starts with him.
@@ -591,12 +591,70 @@ namespace Hakaton.Trading
             if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId) return false;
             bool freshLoot = expeditionLoot.Count > 0;
             inventory.AddRange(expeditionLoot); expeditionLoot.Clear(); ExpeditionId = 0;
-            // Fresh loot starts a new shift: the bulk buyer may come again.
-            if (freshLoot) { RemainingSeconds = ShiftLength; BulkBuyerCameThisShift = false; }
-            LastMessage = freshLoot ? "Новая добыча доставлена. Время торговли восстановлено."
-                : "Вернулись без новой добычи. Остаток времени не изменился.";
+            if (freshLoot)
+            {
+                // Fresh loot starts a new shift: the bulk buyer may come again.
+                RemainingSeconds = ShiftLength; BulkBuyerCameThisShift = false;
+                LastReturn = ShiftReturn.Restored;
+                LastMessage = "Новая добыча доставлена. Время торговли восстановлено.";
+            }
+            else ApplyEmptyReturn();
             Touch();
             return true;
+        }
+
+        /// <summary>
+        /// A trip back to the shop with nothing new that did not go through <see cref="BeginExpedition"/> (the god's
+        /// mountains): the same rule as an outing without loot. Only with the shop shut and no outing under way.
+        /// </summary>
+        public bool ReturnWithoutLoot()
+        {
+            if (IsOpen || ExpeditionId != 0) return false;
+            ApplyEmptyReturn();
+            Touch();
+            return true;
+        }
+
+        /// <summary>
+        /// An outing that never left (the workshop refused to depart): the token is handed back and the shift stays as it
+        /// was. No trip was made, so the empty-return rule does not apply.
+        /// </summary>
+        public bool CancelExpedition(long expeditionId)
+        {
+            if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId) return false;
+            inventory.AddRange(expeditionLoot); expeditionLoot.Clear(); ExpeditionId = 0;
+            LastMessage = "Вылазка не состоялась.";
+            Touch();
+            return true;
+        }
+
+        /// <summary>Share of a full shift guaranteed after a trip without loot while the shop still has goods.</summary>
+        public const float EmptyReturnShiftShare = .5f;
+        public const string HalfShiftNote = "На складе есть товар — полсмены ваши.";
+        /// <summary>What the last return from a trip did to the shift clock.</summary>
+        public ShiftReturn LastReturn { get; private set; }
+
+        /// <summary>
+        /// Back without loot: with goods in storage or on the display the shift has at least half its length left, so a
+        /// full storage never leaves the shop shut; with nothing to sell the clock stays as it was. Raised from zero, it is
+        /// a new shift for the bulk buyer.
+        /// </summary>
+        void ApplyEmptyReturn()
+        {
+            if (TotalStockCount == 0)
+            {
+                LastReturn = ShiftReturn.Unchanged;
+                LastMessage = "Вернулись без новой добычи. Остаток времени не изменился.";
+                return;
+            }
+            float half = ShiftLength * EmptyReturnShiftShare;
+            if (RemainingSeconds < half)
+            {
+                if (RemainingSeconds <= 0) BulkBuyerCameThisShift = false;
+                RemainingSeconds = half;
+            }
+            LastReturn = ShiftReturn.HalfShift;
+            LastMessage = "Вернулись без добычи. " + HalfShiftNote;
         }
 
         /// <summary>Validates the entire external delivery before changing inventory or the outing token.</summary>
@@ -861,5 +919,18 @@ namespace Hakaton.Trading
             }
             catalog.Add(definition);
         }
+    }
+
+    /// <summary>What a return from a trip did to the shift clock (<see cref="TradingSession.LastReturn"/>).</summary>
+    public enum ShiftReturn
+    {
+        /// <summary>No trip has come back yet.</summary>
+        None,
+        /// <summary>Fresh loot: a whole new shift.</summary>
+        Restored,
+        /// <summary>No loot, but goods in the shop: at least half a shift.</summary>
+        HalfShift,
+        /// <summary>No loot and nothing to sell: the clock is as it was.</summary>
+        Unchanged
     }
 }

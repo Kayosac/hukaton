@@ -583,8 +583,12 @@ namespace Hakaton.Game
             {
                 godMet = true;
                 if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+                // A trip without loot like any other: goods already in the shop still get at least half a shift.
+                string shiftNotice = trade.Session.ReturnWithoutLoot() && trade.Session.LastReturn == ShiftReturn.HalfShift
+                    ? trade.Session.LastMessage : null;
                 // the goblin is on the counter as the picture comes back: where were you, and empty-handed?
                 if (lecture && !(tutorial && tutorial.Active)) godLectureRunning = lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
+                if (shiftNotice != null) { if (godLectureRunning) noticeAfterLecture = shiftNotice; else Notify(shiftNotice, 8); }
             }
             dirty = true;
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
@@ -647,7 +651,8 @@ namespace Hakaton.Game
             error = workshop.TryDepart();
             if (error != null)
             {
-                trade.CompleteExternalExpedition(activeOuting, Array.Empty<StockDelivery>());
+                // Nobody left: no trip, so no empty-return half shift either.
+                trade.CancelExternalExpedition(activeOuting);
                 activeOuting = 0; SetPhase(GamePhase.Shop); Notify(error);
             }
             restoring = false;
@@ -671,8 +676,12 @@ namespace Hakaton.Game
             // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             int kept = delivery.Sum(x => x.count);
-            string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + ".\nЗдоровье восстановлено; карты и улучшения целы."
+            // Nothing brought back but goods in the shop: the session has given at least half a shift.
+            bool halfShift = trade.Session.LastReturn == ShiftReturn.HalfShift;
+            string notice = defeated ? "Вы вернулись после поражения. Сохранено предметов: " + kept + "."
+                    + (halfShift ? "\n" + TradingSession.HalfShiftNote : "") + "\nЗдоровье восстановлено; карты и улучшения целы."
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
+                : halfShift ? trade.Session.LastMessage
                 : "Вы вернулись без добычи. Остаток смены сохранён.";
             // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;
             // the notice comes once he is gone.
@@ -687,7 +696,13 @@ namespace Hakaton.Game
             // The goblin's word after the stranger: nothing to record.
             if (strangerLectureRunning) { strangerLectureRunning = false; return; }
             // The goblin's word after the god: the special items open now (UnlockCheck), not the drowning lecture.
-            if (godLectureRunning) { godLectureRunning = false; dirty = true; return; }
+            if (godLectureRunning)
+            {
+                godLectureRunning = false; dirty = true;
+                if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);
+                noticeAfterLecture = null;
+                return;
+            }
             drownLectureGiven = true;
             dirty = true;
             if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);

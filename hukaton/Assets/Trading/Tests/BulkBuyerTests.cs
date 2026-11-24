@@ -125,6 +125,39 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
+        public void HalfAShiftRaisedFromNothingByAnEmptyReturnIsANewShiftForHim()
+        {
+            var session = Shop(3, Settings(1, upgrades: false));
+            ReachGoal(session);
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.True);
+            Assert.That(session.Refuse(session.CurrentCustomer.Id), Is.True);
+            session.Tick(session.RemainingSeconds);
+            Assert.That((session.IsOpen, session.RemainingSeconds, session.BulkBuyerCameThisShift), Is.EqualTo((false, 0f, true)));
+            long outing = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(outing), Is.True, "Back without loot, horns still in the shop.");
+            Assert.That((session.RemainingSeconds, session.BulkBuyerCameThisShift), Is.EqualTo((15f, false)));
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.True, "Half a shift raised from nothing is a new shift.");
+        }
+
+        [Test]
+        public void AShiftToppedUpByAnEmptyReturnIsStillTheSameShiftForHim()
+        {
+            var session = Shop(3, Settings(1, upgrades: false));
+            ReachGoal(session);
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.True);
+            Assert.That(session.Refuse(session.CurrentCustomer.Id), Is.True);
+            session.Tick(20); session.Close();
+            long outing = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(outing), Is.True);
+            Assert.That((session.RemainingSeconds, session.BulkBuyerCameThisShift), Is.EqualTo((15f, true)));
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.CurrentCustomer.IsBulkBuyer, Is.False, "10 s topped up to 15 s: the same shift.");
+        }
+
+        [Test]
         public void NeverWithStagedVisitorsOrAPausedClockAndExplicitTermsWin()
         {
             var session = Shop(4, Settings(1, upgrades: false));
