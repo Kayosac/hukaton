@@ -16,7 +16,8 @@ namespace Hakaton.Expeditions
     /// Sparse expedition HUD (2026-11-10 UI handoff, 736 × 368 reference layout): spinning glossy hearts and the
     /// wallet top left with the effect badges under them, a small white square at the aim point with the charge ring,
     /// the tilted "stock/total" counter in the bottom-right corner (clear of the widest fan), pickup rows top right (hold I for every
-    /// carried find in the same rows) and one contextual hint bottom left. Nothing about an item is shown on hover.
+    /// carried find in the same rows), the standing controls line in the bottom-left corner («R — сбросить руку» /
+    /// «Удерживай ЛКМ — домой») and one contextual hint over it. Nothing about an item is shown on hover.
     /// </summary>
     public sealed class ExpeditionHud : MonoBehaviour
     {
@@ -48,6 +49,10 @@ namespace Hakaton.Expeditions
         public Image kickRing;
         [Min(.01f)] public float kickRingWipeSeconds = .22f;
         public Color kickRingColour = new Color(1, 1, 1, .8f);
+        [Tooltip("A hold in progress — R to discard the hand, LMB on «Пора домой» to go home: a copy of the kick ring (same sprite, " +
+                 "colour and look), drawn outside the charge ring so a kick cooldown and a hold read apart. Fills clockwise from " +
+                 "empty to full over the hold and is gone when the button is let go.")]
+        public Image holdRing;
 
         [Header("Card counter")]
         [Tooltip("'Stock/Total' in the bottom-right corner, clear of the widest hand fan: cards still to draw / copies taken on this outing.")]
@@ -64,7 +69,13 @@ namespace Hakaton.Expeditions
         [Min(1)] public int pickupRows = 4;
 
         [Header("Text")]
-        [Tooltip("The one contextual hint, bottom left: 'E — подобрать', 'ПКМ — отмена'…")]
+        [Tooltip("The standing controls line in the bottom-left corner, always there on an outing (never in the cave prologue).")]
+        public TMP_Text controls;
+        [Tooltip("The controls line as a rule.")]
+        public string discardControl = "R — сбросить руку";
+        [Tooltip("The controls line while «Пора домой» is the selected card.")]
+        public string returnControl = "Удерживай ЛКМ — домой";
+        [Tooltip("The one contextual hint, bottom left over the controls line: 'E — подобрать', 'ПКМ — отмена'…")]
         public TMP_Text context;
         public TMP_Text notice, cardLabel;
         [Tooltip("How to use the special item in the hand, bottom left over the contextual hint; with its dark copy under it.")]
@@ -86,13 +97,12 @@ namespace Hakaton.Expeditions
 
         readonly List<(string name, int value, float time, string colour)> toastLines = new List<(string, int, float, string)>();
         SpringFloat[] heartScales;
-        SpringFloat heartsShake, ringScale, kickRingScale;
+        SpringFloat heartsShake, ringScale, kickRingScale, holdRingScale;
         float kickRingWipe;
-        bool kickCooling;
+        bool kickCooling, holding;
         float vignetteAmount, cardLabelUntil, lastThrowCharge;
         Color vignetteColour;
-        bool subscribed, hintedDiscard;
-        float discardHintUntil;
+        bool subscribed;
         Vector2 heartsBase;
         Image[][] heartFrames;
         Color[][] heartFrameColours;
@@ -253,6 +263,33 @@ namespace Hakaton.Expeditions
             }
             if (reticle) reticle.color = reticleColour;
             UpdateKickRing(dt);
+            UpdateHoldRing(dt);
+        }
+
+        /// <summary>Progress of the hold in progress (R to discard, LMB on «Пора домой»), or -1 when there is none to show.</summary>
+        public static float HoldProgress(CardThrower thrower)
+        {
+            if (!thrower) return -1;
+            if (thrower.ReturnHold.Active && thrower.ReturnReady) return thrower.ReturnHold.Progress;
+            if (thrower.DiscardHold.Active && thrower.DiscardAvailable) return thrower.DiscardHold.Progress;
+            return -1;
+        }
+
+        /// <summary>The hold's ring: empty at the press, closed when the hold completes; gone as soon as the button is let go.</summary>
+        void UpdateHoldRing(float dt)
+        {
+            if (!holdRing) return;
+            float progress = HoldProgress(world.thrower);
+            bool shown = progress >= 0;
+            if (shown && !holding) holdRingScale.Kick(-4);
+            holding = shown;
+            float scale = holdRingScale.Step(1, 8, .35f, dt);
+            holdRing.enabled = shown;
+            if (!shown) return;
+            holdRing.fillClockwise = true;
+            holdRing.fillAmount = progress;
+            holdRing.color = kickRingColour;
+            holdRing.rectTransform.localScale = Vector3.one * scale;
         }
 
         /// <summary>
@@ -292,6 +329,12 @@ namespace Hakaton.Expeditions
             kickRing.rectTransform.localScale = Vector3.one * scale;
         }
 
+        /// <summary>The standing controls line: nothing in the cave prologue, «Удерживай ЛКМ — домой» while «Пора домой» is
+        /// selected, otherwise «R — сбросить руку» (whatever is left in the pile). Only a place whose own rules never allow R
+        /// (the enemy debug sandbox) leaves it out.</summary>
+        public string ControlsLine(bool inPrologue, bool returnSelected, bool discardAllowed = true) =>
+            inPrologue ? "" : returnSelected ? returnControl : discardAllowed ? discardControl : "";
+
         Vector2 itemHintHome;
         bool itemHintKnown;
 
@@ -319,20 +362,16 @@ namespace Hakaton.Expeditions
 
             if (wallet) wallet.text = FormatMoney(world.workshop.Model.Coins);
 
+            // The standing controls line: discarding the hand is how you dig for a card (and, at the end, for the Return card).
+            var rules = world.thrower.rules;
+            if (controls) controls.text = ControlsLine(world.InPrologue, world.thrower.ReturnReady, rules == null || rules.CanDiscard());
+
             // One contextual hint: an action, never data about the item in focus.
             string hint = "";
             if (world.FocusedLoot) hint = "E — подобрать";
             else if (world.FocusedInteractable != null) hint = world.FocusedInteractable.Prompt;
             else if (preparation.Active) hint = "ПКМ — отмена";
             else if (world.CardPrompt != null) hint = world.CardPrompt;
-            else if (card != null && card.IsReturn) hint = world.thrower.ReturnReady ? "ЛКМ — домой" : "";
-            else if (!hintedDiscard && trip != null && trip.PlayedCount >= 2 && trip.Deck.StockCount > 0)
-            {
-                // One shared hand: discarding it is how you dig for a card (and, at the end, for the Return card).
-                if (discardHintUntil == 0) discardHintUntil = Time.time + 6;
-                if (Time.time > discardHintUntil || trip.DiscardedCount > 0) hintedDiscard = true;
-                else hint = "R — сбросить руку";
-            }
             if (world.InPrologue && !world.FocusedLoot) hint = "";
             if (context) context.text = hint;
             UpdateItemHint(hint);
