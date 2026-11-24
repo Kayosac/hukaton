@@ -91,7 +91,8 @@ namespace Hakaton.Game.Tests
             Assert.That(session.Open(), Is.True);
             Assert.That(session.CurrentCustomer, Is.Not.Null);
 
-            // He walks in from the door (and the camera moves to the counter view): the time stands.
+            // He walks in from the door (and the camera moves to the counter view), then, the first own shift, waits for
+            // the line about the clock to go: the time stands.
             float end = Time.realtimeSinceStartup + 10;
             while (!trade.CustomerReady && Time.realtimeSinceStartup < end)
             {
@@ -227,6 +228,30 @@ namespace Hakaton.Game.Tests
             Assert.That(game.ShiftClockLineGiven, Is.True);
             Assert.That(GameSaveStore.Load(game.SavePath, game.ValidateSave, out var save, out var warning), Is.True, warning);
             Assert.That(save.shiftClockLineGiven, Is.True, "Saved: it never comes again.");
+
+            // It shows while the first visitor walks in, and his first line waits until it is gone: his speech plate never
+            // lies over it, at any resolution. The wait costs the shift nothing.
+            Assert.That(trade.VisitorHeldByNotice, Is.True, "The first visitor waits for the line.");
+            var hud = trade.hud;
+            var visitor = session.CurrentCustomer;
+            Assert.That(visitor, Is.Not.Null);
+            float full = session.RemainingSeconds;
+            bool waited = false;
+            float end = Time.realtimeSinceStartup + game.shiftClockLineSeconds + 5;
+            while (Time.realtimeSinceStartup < end)
+            {
+                yield return null;
+                if (trade.CustomerReady) break;
+                Assert.That(hud.conversation.activeSelf, Is.False, "No speech plate while the line is up.");
+                Assert.That(session.RemainingSeconds, Is.EqualTo(full), "The wait costs no time.");
+                waited |= trade.World.Customers.ReadyForTrade(visitor) && trade.Notice == game.shiftClockLine;
+            }
+            Assert.That(trade.CustomerReady, Is.True, "Then he speaks.");
+            Assert.That(waited, Is.True, "He reached the counter while the line was up, and waited for it.");
+            Assert.That(trade.Notice, Is.Empty);
+            yield return null; // the HUD shows the speech plate in its LateUpdate
+            Assert.That(hud.conversation.activeSelf, Is.True);
+            Assert.That(hud.noticeVisibility.alpha, Is.EqualTo(0).Within(.001f), "The line has faded before the plate comes.");
 
             trade.CloseShopNow();
             yield return WaitFor(() => !trade.ViewTransitioning, 3);

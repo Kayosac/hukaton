@@ -56,7 +56,8 @@ namespace Hakaton.Game
         [Tooltip("Said once, as the shop's notice, the first time the player opens the shop after the tutorial (saved: never " +
                  "again; never in the tutorial's own trade). Empty: nothing.")]
         public string shiftClockLine = "Часы идут, только пока ты думаешь над ценой.";
-        [Tooltip("How long the line about the shift clock stays up, seconds.")]
+        [Tooltip("How long the line about the shift clock stays up, seconds. It shows as the shop opens, while the first " +
+                 "visitor walks in; his first line waits until it is gone, so his speech plate never covers it.")]
         [Min(1)] public float shiftClockLineSeconds = 5;
         [Tooltip("Back from the god: the goblin waits on the counter (the shop tutorial's goblin) and has a word, then poofs.")]
         [TextArea] public string[] godReturnLecture =
@@ -415,14 +416,15 @@ namespace Hakaton.Game
         }
         /// <summary>
         /// The first shift the player opens after the tutorial: once per save, the shop's notice tells how its clock runs
-        /// (only while the player decides on a price). Not in the tutorial's trade, nor in the cave.
+        /// (only while the player decides on a price). It shows while the first visitor walks in, and his first line waits
+        /// until it is gone (TradingPrototype.VisitorHeldByNotice). Not in the tutorial's trade, nor in the cave.
         /// </summary>
         void AnnounceShiftClock()
         {
             if (shiftClockLineGiven || tutorial.Active || InCave || string.IsNullOrEmpty(shiftClockLine)) return;
             shiftClockLineGiven = true;
             dirty = true;
-            trade.ShowNotice(shiftClockLine, shiftClockLineSeconds);
+            trade.ShowNotice(shiftClockLine, shiftClockLineSeconds, holdVisitor: true);
         }
 
         /// <summary>

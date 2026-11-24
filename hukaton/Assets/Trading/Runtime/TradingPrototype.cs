@@ -105,7 +105,11 @@ namespace Hakaton.Trading.Unity
         /// <summary>The close look at a displayed item, model or drawing (created with the shop, nothing to wire).</summary>
         public DisplayItemInspector Inspector { get; private set; }
         public int HoveredSlot => hoveredSlot;
-        public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
+        /// <summary>
+        /// The visitor stands at the counter and may speak: not while a notice shown with <c>holdVisitor</c> is up
+        /// (<see cref="VisitorHeldByNotice"/>) — until then he waits as if still walking in.
+        /// </summary>
+        public bool CustomerReady => Session != null && !VisitorHeldByNotice && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
         /// <summary>False during the short beat after an offer while the visitor considers it.</summary>
         public bool ReactionRevealed => Time.unscaledTime >= revealAt;
@@ -114,6 +118,12 @@ namespace Hakaton.Trading.Unity
         public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
         public string CustomerName => World.Customers.VisitorName;
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
+        /// <summary>
+        /// A notice shown with <c>holdVisitor</c> is still up or fading out (TradingHud.fadeSpeed): the visitor at the counter
+        /// waits silently — no speech plate over the notice, no answers, the shift clock stands. Another notice ends the hold.
+        /// </summary>
+        public bool VisitorHeldByNotice => noticeHoldsVisitor
+            && Time.unscaledTime < noticeUntil + (hud && hud.fadeSpeed > 0 ? 1 / hud.fadeSpeed : 0);
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
         [System.Serializable]
         public sealed class StartingStock
@@ -216,6 +226,7 @@ namespace Hakaton.Trading.Unity
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
         float noticeUntil;
+        bool noticeHoldsVisitor;
 
         /// <summary>The trade tuning from the Inspector fields, as the session gets it (the trade balance tests use it too).</summary>
         public TradeSettings CreateTradeSettings() => new TradeSettings {
@@ -554,7 +565,7 @@ namespace Hakaton.Trading.Unity
             for (int i = 0; i < Session.Inventory.Count; i++)
                 if (Session.Inventory[i].Definition.Id == definitionId) { selectedInventory = i; return; }
         }
-        void Notify(string text, float seconds = 2.6f) { notice = text; noticeUntil = Time.unscaledTime + seconds; }
+        void Notify(string text, float seconds = 2.6f) { notice = text; noticeUntil = Time.unscaledTime + seconds; noticeHoldsVisitor = false; }
         void OnEnable()
         {
             if (Session != null && World != null && World.Control != null)
@@ -790,8 +801,16 @@ namespace Hakaton.Trading.Unity
             SyncControl(); RefreshWorld();
         }
 
-        /// <summary>The shop's own notice line (the same as its sale and refusal notices), for this many seconds.</summary>
-        public void ShowNotice(string text, float seconds = 2.6f) => Notify(text, seconds);
+        /// <summary>
+        /// The shop's own notice line (the same as its sale and refusal notices), for this many seconds. With
+        /// <paramref name="holdVisitor"/> the visitor's first line waits until it is gone (<see cref="VisitorHeldByNotice"/>):
+        /// for a notice shown as the shop opens, while the first visitor still walks in, so his speech plate never covers it.
+        /// </summary>
+        public void ShowNotice(string text, float seconds = 2.6f, bool holdVisitor = false)
+        {
+            Notify(text, seconds);
+            noticeHoldsVisitor = holdVisitor && !string.IsNullOrEmpty(text);
+        }
         IEnumerator Snap(Transform item)
         {
             // Drop in, then a squash-and-settle: the "clack" of putting goods on a shelf.
