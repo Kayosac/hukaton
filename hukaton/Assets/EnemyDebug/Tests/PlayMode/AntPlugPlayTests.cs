@@ -103,6 +103,14 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>A copy of <paramref name="table"/> whose every row always drops; the table itself is not touched.</summary>
+        static Hakaton.Loot.LootTable Certain(Hakaton.Loot.LootTable table) => new Hakaton.Loot.LootTable
+        {
+            atLeastOne = table.atLeastOne,
+            minimumDrops = table.minimumDrops,
+            entries = table.entries.Select(e => e == null ? null : new Hakaton.Loot.LootDrop { item = e.item, chance = 1, min = e.min, max = e.max }).ToArray(),
+        };
+
         [UnityTest]
         public IEnumerator SolitaryDeathUsesIndependentDropChanceAndShowsDeathPose()
         {
@@ -118,13 +126,23 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
 
             var before = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
             Stand(worker.Position + Vector3.back * 20);
-            UnityEngine.Random.InitState(1);
-            worker.Damage(worker.maximumHealth, Vector3.zero, worker.Centre, 0);
-            yield return Wait(.6f);
-            Assert.That(worker.Alive, Is.False);
-            Assert.That(worker.view.Pose, Is.EqualTo(CreaturePose.Death));
-            yield return Wait(worker.corpseSeconds + 1f);
-            Assert.That(worker.gameObject.activeSelf, Is.False);
+            // The death roll (WorldCreature.DropLoot) draws UnityEngine.Random only after the fall (0.3 s and more of
+            // frames), and voices, dust, pops and the scene's other creatures draw from it in between, so a seed set
+            // here does not decide it: with the real 80 % chance a run failed now and then, depending on the tests
+            // before it. The chance itself is checked exactly above; for the death this spawned copy alone rolls its
+            // table with the chance at 1 (the prefab keeps its 0.8), and gets its own table back afterwards.
+            var ownDrops = worker.drops;
+            worker.drops = Certain(ownDrops);
+            try
+            {
+                worker.Damage(worker.maximumHealth, Vector3.zero, worker.Centre, 0);
+                yield return Wait(.6f);
+                Assert.That(worker.Alive, Is.False);
+                Assert.That(worker.view.Pose, Is.EqualTo(CreaturePose.Death));
+                yield return Wait(worker.corpseSeconds + 1f);
+                Assert.That(worker.gameObject.activeSelf, Is.False);
+            }
+            finally { worker.drops = ownDrops; }
             madeLoot.AddRange(Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Except(before));
             Assert.That(madeLoot.Count, Is.EqualTo(1));
             Assert.That(madeLoot[0].item.id, Is.EqualTo("ant_plug_dead_head"));
