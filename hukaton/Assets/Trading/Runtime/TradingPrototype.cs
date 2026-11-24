@@ -15,6 +15,11 @@ namespace Hakaton.Trading.Unity
         [Header("Temporary prototype balance")]
         [Tooltip("A full shift before any upgrade, seconds.")]
         [Min(1)] public float shiftSeconds = 15;
+        [Tooltip("The floor of an answer, seconds of the shift: every answer to a visitor (accept, a price, refuse, the bulk buyer's offer) " +
+                 "costs at least this much, counted from the start of the line it answers; a quicker answer pays the rest at once. " +
+                 "Reading stays free (the clock stands while a line types). Not in the tutorial, nor for story visitors " +
+                 "(the bulk buyer before his offer, the stranger).")]
+        [Range(0, 10)] public float minAnswerSeconds = 2;
         [Tooltip("Shift upgrades bought on the PC («Время смены»), in order: seconds added to the shift and their price.")]
         public ShiftStep[] shiftSteps =
         {
@@ -24,10 +29,14 @@ namespace Hakaton.Trading.Unity
         public int randomSeed = 42;
         [Range(.67f, .99f)] public float minOpeningRatio = .7f;
         [Range(.67f, .99f)] public float maxOpeningRatio = .9f;
-        [Range(1, 2)] public float minCeilingRatio = 1;
-        [Range(1, 2)] public float maxCeilingRatio = 1.4f;
-        [Range(.01f, 2)] public float minOfferCeilingRatio = .95f;
-        [Range(.01f, 2)] public float maxOfferCeilingRatio = 1.2f;
+        [Tooltip("Limit of a visitor who asks the price, as a share of the price: drawn between min and max.")]
+        [Range(1, 2)] public float minCeilingRatio = 1.05f;
+        [Range(1, 2)] public float maxCeilingRatio = 1.6f;
+        [Tooltip("Limit of a visitor who names his own price, as a share of the price: drawn between min and max.")]
+        [Range(.01f, 2)] public float minOfferCeilingRatio = 1;
+        [Range(.01f, 2)] public float maxOfferCeilingRatio = 1.35f;
+        [Tooltip("The first counter of a visitor who asked the price starts at this share of the price (no more than his limit). 1: never below the price.")]
+        [Range(.5f, 1.5f)] public float askerFirstCounterRatio = 1;
         [Range(0, 1)] public float asksPriceProbability = .5f;
         public bool usePresetPatienceCosts;
         [Min(1)] public int minPatience = 3;
@@ -96,7 +105,11 @@ namespace Hakaton.Trading.Unity
         /// <summary>The close look at a displayed item, model or drawing (created with the shop, nothing to wire).</summary>
         public DisplayItemInspector Inspector { get; private set; }
         public int HoveredSlot => hoveredSlot;
-        public bool CustomerReady => Session != null && World.Customers.ReadyForTrade(Session.CurrentCustomer);
+        /// <summary>
+        /// The visitor stands at the counter and may speak: not while a notice shown with <c>holdVisitor</c> is up
+        /// (<see cref="VisitorHeldByNotice"/>) — until then he waits as if still walking in.
+        /// </summary>
+        public bool CustomerReady => Session != null && !VisitorHeldByNotice && World.Customers.ReadyForTrade(Session.CurrentCustomer);
         public bool ActionsReady => CustomerReady && !ViewTransitioning && Time.unscaledTime >= actionReadyAt;
         /// <summary>False during the short beat after an offer while the visitor considers it.</summary>
         public bool ReactionRevealed => Time.unscaledTime >= revealAt;
@@ -105,6 +118,12 @@ namespace Hakaton.Trading.Unity
         public bool ViewTransitioning => UsesDisplayView && World.ShopView.IsTransitioning;
         public string CustomerName => World.Customers.VisitorName;
         public string Notice => Time.unscaledTime < noticeUntil ? notice : string.Empty;
+        /// <summary>
+        /// A notice shown with <c>holdVisitor</c> is still up or fading out (TradingHud.fadeSpeed): the visitor at the counter
+        /// waits silently — no speech plate over the notice, no answers, the shift clock stands. Another notice ends the hold.
+        /// </summary>
+        public bool VisitorHeldByNotice => noticeHoldsVisitor
+            && Time.unscaledTime < noticeUntil + (hud && hud.fadeSpeed > 0 ? 1 / hud.fadeSpeed : 0);
         public ItemInstance SelectedItem => Session.Inventory.Count == 0 ? null : Session.Inventory[selectedInventory];
         [System.Serializable]
         public sealed class StartingStock
@@ -174,10 +193,58 @@ namespace Hakaton.Trading.Unity
         /// read on through his lines; there is nothing to sell him or refuse.
         /// </summary>
         public bool TalkerSpeaking => Session?.CurrentCustomer != null && Session.CurrentCustomer.IsTalker;
+
+        /// <summary>
+        /// Something outside the shop holds the shift clock while it is true (the game loop: the goblin has a word at the
+        /// counter). Null: nothing does. The tutorial holds it with <see cref="TradingSession.ClockPaused"/> instead.
+        /// </summary>
+        public System.Func<bool> ShiftClockHold { get; set; }
+
+        /// <summary>
+        /// The one rule of the shift clock: its time runs only while the player decides, that is while the answers to the
+        /// visitor at the counter can be pressed (<see cref="ActionsReady"/>: he has reached the counter, the camera is not
+        /// moving to the display or back, the short beat after an answer is over). It stands while nobody is at the counter
+        /// (a visitor walks in or out, the pause between visitors), while his line still types, during the «…» after a
+        /// counter-offer (<see cref="ReactionRevealed"/>), while a story visitor talks (the bulk buyer until his offer is on
+        /// screen, the stranger), while <see cref="ShiftClockHold"/> holds it (the goblin at the counter), and of course while
+        /// the shop is closed, the tutorial pauses the clock (<see cref="TradingSession.ClockPaused"/>) or a menu is in front.
+        /// A visitor who came in before the time ran out is still served to the end (the session's rule).
+        /// </summary>
+        public bool ShiftClockShouldRun => Session != null && Session.IsOpen && !Session.ClockPaused && Session.RemainingSeconds > 0
+            && !GamePause.Suspended && Session.CurrentCustomer != null
+            && ActionsReady && ReactionRevealed && !BulkBuyerExplaining && !TalkerSpeaking
+            && (hud == null || !hud.SpeechTyping) && (ShiftClockHold == null || !ShiftClockHold());
+
+        /// <summary>
+        /// The shift clock ran this frame: <see cref="ShiftClockShouldRun"/> held this frame and the one before (a line the
+        /// HUD starts typing in its LateUpdate is seen typing only the next frame). The clock looks and sounds alive only
+        /// then (TradingHud, ShopFeel); otherwise it stands faded and silent.
+        /// </summary>
+        public bool ShiftClockRunning => shiftClockRunning && !GamePause.Suspended;
+        bool shiftClockRunning, shiftClockWanted;
         Coroutine[] itemMotion;
         MaterialPropertyBlock slotHighlight;
         string notice = string.Empty;
         float noticeUntil;
+        bool noticeHoldsVisitor;
+
+        /// <summary>The trade tuning from the Inspector fields, as the session gets it (the trade balance tests use it too).</summary>
+        public TradeSettings CreateTradeSettings() => new TradeSettings {
+            SlotCount = 6, ShiftSeconds = shiftSeconds, MinAnswerSeconds = minAnswerSeconds,
+            ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
+            ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
+            MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
+            MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
+            MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
+            AskerFirstCounterRatio = askerFirstCounterRatio,
+            AsksPriceProbability = asksPriceProbability,
+            UsePresetPatienceCosts = usePresetPatienceCosts,
+            MinPatience = minPatience, MaxPatience = maxPatience,
+            BulkBuyerChance = bulkBuyerChance / 100f,
+            BulkBuyerUpgradeChances = System.Array.ConvertAll(bulkBuyerSteps, step => step.percent / 100f),
+            BulkBuyerUpgradePrices = System.Array.ConvertAll(bulkBuyerSteps, step => step.price),
+            BulkBuyerMinDisplay = bulkBuyerMinDisplay, BulkBuyerPriceRatio = bulkBuyerPriceRatio
+        };
 
         void Awake()
         {
@@ -194,21 +261,7 @@ namespace Hakaton.Trading.Unity
                 enabled = false;
                 return;
             }
-            Session = new TradingSession(new TradeSettings {
-                SlotCount = 6, ShiftSeconds = shiftSeconds,
-                ShiftUpgradeSeconds = System.Array.ConvertAll(shiftSteps, step => step.seconds),
-                ShiftUpgradePrices = System.Array.ConvertAll(shiftSteps, step => step.price),
-                MinOpeningRatio = minOpeningRatio, MaxOpeningRatio = maxOpeningRatio,
-                MinCeilingRatio = minCeilingRatio, MaxCeilingRatio = maxCeilingRatio,
-                MinOfferCeilingRatio = minOfferCeilingRatio, MaxOfferCeilingRatio = maxOfferCeilingRatio,
-                AsksPriceProbability = asksPriceProbability,
-                UsePresetPatienceCosts = usePresetPatienceCosts,
-                MinPatience = minPatience, MaxPatience = maxPatience,
-                BulkBuyerChance = bulkBuyerChance / 100f,
-                BulkBuyerUpgradeChances = System.Array.ConvertAll(bulkBuyerSteps, step => step.percent / 100f),
-                BulkBuyerUpgradePrices = System.Array.ConvertAll(bulkBuyerSteps, step => step.price),
-                BulkBuyerMinDisplay = bulkBuyerMinDisplay, BulkBuyerPriceRatio = bulkBuyerPriceRatio
-            }, randomSeed, walletHost ? walletHost.Wallet : null);
+            Session = new TradingSession(CreateTradeSettings(), randomSeed, walletHost ? walletHost.Wallet : null);
             RegisterCatalogue();
             displayed = new GameObject[6];
             displayedIds = new long[6];
@@ -227,7 +280,14 @@ namespace Hakaton.Trading.Unity
             if (GamePause.Suspended) return;
             World.Customers.HoldExpression = !ReactionRevealed;
             World.Customers.Sync(Session);
-            Session.Tick(Time.unscaledDeltaTime);
+            // Time runs only while the player decides (ShiftClockShouldRun). The session still ticks with no time
+            // passing, so a shift whose time is up ends as soon as the counter is free.
+            // The bulk buyer's offer is on screen: the answer to it has the floor of an answer (his explanation had none).
+            if (BulkOfferShown) Session.OpenBulkOffer(Session.CurrentCustomer.Id);
+            bool clockWanted = ShiftClockShouldRun;
+            shiftClockRunning = clockWanted && shiftClockWanted;
+            shiftClockWanted = clockWanted;
+            Session.Tick(shiftClockRunning ? Time.unscaledDeltaTime : 0);
             if (Session.IsOpen && Session.CurrentCustomer == null && World.Customers.CanStartNextCustomer)
             {
                 Session.AdvanceCustomer();
@@ -505,7 +565,7 @@ namespace Hakaton.Trading.Unity
             for (int i = 0; i < Session.Inventory.Count; i++)
                 if (Session.Inventory[i].Definition.Id == definitionId) { selectedInventory = i; return; }
         }
-        void Notify(string text) { notice = text; noticeUntil = Time.unscaledTime + 2.6f; }
+        void Notify(string text, float seconds = 2.6f) { notice = text; noticeUntil = Time.unscaledTime + seconds; noticeHoldsVisitor = false; }
         void OnEnable()
         {
             if (Session != null && World != null && World.Control != null)
@@ -725,6 +785,14 @@ namespace Hakaton.Trading.Unity
             return true;
         }
 
+        /// <summary>The outing never left (the workshop refused): the token goes back, the shift stays as it was.</summary>
+        public bool CancelExternalExpedition(long id)
+        {
+            if (Session == null || !Session.CancelExpedition(id)) return false;
+            RefreshPresentation();
+            return true;
+        }
+
         public void RefreshPresentation()
         {
             if (Session == null) return;
@@ -733,7 +801,16 @@ namespace Hakaton.Trading.Unity
             SyncControl(); RefreshWorld();
         }
 
-        public void ShowNotice(string text) => Notify(text);
+        /// <summary>
+        /// The shop's own notice line (the same as its sale and refusal notices), for this many seconds. With
+        /// <paramref name="holdVisitor"/> the visitor's first line waits until it is gone (<see cref="VisitorHeldByNotice"/>):
+        /// for a notice shown as the shop opens, while the first visitor still walks in, so his speech plate never covers it.
+        /// </summary>
+        public void ShowNotice(string text, float seconds = 2.6f, bool holdVisitor = false)
+        {
+            Notify(text, seconds);
+            noticeHoldsVisitor = holdVisitor && !string.IsNullOrEmpty(text);
+        }
         IEnumerator Snap(Transform item)
         {
             // Drop in, then a squash-and-settle: the "clack" of putting goods on a shelf.

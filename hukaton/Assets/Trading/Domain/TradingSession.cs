@@ -73,7 +73,7 @@ namespace Hakaton.Trading
 
         /// <summary>
         /// Buys the next shift upgrade with the shared wallet (the PC), only between outings with the shop closed. Time
-        /// still left in the current shift grows by the bought seconds; a finished shift waits for fresh loot as before.
+        /// still left in the current shift grows by the bought seconds; a finished shift waits for the next trip as before.
         /// Returns an error to show, or null.
         /// </summary>
         public string ImproveShift()
@@ -110,7 +110,7 @@ namespace Hakaton.Trading
         public bool BulkBuyerUnlocked => GrossRevenue >= BulkBuyerUnlockRevenue;
         /// <summary>The player has met him once: later visits skip the explanation, the PC sells his upgrade.</summary>
         public bool BulkBuyerMet { get; private set; }
-        /// <summary>He has already come during this shift (a new shift starts with fresh loot from an outing).</summary>
+        /// <summary>He has already come during this shift (a new shift: fresh loot, or an empty return raising a finished shift).</summary>
         public bool BulkBuyerCameThisShift { get; private set; }
         /// <summary>Debug/cheat: the next generated visitor is the bulk buyer, whatever the chance, goal or shift.</summary>
         public bool ForceBulkBuyerNext { get; set; }
@@ -182,6 +182,7 @@ namespace Hakaton.Trading
             if (!IsOpen || customer == null || customer.Id != customerId || !customer.IsBulkBuyer) return false;
             // The display cannot change while the shop is open; still, the offer is only good for the goods it was made for.
             if (DisplayCount != customer.BulkCount || BulkOfferForDisplay() != customer.BulkPrice) return false;
+            PayAnswerFloor();
             int price = customer.BulkPrice, count = customer.BulkCount;
             long nextRevenue = checked(GrossRevenue + price);
             int nextSalesCount = checked(SalesCount + count);
@@ -360,7 +361,7 @@ namespace Hakaton.Trading
         public bool Open()
         {
             if (IsOpen || ExpeditionId != 0) return false;
-            if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Вернитесь из вылазки с новой добычей."; return false; }
+            if (RemainingSeconds <= 0) { LastMessage = "Смена окончена. Сходите на вылазку — время вернётся."; return false; }
             if (DisplayCount == 0) { LastMessage = "Сначала выставьте хотя бы один предмет."; return false; }
             IsOpen = true; Touch();
             // The promised bulk buyer: the first shift opened with a full display (never in the tutorial) starts with him.
@@ -378,6 +379,61 @@ namespace Hakaton.Trading
             closingVisitorAsked = false; closingVisitor = null; closingMessage = null;
             LastMessage = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
             Touch();
+        }
+
+        // ---------- the floor of an answer ----------
+
+        // Shift time left when the line the player answers began (null: no answer has a floor now), and whose line it is.
+        float? answerFrom;
+        long answerCustomer;
+
+        /// <summary>Seconds of the shift the last answer paid on top of the time spent deciding (0: none owed).</summary>
+        public float LastAnswerFloorCharge { get; private set; }
+
+        /// <summary>
+        /// The line the player answers begins now (a visitor's first line, his counter after «…», the bulk buyer's offer): an
+        /// answer to it costs at least <see cref="TradeSettings.MinAnswerSeconds"/> of the shift, counted from here. The clock
+        /// stands while a line types, so what is counted is the time the player spent deciding. Never while the clock is
+        /// paused (the tutorial's trade).
+        /// </summary>
+        void OpenAnswer()
+        {
+            answerFrom = ClockPaused || CurrentCustomer == null ? (float?)null : RemainingSeconds;
+            answerCustomer = CurrentCustomer?.Id ?? 0;
+        }
+
+        /// <summary>
+        /// The bulk buyer's offer is on screen (the shop says when: after his explanation at the first meeting, at once on
+        /// later visits): from now on the answer to him has the floor of an answer; his explanation before it costs nothing.
+        /// Once a visit; false if he is not the visitor at the counter or his offer is already open.
+        /// </summary>
+        public bool OpenBulkOffer(long customerId)
+        {
+            var customer = CurrentCustomer;
+            if (!IsOpen || customer == null || customer.Id != customerId || !customer.IsBulkBuyer || answerCustomer == customerId)
+                return false;
+            OpenAnswer();
+            return true;
+        }
+
+        /// <summary>
+        /// The player answers the open line (a price, accepting, refusing, selling to the bulk buyer): if less than
+        /// <see cref="TradeSettings.MinAnswerSeconds"/> of the shift has passed since it began, the rest goes now, never below
+        /// zero. A visitor at the counter is still served to the end.
+        /// </summary>
+        void PayAnswerFloor()
+        {
+            LastAnswerFloorCharge = 0;
+            if (answerFrom is float from && !ClockPaused && CurrentCustomer != null && CurrentCustomer.Id == answerCustomer)
+            {
+                float owed = Settings.MinAnswerSeconds - Math.Max(0, from - RemainingSeconds);
+                if (owed > 0)
+                {
+                    LastAnswerFloorCharge = Math.Min(owed, RemainingSeconds);
+                    RemainingSeconds = Math.Max(0, RemainingSeconds - owed);
+                }
+            }
+            answerFrom = null;
         }
 
         public void Tick(float elapsedSeconds)
@@ -411,6 +467,8 @@ namespace Hakaton.Trading
                 nextTerms = BulkBuyerComes() ? new CustomerTerms { Name = "Скупщик", BulkBuyer = true } : GenerateCustomer();
             ValidateCustomerTerms(nextTerms);
             CurrentCustomer = new Customer(++nextCustomerId, nextTerms);
+            // A story visitor's lines have no floor; the bulk buyer's offer opens it when the shop shows it (OpenBulkOffer).
+            answerFrom = null; answerCustomer = 0;
             if (CurrentCustomer.IsTalker)
             {
                 // He only talks: no item, no deal; his lines are read on (ReadOnTalker).
@@ -433,6 +491,7 @@ namespace Hakaton.Trading
             }
             int slot = CurrentCustomer.RequestedSlot;
             CurrentDeal = new TradeDeal(++nextDealId, CurrentCustomer, slots[slot], slot);
+            OpenAnswer();
             LastMessage = CurrentDeal.Reaction;
             Touch();
             return true;
@@ -453,6 +512,7 @@ namespace Hakaton.Trading
             var options = deal.GetPriceOptions();
             if (optionIndex < 0 || optionIndex >= options.Length || !options[optionIndex].Enabled) return false;
             int price = options[optionIndex].Price;
+            PayAnswerFloor();
             deal.Round++; deal.Revision++;
             if (deal.IsLastOffer)
             {
@@ -488,7 +548,7 @@ namespace Hakaton.Trading
             deal.Patience -= cost;
 
             // Counter: move from the previous position towards what you asked (capped by the limit) — or hold.
-            int previous = deal.N ?? Math.Max(1, TradeDeal.RoundMoney(Math.Min(deal.MaxPrice, deal.R) * .9));
+            int previous = deal.N ?? Math.Max(1, TradeDeal.RoundMoney(Math.Min(deal.MaxPrice, deal.R) * (double)Settings.AskerFirstCounterRatio));
             int target = Math.Min(price - 1, deal.MaxPrice);
             bool stubborn = random.NextDouble() < .2 || target <= previous;
             int counter = stubborn ? previous
@@ -503,6 +563,7 @@ namespace Hakaton.Trading
                 : deal.Mood == CustomerMood.Angry ? Pick(AngryLines)
                 : stubborn ? Pick(StubbornLines)
                 : deal.Mood == CustomerMood.Displeased ? Pick(DispleasedLines) : Pick(CounterLines), deal.N);
+            OpenAnswer();
             LastMessage = deal.Reaction;
             Touch();
             return true;
@@ -521,6 +582,7 @@ namespace Hakaton.Trading
             deal.IsLastOffer = true;
             deal.Mood = CustomerMood.Angry;
             deal.Reaction = string.Format(Pick(LastOfferLines), deal.N);
+            OpenAnswer();
             LastMessage = deal.Reaction;
             Touch();
         }
@@ -546,6 +608,7 @@ namespace Hakaton.Trading
         public bool Accept(long dealId, int revision)
         {
             if (!MatchesDeal(dealId, revision) || !CurrentDeal.N.HasValue) return false;
+            PayAnswerFloor();
             Settle(CurrentDeal.N.Value);
             return true;
         }
@@ -555,6 +618,7 @@ namespace Hakaton.Trading
             if (!IsOpen || CurrentCustomer == null || CurrentCustomer.Id != customerId) return false;
             // A talker is a conversation, not an offer: nothing to refuse, he is read to the end.
             if (CurrentCustomer.IsTalker) return false;
+            PayAnswerFloor();
             if (CurrentCustomer.IsBulkBuyer)
             {
                 // A refusal is an answer too: he has been met and leaves calmly, the goods stay where they are.
@@ -591,12 +655,68 @@ namespace Hakaton.Trading
             if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId) return false;
             bool freshLoot = expeditionLoot.Count > 0;
             inventory.AddRange(expeditionLoot); expeditionLoot.Clear(); ExpeditionId = 0;
-            // Fresh loot starts a new shift: the bulk buyer may come again.
-            if (freshLoot) { RemainingSeconds = ShiftLength; BulkBuyerCameThisShift = false; }
-            LastMessage = freshLoot ? "Новая добыча доставлена. Время торговли восстановлено."
-                : "Вернулись без новой добычи. Остаток времени не изменился.";
+            if (freshLoot)
+            {
+                // Fresh loot starts a new shift: the bulk buyer may come again.
+                RemainingSeconds = ShiftLength; BulkBuyerCameThisShift = false;
+                LastReturn = ShiftReturn.Restored;
+                LastMessage = "Новая добыча доставлена. Время торговли восстановлено.";
+            }
+            else ApplyEmptyReturn();
             Touch();
             return true;
+        }
+
+        /// <summary>
+        /// A trip back to the shop with nothing new that did not go through <see cref="BeginExpedition"/> (the god's
+        /// mountains): the same rule as an outing without loot. Only with the shop shut and no outing under way.
+        /// </summary>
+        public bool ReturnWithoutLoot()
+        {
+            if (IsOpen || ExpeditionId != 0) return false;
+            ApplyEmptyReturn();
+            Touch();
+            return true;
+        }
+
+        /// <summary>
+        /// An outing that never left (the workshop refused to depart): the token is handed back and the shift stays as it
+        /// was. No trip was made, so the empty-return rule does not apply.
+        /// </summary>
+        public bool CancelExpedition(long expeditionId)
+        {
+            if (IsOpen || expeditionId == 0 || expeditionId != ExpeditionId) return false;
+            inventory.AddRange(expeditionLoot); expeditionLoot.Clear(); ExpeditionId = 0;
+            LastMessage = "Вылазка не состоялась.";
+            Touch();
+            return true;
+        }
+
+        /// <summary>Share of a full shift guaranteed after a trip without loot while the shop still has goods.</summary>
+        public const float EmptyReturnShiftShare = .5f;
+        public const string HalfShiftNote = "На складе есть товар — полсмены ваши.";
+        /// <summary>What the last return from a trip did to the shift clock.</summary>
+        public ShiftReturn LastReturn { get; private set; }
+
+        /// <summary>
+        /// Back without loot: with goods in storage or on the display the shift has at least half its length left, so a
+        /// full storage never leaves the shop shut; with nothing to sell the clock stays as it was. Only a clock actually
+        /// raised says so («полсмены ваши»); half a shift or more left is kept as it was, with the plain message. Raised
+        /// from zero, it is a new shift for the bulk buyer.
+        /// </summary>
+        void ApplyEmptyReturn()
+        {
+            float half = ShiftLength * EmptyReturnShiftShare;
+            if (TotalStockCount == 0 || RemainingSeconds >= half)
+            {
+                LastReturn = ShiftReturn.Unchanged;
+                LastMessage = "Вернулись без новой добычи. Остаток времени не изменился.";
+                return;
+            }
+            if (RemainingSeconds <= 0) BulkBuyerCameThisShift = false;
+            RemainingSeconds = half;
+            LastReturn = ShiftReturn.HalfShift;
+            LastMessage = "Вернулись без добычи. " + HalfShiftNote;
         }
 
         /// <summary>Validates the entire external delivery before changing inventory or the outing token.</summary>
@@ -861,5 +981,18 @@ namespace Hakaton.Trading
             }
             catalog.Add(definition);
         }
+    }
+
+    /// <summary>What a return from a trip did to the shift clock (<see cref="TradingSession.LastReturn"/>).</summary>
+    public enum ShiftReturn
+    {
+        /// <summary>No trip has come back yet.</summary>
+        None,
+        /// <summary>Fresh loot: a whole new shift.</summary>
+        Restored,
+        /// <summary>No loot, but goods in the shop: the clock was below half a shift and is raised to half.</summary>
+        HalfShift,
+        /// <summary>No loot, and nothing to sell or half a shift or more already left: the clock is as it was.</summary>
+        Unchanged
     }
 }

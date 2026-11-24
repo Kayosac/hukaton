@@ -45,6 +45,14 @@ namespace Hakaton.Trading.Unity
         [Tooltip("White resting face over the faded clock when the shift has ended (outside Clock Body, never faded).")]
         public GameObject clockRestingFace;
         [Range(0, 1)] public float endedClockAlpha = .38f;
+        [Tooltip("Clock Body while the shift's time stands (TradingPrototype.ShiftClockRunning is false: nobody at the counter, " +
+                 "a line still typing, the visitor thinking, a story visitor talking, the camera moving, the shop closed). Unlike " +
+                 "the ended shift there is no resting face. The cross is outside Clock Body and stays bright.")]
+        [Range(0, 1)] public float standingClockAlpha = .6f;
+        [Tooltip("Seconds Clock Body takes between the running look (full) and the standing one (Standing Clock Alpha), both " +
+                 "ways, in unscaled time like the rest of the clock: no blink after every answer. 0: at once. Only the fade is " +
+                 "eased: the fill shows each change at once, the cross never fades, the ended shift's look comes at once.")]
+        [Min(0)] public float clockFadeSeconds = .15f;
         [Tooltip("Over the last this many seconds of a running shift the clock shakes and ShopFeel ticks (one setting for both).")]
         [Min(0)] public float countdownSeconds = 3;
         [Tooltip("How far the clock jumps about at the very end, in layout units (whole units: crisp pixels).")]
@@ -119,7 +127,7 @@ namespace Hakaton.Trading.Unity
         int bulkLineShown = -1;
         RectTransform clockRect;
         Vector2 clockRest;
-        bool clockShaking;
+        bool clockShaking, clockEasing;
         int countdownSecond = -1;
         float punchAt = -1, nextShake;
         Vector2 shakeOffset;
@@ -154,6 +162,9 @@ namespace Hakaton.Trading.Unity
         /// <summary>Prints the rest of the visitor's line at once; true if it was still typing (the press is spent on that).</summary>
         public bool SkipSpeechTyping() => speech && speech.TryGetComponent(out TypedLine typed) && typed.Skip();
 
+        /// <summary>The visitor's line is still appearing letter by letter (the shift clock waits for it).</summary>
+        public bool SpeechTyping => speech && speech.isActiveAndEnabled && speech.TryGetComponent(out TypedLine typed) && typed.IsTyping;
+
         static readonly NumberFormatInfo MoneyFormat = new NumberFormatInfo { NumberGroupSeparator = " ", NumberGroupSizes = new[] { 3 } };
         /// <summary>Balance as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
         public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);
@@ -174,7 +185,10 @@ namespace Hakaton.Trading.Unity
         public static bool InCountdownWindow(TradingSession session, float seconds)
             => session != null && session.RemainingSeconds > 0 && session.RemainingSeconds <= seconds;
 
-        /// <summary>The clock is running out: open, ticking, within the last <paramref name="seconds"/>.</summary>
+        /// <summary>
+        /// The session's side of the countdown: open, not paused by the tutorial, within the last <paramref name="seconds"/>.
+        /// The clock ticks and shakes only while its time also runs (TradingPrototype.ShiftClockRunning).
+        /// </summary>
         public static bool InCountdown(TradingSession session, float seconds)
             => session != null && session.IsOpen && !session.ClockPaused && session.RemainingSeconds > 0
                && session.RemainingSeconds <= seconds;
@@ -245,21 +259,38 @@ namespace Hakaton.Trading.Unity
 
         /// <summary>
         /// Radial fill of the remaining shift. Once time is up the cross goes (the shift is over already), the clock
-        /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served.
+        /// fades to 38% and the opaque white resting face lies over it; the current visitor can still be served. While the
+        /// time stands (TradingPrototype.ShiftClockRunning is false) the clock is only faded to Standing Clock Alpha, over
+        /// Clock Fade Seconds both ways (<see cref="ClockBodyAlpha"/>); the cross, outside Clock Body, stays bright.
         /// </summary>
         void RefreshClock(TradingSession session)
         {
             bool shown = ShiftClockShown(session);
             shiftClock.SetActive(shown);
-            if (!shown) { StopShake(true); return; }
+            if (!shown) { clockEasing = false; StopShake(true); return; }
             bool ended = session.RemainingSeconds <= 0;
             clockFill.fillAmount = ended ? 0 : ClockFill(session.RemainingSeconds, session.ShiftLength);
             // The cross closes an open shop; away from the counter there is nothing to close.
             clockClose.gameObject.SetActive(session.IsOpen && !ended);
             clockClose.interactable = !controller.ViewTransitioning;
-            clockBody.alpha = ended ? endedClockAlpha : 1;
+            clockBody.alpha = ClockBodyAlpha(ended);
             clockRestingFace.SetActive(ended);
             ShakeClock(session);
+        }
+
+        /// <summary>
+        /// Clock Body's alpha this frame. Between running (1) and standing (Standing Clock Alpha) it moves at the speed that
+        /// covers that whole way in Clock Fade Seconds (unscaled), both ways. The ended shift's look comes at once, as before
+        /// (its white resting face appears at once too); right after the clock appears or that look goes, the running or
+        /// standing look is taken at once rather than faded into.
+        /// </summary>
+        float ClockBodyAlpha(bool ended)
+        {
+            if (ended) { clockEasing = false; return endedClockAlpha; }
+            float target = controller.ShiftClockRunning ? 1 : standingClockAlpha;
+            if (!clockEasing || clockFadeSeconds <= 0) { clockEasing = true; return target; }
+            float speed = Mathf.Max(.01f, 1 - standingClockAlpha) / clockFadeSeconds;
+            return Mathf.MoveTowards(clockBody.alpha, target, speed * Time.unscaledDeltaTime);
         }
 
         /// <summary>
@@ -268,9 +299,9 @@ namespace Hakaton.Trading.Unity
         /// </summary>
         void ShakeClock(TradingSession session)
         {
-            if (!InCountdown(session, countdownSeconds))
+            if (!InCountdown(session, countdownSeconds) || !controller.ShiftClockRunning)
             {
-                // Closed or paused within the last seconds: the beat goes on from where it was when the clock runs again.
+                // Closed, paused or standing within the last seconds: the beat goes on from where it was when the clock runs again.
                 StopShake(!InCountdownWindow(session, countdownSeconds));
                 return;
             }

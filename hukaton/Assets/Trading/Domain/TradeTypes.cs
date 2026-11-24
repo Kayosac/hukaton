@@ -51,12 +51,23 @@ namespace Hakaton.Trading
     {
         public int SlotCount { get; set; } = 6;
         public float ShiftSeconds { get; set; } = 120f;
+        /// <summary>
+        /// The floor of an answer: every answer to a visitor (a price, accepting, refusing, selling to the bulk buyer) costs at
+        /// least this many seconds of the shift, counted from the start of the line it answers; a quicker answer pays the
+        /// rest at once. 0: no floor (the game sets it from <c>TradingPrototype.minAnswerSeconds</c>).
+        /// </summary>
+        public float MinAnswerSeconds { get; set; }
         public float MinOpeningRatio { get; set; } = .7f;
         public float MaxOpeningRatio { get; set; } = .9f;
         public float MinCeilingRatio { get; set; } = 1f;
         public float MaxCeilingRatio { get; set; } = 1.4f;
         public float MinOfferCeilingRatio { get; set; } = .95f;
         public float MaxOfferCeilingRatio { get; set; } = 1.2f;
+        /// <summary>
+        /// Where the first counter of a visitor who asked the price starts: this share of the price R (no more than his
+        /// limit). 1: his counter is never below R.
+        /// </summary>
+        public float AskerFirstCounterRatio { get; set; } = 1f;
         public float AsksPriceProbability { get; set; } = .5f;
         public bool UsePresetPatienceCosts { get; set; }
         public int MinPatience { get; set; } = 3;
@@ -87,12 +98,14 @@ namespace Hakaton.Trading
                 || MaxOpeningRatio >= 1 || !Positive(MaxOpeningRatio)
                 || !Positive(MinCeilingRatio) || !Positive(MaxCeilingRatio)
                 || !Positive(MinOfferCeilingRatio) || !Positive(MaxOfferCeilingRatio)
-                || MaxOfferCeilingRatio < MinOfferCeilingRatio
+                || MaxOfferCeilingRatio < MinOfferCeilingRatio || !Positive(AskerFirstCounterRatio)
                 || float.IsNaN(AsksPriceProbability) || AsksPriceProbability < 0 || AsksPriceProbability > 1
                 || MaxCeilingRatio < MinCeilingRatio || MinPatience < 1
                 || MaxPatience < MinPatience || MaxPatience == int.MaxValue
                 || !Positive(CounterStepRatio))
                 throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid trade tuning.");
+            if (float.IsNaN(MinAnswerSeconds) || float.IsInfinity(MinAnswerSeconds) || MinAnswerSeconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(TradeSettings), "Invalid answer floor.");
             var upgradeSeconds = ShiftUpgradeSeconds ?? Array.Empty<float>();
             var upgradePrices = ShiftUpgradePrices ?? Array.Empty<int>();
             float longestShift = ShiftSeconds;

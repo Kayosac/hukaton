@@ -16,6 +16,9 @@ namespace Hakaton.Game
         public bool drownLectureGiven;
         /// <summary>Once-per-game moments of the outings (the forgiven first drowning…). Null in older saves.</summary>
         public Hakaton.Expeditions.OutingFirstsSave outingFirsts;
+        /// <summary>The line about the shift clock was shown at the first shift after the tutorial. False in older saves: it
+        /// comes once.</summary>
+        public bool shiftClockLineGiven;
         public WorkshopSave cards;
         public TradingSave shop;
         /// <summary>The goblin card dealer: his current ten, its reveal, purchases and when he may come again. Null in old saves.</summary>

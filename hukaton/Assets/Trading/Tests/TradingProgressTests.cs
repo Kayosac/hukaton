@@ -166,6 +166,130 @@ namespace Hakaton.Trading.Tests
             Assert.That(restored.CompleteExpedition(next, new[] { new StockDelivery(Tusk.Id, 1) }), Is.False);
         }
 
+        /// <summary>Opens the shop and lets the whole shift run out (the visitor at the counter is sent off by closing).</summary>
+        static void Drain(TradingSession session)
+        {
+            Assert.That(session.Open(), Is.True);
+            session.Tick(session.RemainingSeconds);
+            session.Close();
+            Assert.That(session.RemainingSeconds, Is.Zero);
+        }
+
+        const string HalfShiftMessage = "Вернулись без добычи. На складе есть товар — полсмены ваши.";
+
+        [Test]
+        public void EmptyReturnWithGoodsOnlyInStorageGivesHalfAShift()
+        {
+            var session = Create();
+            session.SeedInventory(Find, 2); session.PlaceItem(0, 0);
+            Drain(session);
+            Assert.That(session.RemoveItem(0), Is.True);
+            Assert.That((session.DisplayCount, session.Inventory.Count), Is.EqualTo((0, 2)), "Goods only in storage.");
+            long id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id, Array.Empty<StockDelivery>()), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(session.ShiftLength / 2));
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.HalfShift));
+            Assert.That(session.LastMessage, Is.EqualTo(HalfShiftMessage));
+            Assert.That(session.PlaceItem(0, 0), Is.True);
+            Assert.That(session.Open(), Is.True, "Goods in storage never leave the shop shut.");
+        }
+
+        [Test]
+        public void EmptyReturnWithGoodsOnlyOnTheDisplayGivesHalfAShift()
+        {
+            var session = Create();
+            session.SeedInventory(Find); session.PlaceItem(0, 0);
+            Drain(session);
+            Assert.That((session.DisplayCount, session.Inventory.Count), Is.EqualTo((1, 0)), "Goods only on the display.");
+            long id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(60), "Half of the 120 s shift.");
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.HalfShift));
+            Assert.That(session.Open(), Is.True);
+        }
+
+        [Test]
+        public void EmptyReturnWithNothingToSellLeavesTheClockAsItWas()
+        {
+            var session = Create();
+            session.SeedInventory(Find); session.PlaceItem(0, 0);
+            Assert.That(session.Open(), Is.True); session.Tick(100); session.Close();
+            Sell(session, 0);
+            Assert.That((session.TotalStockCount, session.IsOpen, session.RemainingSeconds), Is.EqualTo((0, false, 20f)));
+            long id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id, Array.Empty<StockDelivery>()), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(20), "No goods: no half shift.");
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.Unchanged));
+            Assert.That(session.LastMessage, Is.EqualTo("Вернулись без новой добычи. Остаток времени не изменился."));
+        }
+
+        [Test]
+        public void EmptyReturnNeverShortensAShiftLongerThanHalf()
+        {
+            var session = Create();
+            session.SeedInventory(Find, 3); session.PlaceItem(0, 0);
+            Assert.That(session.Open(), Is.True); session.Tick(20); session.Close();
+            long id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(100));
+            // Nothing was raised, so the message does not promise half a shift.
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.Unchanged));
+            Assert.That(session.LastMessage, Is.EqualTo("Вернулись без новой добычи. Остаток времени не изменился."));
+
+            // Exactly half left: not raised either, on every way back.
+            Assert.That(session.Open(), Is.True); session.Tick(40); session.Close();
+            id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.Unchanged)));
+            Assert.That(session.ReturnWithoutLoot(), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.Unchanged)));
+            Assert.That(session.LastMessage, Is.EqualTo("Вернулись без новой добычи. Остаток времени не изменился."));
+
+            // A second under half: raised, and now it says so.
+            Assert.That(session.Open(), Is.True); session.Tick(1); session.Close();
+            Assert.That(session.ReturnWithoutLoot(), Is.True);
+            Assert.That((session.RemainingSeconds, session.LastReturn), Is.EqualTo((60f, ShiftReturn.HalfShift)));
+            Assert.That(session.LastMessage, Is.EqualTo(HalfShiftMessage));
+        }
+
+        [Test]
+        public void ReturnWithLootStillRefillsTheWholeShift()
+        {
+            var session = Create();
+            session.SeedInventory(Find, 2); session.PlaceItem(0, 0);
+            Drain(session);
+            long id = session.BeginExpedition();
+            Assert.That(session.CompleteExpedition(id, new[] { new StockDelivery(Tusk.Id, 1) }), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(session.ShiftLength));
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.Restored));
+            Assert.That(session.LastMessage, Is.EqualTo("Новая добыча доставлена. Время торговли восстановлено."));
+        }
+
+        [Test]
+        public void TripOutsideAnOutingFollowsTheSameRuleAndACancelledOutingChangesNothing()
+        {
+            var session = Create();
+            session.SeedInventory(Find, 2); session.PlaceItem(0, 0);
+            Drain(session);
+            // An outing the workshop refused never left: no trip, no half shift.
+            long refused = session.BeginExpedition();
+            Assert.That(session.CancelExpedition(refused), Is.True);
+            Assert.That((session.ExpeditionId, session.RemainingSeconds), Is.EqualTo((0L, 0f)));
+            Assert.That(session.CancelExpedition(refused), Is.False);
+            Assert.That(session.CompleteExpedition(refused), Is.False);
+
+            // The god's mountains: a trip with nothing to bring back, outside BeginExpedition.
+            long away = session.BeginExpedition();
+            Assert.That(session.ReturnWithoutLoot(), Is.False, "Not while an outing is under way.");
+            Assert.That(session.CancelExpedition(away), Is.True);
+            Assert.That(session.ReturnWithoutLoot(), Is.True);
+            Assert.That(session.RemainingSeconds, Is.EqualTo(60));
+            Assert.That(session.LastReturn, Is.EqualTo(ShiftReturn.HalfShift));
+            Assert.That(session.LastMessage, Is.EqualTo(HalfShiftMessage));
+            Assert.That(session.Open(), Is.True);
+            Assert.That(session.ReturnWithoutLoot(), Is.False, "Not while the shop is open.");
+        }
+
         [Test]
         public void SharedWalletOverflowDoesNotAdvanceRevenueOrRemoveTheItem()
         {

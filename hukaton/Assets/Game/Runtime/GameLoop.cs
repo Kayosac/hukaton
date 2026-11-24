@@ -53,6 +53,12 @@ namespace Hakaton.Game
             "Когда-нибудь ты научишься плавать, но не сегодня.",
             "Больше так не рискуй."
         };
+        [Tooltip("Said once, as the shop's notice, the first time the player opens the shop after the tutorial (saved: never " +
+                 "again; never in the tutorial's own trade). Empty: nothing.")]
+        public string shiftClockLine = "Часы идут, только пока ты думаешь над ценой.";
+        [Tooltip("How long the line about the shift clock stays up, seconds. It shows as the shop opens, while the first " +
+                 "visitor walks in; his first line waits until it is gone, so his speech plate never covers it.")]
+        [Min(1)] public float shiftClockLineSeconds = 5;
         [Tooltip("Back from the god: the goblin waits on the counter (the shop tutorial's goblin) and has a word, then poofs.")]
         [TextArea] public string[] godReturnLecture =
         {
@@ -190,6 +196,9 @@ namespace Hakaton.Game
         public bool LectureActive => lecture && lecture.Active;
         /// <summary>The drowning lecture was heard to the end (saved): later drownings only get the notice.</summary>
         public bool DrownLectureGiven => drownLectureGiven;
+        /// <summary>The line about the shift clock has been shown (saved): the first shift after the tutorial had it.</summary>
+        public bool ShiftClockLineGiven => shiftClockLineGiven;
+        bool shiftClockLineGiven;
         bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet, godLectureRunning;
         // The stranger: an endless outing is back; he has come (saved); sent for this closing; the goblin's word after him.
         bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning;
@@ -272,6 +281,8 @@ namespace Hakaton.Game
             trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
             // A shift that ends by itself may bring the stranger as its last visitor.
             trade.Session.ClosingVisitor = StrangerAtClosing;
+            // The goblin's word at the counter holds the shift clock like any story visitor's.
+            trade.ShiftClockHold = () => LectureActive;
             trade.ExpeditionRequested += TryDepartFromDoor;
             workshop.OutingCompleted += CompleteOuting;
             trade.Session.Changed += MarkDirty;
@@ -404,10 +415,23 @@ namespace Hakaton.Game
         void TrackShift()
         {
             bool open = trade.Session.IsOpen;
-            if (open && !shopWasOpen) salesAtOpen = trade.Session.SalesCount;
+            if (open && !shopWasOpen) { salesAtOpen = trade.Session.SalesCount; AnnounceShiftClock(); }
             if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
             shopWasOpen = open;
         }
+        /// <summary>
+        /// The first shift the player opens after the tutorial: once per save, the shop's notice tells how its clock runs
+        /// (only while the player decides on a price). It shows while the first visitor walks in, and his first line waits
+        /// until it is gone (TradingPrototype.VisitorHeldByNotice). Not in the tutorial's trade, nor in the cave.
+        /// </summary>
+        void AnnounceShiftClock()
+        {
+            if (shiftClockLineGiven || tutorial.Active || InCave || string.IsNullOrEmpty(shiftClockLine)) return;
+            shiftClockLineGiven = true;
+            dirty = true;
+            trade.ShowNotice(shiftClockLine, shiftClockLineSeconds, holdVisitor: true);
+        }
+
         /// <summary>
         /// The shop is about to close by itself: after the first endless outing, once per save, with <see cref="strangerChance"/>
         /// (for sure on the <see cref="strangerGuaranteedAt"/>-th such closing, or by the cheat), one more visitor — the stranger
@@ -588,8 +612,12 @@ namespace Hakaton.Game
             {
                 godMet = true;
                 if (outingMap) outingMap.Forget(outingMap.SiteFor(OutingPlace.God));
+                // A trip without loot like any other: goods already in the shop still get at least half a shift.
+                string shiftNotice = trade.Session.ReturnWithoutLoot() && trade.Session.LastReturn == ShiftReturn.HalfShift
+                    ? trade.Session.LastMessage : null;
                 // the goblin is on the counter as the picture comes back: where were you, and empty-handed?
                 if (lecture && !(tutorial && tutorial.Active)) godLectureRunning = lecture.Play(godReturnLecture, tutorial ? tutorial.goblin : null);
+                if (shiftNotice != null) { if (godLectureRunning) noticeAfterLecture = shiftNotice; else Notify(shiftNotice, 8); }
             }
             dirty = true;
             if (fade) StartCoroutine(fade.FadeTo(0, .6f));
@@ -652,7 +680,8 @@ namespace Hakaton.Game
             error = workshop.TryDepart();
             if (error != null)
             {
-                trade.CompleteExternalExpedition(activeOuting, Array.Empty<StockDelivery>());
+                // Nobody left: no trip, so no empty-return half shift either.
+                trade.CancelExternalExpedition(activeOuting);
                 activeOuting = 0; SetPhase(GamePhase.Shop); Notify(error);
             }
             restoring = false;
@@ -676,10 +705,15 @@ namespace Hakaton.Game
             // The first outing into the endless world is back: from now on a shift's end may bring the stranger.
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             int kept = delivery.Sum(x => x.count);
-            // After a defeat the world's own line says what came home (DefeatLoot.Notice): «Поражение. Домой пришло …».
+            // Nothing brought back but goods in the shop: the session has given at least half a shift.
+            bool halfShift = trade.Session.LastReturn == ShiftReturn.HalfShift;
+            // After a defeat the world's own line says what came home (DefeatLoot.Notice): «Поражение. Домой пришло …»;
+            // a clock raised to half a shift adds the shop's line under it.
             string notice = defeated ? (string.IsNullOrEmpty(expedition.LastOutingNotice) ? "Поражение." : expedition.LastOutingNotice)
+                    + (halfShift ? "\n" + TradingSession.HalfShiftNote : "")
                 : kept > 0 ? "Доставлено предметов: " + kept + ". Смена восстановлена.\nВыложите добычу на витрину и откройте лавку."
-                : "Вы вернулись без добычи. Остаток смены сохранён.";
+                // Without loot the shop's own message: «полсмены ваши» only when the clock was raised, else the clock is as it was.
+                : trade.Session.LastMessage;
             // The first drowning: the goblin waits in the shop (the screen is still dark) with a word about deep water;
             // the notice comes once he is gone.
             if (defeated && expedition.LastOutingDrowned && !drownLectureGiven && !tutorial.Active && lecture && lecture.Play(drownLecture))
@@ -693,7 +727,13 @@ namespace Hakaton.Game
             // The goblin's word after the stranger: nothing to record.
             if (strangerLectureRunning) { strangerLectureRunning = false; return; }
             // The goblin's word after the god: the special items open now (UnlockCheck), not the drowning lecture.
-            if (godLectureRunning) { godLectureRunning = false; dirty = true; return; }
+            if (godLectureRunning)
+            {
+                godLectureRunning = false; dirty = true;
+                if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);
+                noticeAfterLecture = null;
+                return;
+            }
             drownLectureGiven = true;
             dirty = true;
             if (!string.IsNullOrEmpty(noticeAfterLecture)) Notify(noticeAfterLecture, 8);
@@ -813,6 +853,7 @@ namespace Hakaton.Game
         public GameSave Capture() => new GameSave {
             coins = wallet.Wallet.Balance, goalCelebrated = goalCelebrated, drownLectureGiven = drownLectureGiven,
             outingFirsts = expedition.SaveFirsts(),
+            shiftClockLineGiven = shiftClockLineGiven,
             cards = workshop.Model.Save(), shop = trade.Session.Save(), goblin = cardShop.Visits.Save(), tutorial = tutorial.Save(),
             player = new PlayerSave { staminaLevel = player.stamina ? player.stamina.Upgrade.Level : 0,
                 heartsLevel = expedition.vitals ? expedition.vitals.Upgrade.Level : 0 },
@@ -874,6 +915,7 @@ namespace Hakaton.Game
             if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
             drownLectureGiven = save.drownLectureGiven;
+            shiftClockLineGiven = save.shiftClockLineGiven;
             // Saves from before the forgiven first drowning: a player who has heard the goblin about water has drowned already.
             expedition.RestoreFirsts(save.outingFirsts ?? new Hakaton.Expeditions.OutingFirstsSave { drownForgiven = save.drownLectureGiven });
             trade.RefreshPresentation(); workshop.RefreshWorkshop();

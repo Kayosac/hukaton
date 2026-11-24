@@ -73,8 +73,11 @@ namespace Hakaton.Trading.Tests
             Assert.That(hud.clockFill.fillMethod, Is.EqualTo(Image.FillMethod.Radial360));
             Assert.That(hud.clockFill.fillClockwise, Is.False, "The remaining-time edge moves clockwise");
             Assert.That(hud.clockRestingFace.transform.IsChildOf(hud.clockBody.transform), Is.False, "The face is never faded with the clock");
-            Assert.That(hud.clockClose.transform.IsChildOf(hud.clockBody.transform), Is.True);
+            // The cross closes the shop at any moment: it shakes with the clock but is never faded with its body.
+            Assert.That(hud.clockClose.transform.IsChildOf(hud.shiftClock.transform), Is.True);
+            Assert.That(hud.clockClose.transform.IsChildOf(hud.clockBody.transform), Is.False, "The cross stays bright while the time stands");
             Assert.That(hud.endedClockAlpha, Is.EqualTo(.38f).Within(.001f));
+            Assert.That(hud.standingClockAlpha, Is.EqualTo(.6f).Within(.001f), "Standing time: only faded, unlike the ended shift");
             Assert.That(Hakaton.Trading.Unity.TradingHud.ClockFill(30, 120), Is.EqualTo(.25f).Within(.0001f));
             Assert.That(Hakaton.Trading.Unity.TradingHud.ClockFill(-5, 120), Is.Zero);
             Assert.That(hud.speech.fontSize, Is.EqualTo(24));

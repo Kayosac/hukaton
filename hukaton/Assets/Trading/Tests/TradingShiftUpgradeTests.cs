@@ -79,7 +79,7 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void FinishedShiftWaitsForFreshLootWhichRefillsTheUpgradedLength()
+        public void FinishedShiftGetsHalfTheUpgradedLengthOnAnEmptyReturnAndFreshLootRefillsIt()
         {
             var session = Create(new CoinWallet(1000));
             Trade(session, 30);
@@ -89,7 +89,7 @@ namespace Hakaton.Trading.Tests
 
             long empty = session.BeginExpedition();
             Assert.That(session.CompleteExpedition(empty), Is.True);
-            Assert.That(session.RemainingSeconds, Is.Zero, "Coming back empty-handed restores nothing.");
+            Assert.That(session.RemainingSeconds, Is.EqualTo(20), "Empty-handed with goods in the shop: half the upgraded shift.");
             long outing = session.BeginExpedition();
             Assert.That(session.CollectLoot(outing, Find), Is.True);
             Assert.That(session.CompleteExpedition(outing), Is.True);

@@ -206,8 +206,9 @@ namespace Hakaton.Trading.Unity
             // The last seconds of a shift: tick on each whole second, tock on each half, louder towards the end.
             float countdown = hud ? hud.countdownSeconds : tickingSeconds;
             if (!TradingHud.InCountdownWindow(session, countdown)) lastTick = -1;
-            // Closed or paused within the window: the beat goes on from where it was when the clock runs again.
-            else if (TradingHud.InCountdown(session, countdown))
+            // Closed, paused or standing within the window (the clock runs only while the player decides): silent, and the
+            // beat goes on from where it was when the clock runs again.
+            else if (TradingHud.InCountdown(session, countdown) && trade.ShiftClockRunning)
             {
                 int half = Mathf.CeilToInt(session.RemainingSeconds * 2);
                 if (half != lastTick)
