@@ -1198,8 +1198,15 @@ namespace Hakaton.Expeditions
             // Bumping into the player is not a crash; only the attack hurts, and only the player.
             if (collision.collider == world.motor.characterController || collision.collider.GetComponentInParent<CardProjectile>()) return;
             float normalSpeed = 0;
+            // Its own lunge or charge coming down on the ground (a bump in uneven ground meets it edge-on) is a landing:
+            // only what it runs into at body height counts. Thrown by a card or a kick it still lands hard.
+            bool ownRun = (lunging || ramming) && !collision.rigidbody;
             for (int i = 0; i < collision.contactCount; i++)
-                normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, collision.GetContact(i).normal));
+            {
+                var contact = collision.GetContact(i);
+                if (ownRun && ExpeditionEffectRules.LandsOnItsFeet(contact.point.y, contact.thisCollider.bounds.min.y)) continue;
+                normalSpeed = Mathf.Max(normalSpeed, ExpeditionEffectRules.NormalSpeed(collision.relativeVelocity, contact.normal));
+            }
             int damage = ExpeditionEffectRules.ImpactDamage(normalSpeed, world.settings.collisionDamageSpeed, world.settings.collisionDamageStep);
             // A charge through a fence: it breaks, and the beast runs on.
             if ((lunging || ramming) && normalSpeed > 3 && PropPhysics.Fixed(collision.collider) is Breakable fence

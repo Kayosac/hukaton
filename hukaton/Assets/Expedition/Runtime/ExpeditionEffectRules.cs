@@ -14,6 +14,16 @@ namespace Hakaton.Expeditions
             return 4;
         }
 
+        /// <summary>
+        /// A creature's own leap or charge meeting the ground under its feet is a landing, not a crash: the contact is
+        /// within <paramref name="tolerance"/> of the bottom of its body. A rock, a wall or a scarecrow it runs into
+        /// meets it higher up and still hurts.
+        /// </summary>
+        public static bool LandsOnItsFeet(float contactHeight, float feetHeight, float tolerance = .3f)
+        {
+            return contactHeight - feetHeight < tolerance;
+        }
+
         public static float NormalSpeed(Vector3 relativeVelocity, Vector3 surfaceNormal)
         {
             return Mathf.Abs(Vector3.Dot(relativeVelocity, surfaceNormal.normalized));
