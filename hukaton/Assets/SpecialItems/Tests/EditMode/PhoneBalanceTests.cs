@@ -118,4 +118,17 @@ namespace Hakaton.SpecialItems.Tests
             Assert.That(PhoneCardRules.Pick(PhoneOutcome.Nothing, catalogue, stage, owned, random), Is.Null);
         }
     }
+
+    /// <summary>Balance stage 5, «Плеер»: after the god the player costs 300 (was 500); the other special items keep their prices.</summary>
+    public sealed class SpecialItemPricesTests
+    {
+        [TestCase("Player", "player", 300), TestCase("Phone", "phone", 1000), TestCase("Account", "hapay_account", 1500),
+         TestCase("Compass", "ant_compass", 800)]
+        public void ASpecialItemCosts(string asset, string id, int price)
+        {
+            var item = AssetDatabase.LoadAssetAtPath<SpecialItemDefinition>("Assets/SpecialItems/Data/" + asset + ".asset");
+            Assert.That(item, Is.Not.Null, asset);
+            Assert.That((item.id, item.price), Is.EqualTo((id, price)));
+        }
+    }
 }
