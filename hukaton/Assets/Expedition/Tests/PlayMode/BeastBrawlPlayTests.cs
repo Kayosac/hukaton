@@ -317,6 +317,41 @@ namespace Hakaton.Expeditions.Tests.PlayMode
             Assert.That(back.Beasts.Select(b => (back.PackOf(b), b.Health)).OrderBy(b => b).ToList(), Is.EqualTo(living));
             Assert.That(back.Beasts.All(b => !b.Brawling));
         }
+
+        /// <summary>
+        /// A beast kept mid-leap when its part of the world unloaded comes back on the ground, with the health it had:
+        /// set down where it hung in the air it fell and landed hurt (one HP from 1.5 m, a 2-HP dog killed from 2.2 m).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ABeastKeptMidLeapComesBackOnTheGround()
+        {
+            var brawl = Make(BeastBrawl.Variant.Calm, DogsAndRats, 17, OnGround(Spot));
+            PlayerAt(brawl, 45);
+            yield return null;
+            brawl.Begin();
+            yield return FightToTheEnd(brawl, 70);
+            var save = brawl.Capture();
+            for (int i = 0; i < save.beasts.Length; i++)
+                if (save.beasts[i].alive) save.beasts[i].position += Vector3.up * 2.2f;
+            var living = save.beasts.Where(b => b.alive).Select(b => (b.pack, b.health)).OrderBy(b => b).ToList();
+            Assert.That(living, Is.Not.Empty, "somebody survived to come back");
+            Object.Destroy(brawl.gameObject);
+            yield return null;
+
+            var back = Restored(BeastBrawl.Variant.Calm, save, OnGround(Spot));
+            foreach (var beast in back.Beasts)
+                Assert.That(beast.Position.y - OnGroundUnder(beast), Is.LessThan(.35f), $"{beast.name} comes back on the ground");
+            yield return Seconds(1.5f);
+            Assert.That(back.Beasts.Select(b => (back.PackOf(b), b.Health)).OrderBy(b => b).ToList(), Is.EqualTo(living), "and no fall hurt it");
+        }
+
+        /// <summary>The ground's height under a beast, not counting the beast itself.</summary>
+        static float OnGroundUnder(WorldCreature beast)
+        {
+            var hits = Physics.RaycastAll(beast.Position + Vector3.up * 6, Vector3.down, 20, ~(1 << 2), QueryTriggerInteraction.Ignore)
+                .Where(h => !h.collider.transform.IsChildOf(beast.transform) && !h.collider.GetComponentInParent<WorldCreature>()).OrderBy(h => h.distance).ToList();
+            return hits.Count > 0 ? hits[0].point.y : float.NegativeInfinity;
+        }
     }
 }
 #endif

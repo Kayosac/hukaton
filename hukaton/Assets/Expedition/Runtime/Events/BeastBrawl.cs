@@ -293,9 +293,11 @@ namespace Hakaton.Expeditions.Events
             {
                 int pack = Mathf.Clamp(beast.pack, 0, 1);
                 if (!beast.alive) { members.Add(new Member { pack = pack }); continue; }
-                Vector3 toCentre = centre - beast.position; toCentre.y = 0;
-                var creature = SpawnBeast(pack, beast.position, Quaternion.LookRotation(toCentre.sqrMagnitude > .01f ? toCentre : Vector3.forward));
-                creature.Resume(beast.health, beast.position);
+                // Back on the ground: a beast kept mid-leap would come back in the air and land hurt.
+                Vector3 at = Ground(beast.position);
+                Vector3 toCentre = centre - at; toCentre.y = 0;
+                var creature = SpawnBeast(pack, at, Quaternion.LookRotation(toCentre.sqrMagnitude > .01f ? toCentre : Vector3.forward));
+                creature.Resume(beast.health, at);
                 Adopt(pack, creature);
             }
             FightSeconds = 0;
