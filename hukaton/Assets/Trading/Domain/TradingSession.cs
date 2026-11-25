@@ -804,7 +804,8 @@ namespace Hakaton.Trading
             var save = new TradingSave {
                 remainingSeconds = RemainingSeconds, grossRevenue = GrossRevenue, salesCount = SalesCount,
                 nextItemId = nextItemId, nextExpeditionId = nextExpeditionId, shiftLevel = ShiftLevel,
-                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift,
+                bulkBuyerLevel = BulkBuyerLevel, bulkBuyerScheme = TradingSave.CurrentBulkBuyerScheme,
+                bulkBuyerMet = BulkBuyerMet, bulkBuyerThisShift = BulkBuyerCameThisShift,
                 bulkBuyerPromiseKept = BulkBuyerPromiseKept
             };
             foreach (var item in inventory)
@@ -854,7 +855,10 @@ namespace Hakaton.Trading
             expeditionLoot.Clear();
             ShiftLevel = Math.Min(save.shiftLevel, ShiftSteps);
             RemainingSeconds = Math.Min(save.remainingSeconds, ShiftLength);
-            BulkBuyerLevel = Math.Min(save.bulkBuyerLevel, BulkBuyerSteps);
+            // Saves before balance stage 5 count five +5% steps: converted to the three +10% ones.
+            int bulkLevel = save.bulkBuyerScheme >= TradingSave.CurrentBulkBuyerScheme ? save.bulkBuyerLevel
+                : TradingSave.BulkBuyerLevelFromFiveSteps(save.bulkBuyerLevel);
+            BulkBuyerLevel = Math.Min(bulkLevel, BulkBuyerSteps);
             BulkBuyerMet = save.bulkBuyerMet; BulkBuyerCameThisShift = save.bulkBuyerThisShift;
             BulkBuyerPromiseKept = save.bulkBuyerPromiseKept;
             GrossRevenue = save.grossRevenue; SalesCount = save.salesCount;

@@ -106,8 +106,8 @@ namespace Hakaton.Computer.Tests
                 new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
             var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
                 ShiftUpgradeSeconds = new[] { 10f }, ShiftUpgradePrices = new[] { 150 },
-                BulkBuyerChance = .05f, BulkBuyerUpgradeChances = new[] { .05f, .05f, .05f, .05f, .05f },
-                BulkBuyerUpgradePrices = new[] { 500, 1000, 2000, 3000, 5000 } }, 1, wallet);
+                BulkBuyerChance = .05f, BulkBuyerUpgradeChances = new[] { .10f, .10f, .10f },
+                BulkBuyerUpgradePrices = new[] { 300, 700, 1500 } }, 1, wallet);
             shop.SeedInventory(new Hakaton.Trading.ItemDefinition("horn", "Рог", "Трофеи", 100), 3);
             for (int i = 0; i < 3; i++) Assert.That(shop.PlaceItem(0, i), Is.True);
             Assert.That(PcUpgradeTrack.For(w, shop).Select(t => t.Title), Has.No.Member("Скупщик"), "Not before he has come.");
@@ -119,11 +119,11 @@ namespace Hakaton.Computer.Tests
             var tracks = PcUpgradeTrack.For(w, shop);
             Assert.That(tracks.Select(t => t.Title), Is.EqualTo(new[] { "Размер руки", "Размер колоды", "Время смены", "Скупщик" }));
             var buyer = tracks[3];
-            Assert.That((buyer.Step, buyer.Steps, buyer.Price, buyer.Values), Is.EqualTo((0, 5, 500, "5% » 10%")));
+            Assert.That((buyer.Step, buyer.Steps, buyer.Price, buyer.Values), Is.EqualTo((0, 3, 300, "5% » 15%")));
             Assert.That(buyer.Buy(), Is.Null);
-            Assert.That((buyer.Step, buyer.Price, buyer.Values, buyer.Bought), Is.EqualTo((1, 1000, "10% » 15%", "Скупщик заходит чаще: 10%.")));
-            for (int i = 0; i < 4; i++) Assert.That(buyer.Buy(), Is.Null);
-            Assert.That((buyer.Maxed, buyer.Values, wallet.Balance), Is.EqualTo((true, "30%", 500)));
+            Assert.That((buyer.Step, buyer.Price, buyer.Values, buyer.Bought), Is.EqualTo((1, 700, "15% » 25%", "Скупщик заходит чаще: 15%.")));
+            for (int i = 0; i < 2; i++) Assert.That(buyer.Buy(), Is.Null);
+            Assert.That((buyer.Maxed, buyer.Values, wallet.Balance), Is.EqualTo((true, "35%", 9500)));
             Assert.That(buyer.Buy(), Is.Not.Null, "Nothing left to buy.");
         }
 

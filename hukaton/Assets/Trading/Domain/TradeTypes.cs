@@ -145,6 +145,19 @@ namespace Hakaton.Trading
         public int shiftLevel;
         /// <summary>Bulk buyer («Скупщик») chance upgrades bought; older saves load as 0 (the base chance).</summary>
         public int bulkBuyerLevel;
+        /// <summary>
+        /// Which steps <see cref="bulkBuyerLevel"/> counts: 0 — saves before balance stage 5 (five steps of +5%), converted
+        /// on load by <see cref="BulkBuyerLevelFromFiveSteps"/>; <see cref="CurrentBulkBuyerScheme"/> — three steps of +10%.
+        /// </summary>
+        public int bulkBuyerScheme;
+        /// <summary>The scheme a save is written in now: three steps of +10% (balance stage 5).</summary>
+        public const int CurrentBulkBuyerScheme = 1;
+
+        /// <summary>
+        /// Balance stage 5: the old five +5% steps become three +10% ones — the 1st and 2nd old step are the 1st new one,
+        /// the 3rd and 4th the 2nd, the 5th the 3rd. Coins are neither returned nor charged.
+        /// </summary>
+        public static int BulkBuyerLevelFromFiveSteps(int oldLevel) => oldLevel <= 0 ? 0 : (Math.Min(oldLevel, 5) + 1) / 2;
         /// <summary>The player has met the bulk buyer: he no longer explains himself, and the PC sells his upgrade.</summary>
         public bool bulkBuyerMet;
         /// <summary>The bulk buyer has already come during the current shift.</summary>

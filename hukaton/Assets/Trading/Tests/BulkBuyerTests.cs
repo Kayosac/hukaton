@@ -10,7 +10,8 @@ namespace Hakaton.Trading.Tests
     /// <summary>
     /// Playtest: the rare bulk buyer («Скупщик»). After the first revenue goal a visitor may be him (5% a visitor, at most
     /// once a shift, for a display of 3+ items, never in the tutorial). He offers 75% of every item's base price for the whole
-    /// display; the player sells everything or refuses. The PC raises his chance, +5% a step up to 30%.
+    /// display; the player sells everything or refuses. The PC raises his chance: balance stage 5, three steps of +10% for
+    /// 300 / 700 / 1500 (5 » 15 » 25 » 35%); saves of the old five +5% steps are converted on load.
     /// </summary>
     public sealed class BulkBuyerTests
     {
@@ -22,8 +23,8 @@ namespace Hakaton.Trading.Tests
 
         static TradeSettings Settings(float chance = .05f, bool upgrades = true) => new TradeSettings {
             ShiftSeconds = 30, BulkBuyerChance = chance,
-            BulkBuyerUpgradeChances = upgrades ? new[] { .05f, .05f, .05f, .05f, .05f } : new float[0],
-            BulkBuyerUpgradePrices = upgrades ? new[] { 500, 1000, 2000, 3000, 5000 } : new int[0]
+            BulkBuyerUpgradeChances = upgrades ? new[] { .10f, .10f, .10f } : new float[0],
+            BulkBuyerUpgradePrices = upgrades ? new[] { 300, 700, 1500 } : new int[0]
         };
 
         /// <summary>A closed shop with <paramref name="onDisplay"/> horns on display and the rest of eight in stock.</summary>
@@ -302,17 +303,17 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void ChanceUpgradeSpendsTheWalletFiveToThirtyPercent()
+        public void ChanceUpgradeSpendsTheWalletFiveToThirtyFivePercent()
         {
-            var wallet = new CoinWallet(12000);
+            var wallet = new CoinWallet(3000);
             var session = Shop(3, wallet: wallet);
-            Assert.That((session.BulkBuyerLevel, session.BulkBuyerSteps, session.BulkBuyerAtMaximum), Is.EqualTo((0, 5, false)));
+            Assert.That((session.BulkBuyerLevel, session.BulkBuyerSteps, session.BulkBuyerAtMaximum), Is.EqualTo((0, 3, false)));
             int changes = 0;
             session.Changed += () => changes++;
-            var expected = new[] { .05f, .10f, .15f, .20f, .25f, .30f };
-            var prices = new[] { 500, 1000, 2000, 3000, 5000 };
-            int balance = 12000;
-            for (int step = 0; step < 5; step++)
+            var expected = new[] { .05f, .15f, .25f, .35f };
+            var prices = new[] { 300, 700, 1500 };
+            int balance = 3000;
+            for (int step = 0; step < 3; step++)
             {
                 Assert.That(session.BulkBuyerChance, Is.EqualTo(expected[step]).Within(1e-4f), "step " + step);
                 Assert.That(session.NextBulkBuyerChance, Is.EqualTo(expected[step + 1]).Within(1e-4f));
@@ -321,18 +322,18 @@ namespace Hakaton.Trading.Tests
                 balance -= prices[step];
                 Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((step + 1, balance)));
             }
-            Assert.That(changes, Is.EqualTo(5));
-            Assert.That(session.BulkBuyerChance, Is.EqualTo(.30f).Within(1e-4f));
+            Assert.That(changes, Is.EqualTo(3));
+            Assert.That(session.BulkBuyerChance, Is.EqualTo(.35f).Within(1e-4f));
             Assert.That((session.BulkBuyerAtMaximum, session.BulkBuyerUpgradePrice), Is.EqualTo((true, 0)));
-            Assert.That(session.NextBulkBuyerChance, Is.EqualTo(.30f).Within(1e-4f));
+            Assert.That(session.NextBulkBuyerChance, Is.EqualTo(.35f).Within(1e-4f));
             Assert.That(session.ImproveBulkBuyer(), Is.Not.Null, "Nothing left to buy.");
-            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((5, 500)));
+            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((3, 500)));
         }
 
         [Test]
         public void ChanceUpgradeIsRefusedWhileTradingOnAnOutingOrWithoutCoins()
         {
-            var wallet = new CoinWallet(5000);
+            var wallet = new CoinWallet(4800);
             var session = Shop(3, wallet: wallet);
             Assert.That(session.Open(), Is.True);
             Assert.That(session.ImproveBulkBuyer(), Is.Not.Null, "Not while the shop is open.");
@@ -341,8 +342,8 @@ namespace Hakaton.Trading.Tests
             Assert.That(session.ImproveBulkBuyer(), Is.Not.Null, "Not during an outing.");
             Assert.That(session.CompleteExpedition(outing), Is.True);
             Assert.That(wallet.TrySpend(4501), Is.True);
-            Assert.That(session.ImproveBulkBuyer(), Is.Not.Null, "499 coins do not buy a 500-coin step.");
-            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((0, 499)));
+            Assert.That(session.ImproveBulkBuyer(), Is.Not.Null, "299 coins do not buy a 300-coin step.");
+            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((0, 299)));
         }
 
         [Test]
@@ -399,11 +400,12 @@ namespace Hakaton.Trading.Tests
             var restored = Shop(0, wallet: wallet);
             Assert.That(restored.TryRestore(JsonUtility.FromJson<TradingSave>(json)), Is.True);
             Assert.That((restored.BulkBuyerLevel, restored.BulkBuyerMet, restored.BulkBuyerCameThisShift), Is.EqualTo((2, true, true)));
-            Assert.That(restored.BulkBuyerChance, Is.EqualTo(.15f).Within(1e-4f));
-            Assert.That(restored.BulkBuyerUpgradePrice, Is.EqualTo(2000));
+            Assert.That(restored.BulkBuyerChance, Is.EqualTo(.25f).Within(1e-4f));
+            Assert.That(restored.BulkBuyerUpgradePrice, Is.EqualTo(1500));
+            Assert.That(save.bulkBuyerScheme, Is.EqualTo(TradingSave.CurrentBulkBuyerScheme), "Written in the three-step scheme.");
 
             // A save written before the bulk buyer existed has none of his fields.
-            string old = Regex.Replace(json, ",?\"bulkBuyer(Level|Met|ThisShift|PromiseKept)\":(\\d+|true|false)", "");
+            string old = Regex.Replace(json, ",?\"bulkBuyer(Level|Scheme|Met|ThisShift|PromiseKept)\":(\\d+|true|false)", "");
             Assert.That(old, Does.Not.Contain("bulkBuyer"));
             var oldSave = JsonUtility.FromJson<TradingSave>(old);
             var fromOld = Shop(0, wallet: wallet);
@@ -414,7 +416,7 @@ namespace Hakaton.Trading.Tests
             // More upgrades than the settings sell now clamp; a negative level is damage.
             save.bulkBuyerLevel = 99;
             Assert.That(restored.TryRestore(save), Is.True);
-            Assert.That((restored.BulkBuyerLevel, restored.BulkBuyerAtMaximum), Is.EqualTo((5, true)));
+            Assert.That((restored.BulkBuyerLevel, restored.BulkBuyerAtMaximum), Is.EqualTo((3, true)));
             save.bulkBuyerLevel = -1;
             Assert.That(restored.CanRestore(save), Is.False);
             Assert.That(restored.TryRestore(save), Is.False);
@@ -426,8 +428,8 @@ namespace Hakaton.Trading.Tests
             var wallet = new CoinWallet(5);
             var session = Shop(3, wallet: wallet);
             Assert.That(session.MaximizeBulkBuyer(), Is.True);
-            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((5, 5)));
-            Assert.That(session.BulkBuyerChance, Is.EqualTo(.30f).Within(1e-4f));
+            Assert.That((session.BulkBuyerLevel, wallet.Balance), Is.EqualTo((3, 5)));
+            Assert.That(session.BulkBuyerChance, Is.EqualTo(.35f).Within(1e-4f));
             Assert.That(session.MaximizeBulkBuyer(), Is.False);
             Assert.That(session.BulkBuyerMet, Is.False, "Maxing his chance does not reveal him.");
         }
@@ -437,10 +439,10 @@ namespace Hakaton.Trading.Tests
         {
             foreach (var broken in new Action<TradeSettings>[] {
                 s => s.BulkBuyerChance = -.01f, s => s.BulkBuyerChance = 1.5f, s => s.BulkBuyerChance = float.NaN,
-                s => s.BulkBuyerUpgradePrices = new[] { 500 },
-                s => s.BulkBuyerUpgradeChances = new[] { 0f, .05f, .05f, .05f, .05f },
-                s => s.BulkBuyerUpgradePrices = new[] { 500, 1000, -1, 3000, 5000 },
-                s => s.BulkBuyerUpgradeChances = new[] { .5f, .5f, .05f, .05f, .05f },
+                s => s.BulkBuyerUpgradePrices = new[] { 300 },
+                s => s.BulkBuyerUpgradeChances = new[] { 0f, .10f, .10f },
+                s => s.BulkBuyerUpgradePrices = new[] { 300, -1, 1500 },
+                s => s.BulkBuyerUpgradeChances = new[] { .5f, .5f, .10f },
                 s => s.BulkBuyerMinDisplay = 0, s => s.BulkBuyerPriceRatio = 0, s => s.BulkBuyerPriceRatio = 1.2f })
             {
                 var settings = Settings();
@@ -456,8 +458,45 @@ namespace Hakaton.Trading.Tests
             var session = new TradingSession(tuned);
             tuned.BulkBuyerUpgradeChances[0] = .5f;
             tuned.BulkBuyerUpgradePrices[0] = 1;
-            Assert.That(session.NextBulkBuyerChance, Is.EqualTo(.10f).Within(1e-4f), "Later edits to the settings do not leak in.");
-            Assert.That(session.BulkBuyerUpgradePrice, Is.EqualTo(500));
+            Assert.That(session.NextBulkBuyerChance, Is.EqualTo(.15f).Within(1e-4f), "Later edits to the settings do not leak in.");
+            Assert.That(session.BulkBuyerUpgradePrice, Is.EqualTo(300));
+        }
+
+        /// <summary>Balance stage 5: the old five +5% steps of a save become three +10% ones; coins stay as they are.</summary>
+        [TestCase(0, 0, .05f), TestCase(1, 1, .15f), TestCase(2, 1, .15f), TestCase(3, 2, .25f), TestCase(4, 2, .25f), TestCase(5, 3, .35f)]
+        public void AnOldFiveStepSaveConvertsToThreeSteps(int oldLevel, int newLevel, float chance)
+        {
+            var wallet = new CoinWallet(1000);
+            var session = Shop(3, wallet: wallet);
+            var save = session.Save();
+            Assert.That(save.bulkBuyerScheme, Is.EqualTo(TradingSave.CurrentBulkBuyerScheme));
+            // As written before stage 5: no scheme field, the level counts the old steps.
+            string json = Regex.Replace(JsonUtility.ToJson(save), ",?\"bulkBuyerScheme\":\\d+", "");
+            Assert.That(json, Does.Not.Contain("bulkBuyerScheme"));
+            var old = JsonUtility.FromJson<TradingSave>(json);
+            old.bulkBuyerLevel = oldLevel;
+            Assert.That(old.bulkBuyerScheme, Is.Zero);
+            var restored = Shop(0, wallet: wallet);
+            Assert.That(restored.TryRestore(old), Is.True);
+            Assert.That(restored.BulkBuyerLevel, Is.EqualTo(newLevel));
+            Assert.That(restored.BulkBuyerChance, Is.EqualTo(chance).Within(1e-4f));
+            Assert.That(wallet.Balance, Is.EqualTo(1000), "Nothing is returned or charged.");
+            // Written again, it is in the new scheme and loads as it is.
+            var again = Shop(0, wallet: wallet);
+            Assert.That(again.TryRestore(JsonUtility.FromJson<TradingSave>(JsonUtility.ToJson(restored.Save()))), Is.True);
+            Assert.That(again.BulkBuyerLevel, Is.EqualTo(newLevel));
+        }
+
+        /// <summary>Balance stage 5: the scene component's defaults are the three +10% steps for 300 / 700 / 1500, base 5%.</summary>
+        [Test]
+        public void TheShopsDefaultsAreFiveFifteenTwentyFiveThirtyFivePercent()
+        {
+            var go = new GameObject("shop");
+            var shop = go.AddComponent<Hakaton.Trading.Unity.TradingPrototype>();
+            Assert.That(shop.bulkBuyerChance, Is.EqualTo(5));
+            Assert.That(shop.bulkBuyerSteps.Select(s => (s.percent, s.price)), Is.EqualTo(new[] { (10f, 300), (10f, 700), (10f, 1500) }));
+            Assert.That((shop.bulkBuyerPriceRatio, shop.bulkBuyerMinDisplay), Is.EqualTo((.75f, 3)), "His price and display rule stay.");
+            UnityEngine.Object.DestroyImmediate(go);
         }
     }
 }

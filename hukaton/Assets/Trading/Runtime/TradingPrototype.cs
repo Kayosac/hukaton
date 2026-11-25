@@ -54,11 +54,11 @@ namespace Hakaton.Trading.Unity
         [Tooltip("Chance in percent that a visitor is the bulk buyer: only after the first revenue goal, at most once a shift, " +
                  "with enough goods on display, never in the tutorial.")]
         [Range(0, 100)] public float bulkBuyerChance = 5;
-        [Tooltip("Upgrades bought on the PC («Скупщик», shown once the player has met him): percent added to the chance and their price.")]
+        [Tooltip("Upgrades bought on the PC («Скупщик», shown once the player has met him): percent added to the chance and their price. " +
+                 "Balance stage 5: three steps of +10% (5 » 15 » 25 » 35%); saves of the old five +5% steps are converted on load.")]
         public BulkBuyerStep[] bulkBuyerSteps =
         {
-            new BulkBuyerStep(5, 500), new BulkBuyerStep(5, 1000), new BulkBuyerStep(5, 2000), new BulkBuyerStep(5, 3000),
-            new BulkBuyerStep(5, 5000),
+            new BulkBuyerStep(10, 300), new BulkBuyerStep(10, 700), new BulkBuyerStep(10, 1500),
         };
         [Tooltip("He comes only for a display with at least this many items.")]
         [Min(1)] public int bulkBuyerMinDisplay = 3;
@@ -71,7 +71,7 @@ namespace Hakaton.Trading.Unity
         [System.Serializable]
         public sealed class BulkBuyerStep
         {
-            [Range(0, 100)] public float percent = 5;
+            [Range(0, 100)] public float percent = 10;
             [Min(0)] public int price;
             public BulkBuyerStep() { }
             public BulkBuyerStep(float percent, int price) { this.percent = percent; this.price = price; }
