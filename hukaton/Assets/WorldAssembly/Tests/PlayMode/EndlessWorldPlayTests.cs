@@ -1950,11 +1950,12 @@ namespace Hakaton.WorldAssembly.Tests
             var screen = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(dir, "play-swamp-fog-screen.png"), screen.EncodeToPNG());
             Object.Destroy(screen);
-            // Walk into a fog bank: the world goes white.
-            bank = life.ThickestBank();
-            world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
-            yield return WaitFor(() => air.Strength(WorldAtmosphere.Mist) > .5f, 6);
-            Assert.That(air.Strength(WorldAtmosphere.Mist), Is.GreaterThan(.5f), "inside a fog bank the air is thick");
+            // Walk into a fog bank: the world goes white. A bank lies low over the water: where the ground under it
+            // rises the eye stands above most of the fog and the air only half thickens, so the player stands in a bank
+            // whose fog closes over the eye and keeps to its middle while it drifts, until the air has thickened.
+            var tried = new List<string>();
+            yield return IntoAFogBank(life, air, tried, 20);
+            Assert.That(air.Strength(WorldAtmosphere.Mist), Is.GreaterThan(.5f), "inside a fog bank the air is thick (eye over the banks tried: " + string.Join(", ", tried) + ")");
             yield return Shot(dir, "play-swamp-fog-inside", world.motor.transform.position + Vector3.up * 1.6f, world.motor.transform.position + Vector3.up * 1.4f + away * 10, world.motor.transform.position + Vector3.up * 1.6f);
             // The eternal flame, if one burns near enough: seen from a way off.
             ChunkCoord flame = default;
@@ -2455,6 +2456,58 @@ namespace Hakaton.WorldAssembly.Tests
                         foreach (var feature in features)
                             if (feature is Object o && o && !list.Contains(o)) list.Add(o);
             return list;
+        }
+
+        /// <summary>
+        /// Stands the player in a fog bank where its fog covers the eye (SwampLife thickens the air by the camera's
+        /// height over the bank's water level, fully up to 2.3 m) and keeps them in its middle as it drifts, until the
+        /// air is thick or the time is out. Banks over higher ground are passed over; their eye heights go to <paramref name="tried"/>.
+        /// </summary>
+        IEnumerator IntoAFogBank(SwampLife life, WorldAtmosphere air, List<string> tried, float seconds)
+        {
+            float until = Time.realtimeSinceStartup + seconds;
+            var passed = new List<Vector3>();
+            Vector3 NearestBank(Vector3 to)
+            {
+                Vector3 best = Vector3.zero; float bestDistance = float.MaxValue;
+                for (int i = 0; i < life.Banks; i++)
+                {
+                    var c = life.BankCentre(i);
+                    float d = Vector2.Distance(new Vector2(c.x, c.z), new Vector2(to.x, to.z));
+                    if (d < bestDistance) { bestDistance = d; best = c; }
+                }
+                return best;
+            }
+            bool Passed(Vector3 c) => passed.Any(p => Vector2.Distance(new Vector2(p.x, p.z), new Vector2(c.x, c.z)) < 4);
+            while (Time.realtimeSinceStartup < until)
+            {
+                // The thickest bank first, then any other not tried yet.
+                var bank = life.ThickestBank();
+                if (life.Banks == 0 || Passed(bank))
+                {
+                    bank = Vector3.zero;
+                    for (int i = 0; i < life.Banks; i++) if (!Passed(life.BankCentre(i))) { bank = life.BankCentre(i); break; }
+                }
+                if (bank == Vector3.zero) { passed.Clear(); yield return null; continue; }
+                world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
+                float landed = Time.realtimeSinceStartup + 1.5f;
+                yield return null;
+                while (!world.motor.IsGrounded && Time.realtimeSinceStartup < landed) yield return null;
+                bank = NearestBank(bank);
+                float eye = world.viewCamera.transform.position.y - bank.y;
+                tried.Add(eye.ToString("F2"));
+                if (eye > 2.3f) { passed.Add(bank); continue; }
+                // In it: keep to its middle as it drifts until the air has thickened.
+                while (air.Strength(WorldAtmosphere.Mist) <= .5f && Time.realtimeSinceStartup < until && life.Banks > 0)
+                {
+                    bank = NearestBank(bank);
+                    var feet = world.motor.transform.position;
+                    if (Vector2.Distance(new Vector2(feet.x, feet.z), new Vector2(bank.x, bank.z)) > 1)
+                        world.motor.Teleport(bank + Vector3.up * 1.2f, Quaternion.identity);
+                    yield return null;
+                }
+                yield break;
+            }
         }
 
         static bool FeatureActive(Object feature) => (bool)feature.GetType().GetProperty("isActive").GetValue(feature);
