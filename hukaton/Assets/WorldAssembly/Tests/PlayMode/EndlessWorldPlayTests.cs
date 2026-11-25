@@ -527,6 +527,11 @@ namespace Hakaton.WorldAssembly.Tests
                     }
             if (!boat) Assert.Inconclusive("no floating boat within 480 m");
             var body = boat.prop.body;
+            // This is about the boat and the water alone. The swamp's creatures swim and wade round it (a drowned swimmer
+            // lives right in its water) and push a loose boat as they would anything loose: a bump in the last seconds kept
+            // it drifting past the check. They are sent off for the measurement.
+            var aside = world.ActiveCreatures.Where(c => c && c.isActiveAndEnabled && Vector3.Distance(c.Position, boat.transform.position) < 30).ToList();
+            foreach (var creature in aside) creature.gameObject.SetActive(false);
             world.motor.Teleport(boat.transform.position + Vector3.right * 7 + Vector3.up * 2, Quaternion.LookRotation(Vector3.left));
             yield return new WaitForSeconds(2.5f);
             Assert.That(float.IsNaN(boat.Surface), Is.False, "it finds the water under it");
@@ -553,6 +558,7 @@ namespace Hakaton.WorldAssembly.Tests
             float moved = Vector3.ProjectOnPlane(body.position - before, Vector3.up).magnitude;
             Assert.That(moved, Is.GreaterThan(.2f), "it drifts off");
             yield return new WaitForSeconds(5);
+            Assert.That(world.ActiveCreatures.Where(c => c && c.isActiveAndEnabled && Vector3.Distance(c.Position, body.position) < 6).Select(c => c.name), Is.Empty, "nothing came up to the boat while it drifted");
             Assert.That(Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up).magnitude, Is.LessThan(.35f), "and the water stops it");
             Assert.That(Mathf.Abs(body.position.y - start.y), Is.LessThan(.35f), "still afloat");
         }
