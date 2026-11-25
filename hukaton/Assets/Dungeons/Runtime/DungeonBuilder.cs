@@ -565,6 +565,9 @@ namespace Hakaton.Dungeons.Unity
             }
             // Hand-placed things in the chambers block the way as their colliders do.
             // (as boxes round their colliders: model meshes are not readable at runtime, and boxes are cheap).
+            // The chambers were just placed and turned: the physics must see where their colliders are now (transforms
+            // are not synced on their own), or a turned chamber's boxes stand where its props were before the turn.
+            Physics.SyncTransforms();
             foreach (var chamber in Chambers.Values)
                 foreach (var col in chamber.GetComponentsInChildren<Collider>())
                 {
