@@ -50,7 +50,8 @@ namespace Hakaton.Computer.Tests
         {
             var rules = new DeckRules(deckLimit: 12, initialHand: 3, maxHand: 5, handUpgradePrice: 200, startingCoins: 900,
                 deckSteps: new[] { 16, 20 }, deckStepPrices: new[] { 150, 250 });
-            var w = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 0);
+            // Ten cards in the deck: «Размер колоды» shows (balance stage 5).
+            var w = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 10);
             var tracks = PcUpgradeTrack.For(w);
             var hand = tracks[0];
             var deck = tracks[1];
@@ -69,6 +70,42 @@ namespace Hakaton.Computer.Tests
             Assert.That(hand.Step, Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// Balance stage 5: «Размер колоды» shows only from ten cards in the deck or once a step is bought; once shown it
+        /// stays, also through a save.
+        /// </summary>
+        [Test]
+        public void TheDeckRowShowsFromTenCardsAndStays()
+        {
+            var rules = new DeckRules(deckLimit: 12, deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }, startingCoins: 500);
+            var w = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 9);
+            Assert.That(w.Selected().Count, Is.EqualTo(9));
+            Assert.That(PcUpgradeTrack.For(w).Select(t => t.Title), Is.EqualTo(new[] { "Размер руки" }), "Nine cards: no row.");
+            Assert.That(w.Purchase("fire", 0, out _, true), Is.Null);
+            Assert.That(w.Selected().Count, Is.EqualTo(10));
+            Assert.That(PcUpgradeTrack.For(w).Select(t => t.Title), Is.EqualTo(new[] { "Размер руки", "Размер колоды" }), "Ten: the row.");
+            foreach (var copy in w.Selected().Take(5)) Assert.That(w.Toggle(copy.Id), Is.Null);
+            Assert.That(w.Selected().Count, Is.EqualTo(5));
+            Assert.That(PcUpgradeTrack.For(w).Select(t => t.Title), Has.Member("Размер колоды"), "Stays after cards leave the deck.");
+            var restored = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 0);
+            Assert.That(restored.TryRestore(JsonUtility.FromJson<WorkshopSave>(JsonUtility.ToJson(w.Save()))), Is.True);
+            Assert.That(restored.Selected().Count, Is.EqualTo(5));
+            Assert.That(PcUpgradeTrack.For(restored).Select(t => t.Title), Has.Member("Размер колоды"), "Stays through a save.");
+
+            // A bought step shows it whatever the deck — an old save without the flag too.
+            var bought = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 2);
+            Assert.That(bought.ImproveDeckLimit(), Is.Null);
+            var save = bought.Save();
+            save.deckTrackShown = false;
+            var old = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 0);
+            Assert.That(old.TryRestore(save), Is.True);
+            Assert.That(PcUpgradeTrack.For(old).Select(t => t.Title), Has.Member("Размер колоды"), "A bought step.");
+            var empty = new DeckWorkshop(rules, new[] { new CardSpec("fire", "Огонь", 100) }, 2);
+            save = empty.Save();
+            Assert.That(save.deckTrackShown, Is.False);
+            Assert.That(PcUpgradeTrack.For(empty).Select(t => t.Title), Has.No.Member("Размер колоды"));
+        }
+
         [TestCase(1, "1 карта"), TestCase(4, "4 карты"), TestCase(5, "5 карт"), TestCase(12, "12 карт"), TestCase(22, "22 карты")]
         public void CardCountsReadNaturally(int n, string expected) => Assert.That(PcUpgradeTrack.Cards(n), Is.EqualTo(expected));
 
@@ -78,7 +115,7 @@ namespace Hakaton.Computer.Tests
         {
             var wallet = new Hakaton.Economy.CoinWallet(500);
             var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
-                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+                new[] { new CardSpec("fire", "Огонь", 100) }, 10, wallet);
             var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
                 ShiftSeconds = 30, ShiftUpgradeSeconds = new[] { 10f, 10f }, ShiftUpgradePrices = new[] { 150, 250 } }, 1, wallet);
             Assert.That(PcUpgradeTrack.For(w).Count, Is.EqualTo(2), "Without the shop only the deck workshop's tracks.");
@@ -103,7 +140,7 @@ namespace Hakaton.Computer.Tests
         {
             var wallet = new Hakaton.Economy.CoinWallet(12000);
             var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
-                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+                new[] { new CardSpec("fire", "Огонь", 100) }, 10, wallet);
             var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
                 ShiftUpgradeSeconds = new[] { 10f }, ShiftUpgradePrices = new[] { 150 },
                 BulkBuyerChance = .05f, BulkBuyerUpgradeChances = new[] { .10f, .10f, .10f },
@@ -133,7 +170,7 @@ namespace Hakaton.Computer.Tests
         {
             var wallet = new Hakaton.Economy.CoinWallet(5000);
             var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
-                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+                new[] { new CardSpec("fire", "Огонь", 100) }, 10, wallet);
             var shop = new Hakaton.Trading.TradingSession(new Hakaton.Trading.TradeSettings {
                 ShiftUpgradeSeconds = new[] { 10f }, ShiftUpgradePrices = new[] { 150 } }, 1, wallet);
             var stamina = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450, 800, 1250, 1800 });
@@ -162,7 +199,7 @@ namespace Hakaton.Computer.Tests
         {
             var wallet = new Hakaton.Economy.CoinWallet(199);
             var w = new DeckWorkshop(new DeckRules(deckSteps: new[] { 16 }, deckStepPrices: new[] { 150 }),
-                new[] { new CardSpec("fire", "Огонь", 100) }, 0, wallet);
+                new[] { new CardSpec("fire", "Огонь", 100) }, 10, wallet);
             var stamina = new Hakaton.Character.StaminaUpgrade(100, 20, 1, new[] { 200, 450 });
             var run = PcUpgradeTrack.For(w, null, stamina).Single(t => t.Title == "Выносливость");
             Assert.That(run.Buy(), Is.EqualTo("Не хватает монет."));

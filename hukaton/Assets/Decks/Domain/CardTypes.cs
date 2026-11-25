@@ -197,5 +197,10 @@ namespace Hakaton.Decks
         public int explorationHand, combatHand;
         public List<CopySave> copies = new List<CopySave>();
         public List<int> selected = new List<int>();
+        /// <summary>
+        /// The PC has shown «Размер колоды» (<see cref="DeckWorkshop.DeckTrackVisible"/>): it stays. Older saves load false
+        /// and show it again by the deck's size or a bought step.
+        /// </summary>
+        public bool deckTrackShown;
     }
 }

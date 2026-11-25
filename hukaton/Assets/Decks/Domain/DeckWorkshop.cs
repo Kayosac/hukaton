@@ -44,6 +44,23 @@ namespace Hakaton.Decks
         public int DeckLimitPrice => DeckAtMaximum ? 0 : Rules.DeckStepPrice(deckStep + 1);
         public int NextDeckLimit => Rules.DeckLimitAt(deckStep + 1);
 
+        /// <summary>Balance stage 5: «Размер колоды» on the PC shows from this many cards in the deck.</summary>
+        public const int DeckTrackCards = 10;
+        bool deckTrackShown;
+
+        /// <summary>
+        /// Whether the PC's «Прокачка» shows «Размер колоды» (balance stage 5): from <see cref="DeckTrackCards"/> cards in
+        /// the deck, or once a step of it is bought. Once shown it stays, even if cards leave the deck (saved).
+        /// </summary>
+        public bool DeckTrackVisible
+        {
+            get
+            {
+                if (!deckTrackShown && (selected.Count >= DeckTrackCards || deckStep > 0)) deckTrackShown = true;
+                return deckTrackShown;
+            }
+        }
+
         /// <param name="initialCopies">Copies of each type to start with. Without it every type starts with
         /// <paramref name="copiesPerType"/> copies.</param>
         /// <param name="initialDeck">Copies of each type that start in the deck. Without it the deck takes the
@@ -297,7 +314,7 @@ namespace Hakaton.Decks
         // ---------- saving ----------
 
         public WorkshopSave Save() => new WorkshopSave { coins = Coins, nextId = nextId, hand = handSize, journeys = Journeys,
-            deckStep = deckStep,
+            deckStep = deckStep, deckTrackShown = deckTrackShown,
             copies = owned.Select(c => new CopySave { id = c.Id, definition = c.Spec.Id, level = c.Level, paid = c.PaidPrice,
                 locked = c.Protected }).ToList(),
             selected = owned.Where(c => selected.Contains(c.Id)).Select(c => c.Id).ToList() };
@@ -386,6 +403,7 @@ namespace Hakaton.Decks
             Journeys = save.journeys;
             handSize = hand;
             deckStep = step;
+            deckTrackShown = save.deckTrackShown;
             Current = null;
         }
     }

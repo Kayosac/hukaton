@@ -47,14 +47,17 @@ namespace Hakaton.Computer
         public static string Percent(float chance) => ((int)Math.Round(chance * 100)) + "%";
 
         /// <summary>
-        /// The PC's improvements: hand size and the deck limit (deck workshop), then the shift length when the shop is
+        /// The PC's improvements: hand size and the deck limit (deck workshop; the deck limit only from
+        /// <see cref="DeckWorkshop.DeckTrackCards"/> cards in the deck or a bought step, and then for good — balance stage 5:
+        /// with a deck of a few cards the row is useless), then the shift length when the shop is
         /// given and has upgrades to sell, then the player's stamina when given, the phone's battery once the phone is bought,
         /// then the bulk buyer's chance — only once the player has met him (a surprise until then).
         /// </summary>
         public static IReadOnlyList<PcUpgradeTrack> For(DeckWorkshop model, TradingSession shop = null, StaminaUpgrade stamina = null,
             SpecialItemsHost items = null, HeartsUpgrade hearts = null)
         {
-            var tracks = new List<PcUpgradeTrack> { new HandTrack(model), new DeckTrack(model) };
+            var tracks = new List<PcUpgradeTrack> { new HandTrack(model) };
+            if (model.DeckTrackVisible) tracks.Add(new DeckTrack(model));
             if (shop != null && shop.ShiftSteps > 0) tracks.Add(new ShiftTrack(shop));
             if (stamina != null && stamina.Steps > 0) tracks.Add(new StaminaTrack(model, stamina));
             if (hearts != null && hearts.Steps > 0) tracks.Add(new HeartsTrack(model, hearts));
