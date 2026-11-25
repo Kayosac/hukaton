@@ -237,7 +237,13 @@ namespace Hakaton.WorldAssembly.Tests
 
             // ---- «Эхолот» everywhere around: enemies light up, recruits do not ----
             var lit = site.Creatures.Where(c => c && c.Alive && !c.Recruited && c.isActiveAndEnabled).ToList();
-            Throw(sonarCard, 2, world.motor.transform.position);
+            // Where everything stood when the wave went out: a creature lit then may move on before the check (a surface
+            // creature that slipped down into the dungeon is put back on the ground), and the reach is the wave's, not its.
+            var thrownFrom = world.motor.transform.position;
+            var stoodAt = new Dictionary<Component, Vector3>();
+            foreach (var creature in world.ActiveCreatures) if (creature) stoodAt[creature] = creature.Position;
+            foreach (var fighter in world.Wild.All) if (fighter is Component body && body) stoodAt[body] = body.transform.position;
+            Throw(sonarCard, 2, thrownFrom);
             yield return new WaitForSeconds(1.6f);
             var marks = Object.FindObjectsByType<SonarMark>(FindObjectsSortMode.None);
             Debug.Log($"[Anthill] sonar: {marks.Length} marks, {lit.Count} wild creatures awake");
@@ -245,9 +251,10 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(marks.Any(m => m.Target == recruit), Is.False, "the recruit is not an enemy");
             Assert.That(marks.Where(m => m.Shown).All(m => m.Copies > 0), Is.True, "every lit enemy has its silhouette");
             float reach = ((SonarEffect)sonarCard.effectAsset).radius.At(2);
-            var beyond = marks.Where(m => Vector3.Distance(m.Target.transform.position, world.motor.transform.position) > reach + 12).ToList();
-            Assert.That(beyond, Is.Empty, $"the wave reaches {reach} m from {world.motor.transform.position}: "
-                + string.Join("; ", beyond.Select(m => $"{m.Target.name} at {m.Target.transform.position} ({Vector3.Distance(m.Target.transform.position, world.motor.transform.position):F1} m)")));
+            Vector3 StoodAt(Component target) => stoodAt.TryGetValue(target, out var at) ? at : target.transform.position;
+            var beyond = marks.Where(m => Vector3.Distance(StoodAt(m.Target), thrownFrom) > reach + 12).ToList();
+            Assert.That(beyond, Is.Empty, $"the wave reaches {reach} m from {thrownFrom}: "
+                + string.Join("; ", beyond.Select(m => $"{m.Target.name} at {StoodAt(m.Target)} when thrown, {m.Target.transform.position} now ({Vector3.Distance(StoodAt(m.Target), thrownFrom):F1} m)")));
             yield return Shot("22-sonar-around");
             yield return new WaitForSeconds(11);
             Assert.That(Object.FindObjectsByType<SonarMark>(FindObjectsSortMode.None).Length, Is.EqualTo(0), "the silhouettes go out after their time");
