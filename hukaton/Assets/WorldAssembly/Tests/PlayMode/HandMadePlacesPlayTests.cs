@@ -111,6 +111,22 @@ namespace Hakaton.WorldAssembly.Tests
             rt.Release();
         }
 
+        /// <summary>
+        /// Whether the thing lies on something (solid within half a metre under its lowest point) and not under the
+        /// ground (no ground surface over its top at its spot): the ground is a terrain or the place's terrain meshes.
+        /// </summary>
+        static bool OnSomething(PhysicsProp p)
+        {
+            var box = p.GetComponentsInChildren<Collider>().Where(c => c && !c.isTrigger).Select(c => c.bounds)
+                .Aggregate((a, b) => { a.Encapsulate(b); return a; });
+            var hits = Physics.RaycastAll(new Vector3(box.center.x, box.max.y + 30, box.center.z), Vector3.down, 80, ~0, QueryTriggerInteraction.Ignore)
+                .Where(h => !h.collider.transform.IsChildOf(p.transform)).ToList();
+            bool Ground(Collider c) => c is TerrainCollider || c.name.Contains("Terrain");
+            bool underGround = hits.Any(h => Ground(h.collider) && h.point.y > box.max.y);
+            bool lying = hits.Any(h => h.point.y <= box.min.y + .5f && box.min.y - h.point.y < .5f);
+            return lying && !underGround;
+        }
+
         static IEnumerator Shake(string place, int atLeast)
         {
             yield return new WaitForSeconds(1);
@@ -118,7 +134,11 @@ namespace Hakaton.WorldAssembly.Tests
                 .Where(p => p.dormant && p.body && p.isActiveAndEnabled && p.body.isKinematic).ToList();
             Assert.That(props.Count, Is.GreaterThan(atLeast), $"dormant loose things in {place}");
             var problems = new List<string>();
-            int woken = 0;
+            int woken = 0, dropped = 0;
+            var drops = new List<string>();
+            // The same pushes every run (the global random is whatever the tests before left it at).
+            var randomBefore = Random.state;
+            Random.InitState(1);
             for (int start = 0; start < props.Count; start += 30)
             {
                 var batch = props.Skip(start).Take(30).Where(p => p && p.isActiveAndEnabled).ToList();
@@ -132,11 +152,19 @@ namespace Hakaton.WorldAssembly.Tests
                     var delta = p.body.position - before[p];
                     float across = new Vector2(delta.x, delta.z).magnitude;
                     if (across > 6) problems.Add($"{p.name} shot {across:0.0} m across, {delta.y:0.0} m up, from {before[p]}");
-                    if (delta.y < -3) problems.Add($"{p.name} fell {-delta.y:0.0} m from {before[p]}");
+                    // A fall is a problem when the thing went through what it should lie on: it ends under the ground
+                    // there or over nothing. Pushed off a roof or a ledge onto the ground below is a fall, not a fault
+                    // (the small boulder on the den's roof, 3.7 m up, lands on the ground beside it).
+                    if (delta.y < -3)
+                    {
+                        if (OnSomething(p)) { dropped++; drops.Add($"{p.name} {-delta.y:0.0} m from {before[p]}"); }
+                        else problems.Add($"{p.name} fell {-delta.y:0.0} m from {before[p]} through to {p.body.position}");
+                    }
                 }
                 foreach (var p in batch) if (p && !p.body.isKinematic) p.Rest();
             }
-            Debug.Log($"[World] {place}: woke {woken} of {props.Count} loose things, {problems.Count} problems\n" + string.Join("\n", problems));
+            Random.state = randomBefore;
+            Debug.Log($"[World] {place}: woke {woken} of {props.Count} loose things, {dropped} dropped off a ledge onto the ground ({string.Join("; ", drops)}), {problems.Count} problems\n" + string.Join("\n", problems));
             Assert.That(woken, Is.GreaterThan(props.Count / 2));
             Assert.That(problems, Is.Empty, string.Join("\n", problems));
         }
