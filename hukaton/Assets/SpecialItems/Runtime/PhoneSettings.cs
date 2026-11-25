@@ -8,7 +8,7 @@ namespace Hakaton.SpecialItems
     {
         /// <summary>No two symbols alike.</summary>
         Nothing,
-        /// <summary>Two alike: the bet comes back.</summary>
+        /// <summary>Two alike: the bet comes back (no more).</summary>
         Pair,
         /// <summary>Three coins.</summary>
         Coins,
@@ -27,7 +27,9 @@ namespace Hakaton.SpecialItems
         /// <summary>Three skulls too: a random debuff, any of them, with its own time.</summary>
         Debuff,
         /// <summary>Three coins too: a rare or legendary find straight into the bag.</summary>
-        Treasure
+        Treasure,
+        /// <summary>Card, PENUS, card: a one-use card of rank III or higher from the whole catalogue, whatever the pool stage.</summary>
+        RareCard
     }
 
     /// <summary>The reel symbols in the order of the drawn reel strip (top to bottom).</summary>
@@ -72,24 +74,26 @@ namespace Hakaton.SpecialItems
         [Header("Chances")]
         public PhoneOutcomeChance[] chances =
         {
-            new PhoneOutcomeChance(PhoneOutcome.Nothing, 38),
-            new PhoneOutcomeChance(PhoneOutcome.Pair, 25),
-            new PhoneOutcomeChance(PhoneOutcome.Coins, 9),
-            new PhoneOutcomeChance(PhoneOutcome.Card, 7),
+            new PhoneOutcomeChance(PhoneOutcome.Nothing, 30),
+            new PhoneOutcomeChance(PhoneOutcome.Pair, 22),
+            new PhoneOutcomeChance(PhoneOutcome.Coins, 5),
+            new PhoneOutcomeChance(PhoneOutcome.Card, 20),
             new PhoneOutcomeChance(PhoneOutcome.Heal, 4),
             new PhoneOutcomeChance(PhoneOutcome.Boost, 4),
             new PhoneOutcomeChance(PhoneOutcome.Call, 2),
             new PhoneOutcomeChance(PhoneOutcome.Curse, 1.5f),
             new PhoneOutcomeChance(PhoneOutcome.Jackpot, 1),
             new PhoneOutcomeChance(PhoneOutcome.Debuff, 5),
-            new PhoneOutcomeChance(PhoneOutcome.Treasure, 3.5f)
+            new PhoneOutcomeChance(PhoneOutcome.Treasure, 3.5f),
+            new PhoneOutcomeChance(PhoneOutcome.RareCard, 2)
         };
 
         [Header("Prizes")]
-        [Min(0)] public int pairCoins = 20;
-        [Min(0)] public int coinsPrize = 120;
+        [Tooltip("Two alike: the bet back, no more.")]
+        [Min(0)] public int pairCoins = 10;
+        [Min(0)] public int coinsPrize = 100;
         [Min(0)] public int jackpotCoins = 1200;
-        [Tooltip("Three cards: throws the granted card has.")]
+        [Tooltip("Three cards and the rare card: throws the granted card has.")]
         [Min(1)] public int cardUses = 2;
         [Tooltip("Boost: seconds of endless stamina or of the fast run (one of the two, at random).")]
         [Min(1)] public float boostSeconds = 30;

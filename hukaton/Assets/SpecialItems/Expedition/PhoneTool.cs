@@ -372,7 +372,10 @@ namespace Hakaton.SpecialItems
                     Money(settings.jackpotCoins, true, shown);
                     break;
                 case PhoneOutcome.Card:
-                    GrantCard();
+                    GrantCard(false);
+                    break;
+                case PhoneOutcome.RareCard:
+                    GrantCard(true);
                     break;
                 case PhoneOutcome.Heal:
                     Heal();
@@ -430,19 +433,46 @@ namespace Hakaton.SpecialItems
             if (coin) coin.anchoredPosition = new Vector2(left + width + amountGap, coin.anchoredPosition.y);
         }
 
-        void GrantCard()
+        /// <summary>
+        /// Three cards: a card of the player's current pool stage. <paramref name="rare"/> (card, PENUS, card): a card of
+        /// rank III or higher from the whole catalogue, whatever the stage (<see cref="PhoneCardRules"/>), with a brighter
+        /// win: the win jingle over the card sound, golden sparkles and confetti, a small punch of the view.
+        /// </summary>
+        void GrantCard(bool rare)
         {
             var config = World.workshop.config;
-            // Only the player's current pool stage (CardPool), like the goblin and the trophy cards.
-            var pool = StagedCards.OnSale(config, World.workshop.Model.PoolStage);
-            var trip = World.workshop.Model.Current;
-            if (pool.Count == 0 || trip == null) return;
-            var pick = pool[random.Next(pool.Count)];
+            var model = World.workshop.Model;
+            var trip = model.Current;
+            if (trip == null) return;
+            // Every card on sale of every stage; the rules narrow it to the pool stage (usual) or to rank III+ (rare).
+            var definitions = new Dictionary<string, CardDefinition>();
+            var catalogue = new List<Hakaton.Decks.CardSpec>();
+            foreach (var card in StagedCards.OnSale(config, Hakaton.Decks.CardSpec.MaxStage))
+            {
+                definitions[card.id] = card;
+                catalogue.Add(card.ToSpec());
+            }
+            var owned = new HashSet<string>();
+            foreach (var copy in model.Owned) owned.Add(copy.Spec.Id);
+            var spec = PhoneCardRules.Pick(rare ? PhoneOutcome.RareCard : PhoneOutcome.Card, catalogue, model.PoolStage, owned, random);
+            if (spec == null || !definitions.TryGetValue(spec.Id, out var pick)) return;
             // One use, over the hand's limit; R discards it like any card, and it is gone with the outing.
             int uses = Mathf.Max(1, Settings.cardUses);
             if (trip.GrantToHand(pick.ToSpec(), 1, uses) == null) return;
-            World.Play(cardSound);
-            World.Announce("Три карты: «" + pick.displayName + "» в руку — " + (uses == 1 ? "один бросок" : uses + (uses < 5 ? " броска" : " бросков")), 3);
+            string throws = uses == 1 ? "один бросок" : uses + (uses < 5 ? " броска" : " бросков");
+            if (!rare)
+            {
+                World.Play(cardSound);
+                World.Announce("Три карты: «" + pick.displayName + "» в руку — " + throws, 3);
+                return;
+            }
+            World.Play(winSound);
+            World.Play(cardSound, null, 1, 1.25f);
+            var eye = World.viewCamera.transform;
+            World.Spawn(healSparkle, eye.position + eye.forward * 3.4f, Quaternion.identity, coinColour, .8f);
+            World.Spawn(jackpotConfetti, eye.position + eye.forward * 2.5f + eye.up * .6f, Quaternion.identity, Color.white, .6f);
+            if (World.feel) World.feel.PunchFov(-5);
+            World.Announce("Редкая карта! «" + pick.displayName + "» в руку — " + throws, 3.5f);
         }
 
         void Boost(PhoneSettings settings)

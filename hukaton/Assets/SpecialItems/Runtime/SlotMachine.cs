@@ -12,6 +12,14 @@ namespace Hakaton.SpecialItems
         public const int Reels = 3;
         public const int SymbolCount = 7;
 
+        /// <summary>
+        /// The rare card on the reels: card, PENUS, card — not three cards (the usual card) and not three PENUS (the jackpot).
+        /// A pair never shows two cards with a PENUS, in any order, so this reads only as the rare card.
+        /// </summary>
+        public static readonly PhoneSymbol[] RareCardReels = { PhoneSymbol.Card, PhoneSymbol.Penus, PhoneSymbol.Card };
+
+        static readonly PhoneSymbol[] NotCardOrPenus = { PhoneSymbol.Coin, PhoneSymbol.Heart, PhoneSymbol.Lightning, PhoneSymbol.Goblin, PhoneSymbol.Skull };
+
         /// <summary>The symbol three of which bring the outcome (none for Nothing and Pair).</summary>
         public static PhoneSymbol? TripleOf(PhoneOutcome outcome)
         {
@@ -63,10 +71,17 @@ namespace Hakaton.SpecialItems
                 for (int i = 0; i < Reels; i++) reels[i] = triple.Value;
                 return reels;
             }
+            if (outcome == PhoneOutcome.RareCard)
+            {
+                for (int i = 0; i < Reels; i++) reels[i] = RareCardReels[i];
+                return reels;
+            }
             if (outcome == PhoneOutcome.Pair)
             {
                 var pair = (PhoneSymbol)random.Next(SymbolCount);
                 var odd = (PhoneSymbol)((int)(pair + 1 + random.Next(SymbolCount - 1)) % SymbolCount);
+                // Two cards and a PENUS would look like the rare card: the odd one is another symbol then.
+                if (pair == PhoneSymbol.Card && odd == PhoneSymbol.Penus) odd = NotCardOrPenus[random.Next(NotCardOrPenus.Length)];
                 int oddAt = random.Next(Reels);
                 for (int i = 0; i < Reels; i++) reels[i] = i == oddAt ? odd : pair;
                 return reels;
@@ -87,6 +102,7 @@ namespace Hakaton.SpecialItems
         public static PhoneOutcome Read(IReadOnlyList<PhoneSymbol> reels)
         {
             if (reels == null || reels.Count != Reels) return PhoneOutcome.Nothing;
+            if (reels[0] == RareCardReels[0] && reels[1] == RareCardReels[1] && reels[2] == RareCardReels[2]) return PhoneOutcome.RareCard;
             if (reels[0] == reels[1] && reels[1] == reels[2])
                 for (var outcome = PhoneOutcome.Coins; outcome <= PhoneOutcome.Jackpot; outcome++)
                     if (TripleOf(outcome) == reels[0]) return outcome;
