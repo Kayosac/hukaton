@@ -1226,7 +1226,9 @@ namespace Hakaton.WorldAssembly.Tests
             yield return Visit(brawlPlan);
             brawl = ViewAt(brawlPlan.Coord).GetComponentInChildren<Hakaton.Expeditions.Events.BeastBrawl>();
             Assert.That(brawl.Current, Is.EqualTo(Hakaton.Expeditions.Events.BeastBrawl.Phase.Over), "the fight stays over");
-            Assert.That(brawl.AliveIn(0) + brawl.AliveIn(1), Is.EqualTo(alive), "the fallen stay fallen");
+            // The dead do not come back. The living do not stand still: they come back as ordinary beasts and go for the
+            // player standing by, and a rooster's ball may still fell a rat on the way, so more may lie dead by now.
+            Assert.That(brawl.AliveIn(0) + brawl.AliveIn(1), Is.LessThanOrEqualTo(alive), "the fallen stay fallen");
 
             // Chests: an ordinary one opens and stays open; a mimic on guard comes back on guard.
             ChestSpawnTable Table(ChunkPlan p) => streamer.content.ChestTable(p.Ring);
