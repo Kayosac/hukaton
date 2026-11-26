@@ -178,6 +178,17 @@ namespace Hakaton.Game.Tests
             Assert.That(game.objectiveLabel.rectTransform.anchoredPosition, Is.EqualTo(home + game.outingGoalsShift),
                 "On an outing the list sits lower, clear of the hearts and badges.");
             Assert.That(game.resultLabel.text, Is.Empty, "The shop's notices stay in the shop.");
+            // The bag: no line while it is empty; a find adds «В сумке: 1 шт · ≈ price» (its base price).
+            Assert.That(game.bagLabel.text, Is.Empty);
+            var find = world.lootCatalog.items.First(item => item && item.price > 0);
+            world.Collect(find);
+            yield return null;
+            Assert.That(game.bagLabel.text, Is.EqualTo("В сумке: 1 шт · ≈ " + find.price));
+            world.Collect(find);
+            yield return null;
+            Assert.That(game.bagLabel.text, Is.EqualTo("В сумке: 2 шт · ≈ " + find.price * 2));
+            Assert.That(game.bagLabel.rectTransform.anchoredPosition.y, Is.LessThan(game.objectiveLabel.rectTransform.anchoredPosition.y),
+                "Under the goals.");
             // The goals list keeps clear of the hearts, the wallet and the effect badges (all top left).
             var hud = world.hud;
             float goalsTop = TopOnScreen(game.goalsTitle);

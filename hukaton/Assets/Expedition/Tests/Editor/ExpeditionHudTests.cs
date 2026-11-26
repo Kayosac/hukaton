@@ -15,6 +15,20 @@ namespace Hakaton.Expeditions.Tests
         static ExpeditionHud Hud => AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/UI/Expedition HUD.prefab").GetComponent<ExpeditionHud>();
 
         [Test]
+        public void TheBagLineCountsFindsAndTheirBasePricesWithoutCoins()
+        {
+            Assert.That(ExpeditionHud.BagLine(null), Is.Empty);
+            Assert.That(ExpeditionHud.BagLine(new Hakaton.Decks.LootSave[0]), Is.Empty, "An empty bag has no line.");
+            var bag = new[]
+            {
+                new Hakaton.Decks.LootSave { id = "cap", name = "Шляпка", count = 2, value = 35 },
+                new Hakaton.Decks.LootSave { id = "fang", name = "Клык", count = 1, value = 104 },
+                new Hakaton.Decks.LootSave { id = "lost", name = "Потеряно", count = 0, value = 500 }
+            };
+            Assert.That(ExpeditionHud.BagLine(bag), Is.EqualTo("В сумке: 3 шт · ≈ 174"));
+        }
+
+        [Test]
         public void HeartsSpinAsDrawnFramesAndFillFromTheLeft()
         {
             var hud = Hud;

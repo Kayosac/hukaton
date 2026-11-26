@@ -221,6 +221,20 @@ namespace Hakaton.Expeditions
         /// <summary>The wallet as shown next to the coin: digits only, a space between thousands ("1 250").</summary>
         public static string FormatMoney(int value) => value.ToString("#,0", MoneyFormat);
 
+        /// <summary>
+        /// The bag on an outing, next to the goals: «В сумке: N шт · ≈ S» — N finds carried, S the sum of their base prices
+        /// (coins go to the purse and are not counted). Empty when the bag is.
+        /// </summary>
+        public static string BagLine(IReadOnlyList<LootSave> loot)
+        {
+            int count = 0;
+            long value = 0;
+            if (loot != null)
+                foreach (var entry in loot)
+                    if (entry != null && entry.count > 0) { count += entry.count; value += (long)entry.count * entry.value; }
+            return count == 0 ? "" : "В сумке: " + count + " шт · ≈ " + value;
+        }
+
         /// <summary>"Stock/Total": copies still in the draw pile over the copies taken on this outing (hand, held and spent excluded).</summary>
         public static string CardCount(ExpeditionDeck deck) => deck == null ? "" : $"{deck.StockCount}/{deck.Total}";
 

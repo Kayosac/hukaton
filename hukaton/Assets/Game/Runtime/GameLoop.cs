@@ -378,6 +378,8 @@ namespace Hakaton.Game
             goalLines = new[] { goalsTitle, objectiveLabel ? objectiveLabel.rectTransform : null,
                 sideGoalLabel ? sideGoalLabel.rectTransform : null, bagLabel ? bagLabel.rectTransform : null };
             goalLineHomes = Array.ConvertAll(goalLines, line => line ? line.anchoredPosition : Vector2.zero);
+            goalsTitleLabel = goalsTitle ? goalsTitle.GetComponent<TMP_Text>() : null;
+            goalsTitleText = goalsTitleLabel ? goalsTitleLabel.text : "";
             cardShop.Bought += NoteGoblinCardBought;
             if (expedition.trophies) expedition.trophies.Arrived += NoteTrophyCard;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
@@ -658,6 +660,8 @@ namespace Hakaton.Game
         bool progressHudLost, celebratedNow, goalsShifted;
         RectTransform[] goalLines;
         Vector2[] goalLineHomes;
+        TMP_Text goalsTitleLabel;
+        string goalsTitleText;
 
         /// <summary>The goals are on screen on an outing too (not in the cave prologue, not at the god's).</summary>
         public bool GoalsOnOuting => Phase == GamePhase.Expedition && !InCave && !InGodMountains && expedition.Running;
@@ -693,7 +697,12 @@ namespace Hakaton.Game
             // the block, not the labels, as their shadows mirror activeSelf.
             var goal = CurrentGoal;
             bool goalListed = goal != MainGoal.None;
-            if (goalsBlock.activeSelf != goalListed) goalsBlock.SetActive(goalListed);
+            // The bag on an outing (not in the prologue, not at the god's), under the goals; it stays after the last goal.
+            string bag = outing && bagLabel ? Hakaton.Expeditions.ExpeditionHud.BagLine(expedition.Loot) : "";
+            bool shown = goalListed || bag.Length > 0;
+            if (goalsBlock.activeSelf != shown) goalsBlock.SetActive(shown);
+            if (goalsTitleLabel && goalsTitleLabel.text != (goalListed ? goalsTitleText : "")) goalsTitleLabel.text = goalListed ? goalsTitleText : "";
+            if (!goalListed) objectiveLabel.text = "";
             if (goalListed)
             {
                 objectiveLabel.text = GoalChain.MainLine(goal, trade.Session.GrossRevenue, GoalMarks);
@@ -703,6 +712,17 @@ namespace Hakaton.Game
             if (sideGoalLabel)
                 sideGoalLabel.text = goalListed ? GoalChain.SideLine(CurrentSideGoal, trade.Session.DisplayCount, trade.Session.Slots.Count,
                     farGoalMetres) : "";
+            if (bagLabel)
+            {
+                bagLabel.text = bag;
+                // Right under the last line shown: the main line's place, the side line's, or its own.
+                int slot = 1 + (goalListed ? 1 : 0) + (sideGoalLabel && sideGoalLabel.text.Length > 0 ? 1 : 0);
+                if (goalLineHomes != null && slot < goalLineHomes.Length)
+                {
+                    var place = goalLineHomes[Mathf.Min(slot, 3)] + (outing ? outingGoalsShift : Vector2.zero);
+                    if (bagLabel.rectTransform.anchoredPosition != place) bagLabel.rectTransform.anchoredPosition = place;
+                }
+            }
             else if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
             // The shop's notices stay in the shop: an outing has its own.
             resultLabel.text = !outing && Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
