@@ -241,6 +241,7 @@ namespace Hakaton.Expeditions
             FocusedLoot = null;
             FocusedInteractable = null;
             if (!Running) return;
+            TickFirsts();
             if (Time.time >= nextPropTick)
             {
                 nextPropTick = Time.time + .25f;

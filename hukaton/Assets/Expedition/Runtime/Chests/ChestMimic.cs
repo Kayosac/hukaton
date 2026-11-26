@@ -595,6 +595,7 @@ namespace Hakaton.Expeditions
             if (world.vitals.TakeDamage(new DamageInfo(biteHalfHearts, push, world.vitals.Centre, transform.position, DamageKind.Hit, this)))
             {
                 Bites++;
+                world.NoteMimicBite();
                 var eye = world.viewCamera ? world.viewCamera.transform : null;
                 Vector3 at = eye ? eye.position + eye.forward * .6f - eye.up * .15f : world.vitals.Centre;
                 world.Spawn(biteBurst, at, eye ? eye.rotation : Quaternion.identity, Color.white, biteBurstScale);

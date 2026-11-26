@@ -18,5 +18,9 @@ namespace Hakaton.Expeditions
         public bool anthillLineShown;
         /// <summary>The line about the defeat's cost has been shown (the first hit taken on an outing, not in the prologue).</summary>
         public bool firstHurtLineShown;
+        /// <summary>The line about ring 1 has been shown (the first time the player went past the calm start, 232 m).</summary>
+        public bool wilderRingLineShown;
+        /// <summary>The line about mimics has been shown (after the first mimic bite).</summary>
+        public bool mimicLineShown;
     }
 }

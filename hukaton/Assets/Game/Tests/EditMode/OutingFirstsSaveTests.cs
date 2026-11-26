@@ -39,6 +39,18 @@ namespace Hakaton.Game.Tests
         }
 
         [Test]
+        public void TheWorldLinesSurviveSaveAndLoadAndOldSavesHaveNotSeenThem()
+        {
+            var save = new GameSave { outingFirsts = new OutingFirstsSave { wilderRingLineShown = true, mimicLineShown = true } };
+            Assert.That(GameSaveStore.Save(path, save, out var error), Is.True, error);
+            Assert.That(GameSaveStore.Load(path, _ => true, out var loaded, out var warning), Is.True, warning);
+            Assert.That(loaded.outingFirsts.wilderRingLineShown && loaded.outingFirsts.mimicLineShown, Is.True);
+            var older = JsonUtility.FromJson<OutingFirstsSave>("{\"drownForgiven\":true,\"anthillLineShown\":true}");
+            Assert.That(older.wilderRingLineShown || older.mimicLineShown, Is.False, "a save from before the marks: not shown yet");
+            Assert.That(older.drownForgiven && older.anthillLineShown, Is.True);
+        }
+
+        [Test]
         public void ANewGameHasNotDrownedYet()
         {
             Assert.That(new OutingFirstsSave().drownForgiven, Is.False);

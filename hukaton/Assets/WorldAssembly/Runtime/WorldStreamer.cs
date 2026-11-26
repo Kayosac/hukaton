@@ -144,6 +144,9 @@ namespace Hakaton.WorldAssembly.Unity
             return Active && !(dungeons && dungeons.Underground);
         }
 
+        /// <summary>Ring 1 begins here (<see cref="WorldRules.InnerRadius"/>): the beasts grow wilder, the finds richer.</summary>
+        public float WilderFrom => Map != null ? Map.Rules.InnerRadius : 0;
+
         public void EndOuting()
         {
             if (dungeons) dungeons.Clear();

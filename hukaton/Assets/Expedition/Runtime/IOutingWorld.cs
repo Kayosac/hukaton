@@ -25,5 +25,11 @@ namespace Hakaton.Expeditions
     {
         /// <summary>The centre on the ground, or false where it does not count (underground, in a dungeon).</summary>
         bool TryGetCentre(out Vector3 centre);
+
+        /// <summary>
+        /// Where the wilder land beyond the calm start begins: metres from the centre on the ground (the endless world's
+        /// ring 1, 232 m); 0 — nowhere.
+        /// </summary>
+        float WilderFrom { get; }
     }
 }
