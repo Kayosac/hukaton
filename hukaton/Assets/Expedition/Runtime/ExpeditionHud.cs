@@ -360,15 +360,34 @@ namespace Hakaton.Expeditions
         public string ControlsLine(bool inPrologue, bool returnSelected, bool discardAllowed = true) =>
             inPrologue ? "" : returnSelected ? returnControl : discardAllowed ? discardControl : "";
 
-        string measuredControls;
-        Vector2 controlsSize;
+        readonly Dictionary<TMP_Text, (string text, Vector2 size)> measured = new Dictionary<TMP_Text, (string, Vector2)>();
+
+        /// <summary>
+        /// The top-right end of a bottom-left line as it reads now (left- and bottom-aligned in its rect, may run past it; its
+        /// shadow one unit off), <see cref="fanGap"/> added, in screen pixels; false when the line is empty.
+        /// </summary>
+        bool LineCorner(TMP_Text line, Camera eye, out Vector2 corner)
+        {
+            corner = default;
+            if (!line || string.IsNullOrEmpty(line.text) || !line.gameObject.activeInHierarchy) return false;
+            if (!measured.TryGetValue(line, out var known) || known.text != line.text || known.size.x <= 0)
+            {
+                known = (line.text, line.GetPreferredValues(line.text));
+                measured[line] = known;
+            }
+            var rect = line.rectTransform.rect;
+            var end = new Vector2(rect.xMin + known.size.x + 1 + fanGap, rect.yMin + Mathf.Max(known.size.y, rect.height) + fanGap);
+            corner = RectTransformUtility.WorldToScreenPoint(eye, line.rectTransform.TransformPoint(end));
+            return true;
+        }
 
         /// <summary>
         /// The bottom corners of the screen the hand fan keeps out of, <see cref="fanGap"/> included, as shares of the screen from
         /// its middle (x of the half width, y of the half height; the 3D view covers the whole screen, whatever its own render
         /// resolution): no card may reach left of <paramref name="left"/>.x below <paramref name="left"/>.y (the end of the standing
-        /// controls line as it reads now; «Удерживай ЛКМ — домой», the longer text, only shows while «Пора домой» — always alone in
-        /// the hand — is selected) nor right of
+        /// controls line as it reads now, and of the contextual hint over it — «E — подобрать»… — while there is one, so the raised
+        /// card of a big hand never covers it; «Удерживай ЛКМ — домой», the longer text, only shows while «Пора домой» — always
+        /// alone in the hand — is selected) nor right of
         /// <paramref name="right"/>.x below <paramref name="right"/>.y (the card counter). A corner the HUD leaves free is
         /// infinitely far. False when neither is there.
         /// </summary>
@@ -380,19 +399,12 @@ namespace Hakaton.Expeditions
             var screen = canvas ? canvas.pixelRect : new Rect(0, 0, Screen.width, Screen.height);
             if (screen.width <= 0 || screen.height <= 0) return false;
             Vector2 Share(Vector2 pixel) => new Vector2((pixel.x - screen.center.x) / (screen.width * .5f), (pixel.y - screen.center.y) / (screen.height * .5f));
-            if (controls && !string.IsNullOrEmpty(controls.text))
-            {
-                if (measuredControls != controls.text || controlsSize.x <= 0)
-                {
-                    controlsSize = controls.GetPreferredValues(controls.text);
-                    measuredControls = controls.text;
-                }
-                // The line is left- and bottom-aligned in its rect and may run past it; its shadow is offset by a unit.
-                var line = controls.rectTransform;
-                var rect = line.rect;
-                var corner = new Vector2(rect.xMin + controlsSize.x + 1 + fanGap, rect.yMin + Mathf.Max(controlsSize.y, rect.height) + fanGap);
-                left = Share(RectTransformUtility.WorldToScreenPoint(eye, line.TransformPoint(corner)));
-            }
+            // The standing controls line and the contextual hint over it: the fan keeps right of the longer, below the higher.
+            bool any = false;
+            Vector2 lines = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            foreach (var line in new[] { controls, context })
+                if (LineCorner(line, eye, out var corner)) { lines = Vector2.Max(lines, corner); any = true; }
+            if (any) left = Share(lines);
             if (cardCounter)
             {
                 // The tilted plate the counter sits on.

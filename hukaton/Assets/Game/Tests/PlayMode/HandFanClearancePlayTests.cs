@@ -84,14 +84,63 @@ namespace Hakaton.Game.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator TenCardsKeepOffThePickupHint()
+        {
+            var trip = world.workshop.Model.Current;
+            var cards = world.workshop.config.cards.Where(c => c && !c.dummy && c.purchasePrice > 0).ToArray();
+            for (int i = 0; trip.Deck.Hand.Count < 10; i++) trip.GrantToHand(cards[i % cards.Length].ToSpec());
+            world.thrower.SelectCopy(trip.Deck.Hand[0].Id);
+            // A find right in front of the eye: «E — подобрать» over the controls line.
+            var eye = world.viewCamera.transform;
+            var item = world.lootCatalog.items.First(x => x && x.price > 0);
+            var find = world.SpawnLoot(item, eye.position + eye.forward * 1.1f);
+            Assert.That(find, Is.Not.Null);
+            foreach (var body in find.GetComponentsInChildren<Rigidbody>()) body.isKinematic = true;
+            yield return WaitFor(() => world.FocusedLoot != null, 3);
+            yield return Wait(1.5f);
+            Assert.That(world.hud.context.text, Is.EqualTo("E — подобрать"));
+            Check("10 cards, the leftmost selected, a find in focus", 10, world.hud.context);
+            Check("10 cards, the leftmost selected, a find in focus", 10);
+        }
+
+        [UnityTest]
+        public IEnumerator TheFirstLinesHoldFiveSecondsClearOfTheHand()
+        {
+            var trip = world.workshop.Model.Current;
+            var cards = world.workshop.config.cards.Where(c => c && !c.dummy && c.purchasePrice > 0).ToArray();
+            for (int i = 0; trip.Deck.Hand.Count < 10; i++) trip.GrantToHand(cards[i % cards.Length].ToSpec());
+            world.thrower.SelectCopy(trip.Deck.Hand[0].Id);
+            Assert.That(world.NoteAnthillApproached(), Is.True);
+            world.Announce("Проходящее уведомление", 1);
+            yield return null;
+            Assert.That(world.hud.notice.text, Is.EqualTo(ExpeditionWorld.AnthillLine), "A passing notice does not replace the line.");
+            Assert.That(ExpeditionWorld.FirstLineSeconds, Is.GreaterThanOrEqualTo(5));
+            yield return Wait(4.6f);
+            Assert.That(world.hud.notice.text, Is.EqualTo(ExpeditionWorld.AnthillLine), "It stays five seconds.");
+            // Above every card of the hand, the raised one included: the fan never covers it.
+            var corners = new Vector3[4];
+            world.hud.notice.rectTransform.GetWorldCorners(corners);
+            float noticeBottom = corners.Min(c => c.y);
+            Assert.That(noticeBottom, Is.GreaterThan(Screen.height * .5f), "The notice is in the upper half.");
+            foreach (var view in world.hand.GetComponentsInChildren<CardView>().Where(v => v.Visible))
+                foreach (var c in new[] { new Vector3(-.5f, .5f), new Vector3(.5f, .5f) })
+                    Assert.That(Pixel(world.viewCamera, view.transform.TransformPoint(c)).y, Is.LessThan(noticeBottom), "A card reaches the notice.");
+            yield return Wait(.6f);
+            world.Announce("Проходящее уведомление", 1);
+            yield return null;
+            Assert.That(world.hud.notice.text, Is.EqualTo("Проходящее уведомление"), "After its time the line gives way.");
+        }
+
         /// <summary>Every visible card at the line's (the counter's) height stays right of its end (left of the counter).</summary>
-        void Check(string what, int cardCount)
+        void Check(string what, int cardCount, TMPro.TMP_Text leftLine = null)
         {
             var hud = world.hud;
             var eye = world.viewCamera;
             // The line's real end: its text's width from the left of its rect, in screen pixels (overlay canvas).
-            var line = hud.controls.rectTransform;
-            var size = hud.controls.GetPreferredValues(hud.controls.text);
+            var text = leftLine ? leftLine : hud.controls;
+            var line = text.rectTransform;
+            var size = text.GetPreferredValues(text.text);
             Vector2 lineEnd = line.TransformPoint(new Vector2(line.rect.xMin + size.x, line.rect.yMin + Mathf.Max(size.y, line.rect.height)));
             var plate = (RectTransform)hud.cardCounter.transform.parent;
             var plateCorners = new Vector3[4];

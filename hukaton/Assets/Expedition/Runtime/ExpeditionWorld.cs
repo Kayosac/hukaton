@@ -200,6 +200,7 @@ namespace Hakaton.Expeditions
             Returning = false;
             LastOutingDrowned = false;
             LastOutingForgiven = false;
+            noticeHeldUntil = 0;
             outingSeed = workshop.Model.Current != null ? workshop.Model.Current.Seed : workshop.Model.Journeys * 1637;
             Impacts = 0;
             LootValue = 0;
@@ -369,7 +370,20 @@ namespace Hakaton.Expeditions
             return drop;
         }
 
-        public void Announce(string text, float seconds = 3) { Notice = text; NoticeUntil = Time.time + seconds; }
+        public void Announce(string text, float seconds = 3)
+        {
+            // A once-per-game line holds its time: a passing notice does not replace it.
+            if (Time.time < noticeHeldUntil && text != Notice) return;
+            Notice = text; NoticeUntil = Time.time + seconds;
+        }
+
+        /// <summary>A notice no other replaces for <paramref name="seconds"/> (the once-per-game lines of the outings).</summary>
+        public void AnnounceHeld(string text, float seconds)
+        {
+            Notice = text; NoticeUntil = Time.time + seconds;
+            noticeHeldUntil = NoticeUntil;
+        }
+        float noticeHeldUntil;
 
         // ---------- presentation helpers ----------
 

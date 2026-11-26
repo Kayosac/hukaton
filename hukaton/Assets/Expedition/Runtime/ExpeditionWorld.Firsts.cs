@@ -22,7 +22,8 @@ namespace Hakaton.Expeditions
         public const string AnthillLine = "Муравейник. Внутри темно и бьют больно. „Пора домой“ работает и там.";
         /// <summary>Shown at the first hit taken on an outing, not in the cave prologue (once per game).</summary>
         public const string FirstHurtLine = "Упадёшь — половина добычи останется в лесу.";
-        const float FirstLineSeconds = 5;
+        /// <summary>How long a once-per-game line stays, seconds: no passing notice replaces it meanwhile.</summary>
+        public const float FirstLineSeconds = 5;
 
         /// <summary>
         /// The player has come up to an anthill's mouth (<c>DungeonEntrance</c> asks): the first time in the game the line
@@ -32,7 +33,7 @@ namespace Hakaton.Expeditions
         {
             if (Firsts.anthillLineShown || !Running || InPrologue) return false;
             Firsts.anthillLineShown = true;
-            Announce(AnthillLine, FirstLineSeconds);
+            AnnounceHeld(AnthillLine, FirstLineSeconds);
             return true;
         }
 
@@ -41,7 +42,7 @@ namespace Hakaton.Expeditions
         {
             if (change >= 0 || Firsts.firstHurtLineShown || !Running || InPrologue || !vitals || vitals.HalfHearts <= 0) return;
             Firsts.firstHurtLineShown = true;
-            Announce(FirstHurtLine, FirstLineSeconds);
+            AnnounceHeld(FirstHurtLine, FirstLineSeconds);
         }
 
         /// <summary>
