@@ -171,6 +171,53 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(slowed / normal, Is.EqualTo(.5f).Within(.06f), "the web slows as before: half speed");
             Assert.That(seconds, Is.EqualTo(2.5f).Within(.12f), "the web wears off after 2.5 s");
         }
+        WorldCreature Spawn(string prefab)
+        {
+            var preview = sandbox.Previews.FirstOrDefault(p => p.source && p.source.name == prefab);
+            Assert.That(preview, Is.Not.Null, $"the debug scene shows {prefab}");
+            return sandbox.Spawn(preview);
+        }
+
+        IEnumerator Stand(WorldCreature creature, float distance)
+        {
+            var dir = new Vector3(0, 0, 10) - creature.Position;
+            dir.y = 0;
+            var at = creature.Position + dir.normalized * distance;
+            if (UnityEngine.AI.NavMesh.SamplePosition(at, out var hit, 2, UnityEngine.AI.NavMesh.AllAreas)) at = hit.position;
+            sandbox.motor.Teleport(at + Vector3.up * .1f, Quaternion.LookRotation(creature.Position - at));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator LeechSqueezesOnceEveryThreeQuartersOfASecond()
+        {
+            var leech = Spawn("Giant swamp leech");
+            Assert.That(leech.grab.squeezeInterval, Is.EqualTo(.75f));
+            yield return Stand(leech, 6.5f);
+            float until = Time.time + 5;
+            while (Time.time < until && leech.Lurking) yield return null;
+            // Hurt, it latches on up close to drink its health back.
+            leech.Damage(4, Vector3.zero, leech.Centre, 0);
+            yield return Wait(.6f);
+            yield return Stand(leech, 2);
+            until = Time.time + 8;
+            while (Time.time < until && !leech.Holding) yield return null;
+            Assert.That(leech.Holding, Is.True, $"it latches on: {leech.State}");
+            float grabbed = Time.time;
+            int damage = sandbox.ReceivedDamage;
+            var squeezes = new System.Collections.Generic.List<float>();
+            until = Time.time + 4;
+            while (Time.time < until && leech.Holding)
+            {
+                yield return null;
+                if (sandbox.ReceivedDamage > damage) squeezes.Add(Time.time - grabbed);
+                damage = sandbox.ReceivedDamage;
+            }
+            Debug.Log($"[stage-8] leech: hold {Time.time - grabbed:0.00} s, squeezes at {string.Join(", ", squeezes.Select(t => t.ToString("0.00")))} s");
+            Assert.That(squeezes.Count, Is.EqualTo(2), "a hold of 1.5 s squeezes twice");
+            Assert.That(squeezes[0], Is.EqualTo(.75f).Within(.1f), "the first squeeze after 0.75 s");
+            Assert.That(squeezes[1] - squeezes[0], Is.EqualTo(.75f).Within(.1f), "and the next 0.75 s later");
+        }
     }
 }
 #endif

@@ -88,8 +88,8 @@ namespace Hakaton.WorldAssembly
         const string Mantis1 = "mantis-man", Mantis2 = "mantis-man*2";
         // Swamp mutants haunt the huts, the mill, the graveyard and the log road: one, further out one or two.
         const string Mutant1 = "swamp-mutant", Mutant2 = "swamp-mutant*1-2";
-        // Giant leeches lie under the water of every part of the swamp: one or two, further out two or three.
-        const string Leeches1 = "giant-swamp-leech*1-2", Leeches2 = "giant-swamp-leech*2-3";
+        // Giant leeches lie under the water of every part of the swamp: one or two, further out two.
+        const string Leeches1 = "giant-swamp-leech*1-2", Leeches2 = "giant-swamp-leech*2";
         // Giant swamp spiders hunt round snags, tar and huts: one, further out two; on the drowned graveyard they swarm.
         const string Spider1 = "giant-swamp-spider", Spider2 = "giant-swamp-spider*2";
         const string Spiders1 = "giant-swamp-spider*3", Spiders2 = "giant-swamp-spider*3-5";

@@ -7,7 +7,8 @@ using NUnit.Framework;
 namespace Hakaton.WorldAssembly.Tests
 {
     /// <summary>
-    /// Combat balance of the demo (stage 8) in the creature themes: a ring 1 place never sends three bee swarms at once.
+    /// Combat balance of the demo (stage 8) in the creature themes: a ring 1 place never sends three bee swarms at once,
+    /// and the far swamp holds its giant leeches by two.
     /// </summary>
     public class CreatureThemesBalanceTests
     {
@@ -38,6 +39,31 @@ namespace Hakaton.WorldAssembly.Tests
             Assert.That(Picks("apiary", 1).Max(p => Count(p, "bee-swarm")), Is.EqualTo(2));
             Assert.That(Picks("apiary", 2).Max(p => Count(p, "bee-swarm")), Is.EqualTo(4));
             Assert.That(Picks("beeyard", 2).Max(p => Count(p, "bee-swarm")), Is.EqualTo(3));
+        }
+        [Test]
+        public void LeechesComeOneOrTwoThenTwo()
+        {
+            var swamp = Themes().Where(CreatureThemes.IsSwampTheme).ToList();
+            int nearSeen = 0, farSeen = 0;
+            foreach (var theme in swamp)
+            {
+                foreach (var pick in Picks(theme, 1))
+                {
+                    int n = Count(pick, "giant-swamp-leech");
+                    if (n == 0) continue;
+                    nearSeen++;
+                    Assert.That(n, Is.InRange(1, 2), $"{theme}, ring 1: {string.Join(" + ", pick)}");
+                }
+                foreach (var pick in Picks(theme, 2))
+                {
+                    int n = Count(pick, "giant-swamp-leech");
+                    if (n == 0) continue;
+                    farSeen++;
+                    Assert.That(n, Is.EqualTo(2), $"{theme}, ring 2: {string.Join(" + ", pick)}");
+                }
+            }
+            Assert.That(nearSeen, Is.GreaterThan(0), "leeches live in the swamp of ring 1");
+            Assert.That(farSeen, Is.GreaterThan(0), "and further out");
         }
     }
 }
