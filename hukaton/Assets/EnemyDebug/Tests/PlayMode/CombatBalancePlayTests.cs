@@ -272,6 +272,30 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(dodges, Is.InRange(20, 60), "about one card in five is dodged");
             Assert.That(cooldownSeen, Is.EqualTo(3).Within(.1f), "the next dodge only after 3 s");
         }
+
+        [UnityTest]
+        public IEnumerator FlyAgaricSpitsHalfAsOften()
+        {
+            var agaric = Spawn("Raging fly agaric");
+            Assert.That(agaric.ranged.cooldown, Is.EqualTo(2.4f));
+            yield return Stand(agaric, 8);
+            agaric.Damage(0, Vector3.zero, agaric.Centre, 0);
+            var volleys = new System.Collections.Generic.List<float>();
+            bool shooting = false;
+            float until = Time.time + 14;
+            while (Time.time < until && volleys.Count < 4)
+            {
+                yield return null;
+                bool now = agaric.State == CreatureState.Shoot;
+                if (now && !shooting) volleys.Add(Time.time);
+                shooting = now;
+            }
+            var gaps = volleys.Zip(volleys.Skip(1), (a, b) => b - a).ToList();
+            Debug.Log($"[stage-8] fly agaric: volleys every {string.Join(", ", gaps.Select(g => g.ToString("0.00")))} s (aim {agaric.ranged.aimSeconds}, cooldown {agaric.ranged.cooldown})");
+            Assert.That(gaps.Count, Is.GreaterThanOrEqualTo(2), "it keeps spitting");
+            // From one volley to the next: the shot pose, then the cooldown of 2.4 s, then the aim.
+            foreach (var gap in gaps) Assert.That(gap, Is.GreaterThanOrEqualTo(2.4f + agaric.ranged.aimSeconds), "no volley sooner than the cooldown and the aim allow");
+        }
     }
 }
 #endif

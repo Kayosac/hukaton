@@ -301,11 +301,13 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator FlyAgaricIsBigAndSpitsOften()
+        public IEnumerator FlyAgaricIsBigAndSpitsAFanOfThree()
         {
             var agaric = Spawn("Raging fly agaric");
             Assert.That(agaric.size, Is.GreaterThanOrEqualTo(2));
-            Assert.That(agaric.ranged.cooldown, Is.LessThanOrEqualTo(1.3f));
+            // Its volley comes every 2.4 s of cooldown (balance, stage 8); CombatBalancePlayTests times it live.
+            Assert.That(agaric.ranged.cooldown, Is.EqualTo(2.4f));
+            Assert.That(agaric.ranged.projectiles, Is.EqualTo(3));
             yield return null;
         }
 
