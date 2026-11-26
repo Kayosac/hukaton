@@ -109,8 +109,9 @@ namespace Hakaton.WorldAssembly
 
         /// <summary>Chance of a creature per chunk of each habitat, per ring.</summary>
         public double[] CreatureChance = { .25, .3, .4 };
-        /// <summary>Chance of a beast brawl on a chunk where one fits (roomy flat scenes) by ring; any ring.</summary>
-        public double[] BrawlChance = { .12, .12, .165 };
+        /// <summary>Chance of a beast brawl on a chunk where one fits (roomy flat scenes) by ring; any ring, rarer near the
+        /// start (ring 0 has the most roomy flat scenes: ~2% of its chunks).</summary>
+        public double[] BrawlChance = { .04, .08, .12 };
         /// <summary>Chance of a payphone or a television on a chunk where one fits, by ring: very rare, never in ring 0.</summary>
         public double[] OddityChance = { 0, .015, .015 };
         /// <summary>Chance per fitting forest chunk to hold a dungeon entrance (an anthill mound), by ring: rare but not too rare,

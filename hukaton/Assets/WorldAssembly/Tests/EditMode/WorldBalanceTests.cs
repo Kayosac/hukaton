@@ -137,6 +137,17 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void BeastBrawlsAreRareNearTheStart()
+        {
+            var rings = Measure();
+            double[] share = rings.Select(g => g.Per(g.brawls)).ToArray();
+            // At the old chances (.12 / .12 / .165) these were 6.3 / 2.5 / 2.2%.
+            Assert.That(share[0], Is.InRange(.015, .028), "ring 0: a brawl on about one chunk in fifty");
+            Assert.That(share[1], Is.InRange(.011, .022), "ring 1");
+            Assert.That(share[2], Is.InRange(.011, .022), "ring 2");
+        }
+
+        [Test]
         public void MeasureTheRings()
         {
             var rings = Measure();
