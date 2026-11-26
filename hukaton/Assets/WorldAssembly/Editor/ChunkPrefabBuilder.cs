@@ -3072,8 +3072,9 @@ namespace Hakaton.WorldAssembly.EditorTools
             return cue;
         }
 
-        /// <summary>Asset ids of the common and the special find prefab (was Assets/Game/Prefabs/Trophy …).</summary>
-        const string CommonFind = "e63587611541a43df91765f109770ab8", SpecialFind = "3ce5eb435103343309e6c134c49adce5";
+        /// <summary>Asset ids of the common, the special (was Assets/Game/Prefabs/Trophy …) and the crystal find prefab.</summary>
+        const string CommonFind = "e63587611541a43df91765f109770ab8", SpecialFind = "3ce5eb435103343309e6c134c49adce5",
+            CrystalFind = "efbf809b7e0ce489daf3213edd5297e6";
 
         /// <summary>A prefab by file name: in Assets/Game/Prefabs, or wherever else it was moved.</summary>
         static GameObject Prefab(string file)
@@ -3100,7 +3101,7 @@ namespace Hakaton.WorldAssembly.EditorTools
             content.loot.Clear();
             content.loot.Add(new WorldContent.LootEntry { id = "find", prefab = Loot(CommonFind) });
             content.loot.Add(new WorldContent.LootEntry { id = "find-hard", prefab = Loot(SpecialFind) });
-            content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot(SpecialFind) });
+            content.loot.Add(new WorldContent.LootEntry { id = "crystal", prefab = Loot(CrystalFind) });
             if (content.loot.Any(e => !e.prefab)) Debug.LogWarning("[World] a find prefab is missing: " + string.Join(", ", content.loot.Where(e => !e.prefab).Select(e => e.id)));
             const string sparkle = "Assets/Plugins/Retro Arsenal/Prefabs/Environment/Sparkle/Mini/";
             content.hardGlow = AssetDatabase.LoadAssetAtPath<GameObject>(sparkle + "SparkleMiniYellowLoop.prefab");
