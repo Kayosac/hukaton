@@ -65,8 +65,9 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(creature.drops.entries.Length, Is.EqualTo(1));
             var drop = creature.drops.entries[0];
             Assert.That(drop.chance, Is.EqualTo(.8f).Within(1e-5));
+            // One or two heads (balance, stage 8: a plug kill pays about 260).
             Assert.That(drop.min, Is.EqualTo(1));
-            Assert.That(drop.max, Is.EqualTo(1));
+            Assert.That(drop.max, Is.EqualTo(2));
             Assert.That(drop.item.id, Is.EqualTo("ant_plug_dead_head"));
             Assert.That(drop.item.displayName, Is.EqualTo("Мёртвая голова муравья-пробки"));
             Assert.That(drop.item.price, Is.EqualTo(217));

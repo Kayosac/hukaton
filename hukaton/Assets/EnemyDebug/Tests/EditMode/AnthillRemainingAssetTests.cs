@@ -190,7 +190,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(c.view.height * c.size, Is.EqualTo(2.8f).Within(1e-4));
             SevenSprites(c);
             Loot(c, new[] { "ant_queen_crown", "ant_queen_cape", "ant_queen_egg" },
-                new[] { 500, 150, 100 }, new[] { .1f, .35f, .5f }, 1);
+                new[] { 500, 150, 100 }, new[] { .25f, .6f, 1f }, 1);
         }
     }
 }

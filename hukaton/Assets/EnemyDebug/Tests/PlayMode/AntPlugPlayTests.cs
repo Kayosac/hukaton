@@ -118,8 +118,12 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(sandbox.LiveCreatures.Count, Is.EqualTo(1));
             Assert.That(worker.Squad, Is.Null);
             var rolled = new List<Hakaton.Loot.LootItem>();
-            worker.drops.Roll(() => .79f, rolled);
+            // Below 0.8 the row drops: one or two heads (the same value also picks the count).
+            worker.drops.Roll(() => .1f, rolled);
             Assert.That(rolled.Count, Is.EqualTo(1));
+            rolled.Clear();
+            worker.drops.Roll(() => .79f, rolled);
+            Assert.That(rolled.Count, Is.EqualTo(2));
             rolled.Clear();
             worker.drops.Roll(() => .8f, rolled);
             Assert.That(rolled, Is.Empty, "The independent drop chance is exactly 80 per cent");
@@ -144,8 +148,8 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             }
             finally { worker.drops = ownDrops; }
             madeLoot.AddRange(Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Except(before));
-            Assert.That(madeLoot.Count, Is.EqualTo(1));
-            Assert.That(madeLoot[0].item.id, Is.EqualTo("ant_plug_dead_head"));
+            Assert.That(madeLoot.Count, Is.InRange(1, 2));
+            foreach (var loot in madeLoot) Assert.That(loot.item.id, Is.EqualTo("ant_plug_dead_head"));
             LogAssert.NoUnexpectedReceived();
         }
     }
