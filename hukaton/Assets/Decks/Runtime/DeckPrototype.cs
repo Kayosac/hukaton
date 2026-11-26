@@ -472,6 +472,75 @@ namespace Hakaton.Decks.Unity
             return label + "  " + Levels(values, level, unit);
         }
 
+        /// <summary>
+        /// What a merge gives and takes, with this card's own numbers (balance stage 9), e.g.
+        /// «2 броска × 3 урона → 1 бросок × 5 урона»: on the left the throws of the two copies of <paramref name="level"/>
+        /// together and their main number, on the right the throws and the number of the next level. The unit is the
+        /// card's own (as in <see cref="PowerLine"/>: seconds, metres, per cent…). A card whose main number is its throws
+        /// (Телепорт) shows only the throws. Null for the dummy, a card that does not merge, or at
+        /// <paramref name="maximumLevel"/>.
+        /// </summary>
+        public static string MergeLine(CardDefinition definition, int level, int maximumLevel = 3)
+        {
+            if (!definition || definition.dummy || !definition.upgradable || level < 1 || level >= maximumLevel) return null;
+            int now = definition.uses.At(level) * 2, next = definition.uses.At(level + 1);
+            if (!MergeStat(definition, out string label, out var values, out string unit))
+                return Throws(now) + " → " + Throws(next);
+            return Throws(now) + " × " + Amount(label, values.At(level), unit) + " → " + Throws(next) + " × " + Amount(label, values.At(level + 1), unit);
+        }
+
+        /// <summary>The number a merge line shows: the stat line's, else as <see cref="PowerLine"/> (Тяжёлый удар — its damage). False: the throws are the number.</summary>
+        static bool MergeStat(CardDefinition definition, out string label, out LevelFloat values, out string unit)
+        {
+            if (definition.effectAsset is ICardStatLine stats && stats.TryGetStat(out label, out values, out unit)) return true;
+            label = unit = "";
+            values = default;
+            if (definition.uses.iii > 1) return false;
+            switch (definition.action)
+            {
+                case CardAction.Impulse: label = "Толчок"; values = definition.impulse; break;
+                case CardAction.Freeze: label = "Заморозка"; values = definition.power; unit = " с"; break;
+                case CardAction.Heal:
+                    label = "Лечение";
+                    values = new LevelFloat(definition.power.i * .5f, definition.power.ii * .5f, definition.power.iii * .5f);
+                    unit = " серд.";
+                    break;
+                default: label = "Урон"; values = definition.power; break;
+            }
+            return true;
+        }
+
+        /// <summary>«1 урон», «3 урона», «5 с», «12 м», «80 %», «5 карт», otherwise the label and the number: «здоровье 12», «медленнее в 2 раза».</summary>
+        static string Amount(string label, float value, string unit)
+        {
+            string n = Number(value);
+            if (string.IsNullOrEmpty(unit))
+            {
+                if (label == "Урон") return n + " " + Plural(value, "урон", "урона", "урона");
+                if (label == "Урон/с") return n + " " + Plural(value, "урон", "урона", "урона") + "/с";
+                if (label == "Карт в веере") return n + " " + Plural(value, "карта", "карты", "карт");
+            }
+            else if (unit == " с" || unit == " м" || unit == " %" || unit == " серд.") return n + unit;
+            string lower = string.IsNullOrEmpty(label) ? "" : char.ToLowerInvariant(label[0]) + label.Substring(1);
+            return (lower + " " + n + unit).Trim();
+        }
+
+        /// <summary>«1 бросок», «2 броска», «5 бросков».</summary>
+        public static string Throws(int count) => count + " " + Plural(count, "бросок", "броска", "бросков");
+
+        static string Plural(float value, string one, string few, string many)
+        {
+            if (value != Mathf.Floor(value)) return few;
+            int n = Mathf.Abs((int)value) % 100;
+            if (n >= 11 && n <= 14) return many;
+            switch (n % 10)
+            {
+                case 1: return one;
+                case 2: case 3: case 4: return few;
+                default: return many;
+            }
+        }
+
         static string Levels(LevelFloat values, int level, string unit) =>
             Mark(values.i, level == 1) + " · " + Mark(values.ii, level == 2) + " · " + Mark(values.iii, level >= 3) + unit;
 

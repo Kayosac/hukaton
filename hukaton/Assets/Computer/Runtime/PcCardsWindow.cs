@@ -215,9 +215,18 @@ namespace Hakaton.Computer
                 t.SetRole(t == tile ? PcCardTile.Role.Source : partners.Contains(t.CopyId) ? PcCardTile.Role.Partner : PcCardTile.Role.Other);
             }
             computer.Play(Workshop.config.cardSound, .4f);
-            window.SetStatus(partners.Count > 0
-                ? $"Отпустите на другую «{copy.Spec.Name}», чтобы объединить."
-                : NoPartnerReason(copy), partners.Count == 0);
+            window.SetStatus(partners.Count > 0 ? MergeStatus(copy) : NoPartnerReason(copy), partners.Count == 0);
+        }
+
+        /// <summary>
+        /// While a copy with a partner is dragged, before it is dropped: what the merge gives and takes, with the card's own
+        /// numbers (<see cref="DeckPrototype.MergeLine"/>): «Отпустите на другую «Удар»: 2 броска × 3 урона → 1 бросок × 5 урона».
+        /// </summary>
+        public string MergeStatus(CardCopy copy)
+        {
+            var definition = Workshop.config.Find(copy.Spec.Id);
+            string line = definition ? DeckPrototype.MergeLine(definition, copy.Level, Model.Rules.MaxCardLevel) : null;
+            return line == null ? $"Отпустите на другую «{copy.Spec.Name}», чтобы объединить." : $"Отпустите на другую «{copy.Spec.Name}»: {line}";
         }
 
         string NoPartnerReason(CardCopy copy)
