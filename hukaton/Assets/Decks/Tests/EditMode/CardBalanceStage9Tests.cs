@@ -45,6 +45,13 @@ namespace Hakaton.Decks.Tests
             Assert.That(Card("gilding").purchasePrice, Is.EqualTo(200), "Gilding's price stays.");
         }
 
+        [Test]
+        public void TheBubbleHoldsLongerAtTheFirstLevels()
+        {
+            Assert.That(EffectLevels("bubble", "duration"), Is.EqualTo(new[] { 6f, 10f, 16f }), "Bubble 4 / 8 / 16 → 6 / 10 / 16 s.");
+            Assert.That(Card("bubble").purchasePrice, Is.EqualTo(140), "Its price stays.");
+        }
+
         /// <summary>
         /// Crooked mirror rank 3 → 4 at 280 (was 400), Sticky hour rank 4 → 3 at 200; their stages stay (3 and 2), the
         /// number of cards per rank too (9 / 10 / 12 / 5 / 3). What hangs on the rank: the goblin's table (stage 2 now has

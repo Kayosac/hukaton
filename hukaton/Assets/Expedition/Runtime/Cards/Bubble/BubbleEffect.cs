@@ -5,7 +5,7 @@ namespace Hakaton.Expeditions.Cards
 {
     /// <summary>
     /// «Пузырь» (ранг 2). A soap dome of radius 3 m stands on the ground where the card lands (below a creature or a
-    /// wall it hit) for 4 / 6 / 9 s (<see cref="BubbleDome"/>): enemy projectiles flying in pop, creatures are pushed
+    /// wall it hit) for 6 / 10 / 16 s (balance stage 9; <see cref="BubbleDome"/>): enemy projectiles flying in pop, creatures are pushed
     /// out and cannot get in (by script — the dome has no collider), the player walks through freely.
     /// Brief: tmp/new-cards-2/BRIEF.md (6); shared systems: tmp/new-cards/API.md.
     /// </summary>
@@ -13,7 +13,7 @@ namespace Hakaton.Expeditions.Cards
     {
         [Header("Card numbers (I / II / III)")]
         [Tooltip("How long the dome stands, s.")]
-        public LevelFloat duration = new LevelFloat(4, 8, 16);
+        public LevelFloat duration = new LevelFloat(6, 10, 16);
         [Tooltip("Radius of the dome, m.")]
         [Min(.5f)] public float radius = 3;
 
