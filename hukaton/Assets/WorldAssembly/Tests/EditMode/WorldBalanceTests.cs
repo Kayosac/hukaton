@@ -126,6 +126,17 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void RingZeroHasFewerChestsAndFewerMimics()
+        {
+            var rings = Measure();
+            double share = rings[0].Per(rings[0].chests), mimics = rings[0].mimics / (double)Math.Max(1, rings[0].chests);
+            Assert.That(share, Is.InRange(.085, .115), "ring 0: a chest on about a tenth of the chunks");
+            Assert.That(mimics, Is.InRange(.07, .13), "ring 0: about one chest in ten bites");
+            Assert.That(rings[1].Per(rings[1].chests), Is.GreaterThan(share * 1.5), "more chests further out");
+            Assert.That(rings[1].mimics / (double)rings[1].chests, Is.GreaterThan(mimics * 1.5), "and more mimics");
+        }
+
+        [Test]
         public void MeasureTheRings()
         {
             var rings = Measure();

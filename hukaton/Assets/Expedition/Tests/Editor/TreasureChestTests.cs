@@ -93,6 +93,34 @@ namespace Hakaton.Expeditions.Tests
             return total > 0 ? sum / total : 0;
         }
 
+        static float ExpectedCoins(ChestSpawnTable table)
+        {
+            float total = table.entries.Sum(e => e.weight), sum = table.entries.Sum(e => e.weight * (e.prefab.tier.coins.x + e.prefab.tier.coins.y) * .5f);
+            return total > 0 ? sum / total : 0;
+        }
+
+        static float Riches() => new SerializedObject(AssetDatabase.LoadAssetAtPath<Object>("Assets/WorldAssembly/World content.asset"))
+            .FindProperty("sunkenRiches").floatValue;
+
+        [Test]
+        public void RingZeroChestsAreFewerButNotBeggarlyAndOneInTenBites()
+        {
+            var table = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/Chests world ring 1 centre.asset");
+            Assert.That(table.chance, Is.EqualTo(.1f).Within(1e-6f));
+            float total = table.entries.Sum(e => e.weight);
+            float Share(int rank, bool mimic) => table.entries
+                .Where(e => e.prefab.tier.rank == rank && (e.prefab.GetComponent<ChestMimic>() != null) == mimic).Sum(e => e.weight) / total;
+            float mimics = Enumerable.Range(1, 5).Sum(r => Share(r, true));
+            Assert.That(mimics, Is.EqualTo(.1f).Within(.001f), "a tenth of the chests are mimics");
+            float[] plain = { .30f, .45f, .25f };
+            for (int rank = 1; rank <= 3; rank++)
+            {
+                Assert.That(Share(rank, false) / (1 - mimics), Is.EqualTo(plain[rank - 1]).Within(.001f), $"ordinary chests of rank {rank}");
+                Assert.That(Share(rank, true) / mimics, Is.EqualTo(plain[rank - 1]).Within(.001f), $"mimics of rank {rank}: as the ordinary ones");
+            }
+            Assert.That(Share(4, false) + Share(5, false), Is.Zero, "nothing rich in the calm ring");
+        }
+
         [Test]
         public void EndlessWorldIsRicherFurtherOut()
         {
@@ -129,7 +157,10 @@ namespace Hakaton.Expeditions.Tests
             for (int i = 0; i < tables.Length; i++)
             {
                 var landTable = AssetDatabase.LoadAssetAtPath<ChestSpawnTable>("Assets/Game/Data/Chests/" + land[i] + ".asset");
-                Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(landTable)), rings[i] + " is richer than the land");
+                // Richer than the land: each sunken chest pays its coins Sunken Riches times over (the calm ring 0 table on
+                // land has sturdier chests, but fewer of them and no beggar's share under water).
+                Assert.That(ExpectedCoins(tables[i]) * Riches(), Is.GreaterThan(ExpectedCoins(landTable) * 2), rings[i] + " is richer than the land");
+                if (i > 0) Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(landTable)), rings[i] + " has better chests than the land");
                 if (i > 0) Assert.That(ExpectedRank(tables[i]), Is.GreaterThan(ExpectedRank(tables[i - 1])), rings[i]);
             }
             var content = AssetDatabase.LoadAssetAtPath<Object>("Assets/WorldAssembly/World content.asset");
