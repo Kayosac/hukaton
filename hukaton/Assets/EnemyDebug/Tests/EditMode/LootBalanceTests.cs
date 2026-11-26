@@ -44,5 +44,17 @@ namespace Hakaton.EnemyDebug.Tests
             UnityEngine.Debug.Log($"[stage-8] loot {prefab}: {average:0.0} per kill (target {coins})");
             Assert.That(average, Is.EqualTo(coins).Within(coins * .05), $"{prefab}: the average kill pays {coins} ± 5 %");
         }
+
+        // Small fry that is safe to kill: it pays less now.
+        [TestCase("BubbleLarva", 42)]
+        [TestCase("AntMachineGunCrew", 152)]
+        [TestCase("Rooster baseball", 70)]
+        [TestCase("Teen leshy skater", 70)]
+        public void ASafeKillPaysLittle(string prefab, int coins)
+        {
+            double average = Average(prefab);
+            UnityEngine.Debug.Log($"[stage-8] loot {prefab}: {average:0.0} per kill (target {coins})");
+            Assert.That(average, Is.EqualTo(coins).Within(coins * .05), $"{prefab}: the average kill pays {coins} ± 5 %");
+        }
     }
 }

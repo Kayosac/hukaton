@@ -86,7 +86,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(p.prefab.spin, Is.Zero);
             SevenSprites(c);
             Loot(c, new[] { "ant_machine_gun_barrel_jacket", "ant_machine_gun_ammo_belt", "ant_machine_gun_helmet" },
-                new[] { 80, 250, 140 }, new[] { .5f, .15f, .25f }, 2);
+                new[] { 80, 250, 140 }, new[] { .5f, .15f, .25f }, 1);
         }
 
         [Test]
@@ -154,7 +154,7 @@ namespace Hakaton.EnemyDebug.Tests
             Assert.That(c.view.height * c.size, Is.EqualTo(.6f).Within(1e-4));
             SevenSprites(c);
             Loot(c, new[] { "bubble_larva_bubble_sac", "bubble_larva_jelly", "bubble_larva_shed_skin" },
-                new[] { 100, 40, 60 }, new[] { .25f, .6f, .45f }, 1);
+                new[] { 100, 40, 60 }, new[] { .15f, .3f, .25f }, 0);
         }
 
         [Test]

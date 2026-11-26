@@ -70,6 +70,14 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Stand(hit.position);
         }
 
+        /// <summary>A copy of <paramref name="table"/> whose every row always drops; the table itself is not touched.</summary>
+        protected static Hakaton.Loot.LootTable Certain(Hakaton.Loot.LootTable table) => new Hakaton.Loot.LootTable
+        {
+            atLeastOne = table.atLeastOne,
+            minimumDrops = table.minimumDrops,
+            entries = table.entries.Select(e => e == null ? null : new Hakaton.Loot.LootDrop { item = e.item, chance = 1, min = e.min, max = e.max }).ToArray(),
+        };
+
         protected void CollectNewLoot(List<WorldLoot> before) =>
             madeLoot.AddRange(Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).Except(before));
     }
@@ -77,7 +85,7 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
     public class AntMachineGunCrewPlayTests : AnthillRemainingPlayFixture
     {
         [UnityTest]
-        public IEnumerator BurstFiresHalfHeartBulletsAndDeathDropsAtLeastTwoCopies()
+        public IEnumerator BurstFiresHalfHeartBulletsAndDeathDropsAtLeastOneCopy()
         {
             var crew = Spawn("AntMachineGunCrew");
             StandOnGroundNear(crew, Vector3.back * 10);
@@ -88,13 +96,13 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
 
             var rolled = new List<Hakaton.Loot.LootItem>();
             crew.drops.Roll(() => .99f, rolled);
-            Assert.That(rolled.Count, Is.EqualTo(2), "minimumDrops adds two arbitrary copies, repeats allowed");
+            Assert.That(rolled.Count, Is.EqualTo(1), "minimumDrops adds one arbitrary copy when no row drops (balance, stage 8: one, not two)");
 
             var before = Object.FindObjectsByType<WorldLoot>(FindObjectsSortMode.None).ToList();
             crew.Damage(crew.maximumHealth, Vector3.zero, crew.Centre, 0);
             yield return Wait(crew.corpseSeconds + 1.6f);
             CollectNewLoot(before);
-            Assert.That(madeLoot.Count, Is.GreaterThanOrEqualTo(2));
+            Assert.That(madeLoot.Count, Is.GreaterThanOrEqualTo(1));
             var accepted = new[] { "ant_machine_gun_barrel_jacket", "ant_machine_gun_ammo_belt", "ant_machine_gun_helmet" };
             foreach (var loot in madeLoot) Assert.That(accepted, Contains.Item(loot.item.id));
             LogAssert.NoUnexpectedReceived();
@@ -153,7 +161,13 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             var larva = Spawn("BubbleLarva");
             var rolled = new List<Hakaton.Loot.LootItem>();
             larva.drops.Roll(() => .99f, rolled);
-            Assert.That(rolled.Count, Is.EqualTo(1), "The larva table guarantees one copy");
+            Assert.That(rolled, Is.Empty, "The larva table guarantees nothing (balance, stage 8: a safe kill pays little)");
+            rolled.Clear();
+            larva.drops.Roll(() => .1f, rolled);
+            Assert.That(rolled.Count, Is.EqualTo(3), "Every row is rolled on its own");
+            // Its death below rolls a copy of its table whose every row drops (this spawned copy only), so the loot
+            // check does not depend on luck; the real chances are checked above and in the asset test.
+            larva.drops = Certain(larva.drops);
             // The player stands 2 m from the burst, inside the 2 m loot magnet, until the puddle ticks; a drop that
             // pops his way is picked up (into the bag, inactive) before he steps away — whether it does depends on
             // the pop direction (UnityEngine.Random, so on the tests before) and on frame timing. A drop counts on the
