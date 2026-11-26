@@ -151,6 +151,9 @@ namespace Hakaton.Game
         public TMP_Text bagLabel;
         [Tooltip("The goals list's title («ЦЕЛИ:»); on an outing the list moves down by outingGoalsShift, clear of the hearts.")]
         public RectTransform goalsTitle;
+        [Tooltip("On an outing the goals list (title, main, side and bag lines) sits this much lower than in the shop, in the " +
+                 "HUD's layout units: clear of the hearts, the wallet and the effect badges top left.")]
+        public Vector2 outingGoalsShift = new Vector2(0, -16);
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
@@ -372,6 +375,9 @@ namespace Hakaton.Game
             // A loaded save takes its current goal silently; a new game announces its first one.
             goalsTracked = !loaded;
             objectiveColour = objectiveLabel.color;
+            goalLines = new[] { goalsTitle, objectiveLabel ? objectiveLabel.rectTransform : null,
+                sideGoalLabel ? sideGoalLabel.rectTransform : null, bagLabel ? bagLabel.rectTransform : null };
+            goalLineHomes = Array.ConvertAll(goalLines, line => line ? line.anchoredPosition : Vector2.zero);
             cardShop.Bought += NoteGoblinCardBought;
             if (expedition.trophies) expedition.trophies.Arrived += NoteTrophyCard;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
@@ -612,6 +618,8 @@ namespace Hakaton.Game
         void AnnounceGoal(bool celebrating)
         {
             if (!goalFanfarePending) return;
+            // «Выручка N взята.» is the shop's notice: it waits for the shop.
+            if (goalNoticePending != null && GoalsOnOuting) return;
             goalFanfarePending = false;
             // The first goal's own celebration has just played the same sound.
             if (!celebrating && sfx) sfx.Play(goalCue);
@@ -647,7 +655,21 @@ namespace Hakaton.Game
             return ones == 1 ? "монета" : ones >= 2 && ones <= 4 ? "монеты" : "монет";
         }
 
-        bool progressHudLost, celebratedNow;
+        bool progressHudLost, celebratedNow, goalsShifted;
+        RectTransform[] goalLines;
+        Vector2[] goalLineHomes;
+
+        /// <summary>The goals are on screen on an outing too (not in the cave prologue, not at the god's).</summary>
+        public bool GoalsOnOuting => Phase == GamePhase.Expedition && !InCave && !InGodMountains && expedition.Running;
+
+        /// <summary>On an outing the goals list moves down by <see cref="outingGoalsShift"/>; in the shop it is where it was authored.</summary>
+        void PlaceGoalLines(bool outing)
+        {
+            if (goalLines == null || goalsShifted == outing) return;
+            goalsShifted = outing;
+            for (int i = 0; i < goalLines.Length; i++)
+                if (goalLines[i]) goalLines[i].anchoredPosition = goalLineHomes[i] + (outing ? outingGoalsShift : Vector2.zero);
+        }
         void RefreshProgress()
         {
             if (!Ready) return;
@@ -662,7 +684,11 @@ namespace Hakaton.Game
                 }
                 return;
             }
-            progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
+            // In the shop between shifts, and on an outing; never at the counter with a visitor, in a backroom window, in the
+            // cave prologue or at the god's.
+            bool outing = GoalsOnOuting;
+            progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen || outing;
+            PlaceGoalLines(outing);
             // One main goal at a time (GoalChain). The block goes when there is none (in the tutorial, after the last goal):
             // the block, not the labels, as their shadows mirror activeSelf.
             var goal = CurrentGoal;
@@ -678,7 +704,8 @@ namespace Hakaton.Game
                 sideGoalLabel.text = goalListed ? GoalChain.SideLine(CurrentSideGoal, trade.Session.DisplayCount, trade.Session.Slots.Count,
                     farGoalMetres) : "";
             else if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
-            resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
+            // The shop's notices stay in the shop: an outing has its own.
+            resultLabel.text = !outing && Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
         public void Notify(string message, float seconds = 5)
         { LastNotice = message; noticeUntil = Time.unscaledTime + seconds; }

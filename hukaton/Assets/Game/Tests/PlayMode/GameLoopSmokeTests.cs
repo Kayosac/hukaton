@@ -156,6 +156,50 @@ namespace Hakaton.Game.Tests
         }
 
         [UnityTest]
+        public IEnumerator GoalsShowOnAnOutingButNotInTheCaveNorAtTheCounter()
+        {
+            var game = Object.FindAnyObjectByType<GameLoop>();
+            yield return null;
+            Assert.That(game.InCave, Is.True, "A new game opens in the cave.");
+            Assert.That(game.progressCanvas.enabled, Is.False, "No goals in the cave prologue.");
+            game.SkipTutorial();
+            yield return null;
+            Assert.That(game.progressCanvas.enabled, Is.True, "In the shop between shifts the goals are on screen.");
+            Assert.That(game.goalsBlock.activeSelf, Is.True);
+            var home = game.objectiveLabel.rectTransform.anchoredPosition;
+            var world = game.expedition;
+            world.viewCamera.enabled = false;
+            Assert.That(game.TryDepart(), Is.True);
+            yield return WaitFor(() => world.Running, 3);
+            yield return null;
+            Assert.That(game.progressCanvas.enabled, Is.True, "On an outing the goals are on screen.");
+            Assert.That(game.goalsBlock.activeSelf, Is.True);
+            Assert.That(game.objectiveLabel.text, Is.EqualTo(GoalChain.GoblinCardLine));
+            Assert.That(game.objectiveLabel.rectTransform.anchoredPosition, Is.EqualTo(home + game.outingGoalsShift),
+                "On an outing the list sits lower, clear of the hearts and badges.");
+            Assert.That(game.resultLabel.text, Is.Empty, "The shop's notices stay in the shop.");
+            // The goals list keeps clear of the hearts, the wallet and the effect badges (all top left).
+            var hud = world.hud;
+            float goalsTop = TopOnScreen(game.goalsTitle);
+            foreach (var rect in new[] { hud.hearts, hud.statusRow, hud.wallet.rectTransform })
+                Assert.That(goalsTop, Is.LessThan(BottomOnScreen(rect)), rect.name + " is above the goals.");
+        }
+
+        static float TopOnScreen(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return Mathf.Max(corners[1].y, corners[2].y);
+        }
+
+        static float BottomOnScreen(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return Mathf.Min(corners[0].y, corners[3].y);
+        }
+
+        [UnityTest]
         public IEnumerator CheatCardsOverflowTheHandAndRemainVisibleSelectableAndThrowable()
         {
             var game = Object.FindAnyObjectByType<GameLoop>();
