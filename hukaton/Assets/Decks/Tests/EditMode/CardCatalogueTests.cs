@@ -17,7 +17,7 @@ namespace Hakaton.Decks.Tests
         /// <summary>Copy price and rank. Strike, Heavy strike and Heal are «обычные» without a rank on the board: rank 1 here.</summary>
         static readonly Dictionary<string, (int price, int rank)> Board = new Dictionary<string, (int, int)>
         {
-            { "impulse", (120, 1) }, { "ice", (120, 1) }, { "fire", (100, 1) }, { "lure", (80, 1) }, { "tar_puddle", (100, 1) },
+            { "impulse", (120, 1) }, { "ice", (100, 1) }, { "fire", (100, 1) }, { "lure", (80, 1) }, { "tar_puddle", (100, 1) },
             { "attraction", (120, 2) }, { "fog", (120, 2) }, { "rain_cloud", (140, 2) }, { "lightning", (150, 2) },
             { "stone_cube", (180, 3) }, { "branch_bridge", (180, 3) }, { "lightness", (180, 3) },
             { "mushroom_trampoline", (160, 3) }, { "moon_gravity", (180, 3) }, { "rope", (180, 3) },
@@ -28,7 +28,7 @@ namespace Hakaton.Decks.Tests
         /// <summary>The main I / II / III number of each card as the PC shows it.</summary>
         static readonly Dictionary<string, (float, float, float)> Levels = new Dictionary<string, (float, float, float)>
         {
-            { "impulse", (8, 11, 14) }, { "ice", (2, 4, 7) }, { "fire", (2, 3, 5) }, { "lure", (20, 40, 70) },
+            { "impulse", (8, 11, 14) }, { "ice", (3, 5, 8) }, { "fire", (2, 3, 5) }, { "lure", (20, 40, 70) },
             { "tar_puddle", (2, 3, 4) }, { "attraction", (6, 9, 12) }, { "fog", (8, 14, 24) }, { "rain_cloud", (3, 4.5f, 6) },
             { "lightning", (3, 5, 8) }, { "stone_cube", (1.1f, 1.5f, 2) }, { "branch_bridge", (5, 8, 12) },
             { "lightness", (6, 12, 20) }, { "mushroom_trampoline", (80, 90, 100) }, { "moon_gravity", (12, 25, 45) },

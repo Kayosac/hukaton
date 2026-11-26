@@ -45,9 +45,11 @@ namespace Hakaton.Expeditions.Tests
             var effect = ice.effectAsset as FreezeEffect;
             Assert.That(effect, Is.Not.Null);
             Assert.That(effect.wetMultiplier, Is.EqualTo(2));
-            Assert.That(FreezeEffect.FreezeSeconds(ice.power.i, true, effect.wetMultiplier), Is.EqualTo(4));
-            Assert.That(FreezeEffect.FreezeSeconds(ice.power.ii, true, effect.wetMultiplier), Is.EqualTo(8));
-            Assert.That(FreezeEffect.FreezeSeconds(ice.power.iii, true, effect.wetMultiplier), Is.EqualTo(14));
+            // Balance stage 9: Ice holds 3 / 5 / 8 s (was 2 / 4 / 7), a wet target twice as long.
+            Assert.That(ice.power.ToArray(), Is.EqualTo(new[] { 3, 5, 8 }));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.i, true, effect.wetMultiplier), Is.EqualTo(6));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.ii, true, effect.wetMultiplier), Is.EqualTo(10));
+            Assert.That(FreezeEffect.FreezeSeconds(ice.power.iii, true, effect.wetMultiplier), Is.EqualTo(16));
         }
 
         [Test]
