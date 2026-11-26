@@ -50,7 +50,7 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect.missSound, Is.Not.Null);
             Assert.That(effect.TryGetStat(out var label, out var values, out var unit), Is.True);
             Assert.That((label, values.i, values.iii, unit), Is.EqualTo(("Метка", 10f, 20f, " с")));
-            Assert.That((card.purchasePrice, card.rank), Is.EqualTo((160, 3)), "Price and rank are the coordinator's.");
+            Assert.That((card.purchasePrice, card.rank), Is.EqualTo((220, 3)), "Price and rank are the coordinator's (balance stage 9: 160 → 220).");
         }
     }
 }
