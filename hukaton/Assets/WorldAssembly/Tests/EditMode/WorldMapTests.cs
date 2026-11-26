@@ -515,10 +515,12 @@ namespace Hakaton.WorldAssembly.Tests
             }
             Assert.AreEqual(0, swamp[0], "no swamp in ring 0");
             Assert.Greater(swamp[1], 0, "the swamp begins just past ring 0");
-            // Its share grows linearly with distance from its start (66 m here): about 30% of 112–176 m, 44% of 176–240 m, 60% further out.
+            // Its share grows linearly with distance from its start (66 m here), from a fifth (WorldRules.SwampShareNear):
+            // about 40% of 112–176 m, half of 176–240 m, 60% further out.
             double near = bandSwamp[0] / (double)bandTotal[0], middle = bandSwamp[1] / (double)bandTotal[1], far = bandSwamp[2] / (double)bandTotal[2];
-            Assert.That(near, Is.InRange(.22, .38), "about three tenths of 112–176 m is swamp");
-            Assert.That(middle, Is.InRange(.36, .52), "a bit over two fifths of 176–240 m");
+            UnityEngine.Debug.Log($"[World] swamp share 112–176 m {near:P1}, 176–240 m {middle:P1}, from 240 m {far:P1}");
+            Assert.That(near, Is.InRange(.32, .48), "about two fifths of 112–176 m is swamp");
+            Assert.That(middle, Is.InRange(.40, .56), "about a half of 176–240 m");
             Assert.That(far, Is.InRange(.52, .68), "about three fifths from 240 m on");
             Assert.Greater(bigPatches, 0, "some patches are bigger than a district");
         }

@@ -148,6 +148,16 @@ namespace Hakaton.WorldAssembly.Tests
         }
 
         [Test]
+        public void TheSwampIsSeenFromItsFirstSteps()
+        {
+            // 40 worlds: the swamp lies in patches several districts across, so fewer worlds wander by a few percent.
+            double near = SwampShare(250, 300, 40), before = SwampShare(200, 250, 40);
+            Debug.Log($"[WorldBalance] swamp 200–250 m {100 * before:0.0}%, 250–300 m {100 * near:0.0}%");
+            Assert.That(near, Is.InRange(.15, .25), "a fifth of the chunks 250–300 m from the start are swamp");
+            Assert.That(before, Is.LessThan(.02), "none in ring 0 (232 m) and hardly any before 250 m");
+        }
+
+        [Test]
         public void MeasureTheRings()
         {
             var rings = Measure();

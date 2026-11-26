@@ -52,9 +52,10 @@ namespace Hakaton.WorldAssembly
         public float SwampFrom => SwampFromBase * RingScale - ShiftIn;
         public float SwampFull => SwampFullBase * RingScale - ShiftIn;
         /// <summary>Share of chunks that are swamp at SwampFrom and at SwampFull and beyond, growing linearly between
-        /// (<see cref="BiomeField.ThresholdForShare"/> turns a share into the swamp noise threshold): about 30% of
-        /// 112–176 m, 44% of 176–240 m, 60% from 240 m on at <see cref="RingScale"/> 1).</summary>
-        public double SwampShareNear = .06, SwampShareFar = .6;
+        /// (<see cref="BiomeField.ThresholdForShare"/> turns a share into the swamp noise threshold): a fifth of the chunks
+        /// 250–300 m from the start, so the swamp is seen from its first steps; about 40% of 112–176 m, 48% of 176–240 m,
+        /// 60% from 240 m on at <see cref="RingScale"/> 1).</summary>
+        public double SwampShareNear = .20, SwampShareFar = .6;
         /// <summary>Rise noise above this lifts the swamp one level (6 m) deep inside a patch: its raised terraces.</summary>
         public double SwampRise = .56;
         /// <summary>The swamp's parts (<see cref="SwampZone"/>) lie round points this many chunks apart.</summary>
