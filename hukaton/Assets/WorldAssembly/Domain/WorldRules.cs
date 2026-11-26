@@ -117,8 +117,11 @@ namespace Hakaton.WorldAssembly
         /// and none in ring 0 (no anthill within <see cref="InnerRadius"/> of the start: the first outings are not met by
         /// its garrison; the nearest ones stand just beyond, in ring 1).</summary>
         public double[] DungeonChance = { 0, .03, .03 };
-        public double[] FindChance = { .35, .45, .5 };
-        public double[] SceneFindChance = { .6, .65, .7 };
+        /// <summary>Chance of a find on a chunk of the plainer forms (rivers, canyons, mazes, slopes…), by ring: the further
+        /// from the start, the richer (with <see cref="SceneFindChance"/> finds are worth ~17 / 30 / 37 a chunk by ring).</summary>
+        public double[] FindChance = { .20, .45, .55 };
+        /// <summary>Chance of a find on a flat scene (a plain; a landmark without a focus has six tenths of it), by ring.</summary>
+        public double[] SceneFindChance = { .35, .60, .80 };
         public double[] SecondMaze = { 0, .5, .6 };
         /// <summary>Chance of a landmark (2 × 2 chunks) in a district, and of a second one, per ring.</summary>
         public double[] Landmark = { .6, .85, .85 };
