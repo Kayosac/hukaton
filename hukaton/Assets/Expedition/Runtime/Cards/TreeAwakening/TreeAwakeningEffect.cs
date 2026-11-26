@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Hakaton.Decks.Unity;
 using UnityEngine;
 using UnityEngine.AI;
@@ -8,7 +9,9 @@ namespace Hakaton.Expeditions.Cards
     /// «Оживление дерева» (земля*, ранг 4/5*). A hit on an ordinary tree of the world (<see cref="AwakenableTree"/>)
     /// turns that very tree into an ally (<see cref="TreeAlly"/>) until the end of the outing or its death: the standing
     /// trunk is hidden for the outing and the ally stands up in its place, no extra copy. Every copy awakens another
-    /// tree; there is no squad limit. A hit on anything else, or on a tree that is already walking, spends the card
+    /// tree, but at most <see cref="livingLimit"/> (2) live at once: waking one more crumbles the oldest
+    /// (<see cref="TreeAlly.Crumble"/>; balance stage 9). The place the tree stood in stays open — a hidden wall tree of a
+    /// forest maze is a way through, as before. A hit on anything else, or on a tree that is already walking, spends the card
     /// with the miss feedback (no second ally, no healing). Health 12 (upgraded 18), branch strike 2 within 2.5 m,
     /// cycle 2.5 s with a 0.8 s wind-up, μ = 3. The ally looks like the owner's «Зловещее ожившее дерево» (its own child prefab of the ally).
     /// Rules and numbers: tmp/new-cards/cards.md; shared systems: tmp/new-cards/API.md (§ 13 for this card).
@@ -26,6 +29,9 @@ namespace Hakaton.Expeditions.Cards
         [Min(0)] public float attackCycle = 2.5f, windup = .8f;
         [Tooltip("Ally mass μ.")]
         [Min(0)] public float mass = 3;
+        [Header("Squad")]
+        [Tooltip("At most this many awakened trees live at once: waking one more crumbles the oldest one (balance stage 9). 0: no limit.")]
+        [Min(0)] public int livingLimit = 2;
         [Header("Ally")]
         [Tooltip("The awakened tree (gameplay root; its look is a swappable child prefab).")]
         public TreeAlly allyPrefab;
@@ -66,7 +72,19 @@ namespace Hakaton.Expeditions.Cards
             world.HideForOuting(tree.gameObject);
             ally.Rise(tree, position);
             world.Allies.Add(ally);
+            CrumbleTheOldest(world, ally);
             Feedback(c, true);
+        }
+
+        /// <summary>Above <see cref="livingLimit"/>, the oldest living trees (not <paramref name="newest"/>) crumble.</summary>
+        void CrumbleTheOldest(ExpeditionWorld world, TreeAlly newest)
+        {
+            if (livingLimit <= 0) return;
+            var living = new List<TreeAlly>();
+            foreach (var fighter in world.Allies.All)
+                if (fighter is TreeAlly tree && tree && tree != newest && tree.IsAwake) living.Add(tree);
+            living.Sort((a, b) => a.AwakeningOrder.CompareTo(b.AwakeningOrder));
+            for (int i = 0; i < living.Count - (livingLimit - 1); i++) living[i].Crumble();
         }
 
         public bool TryGetStat(out string label, out LevelFloat values, out string unit)

@@ -147,6 +147,12 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect.windup, Is.EqualTo(.8f));
             Assert.That(effect.mass, Is.EqualTo(3));
             Assert.That(effect.allyPrefab, Is.Not.Null, "The effect spawns the authored ally prefab.");
+            // Balance stage 9: 360 coins (was 300), at most two awakened trees at once; the code's default the same.
+            Assert.That(definition.purchasePrice, Is.EqualTo(360));
+            Assert.That(effect.livingLimit, Is.EqualTo(2));
+            var defaults = ScriptableObject.CreateInstance<TreeAwakeningEffect>();
+            Assert.That(defaults.livingLimit, Is.EqualTo(effect.livingLimit));
+            Object.DestroyImmediate(defaults);
         }
 
         [Test]

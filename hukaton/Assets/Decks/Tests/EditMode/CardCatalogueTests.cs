@@ -21,7 +21,7 @@ namespace Hakaton.Decks.Tests
             { "attraction", (120, 2) }, { "fog", (120, 2) }, { "rain_cloud", (140, 2) }, { "lightning", (150, 2) },
             { "stone_cube", (180, 3) }, { "branch_bridge", (180, 3) }, { "lightness", (180, 3) },
             { "mushroom_trampoline", (160, 3) }, { "moon_gravity", (180, 3) }, { "rope", (180, 3) },
-            { "updraft", (260, 4) }, { "tree_awakening", (300, 4) }, { "swap", (360, 5) }, { "teleport", (450, 5) },
+            { "updraft", (260, 4) }, { "tree_awakening", (360, 4) }, { "swap", (360, 5) }, { "teleport", (450, 5) },
             { "strike", (120, 1) }, { "heavy_strike", (110, 1) }, { "heal", (120, 1) },
         };
 

@@ -92,6 +92,12 @@ namespace Hakaton.Expeditions.Cards
         public WorldCreature Foe => foe;
         /// <summary>The tree this ally replaced (hidden until the end of the outing).</summary>
         public AwakenableTree Origin { get; private set; }
+        /// <summary>When it came alive among the outing's trees: a newer tree has a bigger number (the card's squad limit crumbles the smallest).</summary>
+        public int AwakeningOrder { get; private set; }
+        /// <summary>An ally still: neither dying nor gone (a tree burrowing after the player counts).</summary>
+        public bool IsAwake => Health > 0 && !dying && isActiveAndEnabled;
+
+        static int awakenings;
         public ExpeditionWorld World => world;
 
         ExpeditionWorld world;
@@ -153,6 +159,7 @@ namespace Hakaton.Expeditions.Cards
         public void Rise(AwakenableTree origin, Vector3 position)
         {
             Origin = origin;
+            AwakeningOrder = ++awakenings;
             body.position = position;
             transform.position = position;
             // The agent only where the mesh is right under the roots (off it the tree follows the player's trail and
@@ -505,7 +512,19 @@ namespace Hakaton.Expeditions.Cards
         public bool WithinHealReach(Vector3 point, float radius)
             => HealRules.Reaches(point, radius, Position, Height, navigator ? navigator.radius : .5f);
 
-        IEnumerator Die()
+        /// <summary>
+        /// «Оживление дерева» woke one tree too many (<see cref="TreeAwakeningEffect.livingLimit"/>): this one, the oldest,
+        /// crumbles at once — the tree's own death (sound, leaves, topple, fade), no loot, no «погибло» notice.
+        /// Its old place in the world stays as the card left it: the standing tree is hidden until the outing ends.
+        /// </summary>
+        public void Crumble()
+        {
+            if (!IsAwake) return;
+            Health = 0;
+            StartCoroutine(Die(false));
+        }
+
+        IEnumerator Die(bool announce = true)
         {
             dying = true;
             cycle.Reset();
@@ -520,7 +539,7 @@ namespace Hakaton.Expeditions.Cards
             world.Play(deathCue, Position);
             world.Spawn(deathVfx, Position + Vector3.up * 1.2f, Quaternion.identity, leafColour, 1.3f);
             if (world.feel && Vector3.Distance(world.motor.transform.position, Position) < 14) world.feel.AddTrauma(.2f);
-            world.Announce("Оживлённое дерево погибло", 2.2f);
+            if (announce) world.Announce("Оживлённое дерево погибло", 2.2f);
             float topple = .9f;
             float time = 0;
             bool landed = false;
