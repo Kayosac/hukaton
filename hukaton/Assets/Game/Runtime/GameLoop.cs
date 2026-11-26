@@ -67,14 +67,12 @@ namespace Hakaton.Game
             "Но ладно, в этот раз прощаю, я видел по бухгалтерии. От тебя есть польза.",
             "А у меня есть для тебя кое-что интересное. Заглядывай."
         };
-        [Header("The stranger at the end of a shift")]
-        [Tooltip("Once the first outing into the endless world is back, each shift that ends by itself (time up or the display " +
-                 "sold out) brings one more visitor with this chance — once per save: a stranger (Visitor roster → Stranger, " +
-                 "the blacksmith's look) who buys nothing and only talks, his lines read on like any visitor's.")]
-        [Range(0, 1)] public float strangerChance = .3f;
-        [Tooltip("The bad-luck guard: if the chance has not brought him before, the shift that ends by itself with this number " +
-                 "(counted from the first endless outing's return) brings him for sure.")]
-        [Min(1)] public int strangerGuaranteedAt = 6;
+        [Header("The stranger at the end of a shift, the end of the demo")]
+        [Tooltip("Once per game the shift that closes with this much revenue (or more) — by itself, by the player, or by the " +
+                 "bulk buyer taking everything — brings one more visitor as its last: a stranger (Visitor roster → Stranger, " +
+                 "the blacksmith's look) who buys nothing and only talks, his lines read on like any visitor's. Revenue passed " +
+                 "mid-shift: he comes at the end of that shift.")]
+        [Min(1)] public int strangerRevenue = 1616;
         [TextArea] public string[] strangerLines =
         {
             "Странно, эта лавка так давно пустовала.",
@@ -101,6 +99,11 @@ namespace Hakaton.Game
         };
         [Tooltip("Seconds from the shift's end (the view back from the counter) to the goblin's puff.")]
         [Min(0)] public float strangerGoblinDelay = .6f;
+        [Tooltip("Once the goblin has had his word after the stranger and gone: the end of the demo, once per game (ScreenFade " +
+                 "title with titleCue). The game goes on after it.")]
+        public string finaleTitle = "Конец демо";
+        public string finaleCaption = "Спасибо за игру · лавка остаётся открытой";
+        [Min(.5f)] public float finaleSeconds = 4;
         public FirstPersonMotor player;
         [Tooltip("Special items (board «Спецпредметы»): sold by the goblin dealer once open, kept forever, used on outings with Q.")]
         public SpecialItemsHost specialItems;
@@ -245,17 +248,20 @@ namespace Hakaton.Game
         public bool ShiftClockLineGiven => shiftClockLineGiven;
         bool shiftClockLineGiven;
         bool restoring, dirty, goalCelebrated, preserveInvalidSave, startingOver, drownLectureGiven, godMet, godLectureRunning;
-        // The stranger: an endless outing is back; he has come (saved); sent for this closing; the goblin's word after him.
-        bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning;
-        float strangerGoblinAt;
-        // Shifts that ended by themselves since the first endless outing came back, while he had not come yet (saved).
+        // The stranger: an endless outing is back (the card pool); he has come (saved); sent for this closing; the
+        // goblin's word after him; the end of the demo waiting for the screen.
+        bool endlessVisited, strangerVisited, strangerSent, strangerForced, strangerGoblinDue, strangerLectureRunning, finalePending;
+        float strangerGoblinAt, finaleHoldUntil;
+        // The old chance's count of shifts (saved as it was, so older saves keep it; no longer used).
         int strangerChances;
         /// <summary>The stranger has come (saved): he does not come again.</summary>
         public bool StrangerVisited => strangerVisited;
-        /// <summary>An outing into the endless world has come back (saved): from now on the stranger may come.</summary>
+        /// <summary>An outing into the endless world has come back (saved): the card pool's third stage.</summary>
         public bool EndlessVisited => endlessVisited;
-        /// <summary>Shifts that have ended by themselves since then, each a chance for the stranger (saved).</summary>
-        public int StrangerChances => strangerChances;
+        /// <summary>The end of the demo has been shown (saved): once per game.</summary>
+        public bool FinaleShown => finaleShown;
+        /// <summary>The end of the demo waits for a free screen (the goblin after the stranger is gone).</summary>
+        public bool FinalePending => finalePending;
         // The return notice waits until the goblin has had his say.
         string noticeAfterLecture;
         // Survives the scene reload of StartOver; read once by the next new game.
@@ -324,7 +330,7 @@ namespace Hakaton.Game
             // The bulk buyer («Скупщик») comes only once the shop has made its revenue goal. The session checks its own
             // revenue against it, so the unlock holds after loading a save and after the cheat completes the goal.
             trade.Session.BulkBuyerUnlockRevenue = revenueGoal;
-            // A shift that ends by itself may bring the stranger as its last visitor.
+            // A shift that closes with the stranger's revenue brings him as its last visitor (once per game).
             trade.Session.ClosingVisitor = StrangerAtClosing;
             // The goblin's word at the counter holds the shift clock like any story visitor's.
             trade.ShiftClockHold = () => LectureActive;
@@ -446,6 +452,7 @@ namespace Hakaton.Game
             TrackSideGoal();
             TryShowGoalBanner();
             TrackStranger();
+            TryShowFinale();
             TickHapay();
             if (Phase == GamePhase.Shop && !expedition.Returning)
             {
@@ -486,7 +493,14 @@ namespace Hakaton.Game
         {
             bool open = trade.Session.IsOpen;
             if (open && !shopWasOpen) { salesAtOpen = trade.Session.SalesCount; AnnounceShiftClock(); }
-            if (!open && shopWasOpen) cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
+            if (!open && shopWasOpen)
+            {
+                cardShop.Visits.ShiftClosed(trade.Session.SalesCount > salesAtOpen);
+                // A save from before the end of the demo, where the stranger had come already: the title comes at the end
+                // of the first shift closed with his revenue, without a second visit.
+                if (strangerVisited && !finaleShown && !finalePending && !strangerGoblinDue && !strangerLectureRunning
+                    && trade.Session.GrossRevenue >= strangerRevenue) finalePending = true;
+            }
             shopWasOpen = open;
         }
         /// <summary>
@@ -503,20 +517,14 @@ namespace Hakaton.Game
         }
 
         /// <summary>
-        /// The shop is about to close by itself: after the first endless outing, once per save, with <see cref="strangerChance"/>
-        /// (for sure on the <see cref="strangerGuaranteedAt"/>-th such closing, or by the cheat), one more visitor — the stranger
-        /// who only talks. Null: the shop closes as usual.
+        /// The shift is about to close (by itself, by the player, by the bulk buyer): once per game, with
+        /// <see cref="strangerRevenue"/> made (or by the cheat), one more visitor — the stranger who only talks. Null: the
+        /// shop closes as usual.
         /// </summary>
         CustomerTerms StrangerAtClosing()
         {
             if (tutorial.Active || InCave || strangerLines == null || strangerLines.Length == 0) return null;
-            if (!strangerForced)
-            {
-                if (!endlessVisited || strangerVisited) return null;
-                strangerChances++;
-                MarkDirty();
-                if (!StrangerComes(strangerChances, strangerGuaranteedAt, strangerChance, UnityEngine.Random.value)) return null;
-            }
+            if (!strangerForced && !StrangerDue(strangerVisited, trade.Session.GrossRevenue, strangerRevenue)) return null;
             strangerForced = false;
             strangerSent = true;
             return new CustomerTerms { Name = "Незнакомец", Talk = strangerLines, TalkMoods = strangerMoods };
@@ -546,16 +554,33 @@ namespace Hakaton.Game
             strangerGoblinDue = false;
             if (lecture && tutorial.goblin && !tutorial.Active && strangerGoblinLines != null && strangerGoblinLines.Length > 0)
                 strangerLectureRunning = lecture.Play(strangerGoblinLines, tutorial.goblin, true);
+            // No goblin to have his word: the end of the demo straight away.
+            if (!strangerLectureRunning && !finaleShown) finalePending = true;
         }
 
-        /// <summary>
-        /// Does the stranger come at the <paramref name="closing"/>-th shift that ends by itself (from 1)? With
-        /// <paramref name="chance"/> against <paramref name="roll"/> (0..1), and for sure from the <paramref name="guaranteedAt"/>-th.
-        /// </summary>
-        public static bool StrangerComes(int closing, int guaranteedAt, float chance, float roll)
-            => closing >= Mathf.Max(1, guaranteedAt) || roll < chance;
+        /// <summary>Does the stranger come as the last visitor of a closing shift? Not yet come and the revenue made.</summary>
+        public static bool StrangerDue(bool visited, long revenue, long threshold) => !visited && revenue >= threshold;
 
-        /// <summary>Cheats: the next shift that ends by itself brings the stranger (and the goblin after him), whatever was before.</summary>
+        /// <summary>
+        /// The goblin has had his word after the stranger and is gone: «Конец демо» comes up once nothing holds the screen,
+        /// once per game. The game goes on; the main goal is the last revenue goal.
+        /// </summary>
+        void TryShowFinale()
+        {
+            if (!finalePending) return;
+            if (finaleShown) { finalePending = false; return; }
+            if (Phase != GamePhase.Shop || trade.Session.IsOpen || trade.ViewTransitioning || services.IsOpen || LectureActive
+                || GamePause.Suspended || expedition.Returning || departing || fade && fade.Busy) return;
+            finalePending = false;
+            finaleShown = true;
+            dirty = true;
+            if (sfx) sfx.Play(titleCue);
+            if (fade) fade.StartCoroutine(fade.ShowTitle(finaleTitle, finaleCaption, finaleSeconds));
+            // The next goal's banner waits until the title has gone.
+            finaleHoldUntil = Time.unscaledTime + finaleSeconds + 1.5f;
+        }
+
+        /// <summary>Cheats: the next closing shift brings the stranger (and the goblin after him), whatever was before.</summary>
         public void ForceStrangerNext()
         {
             strangerForced = true;
@@ -633,8 +658,8 @@ namespace Hakaton.Game
         void ArmGoalBanner()
         {
             goalBannerPending = true;
-            // Lets the goblin's poof settle first.
-            goalBannerAt = Time.unscaledTime + 1;
+            // Lets the goblin's poof settle first (and the end of the demo go).
+            goalBannerAt = Mathf.Max(Time.unscaledTime + 1, finaleHoldUntil);
         }
 
         /// <summary>A revenue goal is the main one now: its name comes up in big letters over the shop, once nothing else holds the screen.</summary>
@@ -914,8 +939,13 @@ namespace Hakaton.Game
 
         void OnLectureFinished()
         {
-            // The goblin's word after the stranger: nothing to record.
-            if (strangerLectureRunning) { strangerLectureRunning = false; return; }
+            // The goblin's word after the stranger: the end of the demo comes next.
+            if (strangerLectureRunning)
+            {
+                strangerLectureRunning = false;
+                if (!finaleShown) finalePending = true;
+                return;
+            }
             // The goblin's word after the god: the special items open now (UnlockCheck), not the drowning lecture.
             if (godLectureRunning)
             {

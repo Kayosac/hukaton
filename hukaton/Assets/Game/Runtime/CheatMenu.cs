@@ -190,24 +190,24 @@ namespace Hakaton.Game
             return true;
         }
 
-        /// <summary>Where the stranger stands: not yet possible, the closings counted toward his guaranteed visit, or come.</summary>
+        /// <summary>Where the stranger and the end of the demo stand.</summary>
         string StrangerProgress()
         {
-            if (game.StrangerVisited) return "Незнакомец уже приходил.";
-            if (!game.EndlessVisited) return "Незнакомец: ждёт первой вылазки в бесконечный мир.";
-            return "Незнакомец: смен закрылось само — " + game.StrangerChances + "; на " + Mathf.Max(1, game.strangerGuaranteedAt)
-                + "-й придёт наверняка.";
+            if (game.StrangerVisited)
+                return game.FinaleShown ? "Незнакомец приходил, «Конец демо» показан." : "Незнакомец уже приходил, «Конец демо» ещё впереди.";
+            return "Незнакомец: придёт последним в смену, закрытую при выручке от " + game.strangerRevenue + " (сейчас "
+                + game.trade.Session.GrossRevenue + ").";
         }
 
         /// <summary>
-        /// The next shift that ends by itself (time up or the display sold out) brings the stranger who only talks, then the
-        /// goblin on the counter — whatever the chance, the first endless outing or an earlier visit.
+        /// The next shift to close (time up, the display sold out, the player closing, the bulk buyer) brings the stranger who
+        /// only talks, then the goblin on the counter — whatever the revenue or an earlier visit.
         /// </summary>
         public bool StrangerAtShiftEnd()
         {
             if (!game.Ready || game.Phase != GamePhase.Shop) { status = "Незнакомец приходит только в лавку."; return false; }
             game.ForceStrangerNext();
-            status = "Незнакомец придёт в конце смены (время вышло или витрина пуста).";
+            status = "Незнакомец придёт в конце смены (любое закрытие лавки).";
             return true;
         }
 

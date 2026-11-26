@@ -309,7 +309,7 @@ namespace Hakaton.Trading.Unity
                         else if (TalkerSpeaking && CustomerReady) ReadOnTalker();
                         // Closing mid-conversation would silently drop the visitor: finish or refuse them first.
                         else if (Session.CurrentCustomer != null && CustomerReady) Notify("Сначала закончите сделку · Backspace — отказать");
-                        else CloseShop();
+                        else RequestCloseShop();
                     }
                     HaggleHotkeys(keyboard);
                 }
@@ -552,6 +552,8 @@ namespace Hakaton.Trading.Unity
             SyncControl();
         }
         void CloseShop() { Session.Close(); World.Customers.Sync(Session); SyncControl(); }
+        /// <summary>The player closes the shop: the shift's last visitor (the stranger) may still come first.</summary>
+        void RequestCloseShop() { Session.RequestClose(); World.Customers.Sync(Session); SyncControl(); }
 
         /// <summary>Closes the shop from outside (the tutorial ends its last lesson).</summary>
         public void CloseShopNow()
@@ -843,7 +845,7 @@ namespace Hakaton.Trading.Unity
         public void ToggleShop()
         {
             if (Session == null) return;
-            if (Session.IsOpen) CloseShop(); else OpenShop();
+            if (Session.IsOpen) RequestCloseShop(); else OpenShop();
         }
 
         public void CycleInventory(int direction)

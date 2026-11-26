@@ -197,7 +197,7 @@ namespace Hakaton.Trading
             RecordDeparture(CustomerOutcome.Purchased);
             CurrentDeal = null; CurrentCustomer = null; Touch();
             LastMessage = BulkSaleNotice(count, price);
-            FinishShift(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
+            FinishShiftOrHold(LastMessage + (RemainingSeconds <= 0 ? " Смена окончена." : " Витрина пуста."));
             return true;
         }
 
@@ -248,9 +248,10 @@ namespace Hakaton.Trading
         // ---------- the last visitor of a shift (the stranger) ----------
 
         /// <summary>
-        /// Asked once a shift, at the moment the shop would close by itself (time is up, or the display has sold out):
-        /// terms returned walk in as one more visitor before it closes (the game loop's stranger, a talker); null closes
-        /// as usual. Never asked on a manual close or after the bulk buyer took everything.
+        /// Asked once a shift, at the moment the shift would close — by itself (time is up, the display has sold out), by the
+        /// player (<see cref="RequestClose"/>) or by the bulk buyer taking everything: terms returned walk in as one more
+        /// visitor before it closes (the game loop's stranger, a talker); null closes as usual. Never asked on
+        /// <see cref="Close"/> (closing from outside: the tutorial, leaving the counter).
         /// </summary>
         public Func<CustomerTerms> ClosingVisitor { get; set; }
         // Asked this shift already; the terms waiting for the counter to free up; what the shop says once he is gone.
@@ -371,13 +372,38 @@ namespace Hakaton.Trading
             return true;
         }
 
+        /// <summary>The line of a shop closed by the player.</summary>
+        public const string ClosedNotice = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
+
+        /// <summary>
+        /// The player closes the shop (E at a free counter, the cross): as <see cref="Close"/>, unless a closing visitor
+        /// comes first (<see cref="ClosingVisitor"/>): then the shop stays open until he has said everything, a visitor still
+        /// walking in goes, and the shift ends after him. True while held open for him.
+        /// </summary>
+        public bool RequestClose()
+        {
+            if (!IsOpen) return false;
+            if (HoldForClosingVisitor(ClosedNotice))
+            {
+                if (CurrentCustomer != null && !CurrentCustomer.IsTalker)
+                {
+                    RecordDeparture(CustomerOutcome.ShopClosed);
+                    CurrentCustomer = null; CurrentDeal = null; answerFrom = null;
+                    Touch();
+                }
+                return true;
+            }
+            Close();
+            return false;
+        }
+
         public void Close()
         {
             if (!IsOpen) return;
             RecordDeparture(CustomerOutcome.ShopClosed);
             IsOpen = false; CurrentCustomer = null; CurrentDeal = null;
             closingVisitorAsked = false; closingVisitor = null; closingMessage = null;
-            LastMessage = "Лавка закрыта. Непроданные товары и остаток времени сохранены.";
+            LastMessage = ClosedNotice;
             Touch();
         }
 
@@ -453,7 +479,8 @@ namespace Hakaton.Trading
         public bool AdvanceCustomer(CustomerTerms terms = null)
         {
             if (!IsOpen || CurrentCustomer != null) return false;
-            if (RemainingSeconds <= 0 || DisplayCount == 0)
+            // The shift is closing (by itself, or the player asked and the last visitor is on his way).
+            if (RemainingSeconds <= 0 || DisplayCount == 0 || closingVisitor != null)
             {
                 string closing = RemainingSeconds <= 0 ? "Время смены закончилось." : "Витрина пуста. Лавка закрыта для выкладки.";
                 if (!HoldForClosingVisitor(closing)) { FinishShift(closing); return false; }

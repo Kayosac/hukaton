@@ -4,8 +4,8 @@ using NUnit.Framework;
 namespace Hakaton.Trading.Tests
 {
     /// <summary>
-    /// The last visitor of a shift (the game loop's stranger): when the shop would close by itself — time up or the display
-    /// sold out — the session asks once for one more visitor. A talker names no item, cannot be refused, is read on line by
+    /// The last visitor of a shift (the game loop's stranger): when the shift would close — time up, the display sold out,
+    /// the player closing the shop, the bulk buyer taking everything — the session asks once for one more visitor. A talker names no item, cannot be refused, is read on line by
     /// line; after his last line he goes and the shift ends.
     /// </summary>
     public sealed class ClosingVisitorTests
@@ -19,13 +19,14 @@ namespace Hakaton.Trading.Tests
 
         int asked;
 
-        TradingSession OpenShop(int onDisplay, Func<CustomerTerms> closing)
+        TradingSession OpenShop(int onDisplay, Func<CustomerTerms> closing, bool bulkBuyerFirst = false)
         {
             var session = new TradingSession(new TradeSettings { ShiftSeconds = 30 }, 5);
             session.SeedInventory(Horn, 4);
             for (int i = 0; i < onDisplay; i++) Assert.That(session.PlaceItem(0, i), Is.True);
             asked = 0;
             session.ClosingVisitor = () => { asked++; return closing(); };
+            session.ForceBulkBuyerNext = bulkBuyerFirst;
             Assert.That(session.Open(), Is.True);
             return session;
         }
@@ -107,12 +108,64 @@ namespace Hakaton.Trading.Tests
         }
 
         [Test]
-        public void ManualCloseNeverAsks()
+        public void ClosingFromOutsideNeverAsks()
         {
             var session = OpenShop(2, Stranger);
             session.Close();
             Assert.That(asked, Is.Zero);
             Assert.That(session.IsOpen, Is.False);
+        }
+
+        [Test]
+        public void ThePlayerClosingTheShopBringsHimFirst()
+        {
+            var session = OpenShop(2, Stranger);
+            var waiting = session.CurrentCustomer;
+            Assert.That(waiting, Is.Not.Null);
+            Assert.That(session.RequestClose(), Is.True, "Held open for the last visitor.");
+            Assert.That(asked, Is.EqualTo(1));
+            Assert.That(session.IsOpen, Is.True);
+            Assert.That(session.CurrentCustomer, Is.Null, "The visitor at the counter goes.");
+            Assert.That(session.LastDeparture.CustomerId, Is.EqualTo(waiting.Id));
+            Assert.That(session.LastDeparture.Outcome, Is.EqualTo(CustomerOutcome.ShopClosed));
+            Assert.That(session.RequestClose(), Is.True, "Closing again still waits for him.");
+            Assert.That(asked, Is.EqualTo(1));
+            float clock = session.RemainingSeconds;
+            Assert.That(session.AdvanceCustomer(), Is.True, "He walks in, though time is left and goods are on display.");
+            ReadToEnd(session);
+            Assert.That(session.IsOpen, Is.False, "After his last line the shop is closed.");
+            Assert.That(session.LastMessage, Is.EqualTo(TradingSession.ClosedNotice));
+            Assert.That(session.RemainingSeconds, Is.EqualTo(clock), "The rest of the shift is kept.");
+            Assert.That(session.DisplayCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ThePlayerClosingWithoutHimClosesAtOnce()
+        {
+            var session = OpenShop(2, () => null);
+            Assert.That(session.RequestClose(), Is.False);
+            Assert.That(session.IsOpen, Is.False);
+            Assert.That(asked, Is.EqualTo(1));
+            Assert.That(session.LastMessage, Is.EqualTo(TradingSession.ClosedNotice));
+            Assert.That(session.Open(), Is.True, "Time is left: a new shift may open and ask again.");
+            Assert.That(session.RequestClose(), Is.False);
+            Assert.That(asked, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TheBulkBuyerTakingEverythingBringsHimAfter()
+        {
+            var session = OpenShop(3, Stranger, bulkBuyerFirst: true);
+            var buyer = session.CurrentCustomer;
+            Assert.That(buyer.IsBulkBuyer, Is.True);
+            Assert.That(session.AcceptBulkOffer(buyer.Id), Is.True);
+            Assert.That(session.DisplayCount, Is.Zero);
+            Assert.That(asked, Is.EqualTo(1));
+            Assert.That(session.IsOpen, Is.True, "The shop waits for him.");
+            Assert.That(session.AdvanceCustomer(), Is.True);
+            ReadToEnd(session);
+            Assert.That(session.IsOpen, Is.False);
+            Assert.That(session.LastMessage, Does.StartWith("Скупщик забрал всё: 3 шт."));
         }
 
         [Test]

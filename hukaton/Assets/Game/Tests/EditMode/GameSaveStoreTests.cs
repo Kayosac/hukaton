@@ -275,9 +275,9 @@ namespace Hakaton.Game.Tests
             Assert.That((popups.opensSinceAttack, popups.secondsSinceAttack, popups.record, popups.attackPending), Is.EqualTo((0, 0f, 0, false)));
         }
 
-        /// <summary>The stranger's bad-luck guard counts closings across saves; older saves start it from zero.</summary>
+        /// <summary>The old chance's count of closings is kept in the save as it was (older saves still read); it decides nothing.</summary>
         [Test]
-        public void StrangerChancesRoundTripAndOlderSavesStartFromZero()
+        public void StrangerChancesStillRoundTripAndOlderSavesStartFromZero()
         {
             var domains = new Domains();
             var captured = domains.Capture();
@@ -292,18 +292,15 @@ namespace Hakaton.Game.Tests
             Assert.That((older.endlessVisited, older.strangerChances), Is.EqualTo((true, 0)));
         }
 
-        /// <summary>Each shift that ends by itself rolls the chance; the guaranteed one brings him whatever the roll.</summary>
+        /// <summary>Balance stage 6: no chance any more — he comes once, at the first closing with 1616 revenue.</summary>
         [Test]
-        public void StrangerComesByChanceAndForSureOnTheGuaranteedClosing()
+        public void TheStrangerComesOnceWithTheRevenueAndNeverByChance()
         {
-            for (int closing = 1; closing < 6; closing++)
-            {
-                Assert.That(GameLoop.StrangerComes(closing, 6, .3f, .29f), Is.True, "A lucky roll brings him at closing " + closing);
-                Assert.That(GameLoop.StrangerComes(closing, 6, .3f, .3f), Is.False, "An unlucky roll keeps him away at closing " + closing);
-            }
-            Assert.That(GameLoop.StrangerComes(6, 6, .3f, .99f), Is.True, "The sixth closing brings him for sure.");
-            Assert.That(GameLoop.StrangerComes(9, 6, 0, 1), Is.True, "Past the guard (an older save, a changed setting): still for sure.");
-            Assert.That(GameLoop.StrangerComes(1, 0, 0, 1), Is.True, "A guard below one acts as one.");
+            Assert.That(GameLoop.StrangerDue(false, 1616, 1616), Is.True);
+            Assert.That(GameLoop.StrangerDue(false, 5000, 1616), Is.True);
+            Assert.That(GameLoop.StrangerDue(false, 1615, 1616), Is.False, "One coin short: not yet.");
+            Assert.That(GameLoop.StrangerDue(true, 5000, 1616), Is.False, "Once per game.");
+            Assert.That(GameLoop.StrangerDue(false, 0, 1616), Is.False, "The first endless outing alone no longer brings him.");
         }
 
         /// <summary>«Выносливость» is the player's own section; saves from before it load as nothing bought.</summary>
