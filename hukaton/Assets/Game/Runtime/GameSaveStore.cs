@@ -55,6 +55,9 @@ namespace Hakaton.Game
         /// <summary>The frightened Гвоздик on the PC: which of his two scenes were shown, and at which outing the last.
         /// Missing in old saves: none shown yet.</summary>
         public Hakaton.Computer.PcNailFearSave nailFear;
+        /// <summary>The goals chain (balance stage 6): the goblin's first card, the first loot home, the goblin after the god,
+        /// the end of the demo, the side goals. Missing in older saves: worked out from the rest (GoalChain.FromOlderSave).</summary>
+        public GoalsSave goals;
 
         /// <summary>«Выносливость» steps bought on the PC (0 when the save predates them).</summary>
         public int StaminaLevel => player != null ? player.staminaLevel : 0;

@@ -107,6 +107,7 @@ namespace Hakaton.Game.Tests
             Assert.That(menu.CompleteActiveGoal(), Is.False);
             game.SkipTutorial();
             Assert.That(game.CanCompleteActiveGoal, Is.True);
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.GoblinCard), "After the tutorial the chain starts with the goblin.");
             Assert.That(game.PlaceChoiceUnlocked, Is.False);
             int coins = game.wallet.Wallet.Balance;
             int sales = game.trade.Session.SalesCount;
@@ -115,15 +116,21 @@ namespace Hakaton.Game.Tests
 
             menu.SetOpen(true);
             yield return null;
-            Assert.That(game.goalsBlock.activeSelf, Is.True, "The unfinished revenue goal is listed.");
-            Assert.That(game.objectiveLabel.text, Does.Contain("/" + game.revenueGoal));
+            Assert.That(game.goalsBlock.activeSelf, Is.True, "The first goal is listed.");
+            Assert.That(game.objectiveLabel.text, Is.EqualTo(GoalChain.GoblinCardLine));
+            Assert.That(menu.CompleteActiveGoal(), Is.True);
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.BringLoot));
+            Assert.That(menu.CompleteActiveGoal(), Is.True);
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.FirstRevenue));
+            Assert.That(game.objectiveLabel.text, Is.EqualTo("Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal));
+            Assert.That(game.GoalReached, Is.False);
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.GoalReached, Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
             Assert.That(game.EndlessWorldUnlocked, Is.False, "The endless world waits for the god.");
-            Assert.That(game.CanCompleteActiveGoal, Is.False);
-            Assert.That(game.goalsBlock.activeSelf, Is.False, "A completed goal leaves the list.");
-            Assert.That(menu.CompleteActiveGoal(), Is.False);
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.MeetGod), "The next goal follows the revenue goal.");
+            Assert.That(game.goalsBlock.activeSelf, Is.True);
+            Assert.That(game.objectiveLabel.text, Is.EqualTo(GoalChain.MeetGodLine));
             Assert.That(game.wallet.Wallet.Balance, Is.EqualTo(coins));
             Assert.That(game.trade.Session.SalesCount, Is.EqualTo(sales));
             Assert.That(game.trade.Session.Inventory.Select(item => item.Id), Is.EqualTo(stock));
@@ -132,13 +139,14 @@ namespace Hakaton.Game.Tests
             Assert.That(GameSaveStore.Load(game.SavePath, game.ValidateSave, out var save, out var warning), Is.True, warning);
             Assert.That(save.shop.grossRevenue, Is.EqualTo(game.revenueGoal));
             Assert.That(save.goalCelebrated, Is.True);
+            Assert.That((save.goals.goblinCardBought, save.goals.lootBroughtHome), Is.EqualTo((true, true)));
             Assert.That(game.Restore(save), Is.True);
             Assert.That(game.PlaceChoiceUnlocked, Is.True);
-            Assert.That(game.CanCompleteActiveGoal, Is.False);
-            Assert.That(game.goalsBlock.activeSelf, Is.False);
-            // An older save below the goal lists it again.
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.MeetGod));
+            // A save from before the goals were done lists the first goal again.
             Assert.That(game.Restore(beforeGoal), Is.True);
             Assert.That(game.GoalReached, Is.False);
+            Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.GoblinCard));
             Assert.That(game.goalsBlock.activeSelf, Is.True);
             menu.SetOpen(false);
             LogAssert.NoUnexpectedReceived();

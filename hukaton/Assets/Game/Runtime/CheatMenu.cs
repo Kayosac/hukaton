@@ -249,8 +249,10 @@ namespace Hakaton.Game
         public bool CompleteActiveGoal()
         {
             bool completed = game.CompleteActiveGoal();
-            status = completed ? "Цель выполнена. Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal + "."
-                : "Нет активной цели. Цель выручки доступна после обучения.";
+            var next = game.CurrentGoal;
+            status = completed ? "Цель выполнена. " + (next == MainGoal.None ? "Целей больше нет." : "Дальше: " + GoalChain.MainLine(next,
+                    game.trade.Session.GrossRevenue, game.GoalMarks) + ".")
+                : "Нет активной цели. Цели начинаются после обучения.";
             return completed;
         }
 

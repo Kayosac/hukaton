@@ -135,6 +135,13 @@ namespace Hakaton.Game
         [Min(.05f)] public float departFadeSeconds = .35f;
         [Header("Progress")]
         [Min(1)] public int revenueGoal = 404;
+        [Tooltip("The goals chain's later revenue goals (balance stage 6). The locks of the first goal (the place choice, the " +
+                 "goblin's friendly trade, the special items, the bulk buyer) stay on revenueGoal.")]
+        [Min(1)] public int secondRevenueGoal = 808;
+        [Min(1)] public int thirdRevenueGoal = 1616;
+        [Min(1)] public int lastRevenueGoal = 3232;
+        [Tooltip("How long a new main goal's line glows in goalCaptionColour, seconds.")]
+        [Min(0)] public float goalHighlightSeconds = 2;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
@@ -144,7 +151,28 @@ namespace Hakaton.Game
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
         public GamePhase Phase { get; private set; }
         public bool GoalReached => trade.Session != null && trade.Session.GrossRevenue >= revenueGoal;
-        public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && !GoalReached;
+        /// <summary>The cheat completes the current main goal, whichever it is (after the tutorial, while a goal is left).</summary>
+        public bool CanCompleteActiveGoal => Ready && !InCave && !tutorial.Active && CurrentGoal != MainGoal.None;
+        /// <summary>The revenue marks of the goals chain: the first is <see cref="revenueGoal"/>.</summary>
+        public GoalMarks GoalMarks => new GoalMarks(revenueGoal, secondRevenueGoal, thirdRevenueGoal, lastRevenueGoal);
+        /// <summary>The main goal the player has now (balance stage 6): the first of the chain not done yet.</summary>
+        public MainGoal CurrentGoal => trade && trade.Session != null ? GoalChain.Main(GoalFactsNow(), GoalMarks) : MainGoal.None;
+        /// <summary>What the goals chain knows of the game now.</summary>
+        public GoalFacts GoalFactsNow() => new GoalFacts
+        {
+            given = GoalGiven, revenue = trade.Session.GrossRevenue, goblinCardBought = goblinCardBought,
+            lootBroughtHome = lootBroughtHome, godMet = godMet, goblinAfterGod = goblinAfterGod, finaleShown = finaleShown
+        };
+        // The goals chain's own facts (saved in GameSave.goals).
+        bool goblinCardBought, lootBroughtHome, goblinAfterGod, finaleShown;
+        // The main goal on screen; a change is announced (sound, the line glowing, the banner of a revenue goal) once the
+        // goals are in view. A loaded save takes its goal silently.
+        MainGoal shownGoal;
+        bool goalsTracked, goalFanfarePending;
+        string goalNoticePending;
+        float goalHighlightUntil;
+        Color objectiveColour = Color.white;
+        long bannerTarget;
         /// <summary>The first goal is the player's once the cave and the shop tutorial are behind him: only then is it listed.</summary>
         public bool GoalGiven => !InCave && !tutorial.Active;
         /// <summary>Map points marked «after the revenue goal» (the god's «?») appear only once it is reached.</summary>
@@ -220,9 +248,9 @@ namespace Hakaton.Game
         bool shopWasOpen;
         int salesAtOpen;
         float noticeUntil, nextTimedSave;
-        // The big «new goal» banner: armed when the tutorial ends in front of the player (or a new game starts after it),
+        // The big «new goal» banner of a revenue goal: armed when that goal becomes the main one in front of the player,
         // shown once the screen is free. A loaded save never shows it again.
-        bool goalBannerPending, tutorialWasRunning;
+        bool goalBannerPending;
         float goalBannerAt;
 
         void Start()
@@ -326,8 +354,11 @@ namespace Hakaton.Game
             }
             pendingStart = null;
             restoring = false; Ready = true;
-            if (afterTutorial) { dirty = true; ArmGoalBanner(); }
-            tutorialWasRunning = !GoalGiven;
+            if (afterTutorial) dirty = true;
+            // A loaded save takes its current goal silently; a new game announces its first one.
+            goalsTracked = !loaded;
+            objectiveColour = objectiveLabel.color;
+            cardShop.Bought += NoteGoblinCardBought;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
             else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
@@ -339,6 +370,7 @@ namespace Hakaton.Game
         void OnDestroy()
         {
             if (trade) trade.ExpeditionRequested -= TryDepartFromDoor;
+            if (services && cardShop) cardShop.Bought -= NoteGoblinCardBought;
             if (outingMap) outingMap.Changed -= MarkDirty;
             if (workshop) workshop.OutingCompleted -= CompleteOuting;
             if (trade?.Session != null) trade.Session.Changed -= MarkDirty;
@@ -382,11 +414,11 @@ namespace Hakaton.Game
             if (Popups) Popups.CountPlayTime(Time.unscaledDeltaTime);
             // Once the endless world is open, the first shift opened with a full display starts with the bulk buyer.
             trade.Session.BulkBuyerPromised = EndlessWorldUnlocked;
+            celebratedNow = false;
             TrackShift();
             // The whole tutorial is behind the player: a later new game may skip it.
             if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
-            if (tutorialWasRunning && GoalGiven) ArmGoalBanner();
-            tutorialWasRunning = !GoalGiven;
+            TrackGoals();
             TryShowGoalBanner();
             TrackStranger();
             TickHapay();
@@ -394,7 +426,7 @@ namespace Hakaton.Game
             {
                 if (GoalReached && !goalCelebrated && !trade.Session.IsOpen && !services.IsOpen && !LectureActive)
                 {
-                    goalCelebrated = true; dirty = true;
+                    goalCelebrated = true; dirty = true; celebratedNow = true;
                     if (sfx) sfx.Play(goalCue);
                     var eye = trade.World.ViewCamera.transform;
                     VfxBurst.Spawn(goalConfetti, eye.position + eye.forward * 2.5f + Vector3.up * .6f, Quaternion.identity, null, Color.white);
@@ -505,6 +537,48 @@ namespace Hakaton.Game
             MarkDirty();
         }
 
+        void NoteGoblinCardBought(CardCopy copy)
+        {
+            if (goblinCardBought) return;
+            goblinCardBought = true;
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// Follows the goals chain: records the goblin's first visit after the god, and when the main goal changes in front
+        /// of the player arms its announcement (sound, glow, the banner of a revenue goal, «Выручка N взята.»).
+        /// </summary>
+        void TrackGoals()
+        {
+            // «Загляни к гоблину»: his table laid at least once after the god (and after the goblin's word about him).
+            if (godMet && !godLectureRunning && !goblinAfterGod && cardShop.IsOpen) { goblinAfterGod = true; dirty = true; }
+            var goal = CurrentGoal;
+            if (goal == shownGoal) { goalsTracked = true; return; }
+            var previous = shownGoal;
+            shownGoal = goal;
+            if (!goalsTracked) { goalsTracked = true; return; }
+            if (previous != MainGoal.None)
+                for (var taken = previous; taken != goal && taken <= MainGoal.LastRevenue; taken++)
+                {
+                    string notice = GoalChain.TakenNotice(taken, GoalMarks);
+                    if (notice != null) goalNoticePending = notice;
+                }
+            goalFanfarePending = goal != MainGoal.None || goalNoticePending != null;
+            if (GoalChain.IsRevenueGoal(goal)) { bannerTarget = GoalChain.RevenueTarget(goal, GoalMarks); ArmGoalBanner(); }
+        }
+
+        /// <summary>The goals are in view: the new main goal's sound and glow, and the notice of a revenue goal just taken.</summary>
+        void AnnounceGoal(bool celebrating)
+        {
+            if (!goalFanfarePending) return;
+            goalFanfarePending = false;
+            // The first goal's own celebration has just played the same sound.
+            if (!celebrating && sfx) sfx.Play(goalCue);
+            if (shownGoal != MainGoal.None) goalHighlightUntil = Time.unscaledTime + goalHighlightSeconds;
+            if (goalNoticePending != null) Notify(goalNoticePending, 5);
+            goalNoticePending = null;
+        }
+
         void ArmGoalBanner()
         {
             goalBannerPending = true;
@@ -512,16 +586,17 @@ namespace Hakaton.Game
             goalBannerAt = Time.unscaledTime + 1;
         }
 
-        /// <summary>The first goal is given: its name comes up in big letters over the shop, once nothing else holds the screen.</summary>
+        /// <summary>A revenue goal is the main one now: its name comes up in big letters over the shop, once nothing else holds the screen.</summary>
         void TryShowGoalBanner()
         {
             if (!goalBannerPending) return;
-            if (GoalReached) { goalBannerPending = false; return; }
+            if (trade.Session.GrossRevenue >= bannerTarget) { goalBannerPending = false; return; }
             if (Time.unscaledTime < goalBannerAt || Phase != GamePhase.Shop || !GoalGiven || GamePause.Suspended || LectureActive
                 || services.IsOpen || trade.Session.IsOpen || expedition.Returning || departing || !fade || fade.Busy) return;
             goalBannerPending = false;
             if (sfx) sfx.Play(titleCue);
-            fade.StartCoroutine(fade.ShowBanner(("Выручка: " + revenueGoal + " " + Coins(revenueGoal)).ToUpperInvariant(),
+            int target = (int)Math.Min(int.MaxValue, bannerTarget);
+            fade.StartCoroutine(fade.ShowBanner(("Выручка: " + target + " " + Coins(target)).ToUpperInvariant(),
                 "Новая цель лавки", goalBannerSeconds, goalBannerScale, goalCaptionScale, goalCaptionColour));
         }
         static string Coins(int n)
@@ -531,7 +606,7 @@ namespace Hakaton.Game
             return ones == 1 ? "монета" : ones >= 2 && ones <= 4 ? "монеты" : "монет";
         }
 
-        bool progressHudLost;
+        bool progressHudLost, celebratedNow;
         void RefreshProgress()
         {
             if (!Ready) return;
@@ -547,12 +622,18 @@ namespace Hakaton.Game
                 return;
             }
             progressCanvas.enabled = Phase == GamePhase.Shop && !services.IsOpen && !trade.Session.IsOpen;
-            // A completed goal leaves the list. The revenue goal is the only one, so its title goes too (the block, not the
-            // labels: their shadows mirror activeSelf). An older save below the goal lists it again. During the tutorial
-            // the goal is not the player's yet, so nothing is listed until it ends (with the big banner).
-            bool goalListed = GoalGiven && !GoalReached;
+            // One main goal at a time (GoalChain). The block goes when there is none (in the tutorial, after the last goal):
+            // the block, not the labels, as their shadows mirror activeSelf.
+            var goal = CurrentGoal;
+            bool goalListed = goal != MainGoal.None;
             if (goalsBlock.activeSelf != goalListed) goalsBlock.SetActive(goalListed);
-            if (goalListed) objectiveLabel.text = "- Выручка: " + trade.Session.GrossRevenue + "/" + revenueGoal;
+            if (goalListed)
+            {
+                objectiveLabel.text = GoalChain.MainLine(goal, trade.Session.GrossRevenue, GoalMarks);
+                if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
+                objectiveLabel.color = Time.unscaledTime < goalHighlightUntil ? goalCaptionColour : objectiveColour;
+            }
+            else if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
         public void Notify(string message, float seconds = 5)
@@ -721,6 +802,8 @@ namespace Hakaton.Game
             if (expedition.NextPlace == OutingPlace.Endless) endlessVisited = true;
             SyncPoolStage();
             int kept = delivery.Sum(x => x.count);
+            // «Принеси добычу»: an outing has come home with at least one find.
+            if (kept > 0) lootBroughtHome = true;
             // Nothing brought back but goods in the shop: the session has given at least half a shift.
             bool halfShift = trade.Session.LastReturn == ShiftReturn.HalfShift;
             // After a defeat the world's own line says what came home (DefeatLoot.Notice): «Поражение. Домой пришло …»;
@@ -842,10 +925,27 @@ namespace Hakaton.Game
             return true;
         }
 
-        /// <summary>Completes the current revenue goal; the normal goal celebration and unlocks still apply.</summary>
+        /// <summary>
+        /// Cheats: completes the current main goal. A revenue goal (404, 808, 1616, 3232) gets its revenue without coins or
+        /// sales; the god counts as met (as <see cref="MarkGodMet"/>); the others are marked done (the end of the demo as shown,
+        /// without its title). The normal goal celebration and unlocks still apply.
+        /// </summary>
         public bool CompleteActiveGoal()
         {
-            if (!CanCompleteActiveGoal || !trade.Session.CompleteRevenueGoal(revenueGoal)) return false;
+            if (!CanCompleteActiveGoal) return false;
+            var goal = CurrentGoal;
+            switch (goal)
+            {
+                case MainGoal.GoblinCard: goblinCardBought = true; break;
+                case MainGoal.BringLoot: lootBroughtHome = true; break;
+                case MainGoal.MeetGod: MarkGodMet(); break;
+                case MainGoal.GoblinNews: goblinAfterGod = true; break;
+                case MainGoal.WorkShift: finaleShown = true; break;
+                default:
+                    if (!trade.Session.CompleteRevenueGoal(GoalChain.RevenueTarget(goal, GoalMarks))) return false;
+                    break;
+            }
+            dirty = true;
             RefreshProgress();
             SaveNow(); // During an outing, Changed keeps the progress dirty until the return to the shop.
             return true;
@@ -880,7 +980,9 @@ namespace Hakaton.Game
             guides = guides ? guides.Progress.Save() : null,
             hapay = hapay ? hapay.Market.Save() : null,
             popups = Popups ? Popups.Save() : null,
-            nailFear = NailFear ? NailFear.Save() : null
+            nailFear = NailFear ? NailFear.Save() : null,
+            goals = new GoalsSave { version = GoalsSave.Current, goblinCardBought = goblinCardBought, lootBroughtHome = lootBroughtHome,
+                goblinAfterGod = goblinAfterGod, finaleShown = finaleShown }
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
         static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
@@ -936,6 +1038,7 @@ namespace Hakaton.Game
             if (Popups) Popups.Restore(save.popups);
             if (NailFear) NailFear.Restore(save.nailFear);
             goalCelebrated = save.goalCelebrated;
+            RestoreGoals(save);
             drownLectureGiven = save.drownLectureGiven;
             shiftClockLineGiven = save.shiftClockLineGiven;
             // Saves from before the forgiven first drowning: a player who has heard the goblin about water has drowned already.
@@ -945,6 +1048,28 @@ namespace Hakaton.Game
             RefreshProgress(); // The goals list follows the restored revenue at once.
             return true;
         }
+        /// <summary>
+        /// The goals chain's facts from the save. A save from before the chain (no record) gets them from what it holds
+        /// (GoalChain.FromOlderSave): its revenue and the god, the goblin's table, an outing back with goods in the shop, the
+        /// items the goblin opens after the god.
+        /// </summary>
+        void RestoreGoals(GameSave save)
+        {
+            bool goblinSold = save.goblin?.offer?.sold != null && save.goblin.offer.sold.Contains(true);
+            bool outingWithGoods = save.cards != null && save.cards.journeys > 0
+                && trade.Session.Inventory.Count + trade.Session.DisplayCount > 0;
+            bool afterGodItems = false;
+            if (specialItems && specialItems.catalog)
+                foreach (var item in specialItems.catalog.Items)
+                    if (item && item.unlock >= SpecialItemUnlock.AfterGod
+                        && (specialItems.Inventory.WasIntroduced(item.id) || specialItems.Inventory.Owns(item.id))) afterGodItems = true;
+            var goals = GoalChain.FromOlderSave(save.goals, trade.Session.GrossRevenue, save.godMet, goblinSold, outingWithGoods, afterGodItems);
+            goblinCardBought = goals.goblinCardBought;
+            lootBroughtHome = goals.lootBroughtHome;
+            goblinAfterGod = goals.goblinAfterGod;
+            finaleShown = goals.finaleShown;
+        }
+
         public bool SaveNow()
         {
             if (!Ready || !persistProgress || restoring || preserveInvalidSave || startingOver || Phase != GamePhase.Shop || expedition.Returning) return false;
