@@ -65,6 +65,19 @@ namespace Hakaton.Expeditions
 
         /// <summary>The world the current (or next) outing goes to: the endless one unless the ready place was chosen.</summary>
         public IOutingWorld OutingWorld => activeWorld ?? ChosenWorld;
+        /// <summary>
+        /// How far (on the ground, metres) the player stands from the centre of the outing's world (the endless world's start
+        /// hill); 0 in a world without one, in the prologue, underground, and between outings.
+        /// </summary>
+        public float DistanceFromCentre
+        {
+            get
+            {
+                if (!Running || InPrologue || !motor || !(activeWorld is IOutingCentre world) || !world.TryGetCentre(out var centre)) return 0;
+                var offset = motor.transform.position - centre;
+                return new Vector2(offset.x, offset.z).magnitude;
+            }
+        }
         IOutingWorld ChosenWorld => NextPlace == OutingPlace.Ready && readyWorld ? readyWorld : outingWorld as IOutingWorld;
         IOutingWorld activeWorld;
         /// <summary>Chosen at the door before departing; read when the outing begins.</summary>

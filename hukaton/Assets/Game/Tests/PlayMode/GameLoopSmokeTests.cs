@@ -118,8 +118,11 @@ namespace Hakaton.Game.Tests
             yield return null;
             Assert.That(game.goalsBlock.activeSelf, Is.True, "The first goal is listed.");
             Assert.That(game.objectiveLabel.text, Is.EqualTo(GoalChain.GoblinCardLine));
+            Assert.That(game.sideGoalLabel.text, Is.Empty, "No side goal under goal 1.");
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.BringLoot));
+            Assert.That(game.CurrentSideGoal, Is.EqualTo(SideGoal.TrophyCard), "The side goal of goals 2–3.");
+            Assert.That(game.sideGoalLabel.text, Is.EqualTo(GoalChain.TrophyCardLine));
             Assert.That(menu.CompleteActiveGoal(), Is.True);
             Assert.That(game.CurrentGoal, Is.EqualTo(MainGoal.FirstRevenue));
             Assert.That(game.objectiveLabel.text, Is.EqualTo("Выручка: " + game.trade.Session.GrossRevenue + "/" + game.revenueGoal));

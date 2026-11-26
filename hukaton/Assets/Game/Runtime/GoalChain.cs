@@ -82,7 +82,6 @@ namespace Hakaton.Game
         public const string GoblinNewsLine = "Загляни к гоблину: у него новинки";
         public const string WorkShiftLine = "Отработай смену до конца";
         public const string TrophyCardLine = "+ Добудь трофейную карту: 0/1";
-        public const string GoFarLine = "+ Отойди от холма на 250 м";
         public const string FindAnthillLine = "+ Найди Муравейник";
 
         /// <summary>Is this goal done?</summary>
@@ -158,6 +157,57 @@ namespace Hakaton.Game
                 lootBroughtHome = early || outingWithGoods,
                 goblinAfterGod = godMet && afterGodItems
             };
+        }
+
+        /// <summary>Is this side goal done?</summary>
+        public static bool Done(SideGoal goal, in GoalFacts facts)
+        {
+            switch (goal)
+            {
+                case SideGoal.TrophyCard: return facts.trophyCardTaken;
+                case SideGoal.FullDisplay: return facts.displayFilled;
+                case SideGoal.GoFar: return facts.wentFar;
+                case SideGoal.FindAnthill: return facts.anthillFound;
+                default: return true;
+            }
+        }
+
+        /// <summary>Is the side goal's window open while <paramref name="main"/> is the main goal?</summary>
+        public static bool InWindow(SideGoal goal, MainGoal main)
+        {
+            switch (goal)
+            {
+                case SideGoal.TrophyCard: return main == MainGoal.BringLoot || main == MainGoal.FirstRevenue;
+                case SideGoal.FullDisplay: return main == MainGoal.SecondRevenue;
+                case SideGoal.GoFar: return main == MainGoal.SecondRevenue || main == MainGoal.ThirdRevenue;
+                case SideGoal.FindAnthill: return main == MainGoal.ThirdRevenue || main == MainGoal.WorkShift;
+                default: return false;
+            }
+        }
+
+        /// <summary>
+        /// The side goal shown under <paramref name="main"/>: the first, in order, whose window is open and that is not done
+        /// yet. One at a time: the next waits until the one before is done or its window has closed.
+        /// </summary>
+        public static SideGoal Side(MainGoal main, in GoalFacts facts)
+        {
+            for (var goal = SideGoal.TrophyCard; goal <= SideGoal.FindAnthill; goal++)
+                if (InWindow(goal, main) && !Done(goal, facts)) return goal;
+            return SideGoal.None;
+        }
+
+        /// <summary>The side line as the player reads it: <paramref name="display"/> of <paramref name="slots"/> places taken,
+        /// <paramref name="farMetres"/> to walk from the hill.</summary>
+        public static string SideLine(SideGoal goal, int display, int slots, int farMetres)
+        {
+            switch (goal)
+            {
+                case SideGoal.TrophyCard: return TrophyCardLine;
+                case SideGoal.FullDisplay: return "+ Заполни витрину: " + display + "/" + slots;
+                case SideGoal.GoFar: return "+ Отойди от холма на " + farMetres + " м";
+                case SideGoal.FindAnthill: return FindAnthillLine;
+                default: return "";
+            }
         }
 
         /// <summary>An older save with this much revenue is past goals 1 and 2.</summary>

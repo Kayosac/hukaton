@@ -178,5 +178,59 @@ namespace Hakaton.Game.Tests
             }
             finally { Directory.Delete(directory, true); }
         }
+
+        [Test]
+        public void SideGoalsComeOneAtATimeInTheirWindows()
+        {
+            var facts = Given();
+            Assert.That(GoalChain.Side(MainGoal.GoblinCard, facts), Is.EqualTo(SideGoal.None));
+            Assert.That(GoalChain.Side(MainGoal.BringLoot, facts), Is.EqualTo(SideGoal.TrophyCard));
+            Assert.That(GoalChain.Side(MainGoal.FirstRevenue, facts), Is.EqualTo(SideGoal.TrophyCard));
+            Assert.That(GoalChain.Side(MainGoal.MeetGod, facts), Is.EqualTo(SideGoal.None), "Not done by the end of its window: it just goes.");
+            Assert.That(GoalChain.Side(MainGoal.GoblinNews, facts), Is.EqualTo(SideGoal.None));
+            Assert.That(GoalChain.Side(MainGoal.SecondRevenue, facts), Is.EqualTo(SideGoal.FullDisplay), "The display first, the walk waits.");
+            facts.displayFilled = true;
+            Assert.That(GoalChain.Side(MainGoal.SecondRevenue, facts), Is.EqualTo(SideGoal.GoFar));
+            Assert.That(GoalChain.Side(MainGoal.ThirdRevenue, facts), Is.EqualTo(SideGoal.GoFar));
+            facts.wentFar = true;
+            Assert.That(GoalChain.Side(MainGoal.ThirdRevenue, facts), Is.EqualTo(SideGoal.FindAnthill));
+            Assert.That(GoalChain.Side(MainGoal.WorkShift, facts), Is.EqualTo(SideGoal.FindAnthill));
+            Assert.That(GoalChain.Side(MainGoal.LastRevenue, facts), Is.EqualTo(SideGoal.None));
+            facts.anthillFound = true;
+            Assert.That(GoalChain.Side(MainGoal.WorkShift, facts), Is.EqualTo(SideGoal.None));
+        }
+
+        [Test]
+        public void AWindowClosedWithoutTheGoalLetsTheNextOneIn()
+        {
+            var facts = Given();
+            // The display was never filled while 808 was the goal: with 1616 the walk is next.
+            Assert.That(GoalChain.Side(MainGoal.ThirdRevenue, facts), Is.EqualTo(SideGoal.GoFar));
+            // Never walked 250 m: past 1616 the anthill is next.
+            Assert.That(GoalChain.Side(MainGoal.WorkShift, facts), Is.EqualTo(SideGoal.FindAnthill));
+            // Done before its window: never shown.
+            facts.trophyCardTaken = true;
+            Assert.That(GoalChain.Side(MainGoal.BringLoot, facts), Is.EqualTo(SideGoal.None));
+            facts.anthillFound = true;
+            Assert.That(GoalChain.Side(MainGoal.WorkShift, facts), Is.EqualTo(SideGoal.None));
+        }
+
+        [Test]
+        public void TheSideLinesAsThePlayerReadsThem()
+        {
+            Assert.That(GoalChain.SideLine(SideGoal.TrophyCard, 0, 6, 250), Is.EqualTo("+ Добудь трофейную карту: 0/1"));
+            Assert.That(GoalChain.SideLine(SideGoal.FullDisplay, 4, 6, 250), Is.EqualTo("+ Заполни витрину: 4/6"));
+            Assert.That(GoalChain.SideLine(SideGoal.GoFar, 0, 6, 250), Is.EqualTo("+ Отойди от холма на 250 м"));
+            Assert.That(GoalChain.SideLine(SideGoal.FindAnthill, 0, 6, 250), Is.EqualTo("+ Найди Муравейник"));
+            Assert.That(GoalChain.SideLine(SideGoal.None, 0, 6, 250), Is.Empty);
+        }
+
+        [Test]
+        public void TheSideGoalsSurviveSaveAndLoad()
+        {
+            var record = new GoalsSave { version = GoalsSave.Current, trophyCardTaken = true, displayFilled = false, wentFar = true };
+            var copy = UnityEngine.JsonUtility.FromJson<GoalsSave>(UnityEngine.JsonUtility.ToJson(record));
+            Assert.That((copy.trophyCardTaken, copy.displayFilled, copy.wentFar), Is.EqualTo((true, false, true)));
+        }
     }
 }

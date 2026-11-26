@@ -17,7 +17,7 @@ namespace Hakaton.WorldAssembly.Unity
     /// restored when it loads again. Chunks are as alive as the Old Apiary: what burns there burns here (through
     /// <see cref="fire"/>), its trees can be awakened, its loose props pushed about.
     /// </summary>
-    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld, IOutingLocation, IOutingCheats
+    public sealed class WorldStreamer : MonoBehaviour, IOutingWorld, IOutingLocation, IOutingCheats, IOutingCentre
     {
         [Header("Content")]
         public ChunkCatalog catalog;
@@ -135,6 +135,13 @@ namespace Hakaton.WorldAssembly.Unity
                 if (!dungeons) dungeons = gameObject.AddComponent<DungeonSite>();
                 return dungeons;
             }
+        }
+
+        /// <summary>The start hill (the world's origin); not underground, where the dungeon lies elsewhere.</summary>
+        public bool TryGetCentre(out Vector3 centre)
+        {
+            centre = Origin;
+            return Active && !(dungeons && dungeons.Underground);
         }
 
         public void EndOuting()

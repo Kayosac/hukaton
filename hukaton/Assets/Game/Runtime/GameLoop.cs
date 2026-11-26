@@ -142,6 +142,15 @@ namespace Hakaton.Game
         [Min(1)] public int lastRevenueGoal = 3232;
         [Tooltip("How long a new main goal's line glows in goalCaptionColour, seconds.")]
         [Min(0)] public float goalHighlightSeconds = 2;
+        [Tooltip("The side goal «+ Отойди от холма на … м»: how far from the endless world's start hill, metres.")]
+        [Min(1)] public int farGoalMetres = 250;
+        [Tooltip("The side goal's line under the main one (Pixeloid, more modest than the main line; its shadow mirrors it). " +
+                 "Empty: no side goals on screen.")]
+        public TMP_Text sideGoalLabel;
+        [Tooltip("On an outing, under the goals: «В сумке: N шт · ≈ S» (finds carried and their base prices). Empty: no line.")]
+        public TMP_Text bagLabel;
+        [Tooltip("The goals list's title («ЦЕЛИ:»); on an outing the list moves down by outingGoalsShift, clear of the hearts.")]
+        public RectTransform goalsTitle;
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
         [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
@@ -161,10 +170,15 @@ namespace Hakaton.Game
         public GoalFacts GoalFactsNow() => new GoalFacts
         {
             given = GoalGiven, revenue = trade.Session.GrossRevenue, goblinCardBought = goblinCardBought,
-            lootBroughtHome = lootBroughtHome, godMet = godMet, goblinAfterGod = goblinAfterGod, finaleShown = finaleShown
+            lootBroughtHome = lootBroughtHome, godMet = godMet, goblinAfterGod = goblinAfterGod, finaleShown = finaleShown,
+            trophyCardTaken = trophyCardTaken, displayFilled = displayFilled, wentFar = wentFar,
+            anthillFound = expedition && expedition.Firsts != null && expedition.Firsts.anthillLineShown
         };
+        /// <summary>The side goal the player has now, under the main one (one at a time).</summary>
+        public SideGoal CurrentSideGoal => trade && trade.Session != null ? GoalChain.Side(CurrentGoal, GoalFactsNow()) : SideGoal.None;
         // The goals chain's own facts (saved in GameSave.goals).
-        bool goblinCardBought, lootBroughtHome, goblinAfterGod, finaleShown;
+        bool goblinCardBought, lootBroughtHome, goblinAfterGod, finaleShown, trophyCardTaken, displayFilled, wentFar;
+        SideGoal shownSide;
         // The main goal on screen; a change is announced (sound, the line glowing, the banner of a revenue goal) once the
         // goals are in view. A loaded save takes its goal silently.
         MainGoal shownGoal;
@@ -359,6 +373,7 @@ namespace Hakaton.Game
             goalsTracked = !loaded;
             objectiveColour = objectiveLabel.color;
             cardShop.Bought += NoteGoblinCardBought;
+            if (expedition.trophies) expedition.trophies.Arrived += NoteTrophyCard;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
             else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
@@ -371,6 +386,7 @@ namespace Hakaton.Game
         {
             if (trade) trade.ExpeditionRequested -= TryDepartFromDoor;
             if (services && cardShop) cardShop.Bought -= NoteGoblinCardBought;
+            if (expedition && expedition.trophies) expedition.trophies.Arrived -= NoteTrophyCard;
             if (outingMap) outingMap.Changed -= MarkDirty;
             if (workshop) workshop.OutingCompleted -= CompleteOuting;
             if (trade?.Session != null) trade.Session.Changed -= MarkDirty;
@@ -419,6 +435,7 @@ namespace Hakaton.Game
             // The whole tutorial is behind the player: a later new game may skip it.
             if (Phase == GamePhase.Shop && !tutorial.Active && !InCave) MenuProgress.MarkTutorialCompleted();
             TrackGoals();
+            TrackSideGoal();
             TryShowGoalBanner();
             TrackStranger();
             TickHapay();
@@ -567,6 +584,30 @@ namespace Hakaton.Game
             if (GoalChain.IsRevenueGoal(goal)) { bannerTarget = GoalChain.RevenueTarget(goal, GoalMarks); ArmGoalBanner(); }
         }
 
+        void NoteTrophyCard(CardCopy card)
+        {
+            if (trophyCardTaken) return;
+            trophyCardTaken = true;
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// The side goal: records the full display (only while it is the goal), the walk away from the hill; a side goal
+        /// done goes with <see cref="goalCue"/> (one whose window closed just goes).
+        /// </summary>
+        void TrackSideGoal()
+        {
+            var side = CurrentSideGoal;
+            if (side == SideGoal.FullDisplay && trade.Session.DisplayCount >= trade.Session.Slots.Count) { displayFilled = true; dirty = true; }
+            if (!wentFar && Phase == GamePhase.Expedition && !InCave && !InGodMountains && expedition.DistanceFromCentre > farGoalMetres)
+            { wentFar = true; MarkDirty(); }
+            side = CurrentSideGoal;
+            if (side == shownSide) return;
+            var previous = shownSide;
+            shownSide = side;
+            if (previous != SideGoal.None && GoalChain.Done(previous, GoalFactsNow()) && progressCanvas.enabled && sfx) sfx.Play(goalCue);
+        }
+
         /// <summary>The goals are in view: the new main goal's sound and glow, and the notice of a revenue goal just taken.</summary>
         void AnnounceGoal(bool celebrating)
         {
@@ -633,6 +674,9 @@ namespace Hakaton.Game
                 if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
                 objectiveLabel.color = Time.unscaledTime < goalHighlightUntil ? goalCaptionColour : objectiveColour;
             }
+            if (sideGoalLabel)
+                sideGoalLabel.text = goalListed ? GoalChain.SideLine(CurrentSideGoal, trade.Session.DisplayCount, trade.Session.Slots.Count,
+                    farGoalMetres) : "";
             else if (progressCanvas.enabled) AnnounceGoal(celebratedNow);
             resultLabel.text = Time.unscaledTime < noticeUntil && string.IsNullOrEmpty(trade.Notice) ? LastNotice : string.Empty;
         }
@@ -982,7 +1026,8 @@ namespace Hakaton.Game
             popups = Popups ? Popups.Save() : null,
             nailFear = NailFear ? NailFear.Save() : null,
             goals = new GoalsSave { version = GoalsSave.Current, goblinCardBought = goblinCardBought, lootBroughtHome = lootBroughtHome,
-                goblinAfterGod = goblinAfterGod, finaleShown = finaleShown }
+                goblinAfterGod = goblinAfterGod, finaleShown = finaleShown, trophyCardTaken = trophyCardTaken,
+                displayFilled = displayFilled, wentFar = wentFar }
         };
         /// <summary>Items taken out of the game. Old saves still hold them in stock: they quietly drop out on load.</summary>
         static readonly string[] RetiredItems = { "common_find", "special_find", "blue_mushroom", "fire_seed", "ice_amber", "wind_feather" };
@@ -1068,6 +1113,9 @@ namespace Hakaton.Game
             lootBroughtHome = goals.lootBroughtHome;
             goblinAfterGod = goals.goblinAfterGod;
             finaleShown = goals.finaleShown;
+            trophyCardTaken = goals.trophyCardTaken;
+            displayFilled = goals.displayFilled;
+            wentFar = goals.wentFar;
         }
 
         public bool SaveNow()
