@@ -17,8 +17,8 @@ namespace Hakaton.Expeditions.Cards
         [Header("Board numbers (I / II / III)")]
         [Tooltip("Tiers a chest goes up (board: +1 / +1 / +2).")]
         public LevelInt tierSteps = new LevelInt(1, 1, 2);
-        [Tooltip("Coins of the gilded chest times this (table 13.11: ×1 / ×1.5 / ×2).")]
-        public LevelFloat coinMultiplier = new LevelFloat(1, 1.5f, 2);
+        [Tooltip("Coins of the gilded chest times this (balance stage 9: ×1 / ×1.25 / ×1.5; was ×1 / ×1.5 / ×2).")]
+        public LevelFloat coinMultiplier = new LevelFloat(1, 1.25f, 1.5f);
 
         [Header("Chests")]
         [Tooltip("The plain chest of every tier (Expedition/Prefabs/Chests): a gilded chest takes the tier and model of the one a rank up.")]

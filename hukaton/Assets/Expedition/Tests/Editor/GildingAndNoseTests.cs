@@ -45,8 +45,12 @@ namespace Hakaton.Expeditions.Tests
             Assert.That(effect, Is.Not.Null);
             Assert.That(effect.tierSteps.ToArray(), Is.EqualTo(new[] { 1, 1, 2 }));
             Assert.That(effect.coinMultiplier.At(1), Is.EqualTo(1));
-            Assert.That(effect.coinMultiplier.At(2), Is.EqualTo(1.5f));
-            Assert.That(effect.coinMultiplier.At(3), Is.EqualTo(2));
+            // Balance stage 9: ×1 / 1,25 / 1,5 (was ×1 / 1,5 / 2); the code's default the same.
+            Assert.That(effect.coinMultiplier.At(2), Is.EqualTo(1.25f));
+            Assert.That(effect.coinMultiplier.At(3), Is.EqualTo(1.5f));
+            var defaults = ScriptableObject.CreateInstance<GildingEffect>();
+            Assert.That(new[] { defaults.coinMultiplier.i, defaults.coinMultiplier.ii, defaults.coinMultiplier.iii }, Is.EqualTo(new[] { 1f, 1.25f, 1.5f }));
+            Object.DestroyImmediate(defaults);
             Assert.That(effect.TopRank, Is.EqualTo(5));
             for (int rank = 1; rank <= 5; rank++)
             {
