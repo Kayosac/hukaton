@@ -421,6 +421,9 @@ namespace Hakaton.Character.Tests.PlayMode
             // Six 0.25 m steps up; the last one is a long landing.
             for (int i = 1; i <= steps; i++)
                 Block($"Step {i}", i * rise, edge + (i - 1) * tread, i < steps ? edge + i * tread : edge + 12);
+            // The standing eye is read once the eye has eased out of the spawn (the body drops its 2 cm onto the floor): under
+            // a loaded editor the set-up's 0.2 s can be a few long frames, and the eye was read 2 cm off.
+            yield return Advance(.5f);
             float standingEye = motor.view.cameraTransform.position.y - FloorTop.y;
             var recorder = PlayerFrameRecorder.Attach(motor);
             Keys(Key.W);
