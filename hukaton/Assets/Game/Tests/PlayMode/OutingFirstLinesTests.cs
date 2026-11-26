@@ -64,8 +64,11 @@ namespace Hakaton.Game.Tests
             Assert.That(Time.time, Is.LessThan(world.NoticeUntil), "The line is on screen.");
             Assert.That(world.NoteAnthillApproached(), Is.True);
             Assert.That(world.Notice, Is.EqualTo("Муравейник. Внутри темно и бьют больно. „Пора домой“ работает и там."));
+            // A once-per-game line holds its five seconds: a passing notice does not replace it meanwhile.
             world.Announce("другое", 1);
-            yield return new WaitForSeconds(.8f); // past the protection after the hit
+            Assert.That(world.Notice, Is.EqualTo(ExpeditionWorld.AnthillLine), "The line holds its time.");
+            yield return new WaitForSeconds(ExpeditionWorld.FirstLineSeconds + .1f); // past its time and the protection after the hit
+            world.Announce("другое", 1);
             Assert.That(world.vitals.Hurt(1, Vector3.zero, null, true), Is.True);
             Assert.That(world.NoteAnthillApproached(), Is.False);
             Assert.That(world.Notice, Is.EqualTo("другое"), "Neither line comes twice.");
