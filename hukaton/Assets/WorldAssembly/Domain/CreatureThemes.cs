@@ -31,7 +31,7 @@ namespace Hakaton.WorldAssembly
         {
             // Scenes of flat chunks. Ring 0 is calm but for a pinch of bee swarms and pumpkin rats (about 2% of its
             // creatures each); leshy skaters and baseball roosters come about equally in rings 0 and 1.
-            ["apiary"] = new Theme("zombie-beekeeper|bee-swarm", "bee-swarm*3|bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm", "enraged-bee-mutant+bee-swarm*2|bee-swarm*4"),
+            ["apiary"] = new Theme("zombie-beekeeper|bee-swarm", "bee-swarm*2|bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm", "enraged-bee-mutant+bee-swarm*2|bee-swarm*4"),
             ["farm"] = new Theme("rooster-baseball*2|rooster-baseball|rooster-baseball|rat-pumpkin*1-2", Rats + "|" + Rats + "+rooster-baseball*2", Rats + "|" + Dogs2 + "+" + Rats),
             ["camp"] = new Theme("kind-little-worm*2", Dogs1 + "|" + Rats, Dogs2 + "+drunken-dwarf-robot|goblin-dog*3"),
             // The floating clown turns up alone in odd places, in ring 1 only: the ruins (and the yard), the fort.
@@ -52,11 +52,11 @@ namespace Hakaton.WorldAssembly
             // Landmarks: their rewards are guarded by these.
             ["fort"] = new Theme("purple-mushroom*2", "drunken-dwarf-robot+" + Dogs1 + "|" + Clown, "drunken-dwarf-robot*2"),
             ["crater"] = new Theme("purple-mushroom*3", "budding-troll", "budding-troll+purple-mushroom*2"),
-            ["watchhill"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*3", Dogs2 + "|goblin-dog*3"),
-            ["beeyard"] = new Theme("zombie-beekeeper*2", "bee-swarm*3+zombie-beekeeper|enraged-bee-mutant+bee-swarm*2", "enraged-bee-mutant+bee-swarm*3"),
+            ["watchhill"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*2", Dogs2 + "|goblin-dog*3"),
+            ["beeyard"] = new Theme("zombie-beekeeper*2", "bee-swarm*2+zombie-beekeeper|enraged-bee-mutant+bee-swarm*2", "enraged-bee-mutant+bee-swarm*3"),
             ["village"] = new Theme("rooster-baseball*2", Rats + "+rooster-baseball", Dogs2 + "+" + Rats),
             ["stone-forest"] = new Theme("teen-leshy-skater", "teen-leshy-skater*2", Dogs2),
-            ["mesa"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*3", Dogs2 + "|goblin-dog*3"),
+            ["mesa"] = new Theme("kind-little-worm*2", Dogs1 + "|bee-swarm*2", Dogs2 + "|goblin-dog*3"),
             ["sinkhole"] = new Theme("purple-mushroom*3", "purple-mushroom*3" + "|" + Agaric1, "purple-mushroom*3+" + Dogs1 + "|" + Agaric2),
             ["lake"] = new Theme("snail-frog-mount", "snail-frog-mount*2", Dogs1 + "+snail-frog-mount"),
             ["flooded-village"] = new Theme("rooster-baseball*2" + "|" + Drowned, Rats + "+snail-frog-mount" + "|" + Drowned, Mutant2 + "+" + Rats + "|" + Drowned),
