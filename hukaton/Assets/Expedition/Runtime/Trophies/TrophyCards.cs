@@ -38,8 +38,8 @@ namespace Hakaton.Expeditions
             new HealthBand { upToHealth = 3, chance = .2f }, new HealthBand { upToHealth = 8, chance = .35f },
             new HealthBand { upToHealth = 15, chance = .55f }, new HealthBand { upToHealth = 9999, chance = .85f },
         };
-        [Tooltip("Opened chests by their rank 1–5 (beggar … legendary).")]
-        public float[] chestsByRank = { .4f, .55f, .75f, .9f, 1f };
+        [Tooltip("Opened chests by their rank 1–5 (beggar … legendary). Balance stage 9: ranks 1–2 give a card more often (60 / 70 %).")]
+        public float[] chestsByRank = { .6f, .7f, .75f, .9f, 1f };
         [Tooltip("Chests of this rank and up give a card of at least this rarity (legendary: 3+).")]
         [Range(1, 5)] public int richChestRank = 5;
         [Range(1, 5)] public int richChestCardRank = 3;
@@ -123,10 +123,13 @@ namespace Hakaton.Expeditions
         public void ChestOpened(ChestTier tier, Vector3 at)
         {
             if (!Allowed || !tier) return;
-            float chance = chestsByRank.Length == 0 ? 0 : chestsByRank[Mathf.Clamp(tier.rank, 1, chestsByRank.Length) - 1];
-            if (Always || random.NextDouble() < chance)
+            if (Always || random.NextDouble() < ChestChance(tier.rank))
                 Give(at, tier.rank >= richChestRank ? richChestCardRank : 1, TrophyCardRules.LevelByChestRank(tier.rank, levelTwoChestRank, levelThreeChestRank));
         }
+
+        /// <summary>The chance that an opened chest of <paramref name="rank"/> (1–5, clamped) leaves a card (<see cref="chestsByRank"/>).</summary>
+        public float ChestChance(int rank) =>
+            chestsByRank == null || chestsByRank.Length == 0 ? 0 : chestsByRank[Mathf.Clamp(rank, 1, chestsByRank.Length) - 1];
 
         /// <summary>A chest mimic was killed.</summary>
         public void MimicKilled(Vector3 at)
