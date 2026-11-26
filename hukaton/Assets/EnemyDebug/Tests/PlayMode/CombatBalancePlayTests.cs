@@ -218,6 +218,60 @@ namespace Hakaton.EnemyDebug.Tests.PlayMode
             Assert.That(squeezes[0], Is.EqualTo(.75f).Within(.1f), "the first squeeze after 0.75 s");
             Assert.That(squeezes[1] - squeezes[0], Is.EqualTo(.75f).Within(.1f), "and the next 0.75 s later");
         }
+        [UnityTest]
+        public IEnumerator ClownDodgesAboutOneCardInFive()
+        {
+            var clown = Spawn("Floating clown emoji");
+            Assert.That(clown.dodge.chance, Is.EqualTo(.2f));
+            Assert.That(clown.dodge.cooldown, Is.EqualTo(3f));
+            yield return Stand(clown, 9);
+            clown.Damage(0, Vector3.zero, clown.Centre, 0);
+            yield return Wait(.3f);
+            const System.Reflection.BindingFlags Private = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var nextDodge = typeof(WorldCreature).GetField("nextDodge", Private);
+            var weighed = (System.Collections.Generic.HashSet<CardProjectile>)typeof(WorldCreature).GetField("weighedCards", Private).GetValue(clown);
+            var velocity = typeof(CardProjectile).GetField("velocity", Private);
+            Random.InitState(20261126);
+            int throws = 0, dodges = 0, missed = 0;
+            float cooldownSeen = 0;
+            while (throws < 200)
+            {
+                // Its cooldown is checked once below; here every card gets its own roll.
+                nextDodge.SetValue(clown, 0f);
+                // A card a moment before it would hit the clown (25 m/s, 1.5 m out), as the clown weighs a thrown card.
+                var go = new GameObject("Test card in flight");
+                go.SetActive(false);
+                var card = go.AddComponent<CardProjectile>();
+                card.view = new GameObject("Test card view").AddComponent<CardView>();
+                card.view.transform.SetParent(go.transform);
+                Vector3 way = clown.Centre - sandbox.motor.transform.position;
+                way.y = 0;
+                way = way.sqrMagnitude > .01f ? way.normalized : Vector3.forward;
+                velocity.SetValue(card, way * 25);
+                go.transform.position = clown.Centre - way * 1.5f;
+                go.SetActive(true);
+                float until = Time.time + 4;
+                while (Time.time < until && !weighed.Contains(card))
+                {
+                    yield return null;
+                    go.transform.position = clown.Centre - way * 1.5f;
+                }
+                bool rolled = weighed.Contains(card), dodged = clown.Blinking;
+                if (dodged && cooldownSeen == 0) cooldownSeen = (float)nextDodge.GetValue(clown) - Time.time;
+                Object.Destroy(go);
+                yield return null;
+                if (!rolled) { if (++missed > 20) break; continue; }
+                throws++;
+                if (dodged) dodges++;
+                until = Time.time + 4;
+                while (Time.time < until && clown.Blinking) yield return null;
+            }
+            Debug.Log($"[stage-8] clown: {dodges} dodges of {throws} cards ({(float)dodges / Mathf.Max(1, throws):P1}), cooldown after a dodge {cooldownSeen:0.00} s");
+            Assert.That(throws, Is.EqualTo(200), "the clown weighed every card");
+            // 200 rolls at 20%: 40 ± 5.7; the band is 3.5 standard deviations.
+            Assert.That(dodges, Is.InRange(20, 60), "about one card in five is dodged");
+            Assert.That(cooldownSeen, Is.EqualTo(3).Within(.1f), "the next dodge only after 3 s");
+        }
     }
 }
 #endif
