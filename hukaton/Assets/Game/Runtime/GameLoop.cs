@@ -159,8 +159,12 @@ namespace Hakaton.Game
         public Vector2 outingGoalsShift = new Vector2(0, -16);
         public bool persistProgress = true;
         public string saveFile = "hakaton-v1.json";
-        [Tooltip("A new game started «after the tutorial» gets what the two lesson sales would have earned (cap 69 + fang 104).")]
-        [Min(0)] public int tutorialEarnings = 173;
+        [Tooltip("A new game started «after the tutorial» gets these coins in the wallet (balance stage 10: 100, about what " +
+                 "a played tutorial leaves; the two lesson sales alone would be 173).")]
+        [Min(0)] public int tutorialEarnings = 100;
+        [Tooltip("...and this much revenue, as if the lessons had been sold at the counter (balance stage 10). Old saves are " +
+                 "not touched: it is given only to a new game started «after the tutorial».")]
+        [Min(0)] public int tutorialRevenue = 100;
         [Header("Locomotion tuning")]
         public float shopWalkSpeed = 2.1f, shopSprintSpeed = 3.5f, shopJumpHeight = .45f;
         public float worldWalkSpeed = 4f, worldSprintSpeed = 6.5f, worldJumpHeight = 1.2f;
@@ -371,7 +375,11 @@ namespace Hakaton.Game
             {
                 FreshStart = true;
                 afterTutorial = pendingStart == NewGameStart.AfterTutorial;
-                if (afterTutorial) wallet.Wallet.Credit(tutorialEarnings);
+                if (afterTutorial)
+                {
+                    wallet.Wallet.Credit(tutorialEarnings);
+                    trade.Session.AddRevenue(tutorialRevenue);
+                }
                 else if (cave) EnterCave();
                 else tutorial.Begin();
             }
@@ -389,7 +397,7 @@ namespace Hakaton.Game
             cardShop.Bought += NoteGoblinCardBought;
             if (expedition.trophies) expedition.trophies.Arrived += NoteTrophyCard;
             if (tutorial.Active || cave && cave.Active) Notify(string.Empty, 0);
-            else Notify(warning ?? (trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
+            else Notify(warning ?? (!loaded || trade.Session.GrossRevenue == 0 && trade.Session.Inventory.Count == 0
                 ? "Колоды готовы. Выйдите через дверь за первой добычей.\nЦель лавки — " + revenueGoal + " монет выручки."
                 : "С возвращением. Запас, колоды и выручка сохранены."), 9);
             RefreshProgress();

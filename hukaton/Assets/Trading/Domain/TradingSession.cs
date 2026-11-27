@@ -817,6 +817,18 @@ namespace Hakaton.Trading
 
         public ItemDefinition FindDefinition(string id) => catalog.Find(definition => definition.Id == id);
 
+        /// <summary>
+        /// Revenue earned away from this counter (a new game started «after the tutorial» gets what its lessons would have
+        /// sold): no sale is counted and no coin is credited. Nothing for zero or less.
+        /// </summary>
+        public bool AddRevenue(long amount)
+        {
+            if (amount <= 0) return false;
+            GrossRevenue = checked(GrossRevenue + amount);
+            Touch();
+            return true;
+        }
+
         /// <summary>Debug/cheat helper: completes a revenue target without inventing a sale or crediting the wallet.</summary>
         public bool CompleteRevenueGoal(long target)
         {

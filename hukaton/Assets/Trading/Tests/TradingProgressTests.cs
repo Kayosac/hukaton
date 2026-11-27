@@ -68,6 +68,29 @@ namespace Hakaton.Trading.Tests
             Assert.That(restored.SalesCount, Is.Zero);
         }
 
+        /// <summary>Balance stage 10: a new game «after the tutorial» starts with revenue, but no sale and no coin.</summary>
+        [Test]
+        public void RevenueFromAwayAddsUpWithoutASaleOrCoinsAndPersists()
+        {
+            var wallet = new CoinWallet(100);
+            var session = Create(wallet);
+            int changes = 0;
+            session.Changed += () => changes++;
+            Assert.That(session.AddRevenue(100), Is.True);
+            Assert.That(session.AddRevenue(0), Is.False);
+            Assert.That(session.AddRevenue(-5), Is.False);
+            Assert.That(session.GrossRevenue, Is.EqualTo(100));
+            Assert.That(changes, Is.EqualTo(1));
+            Assert.That(session.SalesCount, Is.Zero);
+            Assert.That(session.SettlementSequence, Is.Zero);
+            Assert.That(wallet.Balance, Is.EqualTo(100), "no coin credited");
+            Assert.That(session.AddRevenue(4), Is.True);
+            Assert.That(session.GrossRevenue, Is.EqualTo(104), "it adds up");
+            var restored = Create(wallet);
+            Assert.That(restored.TryRestore(session.Save()), Is.True);
+            Assert.That(restored.GrossRevenue, Is.EqualTo(104));
+        }
+
         [Test]
         public void RevenueCountsSalesAndSurvivesSpendingWithoutChangingSharedWalletOnRestore()
         {
