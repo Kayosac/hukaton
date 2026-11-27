@@ -1939,7 +1939,9 @@ namespace Hakaton.WorldAssembly.Tests
             var air = streamer.GetComponent<WorldAtmosphere>();
             var life = streamer.GetComponent<SwampLife>();
             Assert.That(life, Is.Not.Null, "the swamp's life runs with the air");
-            yield return WaitFor(() => air.Strength(WorldAtmosphere.Swamp) > .8f && life.Banks >= 3, 12);
+            // The air settles in game time (`WorldAtmosphere.settle`): under the load of a full run the streaming after the
+            // teleport stalls frames and game time falls behind the clock, so the wait is counted in game time too.
+            yield return WaitForGameTime(() => air.Strength(WorldAtmosphere.Swamp) > .8f && life.Banks >= 3, 12, 60);
             Assert.That(air.Strength(WorldAtmosphere.Swamp), Is.GreaterThan(.8f), "swamp air");
             Assert.That(life.Banks, Is.GreaterThanOrEqualTo(3), "fog banks wander round the player");
             var look = streamer.GetComponentsInChildren<UnityEngine.Rendering.Volume>().FirstOrDefault(v => v.name == "Swamp look");
@@ -2526,6 +2528,13 @@ namespace Hakaton.WorldAssembly.Tests
         {
             float end = Time.realtimeSinceStartup + seconds;
             while (!condition() && Time.realtimeSinceStartup < end) yield return null;
+        }
+
+        /// <summary>Waits up to <paramref name="gameSeconds"/> of game time (and never longer than <paramref name="realSeconds"/>).</summary>
+        static IEnumerator WaitForGameTime(System.Func<bool> condition, float gameSeconds, float realSeconds)
+        {
+            float end = Time.time + gameSeconds, realEnd = Time.realtimeSinceStartup + realSeconds;
+            while (!condition() && Time.time < end && Time.realtimeSinceStartup < realEnd) yield return null;
         }
     }
 }
