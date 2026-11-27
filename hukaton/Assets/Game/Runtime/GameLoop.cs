@@ -351,7 +351,13 @@ namespace Hakaton.Game
             if (player.stamina) player.stamina.Upgrade.Changed += MarkDirty;
             if (expedition.vitals) expedition.vitals.Upgrade.Changed += MarkDirty;
             if (lecture) lecture.Finished += OnLectureFinished;
-            if (guides) guides.Progress.Changed += MarkDirty;
+            if (guides)
+            {
+                guides.Progress.Changed += MarkDirty;
+                // Balance stage 10: before the first outing only the rope and the goblin's card are explained; the
+                // brazier's and the PC's tours wait for the first departure (the PC's help can still replay them).
+                guides.AutoStart = () => workshop.Model.Journeys > 0;
+            }
             // Anthills are small until a prize chest has been opened (saved): a new game starts with none opened.
             Hakaton.Expeditions.DungeonProgress.Restore(false);
             Hakaton.Expeditions.DungeonProgress.Changed += MarkDirty;
@@ -1163,7 +1169,8 @@ namespace Hakaton.Game
                 else outingMap.Forget(outingMap.SiteFor(OutingPlace.Endless));
             }
             if (specialItems) specialItems.Restore(save.specialItems);
-            if (guides) guides.Progress.Restore(save.guides);
+            // A record from before the PC's parts keeps what was seen (balance stage 10).
+            if (guides) guides.Progress.Restore(save.guides, Hakaton.Computer.PcGuide.UpgradeOlderRecord);
             if (hapay) hapay.Market.Restore(save.hapay);
             if (Popups) Popups.Restore(save.popups);
             if (NailFear) NailFear.Restore(save.nailFear);

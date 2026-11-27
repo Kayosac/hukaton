@@ -9,11 +9,13 @@ using UnityEngine.UI;
 namespace Hakaton.Computer
 {
     /// <summary>
-    /// The PC's first-open guide, told by «Гоблинсофт»'s helper, one window at a time instead of one long lecture:
-    /// the desktop at the first start-up (it ends with the player opening «Карты»), «Карты» at their first opening
-    /// (counts, shades, a click in and out of the deck, a merge shown on two pretend cards, the hover card, sorting,
-    /// the status line), «Прокачка» and «Склад» at their first opening. Nothing can merge while the helper talks. Esc
-    /// skips all of it; the help window's «Показать экскурсию снова» brings it all back (the brazier's too).
+    /// The PC's first-open guide, told by «Гоблинсофт»'s helper, in parts, each when it is needed (balance stage 10):
+    /// a short look at the desktop at the first start-up (who he is and what is here), «Карты» at their first opening
+    /// (counts, shades, a click in and out of the deck, the hover card, sorting, the status line, «Пуск»), the merge
+    /// (shown on two pretend cards) when «Карты» open with two equal copies to merge, «Прокачка» and «Склад» at their
+    /// first opening. None starts by itself before the first outing (<see cref="GuideRunner.AutoStartAllowed"/>).
+    /// Nothing can merge while the helper talks. Esc skips the part playing; the help window's «Показать экскурсию
+    /// снова» plays them all one after another (and brings the brazier's back too).
     /// </summary>
     public sealed class PcGuide : GuideRunner
     {
@@ -26,6 +28,8 @@ namespace Hakaton.Computer
         public RectTransform demoLayer;
         public GuideTour desktopTour = new GuideTour { id = Prefix + "desktop" };
         public GuideTour cardsTour = new GuideTour { id = Prefix + "cards" };
+        [Tooltip("The merge, when «Карты» open and two equal copies can be merged (or after «Карты» in the replay).")]
+        public GuideTour mergeTour = new GuideTour { id = Prefix + "merge" };
         public GuideTour upgradesTour = new GuideTour { id = Prefix + "upgrades" };
         [Tooltip("хаPAY, at the first start-up after the account is bought (its own tour: the other PC tours being skipped does not skip it).")]
         public GuideTour hapayTour = new GuideTour
@@ -89,6 +93,34 @@ namespace Hakaton.Computer
         /// <summary>A key the guide lights for the «Склад» window (the whole window or one of its parts).</summary>
         public static bool KnowsStorageKey(string key) => key == StorageWindowKey || (key != null && StorageSpots.ContainsKey(key));
 
+        /// <summary>
+        /// A record from before the parts (balance stage 10), for <see cref="GuideProgress.Restore"/>. Whoever saw a whole
+        /// tour has seen all its parts; a tour left half-way counts the parts whose steps had already gone by. The old
+        /// desktop was hello, icons, storage-icon, start, tray, open-cards (the first three are its part now; «start» went to
+        /// «Карты», «tray» to «Прокачка», «open-cards» is gone); the old «Карты» had the merge as its fifth step (index 4).
+        /// </summary>
+        public static void UpgradeOlderRecord(GuideProgress progress, int fromVersion)
+        {
+            if (progress == null || fromVersion >= 1) return;
+            string desktop = Prefix + "desktop", cards = Prefix + "cards", merge = Prefix + "merge";
+            if (!progress.IsDone(desktop) && progress.StepOf(desktop) >= OldDesktopPartSteps) progress.Finish(desktop);
+            if (progress.IsDone(cards)) progress.Finish(merge);
+            else
+            {
+                int step = progress.StepOf(cards);
+                if (step > OldMergeStep)
+                {
+                    progress.Finish(merge);
+                    progress.SetStep(cards, step - 1);
+                }
+            }
+        }
+
+        /// <summary>The old desktop tour's steps that make the desktop part now (hello, icons, storage-icon).</summary>
+        const int OldDesktopPartSteps = 3;
+        /// <summary>Where the merge stood in the old «Карты» tour (counts, faded, toggle, toggle-back, merge…).</summary>
+        const int OldMergeStep = 4;
+
         static GuideStep Line(string key, string text) => new GuideStep { key = key, text = text, kind = GuideStepKind.Read, padding = 2 };
 
         [Header("Merge show")]
@@ -96,7 +128,10 @@ namespace Hakaton.Computer
         [Min(0)] public float cardGap = 24;
         [Min(.05f)] public float travelSeconds = .6f, dragSeconds = .9f;
 
-        GuideTour pending;
+        // Parts asked for while another one plays, in order; the replay's parts still to come.
+        readonly List<GuideTour> pending = new List<GuideTour>();
+        readonly List<GuideTour> replay = new List<GuideTour>();
+        bool replaying;
         int deckAtStart, deckBefore;
         RectTransform pretendSource, pretendTarget;
         Rect pretendArea;
@@ -141,67 +176,140 @@ namespace Hakaton.Computer
 
         void OnReady()
         {
-            // Windows left open from a short wake: carry on with the one that has a tour left.
+            if (replaying) return;
+            // Windows left open from a short wake: carry on with the one that has a part left.
             if (Try(desktopTour)) return;
-            if (Cards.window.IsOpen && Try(cardsTour)) return;
+            if (Cards.window.IsOpen && TryCards()) return;
             if (Upgrades.window.IsOpen && Try(upgradesTour)) return;
             if (Storage && Storage.window.IsOpen && Try(storageTour)) return;
             if (HapayHere) Try(hapayTour);
         }
 
         // Opened by the player before the tour got to it (the tour still starts: its first step is then already done).
-        void OnHapayOpened() { if (HapayHere) Try(hapayTour); }
+        void OnHapayOpened() { if (HapayHere && !replaying) Try(hapayTour); }
 
-        void OnCardsOpened() => Try(cardsTour);
-        void OnUpgradesOpened() => Try(upgradesTour);
+        void OnCardsOpened() { if (!replaying) TryCards(); }
+        void OnUpgradesOpened() { if (!replaying) Try(upgradesTour); }
 
         void OnStorageOpened()
         {
+            if (replaying) return;
             // Counted first, whatever order the window and the guide heard «opened» in: the steps ask about the rows.
             Storage.Refresh();
             Try(storageTour);
         }
 
+        /// <summary>«Карты»: their own part, then the merge if two equal copies can merge now. True when one began.</summary>
+        bool TryCards()
+        {
+            bool began = Try(cardsTour);
+            if (MergeDue) began |= Try(mergeTour);
+            return began;
+        }
+
+        /// <summary>Two equal copies in the collection can be merged (the merge part is about them).</summary>
+        public bool MergeDue
+        {
+            get
+            {
+                var model = computer && computer.workshop ? computer.workshop.Model : null;
+                return model != null && !model.IsAway && model.Owned.Any(c => model.MergePartners(c).Any());
+            }
+        }
+
         /// <summary>A window's part waits for its window (the desktop's needs none).</summary>
+        PcWindow WindowFor(GuideTour tour)
+        {
+            if (tour == cardsTour || tour == mergeTour) return Cards.window;
+            if (tour == upgradesTour) return Upgrades.window;
+            if (tour == storageTour) return Storage ? Storage.window : null;
+            if (tour == hapayTour) return Hapay ? Hapay.window : null;
+            return null;
+        }
+
         bool WindowOpenFor(GuideTour tour)
         {
-            if (tour == cardsTour) return Cards.window.IsOpen;
-            if (tour == upgradesTour) return Upgrades.window.IsOpen;
-            if (tour == storageTour) return Storage && Storage.window.IsOpen;
-            return true;
+            if (tour == desktopTour || tour == hapayTour) return true;
+            var window = WindowFor(tour);
+            return window && window.IsOpen;
         }
 
         void OnClosed()
         {
-            pending = null;
+            pending.Clear();
+            replay.Clear();
+            replaying = false;
             Abort();
         }
 
-        /// <summary>Starts a tour now, or right after the one playing (opening «Карты» ends the desktop's).</summary>
+        /// <summary>
+        /// Starts a part now, or right after the one playing (opening «Карты» during the desktop's). By itself only once the
+        /// game allows it (not before the first outing); хаPAY's as before.
+        /// </summary>
         bool Try(GuideTour tour)
         {
             if (Seen(tour.id) || !computer.Running) return false;
-            if (Running) { if (Tour != tour.id) pending = tour; return false; }
+            if (tour != hapayTour && !replaying && !AutoStartAllowed) return false;
+            if (Running) { if (Tour != tour.id && !pending.Contains(tour)) pending.Add(tour); return false; }
             return Begin(tour);
         }
 
         void OnFinished(string id)
         {
-            var next = pending;
-            pending = null;
-            if (next != null && computer.Running && WindowOpenFor(next)) Begin(next);
-            // The desktop's tour (or another) has ended: хаPAY's comes next if it is still to be shown.
-            else if (next == null && computer.Running && HapayHere && id != hapayTour.id) Try(hapayTour);
+            if (!computer.Running) { pending.Clear(); return; }
+            if (replaying) { NextReplayPart(); return; }
+            // The parts asked for meanwhile, in order: the first whose window is still open (the merge: while it is due).
+            while (pending.Count > 0)
+            {
+                var next = pending[0];
+                pending.RemoveAt(0);
+                if (Seen(next.id) || !WindowOpenFor(next) || next == mergeTour && !MergeDue) continue;
+                if (Begin(next)) return;
+            }
+            // The desktop's part (or another) has ended: хаPAY's comes next if it is still to be shown.
+            if (HapayHere && id != hapayTour.id) Try(hapayTour);
         }
 
-        /// <summary>«Показать экскурсию снова»: every guide is forgotten, the desktop's starts over now.</summary>
+        /// <summary>
+        /// «Показать экскурсию снова»: every guide is forgotten (the brazier's too) and the PC's parts play one after another
+        /// now — the desktop, «Карты», the merge, «Прокачка», «Склад» — each window opened for its part; then хаPAY's, if
+        /// the account is there. Esc skips the part playing, switching the PC off ends it all.
+        /// </summary>
         public void Replay()
         {
             if (Progress == null) return;
             Abort();
+            pending.Clear();
             Progress.Forget();
             Desktop.CloseAll();
-            Begin(desktopTour);
+            replay.Clear();
+            replay.Add(cardsTour);
+            replay.Add(mergeTour);
+            replay.Add(upgradesTour);
+            if (Storage) replay.Add(storageTour);
+            replaying = true;
+            if (!Begin(desktopTour)) NextReplayPart();
+        }
+
+        void NextReplayPart()
+        {
+            while (replay.Count > 0 && computer.Running)
+            {
+                var next = replay[0];
+                replay.RemoveAt(0);
+                if (Seen(next.id)) continue;
+                var window = WindowFor(next);
+                if (window && !window.IsOpen)
+                {
+                    Desktop.CloseAll();
+                    Desktop.Open(window);
+                }
+                if (next == storageTour && Storage) Storage.Refresh();
+                if (Begin(next)) return;
+            }
+            replay.Clear();
+            replaying = false;
+            if (computer.Running && HapayHere) Try(hapayTour);
         }
 
         protected override void OnBegin(string id)
@@ -223,17 +331,8 @@ namespace Hakaton.Computer
             Cards.MergeLocked = false;
         }
 
-        protected override void OnSkip(string id)
-        {
-            // хаPAY's tour is skipped on its own; skipping the others does not skip it.
-            if (id == hapayTour.id) { Progress.Finish(hapayTour.id); pending = null; return; }
-            // Esc: the whole PC guide counts as seen, not only this window's part.
-            Progress.Finish(desktopTour.id);
-            Progress.Finish(cardsTour.id);
-            Progress.Finish(upgradesTour.id);
-            Progress.Finish(storageTour.id);
-            pending = null;
-        }
+        // Esc skips the part playing only (balance stage 10): the others come when they are needed (the runner marks it seen).
+        protected override void OnSkip(string id) { }
 
         protected override void OnStep(string id, GuideStep step)
         {

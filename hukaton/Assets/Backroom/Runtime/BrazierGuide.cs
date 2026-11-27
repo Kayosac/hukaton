@@ -6,10 +6,12 @@ using UnityEngine;
 namespace Hakaton.Backroom
 {
     /// <summary>
-    /// The brazier's first opening: the goblin, heard from his hatch, walks the player through the list — the
-    /// collection count, the shades, the gas tax, the hold that burns (shown on a pretend dummy card that really flies
-    /// into the fire, the collection untouched) and the way out. Nothing can burn while he talks. Once, then never
-    /// again (Esc skips; the PC's help can bring it back).
+    /// The brazier's tour: the goblin, heard from his hatch, walks the player through the list — the collection count,
+    /// the shades, the gas tax, the hold that burns (shown on a pretend dummy card that really flies into the fire, the
+    /// collection untouched) and the way out. Nothing can burn while he talks. Balance stage 10: it comes when it is
+    /// needed — at the first opening with a «Пустышка» in the collection, or when the player first begins to burn a card
+    /// himself — and never before the first outing (<see cref="GuideRunner.AutoStartAllowed"/>). Once, then never again
+    /// (Esc skips; the PC's help can bring it back).
     /// </summary>
     public sealed class BrazierGuide : GuideRunner
     {
@@ -34,6 +36,7 @@ namespace Hakaton.Backroom
             {
                 brazier.Opened += OnOpened;
                 brazier.Closed += OnClosed;
+                brazier.BurnStarted += OnBurnStarted;
             }
         }
 
@@ -42,9 +45,23 @@ namespace Hakaton.Backroom
             if (!brazier) return;
             brazier.Opened -= OnOpened;
             brazier.Closed -= OnClosed;
+            brazier.BurnStarted -= OnBurnStarted;
         }
 
-        void OnOpened() => Begin(tour);
+        /// <summary>A «Пустышка» lies in the collection (there is something the gas tax is about).</summary>
+        public bool HasDummy => brazier && brazier.workshop && brazier.workshop.Model != null
+            && brazier.workshop.Model.Owned.Any(c => c.Spec.Dummy);
+
+        void OnOpened()
+        {
+            if (AutoStartAllowed && HasDummy) Begin(tour);
+        }
+
+        // The player's own first burn: the tour comes first (it holds the burn while it talks).
+        void OnBurnStarted()
+        {
+            if (AutoStartAllowed) Begin(tour);
+        }
 
         void OnClosed() => Abort();
 

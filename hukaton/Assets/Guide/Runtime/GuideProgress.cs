@@ -11,6 +11,11 @@ namespace Hakaton.Guide
         /// <summary>Unfinished tours and the step each stopped at (parallel lists: JsonUtility has no dictionaries).</summary>
         public List<string> started = new List<string>();
         public List<int> steps = new List<int>();
+        /// <summary>
+        /// The record's layout: 0 — before balance stage 10 (one PC tour per window, the merge inside «Карты»); 1 — the PC's
+        /// tours in parts. An older record is brought up to date by the place that split its tours (<see cref="GuideProgress.Restore"/>).
+        /// </summary>
+        public int version;
     }
 
     /// <summary>
@@ -21,6 +26,9 @@ namespace Hakaton.Guide
     {
         readonly HashSet<string> done = new HashSet<string>();
         readonly Dictionary<string, int> steps = new Dictionary<string, int>();
+
+        /// <summary>The layout this code saves (<see cref="GuideSave.version"/>).</summary>
+        public const int CurrentVersion = 1;
 
         public event Action Changed;
 
@@ -56,7 +64,7 @@ namespace Hakaton.Guide
 
         public GuideSave Save()
         {
-            var save = new GuideSave();
+            var save = new GuideSave { version = CurrentVersion };
             save.done.AddRange(done);
             save.done.Sort(StringComparer.Ordinal);
             foreach (var pair in steps)
@@ -67,8 +75,11 @@ namespace Hakaton.Guide
             return save;
         }
 
-        /// <summary>Null (a save from before the guides): nothing shown yet.</summary>
-        public void Restore(GuideSave save)
+        /// <summary>
+        /// Null (a save from before the guides): nothing shown yet. A record of an older layout is handed to
+        /// <paramref name="upgradeOlder"/> once loaded (with its version), so a tour split into parts keeps what was seen.
+        /// </summary>
+        public void Restore(GuideSave save, Action<GuideProgress, int> upgradeOlder = null)
         {
             done.Clear();
             steps.Clear();
@@ -81,6 +92,7 @@ namespace Hakaton.Guide
                     for (int i = 0; i < save.started.Count && i < save.steps.Count; i++)
                         if (!string.IsNullOrEmpty(save.started[i]) && !done.Contains(save.started[i]) && save.steps[i] > 0)
                             steps[save.started[i]] = save.steps[i];
+                if (save.version < CurrentVersion) upgradeOlder?.Invoke(this, save.version);
             }
             Changed?.Invoke();
         }

@@ -51,7 +51,7 @@ namespace Hakaton.Game.Tests
             Assert.That(pc, Is.Not.Null);
             var guide = Object.FindAnyObjectByType<PcGuide>(FindObjectsInactive.Include);
             if (guide && guide.book)
-                foreach (var tour in new[] { guide.desktopTour, guide.cardsTour, guide.upgradesTour, guide.hapayTour, guide.storageTour })
+                foreach (var tour in new[] { guide.desktopTour, guide.cardsTour, guide.mergeTour, guide.upgradesTour, guide.hapayTour, guide.storageTour })
                     guide.book.Progress.Finish(tour.id);
 
             var model = pc.workshop.Model;

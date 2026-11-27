@@ -90,6 +90,8 @@ namespace Hakaton.Backroom
         /// <summary>Nothing can be burnt (a guide is talking).</summary>
         public bool BurnLocked { get; set; }
         public event System.Action Opened, Closed;
+        /// <summary>The player has begun to hold a card over the fire (it may still be let go before it burns).</summary>
+        public event System.Action BurnStarted;
         /// <summary>The card whose gas tax is shown (under the pointer), or null.</summary>
         public OfferCardView TaxShownFor { get; private set; }
         /// <summary>A card is on its way into the fire (the list has stepped aside).</summary>
@@ -389,6 +391,7 @@ namespace Hakaton.Backroom
             }
             holding = tile;
             holdTime = 0;
+            BurnStarted?.Invoke();
         }
 
         void OnTileReleased(OfferCardView tile)

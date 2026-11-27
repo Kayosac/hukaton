@@ -36,6 +36,9 @@ namespace Hakaton.Guide
         public void Continue() => continueRequested = true;
         protected abstract IGuideVoice Voice { get; }
 
+        /// <summary>The game lets a tour start by itself now (<see cref="GuideBook.AutoStart"/>).</summary>
+        public bool AutoStartAllowed => !book || book.AutoStart == null || book.AutoStart();
+
         /// <summary>Shown or skipped already (and without a record nothing is shown).</summary>
         public bool Seen(string tour) => Progress == null || Progress.IsDone(tour);
 
