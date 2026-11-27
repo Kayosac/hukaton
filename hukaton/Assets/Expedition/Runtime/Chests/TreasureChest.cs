@@ -296,6 +296,8 @@ namespace Hakaton.Expeditions
 
             while (lid && lid.Openness < tier.spewAtOpenness) yield return null;
             yield return Payout(CoinMultiplier, 1);
+            // The first chest of the game says where its coins go (balance stage 10); a mimic's never does, even frozen.
+            if (!(Occupant is ChestMimic)) world.NoteChestOpened();
         }
 
         IEnumerator Payout(float coinMultiplier, int bonusRolls)

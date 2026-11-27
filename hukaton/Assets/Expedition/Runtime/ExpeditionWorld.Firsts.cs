@@ -29,6 +29,8 @@ namespace Hakaton.Expeditions
         public const string WilderRingLine = "Дальше звери злее, а добыча богаче.";
         /// <summary>Shown after the first mimic bite of the game (once per game).</summary>
         public const string MimicLine = "Сундук с зубами. Заморозь или брось карту в закрытый.";
+        /// <summary>Shown when the first chest of the game opened on an outing has poured out (not a mimic; once per game).</summary>
+        public const string ChestCoinsLine = "Монеты из сундука идут в кошелёк, не в выручку.";
         /// <summary>How long a once-per-game line stays, seconds: no passing notice replaces it meanwhile.</summary>
         public const float FirstLineSeconds = 5;
         /// <summary>A later line that came while another once-per-game line held the screen waits for it this long at most.</summary>
@@ -46,6 +48,18 @@ namespace Hakaton.Expeditions
         {
             if (Firsts.mimicLineShown || pendingLine == MimicLine || !Running || InPrologue) return false;
             ShowFirstLine(MimicLine);
+            return true;
+        }
+
+        /// <summary>
+        /// A chest has been opened and has poured out (<c>TreasureChest</c> tells, never for a mimic's): the first time in the
+        /// game the line about its coins comes. One coming while another once-per-game line holds the screen waits for it.
+        /// True when it was shown or queued now.
+        /// </summary>
+        public bool NoteChestOpened()
+        {
+            if (Firsts.chestLineShown || pendingLine == ChestCoinsLine || !Running || InPrologue) return false;
+            ShowFirstLine(ChestCoinsLine);
             return true;
         }
 
@@ -76,6 +90,7 @@ namespace Hakaton.Expeditions
             }
             if (text == WilderRingLine) Firsts.wilderRingLineShown = true;
             else if (text == MimicLine) Firsts.mimicLineShown = true;
+            else if (text == ChestCoinsLine) Firsts.chestLineShown = true;
             AnnounceHeld(text, FirstLineSeconds);
         }
 

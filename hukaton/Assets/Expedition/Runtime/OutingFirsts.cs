@@ -22,5 +22,7 @@ namespace Hakaton.Expeditions
         public bool wilderRingLineShown;
         /// <summary>The line about mimics has been shown (after the first mimic bite).</summary>
         public bool mimicLineShown;
+        /// <summary>The line about chest coins has been shown (the first chest of the game opened on an outing, not a mimic).</summary>
+        public bool chestLineShown;
     }
 }
