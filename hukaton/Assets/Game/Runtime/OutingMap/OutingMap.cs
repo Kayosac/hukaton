@@ -21,6 +21,8 @@ namespace Hakaton.Game
     /// The map at the door. Shows the opened outing points on the charcoal parchment; a new point grows a short step
     /// away from the one it comes from, joined to it by a dashed route, and burns and blinks until clicked. Clicking a
     /// point opens its card: name, a small view, «Идти» / «Остаться». Escape, the right button or the cross steps back.
+    /// While the map holds a single point (balance stage 10) its card opens with the map — no click on the point is
+    /// needed — and «Остаться» (or stepping back) closes the map; from two points on, as before.
     /// The parchment, routes, ring and cross share ONE runtime copy of the creatures' hand-drawn sprite material whose
     /// pixel grid follows the parchment; all icons share a second copy with a finer grid (the asset's grid is the world's,
     /// shared by every creature, so it is not touched). The grids look the same at any resolution; opening sharpens the
@@ -95,6 +97,10 @@ namespace Hakaton.Game
         public float openTilt = -4;
 
         public bool IsOpen { get; private set; }
+        /// <summary>A point's card («Идти» / «Остаться») is up.</summary>
+        public bool CardOpen => card && card.IsOpen;
+        /// <summary>The map opened straight on its only point's card (balance stage 10).</summary>
+        public bool OpenedOnTheOnlyPoint { get; private set; }
         public event Action Changed;
 
         OutingMapSave state = NewState();
@@ -223,6 +229,13 @@ namespace Hakaton.Game
             // Points drawn on an earlier look stay as they were; the new ones draw in once the parchment has opened.
             DrawMissing(openSeconds);
             if (visibility) { visibility.interactable = true; visibility.blocksRaycasts = true; }
+            // One point only: its card comes up at once, as if it had been clicked (the map is drawn as usual under it).
+            OpenedOnTheOnlyPoint = false;
+            if (state.sites.Count == 1 && card && views.TryGetValue(state.sites[0].id, out var only) && only)
+            {
+                Pick(only);
+                OpenedOnTheOnlyPoint = card.IsOpen;
+            }
         }
 
         /// <summary>Closes the map at once for input; the parchment folds away by itself.</summary>
@@ -230,6 +243,7 @@ namespace Hakaton.Game
         {
             if (!IsOpen) return;
             IsOpen = false;
+            OpenedOnTheOnlyPoint = false;
             chosen = null;
             if (card) card.Close();
             if (selected) { selected.SetSelected(false); selected = null; }
@@ -369,7 +383,8 @@ namespace Hakaton.Game
             bool back = keyboard != null && keyboard.escapeKey.wasPressedThisFrame || mouse != null && mouse.rightButton.wasPressedThisFrame;
             if (card && card.IsOpen)
             {
-                if (back)
+                if (back && OpenedOnTheOnlyPoint) Close(); // nothing else to choose: as «Остаться»
+                else if (back)
                 {
                     card.Close();
                     if (selected) { selected.SetSelected(false); selected = null; }
