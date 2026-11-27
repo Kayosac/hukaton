@@ -7,6 +7,39 @@ namespace Hakaton.Computer.Tests
     {
         static PcPopupSave Ready() => new PcPopupSave { opensSinceAttack = 1, secondsSinceAttack = 601 };
 
+        /// <summary>Balance stage 10: the game's first loss takes nothing; the next ones take the usual share.</summary>
+        [Test]
+        public void TheFirstLossIsFreeAndTheNextTakesTheUsualShare()
+        {
+            var s = new PcPopupSettings();
+            var save = new PcPopupSave { attackPending = true };
+            Assert.That(PcPopupRules.Lost(save, 1000, s, out bool free), Is.Zero);
+            Assert.That(free, Is.True);
+            Assert.That(save.freeLossUsed, Is.True);
+            Assert.That(save.attackPending, Is.False);
+            Assert.That(PcPopupRules.Lost(save, 1000, s, out free), Is.EqualTo(100));
+            Assert.That(free, Is.False);
+            Assert.That(PcPopupRules.Lost(save, 5000, s, out free), Is.EqualTo(150), "capped as before");
+            var older = UnityEngine.JsonUtility.FromJson<PcPopupSave>("{\"opensSinceAttack\":3,\"record\":7}");
+            Assert.That(older.freeLossUsed, Is.False, "a save from before: its next loss is the free one");
+        }
+
+        [Test]
+        public void TheFreeBlueScreenNamesNoTake()
+        {
+            const string line = "На первый раз вирус ничего не взял. Больше так не повезёт.";
+            var owner = new UnityEngine.GameObject("attack");
+            string template;
+            try { template = owner.AddComponent<PcPopupAttack>().crashTemplate; }
+            finally { UnityEngine.Object.DestroyImmediate(owner); }
+            string text = PcPopupRules.WithoutPenalty(template, line);
+            Assert.That(text, Does.Contain(line));
+            Assert.That(text, Does.Not.Contain("{penalty").And.Not.Contain("списал"));
+            Assert.That(text, Does.StartWith("Гоблинсофт XP"));
+            Assert.That(text, Does.Contain("РЕКЛАМА_НЕ_ЗАКРЫТА_ВОВРЕМЯ"));
+            Assert.That(PcPopupRules.WithoutPenalty("a\n\nb {penalty} c\n\nd", "X"), Is.EqualTo("a\n\nX\n\nd"));
+        }
+
         [Test]
         public void AttackComesOnlyByTheChanceOnceTheCooldownsHavePassed()
         {

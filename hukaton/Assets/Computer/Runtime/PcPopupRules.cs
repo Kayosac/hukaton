@@ -15,6 +15,9 @@ namespace Hakaton.Computer
         public int record;
         [Tooltip("An attack began and has not been won or lost on the screen yet: the next start-up is a blue screen.")]
         public bool attackPending;
+        [Tooltip("The game's first loss has been forgiven (balance stage 10): from the next one on the virus takes its share. " +
+                 "Older saves read false, so their next loss is the free one.")]
+        public bool freeLossUsed;
 
         public PcPopupSave Copy() => (PcPopupSave)MemberwiseClone();
     }
@@ -186,6 +189,38 @@ namespace Hakaton.Computer
         }
 
         public static bool Lost(int openWindows, PcPopupSettings settings) => openWindows >= settings.loseAt;
+
+        /// <summary>
+        /// A loss (on the screen or walked out of) is settled: the game's first is free (balance stage 10), the rest take
+        /// <see cref="Penalty(int, PcPopupSettings)"/>. Returns the coins to take; <paramref name="free"/> tells the first.
+        /// </summary>
+        public static int Lost(PcPopupSave save, int balance, PcPopupSettings settings, out bool free)
+        {
+            free = !save.freeLossUsed;
+            save.freeLossUsed = true;
+            save.attackPending = false;
+            return free ? 0 : Penalty(balance, settings);
+        }
+
+        /// <summary>
+        /// The blue screen's text when nothing was taken: every paragraph that names the take (<c>{penalty…}</c>) gives way to
+        /// <paramref name="line"/>, once, where the first of them stood.
+        /// </summary>
+        public static string WithoutPenalty(string template, string line)
+        {
+            if (string.IsNullOrEmpty(template)) return line;
+            var paragraphs = template.Split(new[] { "\n\n" }, StringSplitOptions.None);
+            var kept = new System.Collections.Generic.List<string>();
+            bool placed = false;
+            foreach (var paragraph in paragraphs)
+            {
+                if (paragraph.IndexOf("{penalty", StringComparison.Ordinal) < 0) { kept.Add(paragraph); continue; }
+                if (!placed && !string.IsNullOrEmpty(line)) kept.Add(line);
+                placed = true;
+            }
+            if (!placed && !string.IsNullOrEmpty(line)) kept.Add(line);
+            return string.Join("\n\n", kept);
+        }
 
         /// <summary>The virus's take: a share of the balance rounded down, at least 1 coin when there are any, capped.</summary>
         public static int Penalty(int balance, PcPopupSettings settings)

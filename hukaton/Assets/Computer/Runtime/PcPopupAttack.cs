@@ -12,7 +12,8 @@ namespace Hakaton.Computer
     /// without asking. Close them for <see cref="PcPopupSettings.roundSeconds"/>: survive and a few coins come in;
     /// let <see cref="PcPopupSettings.loseAt"/> pile up and a blue screen takes a share of the balance, then the PC
     /// restarts. Walking out of an attack (Esc, «Выключить», getting up, quitting the game) is a loss too: the blue
-    /// screen comes at the next start-up. Never during a guide, a merge or a drag, nor while <see cref="Allowed"/> says
+    /// screen comes at the next start-up. The game's first loss takes nothing (balance stage 10, <see cref="freeLossLine"/>).
+    /// Never during a guide, a merge or a drag, nor while <see cref="Allowed"/> says
     /// no (the game: the shop tutorial, the cave). Гвоздик comments (<see cref="PcHelper.Remark"/>).
     /// The windows are configured prefabs (<see cref="adPrefab"/>, <see cref="confirmPrefab"/>) spawned into
     /// <see cref="windowsRoot"/>; the rules are <see cref="PcPopupRules"/>.
@@ -97,6 +98,9 @@ namespace Hakaton.Computer
             "Вы выключили компьютер, но реклама никуда не делась. Она ждала. Минус {penalty|монета|монеты|монет}.",
             "Убегать от рекламы бесполезно: она у вас в сердце. И в кошельке: минус {penalty}."
         };
+        [Tooltip("The game's first loss takes nothing (balance stage 10): this line stands on the blue screen instead of the " +
+                 "take, and Гвоздик says it after the restart instead of the lost/escape lines.")]
+        [TextArea] public string freeLossLine = "На первый раз вирус ничего не взял. Больше так не повезёт.";
         [Tooltip("The middle-of-the-round line comes at this second.")]
         [Min(0)] public float midLineAt = 7.5f;
 
@@ -127,6 +131,12 @@ namespace Hakaton.Computer
         /// <summary>The next start-up begins with the blue screen (an attack was walked out of).</summary>
         public bool CrashPending => state.attackPending && !Attacking;
         public PcPopupSave State => state;
+        /// <summary>The last blue screen took nothing (the game's first loss).</summary>
+        public bool LastLossFree { get; private set; }
+        /// <summary>The coins the last blue screen took.</summary>
+        public int LastPenalty { get; private set; }
+        /// <summary>What Гвоздик says after the restart that follows the blue screen (null once said).</summary>
+        public string AfterRebootLine => afterReboot;
 
         PcPopupSave state = new PcPopupSave();
         readonly List<PcPopup> windows = new List<PcPopup>();
@@ -640,15 +650,17 @@ namespace Hakaton.Computer
             // No new roll right after the restart: this sitting had its attack.
             sitting = true;
             var wallet = computer && computer.workshop ? computer.workshop.Model.Wallet : null;
-            int penalty = wallet != null ? PcPopupRules.Penalty(wallet.Balance, settings) : 0;
+            // The game's first loss (also one walked out of) is free; its texts say so instead of naming a take.
+            int penalty = PcPopupRules.Lost(state, wallet != null ? wallet.Balance : 0, settings, out bool free);
             if (penalty > 0) wallet.TrySpend(penalty);
-            state.attackPending = false;
+            LastLossFree = free;
+            LastPenalty = penalty;
             Changed?.Invoke();
-            if (crashText) crashText.text = Fill(crashTemplate, 0, penalty);
+            if (crashText) crashText.text = free ? PcPopupRules.WithoutPenalty(crashTemplate, freeLossLine) : Fill(crashTemplate, 0, penalty);
             ShowCrashScreen(true);
             crashShown = true;
             crashUntil = Time.unscaledTime + settings.crashSeconds;
-            afterReboot = Fill(Pick(lostHere ? lostLines : escapeLines), 0, penalty);
+            afterReboot = free ? freeLossLine : Fill(Pick(lostHere ? lostLines : escapeLines), 0, penalty);
             lostHere = false;
             if (helper) helper.Hide();
             Cue(crashCue);

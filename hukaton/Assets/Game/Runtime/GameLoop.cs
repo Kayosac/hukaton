@@ -293,10 +293,11 @@ namespace Hakaton.Game
             if (services.computer && player.stamina) services.computer.Stamina = player.stamina.Upgrade;
             // «Сердца» on the PC: the outing hearts of the player's vitals.
             if (services.computer && expedition.vitals) services.computer.Hearts = expedition.vitals.Upgrade;
-            // «Закрой окно» on the PC: never during the shop tutorial or in the cave; its counters are saved.
+            // «Закрой окно» on the PC: never during the shop tutorial or in the cave, and not before the god has been met
+            // (balance stage 10); its counters are saved.
             if (Popups)
             {
-                Popups.Allowed = () => !tutorial.Active && !InCave;
+                Popups.Allowed = () => !tutorial.Active && !InCave && godMet;
                 Popups.Changed += MarkDirty;
             }
             // The frightened Гвоздик: after the stranger, then after хаPAY; never in the tutorial or the cave; saved.
