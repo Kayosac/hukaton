@@ -42,6 +42,8 @@ namespace Hakaton.Dungeons.Unity
         public readonly List<(int room, string name, Transform at)> Markers = new List<(int, string, Transform)>();
         NavMeshDataInstance navigation;
         NavMeshData navData;
+        /// <summary>The chambers' props in the way, a sheet each, for the navigation (see <see cref="PropFootprint"/>).</summary>
+        readonly List<Mesh> propSheets = new List<Mesh>();
 
         const float S = DungeonPlan.CellSize;
         const float RowHeight = 4f;
@@ -58,6 +60,8 @@ namespace Hakaton.Dungeons.Unity
             if (navigation.valid) navigation.Remove();
             if (navData) Kill(navData);
             navData = null;
+            foreach (var sheet in propSheets) if (sheet) Kill(sheet);
+            propSheets.Clear();
             if (Built) Kill(Built.gameObject);
             Built = null;
             Plan = null;
@@ -536,6 +540,9 @@ namespace Hakaton.Dungeons.Unity
 
         // ---------- navigation ----------
 
+        /// <summary>The navigation area "Not Walkable": geometry of this area is in the way.</summary>
+        const int NotWalkable = 1;
+
         void BuildNavigation()
         {
             var sources = new List<NavMeshBuildSource>();
@@ -563,19 +570,25 @@ namespace Hakaton.Dungeons.Unity
                 bounds.Encapsulate(center + new Vector3(S, 6, S));
                 bounds.Encapsulate(center - new Vector3(S, 2, S));
             }
-            // Hand-placed things in the chambers block the way as their colliders do.
-            // (as boxes round their colliders: model meshes are not readable at runtime, and boxes are cheap).
-            // The chambers were just placed and turned: the physics must see where their colliders are now (transforms
-            // are not synced on their own), or a turned chamber's boxes stand where its props were before the turn.
+            // Hand-placed things in the chambers block the way by the real shape of their colliders (see PropFootprint):
+            // where no body stands on them or walks under them the ground is not walkable, so the navigation keeps the
+            // agent's radius off them. The chambers were just placed and turned: the physics must see where their
+            // colliders are now (transforms are not synced on their own).
             Physics.SyncTransforms();
-            foreach (var chamber in Chambers.Values)
-                foreach (var col in chamber.GetComponentsInChildren<Collider>())
-                {
-                    if (col.isTrigger || !col.enabled) continue;
-                    var bb = col.bounds;
-                    if (bb.size.y < .25f) continue;   // flat litter does not block anyone
-                    sources.Add(new NavMeshBuildSource { shape = NavMeshBuildSourceShape.ModifierBox, transform = Matrix4x4.TRS(bb.center, Quaternion.identity, Vector3.one), size = bb.size, area = 1 });
-                }
+            var agent = NavMesh.GetSettingsByID(0);
+            var footprint = kit.Footprint;
+            footprint.radius = agent.agentRadius;
+            var placed = new List<(ChamberTemplate kind, ChamberTemplate placed)>();
+            foreach (var kv in Chambers)
+                if (kv.Value) placed.Add((Template(Plan.Rooms[kv.Key]), kv.Value));
+            var inTheWay = PropFootprint.Boxes(placed, footprint);
+            for (int c = 0; c < placed.Count; c++)
+            {
+                if (inTheWay[c].Count == 0) continue;
+                var sheet = PropFootprint.Sheet(inTheWay[c], (agent.agentClimb + agent.agentHeight) / 2);
+                propSheets.Add(sheet);
+                sources.Add(new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Mesh, sourceObject = sheet, transform = placed[c].placed.transform.localToWorldMatrix, area = NotWalkable });
+            }
             navData = NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByID(0), sources, bounds, Vector3.zero, Quaternion.identity);
             navigation = NavMesh.AddNavMeshData(navData);
         }

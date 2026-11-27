@@ -129,6 +129,26 @@ namespace Hakaton.Dungeons.Unity
         [Tooltip("How much of the open world's colour grade stays on underground (0 none, 1 all).")]
         [Range(0, 1)] public float postProcessWeight = .15f;
 
+        [Header("Navigation round the chambers' props")]
+        [Tooltip("Side of the grid the props' shape is read on (a ray down and a box over each cell, against their colliders), m.")]
+        [Min(.05f)] public float propCell = 1 / 3f;
+        [Tooltip("Highest step from one cell of that grid to the next a body takes onto a prop (so also the steepest slope it walks up), m. A body stands on the floor and on what it gets to so.")]
+        [Min(0)] public float propStep = .2f;
+        [Tooltip("Highest a body stands over the floor on a prop's top it got to so, m (the floor of the Queen's bed is up to 0.34 m).")]
+        [Min(0)] public float propStand = .4f;
+        [Tooltip("Room a body needs over the floor: it walks under a prop whose underside is higher, m.")]
+        [Min(0)] public float propHeadroom = 2f;
+        [Tooltip("Kept clear of what a body may not stand on, on top of the navigation agent's radius, m.")]
+        [Min(0)] public float propMargin = .1f;
+        [Tooltip("Colliders lower than this in all are flat litter: they stop no one, m.")]
+        [Min(0)] public float propLitter = .25f;
+
+        /// <summary>How the chambers' props are read for the navigation (<see cref="PropFootprint"/>).</summary>
+        public PropFootprint.Settings Footprint => new PropFootprint.Settings
+        {
+            cell = propCell, step = propStep, stand = propStand, headroom = propHeadroom, margin = propMargin, litter = propLitter,
+        };
+
         [Header("Planner")]
         [Range(0, 1)] public float largeChance = .4f;
         [Range(0, 1)] public float threeLevelChance = .5f;
